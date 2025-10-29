@@ -16,14 +16,11 @@ import {
   Ludusavi,
   Lock,
   DeckyPlugin,
-  ResourceCache,
 } from "@main/services";
+import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
 export const loadState = async () => {
   await Lock.acquireLock();
-
-  ResourceCache.initialize();
-  await ResourceCache.updateResourcesOnStartup();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -53,8 +50,12 @@ export const loadState = async () => {
     DeckyPlugin.checkAndUpdateIfOutdated();
   }
 
-  await HydraApi.setupApi().then(() => {
+  await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
+    void migrateDownloadSources();
+
+    const { syncDownloadSourcesFromApi } = await import("./services/user");
+    void syncDownloadSourcesFromApi();
     // WSClient.connect();
   });
 
