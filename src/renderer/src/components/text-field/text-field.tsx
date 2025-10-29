@@ -1,16 +1,13 @@
-import React, { useId, useMemo, useState } from "react";
+import React, { useId, useState } from "react";
 import { EyeClosedIcon, EyeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-
 import cn from "classnames";
-
 import "./text-field.scss";
 
-export interface TextFieldProps
-  extends React.DetailedHTMLProps<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    HTMLInputElement
-  > {
+export interface TextFieldProps extends React.DetailedHTMLProps<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  HTMLInputElement
+> {
   theme?: "primary" | "dark";
   label?: string | React.ReactNode;
   hint?: string | React.ReactNode;
@@ -42,44 +39,27 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
   ) => {
     const id = useId();
     const [isFocused, setIsFocused] = useState(false);
-
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-
     const { t } = useTranslation("forms");
-
     const showPasswordToggleButton = props.type === "password";
-
-    const inputType = useMemo(() => {
-      if (props.type === "password" && isPasswordVisible) return "text";
-      return props.type ?? "text";
-    }, [props.type, isPasswordVisible]);
-
-    const hintContent = useMemo(() => {
-      if (error)
-        return (
-          <small className="text-field-container__error-label">{error}</small>
-        );
-
-      if (hint) return <small>{hint}</small>;
-      return null;
-    }, [hint, error]);
-
+    const inputType = props.type === "password" && isPasswordVisible ? "text" : props.type ?? "text";
+    const hintContent = error ? (
+      <small className="text-field-container__error-label">{error}</small>
+    ) : hint ? (
+      <small>{hint}</small>
+    ) : null;
     const handleFocus: React.FocusEventHandler<HTMLInputElement> = (event) => {
       setIsFocused(true);
-      if (props.onFocus) props.onFocus(event);
+      props.onFocus?.(event);
     };
-
     const handleBlur: React.FocusEventHandler<HTMLInputElement> = (event) => {
       setIsFocused(false);
-      if (props.onBlur) props.onBlur(event);
+      props.onBlur?.(event);
     };
-
     const hasError = !!error;
-
     return (
       <div className="text-field-container" {...containerProps}>
         {label && <label htmlFor={id}>{label}</label>}
-
         <div className="text-field-container__text-field-wrapper">
           <div
             className={cn(
@@ -104,7 +84,6 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
               onBlur={handleBlur}
               type={inputType}
             />
-
             {showPasswordToggleButton && (
               <button
                 type="button"
@@ -120,14 +99,11 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
               </button>
             )}
           </div>
-
           {rightContent}
         </div>
-
         {hintContent}
       </div>
     );
   }
 );
-
 TextField.displayName = "TextField";
