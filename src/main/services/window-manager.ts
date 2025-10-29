@@ -24,7 +24,7 @@ import type {
   UserPreferences,
 } from "@types";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { appVersion, isStaging } from "@main/constants";
+import { isStaging } from "@main/constants";
 import { logger } from "./logger";
 
 export class WindowManager {
@@ -68,7 +68,7 @@ export class WindowManager {
       // Try to load from remote URL in production
       try {
         await window.loadURL(
-          `https://release-v${this.formatVersionNumber(appVersion)}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
+          `https://release-v${this.formatVersionNumber(app.getVersion())}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
         );
       } catch (error) {
         // Fall back to local file if remote URL fails
