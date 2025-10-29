@@ -228,7 +228,7 @@ export function GameDetailsContent() {
               </button>
             )}
 
-            {game?.shop !== "custom" && shop && objectId && (
+            {shop !== "custom" && shop && objectId && (
               <GameReviews
                 shop={shop}
                 objectId={objectId}
@@ -241,7 +241,7 @@ export function GameDetailsContent() {
             )}
           </div>
 
-          {game?.shop !== "custom" && <Sidebar />}
+          {shop !== "custom" && <Sidebar />}
         </div>
       </section>
 

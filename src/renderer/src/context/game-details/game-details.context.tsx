@@ -130,10 +130,12 @@ export function GameDetailsContextProvider({
         }
       });
 
-    window.electron.getGameStats(objectId, shop).then((result) => {
-      if (abortController.signal.aborted) return;
-      setStats(result);
-    });
+    if (shop !== "custom") {
+      window.electron.getGameStats(objectId, shop).then((result) => {
+        if (abortController.signal.aborted) return;
+        setStats(result);
+      });
+    }
 
     const assetsPromise = window.electron.getGameAssets(objectId, shop);
 
@@ -155,7 +157,7 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    if (userDetails) {
+    if (userDetails && shop !== "custom") {
       window.electron
         .getUnlockedAchievements(objectId, shop)
         .then((achievements) => {

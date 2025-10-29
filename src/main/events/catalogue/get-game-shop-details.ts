@@ -26,6 +26,8 @@ const getGameShopDetails = async (
   shop: GameShop,
   language: string
 ): Promise<ShopDetailsWithAssets | null> => {
+  if (shop === "custom") return null;
+
   if (shop === "steam") {
     const [cachedData, cachedAssets] = await Promise.all([
       gamesShopCacheSublevel.get(
