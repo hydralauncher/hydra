@@ -54,7 +54,7 @@ export function RepacksModal({
     {}
   );
 
-  const { repacks, game } = useContext(gameDetailsContext);
+  const { game, repacks } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -88,6 +88,15 @@ export function RepacksModal({
     });
   }, [repacks, isFeatureEnabled, Feature]);
 
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
+
   const sortedRepacks = useMemo(() => {
     return orderBy(
       repacks,
@@ -104,22 +113,12 @@ export function RepacksModal({
   }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
-    window.electron.getDownloadSourcesList().then((sources) => {
-      const uniqueRepackers = new Set(sortedRepacks.map((r) => r.repacker));
-      const filteredSources = sources.filter(
-        (s) => s.name && uniqueRepackers.has(s.name) && !!s.fingerprint
-      );
-      setDownloadSources(filteredSources);
-    });
-  }, [sortedRepacks]);
-
-  useEffect(() => {
     const term = filterTerm.trim().toLowerCase();
 
     const byTerm = sortedRepacks.filter((repack) => {
       if (!term) return true;
       const lowerTitle = repack.title.toLowerCase();
-      const lowerRepacker = repack.repacker.toLowerCase();
+      const lowerRepacker = repack.downloadSourceName.toLowerCase();
       return lowerTitle.includes(term) || lowerRepacker.includes(term);
     });
 
@@ -130,7 +129,7 @@ export function RepacksModal({
         (src) =>
           src.fingerprint &&
           selectedFingerprints.includes(src.fingerprint) &&
-          src.name === repack.repacker
+          src.name === repack.downloadSourceName
       );
     });
 
@@ -281,7 +280,7 @@ export function RepacksModal({
                   )}
 
                   <p className="repacks-modal__repack-info">
-                    {repack.fileSize} - {repack.repacker} -{" "}
+                    {repack.fileSize} - {repack.downloadSourceName} -{" "}
                     {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
                   </p>
 

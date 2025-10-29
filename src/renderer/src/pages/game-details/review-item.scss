@@ -1,6 +1,213 @@
 @use "../../scss/globals.scss";
 
 .game-details {
+  &__review-item {
+    overflow: hidden;
+    word-wrap: break-word;
+  }
+
+  &__review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__review-user {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+  }
+
+  &__review-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.25);
+  }
+
+  &__review-display-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    display: inline-flex;
+
+    &--clickable {
+      cursor: pointer;
+      transition: color 0.2s ease;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__review-actions {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__review-votes {
+    display: flex;
+    gap: 12px;
+  }
+
+  &__vote-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    &--active {
+      &.game-details__vote-button--upvote {
+        svg {
+          fill: white;
+        }
+      }
+
+      &.game-details__vote-button--downvote {
+        svg {
+          fill: white;
+        }
+      }
+    }
+
+    span {
+      font-weight: 500;
+      display: inline-block;
+      min-width: 1ch;
+      overflow: hidden;
+    }
+  }
+
+  &__delete-review-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 6px;
+    padding: 6px;
+    color: #f44336;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 6px;
+
+    &:hover {
+      background: rgba(244, 67, 54, 0.2);
+      border-color: #f44336;
+      color: #ff5722;
+    }
+  }
+
+  &__blocked-review-simple {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: globals.$small-font-size;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__blocked-review-show-link {
+    background: none;
+    border: none;
+    color: #ffc107;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #ffeb3b;
+    }
+  }
+
+  &__blocked-review-hide-link {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  &__review-score-stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__review-star {
+    color: #666666;
+    transition: color 0.2s ease;
+    cursor: default;
+
+    &--filled {
+      color: #ffffff;
+
+      &.game-details__review-score--red {
+        color: #fca5a5;
+      }
+
+      &.game-details__review-score--yellow {
+        color: #fcd34d;
+      }
+
+      &.game-details__review-score--green {
+        color: #86efac;
+      }
+    }
+
+    &--empty {
+      color: #666666;
+    }
+
+    svg {
+      fill: currentColor;
+    }
+  }
+
+  &__review-date {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: globals.$small-font-size;
+  }
+
+  &__review-content {
+    color: globals.$body-color;
+    line-height: 1.5;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
+  }
+
   &__review-translation-toggle {
     display: inline-flex;
     align-items: center;

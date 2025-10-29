@@ -10,6 +10,10 @@ const getGameStats = async (
   objectId: string,
   shop: GameShop
 ) => {
+  if (shop === "custom") {
+    return null;
+  }
+
   const cachedStats = await gamesStatsCacheSublevel.get(
     levelKeys.game(shop, objectId)
   );

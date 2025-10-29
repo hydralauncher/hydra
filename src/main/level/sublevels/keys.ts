@@ -18,5 +18,4 @@ export const levelKeys = {
   screenState: "screenState",
   rpcPassword: "rpcPassword",
   downloadSources: "downloadSources",
-  repacks: "repacks",
 };

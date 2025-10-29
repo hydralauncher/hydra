@@ -1,0 +1,155 @@
+name: Update AUR Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  update-aur:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm nodejs npm git base-devel openssh jq pacman-contrib
+
+      - name: Create builder user
+        run: |
+          # Create builder user with home directory
+          useradd -m -s /bin/bash builder
+
+          # Add builder to wheel group for sudo access
+          usermod -aG wheel builder
+
+          # Configure sudo for builder user (no password required)
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+      - name: Setup SSH for AUR
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          chmod 700 ~/.ssh
+
+          # Add AUR host key to known_hosts
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+          # Configure SSH to use the key
+          cat > ~/.ssh/config << EOF
+          Host aur.archlinux.org
+              IdentityFile ~/.ssh/id_rsa
+              IdentitiesOnly yes
+              User aur
+              UserKnownHostsFile ~/.ssh/known_hosts
+              StrictHostKeyChecking no
+          EOF
+
+          # Start SSH agent and add key
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa -F ~/.ssh/config -o UserKnownHostsFile=$SSH_PATH/known_hosts"
+
+          git clone ssh://aur@aur.archlinux.org/hydra-launcher-bin.git
+
+          # Give builder user ownership of the repository
+          chown -R builder:builder hydra-launcher-bin
+
+      - name: Get version to update
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "source=release" >> $GITHUB_OUTPUT
+          else
+            echo "Getting latest release version"
+            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "source=latest" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Version to update: $VERSION"
+
+      - name: Check if update is needed
+        id: check-update
+        run: |
+          CURRENT_VERSION=$(grep '^pkgver=' hydra-launcher-bin/PKGBUILD | cut -d'=' -f2)
+          NEW_VERSION="${{ steps.get-version.outputs.version }}"
+
+          echo "Current AUR version: $CURRENT_VERSION"
+          echo "New version: $NEW_VERSION"
+
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+            echo "No update needed - versions are the same"
+          else
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "Update needed"
+          fi
+
+      - name: Update PKGBUILD and .SRCINFO
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          # Update pkgver in PKGBUILD
+          cd hydra-launcher-bin
+          NEW_VERSION="${{ steps.get-version.outputs.version }}"
+
+          echo "Updating PKGBUILD pkgver to $NEW_VERSION"
+
+          # Read PKGBUILD and update pkgver line
+          sed -i "s/^pkgver=.*/pkgver=$NEW_VERSION/" ./PKGBUILD
+
+          # Reset pkgrel to 1 when version changes
+          sed -i "s/^pkgrel=.*/pkgrel=1/" ./PKGBUILD
+
+          echo "✅ Successfully updated pkgver to $NEW_VERSION in ./PKGBUILD"
+
+          # Update package checksums and generate .SRCINFO as builder user
+          sudo -u builder updpkgsums
+          sudo -u builder makepkg --printsrcinfo > .SRCINFO
+
+      - name: Commit and push changes
+        if: steps.check-update.outputs.update_needed == 'true'
+        run: |
+          cd hydra-launcher-bin
+          git config --global --add safe.directory .
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add PKGBUILD .SRCINFO
+
+          echo "## Git Diff Preview"
+          echo "Changes that would be made:"
+          git diff PKGBUILD .SRCINFO || echo "No changes to show"
+          echo ""
+          echo "Staged changes:"
+          git add PKGBUILD .SRCINFO
+          git diff --staged || echo "No staged changes"
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            COMMIT_MSG="v${{ steps.get-version.outputs.version }}"
+            
+            git commit -m "$COMMIT_MSG"
+            git push origin master
+            echo "Successfully updated AUR package to version ${{ steps.get-version.outputs.version }}"
+          fi
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## AUR Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: ${{ steps.get-version.outputs.source }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Update needed**: ${{ steps.check-update.outputs.update_needed }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-update.outputs.update_needed }}" = "true" ]; then
+            echo "- **Status**: ✅ AUR package updated successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: ⏭️ No update needed" >> $GITHUB_STEP_SUMMARY
+          fi
