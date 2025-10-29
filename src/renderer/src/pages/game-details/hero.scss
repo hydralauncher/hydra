@@ -146,6 +146,8 @@ $hero-height: 350px;
   &__game-logo {
     width: 200px;
     align-self: flex-end;
+    object-fit: contain;
+    object-position: left bottom;
 
     @media (min-width: 768px) {
       width: 250px;
@@ -153,6 +155,7 @@ $hero-height: 350px;
 
     @media (min-width: 1024px) {
       width: 300px;
+      max-height: 150px;
     }
   }
 
