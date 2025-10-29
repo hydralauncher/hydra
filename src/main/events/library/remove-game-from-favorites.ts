@@ -13,7 +13,11 @@ const removeGameFromFavorites = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  HydraApi.put(`/profile/games/${shop}/${objectId}/unfavorite`).catch(() => {});
+  if (shop !== "custom") {
+    HydraApi.put(`/profile/games/${shop}/${objectId}/unfavorite`).catch(
+      () => {}
+    );
+  }
 
   try {
     await gamesSublevel.put(gameKey, {
