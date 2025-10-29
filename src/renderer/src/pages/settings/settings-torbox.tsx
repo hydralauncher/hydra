@@ -116,7 +116,7 @@ export function SettingsTorBox() {
           onChange={(event) =>
             setForm({ ...form, torBoxApiToken: event.target.value })
           }
-          placeholder="API Token"
+          placeholder={t("api_token")}
           rightContent={
             <Button type="submit" disabled={isButtonDisabled}>
               {t("save_changes")}

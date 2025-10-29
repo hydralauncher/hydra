@@ -6,6 +6,10 @@ import { gamesShopAssetsSublevel, levelKeys } from "@main/level";
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
 
 export const getGameAssets = async (objectId: string, shop: GameShop) => {
+  if (shop === "custom") {
+    return null;
+  }
+
   const cachedAssets = await gamesShopAssetsSublevel.get(
     levelKeys.game(shop, objectId)
   );

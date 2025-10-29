@@ -25,6 +25,7 @@ import { Downloader, getDownloadersForUri } from "@shared";
 import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import "./game-details.scss";
+import "./hero.scss";
 
 export default function GameDetails() {
   const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
@@ -102,7 +103,6 @@ export default function GameDetails() {
             automaticallyExtract: boolean
           ) => {
             const response = await startDownload({
-              repackId: repack.id,
               objectId: objectId!,
               title: gameTitle,
               downloader,
