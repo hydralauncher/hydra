@@ -24,7 +24,7 @@ import type {
   UserPreferences,
 } from "@types";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { appVersion, isStaging } from "@main/constants";
+import { isStaging } from "@main/constants";
 import { logger } from "./logger";
 
 export class WindowManager {
