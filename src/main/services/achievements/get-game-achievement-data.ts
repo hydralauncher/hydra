@@ -27,6 +27,10 @@ export const getGameAchievementData = async (
   shop: GameShop,
   useCachedData: boolean
 ) => {
+  if (shop === "custom") {
+    return [];
+  }
+
   const gameKey = levelKeys.game(shop, objectId);
 
   const cachedAchievements = await gameAchievementsSublevel.get(gameKey);
