@@ -197,6 +197,8 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
+      WindowManager.mainWindow?.webContents.openDevTools();
+
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
