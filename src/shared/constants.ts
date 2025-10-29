@@ -11,8 +11,10 @@ export enum Downloader {
 }
 
 export enum DownloadSourceStatus {
-  UpToDate,
-  Errored,
+  PendingMatching = "PENDING_MATCHING",
+  Matched = "MATCHED",
+  Matching = "MATCHING",
+  Failed = "FAILED",
 }
 
 export enum CatalogueCategory {
