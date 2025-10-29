@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import "./text-field.scss";
 
-export interface TextFieldProps extends React.DetailedHTMLProps<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  HTMLInputElement
-> {
+export interface TextFieldProps
+  extends React.DetailedHTMLProps<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    HTMLInputElement
+  > {
   theme?: "primary" | "dark";
   label?: string | React.ReactNode;
   hint?: string | React.ReactNode;
@@ -42,7 +43,10 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const { t } = useTranslation("forms");
     const showPasswordToggleButton = props.type === "password";
-    const inputType = props.type === "password" && isPasswordVisible ? "text" : props.type ?? "text";
+    const inputType =
+      props.type === "password" && isPasswordVisible
+        ? "text"
+        : (props.type ?? "text");
     const hintContent = error ? (
       <small className="text-field-container__error-label">{error}</small>
     ) : hint ? (
