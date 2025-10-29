@@ -24,7 +24,7 @@ import type {
   UserPreferences,
 } from "@types";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { isStaging } from "@main/constants";
+import { appVersion, isStaging } from "@main/constants";
 import { logger } from "./logger";
 
 export class WindowManager {
@@ -197,8 +197,6 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      WindowManager.mainWindow?.webContents.openDevTools();
-
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
