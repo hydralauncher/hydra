@@ -7,7 +7,6 @@ concurrency:
 on:
   push:
     branches:
-      - main
       - release/**
 
 jobs:
