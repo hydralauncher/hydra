@@ -538,7 +538,9 @@
     "hidden": "Oculta",
     "test_notification": "Testar notificação",
     "notification_preview": "Prévia da Notificação de Conquistas",
-    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo"
+    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo",
+    "autoplay_trailers_on_game_page": "Reproduzir trailers automaticamente na página do jogo",
+    "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo"
   },
   "notifications": {
     "download_complete": "Download concluído",
