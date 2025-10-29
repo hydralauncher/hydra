@@ -1,0 +1,271 @@
+@use "../../scss/globals.scss";
+
+$hero-height: 350px;
+
+@keyframes slide-in {
+  0% {
+    transform: translateY(calc(40px + globals.$spacing-unit * 2));
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.game-details {
+  &__hero-panel {
+    padding: globals.$spacing-unit;
+  }
+
+  &__hero {
+    width: 100%;
+    height: $hero-height;
+    min-height: $hero-height;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all ease 0.2s;
+
+    @media (min-width: 1250px) {
+      height: 350px;
+      min-height: 350px;
+    }
+  }
+
+  &__hero-content {
+    padding: calc(globals.$spacing-unit * 1.5);
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__hero-buttons {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+
+    &--right {
+      margin-left: auto;
+    }
+  }
+
+  &__edit-custom-game-button {
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    transition: all ease 0.2s;
+    cursor: pointer;
+    min-height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$muted-color;
+    border: solid 1px globals.$border-color;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+
+    &:active {
+      opacity: 0.9;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: globals.$body-color;
+    }
+  }
+
+  &__hero-logo-backdrop {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  &__hero-image-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 384px;
+    max-height: 384px;
+    overflow: hidden;
+    border-radius: 0px 0px 8px 8px;
+    z-index: 0;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.3) 60%,
+        transparent 100%
+      );
+      z-index: 1;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    @media (min-width: 1250px) {
+      height: calc(350px + 82px);
+      min-height: calc(350px + 84px);
+    }
+  }
+
+  &__hero-image {
+    width: 100%;
+    height: $hero-height;
+    min-height: $hero-height;
+    object-fit: cover;
+    object-position: top;
+    transition: all ease 0.2s;
+    position: absolute;
+    z-index: 0;
+    border-radius: 0px 0px 8px 8px;
+
+    @media (min-width: 1250px) {
+      object-position: center;
+      height: $hero-height;
+      min-height: $hero-height;
+    }
+  }
+
+  &__game-logo {
+    width: 200px;
+    align-self: flex-end;
+
+    @media (min-width: 768px) {
+      width: 250px;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+    }
+  }
+
+  &__game-logo-text {
+    width: 200px;
+    align-self: flex-end;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    text-align: left;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+
+    @media (min-width: 768px) {
+      width: 250px;
+      font-size: 2.2rem;
+    }
+
+    @media (min-width: 1024px) {
+      width: 300px;
+      font-size: 2.5rem;
+    }
+  }
+
+  &__cloud-sync-button {
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    transition: all ease 0.2s;
+    cursor: pointer;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    border: solid 1px globals.$border-color;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+
+    &:active {
+      opacity: 0.9;
+    }
+
+    &:disabled {
+      opacity: globals.$disabled-opacity;
+      cursor: not-allowed;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  &__cloud-icon-container {
+    width: 20px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  &__cloud-icon {
+    width: 26px;
+    position: absolute;
+    top: -3px;
+  }
+
+  &__randomizer-button {
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 8px;
+    transition: all ease 0.2s;
+    cursor: pointer;
+    min-height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$muted-color;
+    border: solid 1px globals.$border-color;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+
+    &:active {
+      opacity: 0.9;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: globals.$body-color;
+    }
+  }
+
+  &__stars-icon-container {
+    width: 20px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  &__stars-icon {
+    width: 26px;
+    position: absolute;
+    top: -3px;
+  }
+}
