@@ -8,7 +8,7 @@
     "no_results": "Nincs találat",
     "start_typing": "Kereséshez gépelj...",
     "hot": "Most felkapott",
-    "weekly": "📅 Heti kiemeltek",
+    "weekly": "📅 A hét felkapottjai",
     "achievements": "🏆 Achievement támogatott"
   },
   "sidebar": {
@@ -183,7 +183,7 @@
     "remove_files": "Fájlok eltávolítása",
     "remove_from_library_title": "Biztos vagy ebben?",
     "remove_from_library_description": "Ezzel eltávolítod a játékot {{game}} a könyvtáradból",
-    "options": "Beállítások",
+    "options": "Beállítások",ä
     "properties": "További beállítások",
     "executable_section_title": "Futtatható fájl",
     "executable_section_description": "A fájl amely futtatásra fog kerülni amikor a \"Játék\" lenyomásra kerül",
@@ -391,7 +391,7 @@
     "download_in_progress": "Folyamatban lévő",
     "queued_downloads": "Várakozósoron lévő letöltések",
     "downloads_completed": "Befejezett",
-    "queued": "Várakozási sorban",
+    "queued": "Várakozásban",
     "no_downloads_title": "Oly üres..",
     "no_downloads_description": "Még nem töltöttél le semmit a Hydra segítségével, de soha nem késő elkezdeni.",
     "checking_files": "Fájlok ellenőrzése…",
@@ -428,7 +428,7 @@
     "validate_download_source": "Érvényesítés",
     "remove_download_source": "Eltávolítás",
     "add_download_source": "Forrás hozáadása",
-    "adding": "Hozzáadás…",
+	"adding": "Hozzáadás…",
     "failed_add_download_source": "Letöltési forrás hozzáadása sikertelen. Kérlek próbáld újra.",
     "download_source_already_exists": "Ez a letöltési forrás URL már létezik.",									 
     "download_count_zero": "Nincs letöltési opció",
@@ -438,7 +438,7 @@
     "add_download_source_description": "Helyezd be a .json fájl URL-jét",
     "download_source_up_to_date": "Naprakész",
     "download_source_errored": "Hiba történt",
-    "download_source_pending_matching": "Hamarosan frissítve",
+	"download_source_pending_matching": "Frissítés hamarosan",
     "download_source_matched": "Naprakész",
     "download_source_matching": "Frissítés..",
     "download_source_failed": "Hiba",
@@ -460,7 +460,7 @@
     "found_download_option_one": "{{countFormatted}} Letöltési opció találva",
     "found_download_option_other": "{{countFormatted}} Letöltési opciók találva",
     "import": "Importálás",
-    "importing": "Importálás...",
+	"importing": "Importálás...",
     "public": "Publikus",
     "private": "Privát",
     "friends_only": "Csak barátok",
@@ -478,7 +478,7 @@
     "seed_after_download_complete": "Letöltés utáni seedelés",
     "show_hidden_achievement_description": "Rejtett achievementek leírásának megjelenítése feloldás előtt",
     "account": "Fiók",
-    "hydra_cloud": "Hydra Cloud",
+	"hydra_cloud": "Hydra Cloud",							 
     "no_users_blocked": "Nincsenek letiltott felhasználóid",
     "subscription_active_until": "Hydra Cloud előfizetésed aktív, eddig: {{date}}",
     "manage_subscription": "Előfizetés kezelése",
@@ -552,8 +552,8 @@
     "hidden": "Rejtett",
     "test_notification": "Értesítés tesztelése",
     "notification_preview": "Achievement Értesítés Előnézete",
-    "enable_friend_start_game_notifications": "Amikor egy barátod elkezd játszani egy játékot"
-    "autoplay_trailers_on_game_page": "Játékelőzetes automatikus lejátszása a játék oldalán",
+    "enable_friend_start_game_notifications": "Amikor egy barátod elkezd játszani egy játékot",
+	"autoplay_trailers_on_game_page": "Játékelőzetes automatikus lejátszása a játék oldalán",
     "hide_to_tray_on_game_start": "Hydra elrejtése játék elindításakor a tálcára"
   },
   "notifications": {
