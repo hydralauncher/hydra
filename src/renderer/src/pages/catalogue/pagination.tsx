@@ -58,7 +58,7 @@ export function Pagination({
   page,
   totalPages,
   onPageChange,
-}: PaginationProps) {
+}: Readonly<PaginationProps>) {
   const { formatNumber } = useFormat();
 
   const [isJumpOpen, setIsJumpOpen] = useState(false);
@@ -90,12 +90,12 @@ export function Pagination({
 
   const onJumpChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    const digitsOnly = raw.replace(/\D+/g, "");
+    const digitsOnly = raw.replaceAll(/\D+/g, "");
     if (digitsOnly === "") {
       setJumpValue("");
       return;
     }
-    const num = parseInt(digitsOnly, 10);
+    const num = Number.parseInt(digitsOnly, 10);
     if (Number.isNaN(num)) {
       setJumpValue("");
       return;
@@ -127,9 +127,9 @@ export function Pagination({
     }
 
     if (e.key === "Enter") {
-      const sanitized = jumpValue.replace(/\D+/g, "");
+      const sanitized = jumpValue.replaceAll(/\D+/g, "");
       if (sanitized.trim() === "") return;
-      const parsed = parseInt(sanitized, 10);
+      const parsed = Number.parseInt(sanitized, 10);
       if (Number.isNaN(parsed)) return;
       const target = Math.max(1, Math.min(totalPages, parsed));
       onPageChange(target);
