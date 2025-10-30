@@ -1,5 +1,14 @@
 @use "../../scss/globals.scss";
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .settings-download-sources {
   &__list {
     padding: 0;
@@ -22,6 +31,17 @@
     &--syncing {
       opacity: globals.$disabled-opacity;
     }
+
+    &--pending {
+      opacity: 0.6;
+    }
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+    margin-right: calc(globals.$spacing-unit / 2);
+    width: 12px;
+    height: 12px;
   }
 
   &__item-header {

@@ -42,3 +42,14 @@ export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
 export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
 
 export const MAIN_LOOP_INTERVAL = 2000;
+
+export const DECKY_PLUGINS_LOCATION = path.join(
+  SystemPath.getPath("home"),
+  "homebrew",
+  "plugins"
+);
+
+export const HYDRA_DECKY_PLUGIN_LOCATION = path.join(
+  DECKY_PLUGINS_LOCATION,
+  "Hydra"
+);

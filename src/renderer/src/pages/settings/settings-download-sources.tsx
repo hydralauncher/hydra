@@ -16,14 +16,13 @@ import {
   TrashIcon,
 } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
+import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { settingsContext } from "@renderer/context";
-import { downloadSourcesTable } from "@renderer/dexie";
-import { downloadSourcesWorker } from "@renderer/workers";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import "./settings-download-sources.scss";
+import { logger } from "@renderer/logger";
 
 export function SettingsDownloadSources() {
   const [
@@ -37,7 +36,6 @@ export function SettingsDownloadSources() {
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
-  const [isFetchingSources, setIsFetchingSources] = useState(true);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
@@ -48,95 +46,103 @@ export function SettingsDownloadSources() {
 
   const navigate = useNavigate();
 
-  const { updateRepacks } = useRepacks();
-
-  const getDownloadSources = async () => {
-    await downloadSourcesTable
-      .toCollection()
-      .sortBy("createdAt")
-      .then((sources) => {
-        setDownloadSources(sources.reverse());
-      })
-      .finally(() => {
-        setIsFetchingSources(false);
-      });
-  };
-
-  useEffect(() => {
-    getDownloadSources();
-  }, []);
-
   useEffect(() => {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
 
-  const handleRemoveSource = (downloadSource: DownloadSource) => {
-    setIsRemovingDownloadSource(true);
-    const channel = new BroadcastChannel(
-      `download_sources:delete:${downloadSource.id}`
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
+
+  useEffect(() => {
+    const hasPendingOrMatchingSource = downloadSources.some(
+      (source) =>
+        source.status === DownloadSourceStatus.PendingMatching ||
+        source.status === DownloadSourceStatus.Matching
     );
 
-    downloadSourcesWorker.postMessage([
-      "DELETE_DOWNLOAD_SOURCE",
-      downloadSource.id,
-    ]);
+    if (!hasPendingOrMatchingSource || !downloadSources.length) {
+      return;
+    }
 
-    channel.onmessage = () => {
-      showSuccessToast(t("removed_download_source"));
-      window.electron.removeDownloadSource(downloadSource.url);
+    const intervalId = setInterval(async () => {
+      try {
+        await window.electron.syncDownloadSources();
+        const sources = await window.electron.getDownloadSources();
+        setDownloadSources(sources);
+      } catch (error) {
+        logger.error("Failed to fetch download sources:", error);
+      }
+    }, 5000);
 
-      getDownloadSources();
-      setIsRemovingDownloadSource(false);
-      channel.close();
-      updateRepacks();
-    };
-  };
+    return () => clearInterval(intervalId);
+  }, [downloadSources]);
 
-  const handleRemoveAllDownloadSources = () => {
+  const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
 
-    const id = crypto.randomUUID();
-    const channel = new BroadcastChannel(`download_sources:delete_all:${id}`);
+    try {
+      await window.electron.removeDownloadSource(false, downloadSource.id);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
+      showSuccessToast(t("removed_download_source"));
+    } catch (error) {
+      logger.error("Failed to remove download source:", error);
+    } finally {
+      setIsRemovingDownloadSource(false);
+    }
+  };
 
-    downloadSourcesWorker.postMessage(["DELETE_ALL_DOWNLOAD_SOURCES", id]);
+  const handleRemoveAllDownloadSources = async () => {
+    setIsRemovingDownloadSource(true);
 
-    channel.onmessage = () => {
-      showSuccessToast(t("removed_download_sources"));
-      window.electron.removeDownloadSource("", true);
-      getDownloadSources();
+    try {
+      await window.electron.removeDownloadSource(true);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
+      showSuccessToast(t("removed_all_download_sources"));
+    } catch (error) {
+      logger.error("Failed to remove all download sources:", error);
+    } finally {
       setIsRemovingDownloadSource(false);
       setShowConfirmationDeleteAllSourcesModal(false);
-      channel.close();
-      updateRepacks();
-    };
+    }
   };
 
   const handleAddDownloadSource = async () => {
-    await getDownloadSources();
-    showSuccessToast(t("added_download_source"));
-    updateRepacks();
+    try {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
+    } catch (error) {
+      logger.error("Failed to refresh download sources:", error);
+    }
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
+    try {
+      await window.electron.syncDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources as DownloadSource[]);
 
-    const id = crypto.randomUUID();
-    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
-
-    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-
-    channel.onmessage = () => {
-      showSuccessToast(t("download_sources_synced"));
-      getDownloadSources();
+      showSuccessToast(t("download_sources_synced_successfully"));
+    } finally {
       setIsSyncingDownloadSources(false);
-      channel.close();
-      updateRepacks();
-    };
+    }
   };
 
   const statusTitle = {
-    [DownloadSourceStatus.UpToDate]: t("download_source_up_to_date"),
-    [DownloadSourceStatus.Errored]: t("download_source_errored"),
+    [DownloadSourceStatus.PendingMatching]: t(
+      "download_source_pending_matching"
+    ),
+    [DownloadSourceStatus.Matched]: t("download_source_matched"),
+    [DownloadSourceStatus.Matching]: t("download_source_matching"),
+    [DownloadSourceStatus.Failed]: t("download_source_failed"),
   };
 
   const handleModalClose = () => {
@@ -144,7 +150,12 @@ export function SettingsDownloadSources() {
     setShowAddDownloadSourceModal(false);
   };
 
-  const navigateToCatalogue = (fingerprint: string) => {
+  const navigateToCatalogue = (fingerprint?: string) => {
+    if (!fingerprint) {
+      logger.error("Cannot navigate: fingerprint is undefined");
+      return;
+    }
+
     dispatch(clearFilters());
     dispatch(setFilters({ downloadSourceFingerprints: [fingerprint] }));
 
@@ -179,8 +190,7 @@ export function SettingsDownloadSources() {
           disabled={
             !downloadSources.length ||
             isSyncingDownloadSources ||
-            isRemovingDownloadSource ||
-            isFetchingSources
+            isRemovingDownloadSource
           }
           onClick={syncDownloadSources}
         >
@@ -196,8 +206,7 @@ export function SettingsDownloadSources() {
             disabled={
               isRemovingDownloadSource ||
               isSyncingDownloadSources ||
-              !downloadSources.length ||
-              isFetchingSources
+              !downloadSources.length
             }
           >
             <TrashIcon />
@@ -208,11 +217,7 @@ export function SettingsDownloadSources() {
             type="button"
             theme="outline"
             onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={
-              isSyncingDownloadSources ||
-              isFetchingSources ||
-              isRemovingDownloadSource
-            }
+            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
           >
             <PlusCircleIcon />
             {t("add_download_source")}
@@ -221,54 +226,69 @@ export function SettingsDownloadSources() {
       </div>
 
       <ul className="settings-download-sources__list">
-        {downloadSources.map((downloadSource) => (
-          <li
-            key={downloadSource.id}
-            className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""}`}
-          >
-            <div className="settings-download-sources__item-header">
-              <h2>{downloadSource.name}</h2>
+        {downloadSources.map((downloadSource) => {
+          const isPendingOrMatching =
+            downloadSource.status === DownloadSourceStatus.PendingMatching ||
+            downloadSource.status === DownloadSourceStatus.Matching;
 
-              <div style={{ display: "flex" }}>
-                <Badge>{statusTitle[downloadSource.status]}</Badge>
+          return (
+            <li
+              key={downloadSource.id}
+              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
+            >
+              <div className="settings-download-sources__item-header">
+                <h2>{downloadSource.name}</h2>
+
+                <div style={{ display: "flex" }}>
+                  <Badge>
+                    {isPendingOrMatching && (
+                      <SyncIcon className="settings-download-sources__spinner" />
+                    )}
+                    {statusTitle[downloadSource.status]}
+                  </Badge>
+                </div>
+
+                <button
+                  type="button"
+                  className="settings-download-sources__navigate-button"
+                  disabled={!downloadSource.fingerprint}
+                  onClick={() =>
+                    navigateToCatalogue(downloadSource.fingerprint)
+                  }
+                >
+                  <small>
+                    {isPendingOrMatching
+                      ? t("download_source_no_information")
+                      : t("download_count", {
+                          count: downloadSource.downloadCount,
+                          countFormatted:
+                            downloadSource.downloadCount.toLocaleString(),
+                        })}
+                  </small>
+                </button>
               </div>
 
-              <button
-                type="button"
-                className="settings-download-sources__navigate-button"
-                disabled={!downloadSource.fingerprint}
-                onClick={() => navigateToCatalogue(downloadSource.fingerprint)}
-              >
-                <small>
-                  {t("download_count", {
-                    count: downloadSource.downloadCount,
-                    countFormatted:
-                      downloadSource.downloadCount.toLocaleString(),
-                  })}
-                </small>
-              </button>
-            </div>
-
-            <TextField
-              label={t("download_source_url")}
-              value={downloadSource.url}
-              readOnly
-              theme="dark"
-              disabled
-              rightContent={
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={() => handleRemoveSource(downloadSource)}
-                  disabled={isRemovingDownloadSource}
-                >
-                  <NoEntryIcon />
-                  {t("remove_download_source")}
-                </Button>
-              }
-            />
-          </li>
-        ))}
+              <TextField
+                label={t("download_source_url")}
+                value={downloadSource.url}
+                readOnly
+                theme="dark"
+                disabled
+                rightContent={
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={() => handleRemoveSource(downloadSource)}
+                    disabled={isRemovingDownloadSource}
+                  >
+                    <NoEntryIcon />
+                    {t("remove_download_source")}
+                  </Button>
+                }
+              />
+            </li>
+          );
+        })}
       </ul>
     </>
   );

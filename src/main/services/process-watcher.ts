@@ -1,10 +1,10 @@
 import { WindowManager } from "./window-manager";
 import { createGame, updateGamePlaytime } from "./library-sync";
-import type { Game, GameRunning } from "@types";
+import type { Game, GameRunning, UserPreferences } from "@types";
 import { PythonRPC } from "./python-rpc";
 import axios from "axios";
 import { ProcessPayload } from "./download/types";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
 import path from "path";
@@ -79,11 +79,18 @@ const findGamePathByProcess = async (
   const executables = gameExecutables[gameId];
 
   for (const executable of executables) {
-    const pathSet = processMap.get(executable.exe);
+    const executablewithoutExtension = executable.exe.replace(/\.exe$/i, "");
+
+    const pathSet =
+      processMap.get(executable.exe) ??
+      processMap.get(executablewithoutExtension);
 
     if (pathSet) {
       for (const path of pathSet) {
-        if (path.toLowerCase().endsWith(executable.name)) {
+        if (
+          path.toLowerCase().endsWith(executable.name) ||
+          path.toLowerCase().endsWith(executablewithoutExtension)
+        ) {
           const gameKey = levelKeys.game("steam", gameId);
           const game = await gamesSublevel.get(gameKey);
 
@@ -124,7 +131,6 @@ const getSystemProcessMap = async () => {
     if (!key || !value) return;
 
     const STEAM_COMPAT_DATA_PATH = process.environ?.STEAM_COMPAT_DATA_PATH;
-
     if (STEAM_COMPAT_DATA_PATH) {
       winePrefixMap.set(value, STEAM_COMPAT_DATA_PATH);
     }
@@ -202,6 +208,17 @@ function onOpenGame(game: Game) {
     firstTick: now,
     lastSyncTick: now,
   });
+
+  // Hide Hydra to tray on game startup if enabled
+  db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+    valueEncoding: "json",
+  })
+    .then((userPreferences) => {
+      if (userPreferences?.hideToTrayOnGameStart) {
+        WindowManager.mainWindow?.hide();
+      }
+    })
+    .catch(() => {});
 
   if (game.remoteId) {
     updateGamePlaytime(

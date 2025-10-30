@@ -15,7 +15,6 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import { downloadSourcesTable } from "@renderer/dexie";
 import type { DownloadSource } from "@types";
 import type { GameRepack } from "@types";
 
@@ -55,7 +54,7 @@ export function RepacksModal({
     {}
   );
 
-  const { repacks, game } = useContext(gameDetailsContext);
+  const { game, repacks } = useContext(gameDetailsContext);
 
   const { t } = useTranslation("game_details");
 
@@ -89,6 +88,15 @@ export function RepacksModal({
     });
   }, [repacks, isFeatureEnabled, Feature]);
 
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
+
   const sortedRepacks = useMemo(() => {
     return orderBy(
       repacks,
@@ -105,22 +113,12 @@ export function RepacksModal({
   }, [repacks, hashesInDebrid]);
 
   useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
-      const uniqueRepackers = new Set(sortedRepacks.map((r) => r.repacker));
-      const filteredSources = sources.filter(
-        (s) => s.name && uniqueRepackers.has(s.name) && !!s.fingerprint
-      );
-      setDownloadSources(filteredSources);
-    });
-  }, [sortedRepacks]);
-
-  useEffect(() => {
     const term = filterTerm.trim().toLowerCase();
 
     const byTerm = sortedRepacks.filter((repack) => {
       if (!term) return true;
       const lowerTitle = repack.title.toLowerCase();
-      const lowerRepacker = repack.repacker.toLowerCase();
+      const lowerRepacker = repack.downloadSourceName.toLowerCase();
       return lowerTitle.includes(term) || lowerRepacker.includes(term);
     });
 
@@ -129,8 +127,9 @@ export function RepacksModal({
 
       return downloadSources.some(
         (src) =>
+          src.fingerprint &&
           selectedFingerprints.includes(src.fingerprint) &&
-          src.name === repack.repacker
+          src.name === repack.downloadSourceName
       );
     });
 
@@ -161,6 +160,14 @@ export function RepacksModal({
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!visible) {
+      setFilterTerm("");
+      setSelectedFingerprints([]);
+      setIsFilterDrawerOpen(false);
+    }
+  }, [visible]);
+
   return (
     <>
       <DownloadSettingsModal
@@ -180,7 +187,11 @@ export function RepacksModal({
           className={`repacks-modal__filter-container ${isFilterDrawerOpen ? "repacks-modal__filter-container--drawer-open" : ""}`}
         >
           <div className="repacks-modal__filter-top">
-            <TextField placeholder={t("filter")} onChange={handleFilter} />
+            <TextField
+              placeholder={t("filter")}
+              value={filterTerm}
+              onChange={handleFilter}
+            />
             {downloadSources.length > 0 && (
               <Button
                 type="button"
@@ -198,25 +209,32 @@ export function RepacksModal({
             className={`repacks-modal__download-sources ${isFilterDrawerOpen ? "repacks-modal__download-sources--open" : ""}`}
           >
             <div className="repacks-modal__source-grid">
-              {downloadSources.map((source) => {
-                const label = source.name || source.url;
-                const truncatedLabel =
-                  label.length > 16 ? label.substring(0, 16) + "..." : label;
-                return (
-                  <div
-                    key={source.fingerprint}
-                    className="repacks-modal__source-item"
-                  >
-                    <CheckboxField
-                      label={truncatedLabel}
-                      checked={selectedFingerprints.includes(
-                        source.fingerprint
-                      )}
-                      onChange={() => toggleFingerprint(source.fingerprint)}
-                    />
-                  </div>
-                );
-              })}
+              {downloadSources
+                .filter(
+                  (
+                    source
+                  ): source is DownloadSource & { fingerprint: string } =>
+                    source.fingerprint !== undefined
+                )
+                .map((source) => {
+                  const label = source.name || source.url;
+                  const truncatedLabel =
+                    label.length > 16 ? label.substring(0, 16) + "..." : label;
+                  return (
+                    <div
+                      key={source.fingerprint}
+                      className="repacks-modal__source-item"
+                    >
+                      <CheckboxField
+                        label={truncatedLabel}
+                        checked={selectedFingerprints.includes(
+                          source.fingerprint
+                        )}
+                        onChange={() => toggleFingerprint(source.fingerprint)}
+                      />
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -262,7 +280,7 @@ export function RepacksModal({
                   )}
 
                   <p className="repacks-modal__repack-info">
-                    {repack.fileSize} - {repack.repacker} -{" "}
+                    {repack.fileSize} - {repack.downloadSourceName} -{" "}
                     {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
                   </p>
 

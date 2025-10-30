@@ -1,6 +1,6 @@
 import { Downloader } from "@shared";
 
-export const VERSION_CODENAME = "Lumen";
+export const VERSION_CODENAME = "Supernova";
 
 export const DOWNLOADER_NAME = {
   [Downloader.RealDebrid]: "Real-Debrid",
@@ -11,7 +11,6 @@ export const DOWNLOADER_NAME = {
   [Downloader.Datanodes]: "Datanodes",
   [Downloader.Mediafire]: "Mediafire",
   [Downloader.TorBox]: "TorBox",
-  [Downloader.AllDebrid]: "All-Debrid",
   [Downloader.Hydra]: "Nimbus",
 };
 

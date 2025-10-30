@@ -87,7 +87,7 @@ export function CloudSyncContextProvider({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [freezingArtifact, setFreezingArtifact] = useState(false);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const downloadGameArtifact = useCallback(
     async (gameArtifactId: string) => {
@@ -98,7 +98,23 @@ export function CloudSyncContextProvider({
   );
 
   const getGameArtifacts = useCallback(async () => {
-    const results = await window.electron.getGameArtifacts(objectId, shop);
+    if (shop === "custom") {
+      setArtifacts([]);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      objectId,
+      shop,
+    });
+
+    const results = await window.electron.hydraApi
+      .get<GameArtifact[]>(`/profile/games/artifacts?${params.toString()}`, {
+        needsSubscription: true,
+      })
+      .catch(() => {
+        return [];
+      });
     setArtifacts(results);
   }, [objectId, shop]);
 
@@ -122,16 +138,25 @@ export function CloudSyncContextProvider({
   const uploadSaveGame = useCallback(
     async (downloadOptionTitle: string | null) => {
       setUploadingBackup(true);
-      window.electron.uploadSaveGame(objectId, shop, downloadOptionTitle);
+      window.electron
+        .uploadSaveGame(objectId, shop, downloadOptionTitle)
+        .catch((err) => {
+          setUploadingBackup(false);
+          logger.error("Failed to upload save game", { objectId, shop, err });
+          showErrorToast(t("backup_failed"));
+        });
     },
-    [objectId, shop]
+    [objectId, shop, t, showErrorToast]
   );
 
   const toggleArtifactFreeze = useCallback(
     async (gameArtifactId: string, freeze: boolean) => {
       setFreezingArtifact(true);
       try {
-        await window.electron.toggleArtifactFreeze(gameArtifactId, freeze);
+        const endpoint = freeze ? "freeze" : "unfreeze";
+        await window.electron.hydraApi.put(
+          `/profile/games/artifacts/${gameArtifactId}/${endpoint}`
+        );
         getGameArtifacts();
       } catch (err) {
         logger.error("Failed to toggle artifact freeze", objectId, shop, err);
@@ -179,10 +204,12 @@ export function CloudSyncContextProvider({
 
   const deleteGameArtifact = useCallback(
     async (gameArtifactId: string) => {
-      return window.electron.deleteGameArtifact(gameArtifactId).then(() => {
-        getGameBackupPreview();
-        getGameArtifacts();
-      });
+      return window.electron.hydraApi
+        .delete<{ ok: boolean }>(`/profile/games/artifacts/${gameArtifactId}`)
+        .then(() => {
+          getGameBackupPreview();
+          getGameArtifacts();
+        });
     },
     [getGameBackupPreview, getGameArtifacts]
   );

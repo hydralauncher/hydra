@@ -7,7 +7,6 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
-  useRepacks,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -23,8 +22,6 @@ import {
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-import { downloadSourcesWorker } from "./workers";
-import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
@@ -40,8 +37,6 @@ export function App() {
   const { updateLibrary, library } = useLibrary();
 
   const { t } = useTranslation("app");
-
-  const { updateRepacks } = useRepacks();
 
   const { clearDownload, setLastPacket } = useDownload();
 
@@ -136,15 +131,6 @@ export function App() {
   }, [fetchUserDetails, updateUserDetails, dispatch]);
 
   const onSignIn = useCallback(() => {
-    window.electron.getDownloadSources().then((sources) => {
-      sources.forEach((source) => {
-        downloadSourcesWorker.postMessage([
-          "IMPORT_DOWNLOAD_SOURCE",
-          source.url,
-        ]);
-      });
-    });
-
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
@@ -208,43 +194,6 @@ export function App() {
       childList: true,
     });
   }, [dispatch, draggingDisabled]);
-
-  useEffect(() => {
-    updateRepacks();
-
-    const id = crypto.randomUUID();
-    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
-
-    channel.onmessage = async (event: MessageEvent<number>) => {
-      const newRepacksCount = event.data;
-      window.electron.publishNewRepacksNotification(newRepacksCount);
-      updateRepacks();
-
-      const downloadSources = await downloadSourcesTable.toArray();
-
-      await Promise.all(
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .map(async (downloadSource) => {
-            const { fingerprint } = await window.electron.putDownloadSource(
-              downloadSource.objectIds
-            );
-
-            return downloadSourcesTable.update(downloadSource.id, {
-              fingerprint,
-            });
-          })
-      );
-
-      channel.close();
-    };
-
-    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-
-    return () => {
-      channel.close();
-    };
-  }, [updateRepacks]);
 
   const loadAndApplyTheme = useCallback(async () => {
     const activeTheme = await window.electron.getActiveCustomTheme();
