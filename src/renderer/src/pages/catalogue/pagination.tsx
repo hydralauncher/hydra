@@ -112,7 +112,6 @@ export function Pagination({
   };
 
   const onJumpKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Allow common control keys
     const controlKeys = [
       "Backspace",
       "Delete",
@@ -138,7 +137,6 @@ export function Pagination({
     } else if (e.key === "Escape") {
       setIsJumpOpen(false);
     } else if (!/^\d$/.test(e.key)) {
-      // Block any non-digit input (e.g., '.', ',')
       e.preventDefault();
     }
   };
