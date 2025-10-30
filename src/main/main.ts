@@ -57,7 +57,7 @@ export const loadState = async () => {
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
-    
+
     // Check for new download options on startup
     void DownloadSourcesChecker.checkForChanges();
     // WSClient.connect();

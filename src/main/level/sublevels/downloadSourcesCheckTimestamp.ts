@@ -11,6 +11,8 @@ export const getLastDownloadSourcesCheck = async (): Promise<string | null> => {
   }
 };
 
-export const updateLastDownloadSourcesCheck = async (timestamp: string): Promise<void> => {
+export const updateLastDownloadSourcesCheck = async (
+  timestamp: string
+): Promise<void> => {
   await db.put(levelKeys.lastDownloadSourcesCheck, timestamp);
 };

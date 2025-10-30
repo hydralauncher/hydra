@@ -39,4 +39,8 @@ export const librarySlice = createSlice({
   },
 });
 
-export const { setLibrary, updateGameNewDownloadOptions, clearNewDownloadOptions } = librarySlice.actions;
+export const {
+  setLibrary,
+  updateGameNewDownloadOptions,
+  clearNewDownloadOptions,
+} = librarySlice.actions;
