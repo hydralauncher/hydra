@@ -25,7 +25,7 @@ export function HowLongToBeatSection({
     return `${value} ${t(durationTranslation[unit])}`;
   };
 
-  if (!howLongToBeatData || !isLoading) return null;
+  if (!howLongToBeatData && !isLoading) return null;
 
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">

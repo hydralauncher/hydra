@@ -71,6 +71,23 @@
         opacity: 1;
       }
     }
+
+    &--decky {
+      background: linear-gradient(
+        135deg,
+        rgba(22, 177, 149, 0.2) 0%,
+        rgba(62, 98, 192, 0.1) 100%
+      );
+      color: globals.$muted-color;
+
+      &:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(22, 177, 149, 0.3) 0%,
+          rgba(62, 98, 192, 0.15) 100%
+        );
+      }
+    }
   }
 
   &__menu-item-button {
@@ -121,6 +138,11 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
     padding-bottom: globals.$spacing-unit;
+  }
+
+  &__bottom-buttons {
+    display: flex;
+    flex-direction: column;
   }
 
   &__help-button {

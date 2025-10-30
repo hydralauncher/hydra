@@ -8,7 +8,6 @@ import {
   CommonRedistManager,
   TorBoxClient,
   RealDebridClient,
-  AllDebridClient,
   Aria2,
   DownloadManager,
   HydraApi,
@@ -16,7 +15,9 @@ import {
   startMainLoop,
   Ludusavi,
   Lock,
+  DeckyPlugin,
 } from "@main/services";
+import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
 export const loadState = async () => {
   await Lock.acquireLock();
@@ -38,10 +39,6 @@ export const loadState = async () => {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }
 
-  if (userPreferences?.allDebridApiKey) {
-    AllDebridClient.authorize(userPreferences.allDebridApiKey);
-  }
-
   if (userPreferences?.torBoxApiToken) {
     TorBoxClient.authorize(userPreferences.torBoxApiToken);
   }
@@ -49,8 +46,16 @@ export const loadState = async () => {
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();
 
-  await HydraApi.setupApi().then(() => {
+  if (process.platform === "linux") {
+    DeckyPlugin.checkAndUpdateIfOutdated();
+  }
+
+  await HydraApi.setupApi().then(async () => {
     uploadGamesBatch();
+    void migrateDownloadSources();
+
+    const { syncDownloadSourcesFromApi } = await import("./services/user");
+    void syncDownloadSourcesFromApi();
     // WSClient.connect();
   });
 

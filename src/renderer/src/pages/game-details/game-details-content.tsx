@@ -1,33 +1,74 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { PencilIcon } from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { EditGameModal } from "./modals";
+import { GameReviews } from "./game-reviews";
+import { GameLogo } from "./game-logo";
 
-import { useTranslation } from "react-i18next";
-import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
+import "./hero.scss";
+
+const processMediaElements = (document: Document) => {
+  const $images = Array.from(document.querySelectorAll("img"));
+  $images.forEach(($image) => {
+    $image.loading = "lazy";
+    $image.removeAttribute("width");
+    $image.removeAttribute("height");
+    $image.removeAttribute("style");
+    $image.style.maxWidth = "100%";
+    $image.style.width = "auto";
+    $image.style.height = "auto";
+    $image.style.boxSizing = "border-box";
+  });
+
+  // Handle videos the same way
+  const $videos = Array.from(document.querySelectorAll("video"));
+  $videos.forEach(($video) => {
+    $video.removeAttribute("width");
+    $video.removeAttribute("height");
+    $video.removeAttribute("style");
+    $video.style.maxWidth = "100%";
+    $video.style.width = "auto";
+    $video.style.height = "auto";
+    $video.style.boxSizing = "border-box";
+  });
+};
+
+const getImageWithCustomPriority = (
+  customUrl: string | null | undefined,
+  originalUrl: string | null | undefined,
+  fallbackUrl?: string | null | undefined
+) => {
+  return customUrl || originalUrl || fallbackUrl || "";
+};
 
 export function GameDetailsContent() {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-
   const { t } = useTranslation("game_details");
 
-  const { objectId, shopDetails, game, hasNSFWContentBlocked, updateGame } =
-    useContext(gameDetailsContext);
+  const {
+    objectId,
+    shopDetails,
+    game,
+    hasNSFWContentBlocked,
+    updateGame,
+    shop,
+  } = useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { updateLibrary } = useLibrary();
+  const { updateLibrary, library } = useLibrary();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -40,33 +81,7 @@ export function GameDetailsContent() {
         "text/html"
       );
 
-      const $images = Array.from(document.querySelectorAll("img"));
-      $images.forEach(($image) => {
-        $image.loading = "lazy";
-        // Remove any inline width/height styles that might cause overflow
-        $image.removeAttribute("width");
-        $image.removeAttribute("height");
-        $image.removeAttribute("style");
-        // Set max-width to prevent overflow
-        $image.style.maxWidth = "100%";
-        $image.style.width = "auto";
-        $image.style.height = "auto";
-        $image.style.boxSizing = "border-box";
-      });
-
-      // Handle videos the same way
-      const $videos = Array.from(document.querySelectorAll("video"));
-      $videos.forEach(($video) => {
-        // Remove any inline width/height styles that might cause overflow
-        $video.removeAttribute("width");
-        $video.removeAttribute("height");
-        $video.removeAttribute("style");
-        // Set max-width to prevent overflow
-        $video.style.maxWidth = "100%";
-        $video.style.width = "auto";
-        $video.style.height = "auto";
-        $video.style.boxSizing = "border-box";
-      });
+      processMediaElements(document);
 
       return document.body.outerHTML;
     }
@@ -80,6 +95,16 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+
+  // Check if the current game is in the user's library
+  const isGameInLibrary = useMemo(() => {
+    if (!library || !shop || !objectId) return false;
+    return library.some(
+      (libItem) => libItem.shop === shop && libItem.objectId === objectId
+    );
+  }, [library, shop, objectId]);
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -103,7 +128,7 @@ export function GameDetailsContent() {
     setShowEditGameModal(true);
   };
 
-  const handleGameUpdated = (_updatedGame: any) => {
+  const handleGameUpdated = () => {
     updateGame();
     updateLibrary();
   };
@@ -114,15 +139,6 @@ export function GameDetailsContent() {
 
   const isCustomGame = game?.shop === "custom";
 
-  // Helper function to get image with custom asset priority
-  const getImageWithCustomPriority = (
-    customUrl: string | null | undefined,
-    originalUrl: string | null | undefined,
-    fallbackUrl?: string | null | undefined
-  ) => {
-    return customUrl || originalUrl || fallbackUrl || "";
-  };
-
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
@@ -130,57 +146,16 @@ export function GameDetailsContent() {
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
-  const logoImage = isCustomGame
-    ? game?.logoImageUrl || ""
-    : getImageWithCustomPriority(
-        game?.customLogoImageUrl,
-        shopDetails?.assets?.logoImageUrl
-      );
-
-  const renderGameLogo = () => {
-    if (isCustomGame) {
-      // For custom games, show logo image if available, otherwise show game title as text
-      if (logoImage) {
-        return (
-          <img
-            src={logoImage}
-            className="game-details__game-logo"
-            alt={game?.title}
-          />
-        );
-      } else {
-        return (
-          <div className="game-details__game-logo-text">{game?.title}</div>
-        );
-      }
-    } else {
-      // For non-custom games, show logo image if available
-      return logoImage ? (
-        <img
-          src={logoImage}
-          className="game-details__game-logo"
-          alt={game?.title}
-        />
-      ) : null;
-    }
-  };
-
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
     >
       <section className="game-details__container">
-        <div ref={heroRef} className="game-details__hero">
+        <div className="game-details__hero">
           <img
             src={heroImage}
             className="game-details__hero-image"
             alt={game?.title}
-          />
-          <div
-            className="game-details__hero-backdrop"
-            style={{
-              flex: 1,
-            }}
           />
 
           <div
@@ -188,7 +163,7 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              {renderGameLogo()}
+              <GameLogo game={game} shopDetails={shopDetails} />
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
                 {game && (
@@ -220,10 +195,12 @@ export function GameDetailsContent() {
                 )}
               </div>
             </div>
+
+            <div className="game-details__hero-panel">
+              <HeroPanel />
+            </div>
           </div>
         </div>
-
-        <HeroPanel />
 
         <div className="game-details__description-container">
           <div className="game-details__description-content">
@@ -234,11 +211,37 @@ export function GameDetailsContent() {
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
-              className="game-details__description"
+              className={`game-details__description ${
+                isDescriptionExpanded
+                  ? "game-details__description--expanded"
+                  : "game-details__description--collapsed"
+              }`}
             />
+
+            {aboutTheGame && aboutTheGame.length > 500 && (
+              <button
+                type="button"
+                className="game-details__description-toggle"
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              >
+                {isDescriptionExpanded ? t("show_less") : t("show_more")}
+              </button>
+            )}
+
+            {shop !== "custom" && shop && objectId && (
+              <GameReviews
+                shop={shop}
+                objectId={objectId}
+                game={game}
+                userDetailsId={userDetails?.id}
+                isGameInLibrary={isGameInLibrary}
+                hasUserReviewed={hasUserReviewed}
+                onUserReviewedChange={setHasUserReviewed}
+              />
+            )}
           </div>
 
-          {game?.shop !== "custom" && <Sidebar />}
+          {shop !== "custom" && <Sidebar />}
         </div>
       </section>
 

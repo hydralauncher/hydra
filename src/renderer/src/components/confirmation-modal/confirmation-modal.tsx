@@ -42,7 +42,7 @@ export function ConfirmationModal({
             {cancelButtonLabel}
           </Button>
           <Button
-            theme="danger"
+            theme="primary"
             disabled={buttonsIsDisabled}
             onClick={onConfirm}
           >

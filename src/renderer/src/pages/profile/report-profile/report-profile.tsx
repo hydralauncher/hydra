@@ -54,8 +54,13 @@ export function ReportProfile() {
 
   const onSubmit = useCallback(
     async (values: FormValues) => {
-      return window.electron
-        .reportUser(userProfile!.id, values.reason, values.description)
+      return window.electron.hydraApi
+        .post(`/users/${userProfile!.id}/report`, {
+          data: {
+            reason: values.reason,
+            description: values.description,
+          },
+        })
         .then(() => {
           showSuccessToast(t("profile_reported"));
           setShowReportProfileModal(false);

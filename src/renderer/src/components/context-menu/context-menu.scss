@@ -19,7 +19,6 @@
 
   &__item-container {
     position: relative;
-    padding-right: 8px;
   }
 
   &__item {
@@ -97,7 +96,7 @@
 
   &__submenu {
     position: absolute;
-    left: calc(100% - 2px);
+    left: 100%;
     top: 0;
     background-color: globals.$background-color;
     border: 1px solid globals.$border-color;

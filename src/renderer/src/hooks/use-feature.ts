@@ -11,10 +11,12 @@ export function useFeature() {
   const [features, setFeatures] = useState<string[] | null>(null);
 
   useEffect(() => {
-    window.electron.getFeatures().then((features) => {
-      localStorage.setItem("features", JSON.stringify(features || []));
-      setFeatures(features || []);
-    });
+    window.electron.hydraApi
+      .get<string[]>("/features", { needsAuth: false })
+      .then((features) => {
+        localStorage.setItem("features", JSON.stringify(features || []));
+        setFeatures(features || []);
+      });
   }, []);
 
   const isFeatureEnabled = useCallback(

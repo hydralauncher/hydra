@@ -1,0 +1,71 @@
+@use "../../scss/globals.scss";
+
+.settings-debrid {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__description {
+    margin: 0 0 calc(globals.$spacing-unit * 2) 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+
+    &:not(:last-child) {
+      margin-bottom: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &__collapse-button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all ease 0.2s;
+    flex-shrink: 0;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__check-icon {
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__beta-badge {
+    background: linear-gradient(135deg, #c9aa71, #d4af37);
+    color: #1a1a1a;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+}

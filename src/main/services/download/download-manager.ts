@@ -17,7 +17,6 @@ import {
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
 import { RealDebridClient } from "./real-debrid";
-import { AllDebridClient } from "./all-debrid";
 import path from "path";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
@@ -377,27 +376,6 @@ export class DownloadManager {
           url: downloadUrl,
           save_path: download.downloadPath,
           allow_multiple_connections: true,
-        };
-      }
-      case Downloader.AllDebrid: {
-        const downloadUrls = await AllDebridClient.getDownloadUrls(
-          download.uri
-        );
-
-        if (!downloadUrls.length)
-          throw new Error(DownloadError.NotCachedInAllDebrid);
-
-        const totalSize = downloadUrls.reduce(
-          (total, url) => total + (url.size || 0),
-          0
-        );
-
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrls.map((d) => d.link),
-          save_path: download.downloadPath,
-          total_size: totalSize,
         };
       }
       case Downloader.TorBox: {

@@ -18,10 +18,18 @@ export function Hero() {
   useEffect(() => {
     setIsLoading(true);
 
-    window.electron
-      .getTrendingGames()
+    const language = i18n.language.split("-")[0];
+
+    window.electron.hydraApi
+      .get<TrendingGame[]>("/catalogue/featured", {
+        params: { language },
+        needsAuth: false,
+      })
       .then((result) => {
-        setFeaturedGameDetails(result);
+        setFeaturedGameDetails(result.slice(0, 1));
+      })
+      .catch(() => {
+        setFeaturedGameDetails([]);
       })
       .finally(() => {
         setIsLoading(false);

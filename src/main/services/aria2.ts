@@ -1,6 +1,7 @@
 import path from "node:path";
 import cp from "node:child_process";
 import { app } from "electron";
+import { logger } from "./logger";
 
 export class Aria2 {
   private static process: cp.ChildProcess | null = null;
@@ -23,6 +24,9 @@ export class Aria2 {
   }
 
   public static kill() {
-    this.process?.kill();
+    if (this.process) {
+      logger.log("Killing aria2 process");
+      this.process.kill();
+    }
   }
 }

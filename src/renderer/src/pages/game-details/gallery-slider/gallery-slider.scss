@@ -2,7 +2,7 @@
 
 .gallery-slider {
   &__container {
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 1);
+    padding: calc(globals.$spacing-unit * 1.5) 0;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -24,11 +24,6 @@
     position: relative;
     overflow: hidden;
     border-radius: 8px;
-
-    @media (min-width: 1024px) {
-      width: 80%;
-      max-height: 400px;
-    }
 
     @media (min-width: 1280px) {
       width: 60%;
@@ -65,16 +60,12 @@
   &__preview {
     width: 100%;
     padding: globals.$spacing-unit 0;
-    height: 100%;
+    height: auto;
     display: flex;
     position: relative;
     overflow-x: auto;
     overflow-y: hidden;
     gap: calc(globals.$spacing-unit / 2);
-
-    @media (min-width: 1024px) {
-      width: 80%;
-    }
 
     @media (min-width: 1280px) {
       width: 60%;

@@ -1,16 +1,14 @@
-import type { CatalogueSearchResult, DownloadSource } from "@types";
+import type {
+  CatalogueSearchResult,
+  CatalogueSearchPayload,
+  DownloadSource,
+} from "@types";
 
-import {
-  useAppDispatch,
-  useAppSelector,
-  useFormat,
-  useRepacks,
-} from "@renderer/hooks";
+import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import "./catalogue.scss";
 
-import { downloadSourcesTable } from "@renderer/dexie";
 import { FilterSection } from "./filter-section";
 import { setFilters, setPage } from "@renderer/features";
 import { useTranslation } from "react-i18next";
@@ -35,13 +33,12 @@ export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers } = useCatalogue();
+  const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
 
   const { steamGenres, steamUserTags } = useAppSelector(
     (state) => state.catalogueSearch
   );
 
-  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
@@ -56,25 +53,42 @@ export default function Catalogue() {
 
   const { t, i18n } = useTranslation("catalogue");
 
-  const { getRepacksForObjectId } = useRepacks();
-
   const debouncedSearch = useRef(
-    debounce(async (filters, pageSize, offset) => {
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
+    debounce(
+      async (
+        filters: CatalogueSearchPayload,
+        downloadSources: DownloadSource[],
+        pageSize: number,
+        offset: number
+      ) => {
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
 
-      const response = await window.electron.searchGames(
-        filters,
-        pageSize,
-        offset
-      );
+        const requestData = {
+          ...filters,
+          take: pageSize,
+          skip: offset,
+          downloadSourceIds: downloadSources.map(
+            (downloadSource) => downloadSource.id
+          ),
+        };
 
-      if (abortController.signal.aborted) return;
+        const response = await window.electron.hydraApi.post<{
+          edges: CatalogueSearchResult[];
+          count: number;
+        }>("/catalogue/search", {
+          data: requestData,
+          needsAuth: false,
+        });
 
-      setResults(response.edges);
-      setItemsCount(response.count);
-      setIsLoading(false);
-    }, 500)
+        if (abortController.signal.aborted) return;
+
+        setResults(response.edges);
+        setItemsCount(response.count);
+        setIsLoading(false);
+      },
+      500
+    )
   ).current;
 
   const decodeHTML = (s: string) =>
@@ -85,18 +99,17 @@ export default function Catalogue() {
     setIsLoading(true);
     abortControllerRef.current?.abort();
 
-    debouncedSearch(filters, PAGE_SIZE, (page - 1) * PAGE_SIZE);
+    debouncedSearch(
+      filters,
+      downloadSources,
+      PAGE_SIZE,
+      (page - 1) * PAGE_SIZE
+    );
 
     return () => {
       debouncedSearch.cancel();
     };
-  }, [filters, page, debouncedSearch]);
-
-  useEffect(() => {
-    downloadSourcesTable.toArray().then((sources) => {
-      setDownloadSources(sources.filter((source) => !!source.fingerprint));
-    });
-  }, [getRepacksForObjectId]);
+  }, [filters, downloadSources, page, debouncedSearch]);
 
   const language = i18n.language.split("-")[0];
 
@@ -174,7 +187,7 @@ export default function Catalogue() {
         value: publisher,
       })),
     ];
-  }, [filters, steamUserTags, steamGenresMapping, language, downloadSources]);
+  }, [filters, steamUserTags, downloadSources, steamGenresMapping, language]);
 
   const filterSections = useMemo(() => {
     return [
@@ -190,13 +203,15 @@ export default function Catalogue() {
       },
       {
         title: t("download_sources"),
-        items: downloadSources.map((source) => ({
-          label: source.name,
-          value: source.fingerprint,
-          checked: filters.downloadSourceFingerprints.includes(
-            source.fingerprint
-          ),
-        })),
+        items: downloadSources
+          .filter((source) => source.fingerprint)
+          .map((source) => ({
+            label: source.name,
+            value: source.fingerprint!,
+            checked: filters.downloadSourceFingerprints.includes(
+              source.fingerprint!
+            ),
+          })),
         key: "downloadSourceFingerprints",
       },
       {

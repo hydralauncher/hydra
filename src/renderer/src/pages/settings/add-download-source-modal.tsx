@@ -1,15 +1,14 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useForm } from "react-hook-form";
+import { logger } from "@renderer/logger";
 
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { downloadSourcesTable } from "@renderer/dexie";
-import type { DownloadSourceValidationResult } from "@types";
-import { downloadSourcesWorker } from "@renderer/workers";
+import { SyncIcon } from "@primer/octicons-react";
 import "./add-download-source-modal.scss";
 
 interface AddDownloadSourceModalProps {
@@ -27,7 +26,6 @@ export function AddDownloadSourceModal({
   onClose,
   onAddDownloadSource,
 }: Readonly<AddDownloadSourceModalProps>) {
-  const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const { t } = useTranslation("settings");
@@ -47,89 +45,45 @@ export function AddDownloadSourceModal({
     resolver: yupResolver(schema),
   });
 
-  const [validationResult, setValidationResult] =
-    useState<DownloadSourceValidationResult | null>(null);
-
   const { sourceUrl } = useContext(settingsContext);
 
-  const onSubmit = useCallback(
-    async (values: FormValues) => {
-      const existingDownloadSource = await downloadSourcesTable
-        .where({ url: values.url })
-        .first();
+  const onSubmit = async (values: FormValues) => {
+    setIsLoading(true);
 
-      if (existingDownloadSource) {
-        setError("url", {
-          type: "server",
-          message: t("source_already_exists"),
-        });
+    try {
+      await window.electron.addDownloadSource(values.url);
 
-        return;
-      }
+      onClose();
+      onAddDownloadSource();
+    } catch (error) {
+      logger.error("Failed to add download source:", error);
+      const errorMessage =
+        error instanceof Error && error.message.includes("already exists")
+          ? t("download_source_already_exists")
+          : t("failed_add_download_source");
 
-      downloadSourcesWorker.postMessage([
-        "VALIDATE_DOWNLOAD_SOURCE",
-        values.url,
-      ]);
-
-      const channel = new BroadcastChannel(
-        `download_sources:validate:${values.url}`
-      );
-
-      channel.onmessage = (
-        event: MessageEvent<DownloadSourceValidationResult>
-      ) => {
-        setValidationResult(event.data);
-        channel.close();
-      };
-
-      setUrl(values.url);
-    },
-    [setError, t]
-  );
+      setError("url", {
+        type: "server",
+        message: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setValue("url", "");
     clearErrors();
     setIsLoading(false);
-    setValidationResult(null);
 
     if (sourceUrl) {
       setValue("url", sourceUrl);
-      handleSubmit(onSubmit)();
     }
-  }, [visible, clearErrors, handleSubmit, onSubmit, setValue, sourceUrl]);
+  }, [visible, clearErrors, setValue, sourceUrl]);
 
-  const putDownloadSource = async () => {
-    const downloadSource = await downloadSourcesTable.where({ url }).first();
-    if (!downloadSource) return;
-
-    window.electron
-      .putDownloadSource(downloadSource.objectIds)
-      .then(({ fingerprint }) => {
-        downloadSourcesTable.update(downloadSource.id, { fingerprint });
-      });
-  };
-
-  const handleAddDownloadSource = async () => {
-    if (validationResult) {
-      setIsLoading(true);
-
-      const channel = new BroadcastChannel(`download_sources:import:${url}`);
-
-      downloadSourcesWorker.postMessage(["IMPORT_DOWNLOAD_SOURCE", url]);
-
-      channel.onmessage = () => {
-        window.electron.createDownloadSources([url]);
-        setIsLoading(false);
-
-        putDownloadSource();
-
-        onClose();
-        onAddDownloadSource();
-        channel.close();
-      };
-    }
+  const handleClose = () => {
+    if (isLoading) return;
+    onClose();
   };
 
   return (
@@ -137,49 +91,36 @@ export function AddDownloadSourceModal({
       visible={visible}
       title={t("add_download_source")}
       description={t("add_download_source_description")}
-      onClose={onClose}
+      onClose={handleClose}
+      clickOutsideToClose={!isLoading}
     >
       <div className="add-download-source-modal__container">
-        <TextField
-          {...register("url")}
-          label={t("download_source_url")}
-          placeholder={t("insert_valid_json_url")}
-          error={errors.url?.message}
-          rightContent={
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <TextField
+            {...register("url")}
+            label={t("download_source_url")}
+            placeholder={t("insert_valid_json_url")}
+            error={errors.url?.message}
+          />
+
+          <div className="add-download-source-modal__actions">
             <Button
               type="button"
               theme="outline"
-              className="add-download-source-modal__validate-button"
-              onClick={handleSubmit(onSubmit)}
-              disabled={isSubmitting || isLoading}
-            >
-              {t("validate_download_source")}
-            </Button>
-          }
-        />
-
-        {validationResult && (
-          <div className="add-download-source-modal__validation-result">
-            <div className="add-download-source-modal__validation-info">
-              <h4>{validationResult?.name}</h4>
-              <small>
-                {t("found_download_option", {
-                  count: validationResult?.downloadCount,
-                  countFormatted:
-                    validationResult?.downloadCount.toLocaleString(),
-                })}
-              </small>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleAddDownloadSource}
+              onClick={handleClose}
               disabled={isLoading}
             >
-              {t("import")}
+              {t("cancel")}
+            </Button>
+
+            <Button type="submit" disabled={isSubmitting || isLoading}>
+              {isLoading && (
+                <SyncIcon className="add-download-source-modal__spinner" />
+              )}
+              {isLoading ? t("adding") : t("add_download_source")}
             </Button>
           </div>
-        )}
+        </form>
       </div>
     </Modal>
   );

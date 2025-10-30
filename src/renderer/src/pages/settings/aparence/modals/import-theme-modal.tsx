@@ -3,7 +3,11 @@ import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
 import { Theme } from "@types";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  generateUUID,
+} from "@renderer/helpers";
 import { useToast } from "@renderer/hooks";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 import { logger } from "@renderer/logger";
@@ -30,7 +34,7 @@ export const ImportThemeModal = ({
 
   const handleImportTheme = async () => {
     const theme: Theme = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: themeName,
       isActive: false,
       author: authorId,

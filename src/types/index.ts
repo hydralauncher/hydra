@@ -10,30 +10,30 @@ export type HydraCloudFeature =
   | "backup"
   | "achievements-points";
 
+export interface DiskUsage {
+  free: number;
+  total: number;
+}
+
 export interface GameRepack {
-  id: number;
+  id: string;
   title: string;
-  uris: string[];
-  repacker: string;
   fileSize: string | null;
-  objectIds: string[];
-  uploadDate: Date | string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  uris: string[];
+  uploadDate: string | null;
+  downloadSourceId: string;
+  downloadSourceName: string;
 }
 
 export interface DownloadSource {
-  id: number;
+  id: string;
   name: string;
   url: string;
-  repackCount: number;
   status: DownloadSourceStatus;
-  objectIds: string[];
   downloadCount: number;
-  fingerprint: string;
-  etag: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  fingerprint?: string;
+  isRemote?: true;
+  createdAt: string;
 }
 
 export interface ShopAssets {
@@ -45,7 +45,8 @@ export interface ShopAssets {
   libraryImageUrl: string;
   logoImageUrl: string;
   logoPosition: string | null;
-  coverImageUrl: string;
+  coverImageUrl: string | null;
+  downloadSources: string[];
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -108,7 +109,6 @@ export type AppUpdaterEvent =
 
 /* Events */
 export interface StartGameDownloadPayload {
-  repackId: number;
   objectId: string;
   title: string;
   shop: GameShop;
@@ -182,6 +182,7 @@ export interface UserDetails {
   bio: string;
   featurebaseJwt: string;
   subscription: Subscription | null;
+  karma: number;
   quirks?: {
     backupsPerGameLimit: number;
   };
@@ -202,6 +203,7 @@ export interface UserProfile {
   currentGame: UserProfileCurrentGame | null;
   bio: string;
   hasActiveSubscription: boolean;
+  karma: number;
   quirks: {
     backupsPerGameLimit: number;
   };
@@ -224,16 +226,33 @@ export interface DownloadSourceDownload {
   fileSize: string;
 }
 
-export interface DownloadSourceValidationResult {
-  name: string;
-  etag: string;
-  downloadCount: number;
-}
-
 export interface GameStats {
   downloadCount: number;
   playerCount: number;
-  assets: ShopAssets | null;
+  averageScore: number | null;
+  reviewCount: number;
+}
+
+export interface GameReview {
+  id: string;
+  reviewHtml: string;
+  score: number;
+  createdAt: string;
+  updatedAt: string;
+  upvotes: number;
+  downvotes: number;
+  isBlocked: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+  };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -336,7 +355,7 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
-} & Pick<ShopAssets, "libraryImageUrl">;
+} & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {

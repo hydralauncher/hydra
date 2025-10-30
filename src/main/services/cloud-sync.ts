@@ -80,7 +80,7 @@ export class CloudSync {
       try {
         await fs.promises.rm(backupPath, { recursive: true });
       } catch (error) {
-        logger.error("Failed to remove backup path", error);
+        logger.error("Failed to remove backup path", { backupPath, error });
       }
     }
 
@@ -163,7 +163,7 @@ export class CloudSync {
     try {
       await fs.promises.unlink(bundleLocation);
     } catch (error) {
-      logger.error("Failed to remove tar file", error);
+      logger.error("Failed to remove tar file", { bundleLocation, error });
     }
   }
 }

@@ -19,7 +19,6 @@ const getAllCustomGameAssets = async (): Promise<string[]> => {
 };
 
 const getUsedAssetPaths = async (): Promise<Set<string>> => {
-  // Get all custom games from the level database
   const { gamesSublevel } = await import("@main/level");
   const allGames = await gamesSublevel.iterator().all();
 
@@ -30,7 +29,6 @@ const getUsedAssetPaths = async (): Promise<Set<string>> => {
   const usedPaths = new Set<string>();
 
   customGames.forEach((game) => {
-    // Extract file paths from local URLs
     if (game.iconUrl?.startsWith("local:")) {
       usedPaths.add(game.iconUrl.replace("local:", ""));
     }

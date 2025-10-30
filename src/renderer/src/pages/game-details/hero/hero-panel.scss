@@ -18,6 +18,7 @@
   top: 0;
   z-index: 2;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
 
   &--stuck {
     background: rgba(0, 0, 0, 0.7);
@@ -29,7 +30,18 @@
   &__content {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 0.5);
+
+    p {
+      font-size: globals.$small-font-size;
+      color: globals.$muted-color;
+      font-weight: 400;
+      margin: 0;
+
+      &:first-child {
+        font-weight: 600;
+      }
+    }
   }
 
   &__actions {

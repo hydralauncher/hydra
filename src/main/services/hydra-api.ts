@@ -12,7 +12,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 
-interface HydraApiOptions {
+export interface HydraApiOptions {
   needsAuth?: boolean;
   needsSubscription?: boolean;
   ifModifiedSince?: Date;
@@ -46,7 +46,7 @@ export class HydraApi {
     return this.userAuth.authToken !== "";
   }
 
-  private static hasActiveSubscription() {
+  public static hasActiveSubscription() {
     const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
     return expiresAt > new Date();
   }
@@ -102,8 +102,12 @@ export class HydraApi {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
       uploadGamesBatch();
+
       // WSClient.close();
       // WSClient.connect();
+
+      const { syncDownloadSourcesFromApi } = await import("./user");
+      syncDownloadSourcesFromApi();
     }
   }
 

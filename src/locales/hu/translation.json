@@ -183,7 +183,11 @@
     "remove_files": "Fájlok eltávolítása",
     "remove_from_library_title": "Biztos vagy ebben?",
     "remove_from_library_description": "Ezzel eltávolítod a játékot {{game}} a könyvtáradból",
+<<<<<<< HEAD
     "options": "Beállítások",ä
+=======
+    "options": "Beállítások",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "properties": "További beállítások",
     "executable_section_title": "Futtatható fájl",
     "executable_section_description": "A fájl amely futtatásra fog kerülni amikor a \"Játék\" lenyomásra kerül",
@@ -224,7 +228,11 @@
     "show_less": "Mutass kevesebbet",
     "reviews": "Vélemények",
     "leave_a_review": "Hagyd itt a véleményed",
+<<<<<<< HEAD
     "write_review_placeholder": "Oszd meg gondolatod a játékról...",
+=======
+    "write_review_placeholder": "Oszd meg a gondolataid a játékról...",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "sort_newest": "Legújabb",
     "no_reviews_yet": "Még nem lett vélemény megosztva",
     "be_first_to_review": "Légy az első, aki megossza a véleményét a játékról!",
@@ -252,7 +260,11 @@
     "you_seemed_to_enjoy_this_game": "Úgy látszik élvezted ezt a játékot",
     "would_you_recommend_this_game": "Szeretnél véleményt írni erről a játékról?",
     "yes": "Igen",
+<<<<<<< HEAD
     "maybe_later": "Talán később",
+=======
+    "maybe_later": "Talán Később",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "cloud_save": "Mentés felhőben",
     "cloud_save_description": "Mentsd el az előrehaladásod a felhőben, majd folytasd egy másik eszközön",
     "backups": "Biztonsági másolatok",
@@ -356,12 +368,16 @@
     "delete_review_modal_title": "Biztos vagy abban hogy törölni szeretnéd a véleményed?",
     "delete_review_modal_description": "Ez a lépés nem vonható vissza.",
     "delete_review_modal_delete_button": "Törlés",
+<<<<<<< HEAD
     "delete_review_modal_cancel_button": "Mégse",
     "vote_failed": "A szavazatod nem regisztrálódott. Kérlek próbáld újra.",														
     "show_original": "Eredeti megjelenítése",
     "show_translation": "Fordítás megjelenítése",
     "show_original_translated_from": "Eredeti megjelenítése (fordítva: {{language}})",
     "hide_original": "Eredeti elrejtése"
+=======
+    "delete_review_modal_cancel_button": "Mégse"
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
   },
   "activation": {
     "title": "Hydra Aktiválása",
@@ -515,14 +531,22 @@
     "cancel": "Mégsem",
     "appearance": "Megjelenés",
     "debrid": "Debrid",
+<<<<<<< HEAD
     "debrid_description": "A Debrid szolgáltatások prémium szolgáltatások amelyek lehetővé teszik, hogy gyorsan letölts különböző fájltároló szolgáltatásokon tárolt fájlokat, és csak az internet sebességed szab határt.",
+=======
+    "debrid_description": "A Debrid szolgáltatások prémium szolgáltatások amelyek lehetővé teszik, hogy gyorsan letölts különböző fájltároló szolgáltatásokon tárolt fájlokat, csak az internet sebességed szab határt.",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "enable_torbox": "TorBox bekapcsolása",
     "torbox_description": "A TorBox egy olyan premium seedbox szolgáltatás, amely még a piacon elérhető legjobb szerverekkel is felveszi a versenyt.",
     "torbox_account_linked": "TorBox fiók összekapcsolva",
     "create_real_debrid_account": "Kattints ide ha még nincs Real-Debrid fiókod",
     "create_torbox_account": "Kattints ide ha még nincs TorBox fiókod",
     "real_debrid_account_linked": "Real-Debrid fiók összekapcsolva",
+<<<<<<< HEAD
     "name_min_length": "A téma neve legalább 3 karakter hosszú kell legyen",
+=======
+    "name_min_length": "A téma neve legalább 3 karakter hosszú legyen",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "import_theme": "Téma importálása",
     "import_theme_description": "Ezt a témát fogod importálni a Témaáruház-ból: {{theme}}",
     "error_importing_theme": "Hiba lépett fel a téma importálása közben",
@@ -582,7 +606,11 @@
     "available_one": "Elérhető",
     "available_other": "Elérhető",
     "no_downloads": "Nincs elérhető letöltés",
+<<<<<<< HEAD
     "calculating": "Számítás alatt.."
+=======
+    "calculating": "Feldolgozás"
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
   },
   "binary_not_found_modal": {
     "title": "Hiányzó programok",
@@ -689,7 +717,11 @@
     "game_added_to_pinned": "Játék hozzáadva a kitűzöttekhez",
     "karma": "Karma",
     "karma_count": "karma",
+<<<<<<< HEAD
     "karma_description": "Pozitív értékelésekkel szerzett pontok"
+=======
+    "karma_description": "Pozitív értékelésekre kapott pontok alapján"
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
   },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",
@@ -698,7 +730,11 @@
     "unlocked_at": "Feloldva: {{date}}",
     "subscription_needed": "A tartalom megtekintéséhez Hydra Cloud előfizetés szükséges",
     "new_achievements_unlocked": "{{achievementCount}} új achievement feloldva {{gameCount}} játékban",
+<<<<<<< HEAD
     "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievement",
+=======
+    "achievement_progress": "{{unlockedCount}}/{{totalCount}} achievementek",
+>>>>>>> 21074322fa5ef3a1d6168a2b841ec2505db8f0de
     "achievements_unlocked_for_game": "{{achievementCount}} új achievement feloldva itt: {{gameTitle}}",
     "hidden_achievement_tooltip": "Ez egy rejtett achievement",
     "achievement_earn_points": "Szerezz be {{points}} pontot ezzel az achievement-el",

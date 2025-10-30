@@ -18,3 +18,4 @@ export * from "./debrid-badge/debrid-badge";
 export * from "./context-menu/context-menu";
 export * from "./game-context-menu/game-context-menu";
 export * from "./game-context-menu/use-game-actions";
+export * from "./star-rating/star-rating";
