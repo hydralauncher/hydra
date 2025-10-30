@@ -27,3 +27,11 @@
 - Follow TypeScript strict mode conventions
 - Use async/await instead of promises when possible
 - Prefer named exports over default exports for utilities and services
+
+## Comments
+
+- Keep comments concise and purposeful; avoid verbose explanations.
+- Focus on the "why" or non-obvious context, not restating the code.
+- Prefer self-explanatory naming and structure over excessive comments.
+- Do not comment every line or obvious behavior; remove stale comments.
+- Use docblocks only where they add value (public APIs, complex logic).
