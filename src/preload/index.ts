@@ -580,6 +580,17 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-custom-theme-updated", listener);
   },
+  onNewDownloadOptions: (
+    cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gamesWithNewOptions: { gameId: string; count: number }[]
+    ) => cb(gamesWithNewOptions);
+    ipcRenderer.on("on-new-download-options", listener);
+    return () =>
+      ipcRenderer.removeListener("on-new-download-options", listener);
+  },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
 });
