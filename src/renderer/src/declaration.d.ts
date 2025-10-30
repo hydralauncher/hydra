@@ -414,6 +414,11 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Download Options */
+    onNewDownloadOptions: (
+      cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+    ) => () => Electron.IpcRenderer;
   }
 
   interface Window {

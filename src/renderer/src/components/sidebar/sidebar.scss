@@ -115,6 +115,26 @@
     background-size: cover;
   }
 
+  &__game-badge {
+    background: rgba(255, 255, 255, 0.1);;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 4px 6px;
+    border-radius: 6px;
+    display: flex;
+    margin-left: auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    gap: calc(globals.$spacing-unit * 0.35);
+  }
+
+  &__game-badge-plus,
+  &__game-badge-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   &__section-header {
     display: flex;
     justify-content: space-between;
