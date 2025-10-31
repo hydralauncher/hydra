@@ -8,6 +8,7 @@ export enum Downloader {
   Mediafire,
   TorBox,
   Hydra,
+  Direct,
 }
 
 export enum DownloadSourceStatus {
