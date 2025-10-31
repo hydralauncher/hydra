@@ -289,12 +289,6 @@ export class WindowManager {
     }
   }
 
-  private static loadNotificationWindowURL() {
-    if (this.notificationWindow) {
-      this.loadWindowURL(this.notificationWindow, "achievement-notification");
-    }
-  }
-
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
   private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
@@ -387,7 +381,7 @@ export class WindowManager {
     this.notificationWindow.setIgnoreMouseEvents(true);
 
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadNotificationWindowURL();
+    this.loadWindowURL(this.notificationWindow, "achievement-notification");
 
     if (!app.isPackaged || isStaging) {
       this.notificationWindow.webContents.openDevTools();
