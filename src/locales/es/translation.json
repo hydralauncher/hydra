@@ -541,7 +541,9 @@
     "notification_preview": "Probar notificación de logro",
     "debrid": "Debrid",
     "debrid_description": "Los servicios Debrid son descargadores premium sin restricciones que te dejan descargar más rápido archivos alojados en servicios de alojamiento siendo que la única limitación es tu velocidad de internet.",
-    "enable_friend_start_game_notifications": "Cuando un amigo está jugando un juego"
+    "enable_friend_start_game_notifications": "Cuando un amigo está jugando un juego",
+    "autoplay_trailers_on_game_page": "Reproducir trailers automáticamente en la página del juego",
+    "hide_to_tray_on_game_start": "Ocultar Hydra en la bandeja al iniciar un juego"
   },
   "notifications": {
     "download_complete": "Descarga completada",
