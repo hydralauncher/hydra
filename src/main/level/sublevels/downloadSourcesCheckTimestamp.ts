@@ -1,18 +1,59 @@
 import { levelKeys } from "./keys";
 import { db } from "../level";
+import { logger } from "@main/services";
 
-export const getLastDownloadSourcesCheck = async (): Promise<string | null> => {
+// Gets when we last started the app (for next API call's 'since')
+export const getDownloadSourcesCheckBaseline = async (): Promise<
+  string | null
+> => {
   try {
-    const timestamp = await db.get(levelKeys.lastDownloadSourcesCheck);
+    const timestamp = await db.get(levelKeys.downloadSourcesCheckBaseline);
     return timestamp;
   } catch (error) {
-    // Key doesn't exist yet
+    if (error instanceof Error && error.name === "NotFoundError") {
+      logger.debug("Download sources check baseline not found, returning null");
+    } else {
+      logger.error(
+        "Unexpected error while getting download sources check baseline",
+        error
+      );
+    }
     return null;
   }
 };
 
-export const updateLastDownloadSourcesCheck = async (
+// Updates to current time (when app starts)
+export const updateDownloadSourcesCheckBaseline = async (
   timestamp: string
 ): Promise<void> => {
-  await db.put(levelKeys.lastDownloadSourcesCheck, timestamp);
+  const utcTimestamp = new Date(timestamp).toISOString();
+  await db.put(levelKeys.downloadSourcesCheckBaseline, utcTimestamp);
+};
+
+// Gets the 'since' value the API used in the last check (for modal comparison)
+export const getDownloadSourcesSinceValue = async (): Promise<
+  string | null
+> => {
+  try {
+    const timestamp = await db.get(levelKeys.downloadSourcesSinceValue);
+    return timestamp;
+  } catch (error) {
+    if (error instanceof Error && error.name === "NotFoundError") {
+      logger.debug("Download sources since value not found, returning null");
+    } else {
+      logger.error(
+        "Unexpected error while getting download sources since value",
+        error
+      );
+    }
+    return null;
+  }
+};
+
+// Saves the 'since' value we used in the API call (for modal to compare against)
+export const updateDownloadSourcesSinceValue = async (
+  timestamp: string
+): Promise<void> => {
+  const utcTimestamp = new Date(timestamp).toISOString();
+  await db.put(levelKeys.downloadSourcesSinceValue, utcTimestamp);
 };

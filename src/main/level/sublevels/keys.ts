@@ -18,5 +18,6 @@ export const levelKeys = {
   screenState: "screenState",
   rpcPassword: "rpcPassword",
   downloadSources: "downloadSources",
-  lastDownloadSourcesCheck: "lastDownloadSourcesCheck",
+  downloadSourcesCheckBaseline: "downloadSourcesCheckBaseline", // When we last started the app
+  downloadSourcesSinceValue: "downloadSourcesSinceValue", // The 'since' value API used (for modal comparison)
 };

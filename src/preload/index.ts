@@ -103,6 +103,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  getDownloadSourcesCheckBaseline: () =>
+    ipcRenderer.invoke("getDownloadSourcesCheckBaseline"),
+  getDownloadSourcesSinceValue: () =>
+    ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
   toggleAutomaticCloudSync: (

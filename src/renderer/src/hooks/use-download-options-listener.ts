@@ -8,9 +8,9 @@ export function useDownloadOptionsListener() {
   useEffect(() => {
     const unsubscribe = window.electron.onNewDownloadOptions(
       (gamesWithNewOptions) => {
-        gamesWithNewOptions.forEach(({ gameId, count }) => {
+        for (const { gameId, count } of gamesWithNewOptions) {
           dispatch(updateGameNewDownloadOptions({ gameId, count }));
-        });
+        }
       }
     );
 

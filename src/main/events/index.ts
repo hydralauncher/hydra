@@ -64,6 +64,8 @@ import "./user-preferences/authenticate-real-debrid";
 import "./user-preferences/authenticate-torbox";
 import "./download-sources/add-download-source";
 import "./download-sources/sync-download-sources";
+import "./download-sources/get-download-sources-check-baseline";
+import "./download-sources/get-download-sources-since-value";
 import "./auth/sign-out";
 import "./auth/open-auth-window";
 import "./auth/get-session-hash";
