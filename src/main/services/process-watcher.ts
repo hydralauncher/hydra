@@ -198,11 +198,6 @@ export const watchProcesses = async () => {
 function onOpenGame(game: Game) {
   const now = performance.now();
 
-  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
-    game.shop,
-    game.objectId
-  );
-
   gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     lastTick: now,
     firstTick: now,
@@ -219,6 +214,13 @@ function onOpenGame(game: Game) {
       }
     })
     .catch(() => {});
+
+  if (game.shop === "custom") return;
+
+  AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
+    game.shop,
+    game.objectId
+  );
 
   if (game.remoteId) {
     updateGamePlaytime(
@@ -255,18 +257,20 @@ function onTickGame(game: Game) {
 
   const delta = now - gamePlaytime.lastTick;
 
-  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+  const updatedGame: Game = {
     ...game,
     playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + delta,
     lastTimePlayed: new Date(),
-  });
+  };
+
+  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
 
   gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
     ...gamePlaytime,
     lastTick: now,
   });
 
-  if (currentTick % TICKS_TO_UPDATE_API === 0) {
+  if (currentTick % TICKS_TO_UPDATE_API === 0 && game.shop !== "custom") {
     const deltaToSync =
       now -
       gamePlaytime.lastSyncTick +
@@ -279,19 +283,20 @@ function onTickGame(game: Game) {
     gamePromise
       .then(() => {
         gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...game,
+          ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
       .catch(() => {
         gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...game,
+          ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });
       })
       .finally(() => {
         gamesPlaytime.set(levelKeys.game(game.shop, game.objectId), {
           ...gamePlaytime,
+          lastTick: now,
           lastSyncTick: now,
         });
       });
@@ -299,10 +304,23 @@ function onTickGame(game: Game) {
 }
 
 const onCloseGame = (game: Game) => {
+  const now = performance.now();
   const gamePlaytime = gamesPlaytime.get(
     levelKeys.game(game.shop, game.objectId)
   )!;
   gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
+
+  const delta = now - gamePlaytime.lastTick;
+
+  const updatedGame: Game = {
+    ...game,
+    playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + delta,
+    lastTimePlayed: new Date(),
+  };
+
+  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
+
+  if (game.shop === "custom") return;
 
   if (game.remoteId) {
     if (game.automaticCloudSync) {
@@ -315,20 +333,20 @@ const onCloseGame = (game: Game) => {
     }
 
     const deltaToSync =
-      performance.now() -
+      now -
       gamePlaytime.lastSyncTick +
       (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
 
     return updateGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       .then(() => {
         return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...game,
+          ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
       .catch(() => {
         return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
-          ...game,
+          ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });
       });
