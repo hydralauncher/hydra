@@ -1,5 +1,5 @@
 import { WindowManager } from "./window-manager";
-import { createGame, updateGamePlaytime } from "./library-sync";
+import { createGame, trackGamePlaytime } from "./library-sync";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import { PythonRPC } from "./python-rpc";
 import axios from "axios";
@@ -223,7 +223,7 @@ function onOpenGame(game: Game) {
   );
 
   if (game.remoteId) {
-    updateGamePlaytime(
+    trackGamePlaytime(
       game,
       game.unsyncedDeltaPlayTimeInMilliseconds ?? 0,
       new Date()
@@ -277,7 +277,7 @@ function onTickGame(game: Game) {
       (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
 
     const gamePromise = game.remoteId
-      ? updateGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
+      ? trackGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       : createGame(game);
 
     gamePromise
@@ -337,7 +337,7 @@ const onCloseGame = (game: Game) => {
       gamePlaytime.lastSyncTick +
       (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
 
-    return updateGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
+    return trackGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       .then(() => {
         return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
           ...updatedGame,
