@@ -302,46 +302,58 @@ export class WindowManager {
     position: AchievementCustomNotificationPosition | undefined
   ) {
     const display = screen.getPrimaryDisplay();
-    const { width, height } = display.workAreaSize;
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
 
     if (position === "bottom-left") {
       return {
-        x: 0,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-left") {
+      return {
+        x: displayX,
+        y: displayY,
       };
     }
 
     if (position === "top-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: 0,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY,
       };
     }
 
     if (position === "top-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: 0,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY,
       };
     }
 
     return {
-      x: 0,
-      y: 0,
+      x: displayX,
+      y: displayY,
     };
   }
 
