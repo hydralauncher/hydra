@@ -163,7 +163,6 @@ export function GameReviews({
           take: "20",
           skip: skip.toString(),
           sortBy: reviewsSortBy,
-          language: i18n.language,
         });
 
         const response = await window.electron.hydraApi.get(

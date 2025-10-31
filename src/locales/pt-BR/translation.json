@@ -349,7 +349,9 @@
     "show_translation": "Mostrar tradução",
     "show_original_translated_from": "Mostrar original (traduzido do {{language}})",
     "hide_original": "Ocultar original",
-    "rating_count": "Avaliação"
+    "rating_count": "Avaliação",
+    "show": "Mostrar",
+    "hide": "Ocultar"
   },
   "activation": {
     "title": "Ativação",
