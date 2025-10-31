@@ -361,6 +361,8 @@ export type LibraryGame = Game &
   Partial<ShopAssets> & {
     id: string;
     download: Download | null;
+    unlockedAchievementCount?: number;
+    achievementCount?: number;
   };
 
 export type UserGameDetails = ShopAssets & {

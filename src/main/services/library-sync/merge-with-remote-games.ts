@@ -60,13 +60,20 @@ export const mergeWithRemoteGames = async () => {
 
         const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
 
+        // Construct coverImageUrl if not provided by backend (Steam games use predictable pattern)
+        const coverImageUrl =
+          game.coverImageUrl ||
+          (game.shop === "steam"
+            ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`
+            : null);
+
         await gamesShopAssetsSublevel.put(gameKey, {
           updatedAt: Date.now(),
           ...localGameShopAsset,
           shop: game.shop,
           objectId: game.objectId,
           title: localGame?.title || game.title, // Preserve local title if it exists
-          coverImageUrl: game.coverImageUrl,
+          coverImageUrl,
           libraryHeroImageUrl: game.libraryHeroImageUrl,
           libraryImageUrl: game.libraryImageUrl,
           logoImageUrl: game.logoImageUrl,
