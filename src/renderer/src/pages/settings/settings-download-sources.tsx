@@ -89,7 +89,7 @@ export function SettingsDownloadSources() {
     try {
       await window.electron.removeDownloadSource(false, downloadSource.id);
       const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources as DownloadSource[]);
+      setDownloadSources(sources);
       showSuccessToast(t("removed_download_source"));
     } catch (error) {
       logger.error("Failed to remove download source:", error);
@@ -104,7 +104,7 @@ export function SettingsDownloadSources() {
     try {
       await window.electron.removeDownloadSource(true);
       const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources as DownloadSource[]);
+      setDownloadSources(sources);
       showSuccessToast(t("removed_all_download_sources"));
     } catch (error) {
       logger.error("Failed to remove all download sources:", error);
@@ -117,7 +117,7 @@ export function SettingsDownloadSources() {
   const handleAddDownloadSource = async () => {
     try {
       const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources as DownloadSource[]);
+      setDownloadSources(sources);
     } catch (error) {
       logger.error("Failed to refresh download sources:", error);
     }
@@ -128,7 +128,7 @@ export function SettingsDownloadSources() {
     try {
       await window.electron.syncDownloadSources();
       const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources as DownloadSource[]);
+      setDownloadSources(sources);
 
       showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
