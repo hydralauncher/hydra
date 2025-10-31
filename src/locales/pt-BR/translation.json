@@ -350,6 +350,7 @@
     "show_original_translated_from": "Mostrar original (traduzido do {{language}})",
     "hide_original": "Ocultar original",
     "rating_count": "Avaliação",
+    "review_from_blocked_user": "Avaliação de usuário bloqueado",
     "show": "Mostrar",
     "hide": "Ocultar"
   },
