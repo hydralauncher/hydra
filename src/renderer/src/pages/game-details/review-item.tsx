@@ -81,7 +81,8 @@ export function ReviewItem({
   const needsTranslation =
     !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
 
-  const getLanguageName = (languageCode: string) => {
+  const getLanguageName = (languageCode: string | null) => {
+    if (!languageCode) return "";
     try {
       const displayNames = new Intl.DisplayNames([i18n.language], {
         type: "language",
@@ -182,7 +183,7 @@ export function ReviewItem({
               {showOriginal
                 ? t("hide_original")
                 : t("show_original_translated_from", {
-                    language: getLanguageName(review.detectedLanguage!),
+                    language: getLanguageName(review.detectedLanguage),
                   })}
             </button>
             {showOriginal && (
