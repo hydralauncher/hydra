@@ -362,6 +362,7 @@
     "language": "Idioma",
     "caption": "Subtítulo",
     "audio": "Audio",
+    "review_from_blocked_user": "Reseña de usuario bloqueado",
     "show": "Mostrar",
     "hide": "Ocultar"
   },
