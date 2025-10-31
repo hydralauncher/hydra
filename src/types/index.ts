@@ -23,6 +23,7 @@ export interface GameRepack {
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
+  createdAt: string;
 }
 
 export interface DownloadSource {

@@ -214,6 +214,8 @@ declare global {
     ) => Promise<void>;
     getDownloadSources: () => Promise<DownloadSource[]>;
     syncDownloadSources: () => Promise<void>;
+    getDownloadSourcesCheckBaseline: () => Promise<string | null>;
+    getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;

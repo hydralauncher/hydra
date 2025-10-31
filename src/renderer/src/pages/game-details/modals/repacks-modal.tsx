@@ -15,8 +15,7 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import type { DownloadSource } from "@types";
-import type { GameRepack } from "@types";
+import type { DownloadSource, GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
@@ -53,6 +52,10 @@ export function RepacksModal({
   const [hashesInDebrid, setHashesInDebrid] = useState<Record<string, boolean>>(
     {}
   );
+  const [lastCheckTimestamp, setLastCheckTimestamp] = useState<string | null>(
+    null
+  );
+  const [isLoadingTimestamp, setIsLoadingTimestamp] = useState(true);
 
   const { game, repacks } = useContext(gameDetailsContext);
 
@@ -66,8 +69,8 @@ export function RepacksModal({
       return null;
     }
 
-    const hashRegex = /xt=urn:btih:([a-zA-Z0-9]+)/i;
-    const match = magnet.match(hashRegex);
+    const hashRegex = /xt=urn:btih:([a-f0-9]+)/i;
+    const match = hashRegex.exec(magnet);
 
     return match ? match[1].toLowerCase() : null;
   };
@@ -96,6 +99,21 @@ export function RepacksModal({
 
     fetchDownloadSources();
   }, []);
+
+  useEffect(() => {
+    const fetchLastCheckTimestamp = async () => {
+      setIsLoadingTimestamp(true);
+
+      const timestamp = await window.electron.getDownloadSourcesSinceValue();
+
+      setLastCheckTimestamp(timestamp);
+      setIsLoadingTimestamp(false);
+    };
+
+    if (visible) {
+      fetchLastCheckTimestamp();
+    }
+  }, [visible, repacks]);
 
   const sortedRepacks = useMemo(() => {
     return orderBy(
@@ -156,6 +174,19 @@ export function RepacksModal({
   const checkIfLastDownloadedOption = (repack: GameRepack) => {
     if (!game?.download) return false;
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
+  };
+
+  const isNewRepack = (repack: GameRepack): boolean => {
+    // Don't show badge while loading timestamp
+    if (isLoadingTimestamp) return false;
+
+    if (!lastCheckTimestamp || !repack.createdAt) {
+      return false;
+    }
+
+    const lastCheckUtc = new Date(lastCheckTimestamp).toISOString();
+
+    return repack.createdAt > lastCheckUtc;
   };
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -273,7 +304,14 @@ export function RepacksModal({
                   onClick={() => handleRepackClick(repack)}
                   className="repacks-modal__repack-button"
                 >
-                  <p className="repacks-modal__repack-title">{repack.title}</p>
+                  <p className="repacks-modal__repack-title">
+                    {repack.title}
+                    {isNewRepack(repack) && (
+                      <span className="repacks-modal__new-badge">
+                        {t("new_download_option")}
+                      </span>
+                    )}
+                  </p>
 
                   {isLastDownloadedOption && (
                     <Badge>{t("last_downloaded_option")}</Badge>
