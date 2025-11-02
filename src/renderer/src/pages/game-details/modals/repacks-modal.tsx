@@ -126,10 +126,8 @@ export function RepacksModal({
       game?.newDownloadOptionsCount &&
       game.newDownloadOptionsCount > 0
     ) {
-      // Clear the badge in the database
       globalThis.electron.clearNewDownloadOptions(game.shop, game.objectId);
 
-      // Clear the badge in Redux store
       const gameId = `${game.shop}:${game.objectId}`;
       dispatch(clearNewDownloadOptions({ gameId }));
     }
@@ -177,7 +175,6 @@ export function RepacksModal({
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
     setShowSelectFolderModal(true);
-    // Mark this repack as viewed to hide the "NEW" badge
     setViewedRepackIds((prev) => new Set(prev).add(repack.id));
   };
 
@@ -199,10 +196,8 @@ export function RepacksModal({
   };
 
   const isNewRepack = (repack: GameRepack): boolean => {
-    // Don't show badge while loading timestamp
     if (isLoadingTimestamp) return false;
 
-    // Don't show badge if user has already clicked this repack in current session
     if (viewedRepackIds.has(repack.id)) return false;
 
     if (!lastCheckTimestamp || !repack.createdAt) {
