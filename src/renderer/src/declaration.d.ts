@@ -142,6 +142,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    clearNewDownloadOptions: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     toggleGamePin: (
       shop: GameShop,
       objectId: string,

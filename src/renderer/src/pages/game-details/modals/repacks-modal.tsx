@@ -21,7 +21,8 @@ import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
-import { useDate, useFeature } from "@renderer/hooks";
+import { useDate, useFeature, useAppDispatch } from "@renderer/hooks";
+import { clearNewDownloadOptions } from "@renderer/features";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -56,6 +57,9 @@ export function RepacksModal({
     null
   );
   const [isLoadingTimestamp, setIsLoadingTimestamp] = useState(true);
+  const [viewedRepackIds, setViewedRepackIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const { game, repacks } = useContext(gameDetailsContext);
 
@@ -63,14 +67,15 @@ export function RepacksModal({
 
   const { formatDate } = useDate();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const getHashFromMagnet = (magnet: string) => {
     if (!magnet || typeof magnet !== "string") {
       return null;
     }
 
-    const hashRegex = /xt=urn:btih:([a-f0-9]+)/i;
-    const match = hashRegex.exec(magnet);
+    const hashRegex = /xt=urn:btih:([a-zA-Z0-9]+)/i;
+    const match = magnet.match(hashRegex);
 
     return match ? match[1].toLowerCase() : null;
   };
@@ -115,6 +120,21 @@ export function RepacksModal({
     }
   }, [visible, repacks]);
 
+  useEffect(() => {
+    if (
+      visible &&
+      game?.newDownloadOptionsCount &&
+      game.newDownloadOptionsCount > 0
+    ) {
+      // Clear the badge in the database
+      globalThis.electron.clearNewDownloadOptions(game.shop, game.objectId);
+
+      // Clear the badge in Redux store
+      const gameId = `${game.shop}:${game.objectId}`;
+      dispatch(clearNewDownloadOptions({ gameId }));
+    }
+  }, [visible, game, dispatch]);
+
   const sortedRepacks = useMemo(() => {
     return orderBy(
       repacks,
@@ -157,6 +177,8 @@ export function RepacksModal({
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
     setShowSelectFolderModal(true);
+    // Mark this repack as viewed to hide the "NEW" badge
+    setViewedRepackIds((prev) => new Set(prev).add(repack.id));
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -179,6 +201,9 @@ export function RepacksModal({
   const isNewRepack = (repack: GameRepack): boolean => {
     // Don't show badge while loading timestamp
     if (isLoadingTimestamp) return false;
+
+    // Don't show badge if user has already clicked this repack in current session
+    if (viewedRepackIds.has(repack.id)) return false;
 
     if (!lastCheckTimestamp || !repack.createdAt) {
       return false;

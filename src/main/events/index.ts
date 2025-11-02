@@ -19,6 +19,7 @@ import "./library/delete-game-folder";
 import "./library/get-game-by-object-id";
 import "./library/get-library";
 import "./library/extract-game-download";
+import "./library/clear-new-download-options";
 import "./library/open-game";
 import "./library/open-game-executable-path";
 import "./library/open-game-installer";
