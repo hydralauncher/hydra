@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import type { GameShop } from "@types";
 import { ProfileReviewItem } from "./profile-review-item";
 import "./profile-content.scss";
 
@@ -21,7 +22,7 @@ interface UserReview {
     title: string;
     iconUrl: string;
     objectId: string;
-    shop: string;
+    shop: GameShop;
   };
   translations: {
     [key: string]: string;
