@@ -236,9 +236,21 @@
 
 .user-reviews__review-header {
   display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1);
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
+}
+
+.user-reviews__review-header-top {
+  display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: calc(globals.$spacing-unit * 1.5);
+}
+
+.user-reviews__review-header-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .user-reviews__review-meta-row {
@@ -343,6 +355,31 @@
 .user-reviews__review-content {
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+
+.user-reviews__review-translation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 1);
+  margin-top: calc(globals.$spacing-unit * 1.5);
+  padding: 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    text-decoration: underline;
+    color: rgba(255, 255, 255, 0.9);
+  }
 }
 
 .user-reviews__review-actions {

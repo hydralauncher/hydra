@@ -23,6 +23,10 @@ interface UserReview {
     objectId: string;
     shop: string;
   };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string | null;
 }
 
 interface ReviewsTabProps {
@@ -89,4 +93,3 @@ export function ReviewsTab({
     </motion.div>
   );
 }
-
