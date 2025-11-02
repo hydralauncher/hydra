@@ -11,6 +11,7 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { FriendsBox } from "./friends-box";
@@ -46,7 +47,7 @@ interface UserReview {
     title: string;
     iconUrl: string;
     objectId: string;
-    shop: string;
+    shop: GameShop;
   };
   translations: {
     [key: string]: string;
