@@ -1,5 +1,12 @@
 import { userProfileContext } from "@renderer/context";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import {
   useAppDispatch,
@@ -22,12 +29,13 @@ import { SortOptions } from "./sort-options";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { ClockIcon } from "@primer/octicons-react";
 import { Star, ThumbsUp, ThumbsDown, TrashIcon } from "lucide-react";
 import type { GameShop } from "@types";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import InfiniteScroll from "react-infinite-scroll-component";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -36,6 +44,7 @@ interface UserReview {
   id: string;
   reviewHtml: string;
   score: number;
+  playTimeInSeconds?: number;
   upvotes: number;
   downvotes: number;
   hasUpvoted: boolean;
@@ -58,11 +67,21 @@ interface UserReviewsResponse {
   reviews: UserReview[];
 }
 
-const getScoreColorClass = (score: number) => {
-  if (score >= 1 && score <= 2) return "game-details__review-score--red";
-  if (score === 3) return "game-details__review-score--yellow";
-  if (score >= 4 && score <= 5) return "game-details__review-score--green";
-  return "";
+const getRatingText = (score: number, t: (key: string) => string): string => {
+  switch (score) {
+    case 1:
+      return t("rating_very_negative");
+    case 2:
+      return t("rating_negative");
+    case 3:
+      return t("rating_neutral");
+    case 4:
+      return t("rating_positive");
+    case 5:
+      return t("rating_very_positive");
+    default:
+      return "";
+  }
 };
 
 export function ProfileContent() {
@@ -98,6 +117,21 @@ export function ProfileContent() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("user_profile");
+  const { t: tGameDetails } = useTranslation("game_details");
+  const { numberFormatter } = useFormat();
+
+  const formatPlayTime = (playTimeInSeconds: number) => {
+    const minutes = playTimeInSeconds / 60;
+
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
+
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
+  };
 
   useEffect(() => {
     dispatch(setHeaderTitle(""));
@@ -109,67 +143,32 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
+      // When sortBy changes, clear animated games so all games animate in
+      if (currentSortByRef.current !== sortBy) {
+        animatedGameIdsRef.current.clear();
+        currentSortByRef.current = sortBy;
+      }
       getUserLibraryGames(sortBy, true);
     }
   }, [sortBy, getUserLibraryGames, userProfile]);
 
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const animatedGameIdsRef = useRef<Set<string>>(new Set());
+  const currentSortByRef = useRef<SortOption>(sortBy);
 
-  useEffect(() => {
-    if (activeTab !== "library" || !hasMoreLibraryGames) {
-      return;
+  const handleLoadMore = useCallback(() => {
+    if (
+      activeTab === "library" &&
+      hasMoreLibraryGames &&
+      !isLoadingLibraryGames
+    ) {
+      loadMoreLibraryGames(sortBy);
     }
-
-    // Clean up previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
-    }
-
-    // Use setTimeout to ensure the DOM element is available after render
-    const timeoutId = setTimeout(() => {
-      const currentRef = loadMoreRef.current;
-      if (!currentRef) {
-        return;
-      }
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0];
-          if (
-            entry?.isIntersecting &&
-            hasMoreLibraryGames &&
-            !isLoadingLibraryGames
-          ) {
-            loadMoreLibraryGames(sortBy);
-          }
-        },
-        {
-          root: null,
-          rootMargin: "200px",
-          threshold: 0.1,
-        }
-      );
-
-      observerRef.current = observer;
-      observer.observe(currentRef);
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-    };
   }, [
     activeTab,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
     loadMoreLibraryGames,
     sortBy,
-    libraryGames.length,
   ]);
 
   // Clear reviews state and reset tab when switching users
@@ -368,8 +367,6 @@ export function ProfileContent() {
     };
   }, [setStatsIndex, isAnimationRunning]);
 
-  const { numberFormatter } = useFormat();
-
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
@@ -423,6 +420,11 @@ export function ProfileContent() {
                 onClick={() => setActiveTab("reviews")}
               >
                 {t("user_reviews")}
+                {reviewsTotalCount > 0 && (
+                  <span className="profile-content__tab-badge">
+                    {reviewsTotalCount}
+                  </span>
+                )}
               </button>
               {activeTab === "reviews" && (
                 <motion.div
@@ -513,55 +515,65 @@ export function ProfileContent() {
                             </div>
                           </div>
 
-                          <ul className="profile-content__games-grid">
-                            {libraryGames?.map((game) => (
-                              <li
-                                key={game.objectId}
-                                style={{ listStyle: "none" }}
-                              >
-                                <UserLibraryGameCard
-                                  game={game}
-                                  statIndex={statsIndex}
-                                  onMouseEnter={handleOnMouseEnterGameCard}
-                                  onMouseLeave={handleOnMouseLeaveGameCard}
-                                  sortBy={sortBy}
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                          {hasMoreLibraryGames && (
-                            <div
-                              ref={loadMoreRef}
-                              style={{
-                                height: "20px",
-                                width: "100%",
-                              }}
-                            />
-                          )}
-                          {isLoadingLibraryGames && (
-                            <SkeletonTheme
-                              baseColor="#1c1c1c"
-                              highlightColor="#444"
-                            >
-                              <ul className="profile-content__games-grid">
-                                {Array.from({ length: 12 }).map((_, i) => (
-                                  <li
-                                    key={`skeleton-${i}`}
+                          <InfiniteScroll
+                            dataLength={libraryGames.length}
+                            next={handleLoadMore}
+                            hasMore={hasMoreLibraryGames}
+                            loader={null}
+                            scrollThreshold={0.9}
+                            style={{ overflow: "visible" }}
+                            scrollableTarget="scrollableDiv"
+                          >
+                            <ul className="profile-content__games-grid">
+                              {libraryGames?.map((game, index) => {
+                                const hasAnimated =
+                                  animatedGameIdsRef.current.has(game.objectId);
+                                const isNewGame =
+                                  !hasAnimated && !isLoadingLibraryGames;
+
+                                return (
+                                  <motion.li
+                                    key={`${sortBy}-${game.objectId}`}
                                     style={{ listStyle: "none" }}
+                                    initial={
+                                      isNewGame
+                                        ? { opacity: 0.5, y: 15, scale: 0.96 }
+                                        : false
+                                    }
+                                    animate={
+                                      isNewGame
+                                        ? { opacity: 1, y: 0, scale: 1 }
+                                        : false
+                                    }
+                                    transition={
+                                      isNewGame
+                                        ? {
+                                            duration: 0.15,
+                                            ease: "easeOut",
+                                            delay: index * 0.01,
+                                          }
+                                        : undefined
+                                    }
+                                    onAnimationComplete={() => {
+                                      if (isNewGame) {
+                                        animatedGameIdsRef.current.add(
+                                          game.objectId
+                                        );
+                                      }
+                                    }}
                                   >
-                                    <Skeleton
-                                      height={240}
-                                      style={{
-                                        borderRadius: "4px",
-                                        boxShadow:
-                                          "0 8px 10px -2px rgba(0, 0, 0, 0.5)",
-                                      }}
+                                    <UserLibraryGameCard
+                                      game={game}
+                                      statIndex={statsIndex}
+                                      onMouseEnter={handleOnMouseEnterGameCard}
+                                      onMouseLeave={handleOnMouseLeaveGameCard}
+                                      sortBy={sortBy}
                                     />
-                                  </li>
-                                ))}
-                              </ul>
-                            </SkeletonTheme>
-                          )}
+                                  </motion.li>
+                                );
+                              })}
+                            </ul>
+                          </InfiniteScroll>
                         </div>
                       )}
                     </div>
@@ -579,18 +591,6 @@ export function ProfileContent() {
                   transition={{ duration: 0.2 }}
                   aria-hidden={false}
                 >
-                  <div className="profile-content__section-header">
-                    <div className="profile-content__section-title-group">
-                      {/* removed collapse button */}
-                      <h2>{t("user_reviews")}</h2>
-                      {reviewsTotalCount > 0 && (
-                        <span className="profile-content__section-badge">
-                          {reviewsTotalCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
                   {/* render reviews content unconditionally */}
                   {isLoadingReviews && (
                     <div className="user-reviews__loading">
@@ -616,35 +616,43 @@ export function ProfileContent() {
                             transition={{ duration: 0.3 }}
                           >
                             <div className="user-reviews__review-header">
+                              <div className="user-reviews__review-meta-row">
+                                <div
+                                  className="user-reviews__review-score-stars"
+                                  title={getRatingText(
+                                    review.score,
+                                    tGameDetails
+                                  )}
+                                >
+                                  <Star
+                                    size={12}
+                                    className="user-reviews__review-star user-reviews__review-star--filled"
+                                  />
+                                  <span className="user-reviews__review-score-text">
+                                    {review.score}/5
+                                  </span>
+                                </div>
+                                {Boolean(
+                                  review.playTimeInSeconds &&
+                                    review.playTimeInSeconds > 0
+                                ) && (
+                                  <div className="user-reviews__review-playtime">
+                                    <ClockIcon size={12} />
+                                    <span>
+                                      {tGameDetails("review_played_for")}{" "}
+                                      {formatPlayTime(
+                                        review.playTimeInSeconds || 0
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                               <div className="user-reviews__review-date">
                                 {formatDistance(
                                   new Date(review.createdAt),
                                   new Date(),
                                   { addSuffix: true }
                                 )}
-                              </div>
-
-                              <div className="user-reviews__review-score-stars">
-                                {Array.from({ length: 5 }, (_, index) => (
-                                  <div
-                                    key={index}
-                                    className="user-reviews__review-star-container"
-                                  >
-                                    <Star
-                                      size={24}
-                                      fill={
-                                        index < review.score
-                                          ? "currentColor"
-                                          : "none"
-                                      }
-                                      className={`user-reviews__review-star ${
-                                        index < review.score
-                                          ? `user-reviews__review-star--filled game-details__review-star--filled ${getScoreColorClass(review.score)}`
-                                          : "user-reviews__review-star--empty game-details__review-star--empty"
-                                      }`}
-                                    />
-                                  </div>
-                                ))}
                               </div>
                             </div>
 
