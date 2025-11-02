@@ -73,10 +73,6 @@ export class DownloadSourcesChecker {
             gameId: `${game.shop}:${game.objectId}`,
             count: gameUpdate.newDownloadOptionsCount,
           });
-
-          logger.info(
-            `Game ${game.title} has ${gameUpdate.newDownloadOptionsCount} new download options`
-          );
         }
       }
     }
@@ -121,7 +117,6 @@ export class DownloadSourcesChecker {
         return;
       }
 
-      // Get download sources
       const downloadSources = await downloadSourcesSublevel.values().all();
       const downloadSourceIds = downloadSources.map((source) => source.id);
       logger.info(
@@ -135,7 +130,6 @@ export class DownloadSourcesChecker {
         return;
       }
 
-      // Get when we LAST started the app (for this check's 'since' parameter)
       const previousBaseline = await getDownloadSourcesCheckBaseline();
       const since =
         previousBaseline ||
@@ -143,10 +137,8 @@ export class DownloadSourcesChecker {
 
       logger.info(`Using since: ${since} (from last app start)`);
 
-      // Clear any previously stored new download option counts so badges don't persist across restarts
       const clearedPayload = await this.clearStaleBadges(nonCustomGames);
 
-      // Prepare games array for API call (excluding custom games)
       const games = nonCustomGames.map((game: Game) => ({
         shop: game.shop,
         objectId: game.objectId,
@@ -164,7 +156,6 @@ export class DownloadSourcesChecker {
         }
       );
 
-      // Call the API
       const response = await HydraApi.checkDownloadSourcesChanges(
         downloadSourceIds,
         games,
@@ -173,24 +164,20 @@ export class DownloadSourcesChecker {
 
       logger.info("API call completed, response:", response);
 
-      // Save the 'since' value we just used (for modal to compare against)
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      // Update baseline to NOW (for next app start's 'since')
       const now = new Date().toISOString();
       await updateDownloadSourcesCheckBaseline(now);
       logger.info(
         `Updated baseline to: ${now} (will be 'since' on next app start)`
       );
 
-      // Process the response and store newDownloadOptionsCount for games with new options
       const gamesWithNewOptions = await this.processApiResponse(
         response,
         nonCustomGames
       );
 
-      // Send IPC event to renderer to clear stale badges and set fresh counts from response
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
       logger.info("Download sources check completed successfully");

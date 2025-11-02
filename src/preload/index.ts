@@ -183,6 +183,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
+  clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
     ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
   updateLaunchOptions: (
