@@ -35,7 +35,7 @@ export default function Catalogue() {
 
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
 
-  const { steamGenres, steamUserTags } = useAppSelector(
+  const { steamGenres, steamUserTags, filters, page } = useAppSelector(
     (state) => state.catalogueSearch
   );
 
@@ -46,8 +46,6 @@ export default function Catalogue() {
   const [itemsCount, setItemsCount] = useState(0);
 
   const { formatNumber } = useFormat();
-
-  const { filters, page } = useAppSelector((state) => state.catalogueSearch);
 
   const dispatch = useAppDispatch();
 
