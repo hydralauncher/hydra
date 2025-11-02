@@ -25,6 +25,7 @@ import type {
 } from "@types";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import { isStaging } from "@main/constants";
+import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
@@ -54,21 +55,25 @@ export class WindowManager {
       show: false,
     };
 
+  private static formatVersionNumber(version: string) {
+    return version.replaceAll(".", "-");
+  }
+
   private static async loadWindowURL(window: BrowserWindow, hash: string = "") {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
       window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`);
-    } else if (import.meta.env.MAIN_VITE_RENDERER_URL) {
+    } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
       // Try to load from remote URL in production
       try {
         await window.loadURL(
-          `${import.meta.env.MAIN_VITE_RENDERER_URL}#/${hash}`
+          `https://release-v${this.formatVersionNumber(app.getVersion())}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
         );
       } catch (error) {
         // Fall back to local file if remote URL fails
-        console.error(
-          "Failed to load from MAIN_VITE_RENDERER_URL, falling back to local file:",
+        logger.error(
+          "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
           error
         );
         window.loadFile(path.join(__dirname, "../renderer/index.html"), {
@@ -284,12 +289,6 @@ export class WindowManager {
     }
   }
 
-  private static loadNotificationWindowURL() {
-    if (this.notificationWindow) {
-      this.loadWindowURL(this.notificationWindow, "achievement-notification");
-    }
-  }
-
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
   private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
 
@@ -297,46 +296,58 @@ export class WindowManager {
     position: AchievementCustomNotificationPosition | undefined
   ) {
     const display = screen.getPrimaryDisplay();
-    const { width, height } = display.workAreaSize;
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
 
     if (position === "bottom-left") {
       return {
-        x: 0,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-left") {
+      return {
+        x: displayX,
+        y: displayY,
       };
     }
 
     if (position === "top-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: 0,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY,
       };
     }
 
     if (position === "top-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: 0,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY,
       };
     }
 
     return {
-      x: 0,
-      y: 0,
+      x: displayX,
+      y: displayY,
     };
   }
 
@@ -382,7 +393,7 @@ export class WindowManager {
     this.notificationWindow.setIgnoreMouseEvents(true);
 
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
-    this.loadNotificationWindowURL();
+    this.loadWindowURL(this.notificationWindow, "achievement-notification");
 
     if (!app.isPackaged || isStaging) {
       this.notificationWindow.webContents.openDevTools();
@@ -462,6 +473,7 @@ export class WindowManager {
 
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
         if (!app.isPackaged || isStaging) {
           editorWindow.webContents.openDevTools();
         }
@@ -469,11 +481,12 @@ export class WindowManager {
 
       editorWindow.webContents.on("before-input-event", (_event, input) => {
         if (input.key === "F12") {
-          editorWindow.webContents.toggleDevTools();
+          this.mainWindow?.webContents.toggleDevTools();
         }
       });
 
       editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
         this.editorWindows.delete(themeId);
       });
     }

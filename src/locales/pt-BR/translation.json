@@ -349,7 +349,10 @@
     "show_translation": "Mostrar tradução",
     "show_original_translated_from": "Mostrar original (traduzido do {{language}})",
     "hide_original": "Ocultar original",
-    "rating_count": "Avaliação"
+    "rating_count": "Avaliação",
+    "review_from_blocked_user": "Avaliação de usuário bloqueado",
+    "show": "Mostrar",
+    "hide": "Ocultar"
   },
   "activation": {
     "title": "Ativação",
@@ -416,6 +419,9 @@
     "validate_download_source": "Validar",
     "remove_download_source": "Remover",
     "add_download_source": "Adicionar fonte",
+    "adding": "Adicionando…",
+    "failed_add_download_source": "Falha ao adicionar fonte de download. Tente novamente.",
+    "download_source_already_exists": "Esta URL de fonte de download já existe.",
     "download_count_zero": "Sem downloads na lista",
     "download_count_one": "{{countFormatted}} download na lista",
     "download_count_other": "{{countFormatted}} downloads na lista",
@@ -423,7 +429,13 @@
     "add_download_source_description": "Insira a URL contendo o arquivo .json",
     "download_source_up_to_date": "Sincronizada",
     "download_source_errored": "Falhou",
+    "download_source_pending_matching": "Importando em breve",
+    "download_source_matched": "Sincronizada",
+    "download_source_matching": "Sincronizando",
+    "download_source_failed": "Erro",
+    "download_source_no_information": "Sem informações",
     "sync_download_sources": "Sincronizar",
+    "download_sources_synced_successfully": "Fontes de download sincronizadas",
     "removed_download_source": "Fonte removida",
     "removed_download_sources": "Fontes removidas",
     "cancel_button_confirmation_delete_all_sources": "Não",
@@ -529,7 +541,9 @@
     "hidden": "Oculta",
     "test_notification": "Testar notificação",
     "notification_preview": "Prévia da Notificação de Conquistas",
-    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo"
+    "enable_friend_start_game_notifications": "Quando um amigo iniciar um jogo",
+    "autoplay_trailers_on_game_page": "Reproduzir trailers automaticamente na página do jogo",
+    "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo"
   },
   "notifications": {
     "download_complete": "Download concluído",

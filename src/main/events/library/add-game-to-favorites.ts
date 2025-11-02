@@ -13,7 +13,9 @@ const addGameToFavorites = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  HydraApi.put(`/profile/games/${shop}/${objectId}/favorite`).catch(() => {});
+  if (shop !== "custom") {
+    HydraApi.put(`/profile/games/${shop}/${objectId}/favorite`).catch(() => {});
+  }
 
   try {
     await gamesSublevel.put(gameKey, {

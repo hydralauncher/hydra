@@ -46,7 +46,7 @@ export class HydraApi {
     return this.userAuth.authToken !== "";
   }
 
-  private static hasActiveSubscription() {
+  public static hasActiveSubscription() {
     const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
     return expiresAt > new Date();
   }
@@ -106,9 +106,7 @@ export class HydraApi {
       // WSClient.close();
       // WSClient.connect();
 
-      const { syncDownloadSourcesFromApi } = await import(
-        "../events/download-sources/sync-download-sources-from-api"
-      );
+      const { syncDownloadSourcesFromApi } = await import("./user");
       syncDownloadSourcesFromApi();
     }
   }
