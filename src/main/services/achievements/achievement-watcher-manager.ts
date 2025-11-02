@@ -167,6 +167,8 @@ export class AchievementWatcherManager {
     shop: GameShop,
     objectId: string
   ) {
+    if (shop === "custom") return;
+
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;
 

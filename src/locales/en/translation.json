@@ -361,7 +361,10 @@
     "show_original": "Show original",
     "show_translation": "Show translation",
     "show_original_translated_from": "Show original (translated from {{language}})",
-    "hide_original": "Hide original"
+    "hide_original": "Hide original",
+    "review_from_blocked_user": "Review from blocked user",
+    "show": "Show",
+    "hide": "Hide"
   },
   "activation": {
     "title": "Activate Hydra",
