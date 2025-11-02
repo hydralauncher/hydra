@@ -58,7 +58,9 @@ export function LibraryTab({
       transition={{ duration: 0.2 }}
       aria-hidden={false}
     >
-      {hasAnyGames && <SortOptions sortBy={sortBy} onSortChange={onSortChange} />}
+      {hasAnyGames && (
+        <SortOptions sortBy={sortBy} onSortChange={onSortChange} />
+      )}
 
       {!hasAnyGames && (
         <div className="profile-content__no-games">
@@ -123,8 +125,9 @@ export function LibraryTab({
               >
                 <ul className="profile-content__games-grid">
                   {libraryGames?.map((game, index) => {
-                    const hasAnimated =
-                      animatedGameIdsRef.current.has(game.objectId);
+                    const hasAnimated = animatedGameIdsRef.current.has(
+                      game.objectId
+                    );
                     const isNewGame = !hasAnimated && !isLoadingLibraryGames;
 
                     return (
@@ -173,4 +176,3 @@ export function LibraryTab({
     </motion.div>
   );
 }
-

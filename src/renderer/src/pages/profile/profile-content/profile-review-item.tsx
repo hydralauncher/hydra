@@ -1,8 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ClockIcon } from "@primer/octicons-react";
-import { Star, ThumbsUp, ThumbsDown, TrashIcon } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, TrashIcon, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import type { GameShop } from "@types";
+import { sanitizeHtml } from "@shared";
 import { useDate } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import "./profile-content.scss";
@@ -25,8 +28,12 @@ interface UserReview {
     title: string;
     iconUrl: string;
     objectId: string;
-    shop: string;
+    shop: GameShop;
   };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string | null;
 }
 
 interface ProfileReviewItemProps {
@@ -51,7 +58,32 @@ export function ProfileReviewItem({
   const navigate = useNavigate();
   const { formatDistance } = useDate();
   const { t } = useTranslation("user_profile");
-  const { t: tGameDetails } = useTranslation("game_details");
+  const { t: tGameDetails, i18n } = useTranslation("game_details");
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
+
+  const isDifferentLanguage =
+    getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
+
+  const needsTranslation =
+    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
+
+  const getLanguageName = (languageCode: string | null) => {
+    if (!languageCode) return "";
+    try {
+      const displayNames = new Intl.DisplayNames([i18n.language], {
+        type: "language",
+      });
+      return displayNames.of(languageCode) || languageCode.toUpperCase();
+    } catch {
+      return languageCode.toUpperCase();
+    }
+  };
+
+  const displayContent = needsTranslation
+    ? review.translations[i18n.language]
+    : review.reviewHtml;
 
   return (
     <motion.div
@@ -62,63 +94,93 @@ export function ProfileReviewItem({
       transition={{ duration: 0.3 }}
     >
       <div className="user-reviews__review-header">
-        <div className="user-reviews__review-meta-row">
-          <div
-            className="user-reviews__review-score-stars"
-            title={getRatingText(review.score, tGameDetails)}
-          >
-            <Star
-              size={12}
-              className="user-reviews__review-star user-reviews__review-star--filled"
-            />
-            <span className="user-reviews__review-score-text">
-              {review.score}/5
-            </span>
+        <div className="user-reviews__review-header-top">
+          <div className="user-reviews__review-game">
+            <div className="user-reviews__game-info">
+              <div className="user-reviews__game-details">
+                <img
+                  src={review.game.iconUrl}
+                  alt={review.game.title}
+                  className="user-reviews__game-icon"
+                />
+                <button
+                  className="user-reviews__game-title user-reviews__game-title--clickable"
+                  onClick={() => navigate(buildGameDetailsPath(review.game))}
+                >
+                  {review.game.title}
+                </button>
+              </div>
+            </div>
           </div>
-          {Boolean(
-            review.playTimeInSeconds && review.playTimeInSeconds > 0
-          ) && (
-            <div className="user-reviews__review-playtime">
-              <ClockIcon size={12} />
-              <span>
-                {tGameDetails("review_played_for")}{" "}
-                {formatPlayTime(review.playTimeInSeconds || 0)}
+          <div className="user-reviews__review-date">
+            {formatDistance(new Date(review.createdAt), new Date(), {
+              addSuffix: true,
+            })}
+          </div>
+        </div>
+        <div className="user-reviews__review-header-bottom">
+          <div className="user-reviews__review-meta-row">
+            <div
+              className="user-reviews__review-score-stars"
+              title={getRatingText(review.score, tGameDetails)}
+            >
+              <Star
+                size={12}
+                className="user-reviews__review-star user-reviews__review-star--filled"
+              />
+              <span className="user-reviews__review-score-text">
+                {review.score}/5
               </span>
             </div>
-          )}
-        </div>
-        <div className="user-reviews__review-date">
-          {formatDistance(new Date(review.createdAt), new Date(), {
-            addSuffix: true,
-          })}
+            {Boolean(
+              review.playTimeInSeconds && review.playTimeInSeconds > 0
+            ) && (
+              <div className="user-reviews__review-playtime">
+                <ClockIcon size={12} />
+                <span>
+                  {tGameDetails("review_played_for")}{" "}
+                  {formatPlayTime(review.playTimeInSeconds || 0)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div
-        className="user-reviews__review-content"
-        dangerouslySetInnerHTML={{
-          __html: review.reviewHtml,
-        }}
-      />
-
-      <div className="user-reviews__review-footer">
-        <div className="user-reviews__review-game">
-          <div className="user-reviews__game-info">
-            <div className="user-reviews__game-details">
-              <img
-                src={review.game.iconUrl}
-                alt={review.game.title}
-                className="user-reviews__game-icon"
+      <div>
+        <div
+          className="user-reviews__review-content"
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(displayContent),
+          }}
+        />
+        {needsTranslation && (
+          <>
+            <button
+              className="user-reviews__review-translation-toggle"
+              onClick={() => setShowOriginal(!showOriginal)}
+            >
+              <Languages size={13} />
+              {showOriginal
+                ? tGameDetails("hide_original")
+                : tGameDetails("show_original_translated_from", {
+                    language: getLanguageName(review.detectedLanguage),
+                  })}
+            </button>
+            {showOriginal && (
+              <div
+                className="user-reviews__review-content"
+                style={{
+                  opacity: 0.6,
+                  marginTop: "12px",
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(review.reviewHtml),
+                }}
               />
-              <button
-                className="user-reviews__game-title user-reviews__game-title--clickable"
-                onClick={() => navigate(buildGameDetailsPath(review.game))}
-              >
-                {review.game.title}
-              </button>
-            </div>
-          </div>
-        </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="user-reviews__review-actions">
@@ -188,4 +250,3 @@ export function ProfileReviewItem({
     </motion.div>
   );
 }
-
