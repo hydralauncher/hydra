@@ -75,11 +75,13 @@ export function ReviewItem({
 
   const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
+  const userLanguage = getBaseLanguage(i18n.language);
+
   const isDifferentLanguage =
-    getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
+    getBaseLanguage(review.detectedLanguage) !== userLanguage;
 
   const needsTranslation =
-    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
+    !isOwnReview && isDifferentLanguage && review.translations[userLanguage];
 
   const getLanguageName = (languageCode: string) => {
     try {
@@ -93,7 +95,7 @@ export function ReviewItem({
   };
 
   const displayContent = needsTranslation
-    ? review.translations[i18n.language]
+    ? review.translations[userLanguage]
     : review.reviewHtml;
 
   if (isBlocked && !isVisible) {
