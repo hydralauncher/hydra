@@ -317,6 +317,7 @@
     "sort_lowest_score": "Menor Nota",
     "sort_most_voted": "Mais Votadas",
     "no_reviews_yet": "Ainda não há avaliações",
+    "review_played_for": "Jogado por",
     "be_first_to_review": "Seja o primeiro a compartilhar seus pensamentos sobre este jogo!",
     "rating": "Avaliação",
     "rating_stats": "Avaliação",
@@ -696,7 +697,11 @@
     "karma": "Karma",
     "karma_count": "karma",
     "karma_description": "Ganho a partir de curtidas positivas em avaliações",
-    "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente"
+    "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
+    "user_reviews": "Avaliações",
+    "loading_reviews": "Carregando avaliações...",
+    "no_reviews": "Ainda não há avaliações",
+    "delete_review": "Excluir avaliação"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

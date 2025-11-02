@@ -325,6 +325,7 @@
     "maybe_later": "Tal vez después",
     "no_repacks_found": "Sin fuentes encontradas para este juego",
     "no_reviews_yet": "Sin reseñas aún",
+    "review_played_for": "Jugado por",
     "properties": "Propiedades",
     "rating": "Calificación",
     "rating_count": "Calificación",
@@ -681,7 +682,11 @@
     "karma_count": "karma",
     "karma_description": "Conseguido por me gustas positivos en reseñas",
     "sort_by": "Filtrar por:",
-    "game_added_to_pinned": "Juego añadido a fijados"
+    "game_added_to_pinned": "Juego añadido a fijados",
+    "user_reviews": "Reseñas",
+    "loading_reviews": "Cargando reseñas...",
+    "no_reviews": "Sin reseñas aún",
+    "delete_review": "Eliminar reseña"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",
