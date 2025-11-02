@@ -106,7 +106,7 @@ export class PythonRPC {
         "main.py"
       );
 
-      const childProcess = cp.spawn("python3", [scriptPath, ...commonArgs], {
+      const childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
         stdio: ["inherit", "inherit"],
       });
 

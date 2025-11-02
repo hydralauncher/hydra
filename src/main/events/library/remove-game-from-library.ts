@@ -84,7 +84,7 @@ const removeGameFromLibrary = async (
     await resetShopAssets(gameKey);
   }
 
-  if (game?.remoteId) {
+  if (game.remoteId) {
     HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
   }
 

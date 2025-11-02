@@ -63,7 +63,7 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
-    dispatch(setFilters({ title: value }));
+    dispatch(setFilters({ title: value.slice(0, 255) }));
 
     if (!location.pathname.startsWith("/catalogue")) {
       navigate("/catalogue");

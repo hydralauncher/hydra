@@ -9,6 +9,7 @@ import { ReviewForm } from "./review-form";
 import { ReviewItem } from "./review-item";
 import { ReviewSortOptions } from "./review-sort-options";
 import { ReviewPromptBanner } from "./review-prompt-banner";
+import "./game-reviews.scss";
 import { useToast } from "@renderer/hooks";
 
 type ReviewSortOption =
@@ -116,7 +117,7 @@ export function GameReviews({
   });
 
   const checkUserReview = useCallback(async () => {
-    if (!objectId || !userDetailsId) return;
+    if (!objectId || !userDetailsId || shop === "custom") return;
 
     try {
       const response = await window.electron.hydraApi.get<{
@@ -144,11 +145,9 @@ export function GameReviews({
     }
   }, [objectId, userDetailsId, shop, game, onUserReviewedChange]);
 
-  console.log("reviews", reviews);
-
   const loadReviews = useCallback(
     async (reset = false) => {
-      if (!objectId) return;
+      if (!objectId || shop === "custom") return;
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -164,7 +163,6 @@ export function GameReviews({
           take: "20",
           skip: skip.toString(),
           sortBy: reviewsSortBy,
-          language: i18n.language,
         });
 
         const response = await window.electron.hydraApi.get(
@@ -440,8 +438,6 @@ export function GameReviews({
     });
   }, [reviews]);
 
-  console.log("reviews", reviews);
-
   return (
     <div className="game-details__reviews-section">
       {showReviewPrompt &&
@@ -469,84 +465,82 @@ export function GameReviews({
         </>
       )}
 
-      <div className="game-details__reviews-list">
-        <div className="game-details__reviews-list-header">
-          <div className="game-details__reviews-title-group">
-            <h3 className="game-details__reviews-title">{t("reviews")}</h3>
-            <span className="game-details__reviews-badge">
-              {totalReviewCount}
-            </span>
-          </div>
+      <div className="game-details__reviews-list-header">
+        <div className="game-details__reviews-title-group">
+          <h3 className="game-details__reviews-title">{t("reviews")}</h3>
+          <span className="game-details__reviews-badge">
+            {totalReviewCount}
+          </span>
         </div>
-        <ReviewSortOptions
-          sortBy={reviewsSortBy}
-          onSortChange={handleSortChange}
-        />
-
-        {reviewsLoading && reviews.length === 0 && (
-          <div className="game-details__reviews-loading">
-            {t("loading_reviews")}
-          </div>
-        )}
-
-        {!reviewsLoading && reviews.length === 0 && (
-          <div className="game-details__reviews-empty">
-            <div className="game-details__reviews-empty-icon">
-              <NoteIcon size={48} />
-            </div>
-            <h4 className="game-details__reviews-empty-title">
-              {t("no_reviews_yet")}
-            </h4>
-            <p className="game-details__reviews-empty-message">
-              {t("be_first_to_review")}
-            </p>
-          </div>
-        )}
-
-        <div
-          className="game-details__reviews-container"
-          style={{
-            opacity: reviewsLoading && reviews.length > 0 ? 0.5 : 1,
-            transition: "opacity 0.2s ease",
-          }}
-        >
-          {reviews.map((review) => (
-            <ReviewItem
-              key={review.id}
-              review={review}
-              userDetailsId={userDetailsId}
-              isBlocked={review.isBlocked}
-              isVisible={visibleBlockedReviews.has(review.id)}
-              isVoting={votingReviews.has(review.id)}
-              previousVotes={
-                previousVotesRef.current.get(review.id) || {
-                  upvotes: 0,
-                  downvotes: 0,
-                }
-              }
-              onVote={handleVoteReview}
-              onDelete={handleDeleteReview}
-              onToggleVisibility={toggleBlockedReview}
-              onAnimationComplete={handleVoteAnimationComplete}
-            />
-          ))}
-        </div>
-
-        {hasMoreReviews && !reviewsLoading && (
-          <button
-            className="game-details__load-more-reviews"
-            onClick={loadMoreReviews}
-          >
-            {t("load_more_reviews")}
-          </button>
-        )}
-
-        {reviewsLoading && reviews.length > 0 && (
-          <div className="game-details__reviews-loading">
-            {t("loading_more_reviews")}
-          </div>
-        )}
       </div>
+      <ReviewSortOptions
+        sortBy={reviewsSortBy}
+        onSortChange={handleSortChange}
+      />
+
+      {reviewsLoading && reviews.length === 0 && (
+        <div className="game-details__reviews-loading">
+          {t("loading_reviews")}
+        </div>
+      )}
+
+      {!reviewsLoading && reviews.length === 0 && (
+        <div className="game-details__reviews-empty">
+          <div className="game-details__reviews-empty-icon">
+            <NoteIcon size={48} />
+          </div>
+          <h4 className="game-details__reviews-empty-title">
+            {t("no_reviews_yet")}
+          </h4>
+          <p className="game-details__reviews-empty-message">
+            {t("be_first_to_review")}
+          </p>
+        </div>
+      )}
+
+      <div
+        className="game-details__reviews-container"
+        style={{
+          opacity: reviewsLoading && reviews.length > 0 ? 0.5 : 1,
+          transition: "opacity 0.2s ease",
+        }}
+      >
+        {reviews.map((review) => (
+          <ReviewItem
+            key={review.id}
+            review={review}
+            userDetailsId={userDetailsId}
+            isBlocked={review.isBlocked}
+            isVisible={visibleBlockedReviews.has(review.id)}
+            isVoting={votingReviews.has(review.id)}
+            previousVotes={
+              previousVotesRef.current.get(review.id) || {
+                upvotes: 0,
+                downvotes: 0,
+              }
+            }
+            onVote={handleVoteReview}
+            onDelete={handleDeleteReview}
+            onToggleVisibility={toggleBlockedReview}
+            onAnimationComplete={handleVoteAnimationComplete}
+          />
+        ))}
+      </div>
+
+      {hasMoreReviews && !reviewsLoading && (
+        <button
+          className="game-details__load-more-reviews"
+          onClick={loadMoreReviews}
+        >
+          {t("load_more_reviews")}
+        </button>
+      )}
+
+      {reviewsLoading && reviews.length > 0 && (
+        <div className="game-details__reviews-loading">
+          {t("loading_more_reviews")}
+        </div>
+      )}
     </div>
   );
 }
