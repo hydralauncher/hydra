@@ -101,6 +101,11 @@
     gap: calc(globals.$spacing-unit);
     margin-bottom: calc(globals.$spacing-unit * 2);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+  }
+
+  &__tab-wrapper {
+    position: relative;
   }
 
   &__tab {
@@ -111,17 +116,20 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    border-bottom: 2px solid transparent;
-    transition: all ease 0.2s;
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.8);
-    }
+    transition: color ease 0.2s;
 
     &--active {
       color: white;
-      border-bottom-color: white;
     }
+  }
+
+  &__tab-underline {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: white;
   }
 
   &__games-grid {
@@ -179,10 +187,6 @@
     &__tab-panels {
       display: block;
     }
-
-    &__tab-panel[hidden] {
-      display: none;
-    }
   }
 }
 
@@ -210,7 +214,6 @@
 
 .user-reviews__review-item {
   border-radius: 8px;
-  padding: calc(globals.$spacing-unit * 2);
 }
 
 .user-reviews__review-header {

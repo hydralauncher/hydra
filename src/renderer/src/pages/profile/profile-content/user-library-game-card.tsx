@@ -2,7 +2,7 @@ import { UserGame } from "@types";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useFormat, useToast } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   buildGameAchievementPath,
   buildGameDetailsPath,
@@ -15,6 +15,7 @@ import {
   AlertFillIcon,
   PinIcon,
   PinSlashIcon,
+  ImageIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
@@ -44,6 +45,11 @@ export function UserLibraryGameCard({
   const navigate = useNavigate();
   const [isTooltipHovered, setIsTooltipHovered] = useState(false);
   const [isPinning, setIsPinning] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [game.coverImageUrl]);
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -233,11 +239,18 @@ export function UserLibraryGameCard({
               )}
           </div>
 
-          <img
-            src={game.coverImageUrl ?? undefined}
-            alt={game.title}
-            className="user-library-game__game-image"
-          />
+          {imageError || !game.coverImageUrl ? (
+            <div className="user-library-game__cover-placeholder">
+              <ImageIcon size={48} />
+            </div>
+          ) : (
+            <img
+              src={game.coverImageUrl}
+              alt={game.title}
+              className="user-library-game__game-image"
+              onError={() => setImageError(true)}
+            />
+          )}
         </button>
       </li>
       <Tooltip
