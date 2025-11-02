@@ -22,7 +22,13 @@
   &__review-user-info {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.25);
+    gap: calc(globals.$spacing-unit * 0.45);
+  }
+
+  &__review-meta-row {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
   }
 
   &__review-display-name {
@@ -157,28 +163,28 @@
   &__review-score-stars {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 2px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  &__review-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
   }
 
   &__review-star {
-    color: #666666;
+    color: rgba(255, 255, 255, 0.7);
     transition: color 0.2s ease;
     cursor: default;
 
     &--filled {
-      color: #ffffff;
-
-      &.game-details__review-score--red {
-        color: #fca5a5;
-      }
-
-      &.game-details__review-score--yellow {
-        color: #fcd34d;
-      }
-
-      &.game-details__review-score--green {
-        color: #86efac;
-      }
+      color: rgba(255, 255, 255, 0.7);
     }
 
     &--empty {
@@ -196,6 +202,24 @@
     gap: 4px;
     color: rgba(255, 255, 255, 0.6);
     font-size: globals.$small-font-size;
+  }
+
+  &__review-playtime {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 2px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0;
+
+    svg {
+      color: rgba(255, 255, 255, 0.6);
+    }
   }
 
   &__review-content {
