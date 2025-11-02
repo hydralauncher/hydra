@@ -253,7 +253,7 @@ export interface GameReview {
   translations: {
     [key: string]: string;
   };
-  detectedLanguage: string;
+  detectedLanguage: string | null;
 }
 
 export interface TrendingGame extends ShopAssets {
