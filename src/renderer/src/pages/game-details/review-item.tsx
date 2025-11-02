@@ -175,7 +175,6 @@ export function ReviewItem({
         </div>
         <div className="game-details__review-right">
           <div className="game-details__review-date">
-            <ClockIcon size={12} />
             {formatDistance(new Date(review.createdAt), new Date(), {
               addSuffix: true,
             })}

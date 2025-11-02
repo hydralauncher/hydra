@@ -174,7 +174,13 @@ export function UserProfileContextProvider({
         }>(url);
 
         if (response && response.library.length > 0) {
-          setLibraryGames((prev) => [...prev, ...response.library]);
+          setLibraryGames((prev) => {
+            const existingIds = new Set(prev.map((game) => game.objectId));
+            const newGames = response.library.filter(
+              (game) => !existingIds.has(game.objectId)
+            );
+            return [...prev, ...newGames];
+          });
           setLibraryPage(nextPage);
           setHasMoreLibraryGames(response.library.length === 12);
           return true;

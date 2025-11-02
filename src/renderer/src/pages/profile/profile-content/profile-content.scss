@@ -117,10 +117,28 @@
     font-size: 14px;
     font-weight: 500;
     transition: color ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.5);
 
     &--active {
       color: white;
     }
+  }
+
+  &__tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1;
   }
 
   &__tab-underline {
@@ -209,7 +227,7 @@
 .user-reviews__list {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: calc(globals.$spacing-unit * 4);
 }
 
 .user-reviews__review-item {
@@ -219,8 +237,14 @@
 .user-reviews__review-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: calc(globals.$spacing-unit * 1.5);
+}
+
+.user-reviews__review-meta-row {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 0.75);
 }
 
 .user-reviews__review-footer {
@@ -267,18 +291,53 @@
 }
 
 .user-reviews__review-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   color: rgba(255, 255, 255, 0.6);
   font-size: globals.$small-font-size;
 }
 
 .user-reviews__review-score-stars {
   display: flex;
-  gap: calc(globals.$spacing-unit * 0.5);
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.user-reviews__review-star-container {
+.user-reviews__review-star {
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.2s ease;
+
+  &--filled {
+    color: rgba(255, 255, 255, 0.7);
+
+    svg {
+      fill: currentColor;
+    }
+  }
+}
+
+.user-reviews__review-score-text {
+  font-weight: 500;
+}
+
+.user-reviews__review-playtime {
   display: flex;
   align-items: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-reviews__review-content {

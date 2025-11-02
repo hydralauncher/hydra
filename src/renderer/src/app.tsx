@@ -279,7 +279,7 @@ export function App() {
         <article className="container">
           <Header />
 
-          <section ref={contentRef} className="container__content">
+          <section ref={contentRef} id="scrollableDiv" className="container__content">
             <Outlet />
           </section>
         </article>
