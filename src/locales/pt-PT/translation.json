@@ -180,7 +180,10 @@
     "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
     "game_added_to_favorites": "Jogo adicionado aos favoritos",
-    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar"
+    "create_start_menu_shortcut": "Criar atalho no Menu Iniciar",
+    "review_from_blocked_user": "Avaliação de utilizador bloqueado",
+    "show": "Mostrar",
+    "hide": "Ocultar"
   },
   "activation": {
     "title": "Ativação",

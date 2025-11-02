@@ -71,25 +71,18 @@ export function ReviewItem({
 
   const [showOriginal, setShowOriginal] = useState(false);
 
-  // Check if this is the user's own review
   const isOwnReview = userDetailsId === review.user.id;
 
-  // Helper to get base language code (e.g., "pt" from "pt-BR")
-  const getBaseLanguage = (lang: string) => lang.split("-")[0];
+  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
-  // Check if the review is in a different language (comparing base language codes)
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
 
-  // Check if translation is available and needed (but not for own reviews)
   const needsTranslation =
-    !isOwnReview &&
-    isDifferentLanguage &&
-    review.translations &&
-    review.translations[i18n.language];
+    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
 
-  // Get the full language name using Intl.DisplayNames
-  const getLanguageName = (languageCode: string) => {
+  const getLanguageName = (languageCode: string | null) => {
+    if (!languageCode) return "";
     try {
       const displayNames = new Intl.DisplayNames([i18n.language], {
         type: "language",
@@ -100,7 +93,6 @@ export function ReviewItem({
     }
   };
 
-  // Determine which content to show - always show original for own reviews
   const displayContent = needsTranslation
     ? review.translations[i18n.language]
     : review.reviewHtml;
@@ -109,12 +101,12 @@ export function ReviewItem({
     return (
       <div className="game-details__review-item">
         <div className="game-details__blocked-review-simple">
-          Review from blocked user —{" "}
+          {t("review_from_blocked_user")}
           <button
             className="game-details__blocked-review-show-link"
             onClick={() => onToggleVisibility(review.id)}
           >
-            Show
+            {t("show")}
           </button>
         </div>
       </div>
@@ -323,7 +315,7 @@ export function ReviewItem({
             className="game-details__blocked-review-hide-link"
             onClick={() => onToggleVisibility(review.id)}
           >
-            Hide
+            {t("hide")}
           </button>
         )}
       </div>
