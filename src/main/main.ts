@@ -59,7 +59,7 @@ export const loadState = async () => {
     void syncDownloadSourcesFromApi();
 
     // Check for new download options on startup
-    void DownloadSourcesChecker.checkForChanges();
+    DownloadSourcesChecker.checkForChanges();
     // WSClient.connect();
   });
 
