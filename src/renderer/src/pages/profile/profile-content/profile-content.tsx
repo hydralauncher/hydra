@@ -8,14 +8,8 @@ import {
   useState,
 } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import {
-  useAppDispatch,
-  useFormat,
-  useDate,
-  useUserDetails,
-} from "@renderer/hooks";
+import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
@@ -23,19 +17,13 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { UserKarmaBox } from "./user-karma-box";
-import { UserLibraryGameCard } from "./user-library-game-card";
-import { SortOptions } from "./sort-options";
-
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
-import { ClockIcon } from "@primer/octicons-react";
-import { Star, ThumbsUp, ThumbsDown, TrashIcon } from "lucide-react";
-import type { GameShop } from "@types";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import InfiniteScroll from "react-infinite-scroll-component";
+import { ProfileTabs } from "./profile-tabs";
+import { LibraryTab } from "./library-tab";
+import { ReviewsTab } from "./reviews-tab";
+import { AnimatePresence } from "framer-motion";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -58,7 +46,7 @@ interface UserReview {
     title: string;
     iconUrl: string;
     objectId: string;
-    shop: GameShop;
+    shop: string;
   };
 }
 
@@ -97,8 +85,6 @@ export function ProfileContent() {
     isLoadingLibraryGames,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
-  const { formatDistance } = useDate();
-  const navigate = useNavigate();
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
@@ -117,7 +103,6 @@ export function ProfileContent() {
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation("user_profile");
-  const { t: tGameDetails } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
 
   const formatPlayTime = (playTimeInSeconds: number) => {
@@ -197,7 +182,7 @@ export function ProfileContent() {
       setReviews(response.reviews);
       setReviewsTotalCount(response.totalCount);
     } catch (error) {
-      console.error("Failed to fetch user reviews:", error);
+      // Error handling for fetching reviews
     } finally {
       setIsLoadingReviews(false);
     }
@@ -392,383 +377,43 @@ export function ProfileContent() {
     return (
       <section className="profile-content__section">
         <div className="profile-content__main">
-          <div className="profile-content__tabs">
-            <div className="profile-content__tab-wrapper">
-              <button
-                type="button"
-                className={`profile-content__tab ${activeTab === "library" ? "profile-content__tab--active" : ""}`}
-                onClick={() => setActiveTab("library")}
-              >
-                {t("library")}
-              </button>
-              {activeTab === "library" && (
-                <motion.div
-                  className="profile-content__tab-underline"
-                  layoutId="tab-underline"
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                />
-              )}
-            </div>
-            <div className="profile-content__tab-wrapper">
-              <button
-                type="button"
-                className={`profile-content__tab ${activeTab === "reviews" ? "profile-content__tab--active" : ""}`}
-                onClick={() => setActiveTab("reviews")}
-              >
-                {t("user_reviews")}
-                {reviewsTotalCount > 0 && (
-                  <span className="profile-content__tab-badge">
-                    {reviewsTotalCount}
-                  </span>
-                )}
-              </button>
-              {activeTab === "reviews" && (
-                <motion.div
-                  className="profile-content__tab-underline"
-                  layoutId="tab-underline"
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                  }}
-                />
-              )}
-            </div>
-          </div>
+          <ProfileTabs
+            activeTab={activeTab}
+            reviewsTotalCount={reviewsTotalCount}
+            onTabChange={setActiveTab}
+          />
 
           <div className="profile-content__tab-panels">
             <AnimatePresence mode="wait">
               {activeTab === "library" && (
-                <motion.div
-                  key="library"
-                  className="profile-content__tab-panel"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  aria-hidden={false}
-                >
-                  {hasAnyGames && (
-                    <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
-                  )}
-
-                  {!hasAnyGames && (
-                    <div className="profile-content__no-games">
-                      <div className="profile-content__telescope-icon">
-                        <TelescopeIcon size={24} />
-                      </div>
-                      <h2>{t("no_recent_activity_title")}</h2>
-                      {isMe && <p>{t("no_recent_activity_description")}</p>}
-                    </div>
-                  )}
-
-                  {hasAnyGames && (
-                    <div>
-                      {hasPinnedGames && (
-                        <div style={{ marginBottom: "2rem" }}>
-                          <div className="profile-content__section-header">
-                            <div className="profile-content__section-title-group">
-                              {/* removed collapse button */}
-                              <h2>{t("pinned")}</h2>
-                              <span className="profile-content__section-badge">
-                                {pinnedGames.length}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* render pinned games unconditionally */}
-                          <ul className="profile-content__games-grid">
-                            {pinnedGames?.map((game) => (
-                              <li
-                                key={game.objectId}
-                                style={{ listStyle: "none" }}
-                              >
-                                <UserLibraryGameCard
-                                  game={game}
-                                  statIndex={statsIndex}
-                                  onMouseEnter={handleOnMouseEnterGameCard}
-                                  onMouseLeave={handleOnMouseLeaveGameCard}
-                                  sortBy={sortBy}
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {hasGames && (
-                        <div>
-                          <div className="profile-content__section-header">
-                            <div className="profile-content__section-title-group">
-                              <h2>{t("library")}</h2>
-                              {userStats && (
-                                <span className="profile-content__section-badge">
-                                  {numberFormatter.format(
-                                    userStats.libraryCount
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <InfiniteScroll
-                            dataLength={libraryGames.length}
-                            next={handleLoadMore}
-                            hasMore={hasMoreLibraryGames}
-                            loader={null}
-                            scrollThreshold={0.9}
-                            style={{ overflow: "visible" }}
-                            scrollableTarget="scrollableDiv"
-                          >
-                            <ul className="profile-content__games-grid">
-                              {libraryGames?.map((game, index) => {
-                                const hasAnimated =
-                                  animatedGameIdsRef.current.has(game.objectId);
-                                const isNewGame =
-                                  !hasAnimated && !isLoadingLibraryGames;
-
-                                return (
-                                  <motion.li
-                                    key={`${sortBy}-${game.objectId}`}
-                                    style={{ listStyle: "none" }}
-                                    initial={
-                                      isNewGame
-                                        ? { opacity: 0.5, y: 15, scale: 0.96 }
-                                        : false
-                                    }
-                                    animate={
-                                      isNewGame
-                                        ? { opacity: 1, y: 0, scale: 1 }
-                                        : false
-                                    }
-                                    transition={
-                                      isNewGame
-                                        ? {
-                                            duration: 0.15,
-                                            ease: "easeOut",
-                                            delay: index * 0.01,
-                                          }
-                                        : undefined
-                                    }
-                                    onAnimationComplete={() => {
-                                      if (isNewGame) {
-                                        animatedGameIdsRef.current.add(
-                                          game.objectId
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    <UserLibraryGameCard
-                                      game={game}
-                                      statIndex={statsIndex}
-                                      onMouseEnter={handleOnMouseEnterGameCard}
-                                      onMouseLeave={handleOnMouseLeaveGameCard}
-                                      sortBy={sortBy}
-                                    />
-                                  </motion.li>
-                                );
-                              })}
-                            </ul>
-                          </InfiniteScroll>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
+                <LibraryTab
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  pinnedGames={pinnedGames}
+                  libraryGames={libraryGames}
+                  hasMoreLibraryGames={hasMoreLibraryGames}
+                  isLoadingLibraryGames={isLoadingLibraryGames}
+                  statsIndex={statsIndex}
+                  userStats={userStats}
+                  animatedGameIdsRef={animatedGameIdsRef}
+                  onLoadMore={handleLoadMore}
+                  onMouseEnter={handleOnMouseEnterGameCard}
+                  onMouseLeave={handleOnMouseLeaveGameCard}
+                  isMe={isMe}
+                />
               )}
 
               {activeTab === "reviews" && (
-                <motion.div
-                  key="reviews"
-                  className="profile-content__tab-panel"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  aria-hidden={false}
-                >
-                  {/* render reviews content unconditionally */}
-                  {isLoadingReviews && (
-                    <div className="user-reviews__loading">
-                      {t("loading_reviews")}
-                    </div>
-                  )}
-                  {!isLoadingReviews && reviews.length === 0 && (
-                    <div className="user-reviews__empty">
-                      <p>{t("no_reviews", "No reviews yet")}</p>
-                    </div>
-                  )}
-                  {!isLoadingReviews && reviews.length > 0 && (
-                    <div className="user-reviews__list">
-                      {reviews.map((review) => {
-                        const isOwnReview = userDetails?.id === review.user.id;
-
-                        return (
-                          <motion.div
-                            key={review.id}
-                            className="user-reviews__review-item"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <div className="user-reviews__review-header">
-                              <div className="user-reviews__review-meta-row">
-                                <div
-                                  className="user-reviews__review-score-stars"
-                                  title={getRatingText(
-                                    review.score,
-                                    tGameDetails
-                                  )}
-                                >
-                                  <Star
-                                    size={12}
-                                    className="user-reviews__review-star user-reviews__review-star--filled"
-                                  />
-                                  <span className="user-reviews__review-score-text">
-                                    {review.score}/5
-                                  </span>
-                                </div>
-                                {Boolean(
-                                  review.playTimeInSeconds &&
-                                    review.playTimeInSeconds > 0
-                                ) && (
-                                  <div className="user-reviews__review-playtime">
-                                    <ClockIcon size={12} />
-                                    <span>
-                                      {tGameDetails("review_played_for")}{" "}
-                                      {formatPlayTime(
-                                        review.playTimeInSeconds || 0
-                                      )}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="user-reviews__review-date">
-                                {formatDistance(
-                                  new Date(review.createdAt),
-                                  new Date(),
-                                  { addSuffix: true }
-                                )}
-                              </div>
-                            </div>
-
-                            <div
-                              className="user-reviews__review-content"
-                              dangerouslySetInnerHTML={{
-                                __html: review.reviewHtml,
-                              }}
-                            />
-
-                            <div className="user-reviews__review-footer">
-                              <div className="user-reviews__review-game">
-                                <div className="user-reviews__game-info">
-                                  <div className="user-reviews__game-details">
-                                    <img
-                                      src={review.game.iconUrl}
-                                      alt={review.game.title}
-                                      className="user-reviews__game-icon"
-                                    />
-                                    <button
-                                      className="user-reviews__game-title user-reviews__game-title--clickable"
-                                      onClick={() =>
-                                        navigate(
-                                          buildGameDetailsPath(review.game)
-                                        )
-                                      }
-                                    >
-                                      {review.game.title}
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="user-reviews__review-actions">
-                              <div className="user-reviews__review-votes">
-                                <motion.button
-                                  className={`user-reviews__vote-button ${review.hasUpvoted ? "user-reviews__vote-button--active" : ""}`}
-                                  onClick={() =>
-                                    handleVoteReview(review.id, true)
-                                  }
-                                  disabled={votingReviews.has(review.id)}
-                                  style={{
-                                    opacity: votingReviews.has(review.id)
-                                      ? 0.5
-                                      : 1,
-                                    cursor: votingReviews.has(review.id)
-                                      ? "not-allowed"
-                                      : "pointer",
-                                  }}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <ThumbsUp size={14} />
-                                  <AnimatePresence mode="wait">
-                                    <motion.span
-                                      key={review.upvotes}
-                                      initial={{ opacity: 0, y: -10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: 10 }}
-                                      transition={{ duration: 0.2 }}
-                                    >
-                                      {review.upvotes}
-                                    </motion.span>
-                                  </AnimatePresence>
-                                </motion.button>
-
-                                <motion.button
-                                  className={`user-reviews__vote-button ${review.hasDownvoted ? "user-reviews__vote-button--active" : ""}`}
-                                  onClick={() =>
-                                    handleVoteReview(review.id, false)
-                                  }
-                                  disabled={votingReviews.has(review.id)}
-                                  style={{
-                                    opacity: votingReviews.has(review.id)
-                                      ? 0.5
-                                      : 1,
-                                    cursor: votingReviews.has(review.id)
-                                      ? "not-allowed"
-                                      : "pointer",
-                                  }}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <ThumbsDown size={14} />
-                                  <AnimatePresence mode="wait">
-                                    <motion.span
-                                      key={review.downvotes}
-                                      initial={{ opacity: 0, y: -10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      exit={{ opacity: 0, y: 10 }}
-                                      transition={{ duration: 0.2 }}
-                                    >
-                                      {review.downvotes}
-                                    </motion.span>
-                                  </AnimatePresence>
-                                </motion.button>
-                              </div>
-
-                              {isOwnReview && (
-                                <button
-                                  className="user-reviews__delete-review-button"
-                                  onClick={() => handleDeleteClick(review.id)}
-                                  title={t("delete_review")}
-                                >
-                                  <TrashIcon size={14} />
-                                  <span>{t("delete_review")}</span>
-                                </button>
-                              )}
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </motion.div>
+                <ReviewsTab
+                  reviews={reviews}
+                  isLoadingReviews={isLoadingReviews}
+                  votingReviews={votingReviews}
+                  userDetailsId={userDetails?.id}
+                  formatPlayTime={formatPlayTime}
+                  getRatingText={getRatingText}
+                  onVote={handleVoteReview}
+                  onDelete={handleDeleteClick}
+                />
               )}
             </AnimatePresence>
           </div>
