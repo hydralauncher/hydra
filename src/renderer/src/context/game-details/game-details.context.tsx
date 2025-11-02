@@ -293,6 +293,8 @@ export function GameDetailsContextProvider({
   }, [objectId, shop, userDetails]);
 
   useEffect(() => {
+    if (shop === "custom") return;
+
     const fetchDownloadSources = async () => {
       try {
         const sources = await window.electron.getDownloadSources();
