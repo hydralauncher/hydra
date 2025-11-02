@@ -95,6 +95,8 @@ jobs:
       - name: Update PKGBUILD and .SRCINFO
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
+          # sleeps for 1 minute to be sure GH updated the release info
+          sleep 60
           # Update pkgver in PKGBUILD
           cd hydra-launcher-bin
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
