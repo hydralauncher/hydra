@@ -65,7 +65,11 @@ const addDownloadSourcesBulk = async (
     }
   }
 
-  if (profileUrls.length > 0 && HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
+  if (
+    profileUrls.length > 0 &&
+    HydraApi.isLoggedIn() &&
+    HydraApi.hasActiveSubscription()
+  ) {
     try {
       await HydraApi.post("/profile/download-sources", {
         urls: profileUrls,
