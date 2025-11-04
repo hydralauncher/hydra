@@ -58,9 +58,15 @@ export function ImageCropper({
     const containerRect = container.getBoundingClientRect();
     if (containerRect.width === 0 || containerRect.height === 0) return null;
 
+    const computedStyle = globalThis.getComputedStyle(container);
+    const paddingLeft = Number.parseFloat(computedStyle.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(computedStyle.paddingRight) || 0;
+    const paddingTop = Number.parseFloat(computedStyle.paddingTop) || 0;
+    const paddingBottom = Number.parseFloat(computedStyle.paddingBottom) || 0;
+
     return {
-      maxWidth: containerRect.width - 40,
-      maxHeight: containerRect.height - 200,
+      maxWidth: containerRect.width - paddingLeft - paddingRight,
+      maxHeight: containerRect.height - paddingTop - paddingBottom,
     };
   }, []);
 
@@ -212,16 +218,17 @@ export function ImageCropper({
     };
   };
 
-  const adjustAspectRatio = useCallback(
-    (width: number, height: number, ratio: number) => {
-      const currentRatio = width / height;
-      if (currentRatio > ratio) {
-        return { width, height: width / ratio };
-      }
-      return { width: height * ratio, height };
-    },
-    []
-  );
+  const enforceAspectRatio = (
+    width: number,
+    height: number,
+    ratio: number
+  ): { width: number; height: number } => {
+    const currentRatio = width / height;
+    if (currentRatio > ratio) {
+      return { width, height: width / ratio };
+    }
+    return { width: height * ratio, height };
+  };
 
   const calculateMinSize = useCallback(
     (effectiveAspectRatio: number | undefined) => {
@@ -233,39 +240,78 @@ export function ImageCropper({
     [minCropSize]
   );
 
+  const getImageWrapperBounds = useCallback(() => {
+    const imageWrapper = imageRef.current?.parentElement;
+    if (!imageWrapper) return { width: 0, height: 0 };
+
+    const rect = imageWrapper.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  }, []);
+
   const constrainCropArea = useCallback(
     (area: CropArea): CropArea => {
       const displaySize = getDisplaySize();
+      const wrapperBounds = getImageWrapperBounds();
+      const actualBounds = {
+        width:
+          wrapperBounds.width > 0 ? wrapperBounds.width : displaySize.width,
+        height:
+          wrapperBounds.height > 0 ? wrapperBounds.height : displaySize.height,
+      };
+
       let { x, y, width, height } = area;
-
       const effectiveAspectRatio = circular ? 1 : aspectRatio;
-
-      if (effectiveAspectRatio) {
-        ({ width, height } = adjustAspectRatio(
-          width,
-          height,
-          effectiveAspectRatio
-        ));
-      }
-
       const minSize = calculateMinSize(effectiveAspectRatio);
-      width = Math.max(minSize, Math.min(width, displaySize.width));
-      height = Math.max(minSize, Math.min(height, displaySize.height));
 
       if (effectiveAspectRatio) {
-        ({ width, height } = adjustAspectRatio(
+        ({ width, height } = enforceAspectRatio(
           width,
           height,
           effectiveAspectRatio
         ));
+
+        const maxWidth = Math.min(
+          actualBounds.width,
+          actualBounds.height * effectiveAspectRatio
+        );
+        const maxHeight = Math.min(
+          actualBounds.height,
+          actualBounds.width / effectiveAspectRatio
+        );
+
+        width = Math.max(minSize, Math.min(width, maxWidth));
+        height = Math.max(minSize, Math.min(height, maxHeight));
+
+        ({ width, height } = enforceAspectRatio(
+          width,
+          height,
+          effectiveAspectRatio
+        ));
+
+        width = Math.min(width, actualBounds.width);
+        height = Math.min(height, actualBounds.height);
+        ({ width, height } = enforceAspectRatio(
+          width,
+          height,
+          effectiveAspectRatio
+        ));
+      } else {
+        width = Math.max(minSize, Math.min(width, actualBounds.width));
+        height = Math.max(minSize, Math.min(height, actualBounds.height));
       }
 
-      x = Math.max(0, Math.min(x, displaySize.width - width));
-      y = Math.max(0, Math.min(y, displaySize.height - height));
+      x = Math.max(0, Math.min(x, actualBounds.width - width));
+      y = Math.max(0, Math.min(y, actualBounds.height - height));
 
       return { x, y, width, height };
     },
-    [getDisplaySize, circular, aspectRatio, adjustAspectRatio, calculateMinSize]
+    [
+      getDisplaySize,
+      getImageWrapperBounds,
+      circular,
+      aspectRatio,
+      calculateMinSize,
+    ]
   );
 
   const getRelativeCoordinates = (
@@ -275,10 +321,10 @@ export function ImageCropper({
     if (!imageWrapper) return null;
 
     const rect = imageWrapper.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    return { x, y };
   };
 
   const handleDrag = useCallback(
@@ -393,11 +439,48 @@ export function ImageCropper({
     resizeHandle: string,
     aspectRatio: number
   ) => {
-    const { width: adjustedWidth, height: adjustedHeight } = adjustAspectRatio(
-      newWidth,
-      newHeight,
-      aspectRatio
+    const deltaX = Math.abs(newWidth - cropStart.width);
+    const deltaY = Math.abs(newHeight - cropStart.height);
+
+    let adjustedWidth: number;
+    let adjustedHeight: number;
+
+    if (deltaX > deltaY) {
+      adjustedWidth = newWidth;
+      adjustedHeight = newWidth / aspectRatio;
+    } else {
+      adjustedHeight = newHeight;
+      adjustedWidth = newHeight * aspectRatio;
+    }
+
+    const wrapperBounds = getImageWrapperBounds();
+    const displaySize = getDisplaySize();
+    const actualBounds = {
+      width: wrapperBounds.width > 0 ? wrapperBounds.width : displaySize.width,
+      height:
+        wrapperBounds.height > 0 ? wrapperBounds.height : displaySize.height,
+    };
+
+    const maxWidth = Math.min(
+      actualBounds.width,
+      actualBounds.height * aspectRatio
     );
+    const maxHeight = Math.min(
+      actualBounds.height,
+      actualBounds.width / aspectRatio
+    );
+
+    adjustedWidth = Math.min(adjustedWidth, maxWidth);
+    adjustedHeight = Math.min(adjustedHeight, maxHeight);
+
+    const finalRatio = adjustedWidth / adjustedHeight;
+    if (Math.abs(finalRatio - aspectRatio) > 0.001) {
+      if (finalRatio > aspectRatio) {
+        adjustedHeight = adjustedWidth / aspectRatio;
+      } else {
+        adjustedWidth = adjustedHeight * aspectRatio;
+      }
+    }
 
     const { x, y } = adjustPositionForHandle(
       resizeHandle,
@@ -575,7 +658,15 @@ export function ImageCropper({
   return (
     <div className="image-cropper">
       <div className="image-cropper__container" ref={containerRef}>
-        <div className="image-cropper__image-wrapper">
+        <div
+          className="image-cropper__image-wrapper"
+          style={{
+            width: `${displaySize.width}px`,
+            height: `${displaySize.height}px`,
+            maxWidth: "100%",
+            maxHeight: "100%",
+          }}
+        >
           {imageLoaded && (
             <img
               ref={imageRef}
