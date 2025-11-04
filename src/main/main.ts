@@ -16,6 +16,7 @@ import {
   Ludusavi,
   Lock,
   DeckyPlugin,
+  WSClient,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
@@ -56,7 +57,7 @@ export const loadState = async () => {
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
-    // WSClient.connect();
+    WSClient.connect();
   });
 
   const downloads = await downloadsSublevel
