@@ -5,6 +5,7 @@ import { userProfileContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { cropImage } from "@renderer/helpers/image-cropper";
+import { logger } from "@renderer/logger";
 import "./upload-background-image-button.scss";
 
 export function UploadBackgroundImageButton() {
@@ -71,7 +72,9 @@ export function UploadBackgroundImageButton() {
 
       setSelectedImagePath(null);
     } catch (error) {
+      logger.error("Failed to crop background image:", error);
       showErrorToast(t("image_crop_failure"));
+      setSelectedImagePath(null);
     } finally {
       setIsUploadingBackgorundImage(false);
     }

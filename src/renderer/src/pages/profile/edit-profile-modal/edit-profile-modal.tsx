@@ -15,6 +15,7 @@ import {
 } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { cropImage } from "@renderer/helpers/image-cropper";
+import { logger } from "@renderer/logger";
 
 import { yupResolver } from "@hookform/resolvers/yup";
 
@@ -112,7 +113,11 @@ export function EditProfileModal(
       setSelectedImagePath(null);
       setOnImageChange(null);
     } catch (error) {
+      logger.error("Failed to crop profile image:", error);
       showErrorToast(t("image_crop_failure"));
+      setShowCropper(false);
+      setSelectedImagePath(null);
+      setOnImageChange(null);
     }
   };
 
