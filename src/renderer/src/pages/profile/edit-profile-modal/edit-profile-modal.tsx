@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -10,8 +10,11 @@ import {
   Modal,
   ModalProps,
   TextField,
+  ImageCropper,
+  CropArea,
 } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { cropImage } from "@renderer/helpers/image-cropper";
 
 import { yupResolver } from "@hookform/resolvers/yup";
 
@@ -63,6 +66,62 @@ export function EditProfileModal(
 
   const { showSuccessToast, showErrorToast } = useToast();
 
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedImagePath, setSelectedImagePath] = useState<string | null>(
+    null
+  );
+  const [onImageChange, setOnImageChange] = useState<
+    ((value: string) => void) | null
+  >(null);
+
+  const handleCrop = async (cropArea: CropArea) => {
+    if (!selectedImagePath || !onImageChange) return;
+
+    try {
+      const imagePathForCrop = selectedImagePath.startsWith("local:")
+        ? selectedImagePath.slice(6)
+        : selectedImagePath;
+      const imageData = await cropImage(
+        imagePathForCrop,
+        cropArea,
+        "image/png"
+      );
+
+      const tempFileName = `cropped-profile-${Date.now()}.png`;
+      const croppedPath = await window.electron.saveTempFile(
+        tempFileName,
+        imageData
+      );
+
+      if (!hasActiveSubscription) {
+        const { imagePath } = await window.electron
+          .processProfileImage(croppedPath)
+          .catch(() => {
+            showErrorToast(t("image_process_failure"));
+            return { imagePath: null };
+          });
+
+        if (imagePath) {
+          onImageChange(imagePath);
+        }
+      } else {
+        onImageChange(croppedPath);
+      }
+
+      setShowCropper(false);
+      setSelectedImagePath(null);
+      setOnImageChange(null);
+    } catch (error) {
+      showErrorToast(t("image_crop_failure"));
+    }
+  };
+
+  const handleCancelCrop = () => {
+    setShowCropper(false);
+    setSelectedImagePath(null);
+    setOnImageChange(null);
+  };
+
   const onSubmit = async (values: FormValues) => {
     return patchUser(values)
       .then(async () => {
@@ -99,19 +158,9 @@ export function EditProfileModal(
 
                 if (filePaths && filePaths.length > 0) {
                   const path = filePaths[0];
-
-                  if (!hasActiveSubscription) {
-                    const { imagePath } = await window.electron
-                      .processProfileImage(path)
-                      .catch(() => {
-                        showErrorToast(t("image_process_failure"));
-                        return { imagePath: null };
-                      });
-
-                    onChange(imagePath);
-                  } else {
-                    onChange(path);
-                  }
+                  setSelectedImagePath(path);
+                  setOnImageChange(() => onChange);
+                  setShowCropper(true);
                 }
               };
 
@@ -154,6 +203,22 @@ export function EditProfileModal(
             error={errors.displayName?.message}
           />
         </div>
+
+        {showCropper && selectedImagePath && (
+          <Modal
+            visible={showCropper}
+            title={t("crop_profile_image")}
+            onClose={handleCancelCrop}
+            large
+          >
+            <ImageCropper
+              imagePath={selectedImagePath}
+              onCrop={handleCrop}
+              onCancel={handleCancelCrop}
+              aspectRatio={1}
+            />
+          </Modal>
+        )}
 
         <small className="edit-profile-modal__hint">
           <Trans i18nKey="privacy_hint" ns="user_profile">
