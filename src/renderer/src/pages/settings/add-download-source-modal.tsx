@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal, TextField } from "@renderer/components";
@@ -37,35 +37,39 @@ export function AddDownloadSourceModal({
 
   const { t } = useTranslation("settings");
 
-  const schema = yup.object().shape({
-    url: yup.string().when("$isBulkMode", {
-      is: false,
-      then: (schema) =>
-        schema.required(t("required_field")).url(t("must_be_valid_url")),
-    }),
-    urls: yup.string().when("$isBulkMode", {
-      is: true,
-      then: (schema) =>
-        schema
-          .required(t("required_field"))
-          .test("valid-urls", t("must_be_valid_urls"), (value) => {
-            if (!value) return false;
-            const urlList = value
-              .split("\n")
-              .map((url) => url.trim())
-              .filter((url) => url.length > 0);
-            if (urlList.length === 0) return false;
-            try {
-              for (const url of urlList) {
-                new URL(url);
-              }
-              return true;
-            } catch {
-              return false;
-            }
-          }),
-    }),
-  });
+  const schema = useMemo(
+    () =>
+      yup.object().shape({
+        url: isBulkMode
+          ? yup.string()
+          : yup
+              .string()
+              .required(t("required_field"))
+              .url(t("must_be_valid_url")),
+        urls: isBulkMode
+          ? yup
+              .string()
+              .required(t("required_field"))
+              .test("valid-urls", t("must_be_valid_urls"), (value) => {
+                if (!value) return false;
+                const urlList = value
+                  .split("\n")
+                  .map((url) => url.trim())
+                  .filter((url) => url.length > 0);
+                if (urlList.length === 0) return false;
+                try {
+                  for (const url of urlList) {
+                    new URL(url);
+                  }
+                  return true;
+                } catch {
+                  return false;
+                }
+              })
+          : yup.string(),
+      }),
+    [isBulkMode, t]
+  );
 
   const {
     register,
@@ -77,7 +81,6 @@ export function AddDownloadSourceModal({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: yupResolver(schema) as any,
-    context: { isBulkMode },
   });
 
   const watchedUrls = watch("urls");
@@ -95,7 +98,8 @@ export function AddDownloadSourceModal({
           .map((url) => url.trim())
           .filter((url) => url.length > 0);
 
-        const results = await window.electron.addDownloadSourcesBulk(urlList);
+        const results =
+          await globalThis.electron.addDownloadSourcesBulk(urlList);
 
         setBulkResults({
           success: results.success,

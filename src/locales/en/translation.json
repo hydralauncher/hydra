@@ -443,7 +443,7 @@
     "add_download_source_description": "Insert the URL of the .json file",
     "single_source": "Single",
     "bulk_add_sources": "Bulk Add",
-    "insert_urls_one_per_line": "Insert URLs, one per line",
+    "insert_urls_one_per_line": "Insert valid JSON URLs, one per line",
     "must_be_valid_urls": "Must be valid URLs",
     "add_download_sources": "Add sources",
     "bulk_add_results": "Added {{success}} source(s) successfully. {{failed}} failed.",

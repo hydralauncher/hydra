@@ -85,10 +85,6 @@
       border-color: #dadbe1;
       cursor: text;
     }
-
-    &::placeholder {
-      color: globals.$muted-color;
-    }
   }
 
   &__error {
