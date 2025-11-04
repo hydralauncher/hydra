@@ -103,17 +103,7 @@ export async function cropImageToCircle(
       ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
       ctx.clip();
 
-      ctx.drawImage(
-        img,
-        cropArea.x,
-        cropArea.y,
-        size,
-        size,
-        0,
-        0,
-        size,
-        size
-      );
+      ctx.drawImage(img, cropArea.x, cropArea.y, size, size, 0, 0, size, size);
 
       canvas.toBlob(
         (blob) => {
@@ -138,4 +128,3 @@ export async function cropImageToCircle(
     img.src = imagePath.startsWith("local:") ? imagePath : `local:${imagePath}`;
   });
 }
-
