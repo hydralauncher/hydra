@@ -208,6 +208,9 @@ declare global {
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
+    addDownloadSourcesBulk: (
+      urls: string[]
+    ) => Promise<{ success: number; failed: number; errors: string[] }>;
     removeDownloadSource: (
       removeAll = false,
       downloadSourceId?: string
