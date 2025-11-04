@@ -51,37 +51,59 @@ export function ImageCropper({
     return imagePath.startsWith("local:") ? imagePath : `local:${imagePath}`;
   };
 
-
-
-  const calculateInitialCropArea = useCallback(() => {
+  const calculateContainerBounds = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) return null;
 
     const containerRect = container.getBoundingClientRect();
-    if (containerRect.width === 0 || containerRect.height === 0) return;
+    if (containerRect.width === 0 || containerRect.height === 0) return null;
 
-    const maxWidth = containerRect.width - 40;
-    const maxHeight = containerRect.height - 200;
+    return {
+      maxWidth: containerRect.width - 40,
+      maxHeight: containerRect.height - 200,
+    };
+  }, []);
 
-    if (maxWidth <= 0 || maxHeight <= 0) return;
+  const calculateDisplayDimensions = useCallback(
+    (bounds: { maxWidth: number; maxHeight: number } | null) => {
+      if (!imageLoaded) return { width: 0, height: 0 };
 
-    const imageAspect = imageSize.width / imageSize.height;
-    let displayWidth = imageSize.width * zoom;
-    let displayHeight = imageSize.height * zoom;
+      if (!bounds) {
+        return {
+          width: imageSize.width * zoom,
+          height: imageSize.height * zoom,
+        };
+      }
 
-    if (displayWidth > maxWidth) {
-      displayWidth = maxWidth;
-      displayHeight = displayWidth / imageAspect;
-    }
-    if (displayHeight > maxHeight) {
-      displayHeight = maxHeight;
-      displayWidth = displayHeight * imageAspect;
-    }
+      const imageAspect = imageSize.width / imageSize.height;
+      let displayWidth = imageSize.width * zoom;
+      let displayHeight = imageSize.height * zoom;
+
+      if (displayWidth > bounds.maxWidth) {
+        displayWidth = bounds.maxWidth;
+        displayHeight = displayWidth / imageAspect;
+      }
+      if (displayHeight > bounds.maxHeight) {
+        displayHeight = bounds.maxHeight;
+        displayWidth = displayHeight * imageAspect;
+      }
+
+      return { width: displayWidth, height: displayHeight };
+    },
+    [imageLoaded, imageSize]
+  );
+
+  const calculateInitialCropArea = useCallback(() => {
+    const bounds = calculateContainerBounds();
+    if (!bounds || bounds.maxWidth <= 0 || bounds.maxHeight <= 0) return;
+
+    const { width: displayWidth, height: displayHeight } =
+      calculateDisplayDimensions(bounds);
 
     const effectiveAspectRatio = circular ? 1 : aspectRatio;
     let cropWidth: number;
     let cropHeight: number;
-    
+
     if (effectiveAspectRatio) {
       const displayAspect = displayWidth / displayHeight;
       if (displayAspect > effectiveAspectRatio) {
@@ -103,7 +125,17 @@ export function ImageCropper({
       width: cropWidth,
       height: cropHeight,
     });
-  }, [imageSize, aspectRatio, circular]);
+  }, [
+    calculateContainerBounds,
+    calculateDisplayDimensions,
+    aspectRatio,
+    circular,
+  ]);
+
+  const getDisplaySize = useCallback(() => {
+    const bounds = calculateContainerBounds();
+    return calculateDisplayDimensions(bounds);
+  }, [calculateContainerBounds, calculateDisplayDimensions]);
 
   useEffect(() => {
     const img = new Image();
@@ -159,40 +191,6 @@ export function ImageCropper({
     };
   }, [imageLoaded, imageSize, calculateInitialCropArea]);
 
-  const getDisplaySize = useCallback(() => {
-    if (!imageLoaded) return { width: 0, height: 0 };
-
-    const container = containerRef.current;
-    if (!container) {
-      return {
-        width: imageSize.width * zoom,
-        height: imageSize.height * zoom,
-      };
-    }
-
-    const containerRect = container.getBoundingClientRect();
-    const maxWidth = containerRect.width - 40;
-    const maxHeight = containerRect.height - 200;
-
-    const imageAspect = imageSize.width / imageSize.height;
-    let displayWidth = imageSize.width * zoom;
-    let displayHeight = imageSize.height * zoom;
-
-    if (displayWidth > maxWidth) {
-      displayWidth = maxWidth;
-      displayHeight = displayWidth / imageAspect;
-    }
-    if (displayHeight > maxHeight) {
-      displayHeight = maxHeight;
-      displayWidth = displayHeight * imageAspect;
-    }
-
-    return {
-      width: displayWidth,
-      height: displayHeight,
-    };
-  }, [imageLoaded, imageSize]);
-
   const getRealCropArea = (): CropArea => {
     if (!imageLoaded || imageSize.width === 0 || imageSize.height === 0) {
       return cropArea;
@@ -214,6 +212,27 @@ export function ImageCropper({
     };
   };
 
+  const adjustAspectRatio = useCallback(
+    (width: number, height: number, ratio: number) => {
+      const currentRatio = width / height;
+      if (currentRatio > ratio) {
+        return { width, height: width / ratio };
+      }
+      return { width: height * ratio, height };
+    },
+    []
+  );
+
+  const calculateMinSize = useCallback(
+    (effectiveAspectRatio: number | undefined) => {
+      if (!effectiveAspectRatio) return minCropSize;
+      return effectiveAspectRatio > 1
+        ? minCropSize * effectiveAspectRatio
+        : minCropSize / effectiveAspectRatio;
+    },
+    [minCropSize]
+  );
+
   const constrainCropArea = useCallback(
     (area: CropArea): CropArea => {
       const displaySize = getDisplaySize();
@@ -222,32 +241,23 @@ export function ImageCropper({
       const effectiveAspectRatio = circular ? 1 : aspectRatio;
 
       if (effectiveAspectRatio) {
-        const currentRatio = width / height;
-        if (currentRatio > effectiveAspectRatio) {
-          height = width / effectiveAspectRatio;
-        } else {
-          width = height * effectiveAspectRatio;
-        }
+        ({ width, height } = adjustAspectRatio(
+          width,
+          height,
+          effectiveAspectRatio
+        ));
       }
 
-      let minSize = minCropSize;
-      if (effectiveAspectRatio) {
-        if (effectiveAspectRatio > 1) {
-          minSize = minCropSize * effectiveAspectRatio;
-        } else {
-          minSize = minCropSize / effectiveAspectRatio;
-        }
-      }
-
+      const minSize = calculateMinSize(effectiveAspectRatio);
       width = Math.max(minSize, Math.min(width, displaySize.width));
       height = Math.max(minSize, Math.min(height, displaySize.height));
 
       if (effectiveAspectRatio) {
-        if (width / height > effectiveAspectRatio) {
-          width = height * effectiveAspectRatio;
-        } else {
-          height = width / effectiveAspectRatio;
-        }
+        ({ width, height } = adjustAspectRatio(
+          width,
+          height,
+          effectiveAspectRatio
+        ));
       }
 
       x = Math.max(0, Math.min(x, displaySize.width - width));
@@ -255,7 +265,7 @@ export function ImageCropper({
 
       return { x, y, width, height };
     },
-    [getDisplaySize, circular, aspectRatio, minCropSize]
+    [getDisplaySize, circular, aspectRatio, adjustAspectRatio, calculateMinSize]
   );
 
   const getRelativeCoordinates = (
@@ -275,9 +285,7 @@ export function ImageCropper({
     (coords: { x: number; y: number }) => {
       const newX = coords.x - dragStart.x;
       const newY = coords.y - dragStart.y;
-      setCropArea((prev) =>
-        constrainCropArea({ ...prev, x: newX, y: newY })
-      );
+      setCropArea((prev) => constrainCropArea({ ...prev, x: newX, y: newY }));
     },
     [dragStart, constrainCropArea]
   );
@@ -287,44 +295,74 @@ export function ImageCropper({
     coords: { x: number; y: number },
     cropStart: CropArea
   ) => {
-    if (resizeHandle === "resize-se") {
-      return {
-        deltaX: coords.x - (cropStart.x + cropStart.width),
-        deltaY: coords.y - (cropStart.y + cropStart.height),
-        newX: cropStart.x,
-        newY: cropStart.y,
-      };
+    const handleMap: Record<
+      string,
+      (
+        coords: { x: number; y: number },
+        cropStart: CropArea
+      ) => {
+        deltaX: number;
+        deltaY: number;
+        newX: number;
+        newY: number;
+      }
+    > = {
+      "resize-se": (c, cs) => ({
+        deltaX: c.x - (cs.x + cs.width),
+        deltaY: c.y - (cs.y + cs.height),
+        newX: cs.x,
+        newY: cs.y,
+      }),
+      "resize-sw": (c, cs) => ({
+        deltaX: cs.x - c.x,
+        deltaY: c.y - (cs.y + cs.height),
+        newX: c.x,
+        newY: cs.y,
+      }),
+      "resize-ne": (c, cs) => ({
+        deltaX: c.x - (cs.x + cs.width),
+        deltaY: cs.y - c.y,
+        newX: cs.x,
+        newY: c.y,
+      }),
+      "resize-nw": (c, cs) => ({
+        deltaX: cs.x - c.x,
+        deltaY: cs.y - c.y,
+        newX: c.x,
+        newY: c.y,
+      }),
+    };
+
+    const handler = handleMap[resizeHandle];
+    if (handler) {
+      return handler(coords, cropStart);
     }
-    if (resizeHandle === "resize-sw") {
-      return {
-        deltaX: cropStart.x - coords.x,
-        deltaY: coords.y - (cropStart.y + cropStart.height),
-        newX: coords.x,
-        newY: cropStart.y,
-      };
-    }
-    if (resizeHandle === "resize-ne") {
-      return {
-        deltaX: coords.x - (cropStart.x + cropStart.width),
-        deltaY: cropStart.y - coords.y,
-        newX: cropStart.x,
-        newY: coords.y,
-      };
-    }
-    if (resizeHandle === "resize-nw") {
-      return {
-        deltaX: cropStart.x - coords.x,
-        deltaY: cropStart.y - coords.y,
-        newX: coords.x,
-        newY: coords.y,
-      };
-    }
+
     return {
       deltaX: 0,
       deltaY: 0,
       newX: cropStart.x,
       newY: cropStart.y,
     };
+  };
+
+  const adjustPositionForHandle = (
+    resizeHandle: string,
+    cropStart: CropArea,
+    adjustedWidth: number,
+    adjustedHeight: number
+  ) => {
+    let adjustedX = cropStart.x;
+    let adjustedY = cropStart.y;
+
+    if (resizeHandle === "resize-nw" || resizeHandle === "resize-sw") {
+      adjustedX = cropStart.x + cropStart.width - adjustedWidth;
+    }
+    if (resizeHandle === "resize-nw" || resizeHandle === "resize-ne") {
+      adjustedY = cropStart.y + cropStart.height - adjustedHeight;
+    }
+
+    return { x: adjustedX, y: adjustedY };
   };
 
   const applyCircularConstraint = (
@@ -337,22 +375,15 @@ export function ImageCropper({
     const deltaSize = size - Math.min(cropStart.width, cropStart.height);
     const adjustedWidth = cropStart.width + deltaSize;
     const adjustedHeight = cropStart.height + deltaSize;
-    let adjustedX = cropStart.x;
-    let adjustedY = cropStart.y;
 
-    if (resizeHandle === "resize-nw" || resizeHandle === "resize-sw") {
-      adjustedX = cropStart.x + cropStart.width - adjustedWidth;
-    }
-    if (resizeHandle === "resize-nw" || resizeHandle === "resize-ne") {
-      adjustedY = cropStart.y + cropStart.height - adjustedHeight;
-    }
+    const { x, y } = adjustPositionForHandle(
+      resizeHandle,
+      cropStart,
+      adjustedWidth,
+      adjustedHeight
+    );
 
-    return {
-      width: adjustedWidth,
-      height: adjustedHeight,
-      x: adjustedX,
-      y: adjustedY,
-    };
+    return { width: adjustedWidth, height: adjustedHeight, x, y };
   };
 
   const applyAspectRatioConstraint = (
@@ -362,32 +393,20 @@ export function ImageCropper({
     resizeHandle: string,
     aspectRatio: number
   ) => {
-    const currentRatio = newWidth / newHeight;
-    let adjustedWidth = newWidth;
-    let adjustedHeight = newHeight;
+    const { width: adjustedWidth, height: adjustedHeight } = adjustAspectRatio(
+      newWidth,
+      newHeight,
+      aspectRatio
+    );
 
-    if (currentRatio > aspectRatio) {
-      adjustedHeight = newWidth / aspectRatio;
-    } else {
-      adjustedWidth = newHeight * aspectRatio;
-    }
+    const { x, y } = adjustPositionForHandle(
+      resizeHandle,
+      cropStart,
+      adjustedWidth,
+      adjustedHeight
+    );
 
-    let adjustedX = cropStart.x;
-    let adjustedY = cropStart.y;
-
-    if (resizeHandle === "resize-nw" || resizeHandle === "resize-sw") {
-      adjustedX = cropStart.x + cropStart.width - adjustedWidth;
-    }
-    if (resizeHandle === "resize-nw" || resizeHandle === "resize-ne") {
-      adjustedY = cropStart.y + cropStart.height - adjustedHeight;
-    }
-
-    return {
-      width: adjustedWidth,
-      height: adjustedHeight,
-      x: adjustedX,
-      y: adjustedY,
-    };
+    return { width: adjustedWidth, height: adjustedHeight, x, y };
   };
 
   const handleResize = useCallback(
@@ -481,7 +500,15 @@ export function ImageCropper({
         handleResize(coords);
       }
     },
-    [imageLoaded, isDragging, isResizing, cropStart, resizeHandle, handleDrag, handleResize]
+    [
+      imageLoaded,
+      isDragging,
+      isResizing,
+      cropStart,
+      resizeHandle,
+      handleDrag,
+      handleResize,
+    ]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -491,37 +518,30 @@ export function ImageCropper({
     setCropStart(null);
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-      }
-    },
-    []
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+    }
+  }, []);
 
   const handleOverlayKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const step = e.shiftKey ? 10 : 1;
-      let newX = cropArea.x;
-      let newY = cropArea.y;
+      const keyMap: Record<
+        string,
+        (area: CropArea) => { x: number; y: number }
+      > = {
+        ArrowLeft: (area) => ({ x: area.x - step, y: area.y }),
+        ArrowRight: (area) => ({ x: area.x + step, y: area.y }),
+        ArrowUp: (area) => ({ x: area.x, y: area.y - step }),
+        ArrowDown: (area) => ({ x: area.x, y: area.y + step }),
+      };
 
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        newX = cropArea.x - step;
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        newX = cropArea.x + step;
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        newY = cropArea.y - step;
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        newY = cropArea.y + step;
-      } else {
-        return;
-      }
+      const handler = keyMap[e.key];
+      if (!handler) return;
 
+      e.preventDefault();
+      const { x: newX, y: newY } = handler(cropArea);
       setCropArea((prev) => constrainCropArea({ ...prev, x: newX, y: newY }));
     },
     [cropArea, constrainCropArea]
@@ -540,7 +560,6 @@ export function ImageCropper({
     return cleanup;
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-
   const handleCrop = async () => {
     setIsCropping(true);
     try {
@@ -555,10 +574,7 @@ export function ImageCropper({
 
   return (
     <div className="image-cropper">
-      <div
-        className="image-cropper__container"
-        ref={containerRef}
-      >
+      <div className="image-cropper__container" ref={containerRef}>
         <div className="image-cropper__image-wrapper">
           {imageLoaded && (
             <img
@@ -588,38 +604,17 @@ export function ImageCropper({
               onMouseDown={handleMouseDown}
               onKeyDown={handleOverlayKeyDown}
             >
-              <button
-                type="button"
-                className="image-cropper__crop-handle image-cropper__crop-handle--nw"
-                data-handle="resize-nw"
-                aria-label={t("resize_handle_nw")}
-                onMouseDown={handleMouseDown}
-                onKeyDown={handleKeyDown}
-              />
-              <button
-                type="button"
-                className="image-cropper__crop-handle image-cropper__crop-handle--ne"
-                data-handle="resize-ne"
-                aria-label={t("resize_handle_ne")}
-                onMouseDown={handleMouseDown}
-                onKeyDown={handleKeyDown}
-              />
-              <button
-                type="button"
-                className="image-cropper__crop-handle image-cropper__crop-handle--sw"
-                data-handle="resize-sw"
-                aria-label={t("resize_handle_sw")}
-                onMouseDown={handleMouseDown}
-                onKeyDown={handleKeyDown}
-              />
-              <button
-                type="button"
-                className="image-cropper__crop-handle image-cropper__crop-handle--se"
-                data-handle="resize-se"
-                aria-label={t("resize_handle_se")}
-                onMouseDown={handleMouseDown}
-                onKeyDown={handleKeyDown}
-              />
+              {(["nw", "ne", "sw", "se"] as const).map((position) => (
+                <button
+                  key={position}
+                  type="button"
+                  className={`image-cropper__crop-handle image-cropper__crop-handle--${position}`}
+                  data-handle={`resize-${position}`}
+                  aria-label={t(`resize_handle_${position}`)}
+                  onMouseDown={handleMouseDown}
+                  onKeyDown={handleKeyDown}
+                />
+              ))}
             </section>
           )}
         </div>
@@ -642,4 +637,3 @@ export function ImageCropper({
     </div>
   );
 }
-
