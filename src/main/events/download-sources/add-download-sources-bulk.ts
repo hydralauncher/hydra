@@ -10,6 +10,53 @@ interface BulkAddResult {
   errors: string[];
 }
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    if (error.message.includes("already exists")) {
+      return "Already exists";
+    }
+    return error.message;
+  }
+  return "Unknown error";
+};
+
+const addSingleDownloadSource = async (
+  url: string,
+  existingUrls: Set<string>,
+  result: BulkAddResult
+): Promise<boolean> => {
+  if (existingUrls.has(url)) {
+    result.failed++;
+    result.errors.push(`"${url}" - Already exists`);
+    return false;
+  }
+
+  try {
+    const downloadSource = await HydraApi.post<DownloadSource>(
+      "/download-sources",
+      {
+        url,
+      },
+      { needsAuth: false }
+    );
+
+    await downloadSourcesSublevel.put(downloadSource.id, {
+      ...downloadSource,
+      isRemote: true,
+      createdAt: new Date().toISOString(),
+    });
+
+    result.success++;
+    return true;
+  } catch (error) {
+    result.failed++;
+    const errorMessage = getErrorMessage(error);
+    result.errors.push(`"${url}" - ${errorMessage}`);
+    logger.error(`Failed to add download source "${url}":`, error);
+    return false;
+  }
+};
+
 const addDownloadSourcesBulk = async (
   _event: Electron.IpcMainInvokeEvent,
   urls: string[]
@@ -27,41 +74,9 @@ const addDownloadSourcesBulk = async (
   const profileUrls: string[] = [];
 
   for (const url of uniqueUrls) {
-    if (existingUrls.has(url)) {
-      result.failed++;
-      result.errors.push(`"${url}" - Already exists`);
-      continue;
-    }
-
-    try {
-      const downloadSource = await HydraApi.post<DownloadSource>(
-        "/download-sources",
-        {
-          url,
-        },
-        { needsAuth: false }
-      );
-
-      await downloadSourcesSublevel.put(downloadSource.id, {
-        ...downloadSource,
-        isRemote: true,
-        createdAt: new Date().toISOString(),
-      });
-
-      result.success++;
-      if (HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
-        profileUrls.push(url);
-      }
-    } catch (error) {
-      result.failed++;
-      const errorMessage =
-        error instanceof Error && error.message.includes("already exists")
-          ? "Already exists"
-          : error instanceof Error
-            ? error.message
-            : "Unknown error";
-      result.errors.push(`"${url}" - ${errorMessage}`);
-      logger.error(`Failed to add download source "${url}":`, error);
+    const added = await addSingleDownloadSource(url, existingUrls, result);
+    if (added && HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
+      profileUrls.push(url);
     }
   }
 

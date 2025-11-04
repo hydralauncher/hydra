@@ -56,7 +56,9 @@ export function AddDownloadSourceModal({
               .filter((url) => url.length > 0);
             if (urlList.length === 0) return false;
             try {
-              urlList.forEach((url) => new URL(url));
+              for (const url of urlList) {
+                new URL(url);
+              }
               return true;
             } catch {
               return false;
@@ -181,7 +183,7 @@ export function AddDownloadSourceModal({
         <div className="add-download-source-modal__mode-toggle">
           <Button
             type="button"
-            theme={!isBulkMode ? "primary" : "outline"}
+            theme={isBulkMode ? "outline" : "primary"}
             onClick={() => {
               setIsBulkMode(false);
               setBulkResults(null);
@@ -243,9 +245,9 @@ export function AddDownloadSourceModal({
               </p>
               {bulkResults.errors.length > 0 && (
                 <div className="add-download-source-modal__errors">
-                  {bulkResults.errors.map((error, index) => (
+                  {bulkResults.errors.map((error) => (
                     <small
-                      key={index}
+                      key={error}
                       className="add-download-source-modal__error"
                     >
                       {error}
@@ -270,11 +272,12 @@ export function AddDownloadSourceModal({
               {isLoading && (
                 <SyncIcon className="add-download-source-modal__spinner" />
               )}
-              {isLoading
-                ? t("adding")
-                : isBulkMode
+              {(() => {
+                if (isLoading) return t("adding");
+                return isBulkMode
                   ? t("add_download_sources")
-                  : t("add_download_source")}
+                  : t("add_download_source");
+              })()}
             </Button>
           </div>
         </form>
