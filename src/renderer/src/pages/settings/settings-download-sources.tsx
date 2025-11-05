@@ -18,7 +18,7 @@ import {
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { settingsContext } from "@renderer/context";
+import { settingsContext, downloadSourcesContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import "./settings-download-sources.scss";
@@ -31,13 +31,17 @@ export function SettingsDownloadSources() {
   ] = useState(false);
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
     useState(false);
-  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
+  const {
+    downloadSources,
+    isLoading: isLoadingSources,
+    refreshDownloadSources,
+  } = useContext(downloadSourcesContext);
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
@@ -51,13 +55,17 @@ export function SettingsDownloadSources() {
   }, [sourceUrl]);
 
   useEffect(() => {
-    const fetchDownloadSources = async () => {
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshDownloadSources();
+      }
     };
 
-    fetchDownloadSources();
-  }, []);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refreshDownloadSources]);
 
   useEffect(() => {
     const hasPendingOrMatchingSource = downloadSources.some(
@@ -73,8 +81,7 @@ export function SettingsDownloadSources() {
     const intervalId = setInterval(async () => {
       try {
         await window.electron.syncDownloadSources();
-        const sources = await window.electron.getDownloadSources();
-        setDownloadSources(sources);
+        await refreshDownloadSources();
       } catch (error) {
         logger.error("Failed to fetch download sources:", error);
       }
@@ -88,8 +95,7 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(false, downloadSource.id);
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      await refreshDownloadSources();
       showSuccessToast(t("removed_download_source"));
     } catch (error) {
       logger.error("Failed to remove download source:", error);
@@ -103,8 +109,7 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(true);
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      await refreshDownloadSources();
       showSuccessToast(t("removed_all_download_sources"));
     } catch (error) {
       logger.error("Failed to remove all download sources:", error);
@@ -115,22 +120,20 @@ export function SettingsDownloadSources() {
   };
 
   const handleAddDownloadSource = async () => {
-    try {
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
-    } catch (error) {
-      logger.error("Failed to refresh download sources:", error);
-    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await refreshDownloadSources();
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
     try {
       await window.electron.syncDownloadSources();
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      await refreshDownloadSources();
 
       showSuccessToast(t("download_sources_synced_successfully"));
+    } catch (error) {
+      logger.error("Failed to sync download sources:", error);
+      await refreshDownloadSources();
     } finally {
       setIsSyncingDownloadSources(false);
     }
@@ -225,8 +228,20 @@ export function SettingsDownloadSources() {
         </div>
       </div>
 
-      <ul className="settings-download-sources__list">
-        {downloadSources.map((downloadSource) => {
+      {isLoadingSources ? (
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <p>Loading...</p>
+        </div>
+      ) : downloadSources.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <p>{t("download_sources_description")}</p>
+          <p style={{ marginTop: "1rem", opacity: 0.7 }}>
+            {t("add_download_source_description")}
+          </p>
+        </div>
+      ) : (
+        <ul className="settings-download-sources__list">
+          {downloadSources.map((downloadSource) => {
           const isPendingOrMatching =
             downloadSource.status === DownloadSourceStatus.PendingMatching ||
             downloadSource.status === DownloadSourceStatus.Matching;
@@ -288,8 +303,9 @@ export function SettingsDownloadSources() {
               />
             </li>
           );
-        })}
-      </ul>
+          })}
+        </ul>
+      )}
     </>
   );
 }

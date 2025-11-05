@@ -168,64 +168,72 @@ def action():
     if auth_error:
         return auth_error
 
-    data = request.get_json()
-    action = data.get('action')
-    game_id = data.get('game_id')
+    try:
+        data = request.get_json()
+        action = data.get('action')
+        game_id = data.get('game_id')
 
-    if action == 'start':
-        url = data.get('url')
+        if action == 'start':
+            url = data.get('url')
 
-        existing_downloader = downloads.get(game_id)
+            existing_downloader = downloads.get(game_id)
 
-        if isinstance(url, list):
-            # Handle multiple URLs using HttpMultiLinkDownloader
-            if existing_downloader and isinstance(existing_downloader, HttpMultiLinkDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+            if isinstance(url, list):
+                # Handle multiple URLs using HttpMultiLinkDownloader
+                if existing_downloader and isinstance(existing_downloader, HttpMultiLinkDownloader):
+                    existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                else:
+                    http_multi_downloader = HttpMultiLinkDownloader()
+                    downloads[game_id] = http_multi_downloader
+                    http_multi_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+            elif url.startswith('magnet'):
+                if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
+                    existing_downloader.start_download(url, data['save_path'])
+                else:
+                    torrent_downloader = TorrentDownloader(torrent_session)
+                    downloads[game_id] = torrent_downloader
+                    torrent_downloader.start_download(url, data['save_path'])
             else:
-                http_multi_downloader = HttpMultiLinkDownloader()
-                downloads[game_id] = http_multi_downloader
-                http_multi_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
-        elif url.startswith('magnet'):
-            if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
-                existing_downloader.start_download(url, data['save_path'])
-            else:
-                torrent_downloader = TorrentDownloader(torrent_session)
-                downloads[game_id] = torrent_downloader
-                torrent_downloader.start_download(url, data['save_path'])
+                if existing_downloader and isinstance(existing_downloader, HttpDownloader):
+                    existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                else:
+                    http_downloader = HttpDownloader()
+                    downloads[game_id] = http_downloader
+                    http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+            
+            downloading_game_id = game_id
+
+        elif action == 'pause':
+            downloader = downloads.get(game_id)
+            if downloader:
+                downloader.pause_download()
+            
+            if downloading_game_id == game_id:
+                downloading_game_id = -1
+        elif action == 'cancel':
+            downloader = downloads.get(game_id)
+            if downloader:
+                downloader.cancel_download()
+        elif action == 'resume_seeding':
+            torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+            downloads[game_id] = torrent_downloader
+            torrent_downloader.start_download(data['url'], data['save_path'])
+        elif action == 'pause_seeding':
+            downloader = downloads.get(game_id)
+            if downloader:
+                downloader.cancel_download()
+
         else:
-            if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
-            else:
-                http_downloader = HttpDownloader()
-                downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
-        
-        downloading_game_id = game_id
+            return jsonify({"error": "Invalid action"}), 400
 
-    elif action == 'pause':
-        downloader = downloads.get(game_id)
-        if downloader:
-            downloader.pause_download()
-        
-        if downloading_game_id == game_id:
-            downloading_game_id = -1
-    elif action == 'cancel':
-        downloader = downloads.get(game_id)
-        if downloader:
-            downloader.cancel_download()
-    elif action == 'resume_seeding':
-        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
-        downloads[game_id] = torrent_downloader
-        torrent_downloader.start_download(data['url'], data['save_path'])
-    elif action == 'pause_seeding':
-        downloader = downloads.get(game_id)
-        if downloader:
-            downloader.cancel_download()
-
-    else:
-        return jsonify({"error": "Invalid action"}), 400
-
-    return "", 200
+        return "", 200
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error in /action endpoint: {error_msg}")
+        # Check if it's an aria2 connection error
+        if "Connection refused" in error_msg or "Failed to connect" in error_msg or "6800" in error_msg:
+            return jsonify({"error": "Aria2 download service is not running. Please restart the application."}), 500
+        return jsonify({"error": error_msg}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(http_port))

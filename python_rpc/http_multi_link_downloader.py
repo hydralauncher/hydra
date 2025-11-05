@@ -32,7 +32,11 @@ class HttpMultiLinkDownloader:
                 added_downloads = self.aria2.add(url, options=options)
                 self.downloads.extend(added_downloads)
             except Exception as e:
-                print(f"Error adding download for URL {url}: {str(e)}")
+                error_msg = str(e)
+                if "Connection refused" in error_msg or "Failed to connect" in error_msg or "6800" in error_msg:
+                    raise Exception("Aria2 download service is not running. Please restart the application.")
+                print(f"Error adding download for URL {url}: {error_msg}")
+                raise
 
     def pause_download(self):
         """Pause all active downloads"""

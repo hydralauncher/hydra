@@ -33,8 +33,16 @@ export class PixelDrainApi {
         return response.headers.location;
       }
 
+      // If we get a 200 without redirect we use the standard PixelDrain API endpoint
+      if (response.status === 200) {
+        return `https://pixeldrain.com/api/file/${fileId}/download`;
+      }
+
       throw new Error(`No redirect URL found (status: ${response.status})`);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes("No redirect URL found")) {
+        return `https://pixeldrain.com/api/file/${fileId}/download`;
+      }
       console.error("Error fetching PixelDrain URL:", error);
       throw error;
     }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -13,11 +13,13 @@ import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
+import { downloadSourcesContext } from "@renderer/context";
 import "./home.scss";
 
 export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
+  const { downloadSources } = useContext(downloadSourcesContext);
 
   const [animateFlame, setAnimateFlame] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,32 +37,35 @@ export default function Home() {
     [CatalogueCategory.Achievements]: [],
   });
 
-  const getCatalogue = useCallback(async (category: CatalogueCategory) => {
-    try {
-      setCurrentCatalogueCategory(category);
-      setIsLoading(true);
+  const getCatalogue = useCallback(
+    async (category: CatalogueCategory) => {
+      if (!downloadSources.length) return;
 
-      const downloadSources = await window.electron.getDownloadSources();
+      try {
+        setCurrentCatalogueCategory(category);
+        setIsLoading(true);
 
-      const params = {
-        take: 12,
-        skip: 0,
-        downloadSourceIds: downloadSources.map((source) => source.id),
-      };
+        const params = {
+          take: 12,
+          skip: 0,
+          downloadSourceIds: downloadSources.map((source) => source.id),
+        };
 
-      const catalogue = await window.electron.hydraApi.get<ShopAssets[]>(
-        `/catalogue/${category}`,
-        {
-          params,
-          needsAuth: false,
-        }
-      );
+        const catalogue = await window.electron.hydraApi.get<ShopAssets[]>(
+          `/catalogue/${category}`,
+          {
+            params,
+            needsAuth: false,
+          }
+        );
 
-      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [downloadSources]
+  );
 
   const getRandomGame = useCallback(() => {
     window.electron.getRandomGame().then((game) => {
@@ -88,11 +93,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    getCatalogue(CatalogueCategory.Hot);
+    if (downloadSources.length) {
+      setIsLoading(true);
+      getCatalogue(CatalogueCategory.Hot);
+    }
 
     getRandomGame();
-  }, [getCatalogue, getRandomGame]);
+  }, [getCatalogue, getRandomGame, downloadSources.length]);
 
   const categories = Object.values(CatalogueCategory);
 
