@@ -106,7 +106,8 @@ export class Aria2 {
     // Ensure binary has execute permissions on macOS/Linux
     if (process.platform !== "win32") {
       try {
-        fs.chmodSync(binaryPath, 0o755);
+        // 0o755 is safe: owner rwx, group/others rx (standard executable permissions)
+        fs.chmodSync(binaryPath, 0o755); // NOSONAR
       } catch (error) {
         logger.warn(
           `Failed to set execute permissions on aria2 binary: ${error}`

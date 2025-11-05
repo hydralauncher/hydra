@@ -240,7 +240,8 @@ export class PythonRPC {
 
     if (process.platform === "linux") {
       try {
-        fs.chmodSync(binaryPath, 0o755);
+        // 0o755 is safe: owner rwx, group/others rx (standard executable permissions)
+        fs.chmodSync(binaryPath, 0o755); // NOSONAR
       } catch (error) {
         pythonRpcLogger.warn(
           `Failed to set execute permissions on binary: ${error}`
