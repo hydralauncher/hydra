@@ -82,9 +82,8 @@ export class Aria2 {
       : path.join(__dirname, "..", "..", "binaries", "aria2c");
 
     if (fs.existsSync(binaryPath)) {
-      const isCompatible = await this.checkBundledBinaryCompatibility(
-        binaryPath
-      );
+      const isCompatible =
+        await this.checkBundledBinaryCompatibility(binaryPath);
       if (!isCompatible) {
         return null;
       }

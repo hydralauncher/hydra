@@ -152,12 +152,8 @@ export class PythonRPC {
     }
   }
 
-  private static async spawnMacOSPackaged(
-    commonArgs: string[]
-  ): Promise<void> {
-    pythonRpcLogger.log(
-      `Using macOS packaged build path (Python script mode)`
-    );
+  private static async spawnMacOSPackaged(commonArgs: string[]): Promise<void> {
+    pythonRpcLogger.log(`Using macOS packaged build path (Python script mode)`);
     const possiblePaths = [
       path.join(process.resourcesPath, "main.py"),
       path.join(process.resourcesPath, "python_rpc", "main.py"),
@@ -177,9 +173,7 @@ export class PythonRPC {
       pythonRpcLogger.error(
         `Python RPC script not found. Tried: ${possiblePaths.join(", ")}`
       );
-      throw new Error(
-        "Python RPC script not found in the application bundle."
-      );
+      throw new Error("Python RPC script not found in the application bundle.");
     }
 
     const pythonExecutable = await this.findPythonExecutable();
@@ -267,9 +261,7 @@ export class PythonRPC {
     this.pythonProcess = childProcess;
   }
 
-  private static async spawnDevelopment(
-    commonArgs: string[]
-  ): Promise<void> {
+  private static async spawnDevelopment(commonArgs: string[]): Promise<void> {
     pythonRpcLogger.log(`Using development mode (Python script mode)`);
     const scriptPath = path.join(
       __dirname,

@@ -451,9 +451,7 @@ export class DownloadManager {
   }
 
   private static async startRPCWhenNotRunning(): Promise<void> {
-    logger.warn(
-      "Python RPC service is not running, attempting to start it"
-    );
+    logger.warn("Python RPC service is not running, attempting to start it");
     try {
       await this.startRPCAndWait();
     } catch (error) {
