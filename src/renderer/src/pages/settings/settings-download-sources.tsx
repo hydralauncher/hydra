@@ -228,18 +228,25 @@ export function SettingsDownloadSources() {
         </div>
       </div>
 
-      {isLoadingSources ? (
-        <div style={{ textAlign: "center", padding: "2rem" }}>
-          <p>Loading...</p>
-        </div>
-      ) : downloadSources.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "2rem" }}>
-          <p>{t("download_sources_description")}</p>
-          <p style={{ marginTop: "1rem", opacity: 0.7 }}>
-            {t("add_download_source_description")}
-          </p>
-        </div>
-      ) : (
+      {(() => {
+        if (isLoadingSources) {
+          return (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <p>Loading...</p>
+            </div>
+          );
+        }
+        if (downloadSources.length === 0) {
+          return (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <p>{t("download_sources_description")}</p>
+              <p style={{ marginTop: "1rem", opacity: 0.7 }}>
+                {t("add_download_source_description")}
+              </p>
+            </div>
+          );
+        }
+        return (
         <ul className="settings-download-sources__list">
           {downloadSources.map((downloadSource) => {
             const isPendingOrMatching =
@@ -305,7 +312,8 @@ export function SettingsDownloadSources() {
             );
           })}
         </ul>
-      )}
+        );
+      })()}
     </>
   );
 }

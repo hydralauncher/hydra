@@ -1,5 +1,14 @@
 import aria2p
 
+
+class Aria2ServiceNotRunningError(Exception):
+    """Raised when aria2 service is not running."""
+
+
+class FilenameTooLongError(Exception):
+    """Raised when filename is too long for macOS."""
+
+
 class HttpDownloader:
     def __init__(self):
         self.download = None
@@ -35,9 +44,9 @@ class HttpDownloader:
         except Exception as e:
             error_msg = str(e)
             if "Connection refused" in error_msg or "Failed to connect" in error_msg or "6800" in error_msg:
-                raise Exception("Aria2 download service is not running. Please restart the application.")
+                raise Aria2ServiceNotRunningError("Aria2 download service is not running. Please restart the application.") from e
             if "File name too long" in error_msg or "ENAMETOOLONG" in error_msg or "[Errno 63]" in error_msg:
-                raise Exception("Filename is too long for macOS. Please try a different download source or contact support.")
+                raise FilenameTooLongError("Filename is too long for macOS. Please try a different download source or contact support.") from e
             raise
     
     def pause_download(self):

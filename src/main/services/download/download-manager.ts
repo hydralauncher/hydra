@@ -419,76 +419,70 @@ export class DownloadManager {
     }
   }
 
+  private static handleRPCStartError(error: unknown): never {
+    if (error instanceof Error) {
+      if (error.message.includes("Python executable not found")) {
+        throw new Error(
+          "Python is not installed or not found in PATH. Please install Python 3 and ensure it's accessible from the command line."
+        );
+      }
+      if (error.message.includes("binary not found")) {
+        throw new Error(
+          "Python RPC binary not found in the application bundle. The application may be corrupted. Please reinstall the application."
+        );
+      }
+      if (error.message.includes("failed to become ready")) {
+        throw new Error(
+          "Python RPC service failed to start. Please restart the application or check the logs for more information."
+        );
+      }
+    }
+    throw error;
+  }
+
+  private static async startRPCAndWait(): Promise<void> {
+    await this.startRPC();
+    const isNowHealthy = await PythonRPC.waitForService();
+    if (!isNowHealthy) {
+      throw new Error(
+        "Python RPC service failed to start or respond. Please check the application logs for more details."
+      );
+    }
+  }
+
+  private static async startRPCWhenNotRunning(): Promise<void> {
+    logger.warn(
+      "Python RPC service is not running, attempting to start it"
+    );
+    try {
+      await this.startRPCAndWait();
+    } catch (error) {
+      this.handleRPCStartError(error);
+    }
+  }
+
+  private static async restartRPC(): Promise<void> {
+    logger.warn(
+      "Python RPC service process exists but not responding, attempting restart"
+    );
+    PythonRPC.kill();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      await this.startRPCAndWait();
+    } catch (error) {
+      this.handleRPCStartError(error);
+    }
+  }
+
   private static async ensureRPCIsRunning(): Promise<void> {
     const isHealthy = await PythonRPC.checkHealth();
 
     if (!isHealthy) {
-      if (!PythonRPC.isRunning()) {
-        logger.warn(
-          "Python RPC service is not running, attempting to start it"
-        );
-        try {
-          await this.startRPC();
-          const isNowHealthy = await PythonRPC.waitForService();
-          if (!isNowHealthy) {
-            throw new Error(
-              "Python RPC service failed to start or respond. Please check the application logs for more details."
-            );
-          }
-        } catch (error) {
-          if (error instanceof Error) {
-            if (error.message.includes("Python executable not found")) {
-              throw new Error(
-                "Python is not installed or not found in PATH. Please install Python 3 and ensure it's accessible from the command line."
-              );
-            }
-            if (error.message.includes("binary not found")) {
-              throw new Error(
-                "Python RPC binary not found in the application bundle. The application may be corrupted. Please reinstall the application."
-              );
-            }
-            if (error.message.includes("failed to become ready")) {
-              throw new Error(
-                "Python RPC service failed to start. Please restart the application or check the logs for more information."
-              );
-            }
-          }
-          throw error;
-        }
+      const isRunning = PythonRPC.isRunning();
+      if (isRunning) {
+        await this.restartRPC();
       } else {
-        logger.warn(
-          "Python RPC service process exists but not responding, attempting restart"
-        );
-        PythonRPC.kill();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        try {
-          await this.startRPC();
-          const isNowHealthy = await PythonRPC.waitForService();
-          if (!isNowHealthy) {
-            throw new Error(
-              "Python RPC service failed to restart or respond. Please check the application logs for more details."
-            );
-          }
-        } catch (error) {
-          if (error instanceof Error) {
-            if (error.message.includes("Python executable not found")) {
-              throw new Error(
-                "Python is not installed or not found in PATH. Please install Python 3 and ensure it's accessible from the command line."
-              );
-            }
-            if (error.message.includes("binary not found")) {
-              throw new Error(
-                "Python RPC binary not found in the application bundle. The application may be corrupted. Please reinstall the application."
-              );
-            }
-            if (error.message.includes("failed to become ready")) {
-              throw new Error(
-                "Python RPC service failed to restart. Please restart the application or check the logs for more information."
-              );
-            }
-          }
-          throw error;
-        }
+        await this.startRPCWhenNotRunning();
       }
     }
   }

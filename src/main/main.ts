@@ -33,7 +33,7 @@ export const loadState = async () => {
   await import("./events");
 
   // Start aria2 for HTTP downloads (required for all platforms)
-  void Aria2.spawn();
+  Aria2.spawn().catch(() => {});
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);

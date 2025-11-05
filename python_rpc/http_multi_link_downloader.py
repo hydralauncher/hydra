@@ -1,6 +1,11 @@
 import aria2p
 from aria2p.client import ClientException as DownloadNotFound
 
+
+class Aria2ServiceNotRunningError(Exception):
+    """Raised when aria2 service is not running."""
+
+
 class HttpMultiLinkDownloader:
     def __init__(self):
         self.downloads = []
@@ -34,7 +39,7 @@ class HttpMultiLinkDownloader:
             except Exception as e:
                 error_msg = str(e)
                 if "Connection refused" in error_msg or "Failed to connect" in error_msg or "6800" in error_msg:
-                    raise Exception("Aria2 download service is not running. Please restart the application.")
+                    raise Aria2ServiceNotRunningError("Aria2 download service is not running. Please restart the application.") from e
                 print(f"Error adding download for URL {url}: {error_msg}")
                 raise
 

@@ -116,12 +116,183 @@ export class PythonRPC {
         await this.rpc.get("/status");
         return true;
       } catch (error) {
+        // Log error for debugging but continue retrying
+        if (error instanceof Error) {
+          pythonRpcLogger.warn(
+            `Service not ready (attempt ${attempt + 1}/${maxAttempts}): ${error.message}`
+          );
+        }
         if (attempt < maxAttempts - 1) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
     }
     return false;
+  }
+
+  private static setupProcessListeners(childProcess: cp.ChildProcess): void {
+    childProcess.on("exit", (code, signal) => {
+      pythonRpcLogger.error(
+        `Python RPC process exited with code ${code} and signal ${signal}`
+      );
+      this.pythonProcess = null;
+    });
+
+    childProcess.on("error", (error) => {
+      pythonRpcLogger.error("Python RPC process error:", error);
+      this.pythonProcess = null;
+    });
+  }
+
+  private static setupStdoutLogging(childProcess: cp.ChildProcess): void {
+    if (childProcess.stdout) {
+      childProcess.stdout.on("data", (data) => {
+        pythonRpcLogger.log(`[Python RPC stdout] ${data.toString()}`);
+      });
+    }
+  }
+
+  private static async spawnMacOSPackaged(
+    commonArgs: string[]
+  ): Promise<void> {
+    pythonRpcLogger.log(
+      `Using macOS packaged build path (Python script mode)`
+    );
+    const possiblePaths = [
+      path.join(process.resourcesPath, "main.py"),
+      path.join(process.resourcesPath, "python_rpc", "main.py"),
+      path.join(__dirname, "..", "..", "python_rpc", "main.py"),
+    ];
+
+    let scriptPath: string | null = null;
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        scriptPath = testPath;
+        pythonRpcLogger.log(`Found Python RPC script at: ${scriptPath}`);
+        break;
+      }
+    }
+
+    if (!scriptPath) {
+      pythonRpcLogger.error(
+        `Python RPC script not found. Tried: ${possiblePaths.join(", ")}`
+      );
+      throw new Error(
+        "Python RPC script not found in the application bundle."
+      );
+    }
+
+    const pythonExecutable = await this.findPythonExecutable();
+    pythonRpcLogger.log(`Using Python executable: ${pythonExecutable}`);
+    pythonRpcLogger.log(`Using Python RPC script: ${scriptPath}`);
+
+    const env = { ...process.env };
+    const pythonPaths = [
+      "/opt/homebrew/bin",
+      "/usr/local/bin",
+      "/usr/bin",
+      path.join(process.env.HOME || "", ".local", "bin"),
+    ];
+    const currentPath = process.env.PATH || "";
+    env.PATH = [...pythonPaths, currentPath].join(":");
+
+    pythonRpcLogger.log(`Spawning Python with PATH: ${env.PATH}`);
+
+    const childProcess = cp.spawn(
+      pythonExecutable,
+      [scriptPath, ...commonArgs],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+        cwd: process.resourcesPath,
+        env,
+      }
+    );
+
+    this.setupStdoutLogging(childProcess);
+    this.logStderr(childProcess.stderr);
+    this.setupProcessListeners(childProcess);
+    this.pythonProcess = childProcess;
+  }
+
+  private static async spawnWindowsLinuxPackaged(
+    commonArgs: string[]
+  ): Promise<void> {
+    pythonRpcLogger.log(
+      `Using Windows/Linux packaged build path (frozen binary mode)`
+    );
+    const binaryName = binaryNameByPlatform[process.platform]!;
+    const binaryPath = path.join(
+      process.resourcesPath,
+      "hydra-python-rpc",
+      binaryName
+    );
+
+    pythonRpcLogger.log(`Looking for Python RPC binary at: ${binaryPath}`);
+    pythonRpcLogger.log(`Resources path: ${process.resourcesPath}`);
+
+    if (!fs.existsSync(binaryPath)) {
+      const errorMsg = `Hydra Python RPC binary not found at: ${binaryPath}. Please ensure the binary is included in the app bundle.`;
+      pythonRpcLogger.error(errorMsg);
+      dialog.showErrorBox(
+        "Fatal",
+        process.platform === "win32"
+          ? "Hydra Python Instance binary not found. Please check if it has been removed by Windows Defender."
+          : errorMsg
+      );
+
+      app.quit();
+      return;
+    }
+
+    if (process.platform === "linux") {
+      try {
+        fs.chmodSync(binaryPath, 0o755);
+      } catch (error) {
+        pythonRpcLogger.warn(
+          `Failed to set execute permissions on binary: ${error}`
+        );
+      }
+    }
+
+    pythonRpcLogger.log(`Spawning Python RPC binary: ${binaryPath}`);
+    const childProcess = cp.spawn(binaryPath, commonArgs, {
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "pipe"],
+      cwd: path.dirname(binaryPath),
+    });
+
+    this.setupStdoutLogging(childProcess);
+    this.logStderr(childProcess.stderr);
+    this.setupProcessListeners(childProcess);
+    this.pythonProcess = childProcess;
+  }
+
+  private static async spawnDevelopment(
+    commonArgs: string[]
+  ): Promise<void> {
+    pythonRpcLogger.log(`Using development mode (Python script mode)`);
+    const scriptPath = path.join(
+      __dirname,
+      "..",
+      "..",
+      "python_rpc",
+      "main.py"
+    );
+
+    const pythonExecutable = await this.findPythonExecutable();
+    pythonRpcLogger.log(`Using Python executable: ${pythonExecutable}`);
+
+    const childProcess = cp.spawn(
+      pythonExecutable,
+      [scriptPath, ...commonArgs],
+      {
+        stdio: ["inherit", "inherit"],
+      }
+    );
+
+    this.logStderr(childProcess.stderr);
+    this.setupProcessListeners(childProcess);
+    this.pythonProcess = childProcess;
   }
 
   public static async spawn(
@@ -145,194 +316,13 @@ export class PythonRPC {
     pythonRpcLogger.log(`__dirname: ${__dirname}`);
 
     if (app.isPackaged) {
-      // On macOS, use Python directly since frozen binary has import issues
-      // On Windows/Linux, use the frozen binary
       if (process.platform === "darwin") {
-        pythonRpcLogger.log(
-          `Using macOS packaged build path (Python script mode)`
-        );
-        // Try multiple possible paths for the Python script
-        // electron-builder flattens python_rpc into Resources/, so main.py is at Resources/main.py
-        const possiblePaths = [
-          path.join(process.resourcesPath, "main.py"), // electron-builder flattens it here
-          path.join(process.resourcesPath, "python_rpc", "main.py"), // fallback if not flattened
-          path.join(__dirname, "..", "..", "python_rpc", "main.py"),
-        ];
-
-        let scriptPath: string | null = null;
-        for (const testPath of possiblePaths) {
-          if (fs.existsSync(testPath)) {
-            scriptPath = testPath;
-            pythonRpcLogger.log(`Found Python RPC script at: ${scriptPath}`);
-            break;
-          }
-        }
-
-        if (!scriptPath) {
-          pythonRpcLogger.error(
-            `Python RPC script not found. Tried: ${possiblePaths.join(", ")}`
-          );
-          throw new Error(
-            "Python RPC script not found in the application bundle."
-          );
-        }
-
-        const pythonExecutable = await this.findPythonExecutable();
-        pythonRpcLogger.log(`Using Python executable: ${pythonExecutable}`);
-        pythonRpcLogger.log(`Using Python RPC script: ${scriptPath}`);
-
-        // Set cwd to resourcesPath so Python can find all the other .py files
-        // (electron-builder flattens python_rpc into Resources/)
-        // Also set PATH to include common Python locations on macOS
-        const env = { ...process.env };
-        // Add common Python paths to ensure dependencies are found
-        const pythonPaths = [
-          "/opt/homebrew/bin",
-          "/usr/local/bin",
-          "/usr/bin",
-          path.join(process.env.HOME || "", ".local", "bin"),
-        ];
-        const currentPath = process.env.PATH || "";
-        env.PATH = [...pythonPaths, currentPath].join(":");
-
-        pythonRpcLogger.log(`Spawning Python with PATH: ${env.PATH}`);
-
-        const childProcess = cp.spawn(
-          pythonExecutable,
-          [scriptPath, ...commonArgs],
-          {
-            stdio: ["pipe", "pipe", "pipe"],
-            cwd: process.resourcesPath,
-            env,
-          }
-        );
-
-        if (childProcess.stdout) {
-          childProcess.stdout.on("data", (data) => {
-            pythonRpcLogger.log(`[Python RPC stdout] ${data.toString()}`);
-          });
-        }
-
-        this.logStderr(childProcess.stderr);
-
-        childProcess.on("exit", (code, signal) => {
-          pythonRpcLogger.error(
-            `Python RPC process exited with code ${code} and signal ${signal}`
-          );
-          this.pythonProcess = null;
-        });
-
-        childProcess.on("error", (error) => {
-          pythonRpcLogger.error("Python RPC process error:", error);
-          this.pythonProcess = null;
-        });
-
-        this.pythonProcess = childProcess;
+        await this.spawnMacOSPackaged(commonArgs);
       } else {
-        pythonRpcLogger.log(
-          `Using Windows/Linux packaged build path (frozen binary mode)`
-        );
-        // Windows/Linux: use frozen binary
-        const binaryName = binaryNameByPlatform[process.platform]!;
-        const binaryPath = path.join(
-          process.resourcesPath,
-          "hydra-python-rpc",
-          binaryName
-        );
-
-        pythonRpcLogger.log(`Looking for Python RPC binary at: ${binaryPath}`);
-        pythonRpcLogger.log(`Resources path: ${process.resourcesPath}`);
-
-        if (!fs.existsSync(binaryPath)) {
-          const errorMsg = `Hydra Python RPC binary not found at: ${binaryPath}. Please ensure the binary is included in the app bundle.`;
-          pythonRpcLogger.error(errorMsg);
-          dialog.showErrorBox(
-            "Fatal",
-            process.platform === "win32"
-              ? "Hydra Python Instance binary not found. Please check if it has been removed by Windows Defender."
-              : errorMsg
-          );
-
-          app.quit();
-          return;
-        }
-
-        // Ensure the binary has execute permissions on Linux
-        if (process.platform === "linux") {
-          try {
-            fs.chmodSync(binaryPath, 0o755);
-          } catch (error) {
-            pythonRpcLogger.warn(
-              `Failed to set execute permissions on binary: ${error}`
-            );
-          }
-        }
-
-        pythonRpcLogger.log(`Spawning Python RPC binary: ${binaryPath}`);
-        const childProcess = cp.spawn(binaryPath, commonArgs, {
-          windowsHide: true,
-          stdio: ["pipe", "pipe", "pipe"],
-          cwd: path.dirname(binaryPath),
-        });
-
-        if (childProcess.stdout) {
-          childProcess.stdout.on("data", (data) => {
-            pythonRpcLogger.log(`[Python RPC stdout] ${data.toString()}`);
-          });
-        }
-
-        this.logStderr(childProcess.stderr);
-
-        childProcess.on("exit", (code, signal) => {
-          pythonRpcLogger.error(
-            `Python RPC process exited with code ${code} and signal ${signal}`
-          );
-          this.pythonProcess = null;
-        });
-
-        childProcess.on("error", (error) => {
-          pythonRpcLogger.error("Python RPC process error:", error);
-          this.pythonProcess = null;
-        });
-
-        this.pythonProcess = childProcess;
+        await this.spawnWindowsLinuxPackaged(commonArgs);
       }
     } else {
-      pythonRpcLogger.log(`Using development mode (Python script mode)`);
-      const scriptPath = path.join(
-        __dirname,
-        "..",
-        "..",
-        "python_rpc",
-        "main.py"
-      );
-
-      const pythonExecutable = await this.findPythonExecutable();
-      pythonRpcLogger.log(`Using Python executable: ${pythonExecutable}`);
-
-      const childProcess = cp.spawn(
-        pythonExecutable,
-        [scriptPath, ...commonArgs],
-        {
-          stdio: ["inherit", "inherit"],
-        }
-      );
-
-      this.logStderr(childProcess.stderr);
-
-      childProcess.on("exit", (code, signal) => {
-        pythonRpcLogger.error(
-          `Python RPC process exited with code ${code} and signal ${signal}`
-        );
-        this.pythonProcess = null;
-      });
-
-      childProcess.on("error", (error) => {
-        pythonRpcLogger.error("Python RPC process error:", error);
-        this.pythonProcess = null;
-      });
-
-      this.pythonProcess = childProcess;
+      await this.spawnDevelopment(commonArgs);
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;

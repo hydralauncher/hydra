@@ -30,7 +30,7 @@ export function DownloadSourcesContextProvider({
 
   const refreshDownloadSources = useCallback(async () => {
     try {
-      const sources = await window.electron.getDownloadSources();
+      const sources = await globalThis.electron.getDownloadSources();
       setDownloadSources(sources);
     } catch (error) {
       logger.error("Failed to fetch download sources:", error);

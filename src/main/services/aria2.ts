@@ -7,40 +7,72 @@ import { logger } from "./logger";
 export class Aria2 {
   private static process: cp.ChildProcess | null = null;
 
+  private static async findSystemAria2OnMacOS(): Promise<string | null> {
+    const possiblePaths = [
+      "/opt/homebrew/bin/aria2c", // Homebrew on Apple Silicon
+      "/usr/local/bin/aria2c", // Homebrew on Intel
+      "/usr/bin/aria2c", // System installation
+    ];
+
+    try {
+      const { execSync } = await import("node:child_process");
+      const env = {
+        ...process.env,
+        PATH: `${process.env.PATH || ""}:/opt/homebrew/bin:/usr/local/bin:/usr/bin`,
+      };
+      const systemAria2 = execSync("which aria2c", {
+        encoding: "utf-8",
+        env,
+      }).trim();
+      if (systemAria2 && fs.existsSync(systemAria2)) {
+        logger.log(`Found system aria2c at: ${systemAria2}`);
+        return systemAria2;
+      }
+    } catch {
+      // 'which' command failed, continue to direct path checks
+    }
+
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        logger.log(`Found system aria2c at: ${testPath}`);
+        return testPath;
+      }
+    }
+
+    return null;
+  }
+
+  private static async checkBundledBinaryCompatibility(
+    binaryPath: string
+  ): Promise<boolean> {
+    if (process.platform !== "darwin") {
+      return true;
+    }
+
+    try {
+      const { execSync } = await import("node:child_process");
+      const fileOutput = execSync(`file "${binaryPath}"`, {
+        encoding: "utf-8",
+      });
+      if (fileOutput.includes("Linux") && !fileOutput.includes("Mach-O")) {
+        logger.warn(
+          `Bundled aria2c binary is for Linux, not macOS. Please install aria2 via Homebrew: brew install aria2`
+        );
+        return false;
+      }
+    } catch {
+      // file command might not be available, continue anyway
+    }
+
+    return true;
+  }
+
   private static async findAria2Binary(): Promise<string | null> {
     // On macOS, try to find system aria2 first (might be installed via Homebrew)
     if (process.platform === "darwin") {
-      // Check common Homebrew paths directly (packaged apps have restricted PATH)
-      const possiblePaths = [
-        "/opt/homebrew/bin/aria2c", // Homebrew on Apple Silicon
-        "/usr/local/bin/aria2c", // Homebrew on Intel
-        "/usr/bin/aria2c", // System installation
-      ];
-
-      try {
-        const { execSync } = await import("node:child_process");
-        // Set PATH to include common locations for packaged apps
-        const env = {
-          ...process.env,
-          PATH: `${process.env.PATH || ""}:/opt/homebrew/bin:/usr/local/bin:/usr/bin`,
-        };
-        const systemAria2 = execSync("which aria2c", {
-          encoding: "utf-8",
-          env,
-        }).trim();
-        if (systemAria2 && fs.existsSync(systemAria2)) {
-          logger.log(`Found system aria2c at: ${systemAria2}`);
-          return systemAria2;
-        }
-      } catch {
-        // 'which' command failed, continue to direct path checks
-      }
-
-      for (const testPath of possiblePaths) {
-        if (fs.existsSync(testPath)) {
-          logger.log(`Found system aria2c at: ${testPath}`);
-          return testPath;
-        }
+      const systemAria2 = await this.findSystemAria2OnMacOS();
+      if (systemAria2) {
+        return systemAria2;
       }
     }
 
@@ -50,22 +82,11 @@ export class Aria2 {
       : path.join(__dirname, "..", "..", "binaries", "aria2c");
 
     if (fs.existsSync(binaryPath)) {
-      // On macOS, check if it's actually a macOS binary (not Linux)
-      if (process.platform === "darwin") {
-        try {
-          const { execSync } = await import("node:child_process");
-          const fileOutput = execSync(`file "${binaryPath}"`, {
-            encoding: "utf-8",
-          });
-          if (fileOutput.includes("Linux") && !fileOutput.includes("Mach-O")) {
-            logger.warn(
-              `Bundled aria2c binary is for Linux, not macOS. Please install aria2 via Homebrew: brew install aria2`
-            );
-            return null;
-          }
-        } catch {
-          // file command might not be available, continue anyway
-        }
+      const isCompatible = await this.checkBundledBinaryCompatibility(
+        binaryPath
+      );
+      if (!isCompatible) {
+        return null;
       }
       return binaryPath;
     }
