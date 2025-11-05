@@ -119,7 +119,7 @@ const startGameDownload = async (
     if (err instanceof AxiosError) {
       // Handle connection errors (Python RPC service not running on macos)
       if (!err.response) {
-        const errorCode = (err as any).code;
+        const errorCode = "code" in err ? (err.code as string | undefined) : undefined;
         if (errorCode === "ECONNREFUSED") {
           return {
             ok: false,
