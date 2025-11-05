@@ -90,6 +90,7 @@ which aria2c  # Should show /opt/homebrew/bin/aria2c
 **Python not found**
 
 The app checks these paths automatically:
+
 - `/opt/homebrew/bin/python3` (Apple Silicon)
 - `/usr/local/bin/python3` (Intel)
 - `/usr/bin/python3` (System)

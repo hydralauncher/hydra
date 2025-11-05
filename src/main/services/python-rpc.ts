@@ -66,14 +66,15 @@ export class PythonRPC {
         "/opt/homebrew/bin/python3",
         "/usr/local/bin/python3",
         "/usr/bin/python3",
-        path.join(process.env.HOME || "", ".local", "bin", "python3"),
+        path.join(process.env.HOME || "", ".local", "bin", "python3")
       );
     }
 
-    const candidates = process.platform === "win32" 
-      ? ["python"] 
-      : [...commonPaths, "python3", "python"];
-    
+    const candidates =
+      process.platform === "win32"
+        ? ["python"]
+        : [...commonPaths, "python3", "python"];
+
     for (const pythonCmd of candidates) {
       try {
         await new Promise<void>((resolve, reject) => {
@@ -84,7 +85,9 @@ export class PythonRPC {
             if (code === 0) {
               resolve();
             } else {
-              reject(new Error(`Python version check failed with code ${code}`));
+              reject(
+                new Error(`Python version check failed with code ${code}`)
+              );
             }
           });
           proc.on("error", reject);
@@ -92,17 +95,22 @@ export class PythonRPC {
         pythonRpcLogger.log(`Found Python executable: ${pythonCmd}`);
         return pythonCmd;
       } catch (error) {
-        pythonRpcLogger.warn(`Python candidate ${pythonCmd} not available: ${error}`);
+        pythonRpcLogger.warn(
+          `Python candidate ${pythonCmd} not available: ${error}`
+        );
         // Try next candidate
       }
     }
-    
+
     throw new Error(
       `Python executable not found. Please install Python 3 and ensure it's in your PATH. Tried: ${candidates.join(", ")}`
     );
   }
 
-  public static async waitForService(maxAttempts = 30, delayMs = 500): Promise<boolean> {
+  public static async waitForService(
+    maxAttempts = 30,
+    delayMs = 500
+  ): Promise<boolean> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         await this.rpc.get("/status");
@@ -140,7 +148,9 @@ export class PythonRPC {
       // On macOS, use Python directly since frozen binary has import issues
       // On Windows/Linux, use the frozen binary
       if (process.platform === "darwin") {
-        pythonRpcLogger.log(`Using macOS packaged build path (Python script mode)`);
+        pythonRpcLogger.log(
+          `Using macOS packaged build path (Python script mode)`
+        );
         // Try multiple possible paths for the Python script
         // electron-builder flattens python_rpc into Resources/, so main.py is at Resources/main.py
         const possiblePaths = [
@@ -159,8 +169,12 @@ export class PythonRPC {
         }
 
         if (!scriptPath) {
-          pythonRpcLogger.error(`Python RPC script not found. Tried: ${possiblePaths.join(", ")}`);
-          throw new Error("Python RPC script not found in the application bundle.");
+          pythonRpcLogger.error(
+            `Python RPC script not found. Tried: ${possiblePaths.join(", ")}`
+          );
+          throw new Error(
+            "Python RPC script not found in the application bundle."
+          );
         }
 
         const pythonExecutable = await this.findPythonExecutable();
@@ -183,11 +197,15 @@ export class PythonRPC {
 
         pythonRpcLogger.log(`Spawning Python with PATH: ${env.PATH}`);
 
-        const childProcess = cp.spawn(pythonExecutable, [scriptPath, ...commonArgs], {
-          stdio: ["pipe", "pipe", "pipe"],
-          cwd: process.resourcesPath,
-          env,
-        });
+        const childProcess = cp.spawn(
+          pythonExecutable,
+          [scriptPath, ...commonArgs],
+          {
+            stdio: ["pipe", "pipe", "pipe"],
+            cwd: process.resourcesPath,
+            env,
+          }
+        );
 
         if (childProcess.stdout) {
           childProcess.stdout.on("data", (data) => {
@@ -198,7 +216,9 @@ export class PythonRPC {
         this.logStderr(childProcess.stderr);
 
         childProcess.on("exit", (code, signal) => {
-          pythonRpcLogger.error(`Python RPC process exited with code ${code} and signal ${signal}`);
+          pythonRpcLogger.error(
+            `Python RPC process exited with code ${code} and signal ${signal}`
+          );
           this.pythonProcess = null;
         });
 
@@ -209,7 +229,9 @@ export class PythonRPC {
 
         this.pythonProcess = childProcess;
       } else {
-        pythonRpcLogger.log(`Using Windows/Linux packaged build path (frozen binary mode)`);
+        pythonRpcLogger.log(
+          `Using Windows/Linux packaged build path (frozen binary mode)`
+        );
         // Windows/Linux: use frozen binary
         const binaryName = binaryNameByPlatform[process.platform]!;
         const binaryPath = path.join(
@@ -240,7 +262,9 @@ export class PythonRPC {
           try {
             fs.chmodSync(binaryPath, 0o755);
           } catch (error) {
-            pythonRpcLogger.warn(`Failed to set execute permissions on binary: ${error}`);
+            pythonRpcLogger.warn(
+              `Failed to set execute permissions on binary: ${error}`
+            );
           }
         }
 
@@ -260,7 +284,9 @@ export class PythonRPC {
         this.logStderr(childProcess.stderr);
 
         childProcess.on("exit", (code, signal) => {
-          pythonRpcLogger.error(`Python RPC process exited with code ${code} and signal ${signal}`);
+          pythonRpcLogger.error(
+            `Python RPC process exited with code ${code} and signal ${signal}`
+          );
           this.pythonProcess = null;
         });
 
@@ -284,14 +310,20 @@ export class PythonRPC {
       const pythonExecutable = await this.findPythonExecutable();
       pythonRpcLogger.log(`Using Python executable: ${pythonExecutable}`);
 
-      const childProcess = cp.spawn(pythonExecutable, [scriptPath, ...commonArgs], {
-        stdio: ["inherit", "inherit"],
-      });
+      const childProcess = cp.spawn(
+        pythonExecutable,
+        [scriptPath, ...commonArgs],
+        {
+          stdio: ["inherit", "inherit"],
+        }
+      );
 
       this.logStderr(childProcess.stderr);
 
       childProcess.on("exit", (code, signal) => {
-        pythonRpcLogger.error(`Python RPC process exited with code ${code} and signal ${signal}`);
+        pythonRpcLogger.error(
+          `Python RPC process exited with code ${code} and signal ${signal}`
+        );
         this.pythonProcess = null;
       });
 

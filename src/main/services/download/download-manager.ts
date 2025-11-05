@@ -49,7 +49,10 @@ export class DownloadManager {
       );
 
       if (download) {
-        this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
+        this.downloadingGameId = levelKeys.game(
+          download.shop,
+          download.objectId
+        );
       }
     } catch (err) {
       logger.error("Failed to start Python RPC service", err);
@@ -418,10 +421,12 @@ export class DownloadManager {
 
   private static async ensureRPCIsRunning(): Promise<void> {
     const isHealthy = await PythonRPC.checkHealth();
-    
+
     if (!isHealthy) {
       if (!PythonRPC.isRunning()) {
-        logger.warn("Python RPC service is not running, attempting to start it");
+        logger.warn(
+          "Python RPC service is not running, attempting to start it"
+        );
         try {
           await this.startRPC();
           const isNowHealthy = await PythonRPC.waitForService();
@@ -451,7 +456,9 @@ export class DownloadManager {
           throw error;
         }
       } else {
-        logger.warn("Python RPC service process exists but not responding, attempting restart");
+        logger.warn(
+          "Python RPC service process exists but not responding, attempting restart"
+        );
         PythonRPC.kill();
         await new Promise((resolve) => setTimeout(resolve, 500));
         try {
@@ -488,13 +495,13 @@ export class DownloadManager {
 
   static async startDownload(download: Download) {
     await this.ensureRPCIsRunning();
-    
+
     const payload = await this.getDownloadPayload(download);
-    
+
     if (!payload) {
       throw new Error("Download payload is not available");
     }
-    
+
     await PythonRPC.rpc.post("/action", payload);
     this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
   }

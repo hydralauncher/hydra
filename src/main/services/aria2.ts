@@ -24,7 +24,7 @@ export class Aria2 {
           ...process.env,
           PATH: `${process.env.PATH || ""}:/opt/homebrew/bin:/usr/local/bin:/usr/bin`,
         };
-        const systemAria2 = execSync("which aria2c", { 
+        const systemAria2 = execSync("which aria2c", {
           encoding: "utf-8",
           env,
         }).trim();
@@ -54,7 +54,9 @@ export class Aria2 {
       if (process.platform === "darwin") {
         try {
           const { execSync } = await import("node:child_process");
-          const fileOutput = execSync(`file "${binaryPath}"`, { encoding: "utf-8" });
+          const fileOutput = execSync(`file "${binaryPath}"`, {
+            encoding: "utf-8",
+          });
           if (fileOutput.includes("Linux") && !fileOutput.includes("Mach-O")) {
             logger.warn(
               `Bundled aria2c binary is for Linux, not macOS. Please install aria2 via Homebrew: brew install aria2`
@@ -86,7 +88,9 @@ export class Aria2 {
       try {
         fs.chmodSync(binaryPath, 0o755);
       } catch (error) {
-        logger.warn(`Failed to set execute permissions on aria2 binary: ${error}`);
+        logger.warn(
+          `Failed to set execute permissions on aria2 binary: ${error}`
+        );
       }
     }
 
@@ -97,7 +101,11 @@ export class Aria2 {
       const env = { ...process.env };
       if (process.platform === "darwin" && app.isPackaged) {
         // Ensure Homebrew paths are in PATH for packaged apps
-        const homebrewPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"];
+        const homebrewPaths = [
+          "/opt/homebrew/bin",
+          "/usr/local/bin",
+          "/usr/bin",
+        ];
         env.PATH = `${homebrewPaths.join(":")}:${env.PATH || ""}`;
       }
 
@@ -110,8 +118,8 @@ export class Aria2 {
           "--file-allocation=none",
           "--allow-overwrite=true",
         ],
-        { 
-          stdio: "inherit", 
+        {
+          stdio: "inherit",
           windowsHide: true,
           env,
         }
@@ -119,7 +127,10 @@ export class Aria2 {
 
       this.process.on("error", (error) => {
         logger.error("Aria2 process error:", error);
-        if (error.message.includes("ENOEXEC") && process.platform === "darwin") {
+        if (
+          error.message.includes("ENOEXEC") &&
+          process.platform === "darwin"
+        ) {
           logger.error(
             "Aria2 binary is not compatible with macOS. Please install aria2: brew install aria2"
           );
@@ -129,7 +140,9 @@ export class Aria2 {
 
       this.process.on("exit", (code, signal) => {
         if (code !== 0 && code !== null) {
-          logger.error(`Aria2 process exited with code ${code} and signal ${signal}`);
+          logger.error(
+            `Aria2 process exited with code ${code} and signal ${signal}`
+          );
         }
         this.process = null;
       });
