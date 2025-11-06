@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLibrary, useAppDispatch } from "@renderer/hooks";
+import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +8,6 @@ import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, FilterOption } from "./filter-options";
-import { SearchBar } from "./search-bar";
 import "./library.scss";
 
 export default function Library() {
@@ -20,7 +19,7 @@ export default function Library() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
 
@@ -133,7 +132,6 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
-              <SearchBar value={searchQuery} onChange={setSearchQuery} />
               <ViewOptions viewMode={viewMode} onViewModeChange={setViewMode} />
             </div>
           </div>
