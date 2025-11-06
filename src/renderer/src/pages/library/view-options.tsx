@@ -9,7 +9,10 @@ interface ViewOptionsProps {
   onViewModeChange: (viewMode: ViewMode) => void;
 }
 
-export function ViewOptions({ viewMode, onViewModeChange }: ViewOptionsProps) {
+export function ViewOptions({
+  viewMode,
+  onViewModeChange,
+}: Readonly<ViewOptionsProps>) {
   const { t } = useTranslation("library");
 
   return (

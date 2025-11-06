@@ -19,7 +19,7 @@ export function FilterOptions({
   favouritedCount,
   newGamesCount,
   top10Count,
-}: FilterOptionsProps) {
+}: Readonly<FilterOptionsProps>) {
   const { t } = useTranslation("library");
 
   return (
