@@ -9,6 +9,7 @@ import type { SteamAppDetails, SteamShortcut } from "@types";
 
 import { logger } from "./logger";
 import { SystemPath } from "./system-path";
+import { ProxyManager } from "./proxy-manager";
 
 export interface SteamAppDetailsResponse {
   [key: string]: {
@@ -65,9 +66,14 @@ export const getSteamAppDetails = async (
     l: language,
   });
 
+  const proxyConfig = await ProxyManager.getAxiosProxyConfig();
+  const agentConfig = await ProxyManager.getAxiosAgentConfig();
+
+  // Use HTTPS to avoid redirects and improve proxy compatibility
   return axios
     .get<SteamAppDetailsResponse>(
-      `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
+      `https://store.steampowered.com/api/appdetails?${searchParams.toString()}`,
+      { proxy: proxyConfig, ...agentConfig }
     )
     .then((response) => {
       if (response.data[objectId].success) {

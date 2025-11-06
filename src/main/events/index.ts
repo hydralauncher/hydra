@@ -48,6 +48,7 @@ import "./misc/install-hydra-decky-plugin";
 import "./misc/get-hydra-decky-plugin-info";
 import "./misc/check-homebrew-folder-exists";
 import "./misc/hydra-api-call";
+import "./misc/get-system-proxy";
 import "./torrenting/cancel-game-download";
 import "./torrenting/pause-game-download";
 import "./torrenting/resume-game-download";

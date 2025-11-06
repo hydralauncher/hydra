@@ -81,6 +81,7 @@
     "react-router-dom": "^6.22.3",
     "react-shadow": "^20.6.0",
     "react-tooltip": "^5.28.1",
+    "socks-proxy-agent": "8",
     "sound-play": "^1.1.0",
     "steam-shortcut-editor": "https://github.com/hydralauncher/steam-shortcut-editor",
     "sudo-prompt": "^9.2.1",
