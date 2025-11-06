@@ -2,24 +2,9 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": [
-        "libtorrent",
-        "flask",
-        "werkzeug",  # Flask dependency
-        "jinja2",    # Flask dependency
-        "markupsafe", # Flask dependency
-        "itsdangerous", # Flask dependency
-        "click",     # Flask dependency
-        "blinker",   # Flask dependency
-        "psutil",
-        "PIL",
-        "aria2p",
-        "urllib3",
-        "requests",
-    ],
+    "packages": ["libtorrent"],
     "build_exe": "hydra-python-rpc",
-    "include_msvcr": True,
-    "optimize": 0,  # Don't optimize to avoid import issues
+    "include_msvcr": True
 }
 
 setup(

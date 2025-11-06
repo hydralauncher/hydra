@@ -18,7 +18,7 @@ import {
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
-import { settingsContext, downloadSourcesContext } from "@renderer/context";
+import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import "./settings-download-sources.scss";
@@ -31,17 +31,13 @@ export function SettingsDownloadSources() {
   ] = useState(false);
   const [showAddDownloadSourceModal, setShowAddDownloadSourceModal] =
     useState(false);
+  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncingDownloadSources, setIsSyncingDownloadSources] =
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
-  const {
-    downloadSources,
-    isLoading: isLoadingSources,
-    refreshDownloadSources,
-  } = useContext(downloadSourcesContext);
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
@@ -55,17 +51,13 @@ export function SettingsDownloadSources() {
   }, [sourceUrl]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        refreshDownloadSources();
-      }
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [refreshDownloadSources]);
+    fetchDownloadSources();
+  }, []);
 
   useEffect(() => {
     const hasPendingOrMatchingSource = downloadSources.some(
@@ -81,7 +73,8 @@ export function SettingsDownloadSources() {
     const intervalId = setInterval(async () => {
       try {
         await window.electron.syncDownloadSources();
-        await refreshDownloadSources();
+        const sources = await window.electron.getDownloadSources();
+        setDownloadSources(sources);
       } catch (error) {
         logger.error("Failed to fetch download sources:", error);
       }
@@ -95,7 +88,8 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(false, downloadSource.id);
-      await refreshDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
       showSuccessToast(t("removed_download_source"));
     } catch (error) {
       logger.error("Failed to remove download source:", error);
@@ -109,7 +103,8 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(true);
-      await refreshDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
       showSuccessToast(t("removed_all_download_sources"));
     } catch (error) {
       logger.error("Failed to remove all download sources:", error);
@@ -120,20 +115,22 @@ export function SettingsDownloadSources() {
   };
 
   const handleAddDownloadSource = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await refreshDownloadSources();
+    try {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    } catch (error) {
+      logger.error("Failed to refresh download sources:", error);
+    }
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
     try {
       await window.electron.syncDownloadSources();
-      await refreshDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
 
       showSuccessToast(t("download_sources_synced_successfully"));
-    } catch (error) {
-      logger.error("Failed to sync download sources:", error);
-      await refreshDownloadSources();
     } finally {
       setIsSyncingDownloadSources(false);
     }
@@ -228,93 +225,71 @@ export function SettingsDownloadSources() {
         </div>
       </div>
 
-      {(() => {
-        if (isLoadingSources) {
-          return (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              <p>Loading...</p>
-            </div>
-          );
-        }
-        if (downloadSources.length === 0) {
-          return (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              <p>{t("download_sources_description")}</p>
-              <p style={{ marginTop: "1rem", opacity: 0.7 }}>
-                {t("add_download_source_description")}
-              </p>
-            </div>
-          );
-        }
-        return (
-          <ul className="settings-download-sources__list">
-            {downloadSources.map((downloadSource) => {
-              const isPendingOrMatching =
-                downloadSource.status ===
-                  DownloadSourceStatus.PendingMatching ||
-                downloadSource.status === DownloadSourceStatus.Matching;
+      <ul className="settings-download-sources__list">
+        {downloadSources.map((downloadSource) => {
+          const isPendingOrMatching =
+            downloadSource.status === DownloadSourceStatus.PendingMatching ||
+            downloadSource.status === DownloadSourceStatus.Matching;
 
-              return (
-                <li
-                  key={downloadSource.id}
-                  className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
+          return (
+            <li
+              key={downloadSource.id}
+              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
+            >
+              <div className="settings-download-sources__item-header">
+                <h2>{downloadSource.name}</h2>
+
+                <div style={{ display: "flex" }}>
+                  <Badge>
+                    {isPendingOrMatching && (
+                      <SyncIcon className="settings-download-sources__spinner" />
+                    )}
+                    {statusTitle[downloadSource.status]}
+                  </Badge>
+                </div>
+
+                <button
+                  type="button"
+                  className="settings-download-sources__navigate-button"
+                  disabled={!downloadSource.fingerprint}
+                  onClick={() =>
+                    navigateToCatalogue(downloadSource.fingerprint)
+                  }
                 >
-                  <div className="settings-download-sources__item-header">
-                    <h2>{downloadSource.name}</h2>
+                  <small>
+                    {isPendingOrMatching
+                      ? t("download_source_no_information")
+                      : t("download_count", {
+                          count: downloadSource.downloadCount,
+                          countFormatted:
+                            downloadSource.downloadCount.toLocaleString(),
+                        })}
+                  </small>
+                </button>
+              </div>
 
-                    <div style={{ display: "flex" }}>
-                      <Badge>
-                        {isPendingOrMatching && (
-                          <SyncIcon className="settings-download-sources__spinner" />
-                        )}
-                        {statusTitle[downloadSource.status]}
-                      </Badge>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="settings-download-sources__navigate-button"
-                      disabled={!downloadSource.fingerprint}
-                      onClick={() =>
-                        navigateToCatalogue(downloadSource.fingerprint)
-                      }
-                    >
-                      <small>
-                        {isPendingOrMatching
-                          ? t("download_source_no_information")
-                          : t("download_count", {
-                              count: downloadSource.downloadCount,
-                              countFormatted:
-                                downloadSource.downloadCount.toLocaleString(),
-                            })}
-                      </small>
-                    </button>
-                  </div>
-
-                  <TextField
-                    label={t("download_source_url")}
-                    value={downloadSource.url}
-                    readOnly
-                    theme="dark"
-                    disabled
-                    rightContent={
-                      <Button
-                        type="button"
-                        theme="outline"
-                        onClick={() => handleRemoveSource(downloadSource)}
-                        disabled={isRemovingDownloadSource}
-                      >
-                        <NoEntryIcon />
-                        {t("remove_download_source")}
-                      </Button>
-                    }
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        );
-      })()}
+              <TextField
+                label={t("download_source_url")}
+                value={downloadSource.url}
+                readOnly
+                theme="dark"
+                disabled
+                rightContent={
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={() => handleRemoveSource(downloadSource)}
+                    disabled={isRemovingDownloadSource}
+                  >
+                    <NoEntryIcon />
+                    {t("remove_download_source")}
+                  </Button>
+                }
+              />
+            </li>
+          );
+        })}
+      </ul>
     </>
   );
 }

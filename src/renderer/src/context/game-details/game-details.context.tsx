@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
@@ -29,8 +22,6 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { GameDetailsContext } from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
-import { logger } from "@renderer/logger";
-import { downloadSourcesContext } from "@renderer/context";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -95,7 +86,6 @@ export function GameDetailsContextProvider({
 
   const { lastPacket } = useDownload();
   const { userDetails } = useUserDetails();
-  const { downloadSources } = useContext(downloadSourcesContext);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -303,14 +293,16 @@ export function GameDetailsContextProvider({
   }, [objectId, shop, userDetails]);
 
   useEffect(() => {
-    if (shop === "custom" || !downloadSources.length) return;
+    if (shop === "custom") return;
 
     const fetchDownloadSources = async () => {
       try {
+        const sources = await window.electron.getDownloadSources();
+
         const params = {
           take: 100,
           skip: 0,
-          downloadSourceIds: downloadSources.map((source) => source.id),
+          downloadSourceIds: sources.map((source) => source.id),
         };
 
         const downloads = await window.electron.hydraApi.get<GameRepack[]>(
@@ -323,14 +315,12 @@ export function GameDetailsContextProvider({
 
         setRepacks(downloads);
       } catch (error) {
-        logger.error("Failed to fetch download sources:", error);
-        // Set empty array on error so UI shows "no repacks found" message
-        setRepacks([]);
+        console.error("Failed to fetch download sources:", error);
       }
     };
 
     fetchDownloadSources();
-  }, [shop, objectId, downloadSources]);
+  }, [shop, objectId]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;

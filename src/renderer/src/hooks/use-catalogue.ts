@@ -1,8 +1,8 @@
 import axios from "axios";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppDispatch } from "./redux";
 import { setGenres, setTags } from "@renderer/features";
-import { downloadSourcesContext } from "@renderer/context";
+import type { DownloadSource } from "@types";
 
 export const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
@@ -10,12 +10,10 @@ export const externalResourcesInstance = axios.create({
 
 export function useCatalogue() {
   const dispatch = useAppDispatch();
-  const { downloadSources: allDownloadSources } = useContext(
-    downloadSourcesContext
-  );
 
   const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
   const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
+  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const getSteamUserTags = useCallback(() => {
     externalResourcesInstance.get("/steam-user-tags.json").then((response) => {
@@ -41,21 +39,25 @@ export function useCatalogue() {
     });
   }, []);
 
+  const getDownloadSources = useCallback(() => {
+    window.electron.getDownloadSources().then((results) => {
+      setDownloadSources(results.filter((source) => !!source.fingerprint));
+    });
+  }, []);
+
   useEffect(() => {
     getSteamUserTags();
     getSteamGenres();
     getSteamPublishers();
     getSteamDevelopers();
+    getDownloadSources();
   }, [
     getSteamUserTags,
     getSteamGenres,
     getSteamPublishers,
     getSteamDevelopers,
+    getDownloadSources,
   ]);
-
-  const downloadSources = allDownloadSources.filter(
-    (source) => !!source.fingerprint
-  );
 
   return { steamPublishers, downloadSources, steamDevelopers };
 }

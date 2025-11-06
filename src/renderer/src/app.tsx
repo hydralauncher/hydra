@@ -24,7 +24,6 @@ import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
-import { DownloadSourcesContextProvider } from "@renderer/context";
 
 import { injectCustomCss, removeCustomCss } from "./helpers";
 import "./app.scss";
@@ -238,7 +237,7 @@ export function App() {
   }, [dispatch]);
 
   return (
-    <DownloadSourcesContextProvider>
+    <>
       {window.electron.platform === "win32" && (
         <div className="title-bar">
           <h4>
@@ -291,6 +290,6 @@ export function App() {
       </main>
 
       <BottomPanel />
-    </DownloadSourcesContextProvider>
+    </>
   );
 }

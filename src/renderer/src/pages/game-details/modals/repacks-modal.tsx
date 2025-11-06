@@ -19,7 +19,7 @@ import type { DownloadSource } from "@types";
 import type { GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
-import { gameDetailsContext, downloadSourcesContext } from "@renderer/context";
+import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
 import { useDate, useFeature } from "@renderer/hooks";
@@ -88,14 +88,14 @@ export function RepacksModal({
     });
   }, [repacks, isFeatureEnabled, Feature]);
 
-  const { downloadSources: cachedDownloadSources } = useContext(
-    downloadSourcesContext
-  );
-
   useEffect(() => {
-    if (!visible) return;
-    setDownloadSources(cachedDownloadSources);
-  }, [visible, cachedDownloadSources]);
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
 
   const sortedRepacks = useMemo(() => {
     return orderBy(
