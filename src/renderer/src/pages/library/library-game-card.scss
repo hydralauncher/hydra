@@ -54,7 +54,7 @@
     justify-content: space-between;
     height: 100%;
     width: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 5%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
     padding: 8px;
     z-index: 2;
   }
@@ -109,25 +109,26 @@
   &__achievements {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 6px 8px;
     opacity: 0;
     transform: translateY(8px);
     transition: all ease 0.2s;
     pointer-events: none;
     width: 100%;
   }
-  &__achievements-gap {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
 
   &__achievement-header {
     display: flex;
-    align-items: center;
-    gap: 6px;
     justify-content: space-between;
+    margin-bottom: 8px;
+    color: globals.$muted-color;
+    overflow: hidden;
+    height: 18px;
+  }
+
+  &__achievements-gap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   &__achievement-trophy {
@@ -136,16 +137,15 @@
   }
 
   &__achievement-progress {
-    margin-top: 8px;
     width: 100%;
     height: 4px;
     transition: all ease 0.2s;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     overflow: hidden;
 
     &::-webkit-progress-bar {
-      background-color: transparent;
+      background-color: rgba(255, 255, 255, 0.15);
       border-radius: 4px;
     }
 
@@ -164,15 +164,10 @@
   }
 
   &__achievement-count {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
   }
 
   &__achievement-percentage {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
   }
 
@@ -281,9 +276,9 @@
   }
 }
 
-/* Force fixed size for compact grid cells so cards render at 220x320 */
+/* Responsive sizing for compact grid cells */
 .library__games-grid--compact .library-game-card__wrapper {
-  width: 215px;
-  height: 320px;
-  aspect-ratio: unset;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 215 / 320;
 }

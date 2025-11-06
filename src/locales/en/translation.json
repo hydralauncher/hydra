@@ -93,6 +93,7 @@
   },
   "header": {
     "search": "Search games",
+    "search_library": "Search library",
     "home": "Home",
     "catalogue": "Catalogue",
     "library": "Library",

@@ -2,7 +2,7 @@
 
 .library {
   &__content {
-    padding: calc(globals.$spacing-unit * 3);
+    padding: calc(globals.$spacing-unit * 2);
     height: 100%;
     width: 100%;
     overflow-y: auto;
@@ -38,7 +38,6 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    gap: calc(globals.$spacing-unit * 2);
   }
 
   &__controls-left {
@@ -159,31 +158,28 @@
       }
     }
 
-    // Compact view - smaller cards
+    // Compact view - smaller cards with responsive design
     &--compact {
-      grid-template-columns: repeat(auto-fill, 215px);
-      grid-auto-rows: 320px;
-      justify-content: start;
+      grid-template-columns: repeat(3, 1fr);
 
       @container #{globals.$app-container} (min-width: 900px) {
-        grid-template-columns: repeat(auto-fill, 215px);
+        grid-template-columns: repeat(5, 1fr);
       }
 
       @container #{globals.$app-container} (min-width: 1300px) {
-        grid-template-columns: repeat(auto-fill, 215px);
+        grid-template-columns: repeat(7, 1fr);
       }
 
-      /* keep same pattern for very large screens */
       @container #{globals.$app-container} (min-width: 2000px) {
-        grid-template-columns: repeat(auto-fill, 215px);
+        grid-template-columns: repeat(9, 1fr);
       }
 
       @container #{globals.$app-container} (min-width: 2600px) {
-        grid-template-columns: repeat(auto-fill, 215px);
+        grid-template-columns: repeat(12, 1fr);
       }
 
       @container #{globals.$app-container} (min-width: 3000px) {
-        grid-template-columns: repeat(auto-fill, 210px);
+        grid-template-columns: repeat(14, 1fr);
       }
     }
   }

@@ -11,7 +11,6 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 0;
   text-align: left;
 
   &:before {
@@ -25,7 +24,7 @@
       35deg,
       rgba(0, 0, 0, 0.1) 0%,
       rgba(0, 0, 0, 0.07) 51.5%,
-      rgba(255, 255, 255, 0.15) 74%,
+      rgba(255, 255, 255, 0.15) 64%,
       rgba(255, 255, 255, 0.1) 100%
     );
     transition: all ease 0.3s;
@@ -63,12 +62,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.1) 0%,
-      rgba(0, 0, 0, 0.2) 50%,
-      rgba(0, 0, 0, 0.3) 100%
-    );
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
     z-index: 1;
   }
 
@@ -80,7 +74,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5);
   }
 
   &__top-section {
@@ -97,8 +91,8 @@
     -webkit-backdrop-filter: blur(8px);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,9 +162,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 6px 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-size: 14px;
+    font-size: 12px;
   }
 
   &__playtime-text {
@@ -185,7 +179,6 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 6px 12px;
     flex: 1 1 auto;
     min-width: 0;
   }
@@ -193,7 +186,6 @@
   &__achievement-header {
     display: flex;
     align-items: center;
-    gap: 8px;
     justify-content: space-between;
   }
   &__achievements-gap {
@@ -241,7 +233,7 @@
   }
 
   &__achievement-percentage {
-    font-size: 12px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
   }

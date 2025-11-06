@@ -147,7 +147,7 @@ export function LibraryGameCard({
               <div className="library-game-card__achievement-header">
                 <div className="library-game-card__achievements-gap">
                   <TrophyIcon
-                    size={14}
+                    size={13}
                     className="library-game-card__achievement-trophy"
                   />
                   <span className="library-game-card__achievement-count">
