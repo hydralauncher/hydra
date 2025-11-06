@@ -22,7 +22,7 @@
   }
 
   &__icon {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.75);
     flex-shrink: 0;
     transition: color 0.2s ease;
   }
@@ -38,7 +38,7 @@
     min-width: 0;
 
     &::placeholder {
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.6);
     }
 
     &:focus ~ .search-bar__icon {
@@ -50,7 +50,7 @@
     flex-shrink: 0;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.65);
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;

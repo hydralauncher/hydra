@@ -13,6 +13,10 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  type ElectronAPI = {
+    refreshLibraryAssets?: () => Promise<unknown>;
+    onLibraryBatchComplete?: (cb: () => void) => () => void;
+  };
 
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
@@ -22,17 +26,22 @@ export default function Library() {
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
-
-    // Refresh library assets from cloud, then update library display
-    window.electron
-      .refreshLibraryAssets()
-      .then(() => updateLibrary())
-      .catch(() => updateLibrary()); // Fallback to local cache on error
-
-    // Listen for library sync completion to refresh cover images
-    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+    const electron = (globalThis as unknown as { electron?: ElectronAPI })
+      .electron;
+    let unsubscribe: () => void = () => undefined;
+    if (electron?.refreshLibraryAssets) {
+      electron
+        .refreshLibraryAssets()
+        .then(() => updateLibrary())
+        .catch(() => updateLibrary());
+      if (electron.onLibraryBatchComplete) {
+        unsubscribe = electron.onLibraryBatchComplete(() => {
+          updateLibrary();
+        });
+      }
+    } else {
       updateLibrary();
-    });
+    }
 
     return () => {
       unsubscribe();
@@ -45,31 +54,6 @@ export default function Library() {
 
   const handleOnMouseLeaveGameCard = () => {
     // Optional: resume animations if needed
-  };
-
-  // Simple fuzzy search function
-  const fuzzySearch = (query: string, items: typeof library) => {
-    if (!query.trim()) return items;
-
-    const queryLower = query.toLowerCase();
-    return items.filter((game) => {
-      const titleLower = game.title.toLowerCase();
-      let matches = 0;
-      let queryIndex = 0;
-
-      for (
-        let i = 0;
-        i < titleLower.length && queryIndex < queryLower.length;
-        i++
-      ) {
-        if (titleLower[i] === queryLower[queryIndex]) {
-          matches++;
-          queryIndex++;
-        }
-      }
-
-      return queryIndex === queryLower.length;
-    });
   };
 
   const filteredLibrary = useMemo(() => {
@@ -98,8 +82,25 @@ export default function Library() {
         filtered = library;
     }
 
-    // Apply search filter
-    return fuzzySearch(searchQuery, filtered);
+    if (!searchQuery.trim()) return filtered;
+
+    const queryLower = searchQuery.toLowerCase();
+    return filtered.filter((game) => {
+      const titleLower = game.title.toLowerCase();
+      let queryIndex = 0;
+
+      for (
+        let i = 0;
+        i < titleLower.length && queryIndex < queryLower.length;
+        i++
+      ) {
+        if (titleLower[i] === queryLower[queryIndex]) {
+          queryIndex++;
+        }
+      }
+
+      return queryIndex === queryLower.length;
+    });
   }, [library, filterBy, searchQuery]);
 
   // No sorting for now — rely on filteredLibrary
@@ -118,30 +119,25 @@ export default function Library() {
   return (
     <section className="library__content">
       {hasGames && (
-        <>
-          <div className="library__page-header">
-            <div className="library__controls-row">
-              <div className="library__controls-left">
-                <FilterOptions
-                  filterBy={filterBy}
-                  onFilterChange={setFilterBy}
-                  allGamesCount={allGamesCount}
-                  favouritedCount={favouritedCount}
-                  newGamesCount={newGamesCount}
-                  top10Count={top10Count}
-                />
-              </div>
+        <div className="library__page-header">
+          <div className="library__controls-row">
+            <div className="library__controls-left">
+              <FilterOptions
+                filterBy={filterBy}
+                onFilterChange={setFilterBy}
+                allGamesCount={allGamesCount}
+                favouritedCount={favouritedCount}
+                newGamesCount={newGamesCount}
+                top10Count={top10Count}
+              />
+            </div>
 
-              <div className="library__controls-right">
-                <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                <ViewOptions
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                />
-              </div>
+            <div className="library__controls-right">
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              <ViewOptions viewMode={viewMode} onViewModeChange={setViewMode} />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {!hasGames && (

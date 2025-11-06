@@ -30,7 +30,9 @@ const getImageWithCustomPriority = (
   return customUrl || originalUrl || fallbackUrl || "";
 };
 
-export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
+export function LibraryGameCardLarge({
+  game,
+}: Readonly<LibraryGameCardLargeProps>) {
   const { t } = useTranslation("library");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
@@ -82,7 +84,7 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
       try {
         await handleCloseGame();
       } catch (e) {
-        void e;
+        console.error(e);
       }
       return;
     }
@@ -92,7 +94,7 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
       try {
         handleOpenDownloadOptions();
       } catch (e) {
-        void e;
+        console.error(e);
       }
     }
   };
@@ -223,30 +225,44 @@ export function LibraryGameCardLarge({ game }: LibraryGameCardLargeProps) {
               className="library-game-card-large__action-button"
               onClick={handleActionClick}
             >
-              {isGameDownloading ? (
-                <>
-                  <DownloadIcon
-                    size={16}
-                    className="library-game-card-large__action-icon--downloading"
-                  />
-                  {t("downloading")}
-                </>
-              ) : isGameRunning ? (
-                <>
-                  <XIcon size={16} />
-                  {t("close")}
-                </>
-              ) : game.executablePath ? (
-                <>
-                  <PlayIcon size={16} />
-                  {t("play")}
-                </>
-              ) : (
-                <>
-                  <DownloadIcon size={16} />
-                  {t("download")}
-                </>
-              )}
+              {(() => {
+                if (isGameDownloading) {
+                  return (
+                    <>
+                      <DownloadIcon
+                        size={16}
+                        className="library-game-card-large__action-icon--downloading"
+                      />
+                      {t("downloading")}
+                    </>
+                  );
+                }
+
+                if (isGameRunning) {
+                  return (
+                    <>
+                      <XIcon size={16} />
+                      {t("close")}
+                    </>
+                  );
+                }
+
+                if (game.executablePath) {
+                  return (
+                    <>
+                      <PlayIcon size={16} />
+                      {t("play")}
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <DownloadIcon size={16} />
+                    {t("download")}
+                  </>
+                );
+              })()}
             </button>
           </div>
         </div>

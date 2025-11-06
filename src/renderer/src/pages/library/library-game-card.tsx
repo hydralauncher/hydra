@@ -25,7 +25,7 @@ export function LibraryGameCard({
   game,
   onMouseEnter,
   onMouseLeave,
-}: LibraryGameCardProps) {
+}: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
