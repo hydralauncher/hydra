@@ -24,7 +24,7 @@
     background-color: globals.$background-color;
     display: inline-flex;
     transition: all ease 0.2s;
-    width: 200px;
+    width: 300px;
     align-items: center;
     border-radius: 8px;
     border: solid 1px globals.$border-color;
@@ -35,7 +35,7 @@
     }
 
     &--focused {
-      width: 250px;
+      width: 350px;
       border-color: #dadbe1;
     }
   }
