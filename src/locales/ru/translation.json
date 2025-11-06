@@ -227,6 +227,7 @@
     "write_review_placeholder": "Поделитесь своими мыслями об этой игре...",
     "sort_newest": "Сначала новые",
     "no_reviews_yet": "Пока нет отзывов",
+    "review_played_for": "Играли",
     "be_first_to_review": "Станьте первым, кто поделится своими мыслями об этой игре!",
     "sort_oldest": "Сначала старые",
     "sort_highest_score": "Высший балл",
@@ -692,7 +693,11 @@
     "game_added_to_pinned": "Игра добавлена в закрепленные",
     "karma": "Карма",
     "karma_count": "карма",
-    "karma_description": "Заработана положительными оценками отзывов"
+    "karma_description": "Заработана положительными оценками отзывов",
+    "user_reviews": "Отзывы",
+    "loading_reviews": "Загрузка отзывов...",
+    "no_reviews": "Пока нет отзывов",
+    "delete_review": "Удалить отзыв"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
