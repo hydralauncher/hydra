@@ -91,6 +91,7 @@ export function LibraryGameCardLarge({
     try {
       await handlePlayGame();
     } catch (err) {
+      console.error(err);
       try {
         handleOpenDownloadOptions();
       } catch (e) {
