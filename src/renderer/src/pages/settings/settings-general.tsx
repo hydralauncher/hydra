@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import {
   TextField,
   Button,
@@ -51,7 +58,7 @@ export function SettingsGeneral() {
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
-  
+
   const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -116,7 +123,9 @@ export function SettingsGeneral() {
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:
           userPreferences.achievementCustomNotificationPosition ?? "top-left",
-        achievementSoundVolume: Math.round((userPreferences.achievementSoundVolume ?? 0.15) * 100),
+        achievementSoundVolume: Math.round(
+          (userPreferences.achievementSoundVolume ?? 0.15) * 100
+        ),
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
         friendStartGameNotificationsEnabled:
@@ -155,17 +164,20 @@ export function SettingsGeneral() {
     await updateUserPreferences(values);
   };
 
-  const handleVolumeChange = useCallback((newVolume: number) => {
-    setForm((prev) => ({ ...prev, achievementSoundVolume: newVolume }));
-    
-    if (volumeUpdateTimeoutRef.current) {
-      clearTimeout(volumeUpdateTimeoutRef.current);
-    }
-    
-    volumeUpdateTimeoutRef.current = setTimeout(() => {
-      updateUserPreferences({ achievementSoundVolume: newVolume / 100 });
-    }, 300);
-  }, [updateUserPreferences]);
+  const handleVolumeChange = useCallback(
+    (newVolume: number) => {
+      setForm((prev) => ({ ...prev, achievementSoundVolume: newVolume }));
+
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+
+      volumeUpdateTimeoutRef.current = setTimeout(() => {
+        updateUserPreferences({ achievementSoundVolume: newVolume / 100 });
+      }, 300);
+    },
+    [updateUserPreferences]
+  );
 
   const handleChangeAchievementCustomNotificationPosition = async (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -347,13 +359,19 @@ export function SettingsGeneral() {
                     handleVolumeChange(0);
                     return;
                   }
-                  const volumePercent = Math.min(100, Math.max(0, parseInt(value, 10)));
+                  const volumePercent = Math.min(
+                    100,
+                    Math.max(0, parseInt(value, 10))
+                  );
                   if (!isNaN(volumePercent)) {
                     handleVolumeChange(volumePercent);
                   }
                 }}
                 onBlur={(e) => {
-                  if (e.target.value === "" || isNaN(parseInt(e.target.value, 10))) {
+                  if (
+                    e.target.value === "" ||
+                    isNaN(parseInt(e.target.value, 10))
+                  ) {
                     handleVolumeChange(0);
                   }
                 }}
@@ -365,11 +383,19 @@ export function SettingsGeneral() {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  const newVolume = Math.min(100, form.achievementSoundVolume + 1);
+                  const newVolume = Math.min(
+                    100,
+                    form.achievementSoundVolume + 1
+                  );
                   handleVolumeChange(newVolume);
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="currentColor"
+                >
                   <path d="M6 4l4 4H2l4-4z" />
                 </svg>
               </button>
@@ -377,11 +403,19 @@ export function SettingsGeneral() {
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  const newVolume = Math.max(0, form.achievementSoundVolume - 1);
+                  const newVolume = Math.max(
+                    0,
+                    form.achievementSoundVolume - 1
+                  );
                   handleVolumeChange(newVolume);
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="currentColor"
+                >
                   <path d="M6 8L2 4h8L6 8z" />
                 </svg>
               </button>

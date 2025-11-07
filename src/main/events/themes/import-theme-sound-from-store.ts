@@ -22,7 +22,7 @@ const importThemeSoundFromStore = async (
   for (const format of formats) {
     try {
       const soundUrl = `${storeUrl}/themes/${themeName.toLowerCase()}/achievement.${format}`;
-      
+
       const response = await axios.get(soundUrl, {
         responseType: "arraybuffer",
         timeout: 10000,
@@ -54,4 +54,3 @@ const importThemeSoundFromStore = async (
 };
 
 registerEvent("importThemeSoundFromStore", importThemeSoundFromStore);
-

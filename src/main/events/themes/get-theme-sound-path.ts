@@ -9,4 +9,3 @@ const getThemeSoundPathEvent = async (
 };
 
 registerEvent("getThemeSoundPath", getThemeSoundPathEvent);
-

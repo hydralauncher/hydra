@@ -123,11 +123,12 @@ export const generateUUID = (): string => {
 };
 
 export const getAchievementSoundUrl = async (): Promise<string> => {
-  const defaultSound = (await import("@renderer/assets/audio/achievement.wav")).default;
-  
+  const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
+    .default;
+
   try {
     const activeTheme = await window.electron.getActiveCustomTheme();
-    
+
     if (activeTheme?.hasCustomSound) {
       const soundPath = await window.electron.getThemeSoundPath(activeTheme.id);
       if (soundPath) {
@@ -137,7 +138,7 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
   } catch (error) {
     console.error("Failed to get theme sound", error);
   }
-  
+
   return defaultSound;
 };
 

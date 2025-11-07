@@ -4,10 +4,19 @@ import Editor from "@monaco-editor/react";
 import { AchievementCustomNotificationPosition, Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
 import { Button, SelectField } from "@renderer/components";
-import { CheckIcon, UploadIcon, TrashIcon, PlayIcon } from "@primer/octicons-react";
+import {
+  CheckIcon,
+  UploadIcon,
+  TrashIcon,
+  PlayIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { injectCustomCss, getAchievementSoundUrl, getAchievementSoundVolume } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
