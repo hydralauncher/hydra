@@ -577,6 +577,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeThemeAchievementSound", themeId),
   getThemeSoundPath: (themeId: string) =>
     ipcRenderer.invoke("getThemeSoundPath", themeId),
+  getThemeSoundDataUrl: (themeId: string) =>
+    ipcRenderer.invoke("getThemeSoundDataUrl", themeId),
   importThemeSoundFromStore: (
     themeId: string,
     themeName: string,

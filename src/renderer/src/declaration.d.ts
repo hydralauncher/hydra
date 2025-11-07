@@ -416,6 +416,7 @@ declare global {
     ) => Promise<void>;
     removeThemeAchievementSound: (themeId: string) => Promise<void>;
     getThemeSoundPath: (themeId: string) => Promise<string | null>;
+    getThemeSoundDataUrl: (themeId: string) => Promise<string | null>;
     importThemeSoundFromStore: (
       themeId: string,
       themeName: string,
