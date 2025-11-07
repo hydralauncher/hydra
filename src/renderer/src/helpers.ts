@@ -130,9 +130,11 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
     const activeTheme = await window.electron.getActiveCustomTheme();
 
     if (activeTheme?.hasCustomSound) {
-      const soundPath = await window.electron.getThemeSoundPath(activeTheme.id);
-      if (soundPath) {
-        return `file://${soundPath}`;
+      const soundDataUrl = await window.electron.getThemeSoundDataUrl(
+        activeTheme.id
+      );
+      if (soundDataUrl) {
+        return soundDataUrl;
       }
     }
   } catch (error) {

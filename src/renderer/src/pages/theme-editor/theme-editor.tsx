@@ -213,57 +213,59 @@ export default function ThemeEditor() {
       <div className="theme-editor__footer">
         <CollapsedMenu title={t("notification_preview")}>
           <div className="theme-editor__notification-preview">
-            <div className="theme-editor__notification-controls">
-              <SelectField
-                className="theme-editor__notification-preview__select-variation"
-                label={t("variation")}
-                options={Object.values(notificationVariations).map(
-                  (variation) => {
-                    return {
-                      key: variation,
-                      value: variation,
-                      label: t(variation),
-                    };
+            <div className="theme-editor__notification-preview-controls">
+              <div className="theme-editor__notification-controls">
+                <SelectField
+                  className="theme-editor__notification-preview__select-variation"
+                  label={t("variation")}
+                  options={Object.values(notificationVariations).map(
+                    (variation) => {
+                      return {
+                        key: variation,
+                        value: variation,
+                        label: t(variation),
+                      };
+                    }
+                  )}
+                  onChange={(value) =>
+                    setNotificationVariation(
+                      value.target.value as keyof typeof notificationVariations
+                    )
                   }
-                )}
-                onChange={(value) =>
-                  setNotificationVariation(
-                    value.target.value as keyof typeof notificationVariations
-                  )
-                }
-              />
+                />
 
-              <SelectField
-                label={t("alignment")}
-                value={notificationAlignment}
-                onChange={(e) =>
-                  setNotificationAlignment(
-                    e.target.value as AchievementCustomNotificationPosition
-                  )
-                }
-                options={achievementCustomNotificationPositionOptions}
-              />
-            </div>
+                <SelectField
+                  label={t("alignment")}
+                  value={notificationAlignment}
+                  onChange={(e) =>
+                    setNotificationAlignment(
+                      e.target.value as AchievementCustomNotificationPosition
+                    )
+                  }
+                  options={achievementCustomNotificationPositionOptions}
+                />
+              </div>
 
-            <div className="theme-editor__sound-controls">
-              <Button theme="outline" onClick={handleSelectSound}>
-                <UploadIcon />
-                {theme?.hasCustomSound
-                  ? t("change_achievement_sound")
-                  : t("select_achievement_sound")}
-              </Button>
-
-              {theme?.hasCustomSound && (
-                <Button theme="outline" onClick={handleRemoveSound}>
-                  <TrashIcon />
-                  {t("remove_achievement_sound")}
+              <div className="theme-editor__sound-controls">
+                <Button theme="outline" onClick={handleSelectSound}>
+                  <UploadIcon />
+                  {theme?.hasCustomSound
+                    ? t("change_achievement_sound")
+                    : t("select_achievement_sound")}
                 </Button>
-              )}
 
-              <Button theme="outline" onClick={handlePreviewSound}>
-                <PlayIcon />
-                {t("preview_sound")}
-              </Button>
+                {theme?.hasCustomSound && (
+                  <Button theme="outline" onClick={handleRemoveSound}>
+                    <TrashIcon />
+                    {t("remove_achievement_sound")}
+                  </Button>
+                )}
+
+                <Button theme="outline" onClick={handlePreviewSound}>
+                  <PlayIcon />
+                  {t("preview_sound")}
+                </Button>
+              </div>
             </div>
 
             <div className="theme-editor__notification-preview-wrapper">

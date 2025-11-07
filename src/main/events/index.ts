@@ -95,6 +95,7 @@ import "./themes/toggle-custom-theme";
 import "./themes/copy-theme-achievement-sound";
 import "./themes/remove-theme-achievement-sound";
 import "./themes/get-theme-sound-path";
+import "./themes/get-theme-sound-data-url";
 import "./themes/import-theme-sound-from-store";
 import "./download-sources/remove-download-source";
 import "./download-sources/get-download-sources";
