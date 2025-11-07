@@ -130,22 +130,6 @@
     }
   }
 
-  // Randomizer button styles
-  &__randomizer-button {
-    position: fixed;
-    bottom: calc(globals.$spacing-unit * 5);
-    right: calc(globals.$spacing-unit * 5);
-    z-index: 100;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
-    overflow: visible;
-  }
-
-  &__stars-icon-container {
-    width: 70px;
-    height: 70px;
-    position: relative;
-  }
-
   // Skeleton-specific styles
   &__skeleton {
     .react-loading-skeleton {
