@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   TextField,
   Button,
@@ -43,6 +43,7 @@ export function SettingsGeneral() {
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
       "top-left" as AchievementCustomNotificationPosition,
+    achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
   });
@@ -50,6 +51,8 @@ export function SettingsGeneral() {
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
+  
+  const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
@@ -81,6 +84,9 @@ export function SettingsGeneral() {
 
     return () => {
       clearInterval(interval);
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -110,6 +116,7 @@ export function SettingsGeneral() {
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:
           userPreferences.achievementCustomNotificationPosition ?? "top-left",
+        achievementSoundVolume: Math.round((userPreferences.achievementSoundVolume ?? 0.15) * 100),
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
         friendStartGameNotificationsEnabled:
@@ -147,6 +154,18 @@ export function SettingsGeneral() {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
   };
+
+  const handleVolumeChange = useCallback((newVolume: number) => {
+    setForm((prev) => ({ ...prev, achievementSoundVolume: newVolume }));
+    
+    if (volumeUpdateTimeoutRef.current) {
+      clearTimeout(volumeUpdateTimeoutRef.current);
+    }
+    
+    volumeUpdateTimeoutRef.current = setTimeout(() => {
+      updateUserPreferences({ achievementSoundVolume: newVolume / 100 });
+    }, 300);
+  }, [updateUserPreferences]);
 
   const handleChangeAchievementCustomNotificationPosition = async (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -308,6 +327,68 @@ export function SettingsGeneral() {
             </Button>
           </>
         )}
+
+      {form.achievementNotificationsEnabled && (
+        <div className="settings-general__volume-control">
+          <label htmlFor="achievement-volume">
+            {t("achievement_sound_volume")}
+          </label>
+          <div className="settings-general__volume-input-wrapper">
+            <div className="settings-general__volume-input-container">
+              <input
+                id="achievement-volume"
+                type="number"
+                min="0"
+                max="100"
+                value={form.achievementSoundVolume}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") {
+                    handleVolumeChange(0);
+                    return;
+                  }
+                  const volumePercent = Math.min(100, Math.max(0, parseInt(value, 10)));
+                  if (!isNaN(volumePercent)) {
+                    handleVolumeChange(volumePercent);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === "" || isNaN(parseInt(e.target.value, 10))) {
+                    handleVolumeChange(0);
+                  }
+                }}
+              />
+              <span className="settings-general__volume-input-unit">%</span>
+            </div>
+            <div className="settings-general__volume-input-buttons">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const newVolume = Math.min(100, form.achievementSoundVolume + 1);
+                  handleVolumeChange(newVolume);
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M6 4l4 4H2l4-4z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const newVolume = Math.max(0, form.achievementSoundVolume - 1);
+                  handleVolumeChange(newVolume);
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M6 8L2 4h8L6 8z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 

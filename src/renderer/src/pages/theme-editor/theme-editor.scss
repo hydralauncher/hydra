@@ -93,12 +93,25 @@
   &__notification-preview {
     padding-top: 12px;
     display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
     gap: 16px;
 
     &__select-variation {
       flex: inherit;
     }
+  }
+
+  &__notification-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__sound-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 }

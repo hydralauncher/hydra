@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { useTranslation } from "react-i18next";
 import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import { injectCustomCss, removeCustomCss, getAchievementSoundUrl, getAchievementSoundVolume } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
@@ -33,9 +32,11 @@ export function AchievementNotification() {
 
   const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
-  const playAudio = useCallback(() => {
-    const audio = new Audio(achievementSound);
-    audio.volume = 0.1;
+  const playAudio = useCallback(async () => {
+    const soundUrl = await getAchievementSoundUrl();
+    const volume = await getAchievementSoundVolume();
+    const audio = new Audio(soundUrl);
+    audio.volume = volume;
     audio.play();
   }, []);
 

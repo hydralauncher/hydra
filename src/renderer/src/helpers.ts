@@ -121,3 +121,32 @@ export const formatNumber = (num: number): string => {
 export const generateUUID = (): string => {
   return uuidv4();
 };
+
+export const getAchievementSoundUrl = async (): Promise<string> => {
+  const defaultSound = (await import("@renderer/assets/audio/achievement.wav")).default;
+  
+  try {
+    const activeTheme = await window.electron.getActiveCustomTheme();
+    
+    if (activeTheme?.hasCustomSound) {
+      const soundPath = await window.electron.getThemeSoundPath(activeTheme.id);
+      if (soundPath) {
+        return `file://${soundPath}`;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get theme sound", error);
+  }
+  
+  return defaultSound;
+};
+
+export const getAchievementSoundVolume = async (): Promise<number> => {
+  try {
+    const prefs = await window.electron.getUserPreferences();
+    return prefs?.achievementSoundVolume ?? 0.15;
+  } catch (error) {
+    console.error("Failed to get sound volume", error);
+    return 0.15;
+  }
+};

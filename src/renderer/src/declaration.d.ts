@@ -410,6 +410,17 @@ declare global {
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
+    copyThemeAchievementSound: (
+      themeId: string,
+      sourcePath: string
+    ) => Promise<void>;
+    removeThemeAchievementSound: (themeId: string) => Promise<void>;
+    getThemeSoundPath: (themeId: string) => Promise<string | null>;
+    importThemeSoundFromStore: (
+      themeId: string,
+      themeName: string,
+      storeUrl: string
+    ) => Promise<void>;
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
