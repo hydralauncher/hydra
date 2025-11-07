@@ -5,7 +5,7 @@ import fs from "node:fs";
 import axios from "axios";
 import path from "node:path";
 import sound from "sound-play";
-import { achievementSoundPath, DEFAULT_ACHIEVEMENT_SOUND_VOLUME } from "@main/constants";
+import { achievementSoundPath } from "@main/constants";
 import icon from "@resources/icon.png?asset";
 import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
@@ -57,22 +57,6 @@ async function getAchievementSoundPath(): Promise<string> {
   }
 
   return achievementSoundPath;
-}
-
-async function getAchievementSoundVolume(): Promise<number> {
-  try {
-    const userPreferences = await db.get<string, UserPreferences>(
-      levelKeys.userPreferences,
-      {
-        valueEncoding: "json",
-      }
-    );
-
-    return userPreferences?.achievementSoundVolume ?? DEFAULT_ACHIEVEMENT_SOUND_VOLUME;
-  } catch (error) {
-    logger.error("Failed to get achievement sound volume", error);
-    return DEFAULT_ACHIEVEMENT_SOUND_VOLUME;
-  }
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {

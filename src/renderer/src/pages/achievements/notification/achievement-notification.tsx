@@ -4,7 +4,12 @@ import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
 } from "@types";
-import { injectCustomCss, removeCustomCss, getAchievementSoundUrl, getAchievementSoundVolume } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";

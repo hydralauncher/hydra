@@ -36,4 +36,3 @@ const removeThemeAchievementSound = async (
 };
 
 registerEvent("removeThemeAchievementSound", removeThemeAchievementSound);
-

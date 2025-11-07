@@ -24,7 +24,12 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import { injectCustomCss, removeCustomCss, getAchievementSoundUrl, getAchievementSoundVolume } from "./helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "./helpers";
 import "./app.scss";
 
 export interface AppProps {

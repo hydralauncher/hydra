@@ -37,4 +37,3 @@ const copyThemeAchievementSound = async (
 };
 
 registerEvent("copyThemeAchievementSound", copyThemeAchievementSound);
-
