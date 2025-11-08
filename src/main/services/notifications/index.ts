@@ -46,7 +46,7 @@ async function getAchievementSoundPath(): Promise<string> {
     const allThemes = await themesSublevel.values().all();
     const activeTheme = allThemes.find((theme) => theme.isActive);
 
-    if (activeTheme) {
+    if (activeTheme?.hasCustomSound) {
       const themeSoundPath = getThemeSoundPath(activeTheme.id);
       if (themeSoundPath) {
         return themeSoundPath;
