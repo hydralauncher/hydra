@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
 import { GameContextMenu } from "@renderer/components";
-import VirtualList from "rc-virtual-list";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
@@ -21,14 +20,12 @@ export default function Library() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
-  const [containerHeight, setContainerHeight] = useState(800);
   const [contextMenu, setContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
     position: { x: number; y: number };
   }>({ game: null, visible: false, position: { x: 0, y: 0 } });
-
-  const containerRef = useRef<HTMLElement>(null);
+  
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
@@ -56,19 +53,6 @@ export default function Library() {
       unsubscribe();
     };
   }, [dispatch, t, updateLibrary]);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setContainerHeight(window.innerHeight - rect.top);
-      }
-    };
-
-    updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
-  }, []);
 
   const handleOnMouseEnterGameCard = useCallback(() => {
     // Optional: pause animations if needed
@@ -158,17 +142,8 @@ export default function Library() {
 
   const hasGames = library.length > 0;
 
-  let itemHeight: number;
-  if (viewMode === "large") {
-    itemHeight = 200;
-  } else if (viewMode === "grid") {
-    itemHeight = 240;
-  } else {
-    itemHeight = 180;
-  }
-
   return (
-    <section className="library__content" ref={containerRef}>
+    <section className="library__content">
       {hasGames && (
         <div className="library__page-header">
           <div className="library__controls-row">
@@ -200,37 +175,17 @@ export default function Library() {
         </div>
       )}
 
-      {hasGames && sortedLibrary.length > 50 && viewMode === "large" && (
+      {hasGames && viewMode === "large" && (
         <div className="library__games-list library__games-list--large">
-          <VirtualList
-            data={sortedLibrary}
-            height={containerHeight}
-            itemHeight={itemHeight}
-            itemKey={(game) => `${game.shop}-${game.objectId}`}
-          >
-            {(game) => (
-              <LibraryGameCardLarge
-                game={game}
-                onContextMenu={handleOpenContextMenu}
-              />
-            )}
-          </VirtualList>
+          {sortedLibrary.map((game) => (
+            <LibraryGameCardLarge
+              key={`${game.shop}-${game.objectId}`}
+              game={game}
+              onContextMenu={handleOpenContextMenu}
+            />
+          ))}
         </div>
       )}
-
-      {hasGames &&
-        (sortedLibrary.length <= 50 || viewMode !== "large") &&
-        viewMode === "large" && (
-          <div className="library__games-list library__games-list--large">
-            {sortedLibrary.map((game) => (
-              <LibraryGameCardLarge
-                key={`${game.shop}-${game.objectId}`}
-                game={game}
-                onContextMenu={handleOpenContextMenu}
-              />
-            ))}
-          </div>
-        )}
 
       {hasGames && viewMode !== "large" && (
         <ul className={`library__games-grid library__games-grid--${viewMode}`}>
