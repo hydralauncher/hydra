@@ -1,7 +1,5 @@
 import { LibraryGame } from "@types";
-import { useDownload, useFormat } from "@renderer/hooks";
-import { useNavigate } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { useDownload, useGameCard } from "@renderer/hooks";
 import {
   PlayIcon,
   DownloadIcon,
@@ -12,9 +10,8 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { useCallback, memo, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useGameActions } from "@renderer/components/game-context-menu/use-game-actions";
-import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { logger } from "@renderer/logger";
 import "./library-game-card-large.scss";
 
@@ -39,37 +36,16 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   onContextMenu,
 }: Readonly<LibraryGameCardLargeProps>) {
   const { t } = useTranslation("library");
-  const { numberFormatter } = useFormat();
-  const navigate = useNavigate();
   const { lastPacket } = useDownload();
+  const {
+    formatPlayTime,
+    handleCardClick,
+    handleContextMenuClick,
+    handleMenuButtonClick,
+  } = useGameCard(game, onContextMenu);
 
   const isGameDownloading =
     game?.download?.status === "active" && lastPacket?.gameId === game?.id;
-
-  const formatPlayTime = useCallback(
-    (playTimeInMilliseconds = 0, isShort = false) => {
-      const minutes = playTimeInMilliseconds / 60000;
-
-      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-        return t(isShort ? "amount_minutes_short" : "amount_minutes", {
-          amount: minutes.toFixed(0),
-        });
-      }
-
-      const hours = minutes / 60;
-      const hoursKey = isShort ? "amount_hours_short" : "amount_hours";
-      const hoursAmount = isShort
-        ? Math.floor(hours)
-        : numberFormatter.format(hours);
-
-      return t(hoursKey, { amount: hoursAmount });
-    },
-    [numberFormatter, t]
-  );
-
-  const handleCardClick = () => {
-    navigate(buildGameDetailsPath(game));
-  };
 
   const {
     handlePlayGame,
@@ -100,24 +76,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       }
     }
   };
-
-  const handleContextMenuClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onContextMenu(game, { x: e.clientX, y: e.clientY });
-    },
-    [game, onContextMenu]
-  );
-
-  const handleMenuButtonClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const rect = e.currentTarget.getBoundingClientRect();
-      onContextMenu(game, { x: rect.right, y: rect.bottom });
-    },
-    [game, onContextMenu]
-  );
 
   const backgroundImage = useMemo(
     () =>
