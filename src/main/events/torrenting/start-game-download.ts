@@ -10,7 +10,42 @@ import {
   levelKeys,
 } from "@main/level";
 import { AxiosError } from "axios";
-import * as nodePath from "path";
+import * as nodePath from "node:path";
+
+function isForbiddenHydraPath(candidate?: string): boolean {
+  try {
+    if (process.platform !== "win32" || !candidate) return false;
+
+    const resolved = nodePath.resolve(candidate).toLowerCase();
+    const hydraExePath = process.execPath.toLowerCase();
+    const hydraDir = nodePath.dirname(hydraExePath).toLowerCase();
+
+    const isSame = resolved === hydraDir;
+    const isChild = resolved.startsWith(hydraDir + nodePath.sep);
+    return isSame || isChild;
+  } catch (e) {
+    logger.error("Error validating download path", e);
+    return true;
+  }
+}
+
+function mapAxiosDownloadError(err: unknown, downloader: Downloader) {
+  if (!(err instanceof AxiosError)) return null;
+
+  if (err.response?.status === 429 && downloader === Downloader.Gofile) {
+    return { ok: false, error: DownloadError.GofileQuotaExceeded };
+  }
+
+  if (err.response?.status === 403 && downloader === Downloader.RealDebrid) {
+    return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
+  }
+
+  if (downloader === Downloader.TorBox) {
+    return { ok: false, error: err.response?.data?.detail };
+  }
+
+  return null;
+}
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -85,21 +120,8 @@ const startGameDownload = async (
     automaticallyExtract,
   };
 
-  try {
-    if (process.platform === "win32" && download.downloadPath) {
-      const resolved = nodePath.resolve(download.downloadPath).toLowerCase();
-      const hydraExePath = process.execPath.toLowerCase();
-      const hydraDir = nodePath.dirname(hydraExePath);
-
-      if (
-        resolved === hydraDir ||
-        resolved.startsWith(hydraDir + nodePath.sep)
-      ) {
-        return { ok: false, error: "downloads_path_invalid" };
-      }
-    }
-  } catch (e) {
-    logger.error("Error validating download path", e);
+  // Validate against the running Hydra executable directory.
+  if (isForbiddenHydraPath(download.downloadPath)) {
     return { ok: false, error: "downloads_path_invalid" };
   }
 
@@ -121,29 +143,10 @@ const startGameDownload = async (
   } catch (err: unknown) {
     logger.error("Failed to start download", err);
 
-    if (err instanceof AxiosError) {
-      if (err.response?.status === 429 && downloader === Downloader.Gofile) {
-        return { ok: false, error: DownloadError.GofileQuotaExceeded };
-      }
+    const mapped = mapAxiosDownloadError(err, downloader);
+    if (mapped) return mapped;
 
-      if (
-        err.response?.status === 403 &&
-        downloader === Downloader.RealDebrid
-      ) {
-        return {
-          ok: false,
-          error: DownloadError.RealDebridAccountNotAuthorized,
-        };
-      }
-
-      if (downloader === Downloader.TorBox) {
-        return { ok: false, error: err.response?.data?.detail };
-      }
-    }
-
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
+    if (err instanceof Error) return { ok: false, error: err.message };
 
     return { ok: false };
   }

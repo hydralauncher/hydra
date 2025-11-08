@@ -267,6 +267,7 @@ declare global {
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
+    getHydraExePath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions

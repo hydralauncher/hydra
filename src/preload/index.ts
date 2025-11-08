@@ -333,6 +333,7 @@ contextBridge.exposeInMainWorld("electron", {
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
+  getHydraExePath: () => Promise.resolve(process.execPath),
   isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
