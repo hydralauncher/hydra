@@ -6,7 +6,8 @@ export class FuckingFastApi {
     "fuckingfast.net",
   ];
 
-  private static readonly FUCKINGFAST_REGEX = /window\.open\("(https:\/\/fuckingfast\.(?:co|net)\/dl\/[^"]*)"\)/;
+  private static readonly FUCKINGFAST_REGEX =
+    /window\.open\("(https:\/\/fuckingfast\.(?:co|net)\/dl\/[^"]*)"\)/;
 
   /**
    * Checks if URL is from FuckingFast domain
@@ -135,4 +136,3 @@ export class FuckingFastApi {
     return "downloaded_file";
   }
 }
-
