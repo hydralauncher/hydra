@@ -233,10 +233,10 @@ $hero-height: 350px;
   &__randomizer-button {
     position: fixed;
     bottom: calc(globals.$spacing-unit * 5);
-    right: calc(globals.$spacing-unit * 5);
+    right: calc(globals.$spacing-unit * 2);
     z-index: 100;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
     border-radius: 8px;
     transition: all ease 0.2s;
@@ -248,13 +248,11 @@ $hero-height: 350px;
     gap: globals.$spacing-unit;
     color: globals.$muted-color;
     border: solid 1px globals.$border-color;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    box-shadow:
+      0px 0px 10px 0px rgba(0, 0, 0, 0.8),
+      0px 2px 8px 0px rgba(255, 255, 255, 0.1);
     animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
     overflow: visible;
-
-    &:active {
-      opacity: 0.9;
-    }
 
     &:disabled {
       opacity: globals.$disabled-opacity;
@@ -262,7 +260,7 @@ $hero-height: 350px;
     }
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: rgba(255, 255, 255, 0.12);
       color: globals.$body-color;
     }
   }
