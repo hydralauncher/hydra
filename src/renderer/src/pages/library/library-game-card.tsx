@@ -1,16 +1,12 @@
 import { LibraryGame } from "@types";
-import { useFormat } from "@renderer/hooks";
-import { useNavigate } from "react-router-dom";
-import { useCallback, memo } from "react";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { useGameCard } from "@renderer/hooks";
+import { memo } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
   ThreeBarsIcon,
   TrophyIcon,
 } from "@primer/octicons-react";
-import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { useTranslation } from "react-i18next";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -31,52 +27,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   onMouseLeave,
   onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
-  const { t } = useTranslation("library");
-  const { numberFormatter } = useFormat();
-  const navigate = useNavigate();
-
-  const formatPlayTime = useCallback(
-    (playTimeInMilliseconds = 0, isShort = false) => {
-      const minutes = playTimeInMilliseconds / 60000;
-
-      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-        return t(isShort ? "amount_minutes_short" : "amount_minutes", {
-          amount: minutes.toFixed(0),
-        });
-      }
-
-      const hours = minutes / 60;
-      const hoursKey = isShort ? "amount_hours_short" : "amount_hours";
-      const hoursAmount = isShort
-        ? Math.floor(hours)
-        : numberFormatter.format(hours);
-
-      return t(hoursKey, { amount: hoursAmount });
-    },
-    [numberFormatter, t]
-  );
-
-  const handleCardClick = () => {
-    navigate(buildGameDetailsPath(game));
-  };
-
-  const handleContextMenuClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onContextMenu(game, { x: e.clientX, y: e.clientY });
-    },
-    [game, onContextMenu]
-  );
-
-  const handleMenuButtonClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const rect = e.currentTarget.getBoundingClientRect();
-      onContextMenu(game, { x: rect.right, y: rect.bottom });
-    },
-    [game, onContextMenu]
-  );
+  const {
+    formatPlayTime,
+    handleCardClick,
+    handleContextMenuClick,
+    handleMenuButtonClick,
+  } = useGameCard(game, onContextMenu);
 
   const coverImage =
     game.coverImageUrl ??
