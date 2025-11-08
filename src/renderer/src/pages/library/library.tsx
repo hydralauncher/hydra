@@ -158,8 +158,14 @@ export default function Library() {
 
   const hasGames = library.length > 0;
 
-  const itemHeight =
-    viewMode === "large" ? 200 : viewMode === "grid" ? 240 : 180;
+  let itemHeight: number;
+  if (viewMode === "large") {
+    itemHeight = 200;
+  } else if (viewMode === "grid") {
+    itemHeight = 240;
+  } else {
+    itemHeight = 180;
+  }
 
   return (
     <section className="library__content" ref={containerRef}>
