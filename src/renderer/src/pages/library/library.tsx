@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { LibraryGame } from "@types";
+import { GameContextMenu } from "@renderer/components";
+import VirtualList from "rc-virtual-list";
 import { LibraryGameCard } from "./library-game-card";
-// detailed view removed — keep file if needed later
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, FilterOption } from "./filter-options";
@@ -19,6 +21,14 @@ export default function Library() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  const [containerHeight, setContainerHeight] = useState(800);
+  const [contextMenu, setContextMenu] = useState<{
+    game: LibraryGame | null;
+    visible: boolean;
+    position: { x: number; y: number };
+  }>({ game: null, visible: false, position: { x: 0, y: 0 } });
+
+  const containerRef = useRef<HTMLElement>(null);
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
@@ -47,13 +57,37 @@ export default function Library() {
     };
   }, [dispatch, t, updateLibrary]);
 
-  const handleOnMouseEnterGameCard = () => {
-    // Optional: pause animations if needed
-  };
+  useEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerHeight(window.innerHeight - rect.top);
+      }
+    };
 
-  const handleOnMouseLeaveGameCard = () => {
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
+
+  const handleOnMouseEnterGameCard = useCallback(() => {
+    // Optional: pause animations if needed
+  }, []);
+
+  const handleOnMouseLeaveGameCard = useCallback(() => {
     // Optional: resume animations if needed
-  };
+  }, []);
+
+  const handleOpenContextMenu = useCallback(
+    (game: LibraryGame, position: { x: number; y: number }) => {
+      setContextMenu({ game, visible: true, position });
+    },
+    []
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu({ game: null, visible: false, position: { x: 0, y: 0 } });
+  }, []);
 
   const filteredLibrary = useMemo(() => {
     let filtered;
@@ -102,21 +136,33 @@ export default function Library() {
     });
   }, [library, filterBy, searchQuery]);
 
-  // No sorting for now — rely on filteredLibrary
   const sortedLibrary = filteredLibrary;
 
-  // Calculate counts for filters
-  const allGamesCount = library.length;
-  const favouritedCount = library.filter((game) => game.favorite).length;
-  const newGamesCount = library.filter(
-    (game) => (game.playTimeInMilliseconds || 0) === 0
-  ).length;
-  const top10Count = Math.min(10, library.length);
+  const filterCounts = useMemo(() => {
+    const allGamesCount = library.length;
+    let favouritedCount = 0;
+    let newGamesCount = 0;
+
+    for (const game of library) {
+      if (game.favorite) favouritedCount++;
+      if ((game.playTimeInMilliseconds || 0) === 0) newGamesCount++;
+    }
+
+    return {
+      allGamesCount,
+      favouritedCount,
+      newGamesCount,
+      top10Count: Math.min(10, allGamesCount),
+    };
+  }, [library]);
 
   const hasGames = library.length > 0;
 
+  const itemHeight =
+    viewMode === "large" ? 200 : viewMode === "grid" ? 240 : 180;
+
   return (
-    <section className="library__content">
+    <section className="library__content" ref={containerRef}>
       {hasGames && (
         <div className="library__page-header">
           <div className="library__controls-row">
@@ -124,10 +170,10 @@ export default function Library() {
               <FilterOptions
                 filterBy={filterBy}
                 onFilterChange={setFilterBy}
-                allGamesCount={allGamesCount}
-                favouritedCount={favouritedCount}
-                newGamesCount={newGamesCount}
-                top10Count={top10Count}
+                allGamesCount={filterCounts.allGamesCount}
+                favouritedCount={filterCounts.favouritedCount}
+                newGamesCount={filterCounts.newGamesCount}
+                top10Count={filterCounts.top10Count}
               />
             </div>
 
@@ -148,16 +194,37 @@ export default function Library() {
         </div>
       )}
 
-      {hasGames && viewMode === "large" && (
+      {hasGames && sortedLibrary.length > 50 && viewMode === "large" && (
         <div className="library__games-list library__games-list--large">
-          {sortedLibrary.map((game) => (
-            <LibraryGameCardLarge
-              key={`${game.shop}-${game.objectId}`}
-              game={game}
-            />
-          ))}
+          <VirtualList
+            data={sortedLibrary}
+            height={containerHeight}
+            itemHeight={itemHeight}
+            itemKey={(game) => `${game.shop}-${game.objectId}`}
+          >
+            {(game) => (
+              <LibraryGameCardLarge
+                game={game}
+                onContextMenu={handleOpenContextMenu}
+              />
+            )}
+          </VirtualList>
         </div>
       )}
+
+      {hasGames &&
+        (sortedLibrary.length <= 50 || viewMode !== "large") &&
+        viewMode === "large" && (
+          <div className="library__games-list library__games-list--large">
+            {sortedLibrary.map((game) => (
+              <LibraryGameCardLarge
+                key={`${game.shop}-${game.objectId}`}
+                game={game}
+                onContextMenu={handleOpenContextMenu}
+              />
+            ))}
+          </div>
+        )}
 
       {hasGames && viewMode !== "large" && (
         <ul className={`library__games-grid library__games-grid--${viewMode}`}>
@@ -170,10 +237,20 @@ export default function Library() {
                 game={game}
                 onMouseEnter={handleOnMouseEnterGameCard}
                 onMouseLeave={handleOnMouseLeaveGameCard}
+                onContextMenu={handleOpenContextMenu}
               />
             </li>
           ))}
         </ul>
+      )}
+
+      {contextMenu.game && (
+        <GameContextMenu
+          game={contextMenu.game}
+          visible={contextMenu.visible}
+          position={contextMenu.position}
+          onClose={handleCloseContextMenu}
+        />
       )}
     </section>
   );

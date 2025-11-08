@@ -1,7 +1,7 @@
 import { LibraryGame } from "@types";
 import { useFormat } from "@renderer/hooks";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useState } from "react";
+import { useCallback, memo } from "react";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import {
   ClockIcon,
@@ -10,30 +10,30 @@ import {
   TrophyIcon,
 } from "@primer/octicons-react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
-import { GameContextMenu } from "@renderer/components";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
   game: LibraryGame;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onContextMenu: (
+    game: LibraryGame,
+    position: { x: number; y: number }
+  ) => void;
+  onShowTooltip?: (gameId: string) => void;
+  onHideTooltip?: () => void;
 }
 
-export function LibraryGameCard({
+export const LibraryGameCard = memo(function LibraryGameCard({
   game,
   onMouseEnter,
   onMouseLeave,
+  onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
-  const [isTooltipHovered, setIsTooltipHovered] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean;
-    position: { x: number; y: number };
-  }>({ visible: false, position: { x: 0, y: 0 } });
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0, isShort = false) => {
@@ -60,30 +60,23 @@ export function LibraryGameCard({
     navigate(buildGameDetailsPath(game));
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenuClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onContextMenu(game, { x: e.clientX, y: e.clientY });
+    },
+    [game, onContextMenu]
+  );
 
-    setContextMenu({
-      visible: true,
-      position: { x: e.clientX, y: e.clientY },
-    });
-  };
-
-  const handleMenuButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setContextMenu({
-      visible: true,
-      position: {
-        x: e.currentTarget.getBoundingClientRect().right,
-        y: e.currentTarget.getBoundingClientRect().bottom,
-      },
-    });
-  };
-
-  const handleCloseContextMenu = () => {
-    setContextMenu({ visible: false, position: { x: 0, y: 0 } });
-  };
+  const handleMenuButtonClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      onContextMenu(game, { x: rect.right, y: rect.bottom });
+    },
+    [game, onContextMenu]
+  );
 
   const coverImage =
     game.coverImageUrl ??
@@ -93,110 +86,85 @@ export function LibraryGameCard({
     undefined;
 
   return (
-    <>
-      <button
-        type="button"
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        className="library-game-card__wrapper"
-        title={isTooltipHovered ? undefined : game.title}
-        onClick={handleCardClick}
-        onContextMenu={handleContextMenu}
-      >
-        <div className="library-game-card__overlay">
-          <div className="library-game-card__top-section">
-            <div
-              className="library-game-card__playtime"
-              data-tooltip-place="top"
-              data-tooltip-content={
-                game.hasManuallyUpdatedPlaytime
-                  ? t("manual_playtime_tooltip")
-                  : undefined
-              }
-              data-tooltip-id={game.objectId}
-            >
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="library-game-card__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="library-game-card__playtime-long">
-                {formatPlayTime(game.playTimeInMilliseconds)}
-              </span>
-              <span className="library-game-card__playtime-short">
-                {formatPlayTime(game.playTimeInMilliseconds, true)}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="library-game-card__menu-button"
-              onClick={handleMenuButtonClick}
-              title="More options"
-            >
-              <ThreeBarsIcon size={16} />
-            </button>
+    <button
+      type="button"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="library-game-card__wrapper"
+      title={game.title}
+      onClick={handleCardClick}
+      onContextMenu={handleContextMenuClick}
+    >
+      <div className="library-game-card__overlay">
+        <div className="library-game-card__top-section">
+          <div className="library-game-card__playtime">
+            {game.hasManuallyUpdatedPlaytime ? (
+              <AlertFillIcon
+                size={11}
+                className="library-game-card__manual-playtime"
+              />
+            ) : (
+              <ClockIcon size={11} />
+            )}
+            <span className="library-game-card__playtime-long">
+              {formatPlayTime(game.playTimeInMilliseconds)}
+            </span>
+            <span className="library-game-card__playtime-short">
+              {formatPlayTime(game.playTimeInMilliseconds, true)}
+            </span>
           </div>
 
-          {/* Achievements section - shown on hover */}
-          {(game.achievementCount ?? 0) > 0 && (
-            <div className="library-game-card__achievements">
-              <div className="library-game-card__achievement-header">
-                <div className="library-game-card__achievements-gap">
-                  <TrophyIcon
-                    size={13}
-                    className="library-game-card__achievement-trophy"
-                  />
-                  <span className="library-game-card__achievement-count">
-                    {game.unlockedAchievementCount ?? 0} /{" "}
-                    {game.achievementCount ?? 0}
-                  </span>
-                </div>
-                <span className="library-game-card__achievement-percentage">
-                  {Math.round(
-                    ((game.unlockedAchievementCount ?? 0) /
-                      (game.achievementCount ?? 1)) *
-                      100
-                  )}
-                  %
-                </span>
-              </div>
-              <div className="library-game-card__achievement-progress">
-                <div
-                  className="library-game-card__achievement-bar"
-                  style={{
-                    width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            className="library-game-card__menu-button"
+            onClick={handleMenuButtonClick}
+            title="More options"
+          >
+            <ThreeBarsIcon size={16} />
+          </button>
         </div>
 
-        <img
-          src={coverImage ?? undefined}
-          alt={game.title}
-          className="library-game-card__game-image"
-        />
-      </button>
-      <Tooltip
-        id={game.objectId}
-        style={{
-          zIndex: 9999,
-        }}
-        openOnClick={false}
-        afterShow={() => setIsTooltipHovered(true)}
-        afterHide={() => setIsTooltipHovered(false)}
+        {/* Achievements section - shown on hover */}
+        {(game.achievementCount ?? 0) > 0 && (
+          <div className="library-game-card__achievements">
+            <div className="library-game-card__achievement-header">
+              <div className="library-game-card__achievements-gap">
+                <TrophyIcon
+                  size={13}
+                  className="library-game-card__achievement-trophy"
+                />
+                <span className="library-game-card__achievement-count">
+                  {game.unlockedAchievementCount ?? 0} /{" "}
+                  {game.achievementCount ?? 0}
+                </span>
+              </div>
+              <span className="library-game-card__achievement-percentage">
+                {Math.round(
+                  ((game.unlockedAchievementCount ?? 0) /
+                    (game.achievementCount ?? 1)) *
+                    100
+                )}
+                %
+              </span>
+            </div>
+            <div className="library-game-card__achievement-progress">
+              <div
+                className="library-game-card__achievement-bar"
+                style={{
+                  width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <img
+        src={coverImage ?? undefined}
+        alt={game.title}
+        className="library-game-card__game-image"
+        loading="lazy"
       />
-      <GameContextMenu
-        game={game}
-        visible={contextMenu.visible}
-        position={contextMenu.position}
-        onClose={handleCloseContextMenu}
-      />
-    </>
+    </button>
   );
-}
+});
