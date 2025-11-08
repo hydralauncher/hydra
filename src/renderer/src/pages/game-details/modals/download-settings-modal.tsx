@@ -12,6 +12,7 @@ import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
+import * as nodePath from "path";
 import "./download-settings-modal.scss";
 
 export interface DownloadSettingsModalProps {
@@ -140,8 +141,22 @@ export function DownloadSettingsModal({
     });
 
     if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-      setSelectedPath(path);
+      const selected = filePaths[0];
+
+      try {
+        const normalized = selected.replace(/\\/g, "\\").toLowerCase();
+        const forbidden = `${nodePath.win32.sep}appdata${nodePath.win32.sep}local${nodePath.win32.sep}programs${nodePath.win32.sep}hydra`;
+
+        if (normalized.includes(forbidden)) {
+          showErrorToast(t("downloads_path_invalid"));
+          return;
+        }
+
+        setSelectedPath(selected);
+      } catch (err) {
+        showErrorToast(t("downloads_path_invalid"));
+        return;
+      }
     }
   };
 

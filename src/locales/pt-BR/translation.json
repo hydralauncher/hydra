@@ -111,6 +111,7 @@
     "installation_complete_message": "Componentes recomendados instalados com sucesso"
   },
   "game_details": {
+    "downloads_path_invalid": "Não é permitido selecionar a pasta de instalação do Hydra.",
     "open_download_options": "Ver opções de download",
     "download_options_zero": "Sem opções de download",
     "download_options_one": "{{count}} opção de download",
@@ -396,6 +397,7 @@
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
+    "downloads_path_invalid": "Não é permitido selecionar a pasta de instalação do Hydra.",
     "change": "Explorar...",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando um download for concluído",
@@ -599,18 +601,11 @@
   "user_profile": {
     "amount_hours": "{{amount}} horas",
     "amount_minutes": "{{amount}} minutos",
-    "amount_hours_short": "{{amount}}h",
-    "amount_minutes_short": "{{amount}}m",
     "last_time_played": "Última sessão {{period}}",
     "activity": "Atividades recentes",
     "library": "Biblioteca",
-    "pinned": "Fixados",
     "sort_by": "Ordenar por:",
-    "achievements_earned": "Conquistas obtidas",
-    "played_recently": "Jogados recentemente",
-    "playtime": "Tempo de jogo",
     "total_play_time": "Tempo total de jogo",
-    "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
     "no_recent_activity_title": "Hmmm… nada por aqui",
     "no_recent_activity_description": "Parece que você não jogou nada recentemente. Que tal começar agora?",
     "display_name": "Nome de exibição",

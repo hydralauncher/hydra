@@ -124,6 +124,7 @@
     "clear_filters": "Clear {{filterCount}} selected"
   },
   "game_details": {
+    "downloads_path_invalid": "Selecting the Hydra installation folder is not allowed.",
     "open_download_options": "Open download options",
     "download_options_zero": "No download option",
     "download_options_one": "{{count}} download option",
@@ -409,6 +410,7 @@
     "extracting": "Extracting files…"
   },
   "settings": {
+    "downloads_path_invalid": "Selecting the Hydra installation folder is not allowed.",
     "downloads_path": "Downloads path",
     "change": "Update",
     "notifications": "Notifications",

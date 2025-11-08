@@ -10,6 +10,7 @@ import {
   levelKeys,
 } from "@main/level";
 import { AxiosError } from "axios";
+import * as nodePath from "path";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -83,6 +84,24 @@ const startGameDownload = async (
     extracting: false,
     automaticallyExtract,
   };
+
+  try {
+    if (process.platform === "win32" && download.downloadPath) {
+      const resolved = nodePath.resolve(download.downloadPath).toLowerCase();
+      const hydraExePath = process.execPath.toLowerCase();
+      const hydraDir = nodePath.dirname(hydraExePath);
+
+      if (
+        resolved === hydraDir ||
+        resolved.startsWith(hydraDir + nodePath.sep)
+      ) {
+        return { ok: false, error: "downloads_path_invalid" };
+      }
+    }
+  } catch (e) {
+    logger.error("Error validating download path", e);
+    return { ok: false, error: "downloads_path_invalid" };
+  }
 
   try {
     await DownloadManager.startDownload(download).then(() => {

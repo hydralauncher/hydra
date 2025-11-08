@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
+import * as nodePath from "path";
 import {
   TextField,
   Button,
@@ -6,7 +7,7 @@ import {
   SelectField,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
@@ -50,6 +51,7 @@ export function SettingsGeneral() {
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
+  const { showErrorToast } = useToast();
 
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
@@ -165,8 +167,27 @@ export function SettingsGeneral() {
     });
 
     if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-      handleChange({ downloadsPath: path });
+      const selectedPath = filePaths[0];
+      try {
+        const normalized = selectedPath.toLowerCase();
+        const hydraExePath = await window.electron.getHydraExePath();
+        const normalizedHydraPath = nodePath
+          .dirname(hydraExePath)
+          .toLowerCase();
+
+        if (
+          normalized === normalizedHydraPath ||
+          normalized.startsWith(normalizedHydraPath + nodePath.sep)
+        ) {
+          showErrorToast(t("downloads_path_invalid"));
+          return;
+        }
+
+        handleChange({ downloadsPath: selectedPath });
+      } catch (err) {
+        showErrorToast(t("downloads_path_invalid"));
+        return;
+      }
     }
   };
 

@@ -46,7 +46,8 @@
     "checking_files": "A verificar ficheiros de {{title}}…"
   },
   "game_details": {
-    "open_download_options": "Ver opções de transferência",
+    "downloads_path_invalid": "Não é permitido selecionar a pasta de instalação do Hydra.",
+    "open_download_options": "Ver opções de transferências",
     "download_options_zero": "Sem opções de transferência",
     "download_options_one": "{{count}} opção de transferência",
     "download_options_other": "{{count}} opções de transferência",
@@ -225,6 +226,7 @@
   },
   "settings": {
     "downloads_path": "Local das transferências",
+    "downloads_path_invalid": "Não é permitido selecionar a pasta de instalação do Hydra.",
     "change": "Procurar...",
     "notifications": "Notificações",
     "enable_download_notifications": "Quando uma transferência for concluída",
