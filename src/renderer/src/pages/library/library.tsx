@@ -25,7 +25,7 @@ export default function Library() {
     visible: boolean;
     position: { x: number; y: number };
   }>({ game: null, visible: false, position: { x: 0, y: 0 } });
-  
+
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
