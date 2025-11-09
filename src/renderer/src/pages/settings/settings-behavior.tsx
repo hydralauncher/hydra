@@ -27,6 +27,8 @@ export function SettingsBehavior() {
     extractFilesByDefault: true,
     enableSteamAchievements: false,
     enableAchievementScreenshots: false,
+    autoplayGameTrailers: true,
+    hideToTrayOnGameStart: false,
   });
 
   const { t } = useTranslation("settings");
@@ -51,6 +53,8 @@ export function SettingsBehavior() {
           userPreferences.enableSteamAchievements ?? false,
         enableAchievementScreenshots:
           userPreferences.enableAchievementScreenshots ?? false,
+        autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
+        hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       });
     }
   }, [userPreferences]);
@@ -74,6 +78,16 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             preferQuitInsteadOfHiding: !form.preferQuitInsteadOfHiding,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("hide_to_tray_on_game_start")}
+        checked={form.hideToTrayOnGameStart}
+        onChange={() =>
+          handleChange({
+            hideToTrayOnGameStart: !form.hideToTrayOnGameStart,
           })
         }
       />
@@ -121,6 +135,14 @@ export function SettingsBehavior() {
           }
         />
       )}
+
+      <CheckboxField
+        label={t("autoplay_trailers_on_game_page")}
+        checked={form.autoplayGameTrailers}
+        onChange={() =>
+          handleChange({ autoplayGameTrailers: !form.autoplayGameTrailers })
+        }
+      />
 
       <CheckboxField
         label={t("disable_nsfw_alert")}

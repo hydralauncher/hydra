@@ -13,6 +13,7 @@ import cn from "classnames";
 const pathTitle: Record<string, string> = {
   "/": "home",
   "/catalogue": "catalogue",
+  "/library": "library",
   "/downloads": "downloads",
   "/settings": "settings",
 };
@@ -41,6 +42,8 @@ export function Header() {
     if (location.pathname.startsWith("/game")) return headerTitle;
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
+    if (location.pathname.startsWith("/library"))
+      return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");
 
     return t(pathTitle[location.pathname]);
@@ -60,7 +63,7 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
-    dispatch(setFilters({ title: value }));
+    dispatch(setFilters({ title: value.slice(0, 255) }));
 
     if (!location.pathname.startsWith("/catalogue")) {
       navigate("/catalogue");

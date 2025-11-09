@@ -117,7 +117,7 @@ export function GameReviews({
   });
 
   const checkUserReview = useCallback(async () => {
-    if (!objectId || !userDetailsId) return;
+    if (!objectId || !userDetailsId || shop === "custom") return;
 
     try {
       const response = await window.electron.hydraApi.get<{
@@ -147,7 +147,7 @@ export function GameReviews({
 
   const loadReviews = useCallback(
     async (reset = false) => {
-      if (!objectId) return;
+      if (!objectId || shop === "custom") return;
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -163,7 +163,6 @@ export function GameReviews({
           take: "20",
           skip: skip.toString(),
           sortBy: reviewsSortBy,
-          language: i18n.language,
         });
 
         const response = await window.electron.hydraApi.get(
