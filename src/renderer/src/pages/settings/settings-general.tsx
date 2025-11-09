@@ -361,16 +361,16 @@ export function SettingsGeneral() {
                   }
                   const volumePercent = Math.min(
                     100,
-                    Math.max(0, parseInt(value, 10))
+                    Math.max(0, Number.parseInt(value, 10))
                   );
-                  if (!isNaN(volumePercent)) {
+                  if (!Number.isNaN(volumePercent)) {
                     handleVolumeChange(volumePercent);
                   }
                 }}
                 onBlur={(e) => {
                   if (
                     e.target.value === "" ||
-                    isNaN(parseInt(e.target.value, 10))
+                    Number.isNaN(Number.parseInt(e.target.value, 10))
                   ) {
                     handleVolumeChange(0);
                   }

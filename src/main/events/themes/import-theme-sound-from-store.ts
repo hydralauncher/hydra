@@ -46,6 +46,10 @@ const importThemeSoundFromStore = async (
       logger.log(`Successfully imported sound for theme ${themeName}`);
       return;
     } catch (error) {
+      logger.error(
+        `Failed to import ${format} sound for theme ${themeName}`,
+        error
+      );
       continue;
     }
   }
