@@ -194,8 +194,8 @@ export interface ProfileAchievement {
   imageUrl: string;
   unlockTime: number;
   gameTitle: string;
-  gameIconUrl: string;
-  achievementIcon: string;
+  gameIconUrl: string | null;
+  achievementIcon: string | null;
 }
 
 export interface UserProfile {

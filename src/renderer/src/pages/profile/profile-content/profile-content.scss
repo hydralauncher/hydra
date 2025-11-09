@@ -442,7 +442,9 @@
     border-color: rgba(244, 67, 54, 0.4);
     color: #ff7961;
   }
+}
 
+.profile-content {
   &__images-section {
     margin-bottom: calc(globals.$spacing-unit * 3);
   }

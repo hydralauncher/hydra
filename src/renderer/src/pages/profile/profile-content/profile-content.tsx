@@ -10,11 +10,7 @@ import {
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import {
-  TelescopeIcon,
-  ChevronRightIcon,
-  SearchIcon,
-} from "@primer/octicons-react";
+import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
@@ -23,23 +19,16 @@ import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { UserKarmaBox } from "./user-karma-box";
-import { UserLibraryGameCard } from "./user-library-game-card";
-import { SortOptions } from "./sort-options";
-import { useSectionCollapse } from "@renderer/hooks/use-section-collapse";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  sectionVariants,
-  chevronVariants,
-  GAME_STATS_ANIMATION_DURATION_IN_MS,
-} from "./profile-animations";
+import { logger } from "@renderer/logger";
+import { AnimatePresence } from "framer-motion";
+import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { FullscreenImageModal } from "@renderer/components/fullscreen-image-modal";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
-import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
-import { AnimatePresence } from "framer-motion";
+import { SouvenirsTab } from "./souvenirs-tab";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -114,7 +103,9 @@ export function ProfileContent() {
   } | null>(null);
   const statsAnimation = useRef(-1);
 
-  const [activeTab, setActiveTab] = useState<"library" | "reviews">("library");
+  const [activeTab, setActiveTab] = useState<
+    "library" | "reviews" | "souvenirs"
+  >("library");
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -226,7 +217,7 @@ export function ProfileContent() {
       setReviews((prev) => prev.filter((review) => review.id !== reviewId));
       setReviewsTotalCount((prev) => prev - 1);
     } catch (error) {
-      console.error("Failed to delete review:", error);
+      logger.error("Failed to delete review:", error);
     }
   };
 
@@ -321,7 +312,7 @@ export function ProfileContent() {
         `/games/${review.game.shop}/${review.game.objectId}/reviews/${reviewId}/${endpoint}`
       );
     } catch (error) {
-      console.error("Failed to vote on review:", error);
+      logger.error("Failed to vote on review:", error);
 
       // Rollback optimistic update on error
       setReviews((prev) =>
@@ -424,222 +415,56 @@ export function ProfileContent() {
 
           {hasAnyGames && (
             <div>
-              {hasPinnedGames && (
-                <div style={{ marginBottom: "2rem" }}>
-                  <div className="profile-content__section-header">
-                    <div className="profile-content__section-title-group">
-                      <button
-                        type="button"
-                        className="profile-content__collapse-button"
-                        onClick={() => toggleSection("pinned")}
-                        aria-label={
-                          isPinnedCollapsed
-                            ? "Expand pinned section"
-                            : "Collapse pinned section"
-                        }
-                      >
-                        <motion.div
-                          variants={chevronVariants}
-                          animate={isPinnedCollapsed ? "collapsed" : "expanded"}
-                        >
-                          <ChevronRightIcon size={16} />
-                        </motion.div>
-                      </button>
-                      <h2>{t("pinned")}</h2>
-                      <span className="profile-content__section-badge">
-                        {pinnedGames.length}
-                      </span>
-                    </div>
-                  </div>
+              <ProfileTabs
+                activeTab={activeTab}
+                reviewsTotalCount={reviewsTotalCount}
+                souvenirsCount={userProfile?.achievements?.length || 0}
+                onTabChange={setActiveTab}
+              />
 
-                  <AnimatePresence initial={true} mode="wait">
-                    {!isPinnedCollapsed && (
-                      <motion.div
-                        key="pinned-content"
-                        variants={sectionVariants}
-                        initial="collapsed"
-                        animate="expanded"
-                        exit="collapsed"
-                        layout
-                      >
-                        <ul className="profile-content__games-grid">
-                          {pinnedGames?.map((game) => (
-                            <li
-                              key={game.objectId}
-                              style={{ listStyle: "none" }}
-                            >
-                              <UserLibraryGameCard
-                                game={game}
-                                statIndex={statsIndex}
-                                onMouseEnter={handleOnMouseEnterGameCard}
-                                onMouseLeave={handleOnMouseLeaveGameCard}
-                                sortBy={sortBy}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+              <div className="profile-content__tab-panels">
+                <AnimatePresence mode="wait">
+                  {activeTab === "library" && (
+                    <LibraryTab
+                      sortBy={sortBy}
+                      onSortChange={setSortBy}
+                      pinnedGames={pinnedGames}
+                      libraryGames={libraryGames}
+                      hasMoreLibraryGames={hasMoreLibraryGames}
+                      isLoadingLibraryGames={isLoadingLibraryGames}
+                      statsIndex={statsIndex}
+                      userStats={userStats}
+                      animatedGameIdsRef={animatedGameIdsRef}
+                      onLoadMore={handleLoadMore}
+                      onMouseEnter={handleOnMouseEnterGameCard}
+                      onMouseLeave={handleOnMouseLeaveGameCard}
+                      isMe={isMe}
+                    />
+                  )}
 
-              {userProfile?.achievements &&
-                userProfile.achievements.length > 0 && (
-                  <div className="profile-content__images-section">
-                    <div className="profile-content__section-header">
-                      <div className="profile-content__section-title-group">
-                        <h2>{t("souvenirs")}</h2>
-                        <span className="profile-content__section-badge">
-                          {userProfile.achievements.length}
-                        </span>
-                      </div>
-                    </div>
+                  {activeTab === "reviews" && (
+                    <ReviewsTab
+                      reviews={reviews}
+                      isLoadingReviews={isLoadingReviews}
+                      votingReviews={votingReviews}
+                      userDetailsId={userDetails?.id}
+                      formatPlayTime={formatPlayTime}
+                      getRatingText={getRatingText}
+                      onVote={handleVoteReview}
+                      onDelete={handleDeleteClick}
+                    />
+                  )}
 
-                    <div className="profile-content__images-grid">
-                      {userProfile.achievements.map((achievement, index) => (
-                        <div
-                          key={`${achievement.gameTitle}-${achievement.name}-${index}`}
-                          className="profile-content__image-card"
-                        >
-                          <div className="profile-content__image-card-header">
-                            <div className="profile-content__image-achievement-image-wrapper">
-                              <button
-                                type="button"
-                                className="profile-content__image-button"
-                                onClick={() =>
-                                  handleImageClick(
-                                    achievement.imageUrl,
-                                    achievement.name
-                                  )
-                                }
-                                aria-label={`View ${achievement.name} screenshot in fullscreen`}
-                                style={{
-                                  cursor: "pointer",
-                                  padding: 0,
-                                  border: "none",
-                                  background: "transparent",
-                                }}
-                              >
-                                <img
-                                  src={achievement.imageUrl}
-                                  alt={achievement.name}
-                                  className="profile-content__image-achievement-image"
-                                  loading="lazy"
-                                />
-                              </button>
-                              <div className="profile-content__image-achievement-image-overlay">
-                                <SearchIcon size={20} />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="profile-content__image-card-content">
-                            <div className="profile-content__image-achievement-info">
-                              <img
-                                src={achievement.achievementIcon}
-                                alt=""
-                                className="profile-content__image-achievement-icon"
-                                loading="lazy"
-                              />
-                              <span className="profile-content__image-achievement-name">
-                                {achievement.name}
-                              </span>
-                            </div>
-
-                            <div className="profile-content__image-game-info">
-                              <div className="profile-content__image-game-left">
-                                <img
-                                  src={achievement.gameIconUrl}
-                                  alt=""
-                                  className="profile-content__image-game-icon"
-                                  loading="lazy"
-                                />
-                                <span className="profile-content__image-game-title">
-                                  {achievement.gameTitle}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="profile-content__image-card-gradient-overlay"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {hasAnyGames && (
-                <SortOptions sortBy={sortBy} onSortChange={setSortBy} />
-              )}
-
-              {hasGames && (
-                <div>
-                  <div className="profile-content__section-header">
-                    <div className="profile-content__section-title-group">
-                      <h2>{t("library")}</h2>
-                      {userStats && (
-                        <span className="profile-content__section-badge">
-                          {numberFormatter.format(userStats.libraryCount)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ul className="profile-content__games-grid">
-                    {libraryGames?.map((game) => (
-                      <li key={game.objectId} style={{ listStyle: "none" }}>
-                        <UserLibraryGameCard
-                          game={game}
-                          statIndex={statsIndex}
-                          onMouseEnter={handleOnMouseEnterGameCard}
-                          onMouseLeave={handleOnMouseLeaveGameCard}
-                          sortBy={sortBy}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-          <ProfileTabs
-            activeTab={activeTab}
-            reviewsTotalCount={reviewsTotalCount}
-            onTabChange={setActiveTab}
-          />
-
-          <div className="profile-content__tab-panels">
-            <AnimatePresence mode="wait">
-              {activeTab === "library" && (
-                <LibraryTab
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                  pinnedGames={pinnedGames}
-                  libraryGames={libraryGames}
-                  hasMoreLibraryGames={hasMoreLibraryGames}
-                  isLoadingLibraryGames={isLoadingLibraryGames}
-                  statsIndex={statsIndex}
-                  userStats={userStats}
-                  animatedGameIdsRef={animatedGameIdsRef}
-                  onLoadMore={handleLoadMore}
-                  onMouseEnter={handleOnMouseEnterGameCard}
-                  onMouseLeave={handleOnMouseLeaveGameCard}
-                  isMe={isMe}
-                />
-              )}
-
-              {activeTab === "reviews" && (
-                <ReviewsTab
-                  reviews={reviews}
-                  isLoadingReviews={isLoadingReviews}
-                  votingReviews={votingReviews}
-                  userDetailsId={userDetails?.id}
-                  formatPlayTime={formatPlayTime}
-                  getRatingText={getRatingText}
-                  onVote={handleVoteReview}
-                  onDelete={handleDeleteClick}
-                />
-              )}
-            </AnimatePresence>
-          </div>
+                  {activeTab === "souvenirs" && (
+                    <SouvenirsTab
+                      achievements={userProfile?.achievements || []}
+                      onImageClick={handleImageClick}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
 
         {shouldShowRightContent && (
@@ -669,15 +494,25 @@ export function ProfileContent() {
     statsIndex,
     libraryGames,
     pinnedGames,
-
     sortBy,
     activeTab,
-    // ensure reviews UI updates correctly
     reviews,
     reviewsTotalCount,
     isLoadingReviews,
     votingReviews,
     deleteModalVisible,
+    handleOnMouseEnterGameCard,
+    handleOnMouseLeaveGameCard,
+    handleImageClick,
+    handleLoadMore,
+    formatPlayTime,
+    getRatingText,
+    handleVoteReview,
+    handleDeleteClick,
+    userDetails,
+    animatedGameIdsRef,
+    hasMoreLibraryGames,
+    isLoadingLibraryGames,
   ]);
 
   return (
