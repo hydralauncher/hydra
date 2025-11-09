@@ -28,7 +28,7 @@ const importThemeSoundFromStore = async (
         timeout: 10000,
       });
 
-      const themeDir = getThemePath(themeId);
+      const themeDir = getThemePath(themeId, theme.name);
 
       if (!fs.existsSync(themeDir)) {
         fs.mkdirSync(themeDir, { recursive: true });

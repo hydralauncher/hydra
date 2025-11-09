@@ -47,7 +47,10 @@ async function getAchievementSoundPath(): Promise<string> {
     const activeTheme = allThemes.find((theme) => theme.isActive);
 
     if (activeTheme?.hasCustomSound) {
-      const themeSoundPath = getThemeSoundPath(activeTheme.id);
+      const themeSoundPath = getThemeSoundPath(
+        activeTheme.id,
+        activeTheme.name
+      );
       if (themeSoundPath) {
         return themeSoundPath;
       }
