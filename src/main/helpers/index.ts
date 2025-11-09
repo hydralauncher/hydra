@@ -33,7 +33,7 @@ export const isPortableVersion = () => {
 };
 
 export const normalizePath = (str: string) =>
-  path.posix.normalize(str).replace(/\\/g, "/");
+  path.posix.normalize(str).replaceAll("\\", "/");
 
 export const addTrailingSlash = (str: string) =>
   str.endsWith("/") ? str : `${str}/`;
@@ -41,10 +41,10 @@ export const addTrailingSlash = (str: string) =>
 const sanitizeFolderName = (name: string): string => {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-_\s]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(/[^a-z0-9-_\s]/g, "")
+    .replaceAll(/\s+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/(^-|-$)/g, "");
 };
 
 export const getThemePath = (themeId: string, themeName?: string): string => {
