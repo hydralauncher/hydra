@@ -16,12 +16,13 @@ import {
   TrashIcon,
 } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
-import { useAppDispatch, useRepacks, useToast } from "@renderer/hooks";
+import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
 import "./settings-download-sources.scss";
+import { logger } from "@renderer/logger";
 
 export function SettingsDownloadSources() {
   const [
@@ -35,7 +36,6 @@ export function SettingsDownloadSources() {
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
-  const [isFetchingSources, setIsFetchingSources] = useState(true);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
@@ -46,37 +46,53 @@ export function SettingsDownloadSources() {
 
   const navigate = useNavigate();
 
-  const { updateRepacks } = useRepacks();
-
-  const getDownloadSources = async () => {
-    await window.electron
-      .getDownloadSourcesList()
-      .then((sources) => {
-        setDownloadSources(sources);
-      })
-      .finally(() => {
-        setIsFetchingSources(false);
-      });
-  };
-
-  useEffect(() => {
-    getDownloadSources();
-  }, []);
-
   useEffect(() => {
     if (sourceUrl) setShowAddDownloadSourceModal(true);
   }, [sourceUrl]);
+
+  useEffect(() => {
+    const fetchDownloadSources = async () => {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    };
+
+    fetchDownloadSources();
+  }, []);
+
+  useEffect(() => {
+    const hasPendingOrMatchingSource = downloadSources.some(
+      (source) =>
+        source.status === DownloadSourceStatus.PendingMatching ||
+        source.status === DownloadSourceStatus.Matching
+    );
+
+    if (!hasPendingOrMatchingSource || !downloadSources.length) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      try {
+        await window.electron.syncDownloadSources();
+        const sources = await window.electron.getDownloadSources();
+        setDownloadSources(sources);
+      } catch (error) {
+        logger.error("Failed to fetch download sources:", error);
+      }
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [downloadSources]);
 
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
 
     try {
-      await window.electron.deleteDownloadSource(downloadSource.id);
-      await window.electron.removeDownloadSource(downloadSource.url);
-
+      await window.electron.removeDownloadSource(false, downloadSource.id);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
       showSuccessToast(t("removed_download_source"));
-      await getDownloadSources();
-      updateRepacks();
+    } catch (error) {
+      logger.error("Failed to remove download source:", error);
     } finally {
       setIsRemovingDownloadSource(false);
     }
@@ -86,53 +102,47 @@ export function SettingsDownloadSources() {
     setIsRemovingDownloadSource(true);
 
     try {
-      await window.electron.deleteAllDownloadSources();
-      await window.electron.removeDownloadSource("", true);
-
-      showSuccessToast(t("removed_download_sources"));
-      await getDownloadSources();
-      setShowConfirmationDeleteAllSourcesModal(false);
-      updateRepacks();
+      await window.electron.removeDownloadSource(true);
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+      showSuccessToast(t("removed_all_download_sources"));
+    } catch (error) {
+      logger.error("Failed to remove all download sources:", error);
     } finally {
       setIsRemovingDownloadSource(false);
+      setShowConfirmationDeleteAllSourcesModal(false);
     }
   };
 
   const handleAddDownloadSource = async () => {
-    // Refresh sources list and repacks after import completes
-    await getDownloadSources();
-
-    // Force repacks update to ensure UI reflects new data
-    await updateRepacks();
-
-    showSuccessToast(t("added_download_source"));
+    try {
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+    } catch (error) {
+      logger.error("Failed to refresh download sources:", error);
+    }
   };
 
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
-
     try {
-      // Sync local sources (check for updates)
       await window.electron.syncDownloadSources();
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
 
-      // Refresh sources and repacks AFTER sync completes
-      await getDownloadSources();
-      await updateRepacks();
-
-      showSuccessToast(t("download_sources_synced"));
-    } catch (error) {
-      console.error("Error syncing download sources:", error);
-      // Still refresh the UI even if sync fails
-      await getDownloadSources();
-      await updateRepacks();
+      showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
       setIsSyncingDownloadSources(false);
     }
   };
 
   const statusTitle = {
-    [DownloadSourceStatus.UpToDate]: t("download_source_up_to_date"),
-    [DownloadSourceStatus.Errored]: t("download_source_errored"),
+    [DownloadSourceStatus.PendingMatching]: t(
+      "download_source_pending_matching"
+    ),
+    [DownloadSourceStatus.Matched]: t("download_source_matched"),
+    [DownloadSourceStatus.Matching]: t("download_source_matching"),
+    [DownloadSourceStatus.Failed]: t("download_source_failed"),
   };
 
   const handleModalClose = () => {
@@ -142,7 +152,7 @@ export function SettingsDownloadSources() {
 
   const navigateToCatalogue = (fingerprint?: string) => {
     if (!fingerprint) {
-      console.error("Cannot navigate: fingerprint is undefined");
+      logger.error("Cannot navigate: fingerprint is undefined");
       return;
     }
 
@@ -180,8 +190,7 @@ export function SettingsDownloadSources() {
           disabled={
             !downloadSources.length ||
             isSyncingDownloadSources ||
-            isRemovingDownloadSource ||
-            isFetchingSources
+            isRemovingDownloadSource
           }
           onClick={syncDownloadSources}
         >
@@ -197,8 +206,7 @@ export function SettingsDownloadSources() {
             disabled={
               isRemovingDownloadSource ||
               isSyncingDownloadSources ||
-              !downloadSources.length ||
-              isFetchingSources
+              !downloadSources.length
             }
           >
             <TrashIcon />
@@ -209,11 +217,7 @@ export function SettingsDownloadSources() {
             type="button"
             theme="outline"
             onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={
-              isSyncingDownloadSources ||
-              isFetchingSources ||
-              isRemovingDownloadSource
-            }
+            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
           >
             <PlusCircleIcon />
             {t("add_download_source")}
@@ -223,16 +227,25 @@ export function SettingsDownloadSources() {
 
       <ul className="settings-download-sources__list">
         {downloadSources.map((downloadSource) => {
+          const isPendingOrMatching =
+            downloadSource.status === DownloadSourceStatus.PendingMatching ||
+            downloadSource.status === DownloadSourceStatus.Matching;
+
           return (
             <li
               key={downloadSource.id}
-              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""}`}
+              className={`settings-download-sources__item ${isSyncingDownloadSources ? "settings-download-sources__item--syncing" : ""} ${isPendingOrMatching ? "settings-download-sources__item--pending" : ""}`}
             >
               <div className="settings-download-sources__item-header">
                 <h2>{downloadSource.name}</h2>
 
                 <div style={{ display: "flex" }}>
-                  <Badge>{statusTitle[downloadSource.status]}</Badge>
+                  <Badge>
+                    {isPendingOrMatching && (
+                      <SyncIcon className="settings-download-sources__spinner" />
+                    )}
+                    {statusTitle[downloadSource.status]}
+                  </Badge>
                 </div>
 
                 <button
@@ -244,11 +257,13 @@ export function SettingsDownloadSources() {
                   }
                 >
                   <small>
-                    {t("download_count", {
-                      count: downloadSource.downloadCount,
-                      countFormatted:
-                        downloadSource.downloadCount.toLocaleString(),
-                    })}
+                    {isPendingOrMatching
+                      ? t("download_source_no_information")
+                      : t("download_count", {
+                          count: downloadSource.downloadCount,
+                          countFormatted:
+                            downloadSource.downloadCount.toLocaleString(),
+                        })}
                   </small>
                 </button>
               </div>

@@ -6,7 +6,8 @@ concurrency:
 
 on:
   push:
-    branches: [main]
+    branches:
+      - release/**
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.18.3
+          node-version: 22.21.0
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -38,6 +39,12 @@ jobs:
 
       - name: Build with cx_Freeze
         run: python python_rpc/setup.py build
+
+      - name: Copy OpenSSL DLLs
+        if: matrix.os == 'windows-2022'
+        run: |
+          cp hydra-python-rpc/lib/libcrypto-1_1.dll hydra-python-rpc/lib/libcrypto-1_1-x64.dll
+          cp hydra-python-rpc/lib/libssl-1_1.dll hydra-python-rpc/lib/libssl-1_1-x64.dll
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
@@ -55,7 +62,7 @@ jobs:
           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
           RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
-          MAIN_VITE_RENDERER_URL: ${{ vars.MAIN_VITE_RENDERER_URL }}
+          MAIN_VITE_LAUNCHER_SUBDOMAIN: ${{ vars.MAIN_VITE_LAUNCHER_SUBDOMAIN }}
 
       - name: Build Windows
         if: matrix.os == 'windows-2022'
@@ -72,7 +79,7 @@ jobs:
           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
           RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
           RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
-          MAIN_VITE_RENDERER_URL: ${{ vars.MAIN_VITE_RENDERER_URL }}
+          MAIN_VITE_LAUNCHER_SUBDOMAIN: ${{ vars.MAIN_VITE_LAUNCHER_SUBDOMAIN }}
 
       - name: Create artifact
         uses: actions/upload-artifact@v4

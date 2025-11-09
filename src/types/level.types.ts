@@ -120,6 +120,8 @@ export interface UserPreferences {
   extractFilesByDefault?: boolean;
   enableSteamAchievements?: boolean;
   enableAchievementScreenshots?: boolean;
+  autoplayGameTrailers?: boolean;
+  hideToTrayOnGameStart?: boolean;
 }
 
 export interface ScreenState {

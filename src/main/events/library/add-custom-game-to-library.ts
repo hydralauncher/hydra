@@ -37,6 +37,7 @@ const addCustomGameToLibrary = async (
     logoImageUrl: logoImageUrl || "",
     logoPosition: null,
     coverImageUrl: iconUrl || "",
+    downloadSources: [],
   };
   await gamesShopAssetsSublevel.put(gameKey, assets);
 

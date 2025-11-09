@@ -1,76 +1,50 @@
 import { registerEvent } from "../register-event";
-import { downloadSourcesSublevel, repacksSublevel } from "@main/level";
-import { HydraApi, logger } from "@main/services";
-import { importDownloadSourceToLocal } from "./helpers";
+import { HydraApi } from "@main/services/hydra-api";
+import { downloadSourcesSublevel } from "@main/level";
+import type { DownloadSource } from "@types";
+import { logger } from "@main/services";
 
 const addDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
   url: string
 ) => {
-  const result = await importDownloadSourceToLocal(url, true);
-  if (!result) {
-    throw new Error("Failed to import download source");
-  }
+  try {
+    const existingSources = await downloadSourcesSublevel.values().all();
+    const urlExists = existingSources.some((source) => source.url === url);
 
-  // Verify that repacks were actually written to the database (read-after-write)
-  // This ensures all async operations are complete before proceeding
-  let repackCount = 0;
-  for await (const [, repack] of repacksSublevel.iterator()) {
-    if (repack.downloadSourceId === result.id) {
-      repackCount++;
+    if (urlExists) {
+      throw new Error("Download source with this URL already exists");
     }
-  }
 
-  await HydraApi.post("/profile/download-sources", {
-    urls: [url],
-  });
+    const downloadSource = await HydraApi.post<DownloadSource>(
+      "/download-sources",
+      {
+        url,
+      },
+      { needsAuth: false }
+    );
 
-  const { fingerprint } = await HydraApi.put<{ fingerprint: string }>(
-    "/download-sources",
-    {
-      objectIds: result.objectIds,
-    },
-    { needsAuth: false }
-  );
+    if (HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
+      try {
+        await HydraApi.post("/profile/download-sources", {
+          urls: [url],
+        });
+      } catch (error) {
+        logger.error("Failed to add download source to profile:", error);
+      }
+    }
 
-  // Update the source with fingerprint
-  const updatedSource = await downloadSourcesSublevel.get(`${result.id}`);
-  if (updatedSource) {
-    await downloadSourcesSublevel.put(`${result.id}`, {
-      ...updatedSource,
-      fingerprint,
-      updatedAt: new Date(),
+    await downloadSourcesSublevel.put(downloadSource.id, {
+      ...downloadSource,
+      isRemote: true,
+      createdAt: new Date().toISOString(),
     });
-  }
 
-  // Final verification: ensure the source with fingerprint is persisted
-  const finalSource = await downloadSourcesSublevel.get(`${result.id}`);
-  if (!finalSource || !finalSource.fingerprint) {
-    throw new Error("Failed to persist download source with fingerprint");
+    return downloadSource;
+  } catch (error) {
+    logger.error("Failed to add download source:", error);
+    throw error;
   }
-
-  // Verify repacks still exist after fingerprint update
-  let finalRepackCount = 0;
-  for await (const [, repack] of repacksSublevel.iterator()) {
-    if (repack.downloadSourceId === result.id) {
-      finalRepackCount++;
-    }
-  }
-
-  if (finalRepackCount !== repackCount) {
-    logger.warn(
-      `Repack count mismatch! Before: ${repackCount}, After: ${finalRepackCount}`
-    );
-  } else {
-    logger.info(
-      `Final verification passed: ${finalRepackCount} repacks confirmed`
-    );
-  }
-
-  return {
-    ...result,
-    fingerprint,
-  };
 };
 
 registerEvent("addDownloadSource", addDownloadSource);

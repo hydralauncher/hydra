@@ -325,6 +325,7 @@
     "maybe_later": "Tal vez después",
     "no_repacks_found": "Sin fuentes encontradas para este juego",
     "no_reviews_yet": "Sin reseñas aún",
+    "review_played_for": "Jugado por",
     "properties": "Propiedades",
     "rating": "Calificación",
     "rating_count": "Calificación",
@@ -361,7 +362,10 @@
     "you_seemed_to_enjoy_this_game": "Parece que has disfrutado de este juego",
     "language": "Idioma",
     "caption": "Subtítulo",
-    "audio": "Audio"
+    "audio": "Audio",
+    "review_from_blocked_user": "Reseña de usuario bloqueado",
+    "show": "Mostrar",
+    "hide": "Ocultar"
   },
   "activation": {
     "title": "Activar Hydra",
@@ -541,7 +545,9 @@
     "notification_preview": "Probar notificación de logro",
     "debrid": "Debrid",
     "debrid_description": "Los servicios Debrid son descargadores premium sin restricciones que te dejan descargar más rápido archivos alojados en servicios de alojamiento siendo que la única limitación es tu velocidad de internet.",
-    "enable_friend_start_game_notifications": "Cuando un amigo está jugando un juego"
+    "enable_friend_start_game_notifications": "Cuando un amigo está jugando un juego",
+    "autoplay_trailers_on_game_page": "Reproducir trailers automáticamente en la página del juego",
+    "hide_to_tray_on_game_start": "Ocultar Hydra en la bandeja al iniciar un juego"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -676,7 +682,11 @@
     "karma_count": "karma",
     "karma_description": "Conseguido por me gustas positivos en reseñas",
     "sort_by": "Filtrar por:",
-    "game_added_to_pinned": "Juego añadido a fijados"
+    "game_added_to_pinned": "Juego añadido a fijados",
+    "user_reviews": "Reseñas",
+    "loading_reviews": "Cargando reseñas...",
+    "no_reviews": "Sin reseñas aún",
+    "delete_review": "Eliminar reseña"
   },
   "achievement": {
     "achievement_unlocked": "Logro desbloqueado",

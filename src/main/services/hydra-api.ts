@@ -11,6 +11,7 @@ import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
+import { WSClient } from "./ws";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -29,7 +30,7 @@ export class HydraApi {
   private static instance: AxiosInstance;
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
-  private static readonly ADD_LOG_INTERCEPTOR = false;
+  private static readonly ADD_LOG_INTERCEPTOR = true;
 
   private static secondsToMilliseconds(seconds: number) {
     return seconds * 1000;
@@ -46,7 +47,7 @@ export class HydraApi {
     return this.userAuth.authToken !== "";
   }
 
-  private static hasActiveSubscription() {
+  public static hasActiveSubscription() {
     const expiresAt = new Date(this.userAuth.subscription?.expiresAt ?? 0);
     return expiresAt > new Date();
   }
@@ -103,12 +104,10 @@ export class HydraApi {
       await clearGamesRemoteIds();
       uploadGamesBatch();
 
-      // WSClient.close();
-      // WSClient.connect();
+      WSClient.close();
+      WSClient.connect();
 
-      const { syncDownloadSourcesFromApi } = await import(
-        "../events/download-sources/sync-download-sources-from-api"
-      );
+      const { syncDownloadSourcesFromApi } = await import("./user");
       syncDownloadSourcesFromApi();
     }
   }
