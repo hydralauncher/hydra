@@ -351,7 +351,7 @@ export class DownloadManager {
       }
       case Downloader.Buzzheavier: {
         const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-  
+
         return {
           action: "start",
           game_id: downloadId,
@@ -362,7 +362,7 @@ export class DownloadManager {
       }
       case Downloader.FuckingFast: {
         const directUrl = await FuckingFastApi.getDirectLink(download.uri);
-  
+
         return {
           action: "start",
           game_id: downloadId,
