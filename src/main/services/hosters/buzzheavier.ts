@@ -1,10 +1,7 @@
 import axios from "axios";
 
 export class BuzzheavierApi {
-  private static readonly BUZZHEAVIER_DOMAINS = [
-    "buzzheavier.com",
-    "bzzhr.co",
-  ];
+  private static readonly BUZZHEAVIER_DOMAINS = ["buzzheavier.com", "bzzhr.co"];
 
   /**
    * Checks if URL is from Buzzheavier domain
@@ -42,7 +39,8 @@ export class BuzzheavierApi {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0",
         },
         maxRedirects: 0,
-        validateStatus: (status) => status === 200 || status === 204 || status === 301 || status === 302,
+        validateStatus: (status) =>
+          status === 200 || status === 204 || status === 301 || status === 302,
         timeout: 30000,
       });
 
