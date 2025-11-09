@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { getThemeSoundPath } from "@main/helpers";
+import { themesSublevel } from "@main/level";
 import fs from "node:fs";
 import path from "node:path";
 import { logger } from "@main/services";
@@ -9,7 +10,8 @@ const getThemeSoundDataUrl = async (
   themeId: string
 ): Promise<string | null> => {
   try {
-    const soundPath = getThemeSoundPath(themeId);
+    const theme = await themesSublevel.get(themeId);
+    const soundPath = getThemeSoundPath(themeId, theme?.name);
 
     if (!soundPath || !fs.existsSync(soundPath)) {
       return null;
