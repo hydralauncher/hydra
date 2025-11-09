@@ -114,6 +114,18 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
+  if (
+    uri.startsWith("https://buzzheavier.com") ||
+    uri.startsWith("https://bzzhr.co")
+  ) {
+    return [Downloader.Buzzheavier];
+  }
+  if (
+    uri.startsWith("https://fuckingfast.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
+    return [Downloader.FuckingFast];
+  }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];

@@ -24,6 +24,7 @@ import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
+import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -346,6 +347,28 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+        };
+      }
+      case Downloader.Buzzheavier: {
+        const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: directUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.FuckingFast: {
+        const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: directUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
         };
       }
       case Downloader.Mediafire: {
