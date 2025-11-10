@@ -31,6 +31,7 @@ const removeThemeAchievementSound = async (
   await themesSublevel.put(themeId, {
     ...theme,
     hasCustomSound: false,
+    originalSoundPath: undefined,
     updatedAt: new Date(),
   });
 };

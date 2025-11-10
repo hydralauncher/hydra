@@ -95,9 +95,8 @@
   &__notification-preview {
     padding-top: 12px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     gap: 16px;
-    align-items: flex-start;
 
     &__select-variation {
       flex: inherit;
@@ -118,16 +117,17 @@
     gap: 8px;
   }
 
-  &__sound-controls {
+  &__sound-actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
-    width: fit-content;
+    align-items: center;
+  }
 
-    button,
-    .button {
-      width: auto;
-      align-self: flex-start;
-    }
+  &__sound-actions-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
   }
 }

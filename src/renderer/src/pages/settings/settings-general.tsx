@@ -19,7 +19,7 @@ import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
-import { DesktopDownloadIcon } from "@primer/octicons-react";
+import { DesktopDownloadIcon, UnmuteIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
 import { AchievementCustomNotificationPosition } from "@types";
 
@@ -345,81 +345,30 @@ export function SettingsGeneral() {
           <label htmlFor="achievement-volume">
             {t("achievement_sound_volume")}
           </label>
-          <div className="settings-general__volume-input-wrapper">
-            <div className="settings-general__volume-input-container">
-              <input
-                id="achievement-volume"
-                type="number"
-                min="0"
-                max="100"
-                value={form.achievementSoundVolume}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "") {
-                    handleVolumeChange(0);
-                    return;
-                  }
-                  const volumePercent = Math.min(
-                    100,
-                    Math.max(0, parseInt(value, 10))
-                  );
-                  if (!isNaN(volumePercent)) {
-                    handleVolumeChange(volumePercent);
-                  }
-                }}
-                onBlur={(e) => {
-                  if (
-                    e.target.value === "" ||
-                    isNaN(parseInt(e.target.value, 10))
-                  ) {
-                    handleVolumeChange(0);
-                  }
-                }}
-              />
-              <span className="settings-general__volume-input-unit">%</span>
-            </div>
-            <div className="settings-general__volume-input-buttons">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const newVolume = Math.min(
-                    100,
-                    form.achievementSoundVolume + 1
-                  );
-                  handleVolumeChange(newVolume);
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="currentColor"
-                >
-                  <path d="M6 4l4 4H2l4-4z" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const newVolume = Math.max(
-                    0,
-                    form.achievementSoundVolume - 1
-                  );
-                  handleVolumeChange(newVolume);
-                }}
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="currentColor"
-                >
-                  <path d="M6 8L2 4h8L6 8z" />
-                </svg>
-              </button>
-            </div>
+          <div className="settings-general__volume-slider-wrapper">
+            <UnmuteIcon size={16} className="settings-general__volume-icon" />
+            <input
+              id="achievement-volume"
+              type="range"
+              min="0"
+              max="100"
+              value={form.achievementSoundVolume}
+              onChange={(e) => {
+                const volumePercent = parseInt(e.target.value, 10);
+                if (!isNaN(volumePercent)) {
+                  handleVolumeChange(volumePercent);
+                }
+              }}
+              className="settings-general__volume-slider"
+              style={
+                {
+                  "--volume-percent": `${form.achievementSoundVolume}%`,
+                } as React.CSSProperties
+              }
+            />
+            <span className="settings-general__volume-value">
+              {form.achievementSoundVolume}%
+            </span>
           </div>
         </div>
       )}
