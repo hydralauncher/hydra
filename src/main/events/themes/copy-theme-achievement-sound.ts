@@ -18,7 +18,7 @@ const copyThemeAchievementSound = async (
     throw new Error("Theme not found");
   }
 
-  const themeDir = getThemePath(themeId);
+  const themeDir = getThemePath(themeId, theme.name);
 
   if (!fs.existsSync(themeDir)) {
     fs.mkdirSync(themeDir, { recursive: true });
