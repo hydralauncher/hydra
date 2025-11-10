@@ -38,12 +38,17 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
+    position: relative;
   }
 
   &__controls-left {
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    margin-right: calc(globals.$spacing-unit * 2);
   }
 
   &__controls-right {

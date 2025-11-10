@@ -719,9 +719,8 @@
     "amount_minutes_short": "{{amount}}m",
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "all_games": "All Games",
-    "favourited_games": "Favourited",
-    "new_games": "New Games",
-    "top_10": "Top 10"
+    "recently_played": "Recently Played",
+    "favorites": "Favorites"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
