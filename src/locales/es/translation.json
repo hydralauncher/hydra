@@ -13,6 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Catálogo",
+    "library": "Librería",
     "downloads": "Descargas",
     "settings": "Ajustes",
     "my_library": "Mi Librería",
@@ -722,5 +723,26 @@
     "hydra_cloud_feature_found": "¡Acabas de descubrir una característica de Hydra Cloud!",
     "learn_more": "Descubrir más",
     "debrid_description": "Descargas hasta x4 veces más rápidas con Nimbus"
+  },
+  "library": {
+    "library": "Librería",
+    "play": "Jugar",
+    "download": "Descargar",
+    "downloading": "Descargando",
+    "game": "juego",
+    "games": "juegos",
+    "grid_view": "Vista de cuadrícula",
+    "compact_view": "Vista compacta",
+    "large_view": "Vista grande",
+    "no_games_title": "Tu librería está vacía",
+    "no_games_description": "Agregá juegos del catálogo o descargalos para comenzar",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "manual_playtime_tooltip": "Este tiempo de juego ha sido modificado manualmente",
+    "all_games": "Todos los Juegos",
+    "recently_played": "Jugados Recientemente",
+    "favorites": "Favoritos"
   }
 }
