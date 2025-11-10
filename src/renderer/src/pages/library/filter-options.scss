@@ -1,63 +1,55 @@
 @use "../../scss/globals.scss";
 
 .library-filter-options {
-  &__container {
+  &__tabs {
     display: flex;
-    align-items: center;
     gap: calc(globals.$spacing-unit);
-    flex-wrap: wrap;
+    position: relative;
   }
 
-  &__option {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit);
-    padding: 8px 16px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.9);
+  &__tab-wrapper {
+    position: relative;
+  }
+
+  &__tab {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
-    transition: all ease 0.2s;
-    white-space: nowrap; /* prevent label and count from wrapping */
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: color ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.5);
 
-    &:hover {
-      color: rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    &.active {
-      color: #000;
-      background: #fff;
-      svg,
-      svg * {
-        fill: currentColor;
-        color: currentColor;
-      }
-
-      .library-filter-options__count {
-        background: #ebebeb;
-        color: rgba(0, 0, 0, 0.9);
-      }
+    &--active {
+      color: white;
     }
   }
 
-  &__label {
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  &__count {
-    background: rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.95);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
+  &__tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 9px;
+    font-size: 11px;
     font-weight: 600;
-    min-width: 24px;
-    text-align: center;
-    transition: all ease 0.2s;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1;
+  }
+
+  &__tab-underline {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: white;
   }
 }
