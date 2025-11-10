@@ -571,6 +571,25 @@ contextBridge.exposeInMainWorld("electron", {
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   toggleCustomTheme: (themeId: string, isActive: boolean) =>
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
+  copyThemeAchievementSound: (themeId: string, sourcePath: string) =>
+    ipcRenderer.invoke("copyThemeAchievementSound", themeId, sourcePath),
+  removeThemeAchievementSound: (themeId: string) =>
+    ipcRenderer.invoke("removeThemeAchievementSound", themeId),
+  getThemeSoundPath: (themeId: string) =>
+    ipcRenderer.invoke("getThemeSoundPath", themeId),
+  getThemeSoundDataUrl: (themeId: string) =>
+    ipcRenderer.invoke("getThemeSoundDataUrl", themeId),
+  importThemeSoundFromStore: (
+    themeId: string,
+    themeName: string,
+    storeUrl: string
+  ) =>
+    ipcRenderer.invoke(
+      "importThemeSoundFromStore",
+      themeId,
+      themeName,
+      storeUrl
+    ),
 
   /* Editor */
   openEditorWindow: (themeId: string) =>
