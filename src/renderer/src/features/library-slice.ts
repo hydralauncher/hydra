@@ -5,12 +5,10 @@ import type { LibraryGame } from "@types";
 
 export interface LibraryState {
   value: LibraryGame[];
-  searchQuery: string;
 }
 
 const initialState: LibraryState = {
   value: [],
-  searchQuery: "",
 };
 
 export const librarySlice = createSlice({
@@ -38,9 +36,6 @@ export const librarySlice = createSlice({
         game.newDownloadOptionsCount = undefined;
       }
     },
-    setLibrarySearchQuery: (state, action: PayloadAction<string>) => {
-      state.searchQuery = action.payload;
-    },
   },
 });
 
@@ -48,5 +43,4 @@ export const {
   setLibrary,
   updateGameNewDownloadOptions,
   clearNewDownloadOptions,
-  setLibrarySearchQuery,
 } = librarySlice.actions;
