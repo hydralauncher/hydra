@@ -84,7 +84,6 @@
     gap: calc(globals.$spacing-unit);
   }
 
-
   &__logo-container {
     flex: 1;
     display: flex;
@@ -207,5 +206,4 @@
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
   }
-
 }

@@ -1,10 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import {
-  ClockIcon,
-  AlertFillIcon,
-  TrophyIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
 import { memo, useMemo } from "react";
 import "./library-game-card-large.scss";
 
@@ -28,11 +24,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
 }: Readonly<LibraryGameCardLargeProps>) {
-  const {
-    formatPlayTime,
-    handleCardClick,
-    handleContextMenuClick,
-  } = useGameCard(game, onContextMenu);
+  const { formatPlayTime, handleCardClick, handleContextMenuClick } =
+    useGameCard(game, onContextMenu);
 
   const backgroundImage = useMemo(
     () =>
