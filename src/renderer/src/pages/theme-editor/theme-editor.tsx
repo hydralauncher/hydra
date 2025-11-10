@@ -12,10 +12,7 @@ import {
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import {
-  injectCustomCss,
-  getAchievementSoundVolume,
-} from "@renderer/helpers";
+import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
@@ -162,17 +159,21 @@ export default function ThemeEditor() {
     let soundUrl: string;
 
     if (theme.hasCustomSound) {
-      const themeSoundUrl = await window.electron.getThemeSoundDataUrl(theme.id);
+      const themeSoundUrl = await window.electron.getThemeSoundDataUrl(
+        theme.id
+      );
       if (themeSoundUrl) {
         soundUrl = themeSoundUrl;
       } else {
-        const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
-          .default;
+        const defaultSound = (
+          await import("@renderer/assets/audio/achievement.wav")
+        ).default;
         soundUrl = defaultSound;
       }
     } else {
-      const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
-        .default;
+      const defaultSound = (
+        await import("@renderer/assets/audio/achievement.wav")
+      ).default;
       soundUrl = defaultSound;
     }
 
