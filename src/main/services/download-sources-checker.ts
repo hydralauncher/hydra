@@ -101,18 +101,18 @@ export class DownloadSourcesChecker {
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
-      // Get all installed games (excluding custom games)
+      // Get all installed games (excluding custom games and games without executable)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom"
+        (game: Game) => game.shop !== "custom" && game.executablePath
       );
       logger.info(
-        `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
+        `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games with executable path`
       );
 
       if (nonCustomGames.length === 0) {
         logger.info(
-          "No non-custom games found, skipping download sources check"
+          "No non-custom games with executable path found, skipping download sources check"
         );
         return;
       }
