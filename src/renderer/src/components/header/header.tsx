@@ -7,12 +7,13 @@ import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
-import { setFilters } from "@renderer/features";
+import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
   "/catalogue": "catalogue",
+  "/library": "library",
   "/downloads": "downloads",
   "/settings": "settings",
 };
@@ -27,9 +28,19 @@ export function Header() {
     (state) => state.window
   );
 
-  const searchValue = useAppSelector(
+  const catalogueSearchValue = useAppSelector(
     (state) => state.catalogueSearch.filters.title
   );
+
+  const librarySearchValue = useAppSelector(
+    (state) => state.library.searchQuery
+  );
+
+  const isOnLibraryPage = location.pathname.startsWith("/library");
+
+  const searchValue = isOnLibraryPage
+    ? librarySearchValue
+    : catalogueSearchValue;
 
   const dispatch = useAppDispatch();
 
@@ -41,6 +52,8 @@ export function Header() {
     if (location.pathname.startsWith("/game")) return headerTitle;
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
+    if (location.pathname.startsWith("/library"))
+      return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");
 
     return t(pathTitle[location.pathname]);
@@ -60,18 +73,29 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
-    dispatch(setFilters({ title: value.slice(0, 255) }));
+    if (isOnLibraryPage) {
+      dispatch(setLibrarySearchQuery(value.slice(0, 255)));
+    } else {
+      dispatch(setFilters({ title: value.slice(0, 255) }));
+      if (!location.pathname.startsWith("/catalogue")) {
+        navigate("/catalogue");
+      }
+    }
+  };
 
-    if (!location.pathname.startsWith("/catalogue")) {
-      navigate("/catalogue");
+  const handleClearSearch = () => {
+    if (isOnLibraryPage) {
+      dispatch(setLibrarySearchQuery(""));
+    } else {
+      dispatch(setFilters({ title: "" }));
     }
   };
 
   useEffect(() => {
-    if (!location.pathname.startsWith("/catalogue") && searchValue) {
+    if (!location.pathname.startsWith("/catalogue") && catalogueSearchValue) {
       dispatch(setFilters({ title: "" }));
     }
-  }, [location.pathname, searchValue, dispatch]);
+  }, [location.pathname, catalogueSearchValue, dispatch]);
 
   return (
     <>
@@ -120,7 +144,7 @@ export function Header() {
               ref={inputRef}
               type="text"
               name="search"
-              placeholder={t("search")}
+              placeholder={isOnLibraryPage ? t("search_library") : t("search")}
               value={searchValue}
               className="header__search-input"
               onChange={(event) => handleSearch(event.target.value)}
@@ -131,7 +155,7 @@ export function Header() {
             {searchValue && (
               <button
                 type="button"
-                onClick={() => dispatch(setFilters({ title: "" }))}
+                onClick={handleClearSearch}
                 className="header__action-button"
               >
                 <XIcon />
