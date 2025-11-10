@@ -13,6 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Catálogo",
+    "library": "Librería",
     "downloads": "Descargas",
     "settings": "Ajustes",
     "my_library": "Mi Librería",
@@ -542,6 +543,12 @@
     "platinum": "Platino",
     "hidden": "Oculto",
     "test_notification": "Probar notificación",
+    "achievement_sound_volume": "Volumen del sonido de logro",
+    "select_achievement_sound": "Seleccionar sonido de logro",
+    "select": "Seleccionar",
+    "preview": "Vista previa",
+    "remove": "Remover",
+    "no_sound_file_selected": "No se seleccionó ningún archivo de sonido",
     "notification_preview": "Probar notificación de logro",
     "debrid": "Debrid",
     "debrid_description": "Los servicios Debrid son descargadores premium sin restricciones que te dejan descargar más rápido archivos alojados en servicios de alojamiento siendo que la única limitación es tu velocidad de internet.",
@@ -716,5 +723,26 @@
     "hydra_cloud_feature_found": "¡Acabas de descubrir una característica de Hydra Cloud!",
     "learn_more": "Descubrir más",
     "debrid_description": "Descargas hasta x4 veces más rápidas con Nimbus"
+  },
+  "library": {
+    "library": "Librería",
+    "play": "Jugar",
+    "download": "Descargar",
+    "downloading": "Descargando",
+    "game": "juego",
+    "games": "juegos",
+    "grid_view": "Vista de cuadrícula",
+    "compact_view": "Vista compacta",
+    "large_view": "Vista grande",
+    "no_games_title": "Tu librería está vacía",
+    "no_games_description": "Agregá juegos del catálogo o descargalos para comenzar",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "manual_playtime_tooltip": "Este tiempo de juego ha sido modificado manualmente",
+    "all_games": "Todos los Juegos",
+    "recently_played": "Jugados Recientemente",
+    "favorites": "Favoritos"
   }
 }
