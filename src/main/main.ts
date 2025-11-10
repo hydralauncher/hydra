@@ -17,7 +17,6 @@ import {
   Lock,
   DeckyPlugin,
   DownloadSourcesChecker,
-  WSClient,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
@@ -61,8 +60,6 @@ export const loadState = async () => {
 
     // Check for new download options on startup
     DownloadSourcesChecker.checkForChanges();
-
-    WSClient.connect();
   });
 
   const downloads = await downloadsSublevel
