@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
@@ -77,22 +78,11 @@ export default function Library() {
     let filtered;
 
     switch (filterBy) {
-      case "favourited":
+      case "recently_played":
+        filtered = library.filter((game) => game.lastTimePlayed !== null);
+        break;
+      case "favorites":
         filtered = library.filter((game) => game.favorite);
-        break;
-      case "new":
-        filtered = library.filter(
-          (game) => (game.playTimeInMilliseconds || 0) === 0
-        );
-        break;
-      case "top10":
-        filtered = library
-          .slice()
-          .sort(
-            (a, b) =>
-              (b.playTimeInMilliseconds || 0) - (a.playTimeInMilliseconds || 0)
-          )
-          .slice(0, 10);
         break;
       case "all":
       default:
@@ -124,19 +114,18 @@ export default function Library() {
 
   const filterCounts = useMemo(() => {
     const allGamesCount = library.length;
-    let favouritedCount = 0;
-    let newGamesCount = 0;
+    let recentlyPlayedCount = 0;
+    let favoritesCount = 0;
 
     for (const game of library) {
-      if (game.favorite) favouritedCount++;
-      if ((game.playTimeInMilliseconds || 0) === 0) newGamesCount++;
+      if (game.lastTimePlayed !== null) recentlyPlayedCount++;
+      if (game.favorite) favoritesCount++;
     }
 
     return {
       allGamesCount,
-      favouritedCount,
-      newGamesCount,
-      top10Count: Math.min(10, allGamesCount),
+      recentlyPlayedCount,
+      favoritesCount,
     };
   }, [library]);
 
@@ -152,9 +141,8 @@ export default function Library() {
                 filterBy={filterBy}
                 onFilterChange={setFilterBy}
                 allGamesCount={filterCounts.allGamesCount}
-                favouritedCount={filterCounts.favouritedCount}
-                newGamesCount={filterCounts.newGamesCount}
-                top10Count={filterCounts.top10Count}
+                recentlyPlayedCount={filterCounts.recentlyPlayedCount}
+                favoritesCount={filterCounts.favoritesCount}
               />
             </div>
 
@@ -175,34 +163,52 @@ export default function Library() {
         </div>
       )}
 
-      {hasGames && viewMode === "large" && (
-        <div className="library__games-list library__games-list--large">
-          {sortedLibrary.map((game) => (
-            <LibraryGameCardLarge
-              key={`${game.shop}-${game.objectId}`}
-              game={game}
-              onContextMenu={handleOpenContextMenu}
-            />
-          ))}
-        </div>
-      )}
-
-      {hasGames && viewMode !== "large" && (
-        <ul className={`library__games-grid library__games-grid--${viewMode}`}>
-          {sortedLibrary.map((game) => (
-            <li
-              key={`${game.shop}-${game.objectId}`}
-              style={{ listStyle: "none" }}
+      {hasGames && (
+        <AnimatePresence mode="wait">
+          {viewMode === "large" && (
+            <motion.div
+              key={`${filterBy}-large`}
+              className="library__games-list library__games-list--large"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
             >
-              <LibraryGameCard
-                game={game}
-                onMouseEnter={handleOnMouseEnterGameCard}
-                onMouseLeave={handleOnMouseLeaveGameCard}
-                onContextMenu={handleOpenContextMenu}
-              />
-            </li>
-          ))}
-        </ul>
+              {sortedLibrary.map((game) => (
+                <LibraryGameCardLarge
+                  key={`${game.shop}-${game.objectId}`}
+                  game={game}
+                  onContextMenu={handleOpenContextMenu}
+                />
+              ))}
+            </motion.div>
+          )}
+
+          {viewMode !== "large" && (
+            <motion.ul
+              key={`${filterBy}-${viewMode}`}
+              className={`library__games-grid library__games-grid--${viewMode}`}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {sortedLibrary.map((game) => (
+                <li
+                  key={`${game.shop}-${game.objectId}`}
+                  style={{ listStyle: "none" }}
+                >
+                  <LibraryGameCard
+                    game={game}
+                    onMouseEnter={handleOnMouseEnterGameCard}
+                    onMouseLeave={handleOnMouseLeaveGameCard}
+                    onContextMenu={handleOpenContextMenu}
+                  />
+                </li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
       )}
 
       {contextMenu.game && (

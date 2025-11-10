@@ -1,18 +1,11 @@
 import { LibraryGame } from "@types";
-import { useDownload, useGameCard } from "@renderer/hooks";
+import { useGameCard } from "@renderer/hooks";
 import {
-  PlayIcon,
-  DownloadIcon,
   ClockIcon,
   AlertFillIcon,
-  ThreeBarsIcon,
   TrophyIcon,
-  XIcon,
 } from "@primer/octicons-react";
-import { useTranslation } from "react-i18next";
 import { memo, useMemo } from "react";
-import { useGameActions } from "@renderer/components/game-context-menu/use-game-actions";
-import { logger } from "@renderer/logger";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -35,47 +28,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
 }: Readonly<LibraryGameCardLargeProps>) {
-  const { t } = useTranslation("library");
-  const { lastPacket } = useDownload();
   const {
     formatPlayTime,
     handleCardClick,
     handleContextMenuClick,
-    handleMenuButtonClick,
   } = useGameCard(game, onContextMenu);
-
-  const isGameDownloading =
-    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
-
-  const {
-    handlePlayGame,
-    handleOpenDownloadOptions,
-    handleCloseGame,
-    isGameRunning,
-  } = useGameActions(game);
-
-  const handleActionClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (isGameRunning) {
-      try {
-        await handleCloseGame();
-      } catch (e) {
-        logger.error(e);
-      }
-      return;
-    }
-    try {
-      await handlePlayGame();
-    } catch (err) {
-      logger.error(err);
-      try {
-        handleOpenDownloadOptions();
-      } catch (e) {
-        logger.error(e);
-      }
-    }
-  };
 
   const backgroundImage = useMemo(
     () =>
@@ -129,14 +86,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               {formatPlayTime(game.playTimeInMilliseconds)}
             </span>
           </div>
-          <button
-            type="button"
-            className="library-game-card-large__menu-button"
-            onClick={handleMenuButtonClick}
-            title="More options"
-          >
-            <ThreeBarsIcon size={16} />
-          </button>
         </div>
 
         <div className="library-game-card-large__logo-container">
@@ -183,51 +132,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               </div>
             </div>
           )}
-
-          <button
-            type="button"
-            className="library-game-card-large__action-button"
-            onClick={handleActionClick}
-          >
-            {(() => {
-              if (isGameDownloading) {
-                return (
-                  <>
-                    <DownloadIcon
-                      size={16}
-                      className="library-game-card-large__action-icon--downloading"
-                    />
-                    {t("downloading")}
-                  </>
-                );
-              }
-
-              if (isGameRunning) {
-                return (
-                  <>
-                    <XIcon size={16} />
-                    {t("close")}
-                  </>
-                );
-              }
-
-              if (game.executablePath) {
-                return (
-                  <>
-                    <PlayIcon size={16} />
-                    {t("play")}
-                  </>
-                );
-              }
-
-              return (
-                <>
-                  <DownloadIcon size={16} />
-                  {t("download")}
-                </>
-              );
-            })()}
-          </button>
         </div>
       </div>
     </button>

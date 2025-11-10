@@ -4,7 +4,6 @@ import { memo } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
-  ThreeBarsIcon,
   TrophyIcon,
 } from "@primer/octicons-react";
 import "./library-game-card.scss";
@@ -31,7 +30,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     formatPlayTime,
     handleCardClick,
     handleContextMenuClick,
-    handleMenuButtonClick,
   } = useGameCard(game, onContextMenu);
 
   const coverImage =
@@ -69,18 +67,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               {formatPlayTime(game.playTimeInMilliseconds, true)}
             </span>
           </div>
-
-          <button
-            type="button"
-            className="library-game-card__menu-button"
-            onClick={handleMenuButtonClick}
-            title="More options"
-          >
-            <ThreeBarsIcon size={16} />
-          </button>
         </div>
 
-        {/* Achievements section - shown on hover */}
         {(game.achievementCount ?? 0) > 0 && (
           <div className="library-game-card__achievements">
             <div className="library-game-card__achievement-header">
