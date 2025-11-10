@@ -13,6 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Каталог",
+    "library": "Библиотека",
     "downloads": "Загрузки",
     "settings": "Настройки",
     "my_library": "Библиотека",
@@ -733,5 +734,26 @@
     "hydra_cloud_feature_found": "Вы только что открыли для себя функцию Hydra Cloud!",
     "learn_more": "Подробнее",
     "debrid_description": "Скачивайте в 4 раза быстрее с Nimbus"
+  },
+  "library": {
+    "library": "Библиотека",
+    "play": "Играть",
+    "download": "Скачать",
+    "downloading": "Скачивание",
+    "game": "игра",
+    "games": "игры",
+    "grid_view": "Вид сетки",
+    "compact_view": "Компактный вид",
+    "large_view": "Большой вид",
+    "no_games_title": "Ваша библиотека пуста",
+    "no_games_description": "Добавьте игры из каталога или скачайте их, чтобы начать",
+    "amount_hours": "{{amount}} часов",
+    "amount_minutes": "{{amount}} минут",
+    "amount_hours_short": "{{amount}}ч",
+    "amount_minutes_short": "{{amount}}м",
+    "manual_playtime_tooltip": "Время игры было обновлено вручную",
+    "all_games": "Все игры",
+    "recently_played": "Недавно сыгранные",
+    "favorites": "Избранное"
   }
 }
