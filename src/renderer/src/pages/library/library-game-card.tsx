@@ -1,11 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { memo } from "react";
-import {
-  ClockIcon,
-  AlertFillIcon,
-  TrophyIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -26,11 +22,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   onMouseLeave,
   onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
-  const {
-    formatPlayTime,
-    handleCardClick,
-    handleContextMenuClick,
-  } = useGameCard(game, onContextMenu);
+  const { formatPlayTime, handleCardClick, handleContextMenuClick } =
+    useGameCard(game, onContextMenu);
 
   const coverImage =
     game.coverImageUrl ??
