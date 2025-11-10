@@ -32,6 +32,7 @@ const copyThemeAchievementSound = async (
   await themesSublevel.put(themeId, {
     ...theme,
     hasCustomSound: true,
+    originalSoundPath: sourcePath,
     updatedAt: new Date(),
   });
 };
