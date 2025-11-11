@@ -71,7 +71,7 @@ export default function Library() {
   );
 
   const handleCloseContextMenu = useCallback(() => {
-    setContextMenu({ game: null, visible: false, position: { x: 0, y: 0 } });
+    setContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
 
   const filteredLibrary = useMemo(() => {
