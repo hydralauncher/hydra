@@ -9,6 +9,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -39,6 +40,9 @@ export interface AppProps {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
+
+  // Listen for new download options updates
+  useDownloadOptionsListener();
 
   const { t } = useTranslation("app");
 

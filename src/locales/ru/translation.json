@@ -195,6 +195,7 @@
     "download_in_progress": "Идёт загрузка",
     "download_paused": "Загрузка приостановлена",
     "last_downloaded_option": "Последний вариант загрузки",
+    "new_download_option": "Новый",
     "create_steam_shortcut": "Создать ярлык Steam",
     "create_shortcut_success": "Ярлык создан",
     "you_might_need_to_restart_steam": "Возможно, вам потребуется перезапустить Steam, чтобы увидеть изменения",
