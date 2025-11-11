@@ -20,7 +20,7 @@ export const requestSteam250 = async (path: string) => {
           if (!steamGameUrl) return null;
 
           return {
-            title: $title.textContent,
+            title: $title.getAttribute("data-title") || "",
             objectId: steamGameUrl.split("/").pop(),
           } as Steam250Game;
         })

@@ -70,8 +70,10 @@ export function GameContextMenu({
       onClick: () => {
         if (isGameRunning) {
           void handleCloseGame();
-        } else {
+        } else if (canPlay) {
           void handlePlayGame();
+        } else {
+          handleOpenDownloadOptions();
         }
       },
       disabled: isDeleting,
