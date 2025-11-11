@@ -83,10 +83,7 @@ export function SidebarGameItem({
 
           {(game.newDownloadOptionsCount ?? 0) > 0 && (
             <span className="sidebar__game-badge">
-              <div className="sidebar__game-badge-plus">+</div>
-              <div className="sidebar__game-badge-count">
-                {game.newDownloadOptionsCount}
-              </div>
+              +{game.newDownloadOptionsCount}
             </span>
           )}
         </button>
