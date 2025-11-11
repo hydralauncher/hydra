@@ -46,7 +46,11 @@ export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
 
 export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
 
+export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
+
 export const MAIN_LOOP_INTERVAL = 2000;
+
+export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
 
 export const DECKY_PLUGINS_LOCATION = path.join(
   SystemPath.getPath("home"),

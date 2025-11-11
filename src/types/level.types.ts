@@ -59,6 +59,7 @@ export interface Game {
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
+  newDownloadOptionsCount?: number;
 }
 
 export interface Download {
@@ -114,6 +115,7 @@ export interface UserPreferences {
   achievementNotificationsEnabled?: boolean;
   achievementCustomNotificationsEnabled?: boolean;
   achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
+  achievementSoundVolume?: number;
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;

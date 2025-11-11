@@ -5,6 +5,8 @@ export interface Theme {
   authorName?: string;
   isActive: boolean;
   code: string;
+  hasCustomSound?: boolean;
+  originalSoundPath?: string;
   createdAt: Date;
   updatedAt: Date;
 }

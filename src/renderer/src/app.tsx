@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from "react";
-import achievementSound from "@renderer/assets/audio/achievement.wav";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 
 import {
@@ -10,6 +9,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -25,7 +25,12 @@ import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import { injectCustomCss, removeCustomCss } from "./helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "./helpers";
 import "./app.scss";
 
 export interface AppProps {
@@ -35,6 +40,9 @@ export interface AppProps {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
+
+  // Listen for new download options updates
+  useDownloadOptionsListener();
 
   const { t } = useTranslation("app");
 
@@ -216,9 +224,11 @@ export function App() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
-  const playAudio = useCallback(() => {
-    const audio = new Audio(achievementSound);
-    audio.volume = 0.2;
+  const playAudio = useCallback(async () => {
+    const soundUrl = await getAchievementSoundUrl();
+    const volume = await getAchievementSoundVolume();
+    const audio = new Audio(soundUrl);
+    audio.volume = volume;
     audio.play();
   }, []);
 
