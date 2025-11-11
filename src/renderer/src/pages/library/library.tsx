@@ -19,7 +19,10 @@ export default function Library() {
     onLibraryBatchComplete?: (cb: () => void) => () => void;
   };
 
-  const [viewMode, setViewMode] = useState<ViewMode>("compact");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const savedViewMode = localStorage.getItem("library-view-mode");
+    return (savedViewMode as ViewMode) || "compact";
+  });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [contextMenu, setContextMenu] = useState<{
     game: LibraryGame | null;
@@ -30,6 +33,11 @@ export default function Library() {
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem("library-view-mode", mode);
+  }, []);
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
@@ -147,7 +155,10 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
-              <ViewOptions viewMode={viewMode} onViewModeChange={setViewMode} />
+              <ViewOptions
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+              />
             </div>
           </div>
         </div>
