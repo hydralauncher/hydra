@@ -341,6 +341,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getSystemProxy: () => ipcRenderer.invoke("getSystemProxy"),
   hydraApi: {
     get: (
       url: string,

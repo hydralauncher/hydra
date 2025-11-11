@@ -4,6 +4,7 @@ import type { UserPreferences } from "@types";
 import i18next from "i18next";
 import { db, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
+import { ProxyManager } from "@main/services";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -21,6 +22,11 @@ const updateUserPreferences = async (
 
     i18next.changeLanguage(preferences.language);
     patchUserProfile({ language: preferences.language }).catch(() => {});
+  }
+
+  // Update proxy configuration if changed
+  if (preferences.proxyConfig) {
+    ProxyManager.setProxyConfig(preferences.proxyConfig);
   }
 
   await db.put<string, UserPreferences>(

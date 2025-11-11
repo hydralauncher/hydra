@@ -17,6 +17,7 @@ import {
   Lock,
   DeckyPlugin,
   WSClient,
+  ProxyManager,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 
@@ -29,6 +30,11 @@ export const loadState = async () => {
       valueEncoding: "json",
     }
   );
+
+  // Load proxy configuration
+  if (userPreferences?.proxyConfig) {
+    ProxyManager.setProxyConfig(userPreferences.proxyConfig);
+  }
 
   await import("./events");
 
