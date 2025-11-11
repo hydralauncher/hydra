@@ -8,9 +8,21 @@
 
   &__review-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1);
     margin-bottom: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__review-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  &__review-header-bottom {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
   }
 
   &__review-user {

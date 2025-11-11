@@ -51,6 +51,16 @@ export const ImportThemeModal = ({
 
       if (!currentTheme) return;
 
+      try {
+        await window.electron.importThemeSoundFromStore(
+          theme.id,
+          themeName,
+          THEME_WEB_STORE_URL
+        );
+      } catch (soundError) {
+        logger.error("Failed to import theme sound", soundError);
+      }
+
       const activeTheme = await window.electron.getActiveCustomTheme();
 
       if (activeTheme) {

@@ -14,12 +14,15 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
-  getUserLibraryGames: (sortBy?: string) => Promise<void>;
+  getUserLibraryGames: (sortBy?: string, reset?: boolean) => Promise<void>;
+  loadMoreLibraryGames: (sortBy?: string) => Promise<boolean>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
   libraryGames: UserGame[];
   pinnedGames: UserGame[];
+  hasMoreLibraryGames: boolean;
+  isLoadingLibraryGames: boolean;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -30,12 +33,15 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
-  getUserLibraryGames: async (_sortBy?: string) => {},
+  getUserLibraryGames: async (_sortBy?: string, _reset?: boolean) => {},
+  loadMoreLibraryGames: async (_sortBy?: string) => false,
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
   libraryGames: [],
   pinnedGames: [],
+  hasMoreLibraryGames: false,
+  isLoadingLibraryGames: false,
 });
 
 const { Provider } = userProfileContext;
@@ -62,6 +68,9 @@ export function UserProfileContextProvider({
     DEFAULT_USER_PROFILE_BACKGROUND
   );
   const [selectedBackgroundImage, setSelectedBackgroundImage] = useState("");
+  const [libraryPage, setLibraryPage] = useState(0);
+  const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
+  const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -93,7 +102,13 @@ export function UserProfileContextProvider({
   }, [userId]);
 
   const getUserLibraryGames = useCallback(
-    async (sortBy?: string) => {
+    async (sortBy?: string, reset = true) => {
+      if (reset) {
+        setLibraryPage(0);
+        setHasMoreLibraryGames(true);
+        setIsLoadingLibraryGames(true);
+      }
+
       try {
         const params = new URLSearchParams();
         params.append("take", "12");
@@ -115,16 +130,72 @@ export function UserProfileContextProvider({
         if (response) {
           setLibraryGames(response.library);
           setPinnedGames(response.pinnedGames);
+          setHasMoreLibraryGames(response.library.length === 12);
         } else {
           setLibraryGames([]);
           setPinnedGames([]);
+          setHasMoreLibraryGames(false);
         }
       } catch (error) {
         setLibraryGames([]);
         setPinnedGames([]);
+        setHasMoreLibraryGames(false);
+      } finally {
+        setIsLoadingLibraryGames(false);
       }
     },
     [userId]
+  );
+
+  const loadMoreLibraryGames = useCallback(
+    async (sortBy?: string): Promise<boolean> => {
+      if (isLoadingLibraryGames || !hasMoreLibraryGames) {
+        return false;
+      }
+
+      setIsLoadingLibraryGames(true);
+      try {
+        const nextPage = libraryPage + 1;
+        const params = new URLSearchParams();
+        params.append("take", "12");
+        params.append("skip", String(nextPage * 12));
+        if (sortBy) {
+          params.append("sortBy", sortBy);
+        }
+
+        const queryString = params.toString();
+        const url = queryString
+          ? `/users/${userId}/library?${queryString}`
+          : `/users/${userId}/library`;
+
+        const response = await window.electron.hydraApi.get<{
+          library: UserGame[];
+          pinnedGames: UserGame[];
+        }>(url);
+
+        if (response && response.library.length > 0) {
+          setLibraryGames((prev) => {
+            const existingIds = new Set(prev.map((game) => game.objectId));
+            const newGames = response.library.filter(
+              (game) => !existingIds.has(game.objectId)
+            );
+            return [...prev, ...newGames];
+          });
+          setLibraryPage(nextPage);
+          setHasMoreLibraryGames(response.library.length === 12);
+          return true;
+        } else {
+          setHasMoreLibraryGames(false);
+          return false;
+        }
+      } catch (error) {
+        setHasMoreLibraryGames(false);
+        return false;
+      } finally {
+        setIsLoadingLibraryGames(false);
+      }
+    },
+    [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
   );
 
   const getUserProfile = useCallback(async () => {
@@ -164,6 +235,8 @@ export function UserProfileContextProvider({
     setLibraryGames([]);
     setPinnedGames([]);
     setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
+    setLibraryPage(0);
+    setHasMoreLibraryGames(true);
 
     getUserProfile();
     getBadges();
@@ -177,12 +250,15 @@ export function UserProfileContextProvider({
         isMe,
         getUserProfile,
         getUserLibraryGames,
+        loadMoreLibraryGames,
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,
         badges,
         libraryGames,
         pinnedGames,
+        hasMoreLibraryGames,
+        isLoadingLibraryGames,
       }}
     >
       {children}
