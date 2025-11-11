@@ -3,11 +3,16 @@ import "./theme-editor.scss";
 import Editor from "@monaco-editor/react";
 import { AchievementCustomNotificationPosition, Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
-import { Button, SelectField } from "@renderer/components";
-import { CheckIcon } from "@primer/octicons-react";
+import { Button, SelectField, TextField } from "@renderer/components";
+import {
+  CheckIcon,
+  UploadIcon,
+  TrashIcon,
+  PlayIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { injectCustomCss } from "@renderer/helpers";
+import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
@@ -27,6 +32,7 @@ export default function ThemeEditor() {
   const [theme, setTheme] = useState<Theme | null>(null);
   const [code, setCode] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [soundPath, setSoundPath] = useState<string>("");
 
   const [isClosingNotifications, setIsClosingNotifications] = useState(false);
 
@@ -62,6 +68,9 @@ export default function ThemeEditor() {
         if (loadedTheme) {
           setTheme(loadedTheme);
           setCode(loadedTheme.code);
+          if (loadedTheme.originalSoundPath) {
+            setSoundPath(loadedTheme.originalSoundPath);
+          }
           if (shadowRootRef) {
             injectCustomCss(loadedTheme.code, shadowRootRef);
           }
@@ -106,6 +115,73 @@ export default function ThemeEditor() {
       setHasUnsavedChanges(true);
     }
   };
+
+  const handleSelectSound = useCallback(async () => {
+    if (!theme) return;
+
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Audio",
+          extensions: ["wav", "mp3", "ogg", "m4a"],
+        },
+      ],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      const originalPath = filePaths[0];
+      await window.electron.copyThemeAchievementSound(theme.id, originalPath);
+      const updatedTheme = await window.electron.getCustomThemeById(theme.id);
+      if (updatedTheme) {
+        setTheme(updatedTheme);
+        if (updatedTheme.originalSoundPath) {
+          setSoundPath(updatedTheme.originalSoundPath);
+        }
+      }
+    }
+  }, [theme]);
+
+  const handleRemoveSound = useCallback(async () => {
+    if (!theme) return;
+
+    await window.electron.removeThemeAchievementSound(theme.id);
+    const updatedTheme = await window.electron.getCustomThemeById(theme.id);
+    if (updatedTheme) {
+      setTheme(updatedTheme);
+    }
+    setSoundPath("");
+  }, [theme]);
+
+  const handlePreviewSound = useCallback(async () => {
+    if (!theme) return;
+
+    let soundUrl: string;
+
+    if (theme.hasCustomSound) {
+      const themeSoundUrl = await window.electron.getThemeSoundDataUrl(
+        theme.id
+      );
+      if (themeSoundUrl) {
+        soundUrl = themeSoundUrl;
+      } else {
+        const defaultSound = (
+          await import("@renderer/assets/audio/achievement.wav")
+        ).default;
+        soundUrl = defaultSound;
+      }
+    } else {
+      const defaultSound = (
+        await import("@renderer/assets/audio/achievement.wav")
+      ).default;
+      soundUrl = defaultSound;
+    }
+
+    const volume = await getAchievementSoundVolume();
+    const audio = new Audio(soundUrl);
+    audio.volume = volume;
+    audio.play();
+  }, [theme]);
 
   const achievementCustomNotificationPositionOptions = useMemo(() => {
     return [
@@ -164,35 +240,66 @@ export default function ThemeEditor() {
       <div className="theme-editor__footer">
         <CollapsedMenu title={t("notification_preview")}>
           <div className="theme-editor__notification-preview">
-            <SelectField
-              className="theme-editor__notification-preview__select-variation"
-              label={t("variation")}
-              options={Object.values(notificationVariations).map(
-                (variation) => {
-                  return {
-                    key: variation,
-                    value: variation,
-                    label: t(variation),
-                  };
-                }
-              )}
-              onChange={(value) =>
-                setNotificationVariation(
-                  value.target.value as keyof typeof notificationVariations
-                )
+            <div className="theme-editor__notification-preview-controls">
+              <div className="theme-editor__notification-controls">
+                <SelectField
+                  className="theme-editor__notification-preview__select-variation"
+                  label={t("variation")}
+                  options={Object.values(notificationVariations).map(
+                    (variation) => {
+                      return {
+                        key: variation,
+                        value: variation,
+                        label: t(variation),
+                      };
+                    }
+                  )}
+                  onChange={(value) =>
+                    setNotificationVariation(
+                      value.target.value as keyof typeof notificationVariations
+                    )
+                  }
+                />
+
+                <SelectField
+                  label={t("alignment")}
+                  value={notificationAlignment}
+                  onChange={(e) =>
+                    setNotificationAlignment(
+                      e.target.value as AchievementCustomNotificationPosition
+                    )
+                  }
+                  options={achievementCustomNotificationPositionOptions}
+                />
+              </div>
+            </div>
+
+            <TextField
+              label={t("select_achievement_sound")}
+              value={soundPath || ""}
+              placeholder={soundPath ? undefined : t("no_sound_file_selected")}
+              readOnly
+              disabled
+              rightContent={
+                <Button theme="outline" onClick={handleSelectSound}>
+                  <UploadIcon />
+                  {t("select")}
+                </Button>
               }
             />
 
-            <SelectField
-              label={t("alignment")}
-              value={notificationAlignment}
-              onChange={(e) =>
-                setNotificationAlignment(
-                  e.target.value as AchievementCustomNotificationPosition
-                )
-              }
-              options={achievementCustomNotificationPositionOptions}
-            />
+            {theme?.hasCustomSound && (
+              <div className="theme-editor__sound-actions-row">
+                <Button theme="outline" onClick={handleRemoveSound}>
+                  <TrashIcon />
+                  {t("remove")}
+                </Button>
+                <Button theme="outline" onClick={handlePreviewSound}>
+                  <PlayIcon />
+                  {t("preview")}
+                </Button>
+              </div>
+            )}
 
             <div className="theme-editor__notification-preview-wrapper">
               <root.div>
