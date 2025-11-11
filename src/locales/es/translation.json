@@ -193,6 +193,7 @@
     "download_in_progress": "Descarga en progreso",
     "download_paused": "Descarga pausada",
     "last_downloaded_option": "Última opción de descarga",
+    "new_download_option": "Nuevo",
     "create_steam_shortcut": "Crear atajo de Steam",
     "create_shortcut_success": "Atajo creado con éxito",
     "you_might_need_to_restart_steam": "Probablemente necesités reiniciar Steam para ver cambios",
