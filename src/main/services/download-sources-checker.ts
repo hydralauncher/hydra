@@ -5,14 +5,13 @@ import {
   updateDownloadSourcesCheckBaseline,
   updateDownloadSourcesSinceValue,
   downloadSourcesSublevel,
-  levelKeys,
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
-import type { Game, GameShop } from "@types";
+import type { Game } from "@types";
 
 interface DownloadSourcesChangeResponse {
-  shop: GameShop;
+  shop: string;
   objectId: string;
   newDownloadOptionsCount: number;
   downloadSourceIds: string[];
@@ -48,49 +47,34 @@ export class DownloadSourcesChecker {
   }
 
   private static async processApiResponse(
-    response: unknown
+    response: unknown,
+    nonCustomGames: Game[]
   ): Promise<{ gameId: string; count: number }[]> {
     if (!response || !Array.isArray(response)) {
       return [];
     }
 
     const gamesWithNewOptions: { gameId: string; count: number }[] = [];
-    const responseArray = response as DownloadSourcesChangeResponse[];
-    const gamesWithUpdates = responseArray.filter(
-      (update) => update.newDownloadOptionsCount > 0
-    );
 
-    logger.info(
-      `API returned ${gamesWithUpdates.length} games with new download options (out of ${responseArray.length} total updates)`
-    );
-
-    for (const gameUpdate of gamesWithUpdates) {
-      const gameKey = levelKeys.game(gameUpdate.shop, gameUpdate.objectId);
-      const game = await gamesSublevel.get(gameKey).catch(() => null);
-
-      if (!game) {
-        logger.info(
-          `Skipping update for ${gameKey} - game not found in database`
+    for (const gameUpdate of response as DownloadSourcesChangeResponse[]) {
+      if (gameUpdate.newDownloadOptionsCount > 0) {
+        const game = nonCustomGames.find(
+          (g) =>
+            g.shop === gameUpdate.shop && g.objectId === gameUpdate.objectId
         );
-        continue;
+
+        if (game) {
+          await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
+            ...game,
+            newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
+          });
+
+          gamesWithNewOptions.push({
+            gameId: `${game.shop}:${game.objectId}`,
+            count: gameUpdate.newDownloadOptionsCount,
+          });
+        }
       }
-
-      if (game.shop === "custom") {
-        logger.info(
-          `Skipping update for ${gameKey} - custom games are excluded`
-        );
-        continue;
-      }
-
-      await gamesSublevel.put(gameKey, {
-        ...game,
-        newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
-      });
-
-      gamesWithNewOptions.push({
-        gameId: gameKey,
-        count: gameUpdate.newDownloadOptionsCount,
-      });
     }
 
     return gamesWithNewOptions;
@@ -117,18 +101,18 @@ export class DownloadSourcesChecker {
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
-      // Get all installed games (excluding custom games and games without executable)
+      // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom" && game.executablePath
+        (game: Game) => game.shop !== "custom"
       );
       logger.info(
-        `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games with executable path`
+        `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
       );
 
       if (nonCustomGames.length === 0) {
         logger.info(
-          "No non-custom games with executable path found, skipping download sources check"
+          "No non-custom games found, skipping download sources check"
         );
         return;
       }
@@ -189,7 +173,10 @@ export class DownloadSourcesChecker {
         `Updated baseline to: ${now} (will be 'since' on next app start)`
       );
 
-      const gamesWithNewOptions = await this.processApiResponse(response);
+      const gamesWithNewOptions = await this.processApiResponse(
+        response,
+        nonCustomGames
+      );
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 

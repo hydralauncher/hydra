@@ -200,8 +200,6 @@ export function RepacksModal({
 
     if (viewedRepackIds.has(repack.id)) return false;
 
-    if (!game?.executablePath) return false;
-
     if (!lastCheckTimestamp || !repack.createdAt) {
       return false;
     }
