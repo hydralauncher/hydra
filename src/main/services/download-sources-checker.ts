@@ -9,10 +9,10 @@ import {
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
-import type { Game } from "@types";
+import type { Game, GameShop } from "@types";
 
 interface DownloadSourcesChangeResponse {
-  shop: string;
+  shop: GameShop;
   objectId: string;
   newDownloadOptionsCount: number;
   downloadSourceIds: string[];
