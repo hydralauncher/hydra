@@ -93,6 +93,7 @@
   },
   "header": {
     "search": "Search games",
+    "search_library": "Search library",
     "home": "Home",
     "catalogue": "Catalogue",
     "library": "Library",
@@ -557,6 +558,15 @@
     "platinum": "Platinum",
     "hidden": "Hidden",
     "test_notification": "Test notification",
+    "achievement_sound_volume": "Achievement sound volume",
+    "select_achievement_sound": "Select achievement sound",
+    "change_achievement_sound": "Change achievement sound",
+    "remove_achievement_sound": "Remove achievement sound",
+    "preview_sound": "Preview sound",
+    "select": "Select",
+    "preview": "Preview",
+    "remove": "Remove",
+    "no_sound_file_selected": "No sound file selected",
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on game page",
@@ -744,9 +754,8 @@
     "amount_minutes_short": "{{amount}}m",
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "all_games": "All Games",
-    "favourited_games": "Favourited",
-    "new_games": "New Games",
-    "top_10": "Top 10"
+    "recently_played": "Recently Played",
+    "favorites": "Favorites"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

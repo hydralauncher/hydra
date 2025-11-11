@@ -125,6 +125,7 @@ export interface UserPreferences {
   achievementNotificationsEnabled?: boolean;
   achievementCustomNotificationsEnabled?: boolean;
   achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
+  achievementSoundVolume?: number;
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
