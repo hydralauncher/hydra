@@ -56,6 +56,8 @@ export interface Game {
   launchOptions?: string | null;
   favorite?: boolean;
   isPinned?: boolean;
+  achievementCount?: number;
+  unlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
