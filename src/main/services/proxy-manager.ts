@@ -283,7 +283,10 @@ export class ProxyManager {
   > {
     const config = this.currentProxyConfig;
     // Manual SOCKS: build agent; System + SOCKS hint: also build agent using detected host/port
-    if (config.mode !== "manual" && !(config.mode === "system" && config.protocol?.startsWith("socks"))) {
+    if (
+      config.mode !== "manual" &&
+      !(config.mode === "system" && config.protocol?.startsWith("socks"))
+    ) {
       return {} as Record<string, never>;
     }
 
