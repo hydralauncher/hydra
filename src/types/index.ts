@@ -42,9 +42,9 @@ export interface ShopAssets {
   shop: GameShop;
   title: string;
   iconUrl: string | null;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
+  libraryHeroImageUrl: string | null;
+  libraryImageUrl: string | null;
+  logoImageUrl: string | null;
   logoPosition: string | null;
   coverImageUrl: string | null;
   downloadSources: string[];
