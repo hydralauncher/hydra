@@ -5,6 +5,7 @@ import {
   updateDownloadSourcesCheckBaseline,
   updateDownloadSourcesSinceValue,
   downloadSourcesSublevel,
+  levelKeys,
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
@@ -47,34 +48,49 @@ export class DownloadSourcesChecker {
   }
 
   private static async processApiResponse(
-    response: unknown,
-    nonCustomGames: Game[]
+    response: unknown
   ): Promise<{ gameId: string; count: number }[]> {
     if (!response || !Array.isArray(response)) {
       return [];
     }
 
     const gamesWithNewOptions: { gameId: string; count: number }[] = [];
+    const responseArray = response as DownloadSourcesChangeResponse[];
+    const gamesWithUpdates = responseArray.filter(
+      (update) => update.newDownloadOptionsCount > 0
+    );
 
-    for (const gameUpdate of response as DownloadSourcesChangeResponse[]) {
-      if (gameUpdate.newDownloadOptionsCount > 0) {
-        const game = nonCustomGames.find(
-          (g) =>
-            g.shop === gameUpdate.shop && g.objectId === gameUpdate.objectId
+    logger.info(
+      `API returned ${gamesWithUpdates.length} games with new download options (out of ${responseArray.length} total updates)`
+    );
+
+    for (const gameUpdate of gamesWithUpdates) {
+      const gameKey = levelKeys.game(gameUpdate.shop, gameUpdate.objectId);
+      const game = await gamesSublevel.get(gameKey).catch(() => null);
+
+      if (!game) {
+        logger.info(
+          `Skipping update for ${gameKey} - game not found in database`
         );
-
-        if (game) {
-          await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
-            ...game,
-            newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
-          });
-
-          gamesWithNewOptions.push({
-            gameId: `${game.shop}:${game.objectId}`,
-            count: gameUpdate.newDownloadOptionsCount,
-          });
-        }
+        continue;
       }
+
+      if (game.shop === "custom") {
+        logger.info(
+          `Skipping update for ${gameKey} - custom games are excluded`
+        );
+        continue;
+      }
+
+      await gamesSublevel.put(gameKey, {
+        ...game,
+        newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
+      });
+
+      gamesWithNewOptions.push({
+        gameId: gameKey,
+        count: gameUpdate.newDownloadOptionsCount,
+      });
     }
 
     return gamesWithNewOptions;
@@ -173,10 +189,7 @@ export class DownloadSourcesChecker {
         `Updated baseline to: ${now} (will be 'since' on next app start)`
       );
 
-      const gamesWithNewOptions = await this.processApiResponse(
-        response,
-        nonCustomGames
-      );
+      const gamesWithNewOptions = await this.processApiResponse(response);
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
