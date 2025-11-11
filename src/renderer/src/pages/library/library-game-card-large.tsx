@@ -12,12 +12,18 @@ interface LibraryGameCardLargeProps {
   ) => void;
 }
 
+const normalizePathForCss = (url: string | null | undefined): string => {
+  if (!url) return "";
+  return url.replaceAll("\\", "/");
+};
+
 const getImageWithCustomPriority = (
   customUrl: string | null | undefined,
   originalUrl: string | null | undefined,
   fallbackUrl?: string | null | undefined
 ) => {
-  return customUrl || originalUrl || fallbackUrl || "";
+  const selectedUrl = customUrl || originalUrl || fallbackUrl || "";
+  return normalizePathForCss(selectedUrl);
 };
 
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
@@ -30,15 +36,21 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const backgroundImage = useMemo(
     () =>
       getImageWithCustomPriority(
+        game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl,
-        game.iconUrl
+        game.libraryImageUrl ?? game.iconUrl
       ),
-    [game.libraryHeroImageUrl, game.libraryImageUrl, game.iconUrl]
+    [
+      game.customHeroImageUrl,
+      game.libraryHeroImageUrl,
+      game.libraryImageUrl,
+      game.iconUrl,
+    ]
   );
 
   const backgroundStyle = useMemo(
-    () => ({ backgroundImage: `url(${backgroundImage})` }),
+    () =>
+      backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
     [backgroundImage]
   );
 
@@ -49,7 +61,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     [game.unlockedAchievementCount, game.achievementCount]
   );
 
-  const logoImage = game.logoImageUrl;
+  const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
   return (
     <button
