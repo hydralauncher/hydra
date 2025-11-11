@@ -9,6 +9,8 @@ type ProfileGame = {
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
+  achievementCount: number;
+  unlockedAchievementCount: number;
 } & ShopAssets;
 
 export const mergeWithRemoteGames = async () => {
@@ -39,6 +41,8 @@ export const mergeWithRemoteGames = async () => {
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
             isPinned: game.isPinned ?? localGame.isPinned,
+            achievementCount: game.achievementCount,
+            unlockedAchievementCount: game.unlockedAchievementCount,
           });
         } else {
           await gamesSublevel.put(gameKey, {
@@ -55,6 +59,8 @@ export const mergeWithRemoteGames = async () => {
             isDeleted: false,
             favorite: game.isFavorite ?? false,
             isPinned: game.isPinned ?? false,
+            achievementCount: game.achievementCount,
+            unlockedAchievementCount: game.unlockedAchievementCount,
           });
         }
 

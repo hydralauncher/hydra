@@ -4,7 +4,6 @@ import {
   downloadsSublevel,
   gamesShopAssetsSublevel,
   gamesSublevel,
-  gameAchievementsSublevel,
 } from "@main/level";
 
 const getLibrary = async (): Promise<LibraryGame[]> => {
@@ -19,33 +18,19 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
 
-            let unlockedAchievementCount = 0;
-            let achievementCount = 0;
-
-            try {
-              const achievements = await gameAchievementsSublevel.get(key);
-              if (achievements) {
-                achievementCount = achievements.achievements.length;
-                unlockedAchievementCount =
-                  achievements.unlockedAchievements.length;
-              }
-            } catch {
-              // No achievements data for this game
-            }
-
             return {
               id: key,
               ...game,
               download: download ?? null,
-              unlockedAchievementCount,
-              achievementCount,
+              unlockedAchievementCount: game.unlockedAchievementCount ?? 0,
+              achievementCount: game.achievementCount ?? 0,
               // Spread gameAssets last to ensure all image URLs are properly set
               ...gameAssets,
               // Preserve custom image URLs from game if they exist
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,
               customHeroImageUrl: game.customHeroImageUrl,
-            } as LibraryGame;
+            };
           })
       );
     });
