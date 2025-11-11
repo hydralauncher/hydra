@@ -103,6 +103,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  getDownloadSourcesCheckBaseline: () =>
+    ipcRenderer.invoke("getDownloadSourcesCheckBaseline"),
+  getDownloadSourcesSinceValue: () =>
+    ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
   toggleAutomaticCloudSync: (
@@ -179,6 +183,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
+  clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
     ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
   updateLaunchOptions: (
@@ -599,6 +605,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-custom-theme-updated", listener);
     return () =>
       ipcRenderer.removeListener("on-custom-theme-updated", listener);
+  },
+  onNewDownloadOptions: (
+    cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gamesWithNewOptions: { gameId: string; count: number }[]
+    ) => cb(gamesWithNewOptions);
+    ipcRenderer.on("on-new-download-options", listener);
+    return () =>
+      ipcRenderer.removeListener("on-new-download-options", listener);
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
