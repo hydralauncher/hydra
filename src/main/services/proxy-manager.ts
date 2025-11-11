@@ -118,8 +118,10 @@ export class ProxyManager {
         winhttpQuery.stdout &&
         /Proxy Server\s*:\s*(.+)/i.test(winhttpQuery.stdout)
       ) {
-        const m = winhttpQuery.stdout.match(/Proxy Server\s*:\s*(.+)/i);
-        const s = m?.[1]?.trim();
+        const proxyMatch = winhttpQuery.stdout.match(
+          /Proxy Server\s*:\s*(.+)/i
+        );
+        const s = proxyMatch?.[1]?.trim();
         if (s && s.toLowerCase() !== "direct access (no proxy server)") {
           const first = s.split(";")[0];
           const value = first.replace(/^https?=|^http=/i, "").trim();
