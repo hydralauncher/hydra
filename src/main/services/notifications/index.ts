@@ -18,7 +18,7 @@ import { getThemeSoundPath } from "@main/helpers";
 import { processProfileImage } from "@main/events/profile/process-profile-image";
 
 const getStaticImage = async (path: string) => {
-  return processProfileImage(path)
+  return processProfileImage(path, "jpg")
     .then((response) => response.imagePath)
     .catch(() => path);
 };
