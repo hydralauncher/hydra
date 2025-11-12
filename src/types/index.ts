@@ -23,6 +23,7 @@ export interface GameRepack {
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
+  createdAt: string;
 }
 
 export interface DownloadSource {
@@ -41,9 +42,9 @@ export interface ShopAssets {
   shop: GameShop;
   title: string;
   iconUrl: string | null;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
+  libraryHeroImageUrl: string | null;
+  libraryImageUrl: string | null;
+  logoImageUrl: string | null;
   logoPosition: string | null;
   coverImageUrl: string | null;
   downloadSources: string[];
@@ -244,6 +245,7 @@ export interface GameReview {
   isBlocked: boolean;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
+  playTimeInSeconds?: number;
   user: {
     id: string;
     displayName: string;
@@ -252,7 +254,7 @@ export interface GameReview {
   translations: {
     [key: string]: string;
   };
-  detectedLanguage: string;
+  detectedLanguage: string | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -361,6 +363,8 @@ export type LibraryGame = Game &
   Partial<ShopAssets> & {
     id: string;
     download: Download | null;
+    unlockedAchievementCount?: number;
+    achievementCount?: number;
   };
 
 export type UserGameDetails = ShopAssets & {

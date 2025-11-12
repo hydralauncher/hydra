@@ -142,6 +142,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    clearNewDownloadOptions: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     toggleGamePin: (
       shop: GameShop,
       objectId: string,
@@ -159,6 +163,7 @@ declare global {
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
+    refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
@@ -214,6 +219,8 @@ declare global {
     ) => Promise<void>;
     getDownloadSources: () => Promise<DownloadSource[]>;
     syncDownloadSources: () => Promise<void>;
+    getDownloadSourcesCheckBaseline: () => Promise<string | null>;
+    getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
@@ -409,11 +416,28 @@ declare global {
     getCustomThemeById: (themeId: string) => Promise<Theme | null>;
     getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
+    copyThemeAchievementSound: (
+      themeId: string,
+      sourcePath: string
+    ) => Promise<void>;
+    removeThemeAchievementSound: (themeId: string) => Promise<void>;
+    getThemeSoundPath: (themeId: string) => Promise<string | null>;
+    getThemeSoundDataUrl: (themeId: string) => Promise<string | null>;
+    importThemeSoundFromStore: (
+      themeId: string,
+      themeName: string,
+      storeUrl: string
+    ) => Promise<void>;
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Download Options */
+    onNewDownloadOptions: (
+      cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+    ) => () => Electron.IpcRenderer;
   }
 
   interface Window {

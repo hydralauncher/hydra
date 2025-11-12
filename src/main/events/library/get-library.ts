@@ -22,11 +22,15 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               id: key,
               ...game,
               download: download ?? null,
+              unlockedAchievementCount: game.unlockedAchievementCount ?? 0,
+              achievementCount: game.achievementCount ?? 0,
+              // Spread gameAssets last to ensure all image URLs are properly set
               ...gameAssets,
-              // Ensure compatibility with LibraryGame type
-              libraryHeroImageUrl:
-                game.libraryHeroImageUrl ?? gameAssets?.libraryHeroImageUrl,
-            } as LibraryGame;
+              // Preserve custom image URLs from game if they exist
+              customIconUrl: game.customIconUrl,
+              customLogoImageUrl: game.customLogoImageUrl,
+              customHeroImageUrl: game.customHeroImageUrl,
+            };
           })
       );
     });
