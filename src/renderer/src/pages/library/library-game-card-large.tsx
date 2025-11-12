@@ -1,7 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -48,6 +48,20 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     ]
   );
 
+  const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
+    game.unlockedAchievementCount ?? 0
+  );
+
+  useEffect(() => {
+    if (game.unlockedAchievementCount) return;
+
+    window.electron
+      .getUnlockedAchievements(game.objectId, game.shop)
+      .then((achievements) => {
+        setUnlockedAchievementsCount(achievements.length);
+      });
+  }, [game]);
+
   const backgroundStyle = useMemo(
     () =>
       backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
@@ -56,9 +70,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const achievementBarStyle = useMemo(
     () => ({
-      width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+      width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
     }),
-    [game.unlockedAchievementCount, game.achievementCount]
+    [unlockedAchievementsCount, game.achievementCount]
   );
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
@@ -116,14 +130,12 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                     className="library-game-card-large__achievement-trophy"
                   />
                   <span className="library-game-card-large__achievement-count">
-                    {game.unlockedAchievementCount ?? 0} /{" "}
-                    {game.achievementCount ?? 0}
+                    {unlockedAchievementsCount} / {game.achievementCount ?? 0}
                   </span>
                 </div>
                 <span className="library-game-card-large__achievement-percentage">
                   {Math.round(
-                    ((game.unlockedAchievementCount ?? 0) /
-                      (game.achievementCount ?? 1)) *
+                    (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
                       100
                   )}
                   %
