@@ -1,121 +1,120 @@
+import asyncio
+from typing import Optional, List, Dict, Any
 import aria2p
 from aria2p.client import ClientException as DownloadNotFound
 
+
 class HttpMultiLinkDownloader:
     def __init__(self):
-        self.downloads = []
-        self.completed_downloads = []
-        self.total_size = None
-        self.aria2 = aria2p.API(
-            aria2p.Client(
-                host="http://localhost",
-                port=6800,
-                secret=""
+        self.downloads: List[aria2p.Download] = []
+        self.completed_downloads: List[Dict[str, Any]] = []
+        self.total_size: Optional[int] = None
+        self._aria2: Optional[aria2p.API] = None
+        self._lock = asyncio.Lock()
+
+    @property
+    def aria2(self) -> aria2p.API:
+        if self._aria2 is None:
+            self._aria2 = aria2p.API(
+                aria2p.Client(
+                    host="http://localhost",
+                    port=6800,
+                    secret=""
+                )
             )
-        )
+        return self._aria2
 
-    def start_download(self, urls: list[str], save_path: str, header: str = None, out: str = None, total_size: int = None):
-        """Add multiple URLs to download queue with same options"""
-        options = {"dir": save_path}
-        if header:
-            options["header"] = header
-        if out:
-            options["out"] = out
+    async def start_download(self, urls: List[str], save_path: str, header: Optional[str] = None, 
+                            out: Optional[str] = None, total_size: Optional[int] = None):
+        async with self._lock:
+            options = {"dir": save_path}
+            if header:
+                options["header"] = header
+            if out:
+                options["out"] = out
 
-        # Clear any existing downloads first
-        self.cancel_download()
-        self.completed_downloads = []
-        self.total_size = total_size
+            await self.cancel_download()
+            self.completed_downloads.clear()
+            self.total_size = total_size
 
-        for url in urls:
-            try:
-                added_downloads = self.aria2.add(url, options=options)
+            tasks = [self._add_download(url, options) for url in urls]
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _add_download(self, url: str, options: Dict[str, Any]):
+        try:
+            added_downloads = await asyncio.to_thread(self.aria2.add, url, options=options)
+            async with self._lock:
                 self.downloads.extend(added_downloads)
-            except Exception as e:
-                print(f"Error adding download for URL {url}: {str(e)}")
+        except Exception:
+            pass
 
-    def pause_download(self):
-        """Pause all active downloads"""
-        if self.downloads:
-            try:
-                self.aria2.pause(self.downloads)
-            except Exception as e:
-                print(f"Error pausing downloads: {str(e)}")
+    async def pause_download(self):
+        async with self._lock:
+            if self.downloads:
+                try:
+                    await asyncio.to_thread(self.aria2.pause, self.downloads)
+                except Exception:
+                    pass
 
-    def cancel_download(self):
-        """Cancel and remove all downloads"""
-        if self.downloads:
-            try:
-                # First try to stop the downloads
-                self.aria2.remove(self.downloads)
-            except Exception as e:
-                print(f"Error removing downloads: {str(e)}")
-            finally:
-                # Clear the downloads list regardless of success/failure
-                self.downloads = []
-                self.completed_downloads = []
+    async def cancel_download(self):
+        async with self._lock:
+            if self.downloads:
+                try:
+                    await asyncio.to_thread(self.aria2.remove, self.downloads)
+                except Exception:
+                    pass
+                finally:
+                    self.downloads.clear()
+                    self.completed_downloads.clear()
 
-    def get_download_status(self):
-        """Get status for all tracked downloads, auto-remove completed/failed ones"""
+    async def get_download_status(self):
         if not self.downloads and not self.completed_downloads:
             return []
 
-        total_completed = 0
+        async with self._lock:
+            downloads_copy = list(self.downloads)
+            completed_downloads_copy = list(self.completed_downloads)
+            total_size = self.total_size
+
+        total_completed = sum(d['size'] for d in completed_downloads_copy)
         current_download_speed = 0
-        active_downloads = []
-        to_remove = []
+        active_downloads: List[Dict[str, Any]] = []
+        to_remove: List[aria2p.Download] = []
+        new_completed: List[Dict[str, Any]] = []
 
-        # First calculate sizes from completed downloads
-        for completed in self.completed_downloads:
-            total_completed += completed['size']
-
-        # Then check active downloads
-        for download in self.downloads:
-            try:
-                current_download = self.aria2.get_download(download.gid)
-
-                # Skip downloads that are not properly initialized
-                if not current_download or not current_download.files:
+        tasks = [self._get_single_download_status(download) for download in downloads_copy]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for download, result in zip(downloads_copy, results):
+            if result is None:
+                to_remove.append(download)
+            elif isinstance(result, dict):
+                if result.get('complete', False):
+                    new_completed.append(result)
                     to_remove.append(download)
-                    continue
-
-                # Add to completed size and speed calculations    
-                total_completed += current_download.completed_length
-                current_download_speed += current_download.download_speed
-
-                # If download is complete, move it to completed_downloads
-                if current_download.status == 'complete':
-                    self.completed_downloads.append({
-                        'name': current_download.name,
-                        'size': current_download.total_length
-                    })
-                    to_remove.append(download)
+                    total_completed += result.get('completed', 0)
                 else:
                     active_downloads.append({
-                        'name': current_download.name,
-                        'size': current_download.total_length,
-                        'completed': current_download.completed_length,
-                        'speed': current_download.download_speed
+                        'name': result.get('name', ''),
+                        'size': result.get('size', 0),
+                        'completed': result.get('completed', 0),
+                        'speed': result.get('speed', 0)
                     })
+                    total_completed += result.get('completed', 0)
+                    current_download_speed += result.get('speed', 0)
 
-            except DownloadNotFound:
-                to_remove.append(download)
-                continue
-            except Exception as e:
-                print(f"Error getting download status: {str(e)}")
-                continue
-
-        # Clean up completed/removed downloads from active list
-        for download in to_remove:
-            try:
-                if download in self.downloads:
+        async with self._lock:
+            for download in to_remove:
+                try:
                     self.downloads.remove(download)
-            except ValueError:
-                pass
+                except ValueError:
+                    pass
+            
+            self.completed_downloads.extend(new_completed)
 
-        # Return aggregate status
-        if self.total_size or active_downloads or self.completed_downloads:
-            # Use the first active download's name as the folder name, or completed if none active
+            if not (self.total_size or active_downloads or self.completed_downloads):
+                return []
+
             folder_name = None
             if active_downloads:
                 folder_name = active_downloads[0]['name']
@@ -125,22 +124,21 @@ class HttpMultiLinkDownloader:
             if folder_name and '/' in folder_name:
                 folder_name = folder_name.split('/')[0]
 
-            # Use provided total size if available, otherwise sum from downloads
-            total_size = self.total_size
             if not total_size:
-                total_size = sum(d['size'] for d in active_downloads) + sum(d['size'] for d in self.completed_downloads)
+                total_size = (sum(d['size'] for d in active_downloads) + 
+                            sum(d['size'] for d in self.completed_downloads))
 
-            # Calculate completion status based on total downloaded vs total size
-            is_complete = len(active_downloads) == 0 and total_completed >= (total_size * 0.99)  # Allow 1% margin for size differences
+            is_complete = (len(active_downloads) == 0 and 
+                          total_size > 0 and 
+                          total_completed >= (total_size * 0.99))
 
-            # If all downloads are complete, clear the completed_downloads list to prevent status updates
             if is_complete:
-                self.completed_downloads = []
+                self.completed_downloads.clear()
 
             return [{
-                'folderName': folder_name,
-                'fileSize': total_size,
-                'progress': total_completed / total_size if total_size > 0 else 0,
+                'folderName': folder_name or '',
+                'fileSize': total_size or 0,
+                'progress': total_completed / total_size if total_size > 0 else 0.0,
                 'downloadSpeed': current_download_speed,
                 'numPeers': 0,
                 'numSeeds': 0,
@@ -148,4 +146,35 @@ class HttpMultiLinkDownloader:
                 'bytesDownloaded': total_completed,
             }]
 
-        return []
+    async def _get_single_download_status(self, download: aria2p.Download) -> Optional[Dict[str, Any]]:
+        try:
+            current_download = await asyncio.to_thread(self.aria2.get_download, download.gid)
+
+            if not current_download or not current_download.files:
+                return None
+
+            completed = current_download.completed_length or 0
+            speed = current_download.download_speed or 0
+            total_length = current_download.total_length or 0
+
+            if current_download.status == 'complete':
+                return {
+                    'complete': True,
+                    'name': current_download.name or '',
+                    'size': total_length,
+                    'completed': total_length,
+                    'speed': 0
+                }
+            else:
+                return {
+                    'complete': False,
+                    'name': current_download.name or '',
+                    'size': total_length,
+                    'completed': completed,
+                    'speed': speed
+                }
+
+        except DownloadNotFound:
+            return None
+        except Exception:
+            return None

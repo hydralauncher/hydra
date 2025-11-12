@@ -1,72 +1,103 @@
-from flask import Flask, request, jsonify
-import sys, json, urllib.parse, psutil
+import asyncio
+import sys
+import json
+import urllib.parse
+import psutil
+from typing import Dict, Any, Optional
+from quart import Quart, request, jsonify
 from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
 from http_multi_link_downloader import HttpMultiLinkDownloader
 import libtorrent as lt
 
-app = Flask(__name__)
+# Use uvloop on Linux/Mac for better performance
+if sys.platform != 'win32':
+    try:
+        import uvloop
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    except ImportError:
+        pass
+
+app = Quart(__name__)
 
 # Retrieve command line arguments
 torrent_port = sys.argv[1]
 http_port = sys.argv[2]
 rpc_password = sys.argv[3]
-start_download_payload = sys.argv[4]
-start_seeding_payload = sys.argv[5]
+start_download_payload = sys.argv[4] if len(sys.argv) > 4 else None
+start_seeding_payload = sys.argv[5] if len(sys.argv) > 5 else None
 
-downloads = {}
-# This can be streamed down from Node
+downloads: Dict[int, Any] = {}
 downloading_game_id = -1
 
-torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+torrent_session = lt.session({'listen_interfaces': f'0.0.0.0:{torrent_port}'})
 
-if start_download_payload:
-    initial_download = json.loads(urllib.parse.unquote(start_download_payload))
-    downloading_game_id = initial_download['game_id']
+
+async def initialize_downloads():
+    global downloading_game_id
     
-    if isinstance(initial_download['url'], list):
-        # Handle multiple URLs using HttpMultiLinkDownloader
-        http_multi_downloader = HttpMultiLinkDownloader()
-        downloads[initial_download['game_id']] = http_multi_downloader
-        try:
-            http_multi_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get("out"))
-        except Exception as e:
-            print("Error starting multi-link download", e)
-    elif initial_download['url'].startswith('magnet'):
-        torrent_downloader = TorrentDownloader(torrent_session)
-        downloads[initial_download['game_id']] = torrent_downloader
-        try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
-        except Exception as e:
-            print("Error starting torrent download", e)
-    else:
-        http_downloader = HttpDownloader()
-        downloads[initial_download['game_id']] = http_downloader
-        try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('out'))
-        except Exception as e:
-            print("Error starting http download", e)
+    if start_download_payload:
+        initial_download = json.loads(urllib.parse.unquote(start_download_payload))
+        downloading_game_id = initial_download['game_id']
+        
+        if isinstance(initial_download['url'], list):
+            http_multi_downloader = HttpMultiLinkDownloader()
+            downloads[initial_download['game_id']] = http_multi_downloader
+            try:
+                await http_multi_downloader.start_download(
+                    initial_download['url'],
+                    initial_download['save_path'],
+                    initial_download.get('header'),
+                    initial_download.get("out"),
+                    initial_download.get('total_size')
+                )
+            except Exception:
+                pass
+        elif initial_download['url'].startswith('magnet'):
+            torrent_downloader = TorrentDownloader(torrent_session)
+            downloads[initial_download['game_id']] = torrent_downloader
+            try:
+                await torrent_downloader.start_download(
+                    initial_download['url'],
+                    initial_download['save_path']
+                )
+            except Exception:
+                pass
+        else:
+            http_downloader = HttpDownloader()
+            downloads[initial_download['game_id']] = http_downloader
+            try:
+                await http_downloader.start_download(
+                    initial_download['url'],
+                    initial_download['save_path'],
+                    initial_download.get('header', ''),
+                    initial_download.get('out')
+                )
+            except Exception:
+                pass
 
-if start_seeding_payload:
-    initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
-    for seed in initial_seeding:
-        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
-        downloads[seed['game_id']] = torrent_downloader
-        try:
-            torrent_downloader.start_download(seed['url'], seed['save_path'])
-        except Exception as e:
-            print("Error starting seeding", e)
+    if start_seeding_payload:
+        initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
+        for seed in initial_seeding:
+            torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+            downloads[seed['game_id']] = torrent_downloader
+            try:
+                await torrent_downloader.start_download(seed['url'], seed['save_path'])
+            except Exception:
+                pass
 
-def validate_rpc_password():
-    """Middleware to validate RPC password."""
+
+async def validate_rpc_password():
     header_password = request.headers.get('x-hydra-rpc-password')
     if header_password != rpc_password:
         return jsonify({"error": "Unauthorized"}), 401
+    return None
+
 
 @app.route("/status", methods=["GET"])
-def status():
-    auth_error = validate_rpc_password()
+async def status():
+    auth_error = await validate_rpc_password()
     if auth_error:
         return auth_error
 
@@ -74,158 +105,180 @@ def status():
     if not downloader:
         return jsonify(None)
 
-    status = downloader.get_download_status()
-    if not status:
+    status_result = await downloader.get_download_status()
+    if not status_result:
         return jsonify(None)
 
-    if isinstance(status, list):
-        if not status:  # Empty list
+    if isinstance(status_result, list):
+        if not status_result:
             return jsonify(None)
+        return jsonify(status_result[0]), 200
 
-        # For multi-link downloader, use the aggregated status
-        # The status will already be aggregated by the HttpMultiLinkDownloader
-        return jsonify(status[0]), 200
+    return jsonify(status_result), 200
 
-    return jsonify(status), 200
 
 @app.route("/seed-status", methods=["GET"])
-def seed_status():
-    auth_error = validate_rpc_password()
+async def seed_status():
+    auth_error = await validate_rpc_password()
     if auth_error:
         return auth_error
     
-    seed_status = []
+    seed_status_list = []
 
     for game_id, downloader in downloads.items():
         if not downloader:
             continue
         
-        response = downloader.get_download_status()
+        response = await downloader.get_download_status()
         if not response:
             continue
         
         if isinstance(response, list):
-            # For multi-link downloader, check if all files are complete
-            if response and all(item['status'] == 'complete' for item in response):
-                seed_status.append({
+            if response and all(item.get('status') == 'complete' for item in response):
+                seed_status_list.append({
                     'gameId': game_id,
                     'status': 'complete',
-                    'folderName': response[0]['folderName'],
-                    'fileSize': sum(item['fileSize'] for item in response),
-                    'bytesDownloaded': sum(item['bytesDownloaded'] for item in response),
+                    'folderName': response[0].get('folderName', ''),
+                    'fileSize': sum(item.get('fileSize', 0) for item in response),
+                    'bytesDownloaded': sum(item.get('bytesDownloaded', 0) for item in response),
                     'downloadSpeed': 0,
                     'numPeers': 0,
                     'numSeeds': 0,
                     'progress': 1.0
                 })
-        elif response.get('status') == 5:  # Original torrent seeding check
-            seed_status.append({
+        elif response.get('status') == 5:
+            seed_status_list.append({
                 'gameId': game_id,
                 **response,
             })
 
-    return jsonify(seed_status), 200
+    return jsonify(seed_status_list), 200
+
 
 @app.route("/healthcheck", methods=["GET"])
-def healthcheck():
+async def healthcheck():
     return "ok", 200
 
+
 @app.route("/process-list", methods=["GET"])
-def process_list():
-    auth_error = validate_rpc_password()
+async def process_list():
+    auth_error = await validate_rpc_password()
     if auth_error:
         return auth_error
     
-    iter_list  = ['exe', 'pid', 'name']
+    iter_list = ['exe', 'pid', 'name']
     if sys.platform != 'win32':
-        iter_list.append('cwd')
-        iter_list.append('environ')
+        iter_list.extend(['cwd', 'environ'])
 
-    process_list = [proc.info for proc in psutil.process_iter(iter_list)]
-    return jsonify(process_list), 200
+    def _get_processes():
+        return [proc.info for proc in psutil.process_iter(iter_list)]
+    
+    process_list_result = await asyncio.to_thread(_get_processes)
+    return jsonify(process_list_result), 200
+
 
 @app.route("/profile-image", methods=["POST"])
-def profile_image():
-    auth_error = validate_rpc_password()
+async def profile_image():
+    auth_error = await validate_rpc_password()
     if auth_error:
         return auth_error
 
-    data = request.get_json()
+    data = await request.get_json()
     image_path = data.get('image_path')
 
+    if not image_path:
+        return jsonify({"error": "image_path is required"}), 400
+
     try:
-        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path)
+        processed_image_path, mime_type = await ProfileImageProcessor.process_image(image_path)
         return jsonify({'imagePath': processed_image_path, 'mimeType': mime_type}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+
 @app.route("/action", methods=["POST"])
-def action():
-    global torrent_session
+async def action():
     global downloading_game_id
 
-    auth_error = validate_rpc_password()
+    auth_error = await validate_rpc_password()
     if auth_error:
         return auth_error
 
-    data = request.get_json()
-    action = data.get('action')
+    data = await request.get_json()
+    action_type = data.get('action')
     game_id = data.get('game_id')
 
-    if action == 'start':
+    if action_type == 'start':
         url = data.get('url')
+        if not url:
+            return jsonify({"error": "url is required"}), 400
 
         existing_downloader = downloads.get(game_id)
 
         if isinstance(url, list):
-            # Handle multiple URLs using HttpMultiLinkDownloader
             if existing_downloader and isinstance(existing_downloader, HttpMultiLinkDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                await existing_downloader.start_download(
+                    url, data['save_path'], data.get('header'), data.get('out'), data.get('total_size')
+                )
             else:
                 http_multi_downloader = HttpMultiLinkDownloader()
                 downloads[game_id] = http_multi_downloader
-                http_multi_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                await http_multi_downloader.start_download(
+                    url, data['save_path'], data.get('header'), data.get('out'), data.get('total_size')
+                )
         elif url.startswith('magnet'):
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
-                existing_downloader.start_download(url, data['save_path'])
+                await existing_downloader.start_download(url, data['save_path'])
             else:
                 torrent_downloader = TorrentDownloader(torrent_session)
                 downloads[game_id] = torrent_downloader
-                torrent_downloader.start_download(url, data['save_path'])
+                await torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                await existing_downloader.start_download(
+                    url, data['save_path'], data.get('header', ''), data.get('out')
+                )
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
+                await http_downloader.start_download(
+                    url, data['save_path'], data.get('header', ''), data.get('out')
+                )
         
         downloading_game_id = game_id
 
-    elif action == 'pause':
+    elif action_type == 'pause':
         downloader = downloads.get(game_id)
         if downloader:
-            downloader.pause_download()
+            await downloader.pause_download()
         
         if downloading_game_id == game_id:
             downloading_game_id = -1
-    elif action == 'cancel':
+            
+    elif action_type == 'cancel':
         downloader = downloads.get(game_id)
         if downloader:
-            downloader.cancel_download()
-    elif action == 'resume_seeding':
+            await downloader.cancel_download()
+            
+    elif action_type == 'resume_seeding':
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[game_id] = torrent_downloader
-        torrent_downloader.start_download(data['url'], data['save_path'])
-    elif action == 'pause_seeding':
+        await torrent_downloader.start_download(data['url'], data['save_path'])
+        
+    elif action_type == 'pause_seeding':
         downloader = downloads.get(game_id)
         if downloader:
-            downloader.cancel_download()
-
+            await downloader.cancel_download()
     else:
         return jsonify({"error": "Invalid action"}), 400
 
     return "", 200
+
+
+@app.before_serving
+async def startup():
+    await initialize_downloads()
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(http_port))
