@@ -13,7 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Katalógus",
-    "library": "Könyvtár",						 
+    "library": "Könyvtár",
     "downloads": "Letöltések",
     "settings": "Beállítások",
     "my_library": "Könyvtáram",
@@ -227,7 +227,7 @@
     "show_more": "Mutass többet",
     "show_less": "Mutass kevesebbet",
     "reviews": "Vélemények",
-    "review_played_for": "Játszva",									  
+    "review_played_for": "Játszva",
     "leave_a_review": "Hagyd itt a véleményed",
     "write_review_placeholder": "Oszd meg gondolatod a játékról...",
     "sort_newest": "Legújabb",
@@ -368,7 +368,7 @@
     "show_original_translated_from": "Eredeti megjelenítése (fordítva: {{language}})",
     "hide_original": "Eredeti elrejtése",
     "review_from_blocked_user": "Letiltott felhasználó véleménye",
-	"show": "Megjelenítés",
+    "show": "Megjelenítés",
     "hide": "Elrejtés"
   },
   "activation": {
@@ -567,7 +567,7 @@
     "select": "Kiválaszt",
     "preview": "Előnézet",
     "remove": "Eltávolít",
-    "no_sound_file_selected": "Nincs hangfájl kiválasztva",														   												   
+    "no_sound_file_selected": "Nincs hangfájl kiválasztva",
     "notification_preview": "Achievement Értesítés Előnézete",
     "enable_friend_start_game_notifications": "Amikor egy barátod elkezd játszani egy játékot",
     "autoplay_trailers_on_game_page": "Játékelőzetes automatikus lejátszása a játék oldalán",
@@ -709,7 +709,7 @@
     "karma_description": "Pozitív értékelésekkel szerzett pontok",
     "user_reviews": "Vélemények",
     "delete_review": "Vélemény Törlése",
-    "loading_reviews": "Vélemények betöltése..."							 
+    "loading_reviews": "Vélemények betöltése..."
   },
   "library": {
     "library": "Könyvtár",
@@ -731,7 +731,7 @@
     "all_games": "Összes Játék",
     "recently_played": "Nemrég Játszva",
     "favorites": "Kedvencek"
-  },			  
+  },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",
     "user_achievements": "{{displayName}} achievementjei",
