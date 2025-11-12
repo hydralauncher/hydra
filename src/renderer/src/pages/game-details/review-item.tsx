@@ -7,9 +7,10 @@ import { useState } from "react";
 import type { GameReview } from "@types";
 
 import { sanitizeHtml } from "@shared";
-import { useDate } from "@renderer/hooks";
+import { useDate, useFormat } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 
 import "./review-item.scss";
 
@@ -28,13 +29,6 @@ interface ReviewItemProps {
     votes: { upvotes: number; downvotes: number }
   ) => void;
 }
-
-const getScoreColorClass = (score: number): string => {
-  if (score >= 1 && score <= 2) return "game-details__review-score--red";
-  if (score >= 3 && score <= 3) return "game-details__review-score--yellow";
-  if (score >= 4 && score <= 5) return "game-details__review-score--green";
-  return "";
-};
 
 const getRatingText = (score: number, t: (key: string) => string): string => {
   switch (score) {
@@ -68,28 +62,22 @@ export function ReviewItem({
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("game_details");
   const { formatDistance } = useDate();
+  const { numberFormatter } = useFormat();
 
   const [showOriginal, setShowOriginal] = useState(false);
 
-  // Check if this is the user's own review
   const isOwnReview = userDetailsId === review.user.id;
 
-  // Helper to get base language code (e.g., "pt" from "pt-BR")
-  const getBaseLanguage = (lang: string) => lang.split("-")[0];
+  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
-  // Check if the review is in a different language (comparing base language codes)
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
 
-  // Check if translation is available and needed (but not for own reviews)
   const needsTranslation =
-    !isOwnReview &&
-    isDifferentLanguage &&
-    review.translations &&
-    review.translations[i18n.language];
+    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
 
-  // Get the full language name using Intl.DisplayNames
-  const getLanguageName = (languageCode: string) => {
+  const getLanguageName = (languageCode: string | null) => {
+    if (!languageCode) return "";
     try {
       const displayNames = new Intl.DisplayNames([i18n.language], {
         type: "language",
@@ -98,6 +86,20 @@ export function ReviewItem({
     } catch {
       return languageCode.toUpperCase();
     }
+  };
+
+  // Format playtime similar to hero panel
+  const formatPlayTime = (playTimeInSeconds: number) => {
+    const minutes = playTimeInSeconds / 60;
+
+    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+      return t("amount_minutes", {
+        amount: minutes.toFixed(0),
+      });
+    }
+
+    const hours = minutes / 60;
+    return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
   // Determine which content to show - always show original for own reviews
@@ -109,12 +111,12 @@ export function ReviewItem({
     return (
       <div className="game-details__review-item">
         <div className="game-details__blocked-review-simple">
-          Review from blocked user —{" "}
+          {t("review_from_blocked_user")}
           <button
             className="game-details__blocked-review-show-link"
             onClick={() => onToggleVisibility(review.id)}
           >
-            Show
+            {t("show")}
           </button>
         </div>
       </div>
@@ -124,54 +126,61 @@ export function ReviewItem({
   return (
     <div className="game-details__review-item">
       <div className="game-details__review-header">
-        <div className="game-details__review-user">
-          <button
-            onClick={() => navigate(`/profile/${review.user.id}`)}
-            title={review.user.displayName}
-          >
-            <Avatar
-              src={review.user.profileImageUrl}
-              alt={review.user.displayName || "User"}
-              size={40}
-            />
-          </button>
-          <div className="game-details__review-user-info">
+        <div className="game-details__review-header-top">
+          <div className="game-details__review-user">
             <button
-              className="game-details__review-display-name game-details__review-display-name--clickable"
-              onClick={() =>
-                review.user.id && navigate(`/profile/${review.user.id}`)
-              }
+              onClick={() => navigate(`/profile/${review.user.id}`)}
+              title={review.user.displayName}
             >
-              {review.user.displayName || "Anonymous"}
+              <Avatar
+                src={review.user.profileImageUrl}
+                alt={review.user.displayName || "User"}
+                size={40}
+              />
             </button>
-            <div className="game-details__review-date">
-              <ClockIcon size={12} />
-              {formatDistance(new Date(review.createdAt), new Date(), {
-                addSuffix: true,
-              })}
+            <div className="game-details__review-user-info">
+              <button
+                className="game-details__review-display-name game-details__review-display-name--clickable"
+                onClick={() =>
+                  review.user.id && navigate(`/profile/${review.user.id}`)
+                }
+              >
+                {review.user.displayName || "Anonymous"}
+              </button>
             </div>
           </div>
+          <div className="game-details__review-date">
+            {formatDistance(new Date(review.createdAt), new Date(), {
+              addSuffix: true,
+            })}
+          </div>
         </div>
-        <div
-          className="game-details__review-score-stars"
-          title={getRatingText(review.score, t)}
-        >
-          {[1, 2, 3, 4, 5].map((starValue) => (
-            <Star
-              key={starValue}
-              size={20}
-              fill={starValue <= review.score ? "currentColor" : "none"}
-              className={`game-details__review-star ${
-                starValue <= review.score
-                  ? "game-details__review-star--filled"
-                  : "game-details__review-star--empty"
-              } ${
-                starValue <= review.score
-                  ? getScoreColorClass(review.score)
-                  : ""
-              }`}
-            />
-          ))}
+        <div className="game-details__review-header-bottom">
+          <div className="game-details__review-meta-row">
+            <div
+              className="game-details__review-score-stars"
+              title={getRatingText(review.score, t)}
+            >
+              <Star
+                size={12}
+                className="game-details__review-star game-details__review-star--filled"
+              />
+              <span className="game-details__review-score-text">
+                {review.score}/5
+              </span>
+            </div>
+            {Boolean(
+              review.playTimeInSeconds && review.playTimeInSeconds > 0
+            ) && (
+              <div className="game-details__review-playtime">
+                <ClockIcon size={12} />
+                <span>
+                  {t("review_played_for")}{" "}
+                  {formatPlayTime(review.playTimeInSeconds || 0)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div>
@@ -323,7 +332,7 @@ export function ReviewItem({
             className="game-details__blocked-review-hide-link"
             onClick={() => onToggleVisibility(review.id)}
           >
-            Hide
+            {t("hide")}
           </button>
         )}
       </div>

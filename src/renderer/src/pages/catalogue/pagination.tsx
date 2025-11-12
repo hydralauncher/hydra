@@ -29,9 +29,11 @@ function JumpControl({
   return isOpen ? (
     <input
       ref={inputRef}
-      type="number"
+      type="text"
       min={1}
       max={totalPages}
+      inputMode="numeric"
+      pattern="[0-9]*"
       className="pagination__page-input"
       value={value}
       onChange={onChange}
@@ -56,7 +58,7 @@ export function Pagination({
   page,
   totalPages,
   onPageChange,
-}: PaginationProps) {
+}: Readonly<PaginationProps>) {
   const { formatNumber } = useFormat();
 
   const [isJumpOpen, setIsJumpOpen] = useState(false);
@@ -87,13 +89,15 @@ export function Pagination({
   }
 
   const onJumpChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val === "") {
+    const raw = e.target.value;
+    const digitsOnly = raw.replaceAll(/\D+/g, "");
+    if (digitsOnly === "") {
       setJumpValue("");
       return;
     }
-    const num = Number(val);
+    const num = Number.parseInt(digitsOnly, 10);
     if (Number.isNaN(num)) {
+      setJumpValue("");
       return;
     }
     if (num < 1) {
@@ -104,19 +108,36 @@ export function Pagination({
       setJumpValue(String(totalPages));
       return;
     }
-    setJumpValue(val);
+    setJumpValue(String(num));
   };
 
   const onJumpKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const controlKeys = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+    ];
+
+    if (controlKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+      return;
+    }
+
     if (e.key === "Enter") {
-      if (jumpValue.trim() === "") return;
-      const parsed = Number(jumpValue);
+      const sanitized = jumpValue.replaceAll(/\D+/g, "");
+      if (sanitized.trim() === "") return;
+      const parsed = Number.parseInt(sanitized, 10);
       if (Number.isNaN(parsed)) return;
       const target = Math.max(1, Math.min(totalPages, parsed));
       onPageChange(target);
       setIsJumpOpen(false);
     } else if (e.key === "Escape") {
       setIsJumpOpen(false);
+    } else if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
     }
   };
 

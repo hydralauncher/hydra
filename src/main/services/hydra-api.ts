@@ -11,6 +11,7 @@ import { getUserData } from "./user/get-user-data";
 import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
+import { WSClient } from "./ws";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -103,8 +104,8 @@ export class HydraApi {
       await clearGamesRemoteIds();
       uploadGamesBatch();
 
-      // WSClient.close();
-      // WSClient.connect();
+      WSClient.close();
+      WSClient.connect();
 
       const { syncDownloadSourcesFromApi } = await import("./user");
       syncDownloadSourcesFromApi();
@@ -398,5 +399,46 @@ export class HydraApi {
       .delete<T>(url, this.getAxiosConfig())
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
+  }
+
+  static async checkDownloadSourcesChanges(
+    downloadSourceIds: string[],
+    games: Array<{ shop: string; objectId: string }>,
+    since: string
+  ) {
+    logger.info("HydraApi.checkDownloadSourcesChanges called with:", {
+      downloadSourceIds,
+      gamesCount: games.length,
+      since,
+      isLoggedIn: this.isLoggedIn(),
+    });
+
+    try {
+      const result = await this.post<
+        Array<{
+          shop: string;
+          objectId: string;
+          newDownloadOptionsCount: number;
+          downloadSourceIds: string[];
+        }>
+      >(
+        "/download-sources/changes",
+        {
+          downloadSourceIds,
+          games,
+          since,
+        },
+        { needsAuth: true }
+      );
+
+      logger.info(
+        "HydraApi.checkDownloadSourcesChanges completed successfully:",
+        result
+      );
+      return result;
+    } catch (error) {
+      logger.error("HydraApi.checkDownloadSourcesChanges failed:", error);
+      throw error;
+    }
   }
 }

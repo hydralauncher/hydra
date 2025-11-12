@@ -103,6 +103,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  getDownloadSourcesCheckBaseline: () =>
+    ipcRenderer.invoke("getDownloadSourcesCheckBaseline"),
+  getDownloadSourcesSinceValue: () =>
+    ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
   toggleAutomaticCloudSync: (
@@ -179,6 +183,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
+  clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
     ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
   updateLaunchOptions: (
@@ -196,6 +202,7 @@ contextBridge.exposeInMainWorld("electron", {
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
+  refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
@@ -570,6 +577,25 @@ contextBridge.exposeInMainWorld("electron", {
   getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   toggleCustomTheme: (themeId: string, isActive: boolean) =>
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
+  copyThemeAchievementSound: (themeId: string, sourcePath: string) =>
+    ipcRenderer.invoke("copyThemeAchievementSound", themeId, sourcePath),
+  removeThemeAchievementSound: (themeId: string) =>
+    ipcRenderer.invoke("removeThemeAchievementSound", themeId),
+  getThemeSoundPath: (themeId: string) =>
+    ipcRenderer.invoke("getThemeSoundPath", themeId),
+  getThemeSoundDataUrl: (themeId: string) =>
+    ipcRenderer.invoke("getThemeSoundDataUrl", themeId),
+  importThemeSoundFromStore: (
+    themeId: string,
+    themeName: string,
+    storeUrl: string
+  ) =>
+    ipcRenderer.invoke(
+      "importThemeSoundFromStore",
+      themeId,
+      themeName,
+      storeUrl
+    ),
 
   /* Editor */
   openEditorWindow: (themeId: string) =>
@@ -579,6 +605,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-custom-theme-updated", listener);
     return () =>
       ipcRenderer.removeListener("on-custom-theme-updated", listener);
+  },
+  onNewDownloadOptions: (
+    cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      gamesWithNewOptions: { gameId: string; count: number }[]
+    ) => cb(gamesWithNewOptions);
+    ipcRenderer.on("on-new-download-options", listener);
+    return () =>
+      ipcRenderer.removeListener("on-new-download-options", listener);
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
