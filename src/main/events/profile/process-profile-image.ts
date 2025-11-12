@@ -1,10 +1,14 @@
 import { registerEvent } from "../register-event";
 import { PythonRPC } from "@main/services/python-rpc";
 
-const processProfileImage = async (
+const processProfileImageEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   path: string
 ) => {
+  return processProfileImage(path);
+};
+
+export const processProfileImage = async (path: string) => {
   return PythonRPC.rpc
     .post<{
       imagePath: string;
@@ -13,4 +17,4 @@ const processProfileImage = async (
     .then((response) => response.data);
 };
 
-registerEvent("processProfileImage", processProfileImage);
+registerEvent("processProfileImage", processProfileImageEvent);
