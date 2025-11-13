@@ -58,7 +58,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     window.electron
       .getUnlockedAchievements(game.objectId, game.shop)
       .then((achievements) => {
-        setUnlockedAchievementsCount(achievements.length);
+        setUnlockedAchievementsCount(
+          achievements.filter((a) => a.unlocked).length
+        );
       });
   }, [game]);
 
