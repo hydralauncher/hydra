@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { TelescopeIcon, PlayIcon, XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
-import { GameContextMenu } from "@renderer/components";
+import { GameContextMenu, SelectField } from "@renderer/components";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
@@ -20,6 +20,18 @@ export default function Library() {
     return (savedViewMode as ViewMode) || "compact";
   });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  const [sortOption, setSortOption] = useState<
+    "default" | "time_played" | "achievements" | "achievement_percentage" | "last_played"
+  >(() => {
+    const saved = localStorage.getItem("library-sort");
+    if (saved === "last_added") {
+      localStorage.setItem("library-sort", "last_played");
+      return "last_played";
+    }
+    return (saved as any) || "default";
+  });
+  const [onlyWithExe, setOnlyWithExe] = useState<boolean>(() => !!localStorage.getItem("library-only-with-exe"));
+  const [onlyCustoms, setOnlyCustoms] = useState<boolean>(() => !!localStorage.getItem("library-only-customs"));
   const [contextMenu, setContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -107,7 +119,56 @@ export default function Library() {
     });
   }, [library, filterBy, searchQuery]);
 
-  const sortedLibrary = filteredLibrary;
+  const getPlaytime = (g: LibraryGame) =>
+    (g.playTimeInMilliseconds ?? 0) / 1000; // Convert milliseconds to seconds
+  const getAchievements = (g: LibraryGame) =>
+    (g.unlockedAchievementCount ?? g.achievementCount ?? 0) as number;
+  const getAchievementPercentage = (g: LibraryGame) => {
+    const total = g.achievementCount ?? 0;
+    if (total === 0) return 0;
+    const unlocked = g.unlockedAchievementCount ?? 0;
+    return unlocked / total;
+  };
+  const hasExe = (g: LibraryGame) =>
+    !!(g.executablePath);
+  const isCustom = (g: LibraryGame) => g.shop === "custom";
+  const orderedLibrary = useMemo(() => {
+    let list = [...filteredLibrary];
+    if (onlyWithExe) list = list.filter((g) => hasExe(g));
+    if (onlyCustoms) list = list.filter((g) => isCustom(g));
+    if (filterBy === "recently_played") {
+      list.sort((a, b) => {
+        const ta = a.lastTimePlayed ? new Date(a.lastTimePlayed).getTime() : 0;
+        const tb = b.lastTimePlayed ? new Date(b.lastTimePlayed).getTime() : 0;
+        return tb - ta;
+      });
+      return list;
+    }
+
+    switch (sortOption) {
+      case "time_played":
+        list.sort((a, b) => getPlaytime(b) - getPlaytime(a));
+        break;
+      case "achievements":
+        list.sort((a, b) => getAchievements(b) - getAchievements(a));
+        break;
+      case "achievement_percentage":
+        list.sort((a, b) => getAchievementPercentage(b) - getAchievementPercentage(a));
+        break;
+      case "last_played":
+        list.sort((a, b) => {
+          const ta = a.lastTimePlayed ? new Date(a.lastTimePlayed).getTime() : 0;
+          const tb = b.lastTimePlayed ? new Date(b.lastTimePlayed).getTime() : 0;
+          return tb - ta;
+        });
+        break;
+      case "default":
+      default:
+        break;
+    }
+
+    return list;
+  }, [filteredLibrary, sortOption, onlyWithExe, onlyCustoms, filterBy]);
 
   const filterCounts = useMemo(() => {
     const allGamesCount = library.length;
@@ -136,7 +197,13 @@ export default function Library() {
             <div className="library__controls-left">
               <FilterOptions
                 filterBy={filterBy}
-                onFilterChange={setFilterBy}
+                onFilterChange={(newFilter) => {
+                  setFilterBy(newFilter);
+                  if (newFilter === "recently_played") {
+                    setSortOption("last_played");
+                    localStorage.setItem("library-sort", "last_played");
+                  }
+                }}
                 allGamesCount={filterCounts.allGamesCount}
                 recentlyPlayedCount={filterCounts.recentlyPlayedCount}
                 favoritesCount={filterCounts.favoritesCount}
@@ -148,6 +215,70 @@ export default function Library() {
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
               />
+              <div className="library__sort-controls" style={{ display: "inline-flex", gap: 8, marginLeft: 8, alignItems: "center" }}>
+                <SelectField
+                  theme="dark"
+                  value={sortOption}
+                  onChange={(e) => {
+                    const v = e.target.value as any;
+                    setSortOption(v);
+                    localStorage.setItem("library-sort", v);
+                  }}
+                  options={[
+                    { key: "default", value: "default", label: t("sort.default") },
+                    { key: "last_played", value: "last_played", label: t("sort.last_played") },
+                    { key: "time_played", value: "time_played", label: t("sort.time_played") },
+                    { key: "achievements", value: "achievements", label: t("sort.achievements") },
+                    { key: "achievement_percentage", value: "achievement_percentage", label: t("sort.achievement_percentage") },
+                  ]}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValue = !onlyWithExe;
+                    setOnlyWithExe(newValue);
+                    if (newValue) localStorage.setItem("library-only-with-exe", "1");
+                    else localStorage.removeItem("library-only-with-exe");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: onlyWithExe ? "#16b195" : "rgba(255, 255, 255, 0.6)",
+                    cursor: "pointer",
+                    padding: "2px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color ease 0.2s",
+                  }}
+                  title={t("filters.only_with_exe")}
+                >
+                  <PlayIcon size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValue = !onlyCustoms;
+                    setOnlyCustoms(newValue);
+                    if (newValue) localStorage.setItem("library-only-customs", "1");
+                    else localStorage.removeItem("library-only-customs");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: onlyCustoms ? "#16b195" : "rgba(255, 255, 255, 0.6)",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color ease 0.2s",
+                  }}
+                  title={t("filters.only_customs")}
+                >
+                  <XIcon size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -174,7 +305,7 @@ export default function Library() {
               exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.2 }}
             >
-              {sortedLibrary.map((game) => (
+              {orderedLibrary.map((game) => (
                 <LibraryGameCardLarge
                   key={`${game.shop}-${game.objectId}`}
                   game={game}
@@ -193,7 +324,7 @@ export default function Library() {
               exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.2 }}
             >
-              {sortedLibrary.map((game) => (
+              {orderedLibrary.map((game) => (
                 <li
                   key={`${game.shop}-${game.objectId}`}
                   style={{ listStyle: "none" }}

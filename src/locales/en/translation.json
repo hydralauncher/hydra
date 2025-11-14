@@ -761,4 +761,11 @@
     "learn_more": "Learn More",
     "debrid_description": "Download up to 4x faster with Nimbus"
   }
+  "sort_by_library": {
+    "default": "Default",
+    "last_played": "Last played",
+    "time_played": "Time played",
+    "achievements": "Achievements",
+    "achievement_percentage": "Achievement %"
+  },
 }
