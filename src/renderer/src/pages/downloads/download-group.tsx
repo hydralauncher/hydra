@@ -1,21 +1,18 @@
-import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
-import {
-  buildGameDetailsPath,
-  formatDownloadProgress,
-} from "@renderer/helpers";
+import { formatDownloadProgress } from "@renderer/helpers";
 
-import { Downloader, formatBytes } from "@shared";
+import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
+import { formatDistance, addMilliseconds } from "date-fns";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -26,11 +23,12 @@ import {
   FileDirectoryIcon,
   LinkIcon,
   PlayIcon,
-  QuestionIcon,
   ThreeBarsIcon,
   TrashIcon,
   UnlinkIcon,
   XCircleIcon,
+  DatabaseIcon,
+  GraphIcon,
 } from "@primer/octicons-react";
 
 export interface DownloadGroupProps {
@@ -48,8 +46,6 @@ export function DownloadGroup({
   openGameInstaller,
   seedingStatus,
 }: Readonly<DownloadGroupProps>) {
-  const navigate = useNavigate();
-
   const { t } = useTranslation("downloads");
 
   const userPreferences = useAppSelector(
@@ -60,7 +56,6 @@ export function DownloadGroup({
 
   const {
     lastPacket,
-    progress,
     pauseDownload,
     resumeDownload,
     cancelDownload,
@@ -69,11 +64,26 @@ export function DownloadGroup({
     resumeSeeding,
   } = useDownload();
 
+  const peakSpeedsRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (lastPacket?.gameId && lastPacket.downloadSpeed) {
+      const currentPeak = peakSpeedsRef.current[lastPacket.gameId] || 0;
+      if (lastPacket.downloadSpeed > currentPeak) {
+        peakSpeedsRef.current[lastPacket.gameId] = lastPacket.downloadSpeed;
+      }
+    }
+  }, [lastPacket?.gameId, lastPacket?.downloadSpeed]);
+  const isGameSeeding = (game: LibraryGame) => {
+    const entry = seedingStatus.find((s) => s.gameId === game.id);
+    if (entry && entry.status) return entry.status === "seeding";
+    return game.download?.status === "seeding";
+  };
+
   const getFinalDownloadSize = (game: LibraryGame) => {
     const download = game.download!;
     const isGameDownloading = lastPacket?.gameId === game.id;
 
-    if (download.fileSize) return formatBytes(download.fileSize);
+    if (download.fileSize != null) return formatBytes(download.fileSize);
 
     if (lastPacket?.download.fileSize && isGameDownloading)
       return formatBytes(lastPacket.download.fileSize);
@@ -81,15 +91,100 @@ export function DownloadGroup({
     return "N/A";
   };
 
-  const seedingMap = useMemo(() => {
-    const map = new Map<string, SeedingStatus>();
+  const formatSpeed = (speed: number): string => {
+    return userPreferences?.showDownloadSpeedInMegabytes
+      ? `${formatBytes(speed)}/s`
+      : formatBytesToMbps(speed);
+  };
 
-    seedingStatus.forEach((seed) => {
-      map.set(seed.gameId, seed);
-    });
+  const calculateETA = () => {
+    if (!lastPacket || lastPacket.timeRemaining < 0) return "";
 
-    return map;
-  }, [seedingStatus]);
+    try {
+      return formatDistance(
+        addMilliseconds(new Date(), lastPacket.timeRemaining),
+        new Date(),
+        { addSuffix: true }
+      );
+    } catch (err) {
+      return "";
+    }
+  };
+
+  const getStatusText = (game: LibraryGame) => {
+    const isGameDownloading = lastPacket?.gameId === game.id;
+    const status = game.download?.status;
+
+    if (game.download?.extracting) {
+      return t("extracting");
+    }
+
+    if (isGameDeleting(game.id)) {
+      return t("deleting");
+    }
+
+    if (game.download?.progress === 1) {
+      const isTorrent = game.download?.downloader === Downloader.Torrent;
+      if (isTorrent) {
+        if (isGameSeeding(game)) {
+          return `${t("completed")} (${t("seeding")})`;
+        }
+        return `${t("completed")} (${t("paused")})`;
+      }
+      return t("completed");
+    }
+
+    if (isGameDownloading) {
+      if (lastPacket.isDownloadingMetadata) {
+        return t("downloading_metadata");
+      }
+      if (lastPacket.isCheckingFiles) {
+        return t("checking_files");
+      }
+      if (lastPacket.timeRemaining && lastPacket.timeRemaining > 0) {
+        return calculateETA();
+      }
+      return t("calculating_eta");
+    }
+
+    if (status === "paused") {
+      return t("paused");
+    }
+    if (status === "waiting") {
+      return t("calculating_eta");
+    }
+    if (status === "error") {
+      return t("paused");
+    }
+
+    return t("paused");
+  };
+
+  const getSeedsPeersText = (game: LibraryGame) => {
+    const isGameDownloading = lastPacket?.gameId === game.id;
+    const isTorrent = game.download?.downloader === Downloader.Torrent;
+
+    if (!isTorrent) return null;
+
+    if (game.download?.progress === 1 && isGameSeeding(game)) {
+      if (
+        isGameDownloading &&
+        (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0)
+      ) {
+        return `${lastPacket.numSeeds} seeds, ${lastPacket.numPeers} peers`;
+      }
+      return null;
+    }
+
+    if (
+      isGameDownloading &&
+      (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0)
+    ) {
+      return `${lastPacket.numSeeds} seeds, ${lastPacket.numPeers} peers`;
+    }
+
+    return null;
+  };
 
   const extractGameDownload = useCallback(
     async (shop: GameShop, objectId: string) => {
@@ -99,102 +194,6 @@ export function DownloadGroup({
     [updateLibrary]
   );
 
-  const getGameInfo = (game: LibraryGame) => {
-    const download = game.download!;
-
-    const isGameDownloading = lastPacket?.gameId === game.id;
-    const finalDownloadSize = getFinalDownloadSize(game);
-    const seedingStatus = seedingMap.get(game.id);
-
-    if (download.extracting) {
-      return <p>{t("extracting")}</p>;
-    }
-
-    if (isGameDeleting(game.id)) {
-      return <p>{t("deleting")}</p>;
-    }
-
-    if (isGameDownloading) {
-      if (lastPacket?.isDownloadingMetadata) {
-        return <p>{t("downloading_metadata")}</p>;
-      }
-
-      if (lastPacket?.isCheckingFiles) {
-        return (
-          <>
-            <p>{progress}</p>
-            <p>{t("checking_files")}</p>
-          </>
-        );
-      }
-
-      return (
-        <>
-          <p>{progress}</p>
-
-          <p>
-            {formatBytes(lastPacket.download.bytesDownloaded)} /{" "}
-            {finalDownloadSize}
-          </p>
-
-          {download.downloader === Downloader.Torrent && (
-            <small
-              className="download-group__details-with-article"
-              data-open-article="peers-and-seeds"
-            >
-              {lastPacket?.numPeers} peers / {lastPacket?.numSeeds} seeds
-              <QuestionIcon size={12} />
-            </small>
-          )}
-        </>
-      );
-    }
-
-    if (download.progress === 1) {
-      const uploadSpeed = formatBytes(seedingStatus?.uploadSpeed ?? 0);
-
-      return download.status === "seeding" &&
-        download.downloader === Downloader.Torrent ? (
-        <>
-          <p
-            data-open-article="seeding"
-            className="download-group__details-with-article"
-          >
-            {t("seeding")}
-
-            <QuestionIcon />
-          </p>
-          {uploadSpeed && <p>{uploadSpeed}/s</p>}
-        </>
-      ) : (
-        <p>{t("completed")}</p>
-      );
-    }
-
-    if (download.status === "paused") {
-      return (
-        <>
-          <p>{formatDownloadProgress(download.progress)}</p>
-          <p>{t(download.queued ? "queued" : "paused")}</p>
-        </>
-      );
-    }
-
-    if (download.status === "active") {
-      return (
-        <>
-          <p>{formatDownloadProgress(download.progress)}</p>
-
-          <p>
-            {formatBytes(download.bytesDownloaded)} / {finalDownloadSize}
-          </p>
-        </>
-      );
-    }
-
-    return <p>{t(download.status as string)}</p>;
-  };
-
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const download = lastPacket?.download;
     const isGameDownloading = lastPacket?.gameId === game.id;
@@ -202,7 +201,7 @@ export function DownloadGroup({
     const deleting = isGameDeleting(game.id);
 
     if (game.download?.progress === 1) {
-      return [
+      const actions = [
         {
           label: t("install"),
           disabled: deleting,
@@ -224,7 +223,7 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <UnlinkIcon />,
           show:
-            game.download?.status === "seeding" &&
+            isGameSeeding(game) &&
             game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             pauseSeeding(game.shop, game.objectId);
@@ -235,7 +234,7 @@ export function DownloadGroup({
           disabled: deleting,
           icon: <LinkIcon />,
           show:
-            game.download?.status !== "seeding" &&
+            !isGameSeeding(game) &&
             game.download?.downloader === Downloader.Torrent,
           onClick: () => {
             resumeSeeding(game.shop, game.objectId);
@@ -250,6 +249,7 @@ export function DownloadGroup({
           },
         },
       ];
+      return actions.filter((action) => action.show !== false);
     }
 
     if (isGameDownloading) {
@@ -308,6 +308,17 @@ export function DownloadGroup({
 
       <ul className="download-group__downloads">
         {library.map((game) => {
+          const isGameDownloading = lastPacket?.gameId === game.id;
+          const downloadSpeed = isGameDownloading
+            ? (lastPacket?.downloadSpeed ?? 0)
+            : 0;
+          const finalDownloadSize = getFinalDownloadSize(game);
+          const peakSpeed = peakSpeedsRef.current[game.id] || 0;
+
+          const currentProgress = isGameDownloading
+            ? lastPacket.progress
+            : game.download?.progress || 0;
+
           return (
             <li
               key={game.id}
@@ -316,55 +327,160 @@ export function DownloadGroup({
                   game.download?.downloader === Downloader.Hydra,
               })}
             >
-              <div className="download-group__cover">
-                <div className="download-group__cover-backdrop">
-                  <img
-                    src={game.libraryImageUrl ?? ""}
-                    className="download-group__cover-image"
-                    alt={game.title}
-                  />
-
-                  <div className="download-group__cover-content">
-                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
-                  </div>
-                </div>
+              <div className="download-group__background-image">
+                <img
+                  src={game.libraryHeroImageUrl || game.libraryImageUrl || ""}
+                  alt={game.title}
+                />
+                <div className="download-group__background-overlay" />
               </div>
-              <div className="download-group__right-content">
-                <div className="download-group__details">
-                  <div className="download-group__title-wrapper">
-                    <button
-                      type="button"
-                      className="download-group__title"
-                      onClick={() =>
-                        navigate(
-                          buildGameDetailsPath({
-                            ...game,
-                            objectId: game.objectId,
-                          })
-                        )
-                      }
-                    >
-                      {game.title}
-                    </button>
+
+              <div className="download-group__content">
+                <div className="download-group__left-section">
+                  <div className="download-group__logo-container">
+                    {game.logoImageUrl ? (
+                      <img
+                        src={game.logoImageUrl}
+                        alt={game.title}
+                        className="download-group__logo"
+                      />
+                    ) : (
+                      <h3 className="download-group__game-title">
+                        {game.title}
+                      </h3>
+                    )}
+                    <div className="download-group__downloader-badge">
+                      <Badge>
+                        {DOWNLOADER_NAME[game.download!.downloader]}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="download-group__right-section">
+                  <div className="download-group__top-row">
+                    <div className="download-group__stats">
+                      <div className="download-group__stat">
+                        <DownloadIcon size={16} />
+                        <div className="download-group__stat-info">
+                          <span className="download-group__stat-label">
+                            NETWORK
+                          </span>
+                          <span className="download-group__stat-value">
+                            {isGameDownloading
+                              ? formatSpeed(downloadSpeed)
+                              : "0 B/s"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="download-group__stat">
+                        <GraphIcon size={16} />
+                        <div className="download-group__stat-info">
+                          <span className="download-group__stat-label">
+                            PEAK
+                          </span>
+                          <span className="download-group__stat-value">
+                            {peakSpeed > 0 ? formatSpeed(peakSpeed) : "0 B/s"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="download-group__stat">
+                        <DatabaseIcon size={16} />
+                        <div className="download-group__stat-info">
+                          <span className="download-group__stat-label">
+                            size on DISK
+                          </span>
+                          <span className="download-group__stat-value">
+                            {finalDownloadSize}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {getGameActions(game) !== null && (
+                      <DropdownMenu align="end" items={getGameActions(game)}>
+                        <Button
+                          className="download-group__menu-button"
+                          theme="outline"
+                        >
+                          <ThreeBarsIcon />
+                        </Button>
+                      </DropdownMenu>
+                    )}
                   </div>
 
-                  {getGameInfo(game)}
-                </div>
+                  <div className="download-group__bottom-row">
+                    <div className="download-group__progress-section">
+                      <div className="download-group__progress-info">
+                        <span className="download-group__progress-text">
+                          {game.download?.extracting || isGameDeleting(game.id)
+                            ? getStatusText(game)
+                            : formatDownloadProgress(currentProgress)}
+                        </span>
+                        {isGameDownloading && (
+                          <span className="download-group__progress-size">
+                            {formatBytes(lastPacket.download.bytesDownloaded)} /{" "}
+                            {finalDownloadSize}
+                          </span>
+                        )}
+                      </div>
+                      <div className="download-group__progress-bar">
+                        <div
+                          className="download-group__progress-fill"
+                          style={{
+                            width: `${currentProgress * 100}%`,
+                          }}
+                        />
+                      </div>
 
-                {getGameActions(game) !== null && (
-                  <DropdownMenu
-                    align="end"
-                    items={getGameActions(game)}
-                    sideOffset={-75}
-                  >
-                    <Button
-                      className="download-group__menu-button"
-                      theme="outline"
-                    >
-                      <ThreeBarsIcon />
-                    </Button>
-                  </DropdownMenu>
-                )}
+                      <div className="download-group__time-remaining">
+                        {getStatusText(game)}
+                        {getSeedsPeersText(game) && (
+                          <span style={{ opacity: 0.7, marginLeft: "8px" }}>
+                            • {getSeedsPeersText(game)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="download-group__quick-actions">
+                      {game.download?.progress === 1 ? (
+                        <Button
+                          theme="primary"
+                          onClick={() =>
+                            openGameInstaller(game.shop, game.objectId)
+                          }
+                          className="download-group__action-btn"
+                          disabled={isGameDeleting(game.id)}
+                        >
+                          <DownloadIcon size={16} />
+                          {t("install")}
+                        </Button>
+                      ) : isGameDownloading ? (
+                        <Button
+                          theme="primary"
+                          onClick={() =>
+                            pauseDownload(game.shop, game.objectId)
+                          }
+                          className="download-group__action-btn"
+                        >
+                          <ColumnsIcon size={16} />
+                          {t("pause")}
+                        </Button>
+                      ) : (
+                        <Button
+                          theme="primary"
+                          onClick={() =>
+                            resumeDownload(game.shop, game.objectId)
+                          }
+                          className="download-group__action-btn"
+                        >
+                          <PlayIcon size={16} />
+                          {t("resume")}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {game.download?.downloader === Downloader.Hydra && (
