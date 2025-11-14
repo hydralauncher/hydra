@@ -5,14 +5,6 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
 
-  &__details-with-article {
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
-    align-self: flex-start;
-    cursor: pointer;
-  }
-
   &__header {
     display: flex;
     align-items: center;
@@ -30,29 +22,9 @@
     }
   }
 
-  &__title-wrapper {
-    display: flex;
-    align-items: center;
-    margin-bottom: globals.$spacing-unit;
-    gap: globals.$spacing-unit;
-  }
-
-  &__title {
-    font-weight: bold;
-    cursor: pointer;
-    color: globals.$body-color;
-    text-align: left;
-    font-size: 16px;
-    display: block;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
   &__downloads {
     width: 100%;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 3);
     display: flex;
     flex-direction: column;
     margin: 0;
@@ -67,86 +39,259 @@
     border-radius: 8px;
     border: solid 1px globals.$border-color;
     overflow: hidden;
-    box-shadow: 0px 0px 5px 0px #000000;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.5);
     transition: all ease 0.2s;
-    height: 140px;
-    min-height: 140px;
-    max-height: 140px;
+    height: 250px;
+    min-height: 250px;
+    max-height: 250px;
     position: relative;
+
+    &:before {
+      content: "";
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      position: absolute;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 64%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      transition: all ease 0.3s;
+      transform: translateY(-36%);
+      opacity: 0.5;
+      z-index: 1;
+    }
+
+    &:hover {
+      transform: scale(1.01);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:hover::before {
+      opacity: 1;
+      transform: translateY(-20%);
+    }
 
     &--hydra {
       box-shadow: 0px 0px 16px 0px rgba(12, 241, 202, 0.15);
     }
   }
-  &__cover {
-    width: 280px;
-    min-width: 280px;
-    height: auto;
-    border-right: solid 1px globals.$border-color;
+
+  &__background-image {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 25%;
+    }
+  }
+
+  &__background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      130deg,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+  }
+
+  &__content {
     position: relative;
-    z-index: 1;
-
-    &-content {
-      width: 100%;
-      height: 100%;
-      padding: globals.$spacing-unit;
-      display: flex;
-      align-items: flex-end;
-      justify-content: flex-end;
-    }
-
-    &-backdrop {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.8) 5%,
-        transparent 100%
-      );
-      display: flex;
-      overflow: hidden;
-      z-index: 1;
-    }
-
-    &-image {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      z-index: -1;
-    }
-  }
-
-  &__right-content {
+    z-index: 2;
+    width: 100%;
+    height: 100%;
     display: flex;
-    padding: calc(globals.$spacing-unit * 2);
-    flex: 1;
-    gap: globals.$spacing-unit;
-    background: linear-gradient(90deg, transparent 20%, rgb(0 0 0 / 20%) 100%);
   }
 
-  &__details {
+  &__left-section {
+    flex: 1;
+    max-width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__logo-container {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    justify-content: center;
-    gap: calc(globals.$spacing-unit / 2);
-    font-size: 14px;
+    gap: globals.$spacing-unit;
   }
 
-  &__actions {
+  &__logo {
+    max-width: 350px;
+    max-height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+  }
+
+  &__game-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9);
+    margin: 0;
+  }
+
+  &__downloader-badge {
+    align-self: flex-start;
+  }
+
+  &__right-section {
+    flex: 1;
+    max-width: 50%;
+    display: flex;
+    flex-direction: column;
+    padding: calc(globals.$spacing-unit * 2);
+    position: relative;
+    justify-content: space-between;
+  }
+
+  &__top-row {
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__stats {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 3);
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+
+    svg {
+      opacity: 0.8;
+      flex-shrink: 0;
+    }
+  }
+
+  &__stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__stat-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1;
+  }
+
+  &__stat-value {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
   }
 
   &__menu-button {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    border-radius: 50%;
     border: none;
     padding: 8px;
     min-height: unset;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+  }
+
+  &__progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    flex: 1;
+  }
+
+  &__bottom-row {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  &__progress-text {
+    font-weight: 600;
+  }
+
+  &__progress-size {
+    color: globals.$muted-color;
+  }
+
+  &__progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background-color: globals.$muted-color;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+  }
+
+  &__time-remaining {
+    font-size: 11px;
+    color: globals.$muted-color;
+    text-align: left;
+    min-height: 16px;
+  }
+
+  &__quick-actions {
+    display: flex;
+    flex-shrink: 0;
+    min-height: 40px;
+    align-items: center;
+  }
+
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
+    font-size: 13px;
+    font-weight: 600;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 
   &__hydra-gradient {
@@ -156,6 +301,6 @@
     position: absolute;
     bottom: 0;
     height: 2px;
-    z-index: 1;
+    z-index: 2;
   }
 }
