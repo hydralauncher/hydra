@@ -10,7 +10,7 @@ import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -28,6 +28,23 @@ import {
   GraphIcon,
 } from "@primer/octicons-react";
 import { average } from "color.js";
+
+const getProgressGradient = (
+  colorHex: string,
+  isPaused = false
+): string | undefined => {
+  const hex = isPaused ? "#ffffff" : colorHex || "#08ea79";
+  if (!hex.startsWith("#")) return undefined;
+
+  try {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `linear-gradient(90deg, rgba(${r},${g},${b},0.95) 0%, rgba(${r},${g},${b},0.65) 100%)`;
+  } catch {
+    return undefined;
+  }
+};
 
 interface SpeedChartProps {
   speeds: number[];
@@ -49,73 +66,86 @@ function SpeedChart({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
-    const totalBars = 120;
-    const barWidth = 4;
-    const barGap = 10;
-    const barSpacing = barWidth + barGap;
-    const maxHeight = peakSpeed || Math.max(...speeds, 1);
+    let animationFrameId: number;
 
-    ctx.clearRect(0, 0, width, height);
+    const draw = () => {
+      const clientWidth = canvas.clientWidth;
+      const dpr = window.devicePixelRatio || 1;
 
-    for (let i = 0; i < totalBars; i++) {
-      const x = i * barSpacing;
+      canvas.width = clientWidth * dpr;
+      canvas.height = 100 * dpr;
+      ctx.scale(dpr, dpr);
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-      ctx.beginPath();
-      ctx.roundRect(x, 0, barWidth, height, 3);
-      ctx.fill();
+      const width = clientWidth;
+      const height = 100;
+      const totalBars = 120;
+      const barWidth = 4;
+      const barGap = 10;
+      const barSpacing = barWidth + barGap;
+      const maxHeight = peakSpeed || Math.max(...speeds, 1);
 
-      if (i < speeds.length) {
-        const speed = speeds[i] || 0;
-        const filledHeight = (speed / maxHeight) * height;
+      ctx.clearRect(0, 0, width, height);
 
-        if (filledHeight > 0) {
-          const gradient = ctx.createLinearGradient(
-            0,
-            height - filledHeight,
-            0,
-            height
-          );
-
-          let r = 8,
-            g = 234,
-            b = 121;
-
-          if (color.startsWith("#")) {
-            const hex = color.replace("#", "");
-            r = parseInt(hex.substring(0, 2), 16);
-            g = parseInt(hex.substring(2, 4), 16);
-            b = parseInt(hex.substring(4, 6), 16);
-          } else if (color.startsWith("rgb")) {
-            const matches = color.match(/\d+/g);
-            if (matches && matches.length >= 3) {
-              r = parseInt(matches[0]);
-              g = parseInt(matches[1]);
-              b = parseInt(matches[2]);
-            }
-          }
-
-          gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
-          gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.7)`);
-
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.roundRect(x, height - filledHeight, barWidth, filledHeight, 3);
-          ctx.fill();
+      let r = 255,
+        g = 255,
+        b = 255;
+      if (color.startsWith("#")) {
+        const hex = color.replace("#", "");
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
+      } else if (color.startsWith("rgb")) {
+        const matches = color.match(/\d+/g);
+        if (matches && matches.length >= 3) {
+          r = parseInt(matches[0]);
+          g = parseInt(matches[1]);
+          b = parseInt(matches[2]);
         }
       }
-    }
+
+      for (let i = 0; i < totalBars; i++) {
+        const x = i * barSpacing;
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.beginPath();
+        ctx.roundRect(x, 0, barWidth, height, 3);
+        ctx.fill();
+
+        if (i < speeds.length) {
+          const speed = speeds[i] || 0;
+          const filledHeight = (speed / maxHeight) * height;
+
+          if (filledHeight > 0) {
+            const gradient = ctx.createLinearGradient(
+              0,
+              height - filledHeight,
+              0,
+              height
+            );
+
+            gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.7)`);
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(x, height - filledHeight, barWidth, filledHeight, 3);
+            ctx.fill();
+          }
+        }
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(draw);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [speeds, peakSpeed, color]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={1200}
-      height={100}
-      className="download-group__speed-chart-canvas"
-    />
+    <canvas ref={canvasRef} className="download-group__speed-chart-canvas" />
   );
 }
 
@@ -212,25 +242,23 @@ export function DownloadGroup({
   }, [library]);
 
   useEffect(() => {
-    const cleanupIntervals: NodeJS.Timeout[] = [];
+    const timeouts: NodeJS.Timeout[] = [];
 
     library.forEach((game) => {
-      if (game.download?.progress === 1 || !game.download) {
-        if (speedHistoryRef.current[game.id]?.length > 0) {
-          const interval = setInterval(() => {
-            if (speedHistoryRef.current[game.id]?.length > 0) {
-              speedHistoryRef.current[game.id].shift();
-            } else {
-              clearInterval(interval);
-            }
-          }, 50);
-          cleanupIntervals.push(interval);
-        }
+      if (
+        game.download?.progress === 1 &&
+        speedHistoryRef.current[game.id]?.length > 0
+      ) {
+        const timeout = setTimeout(() => {
+          speedHistoryRef.current[game.id] = [];
+          peakSpeedsRef.current[game.id] = 0;
+        }, 10_000);
+        timeouts.push(timeout);
       }
     });
 
     return () => {
-      cleanupIntervals.forEach((interval) => clearInterval(interval));
+      timeouts.forEach((timeout) => clearTimeout(timeout));
     };
   }, [library]);
 
@@ -251,9 +279,17 @@ export function DownloadGroup({
     return game.download?.status === "seeding";
   };
 
+  const isGameDownloadingMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    library.forEach((game) => {
+      map[game.id] = lastPacket?.gameId === game.id;
+    });
+    return map;
+  }, [library, lastPacket?.gameId]);
+
   const getFinalDownloadSize = (game: LibraryGame) => {
     const download = game.download!;
-    const isGameDownloading = lastPacket?.gameId === game.id;
+    const isGameDownloading = isGameDownloadingMap[game.id];
 
     if (download.fileSize != null) return formatBytes(download.fileSize);
 
@@ -284,7 +320,7 @@ export function DownloadGroup({
   };
 
   const getStatusText = (game: LibraryGame) => {
-    const isGameDownloading = lastPacket?.gameId === game.id;
+    const isGameDownloading = isGameDownloadingMap[game.id];
     const status = game.download?.status;
 
     if (game.download?.extracting) {
@@ -306,7 +342,7 @@ export function DownloadGroup({
       return t("completed");
     }
 
-    if (isGameDownloading) {
+    if (isGameDownloading && lastPacket) {
       if (lastPacket.isDownloadingMetadata) {
         return t("downloading_metadata");
       }
@@ -339,7 +375,7 @@ export function DownloadGroup({
 
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const download = lastPacket?.download;
-    const isGameDownloading = lastPacket?.gameId === game.id;
+    const isGameDownloading = isGameDownloadingMap[game.id];
 
     const deleting = isGameDeleting(game.id);
 
@@ -445,18 +481,19 @@ export function DownloadGroup({
   const isQueuedGroup = title === t("queued_downloads");
 
   if (isDownloadingGroup && library.length > 0) {
-    const game = library[0]; // Only one active download
-    const isGameDownloading = lastPacket?.gameId === game.id;
+    const game = library[0];
+    const isGameDownloading = isGameDownloadingMap[game.id];
     const downloadSpeed = isGameDownloading
       ? (lastPacket?.downloadSpeed ?? 0)
       : 0;
     const finalDownloadSize = getFinalDownloadSize(game);
     const peakSpeed = peakSpeedsRef.current[game.id] || 0;
-    const currentProgress = isGameDownloading
-      ? lastPacket.progress
-      : game.download?.progress || 0;
+    const currentProgress =
+      isGameDownloading && lastPacket
+        ? lastPacket.progress
+        : game.download?.progress || 0;
 
-    const dominantColor = dominantColors[game.id] || "#ffffff";
+    const dominantColor = dominantColors[game.id] || "#fff";
 
     return (
       <>
@@ -498,8 +535,8 @@ export function DownloadGroup({
                   onClick={() => pauseDownload(game.shop, game.objectId)}
                   className="download-group__hero-action-btn"
                   style={{
-                    backgroundColor: dominantColor || "#fff",
-                    borderColor: dominantColor || "#fff",
+                    backgroundColor: dominantColor,
+                    borderColor: dominantColor,
                   }}
                 >
                   <ColumnsIcon size={16} />
@@ -511,8 +548,8 @@ export function DownloadGroup({
                   onClick={() => resumeDownload(game.shop, game.objectId)}
                   className="download-group__hero-action-btn"
                   style={{
-                    backgroundColor: dominantColor || "#08ea79",
-                    borderColor: dominantColor || "#08ea79",
+                    backgroundColor: dominantColor,
+                    borderColor: dominantColor,
                   }}
                 >
                   <PlayIcon size={16} />
@@ -535,31 +572,10 @@ export function DownloadGroup({
                   className="download-group__progress-fill"
                   style={{
                     width: `${currentProgress * 100}%`,
-                    background: (() => {
-                      try {
-                        const isPaused = game.download?.status === "paused";
-                        const colorToUse = isPaused
-                          ? "#ffffff"
-                          : dominantColor || "#ffffff";
-                        const hex = colorToUse;
-                        if (hex.startsWith("#")) {
-                          const r = parseInt(hex.slice(1, 3), 16);
-                          const g = parseInt(hex.slice(3, 5), 16);
-                          const b = parseInt(hex.slice(5, 7), 16);
-                          return `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0.95) 0%, rgba(${r}, ${g}, ${b}, 0.65) 100%)`;
-                        }
-                        if (hex.startsWith("rgb")) {
-                          const nums = hex.match(/\d+/g) || [];
-                          const r = nums[0] || 8;
-                          const g = nums[1] || 234;
-                          const b = nums[2] || 121;
-                          return `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0.95) 0%, rgba(${r}, ${g}, ${b}, 0.65) 100%)`;
-                        }
-                        return undefined;
-                      } catch (e) {
-                        return undefined;
-                      }
-                    })(),
+                    background: getProgressGradient(
+                      dominantColor,
+                      game.download?.status === "paused"
+                    ),
                   }}
                 />
               </div>
@@ -644,6 +660,17 @@ export function DownloadGroup({
     );
   }
 
+  const downloadInfo = useMemo(
+    () =>
+      library.map((game) => ({
+        game,
+        size: getFinalDownloadSize(game),
+        progress: game.download?.progress || 0,
+        isSeeding: isGameSeeding(game),
+      })),
+    [library, lastPacket?.gameId]
+  );
+
   return (
     <div className="download-group">
       <div className="download-group__header">
@@ -653,10 +680,7 @@ export function DownloadGroup({
       </div>
 
       <ul className="download-group__simple-list">
-        {library.map((game) => {
-          const finalDownloadSize = getFinalDownloadSize(game);
-          const currentProgress = game.download?.progress || 0;
-
+        {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
           return (
             <li key={game.id} className="download-group__simple-card">
               <div className="download-group__simple-thumbnail">
@@ -667,10 +691,8 @@ export function DownloadGroup({
                 <h3 className="download-group__simple-title">{game.title}</h3>
                 <div className="download-group__simple-meta">
                   <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
-                  <span className="download-group__simple-size">
-                    {finalDownloadSize}
-                  </span>
-                  {game.download?.progress === 1 && isGameSeeding(game) && (
+                  <span className="download-group__simple-size">{size}</span>
+                  {game.download?.progress === 1 && seeding && (
                     <span className="download-group__simple-seeding">
                       {t("seeding")}
                     </span>
@@ -681,38 +703,14 @@ export function DownloadGroup({
               {isQueuedGroup && (
                 <div className="download-group__simple-progress">
                   <span className="download-group__simple-progress-text">
-                    {formatDownloadProgress(currentProgress)}
+                    {formatDownloadProgress(progress)}
                   </span>
                   <div className="download-group__progress-bar download-group__progress-bar--small">
                     <div
                       className="download-group__progress-fill"
                       style={{
-                        width: `${currentProgress * 100}%`,
-                        background: (() => {
-                          try {
-                            const isPaused = game.download?.status === "paused";
-                            const colorToUse = isPaused
-                              ? "#ffffff"
-                              : dominantColors[game.id] || "#ffffff";
-                            const hex = colorToUse;
-                            if (hex.startsWith("#")) {
-                              const r = parseInt(hex.slice(1, 3), 16);
-                              const g = parseInt(hex.slice(3, 5), 16);
-                              const b = parseInt(hex.slice(5, 7), 16);
-                              return `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0.95) 0%, rgba(${r}, ${g}, ${b}, 0.65) 100%)`;
-                            }
-                            if (hex.startsWith("rgb")) {
-                              const nums = hex.match(/\d+/g) || [];
-                              const r = nums[0] || 8;
-                              const g = nums[1] || 234;
-                              const b = nums[2] || 121;
-                              return `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, 0.95) 0%, rgba(${r}, ${g}, ${b}, 0.65) 100%)`;
-                            }
-                            return undefined;
-                          } catch (e) {
-                            return undefined;
-                          }
-                        })(),
+                        width: `${progress * 100}%`,
+                        backgroundColor: "#fff",
                       }}
                     />
                   </div>

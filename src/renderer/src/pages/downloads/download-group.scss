@@ -5,12 +5,12 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
   margin-inline: calc(globals.$spacing-unit * 3);
+  margin-bottom: calc(globals.$spacing-unit * 4);
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: calc(globals.$spacing-unit * 4);
     gap: calc(globals.$spacing-unit * 2);
 
     &-divider {
@@ -166,6 +166,7 @@
     gap: calc(globals.$spacing-unit * 4);
     padding: calc(globals.$spacing-unit * 2);
     border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(26, 26, 26, 0.1);
     backdrop-filter: blur(8px);
     margin-top: calc(globals.$spacing-unit * 2);
