@@ -1,6 +1,11 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClockIcon, SearchIcon, TrashIcon } from "@primer/octicons-react";
+import {
+  ClockIcon,
+  SearchIcon,
+  TrashIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { SearchHistoryEntry } from "@renderer/hooks/use-search-history";
@@ -16,6 +21,7 @@ export interface SearchDropdownProps {
   isLoadingSuggestions: boolean;
   onSelectHistory: (query: string) => void;
   onSelectSuggestion: (suggestion: SearchSuggestion) => void;
+  onRemoveHistoryItem: (query: string) => void;
   onClearHistory: () => void;
   onClose: () => void;
   activeIndex: number;
@@ -31,6 +37,7 @@ export function SearchDropdown({
   isLoadingSuggestions,
   onSelectHistory,
   onSelectSuggestion,
+  onRemoveHistoryItem,
   onClearHistory,
   onClose,
   activeIndex,
@@ -146,7 +153,10 @@ export function SearchDropdown({
           </div>
           <ul className="search-dropdown__list">
             {historyItems.map((item, index) => (
-              <li key={`history-${item.query}-${item.timestamp}`}>
+              <li
+                key={`history-${item.query}-${item.timestamp}`}
+                className="search-dropdown__item-container"
+              >
                 <button
                   type="button"
                   className={cn("search-dropdown__item", {
@@ -160,6 +170,18 @@ export function SearchDropdown({
                   <span className="search-dropdown__item-text">
                     {item.query}
                   </span>
+                </button>
+                <button
+                  type="button"
+                  className="search-dropdown__item-remove"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveHistoryItem(item.query);
+                  }}
+                  title={t("remove_from_history")}
+                >
+                  <XIcon size={12} />
                 </button>
               </li>
             ))}
