@@ -5,7 +5,15 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
   margin-inline: calc(globals.$spacing-unit * 3);
-  margin-bottom: calc(globals.$spacing-unit * 4);
+  padding-block: calc(globals.$spacing-unit * 3);
+
+  &--queued {
+    padding-bottom: 0;
+  }
+
+  &--completed {
+    padding-top: 0;
+  }
 
   &__header {
     display: flex;
@@ -29,7 +37,7 @@
     overflow: hidden;
     margin: 0;
     padding: 0;
-    margin-bottom: calc(globals.$spacing-unit * 3);
+    padding-bottom: calc(globals.$spacing-unit * 3);
   }
 
   &__hero-background {
@@ -57,8 +65,8 @@
     background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.3) 0%,
-      rgba(0, 0, 0, 1) 70%,
-      rgb(27, 27, 27) 100%
+      rgb(5, 5, 5) 70%,
+      rgb(26, 26, 26) 100%
     );
   }
 
@@ -85,7 +93,6 @@
       max-width: 600px;
       max-height: 200px;
       object-fit: contain;
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
     }
 
     h1 {
@@ -113,7 +120,11 @@
 
   &__hero-menu-btn {
     background-color: rgba(0, 0, 0, 0.4);
-    padding: calc(globals.$spacing-unit);
+    padding: calc(globals.$spacing-unit * 1);
+    min-height: unset;
+  }
+  &__hero-menu-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
   }
 
   &__hero-progress {
@@ -320,6 +331,10 @@
 
   &__simple-actions {
     flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
   }
 
   &__simple-menu-btn {
