@@ -12,7 +12,7 @@
   }
 
   &--completed {
-    padding-top: 0;
+    padding-top: calc(globals.$spacing-unit * 3);
   }
 
   &__header {
