@@ -777,7 +777,7 @@ export function DownloadGroup({
               )}
 
               <div className="download-group__simple-actions">
-                {game.download?.progress === 1 ? (
+                {game.download?.progress === 1 && (
                   <Button
                     theme="primary"
                     onClick={() => openGameInstaller(game.shop, game.objectId)}
@@ -786,7 +786,8 @@ export function DownloadGroup({
                   >
                     <DownloadIcon size={16} />
                   </Button>
-                ) : isQueuedGroup ? (
+                )}
+                {isQueuedGroup && game.download?.progress !== 1 && (
                   <Button
                     theme="primary"
                     onClick={() => resumeDownload(game.shop, game.objectId)}
@@ -794,7 +795,7 @@ export function DownloadGroup({
                   >
                     <PlayIcon size={16} />
                   </Button>
-                ) : null}
+                )}
                 <DropdownMenu align="end" items={getGameActions(game)}>
                   <Button
                     theme="outline"
