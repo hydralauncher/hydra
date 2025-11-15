@@ -73,8 +73,8 @@ const restoreLudusaviBackup = (
           addWinePrefixToWindowsPath(userProfilePath, winePrefixPath)
         )
         .replace(
-          publicProfilePath,
-          addWinePrefixToWindowsPath(publicProfilePath, winePrefixPath)
+          publicProfilePath(),
+          addWinePrefixToWindowsPath(publicProfilePath(), winePrefixPath)
         );
 
       logger.info(`Moving ${sourcePath} to ${destinationPath}`);
@@ -112,7 +112,7 @@ const downloadGameArtifact = async (
     }>(`/profile/games/artifacts/${gameArtifactId}/download`);
 
     const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
-    const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
+    const backupPath = path.join(backupsPath(), `${shop}-${objectId}`);
 
     if (fs.existsSync(backupPath)) {
       fs.rmSync(backupPath, {

@@ -43,7 +43,7 @@ const downloadAssetsFromSteam = async (
   objectId: string,
   assets: ShopAssets | null
 ) => {
-  const gameAssetsPath = path.join(ASSETS_PATH, `${shop}-${objectId}`);
+  const gameAssetsPath = path.join(ASSETS_PATH(), `${shop}-${objectId}`);
 
   return await Promise.all([
     downloadAsset(path.join(gameAssetsPath, "icon.ico"), assets?.iconUrl),

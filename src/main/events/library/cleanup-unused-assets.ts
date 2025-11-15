@@ -4,7 +4,7 @@ import path from "path";
 import { ASSETS_PATH } from "@main/constants";
 
 const getCustomGamesAssetsPath = () => {
-  return path.join(ASSETS_PATH, "custom-games");
+  return path.join(ASSETS_PATH(), "custom-games");
 };
 
 const getAllCustomGameAssets = async (): Promise<string[]> => {

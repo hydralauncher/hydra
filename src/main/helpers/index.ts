@@ -51,10 +51,10 @@ export const getThemePath = (themeId: string, themeName?: string): string => {
   if (themeName) {
     const sanitizedName = sanitizeFolderName(themeName);
     if (sanitizedName) {
-      return path.join(THEMES_PATH, sanitizedName);
+      return path.join(THEMES_PATH(), sanitizedName);
     }
   }
-  return path.join(THEMES_PATH, themeId);
+  return path.join(THEMES_PATH(), themeId);
 };
 
 export const getThemeSoundPath = (
@@ -62,7 +62,7 @@ export const getThemeSoundPath = (
   themeName?: string
 ): string | null => {
   const themeDir = getThemePath(themeId, themeName);
-  const legacyThemeDir = themeName ? path.join(THEMES_PATH, themeId) : null;
+  const legacyThemeDir = themeName ? path.join(THEMES_PATH(), themeId) : null;
 
   const checkDir = (dir: string): string | null => {
     if (!fs.existsSync(dir)) {

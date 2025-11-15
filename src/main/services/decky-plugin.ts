@@ -42,7 +42,7 @@ export class DeckyPlugin {
   }
 
   private static getPackageJsonPath(): string {
-    return path.join(HYDRA_DECKY_PLUGIN_LOCATION, "package.json");
+    return path.join(HYDRA_DECKY_PLUGIN_LOCATION(), "package.json");
   }
 
   private static async downloadPlugin(): Promise<string> {
@@ -93,12 +93,12 @@ export class DeckyPlugin {
 
   private static needsSudo(): boolean {
     try {
-      if (fs.existsSync(DECKY_PLUGINS_LOCATION)) {
-        fs.accessSync(DECKY_PLUGINS_LOCATION, fs.constants.W_OK);
+      if (fs.existsSync(DECKY_PLUGINS_LOCATION())) {
+        fs.accessSync(DECKY_PLUGINS_LOCATION(), fs.constants.W_OK);
         return false;
       }
 
-      const parentDir = path.dirname(DECKY_PLUGINS_LOCATION);
+      const parentDir = path.dirname(DECKY_PLUGINS_LOCATION());
       if (fs.existsSync(parentDir)) {
         fs.accessSync(parentDir, fs.constants.W_OK);
         return false;
@@ -127,7 +127,7 @@ export class DeckyPlugin {
     const sourcePath = path.join(extractPath, "Hydra");
 
     return new Promise((resolve, reject) => {
-      const command = `mkdir -p "${DECKY_PLUGINS_LOCATION}" && rm -rf "${HYDRA_DECKY_PLUGIN_LOCATION}" && cp -r "${sourcePath}" "${HYDRA_DECKY_PLUGIN_LOCATION}" && chown -R ${username}: "${DECKY_PLUGINS_LOCATION}"`;
+      const command = `mkdir -p "${DECKY_PLUGINS_LOCATION()}" && rm -rf "${HYDRA_DECKY_PLUGIN_LOCATION()}" && cp -r "${sourcePath}" "${HYDRA_DECKY_PLUGIN_LOCATION()}" && chown -R ${username}: "${DECKY_PLUGINS_LOCATION()}"`;
 
       sudo.exec(
         command,
@@ -155,18 +155,18 @@ export class DeckyPlugin {
 
     const sourcePath = path.join(extractPath, "Hydra");
 
-    if (!fs.existsSync(DECKY_PLUGINS_LOCATION)) {
-      await fs.promises.mkdir(DECKY_PLUGINS_LOCATION, { recursive: true });
+    if (!fs.existsSync(DECKY_PLUGINS_LOCATION())) {
+      await fs.promises.mkdir(DECKY_PLUGINS_LOCATION(), { recursive: true });
     }
 
-    if (fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
-      await fs.promises.rm(HYDRA_DECKY_PLUGIN_LOCATION, {
+    if (fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION())) {
+      await fs.promises.rm(HYDRA_DECKY_PLUGIN_LOCATION(), {
         recursive: true,
         force: true,
       });
     }
 
-    await fs.promises.cp(sourcePath, HYDRA_DECKY_PLUGIN_LOCATION, {
+    await fs.promises.cp(sourcePath, HYDRA_DECKY_PLUGIN_LOCATION(), {
       recursive: true,
     });
 
@@ -219,7 +219,7 @@ export class DeckyPlugin {
   }
 
   public static async checkAndUpdateIfOutdated(): Promise<void> {
-    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
+    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION())) {
       logger.log("Hydra Decky plugin not installed, skipping update check");
       return;
     }
@@ -264,7 +264,7 @@ export class DeckyPlugin {
     try {
       const releaseInfo = await this.getDeckyReleaseInfo();
 
-      if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
+      if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION())) {
         logger.log("Hydra Decky plugin folder not found, installing...");
 
         try {

@@ -59,7 +59,7 @@ async function getAchievementSoundPath(): Promise<string> {
     logger.error("Failed to get theme sound path", error);
   }
 
-  return achievementSoundPath;
+  return achievementSoundPath();
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {

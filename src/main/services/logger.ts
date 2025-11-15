@@ -3,6 +3,7 @@ import log from "electron-log";
 import path from "path";
 
 const resolveLogPath = (
+  _variables: unknown,
   message?: log.LogMessage | undefined
 ) => {
   if (message?.scope === "python-rpc") {
