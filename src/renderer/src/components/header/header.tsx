@@ -62,8 +62,7 @@ export function Header() {
 
   const { t } = useTranslation("header");
 
-  const { addToHistory, removeFromHistory, clearHistory, getRecentHistory } =
-    useSearchHistory();
+  const { addToHistory, clearHistory, getRecentHistory } = useSearchHistory();
 
   const { suggestions, isLoading: isLoadingSuggestions } = useSearchSuggestions(
     searchValue,
