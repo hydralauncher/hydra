@@ -198,7 +198,7 @@ export class WindowManager {
 
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
-        WindowManager.mainWindow?.webContents.openDevTools({ mode: "detach" });
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
