@@ -19,7 +19,6 @@ export function HighlightText({ text, query }: HighlightTextProps) {
     return <>{text}</>;
   }
 
-  const textLower = text.toLowerCase();
   const textWords = text.split(/\b/);
   const matches: Array<{ start: number; end: number; text: string }> = [];
 
