@@ -57,6 +57,37 @@
     margin: 0;
   }
 
+  &__item-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    &:hover .search-dropdown__item-remove {
+      opacity: 1;
+    }
+  }
+
+  &__item-remove {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: globals.$muted-color;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all ease 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+
+    &:hover {
+      color: #ff5555;
+      background-color: rgba(255, 85, 85, 0.1);
+    }
+  }
+
   &__item {
     width: 100%;
     display: flex;

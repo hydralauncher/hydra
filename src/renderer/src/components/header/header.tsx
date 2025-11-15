@@ -62,7 +62,8 @@ export function Header() {
 
   const { t } = useTranslation("header");
 
-  const { addToHistory, clearHistory, getRecentHistory } = useSearchHistory();
+  const { addToHistory, removeFromHistory, clearHistory, getRecentHistory } =
+    useSearchHistory();
 
   const { suggestions, isLoading: isLoadingSuggestions } = useSearchSuggestions(
     searchValue,
@@ -174,6 +175,10 @@ export function Header() {
       dispatch(setFilters({ title: "" }));
     }
     setActiveIndex(-1);
+  };
+
+  const handleRemoveHistoryItem = (query: string) => {
+    removeFromHistory(query);
   };
 
   const handleClearHistory = () => {
@@ -326,6 +331,7 @@ export function Header() {
         isLoadingSuggestions={isLoadingSuggestions}
         onSelectHistory={handleSelectHistory}
         onSelectSuggestion={handleSelectSuggestion}
+        onRemoveHistoryItem={handleRemoveHistoryItem}
         onClearHistory={handleClearHistory}
         onClose={handleCloseDropdown}
         activeIndex={activeIndex}
