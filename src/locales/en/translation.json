@@ -94,6 +94,11 @@
   "header": {
     "search": "Search games",
     "search_library": "Search library",
+    "recent_searches": "Recent Searches",
+    "suggestions": "Suggestions",
+    "clear_history": "Clear history",
+    "loading": "Loading...",
+    "no_results": "No results",
     "home": "Home",
     "catalogue": "Catalogue",
     "library": "Library",
