@@ -11,7 +11,6 @@ import {
 import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
-import { VERSION_CODENAME } from "@renderer/constants";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
@@ -26,15 +25,10 @@ export function BottomPanel() {
 
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
 
-  const [version, setVersion] = useState("");
   const [sessionHash, setSessionHash] = useState<null | string>("");
   const [commonRedistStatus, setCommonRedistStatus] = useState<string | null>(
     null
   );
-
-  useEffect(() => {
-    window.electron.getVersion().then((result) => setVersion(result));
-  }, []);
 
   useEffect(() => {
     const unlisten = window.electron.onCommonRedistProgress(
@@ -126,8 +120,7 @@ export function BottomPanel() {
         className="bottom-panel__version-button"
       >
         <small data-featurebase-changelog>
-          {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
-          {VERSION_CODENAME}&quot;
+          {sessionHash ? `${sessionHash} - ` : ""}3.7.4.v2.modified
         </small>
       </button>
     </footer>

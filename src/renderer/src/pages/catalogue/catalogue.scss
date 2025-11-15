@@ -55,6 +55,48 @@
     gap: 8px;
   }
 
+  &__games-list {
+    width: 100%;
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+
+    &--compact {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+
+      @container #{globals.$app-container} (min-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      @container #{globals.$app-container} (min-width: 1300px) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      @container #{globals.$app-container} (min-width: 2000px) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    &--grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      @container #{globals.$app-container} (min-width: 900px) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      @container #{globals.$app-container} (min-width: 1300px) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      @container #{globals.$app-container} (min-width: 2000px) {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+
+    &--large {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+  }
+
   &__pagination-container {
     display: flex;
     align-items: center;

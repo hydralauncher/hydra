@@ -1,10 +1,10 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import type { LibraryGame, ShortcutLocation } from "@types";
+import { Button, CheckboxField, Modal, TextField, SelectField, Badge } from "@renderer/components";
+import type { GamePlayStatus, LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
+import { useDownload, useToast, useUserDetails, useLibrary } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -39,6 +39,8 @@ export function GameOptionsModal({
     achievements,
   } = useContext(gameDetailsContext);
 
+  const { updateLibrary } = useLibrary();
+
   const { hasActiveSubscription } = useUserDetails();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -52,6 +54,12 @@ export function GameOptionsModal({
     game.automaticCloudSync ?? false
   );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [tagsInput, setTagsInput] = useState(
+    game.tags && game.tags.length ? game.tags.join(", ") : ""
+  );
+  const [playStatus, setPlayStatus] = useState<GamePlayStatus | "">(
+    game.playStatus ?? ""
+  );
 
   const {
     removeGameInstaller,
@@ -115,7 +123,10 @@ export function GameOptionsModal({
 
       window.electron
         .updateExecutablePath(game.shop, game.objectId, path)
-        .then(updateGame);
+        .then(async () => {
+          await updateGame();
+          await updateLibrary();
+        });
     }
   };
 
@@ -169,7 +180,7 @@ export function GameOptionsModal({
   const handleClearExecutablePath = async () => {
     await window.electron.updateExecutablePath(game.shop, game.objectId, null);
 
-    updateGame();
+    await Promise.all([updateGame(), updateLibrary()]);
   };
 
   const handleChangeWinePrefixPath = async () => {
@@ -217,6 +228,56 @@ export function GameOptionsModal({
       .updateLaunchOptions(game.shop, game.objectId, null)
       .then(updateGame);
   };
+
+  const parseTags = (value: string): string[] => {
+    return Array.from(
+      new Set(
+        value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0)
+      )
+    ).slice(0, 20);
+  };
+
+  const handleTagsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTagsInput(event.target.value);
+  };
+
+  const handlePersistCollections = async (
+    params?: { tags?: string[]; playStatus?: GamePlayStatus | null }
+  ) => {
+    try {
+      await window.electron.updateGameCollections({
+        shop: game.shop,
+        objectId: game.objectId,
+        tags: params?.tags,
+        playStatus:
+          params?.playStatus !== undefined
+            ? params.playStatus
+            : (playStatus || null),
+      });
+      updateGame();
+    } catch (error) {
+      logger.error("Failed to update game collections", error);
+      showErrorToast(t("update_playtime_error"));
+    }
+  };
+
+  const handleTagsBlur = async () => {
+    const tags = parseTags(tagsInput);
+    await handlePersistCollections({ tags });
+  };
+
+  const handlePlayStatusChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = event.target.value as GamePlayStatus | "";
+    setPlayStatus(value);
+    await handlePersistCollections({ playStatus: value || null });
+  };
+
+  const tagsPreview = parseTags(tagsInput);
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
@@ -449,6 +510,56 @@ export function GameOptionsModal({
                   </Button>
                 )
               }
+            />
+          </div>
+
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("collections_section_title")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("collections_section_description")}
+              </h4>
+            </div>
+
+            <TextField
+              theme="dark"
+              label={t("collections_tags_label")}
+              placeholder={t("collections_tags_placeholder")}
+              value={tagsInput}
+              onChange={handleTagsChange}
+              onBlur={handleTagsBlur}
+            />
+
+            {tagsPreview.length > 0 && (
+              <div className="game-options-modal__tags">
+                {tagsPreview.map((tag) => (
+                  <Badge key={tag}>{tag}</Badge>
+                ))}
+              </div>
+            )}
+
+            <SelectField
+              theme="dark"
+              label={t("play_status")}
+              value={playStatus || ""}
+              onChange={handlePlayStatusChange}
+              options={[
+                {
+                  key: "",
+                  value: "",
+                  label: t("play_status_none"),
+                },
+                {
+                  key: "completed",
+                  value: "completed",
+                  label: t("play_status_completed"),
+                },
+                {
+                  key: "abandoned",
+                  value: "abandoned",
+                  label: t("play_status_abandoned"),
+                },
+              ]}
             />
           </div>
 

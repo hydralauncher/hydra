@@ -30,6 +30,8 @@ export interface User {
   subscription: Subscription | null;
 }
 
+export type GamePlayStatus = "completed" | "abandoned";
+
 export interface Game {
   title: string;
   iconUrl: string | null;
@@ -62,6 +64,8 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  tags?: string[];
+  playStatus?: GamePlayStatus;
 }
 
 export interface Download {

@@ -5,7 +5,8 @@ import type {
 } from "@types";
 
 import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ViewOptions, ViewMode } from "../library/view-options";
 
 import "./catalogue.scss";
 
@@ -33,6 +34,11 @@ export default function Catalogue() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const savedViewMode = localStorage.getItem("catalogue-view-mode");
+    return (savedViewMode as ViewMode) || "compact";
+  });
+
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
 
   const { steamGenres, steamUserTags, filters, page } = useAppSelector(
@@ -50,6 +56,11 @@ export default function Catalogue() {
   const dispatch = useAppDispatch();
 
   const { t, i18n } = useTranslation("catalogue");
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem("catalogue-view-mode", mode);
+  }, []);
 
   const debouncedSearch = useRef(
     debounce(
@@ -267,19 +278,28 @@ export default function Catalogue() {
             ))}
           </ul>
         </div>
+
+        <ViewOptions
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+        />
       </div>
 
       <div className="catalogue__content">
         <div className="catalogue__games-container">
-          {isLoading ? (
-            <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <Skeleton key={i} className="catalogue__skeleton" />
-              ))}
-            </SkeletonTheme>
-          ) : (
-            results.map((game) => <GameItem key={game.id} game={game} />)
-          )}
+          <div
+            className={`catalogue__games-list catalogue__games-list--${viewMode}`}
+          >
+            {isLoading ? (
+              <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  <Skeleton key={i} className="catalogue__skeleton" />
+                ))}
+              </SkeletonTheme>
+            ) : (
+              results.map((game) => <GameItem key={game.id} game={game} />)
+            )}
+          </div>
 
           <div className="catalogue__pagination-container">
             <span className="catalogue__result-count">

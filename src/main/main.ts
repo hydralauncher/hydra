@@ -24,6 +24,10 @@ import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 export const loadState = async () => {
   await Lock.acquireLock();
 
+  if (db.status !== "open") {
+    await db.open();
+  }
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

@@ -2,32 +2,33 @@ import { logsPath } from "@main/constants";
 import log from "electron-log";
 import path from "path";
 
-log.transports.file.resolvePathFn = (
-  _: log.PathVariables,
+const resolveLogPath = (
   message?: log.LogMessage | undefined
 ) => {
   if (message?.scope === "python-rpc") {
-    return path.join(logsPath, "pythonrpc.txt");
+    return path.join(logsPath(), "pythonrpc.txt");
   }
 
   if (message?.scope === "network") {
-    return path.join(logsPath, "network.txt");
+    return path.join(logsPath(), "network.txt");
   }
 
   if (message?.scope == "achievements") {
-    return path.join(logsPath, "achievements.txt");
+    return path.join(logsPath(), "achievements.txt");
   }
 
   if (message?.level === "error") {
-    return path.join(logsPath, "error.txt");
+    return path.join(logsPath(), "error.txt");
   }
 
   if (message?.level === "info") {
-    return path.join(logsPath, "info.txt");
+    return path.join(logsPath(), "info.txt");
   }
 
-  return path.join(logsPath, "logs.txt");
+  return path.join(logsPath(), "logs.txt");
 };
+
+log.transports.file.resolvePathFn = resolveLogPath;
 
 log.errorHandler.startCatching({
   showDialog: false,

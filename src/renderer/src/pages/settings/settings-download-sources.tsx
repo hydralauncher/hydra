@@ -12,6 +12,8 @@ import type { DownloadSource } from "@types";
 import {
   NoEntryIcon,
   PlusCircleIcon,
+  DownloadIcon,
+  UploadIcon,
   SyncIcon,
   TrashIcon,
 } from "@primer/octicons-react";
@@ -36,11 +38,15 @@ export function SettingsDownloadSources() {
     useState(false);
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
+  const [isExportingDownloadSources, setIsExportingDownloadSources] =
+    useState(false);
+  const [isImportingDownloadSources, setIsImportingDownloadSources] =
+    useState(false);
 
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
   const { t } = useTranslation("settings");
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
 
   const dispatch = useAppDispatch();
 
@@ -162,6 +168,99 @@ export function SettingsDownloadSources() {
     navigate("/catalogue");
   };
 
+  const getDefaultExportFileName = () => {
+    const timestamp = new Date().toISOString().replace(/[:]/g, "-");
+    return `hydra-download-sources-${timestamp}.json`;
+  };
+
+  const handleExportDownloadSources = async () => {
+    const { canceled, filePath } = await window.electron.showSaveDialog({
+      title: t("export_download_sources"),
+      defaultPath: getDefaultExportFileName(),
+      filters: [
+        {
+          name: t("download_sources_json_filter"),
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (canceled || !filePath) {
+      return;
+    }
+
+    setIsExportingDownloadSources(true);
+
+    try {
+      const result = await window.electron.exportDownloadSources(filePath);
+      const countFormatted = result.exported.toLocaleString();
+      showSuccessToast(
+        t("download_sources_export_success", {
+          count: result.exported,
+          countFormatted,
+        })
+      );
+    } catch (error) {
+      logger.error("Failed to export download sources:", error);
+      showErrorToast(t("download_sources_export_failed"));
+    } finally {
+      setIsExportingDownloadSources(false);
+    }
+  };
+
+  const handleImportDownloadSources = async () => {
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: t("download_sources_json_filter"),
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (canceled || !filePaths || !filePaths.length) {
+      return;
+    }
+
+    const [selectedFilePath] = filePaths;
+
+    setIsImportingDownloadSources(true);
+
+    try {
+      const result = await window.electron.importDownloadSources(
+        selectedFilePath
+      );
+      const sources = await window.electron.getDownloadSources();
+      setDownloadSources(sources);
+
+      if (result.imported > 0) {
+        const importedFormatted = result.imported.toLocaleString();
+        showSuccessToast(
+          t("download_sources_import_success", {
+            count: result.imported,
+            countFormatted: importedFormatted,
+          })
+        );
+      }
+
+      if (result.skipped > 0) {
+        const skippedFormatted = result.skipped.toLocaleString();
+        showWarningToast(
+          t("download_sources_import_skipped", {
+            count: result.skipped,
+            countFormatted: skippedFormatted,
+          })
+        );
+      }
+    } catch (error) {
+      logger.error("Failed to import download sources:", error);
+      showErrorToast(t("download_sources_import_failed"));
+    } finally {
+      setIsImportingDownloadSources(false);
+    }
+  };
+
   return (
     <>
       <AddDownloadSourceModal
@@ -190,7 +289,9 @@ export function SettingsDownloadSources() {
           disabled={
             !downloadSources.length ||
             isSyncingDownloadSources ||
-            isRemovingDownloadSource
+            isRemovingDownloadSource ||
+            isExportingDownloadSources ||
+            isImportingDownloadSources
           }
           onClick={syncDownloadSources}
         >
@@ -201,12 +302,53 @@ export function SettingsDownloadSources() {
         <div className="settings-download-sources__buttons-container">
           <Button
             type="button"
+            theme="outline"
+            onClick={handleExportDownloadSources}
+            disabled={
+              !downloadSources.length ||
+              isRemovingDownloadSource ||
+              isSyncingDownloadSources ||
+              isExportingDownloadSources ||
+              isImportingDownloadSources
+            }
+          >
+            {isExportingDownloadSources ? (
+              <SyncIcon className="settings-download-sources__spinner" />
+            ) : (
+              <DownloadIcon />
+            )}
+            {t("export_download_sources")}
+          </Button>
+
+          <Button
+            type="button"
+            theme="outline"
+            onClick={handleImportDownloadSources}
+            disabled={
+              isRemovingDownloadSource ||
+              isSyncingDownloadSources ||
+              isExportingDownloadSources ||
+              isImportingDownloadSources
+            }
+          >
+            {isImportingDownloadSources ? (
+              <SyncIcon className="settings-download-sources__spinner" />
+            ) : (
+              <UploadIcon />
+            )}
+            {t("import_download_sources")}
+          </Button>
+
+          <Button
+            type="button"
             theme="danger"
             onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
             disabled={
               isRemovingDownloadSource ||
               isSyncingDownloadSources ||
-              !downloadSources.length
+              !downloadSources.length ||
+              isExportingDownloadSources ||
+              isImportingDownloadSources
             }
           >
             <TrashIcon />
@@ -217,7 +359,12 @@ export function SettingsDownloadSources() {
             type="button"
             theme="outline"
             onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
+            disabled={
+              isSyncingDownloadSources ||
+              isRemovingDownloadSource ||
+              isExportingDownloadSources ||
+              isImportingDownloadSources
+            }
           >
             <PlusCircleIcon />
             {t("add_download_source")}
@@ -279,7 +426,9 @@ export function SettingsDownloadSources() {
                     type="button"
                     theme="outline"
                     onClick={() => handleRemoveSource(downloadSource)}
-                    disabled={isRemovingDownloadSource}
+                    disabled={
+                      isRemovingDownloadSource || isImportingDownloadSources
+                    }
                   >
                     <NoEntryIcon />
                     {t("remove_download_source")}

@@ -66,6 +66,15 @@
     width: 100%;
   }
 
+  &__bottom-section {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+    margin-top: auto;
+  }
+
   &__playtime {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -169,6 +178,14 @@
 
   &__achievement-percentage {
     white-space: nowrap;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    max-width: 50%;
   }
 
   &__action-button {

@@ -1,7 +1,8 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
+import { Badge } from "@renderer/components";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -48,22 +49,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     ]
   );
 
-  const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
-    game.unlockedAchievementCount ?? 0
-  );
-
-  useEffect(() => {
-    if (game.unlockedAchievementCount) return;
-
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-      });
-  }, [game]);
-
   const backgroundStyle = useMemo(
     () =>
       backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
@@ -72,12 +57,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const achievementBarStyle = useMemo(
     () => ({
-      width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
+      width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
     }),
-    [unlockedAchievementsCount, game.achievementCount]
+    [game.unlockedAchievementCount, game.achievementCount]
   );
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
+  const tags = game.tags ?? [];
+  const visibleTags = tags.slice(0, 3);
+  const hasAchievements = (game.achievementCount ?? 0) > 0;
 
   return (
     <button
@@ -122,8 +110,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {/* Achievements section */}
-          {(game.achievementCount ?? 0) > 0 && (
+          {hasAchievements && (
             <div className="library-game-card-large__achievements">
               <div className="library-game-card-large__achievement-header">
                 <div className="library-game-card-large__achievements-gap">
@@ -132,12 +119,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                     className="library-game-card-large__achievement-trophy"
                   />
                   <span className="library-game-card-large__achievement-count">
-                    {unlockedAchievementsCount} / {game.achievementCount ?? 0}
+                    {game.unlockedAchievementCount ?? 0} /{" "}
+                    {game.achievementCount ?? 0}
                   </span>
                 </div>
                 <span className="library-game-card-large__achievement-percentage">
                   {Math.round(
-                    (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
+                    ((game.unlockedAchievementCount ?? 0) /
+                      (game.achievementCount ?? 1)) *
                       100
                   )}
                   %
@@ -149,6 +138,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                   style={achievementBarStyle}
                 />
               </div>
+            </div>
+          )}
+
+          {visibleTags.length > 0 && (
+            <div className="library-game-card-large__tags">
+              {visibleTags.map((tag) => (
+                <Badge key={tag}>{tag}</Badge>
+              ))}
             </div>
           )}
         </div>

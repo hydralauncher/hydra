@@ -63,7 +63,7 @@ export class CommonRedistManager {
     });
 
     cp.exec(
-      path.join(commonRedistPath, "install.bat"),
+      path.join(commonRedistPath(), "install.bat"),
       {
         windowsHide: true,
       },
@@ -77,19 +77,19 @@ export class CommonRedistManager {
 
   public static async canInstallCommonRedist() {
     return this.redistributables.every((redist) => {
-      const filePath = path.join(commonRedistPath, redist);
+      const filePath = path.join(commonRedistPath(), redist);
 
       return fs.existsSync(filePath);
     });
   }
 
   public static async downloadCommonRedist() {
-    if (!fs.existsSync(commonRedistPath)) {
-      await fs.promises.mkdir(commonRedistPath, { recursive: true });
+    if (!fs.existsSync(commonRedistPath())) {
+      await fs.promises.mkdir(commonRedistPath(), { recursive: true });
     }
 
     for (const redist of this.redistributables) {
-      const filePath = path.join(commonRedistPath, redist);
+      const filePath = path.join(commonRedistPath(), redist);
 
       if (fs.existsSync(filePath) && redist !== "install.bat") {
         continue;

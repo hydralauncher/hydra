@@ -126,7 +126,7 @@ export class HydraApi {
   static async setupApi() {
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
-      headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
+      headers: { "User-Agent": `Hydra Launcher v${appVersion()}` },
     });
 
     if (this.ADD_LOG_INTERCEPTOR) {
@@ -160,34 +160,53 @@ export class HydraApi {
         },
         (error) => {
           logger.error(" ---- RESPONSE ERROR -----");
-          const { config } = error;
 
-          const data = JSON.parse(config.data ?? null);
+          const config = error?.config;
+          const sanitize = (value: unknown) => {
+            if (Array.isArray(value)) return value;
+            if (value && typeof value === "object") {
+              return omit(value as Record<string, unknown>, [
+                "accessToken",
+                "refreshToken",
+              ]);
+            }
+
+            return value;
+          };
+
+          let parsedData: unknown = config?.data;
+          if (typeof config?.data === "string") {
+            try {
+              parsedData = JSON.parse(config.data);
+            } catch {
+              parsedData = config.data;
+            }
+          }
 
           logger.error(
-            config.method,
-            config.baseURL,
-            config.url,
-            omit(config.headers, [
+            config?.method,
+            config?.baseURL,
+            config?.url,
+            omit(config?.headers ?? {}, [
               "accessToken",
               "refreshToken",
               "Authorization",
             ]),
-            Array.isArray(data)
-              ? data
-              : omit(data, ["accessToken", "refreshToken"])
+            sanitize(parsedData)
           );
-          if (error.response) {
+
+          const response = error?.response;
+          if (response) {
             logger.error(
               "Response error:",
-              error.response.status,
-              error.response.data
+              response.status,
+              response.data
             );
 
             return Promise.reject(error as Error);
           }
 
-          if (error.request) {
+          if (error?.request) {
             const errorData = error.toJSON();
             logger.error("Request error:", errorData.code, errorData.message);
             return Promise.reject(
@@ -197,7 +216,7 @@ export class HydraApi {
             );
           }
 
-          logger.error("Error", error.message);
+          logger.error("Error", error?.message);
           return Promise.reject(error as Error);
         }
       );

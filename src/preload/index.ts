@@ -18,6 +18,8 @@ import type {
   ShortcutLocation,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  DownloadSourcesExportResult,
+  DownloadSourcesImportResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -103,6 +105,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
+  exportDownloadSources: (filePath: string): Promise<DownloadSourcesExportResult> =>
+    ipcRenderer.invoke("exportDownloadSources", filePath),
+  importDownloadSources: (filePath: string): Promise<DownloadSourcesImportResult> =>
+    ipcRenderer.invoke("importDownloadSources", filePath),
   getDownloadSourcesCheckBaseline: () =>
     ipcRenderer.invoke("getDownloadSourcesCheckBaseline"),
   getDownloadSourcesSinceValue: () =>
@@ -187,6 +193,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
     ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
+  updateGameCollections: (params: {
+    shop: GameShop;
+    objectId: string;
+    tags?: string[];
+    playStatus?: string | null;
+  }) => ipcRenderer.invoke("updateGameCollections", params),
   updateLaunchOptions: (
     shop: GameShop,
     objectId: string,
@@ -345,6 +357,8 @@ contextBridge.exposeInMainWorld("electron", {
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
+  showSaveDialog: (options: Electron.SaveDialogOptions) =>
+    ipcRenderer.invoke("showSaveDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   hydraApi: {

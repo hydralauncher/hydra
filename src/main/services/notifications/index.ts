@@ -15,13 +15,6 @@ import { db, levelKeys, themesSublevel } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
 import { getThemeSoundPath } from "@main/helpers";
-import { processProfileImage } from "@main/events/profile/process-profile-image";
-
-const getStaticImage = async (path: string) => {
-  return processProfileImage(path, "jpg")
-    .then((response) => response.imagePath)
-    .catch(() => path);
-};
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -38,9 +31,8 @@ async function downloadImage(url: string | null) {
   response.data.pipe(writer);
 
   return new Promise<string | undefined>((resolve) => {
-    writer.on("finish", async () => {
-      const staticImagePath = await getStaticImage(outputPath);
-      resolve(staticImagePath);
+    writer.on("finish", () => {
+      resolve(outputPath);
     });
     writer.on("error", () => {
       logger.error("Failed to download image", { url });

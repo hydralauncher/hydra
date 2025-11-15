@@ -351,20 +351,56 @@ export function DownloadGroup({
                   {getGameInfo(game)}
                 </div>
 
-                {getGameActions(game) !== null && (
-                  <DropdownMenu
-                    align="end"
-                    items={getGameActions(game)}
-                    sideOffset={-75}
-                  >
-                    <Button
-                      className="download-group__menu-button"
-                      theme="outline"
-                    >
-                      <ThreeBarsIcon />
-                    </Button>
-                  </DropdownMenu>
-                )}
+                {(() => {
+                  const actions = getGameActions(game);
+                  const primaryLabels = new Set([
+                    t("pause"),
+                    t("resume"),
+                    t("cancel"),
+                  ]);
+
+                  const primaryActions = actions.filter((item) =>
+                    primaryLabels.has(item.label)
+                  );
+                  const menuActions = actions.filter(
+                    (item) => !primaryLabels.has(item.label)
+                  );
+
+                  if (!primaryActions.length && !menuActions.length) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="download-group__actions">
+                      {primaryActions.map((item) => (
+                        <Button
+                          key={item.label}
+                          theme="outline"
+                          disabled={item.disabled}
+                          onClick={item.onClick}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </Button>
+                      ))}
+
+                      {menuActions.length > 0 && (
+                        <DropdownMenu
+                          align="end"
+                          items={menuActions}
+                          sideOffset={-75}
+                        >
+                          <Button
+                            className="download-group__menu-button"
+                            theme="outline"
+                          >
+                            <ThreeBarsIcon />
+                          </Button>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {game.download?.downloader === Downloader.Hydra && (

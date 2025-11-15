@@ -8,7 +8,13 @@
   &__filter-top {
     margin-bottom: calc(globals.$spacing-unit * 2);
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__filter-actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: calc(globals.$spacing-unit * 1);
     align-items: center;
   }

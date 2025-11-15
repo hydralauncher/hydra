@@ -49,6 +49,12 @@ export function RepacksModal({
     []
   );
   const [filterTerm, setFilterTerm] = useState("");
+  const [sizeSortDirection, setSizeSortDirection] = useState<
+    "none" | "asc" | "desc"
+  >("none");
+  const [dateSortDirection, setDateSortDirection] = useState<
+    "none" | "asc" | "desc"
+  >("none");
 
   const [hashesInDebrid, setHashesInDebrid] = useState<Record<string, boolean>>(
     {}
@@ -78,6 +84,51 @@ export function RepacksModal({
     const match = magnet.match(hashRegex);
 
     return match ? match[1].toLowerCase() : null;
+  };
+
+  const parseFileSizeToGb = (fileSize: string | null): number | null => {
+    if (!fileSize) return null;
+
+    const lower = fileSize.toLowerCase();
+    const match = lower.match(/([0-9]+[0-9.,]*)/);
+    if (!match) return null;
+
+    const normalized = match[1].replace(",", ".");
+    const value = Number.parseFloat(normalized);
+    if (Number.isNaN(value)) return null;
+
+    if (lower.includes("tb")) return value * 1024;
+    if (lower.includes("mb")) return value / 1024;
+    if (lower.includes("kb")) return value / (1024 * 1024);
+
+    return value;
+  };
+
+  const parseUploadDateToTimestamp = (
+    uploadDate: string | null
+  ): number | null => {
+    if (!uploadDate) return null;
+
+    const direct = new Date(uploadDate);
+    if (!Number.isNaN(direct.getTime())) {
+      return direct.getTime();
+    }
+
+    const match = uploadDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const [, day, month, year] = match;
+      const parsed = new Date(
+        Number.parseInt(year, 10),
+        Number.parseInt(month, 10) - 1,
+        Number.parseInt(day, 10)
+      );
+      const time = parsed.getTime();
+      if (!Number.isNaN(time)) {
+        return time;
+      }
+    }
+
+    return null;
   };
 
   const { isFeatureEnabled, Feature } = useFeature();
@@ -169,8 +220,41 @@ export function RepacksModal({
       );
     });
 
-    setFilteredRepacks(bySource);
-  }, [sortedRepacks, filterTerm, selectedFingerprints, downloadSources]);
+    let sortedBy = bySource;
+
+    if (sizeSortDirection !== "none") {
+      sortedBy = [...sortedBy].sort((a, b) => {
+        const sizeA = parseFileSizeToGb(a.fileSize);
+        const sizeB = parseFileSizeToGb(b.fileSize);
+
+        if (sizeA === null && sizeB === null) return 0;
+        if (sizeA === null) return 1;
+        if (sizeB === null) return -1;
+
+        return sizeSortDirection === "asc" ? sizeA - sizeB : sizeB - sizeA;
+      });
+    } else if (dateSortDirection !== "none") {
+      sortedBy = [...sortedBy].sort((a, b) => {
+        const dateA = parseUploadDateToTimestamp(a.uploadDate);
+        const dateB = parseUploadDateToTimestamp(b.uploadDate);
+
+        if (dateA === null && dateB === null) return 0;
+        if (dateA === null) return 1;
+        if (dateB === null) return -1;
+
+        return dateSortDirection === "asc" ? dateA - dateB : dateB - dateA;
+      });
+    }
+
+    setFilteredRepacks(sortedBy);
+  }, [
+    sortedRepacks,
+    filterTerm,
+    selectedFingerprints,
+    downloadSources,
+    sizeSortDirection,
+    dateSortDirection,
+  ]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -219,6 +303,28 @@ export function RepacksModal({
     }
   }, [visible]);
 
+  const toggleSizeSortDirection = () => {
+    setSizeSortDirection((prev) => {
+      if (prev === "none") {
+        setDateSortDirection("none");
+        return "desc";
+      }
+      if (prev === "desc") return "asc";
+      return "none";
+    });
+  };
+
+  const toggleDateSortDirection = () => {
+    setDateSortDirection((prev) => {
+      if (prev === "none") {
+        setSizeSortDirection("none");
+        return "desc";
+      }
+      if (prev === "desc") return "asc";
+      return "none";
+    });
+  };
+
   return (
     <>
       <DownloadSettingsModal
@@ -243,17 +349,45 @@ export function RepacksModal({
               value={filterTerm}
               onChange={handleFilter}
             />
-            {downloadSources.length > 0 && (
+            <div className="repacks-modal__filter-actions">
+              {downloadSources.length > 0 && (
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+                  className="repacks-modal__filter-toggle"
+                >
+                  {t("filter_by_source")}
+                  {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                </Button>
+              )}
               <Button
                 type="button"
                 theme="outline"
-                onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+                onClick={toggleSizeSortDirection}
                 className="repacks-modal__filter-toggle"
               >
-                {t("filter_by_source")}
-                {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                {t("sort_by_size")}
+                {sizeSortDirection === "desc"
+                  ? " ↓"
+                  : sizeSortDirection === "asc"
+                    ? " ↑"
+                    : ""}
               </Button>
-            )}
+              <Button
+                type="button"
+                theme="outline"
+                onClick={toggleDateSortDirection}
+                className="repacks-modal__filter-toggle"
+              >
+                {t("sort_by_date")}
+                {dateSortDirection === "desc"
+                  ? " ↓"
+                  : dateSortDirection === "asc"
+                    ? " ↑"
+                    : ""}
+              </Button>
+            </div>
           </div>
 
           <div

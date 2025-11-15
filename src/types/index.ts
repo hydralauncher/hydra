@@ -37,6 +37,21 @@ export interface DownloadSource {
   createdAt: string;
 }
 
+export interface DownloadSourcesConfig {
+  version: number;
+  exportedAt: string;
+  sources: DownloadSource[];
+}
+
+export interface DownloadSourcesImportResult {
+  imported: number;
+  skipped: number;
+}
+
+export interface DownloadSourcesExportResult {
+  exported: number;
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;

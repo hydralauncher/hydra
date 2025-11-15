@@ -12,5 +12,5 @@ export const getDownloadsPath = async () => {
 
   if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
 
-  return defaultDownloadsPath;
+  return defaultDownloadsPath();
 };

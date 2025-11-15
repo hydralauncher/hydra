@@ -206,4 +206,12 @@
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
   }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 0.75);
+    justify-content: flex-end;
+    max-width: 50%;
+  }
 }

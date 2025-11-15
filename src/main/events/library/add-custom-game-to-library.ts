@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import { randomUUID } from "node:crypto";
-import type { GameShop } from "@types";
+import type { Game, GameShop } from "@types";
 
 const addCustomGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -41,7 +41,7 @@ const addCustomGameToLibrary = async (
   };
   await gamesShopAssetsSublevel.put(gameKey, assets);
 
-  const game = {
+  const game: Game = {
     title,
     iconUrl: iconUrl || null,
     logoImageUrl: logoImageUrl || null,
@@ -57,6 +57,7 @@ const addCustomGameToLibrary = async (
     favorite: false,
     automaticCloudSync: false,
     hasManuallyUpdatedPlaytime: false,
+    tags: [],
   };
 
   await gamesSublevel.put(gameKey, game);
