@@ -124,6 +124,7 @@ export interface UserPreferences {
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  enableNewDownloadOptionsBadges?: boolean;
 }
 
 export interface ScreenState {
