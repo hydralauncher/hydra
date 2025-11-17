@@ -24,6 +24,7 @@ import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
+import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -347,6 +348,42 @@ export class DownloadManager {
           url: downloadUrl,
           save_path: download.downloadPath,
         };
+      }
+      case Downloader.Buzzheavier: {
+        logger.error(`[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`);
+        try {
+          const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
+          logger.error(`[DownloadManager] Buzzheavier direct URL obtained: ${directUrl}`);
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: directUrl,
+            save_path: download.downloadPath,
+            allow_multiple_connections: true,
+          };
+        } catch (error) {
+          logger.error(`[DownloadManager] Error processing Buzzheavier download:`, error);
+          throw error;
+        }
+      }
+      case Downloader.FuckingFast: {
+        logger.error(`[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`);
+        try {
+          const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+          logger.error(`[DownloadManager] FuckingFast direct URL obtained: ${directUrl}`);
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: directUrl,
+            save_path: download.downloadPath,
+            allow_multiple_connections: true,
+          };
+        } catch (error) {
+          logger.error(`[DownloadManager] Error processing FuckingFast download:`, error);
+          throw error;
+        }
       }
       case Downloader.Mediafire: {
         const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
