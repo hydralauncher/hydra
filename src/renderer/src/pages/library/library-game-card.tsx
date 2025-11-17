@@ -2,6 +2,7 @@ import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { memo } from "react";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
+import { Badge } from "@renderer/components";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -24,6 +25,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 }: Readonly<LibraryGameCardProps>) {
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const tags = game.tags ?? [];
+  const visibleTags = tags.slice(0, 3);
+  const hasAchievements = (game.achievementCount ?? 0) > 0;
 
   const coverImage = (
     game.customIconUrl ??
@@ -64,36 +69,48 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           </div>
         </div>
 
-        {(game.achievementCount ?? 0) > 0 && (
-          <div className="library-game-card__achievements">
-            <div className="library-game-card__achievement-header">
-              <div className="library-game-card__achievements-gap">
-                <TrophyIcon
-                  size={13}
-                  className="library-game-card__achievement-trophy"
-                />
-                <span className="library-game-card__achievement-count">
-                  {game.unlockedAchievementCount ?? 0} /{" "}
-                  {game.achievementCount ?? 0}
-                </span>
+        {(hasAchievements || visibleTags.length > 0) && (
+          <div className="library-game-card__bottom-section">
+            {hasAchievements && (
+              <div className="library-game-card__achievements">
+                <div className="library-game-card__achievement-header">
+                  <div className="library-game-card__achievements-gap">
+                    <TrophyIcon
+                      size={13}
+                      className="library-game-card__achievement-trophy"
+                    />
+                    <span className="library-game-card__achievement-count">
+                      {game.unlockedAchievementCount ?? 0} /{" "}
+                      {game.achievementCount ?? 0}
+                    </span>
+                  </div>
+                  <span className="library-game-card__achievement-percentage">
+                    {Math.round(
+                      ((game.unlockedAchievementCount ?? 0) /
+                        (game.achievementCount ?? 1)) *
+                        100
+                    )}
+                    %
+                  </span>
+                </div>
+                <div className="library-game-card__achievement-progress">
+                  <div
+                    className="library-game-card__achievement-bar"
+                    style={{
+                      width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <span className="library-game-card__achievement-percentage">
-                {Math.round(
-                  ((game.unlockedAchievementCount ?? 0) /
-                    (game.achievementCount ?? 1)) *
-                    100
-                )}
-                %
-              </span>
-            </div>
-            <div className="library-game-card__achievement-progress">
-              <div
-                className="library-game-card__achievement-bar"
-                style={{
-                  width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
-                }}
-              />
-            </div>
+            )}
+
+            {visibleTags.length > 0 && (
+              <div className="library-game-card__tags">
+                {visibleTags.map((tag) => (
+                  <Badge key={tag}>{tag}</Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

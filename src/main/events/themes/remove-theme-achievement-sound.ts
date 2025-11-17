@@ -15,7 +15,7 @@ const removeThemeAchievementSound = async (
   }
 
   const themeDir = getThemePath(themeId, theme.name);
-  const legacyThemeDir = path.join(THEMES_PATH, themeId);
+  const legacyThemeDir = path.join(THEMES_PATH(), themeId);
 
   const removeFromDir = async (dir: string) => {
     if (!fs.existsSync(dir)) {

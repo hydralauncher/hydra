@@ -53,8 +53,8 @@
 
   &__header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__navigate-button {

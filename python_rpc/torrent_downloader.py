@@ -1,7 +1,20 @@
-import libtorrent as lt
+try:
+    import libtorrent as lt
+except Exception as e:
+    lt = None
+    print("Warning: libtorrent is not available, torrent features disabled:", e)
+
 
 class TorrentDownloader:
-    def __init__(self, torrent_session, flags = lt.torrent_flags.auto_managed):
+    def __init__(self, torrent_session, flags=None):
+        if lt is None:
+            # Torrent functionality is disabled when libtorrent is missing.
+            # The caller should avoid using TorrentDownloader in this case.
+            raise RuntimeError("libtorrent is not available; TorrentDownloader cannot be used")
+
+        if flags is None:
+            flags = lt.torrent_flags.auto_managed
+
         self.torrent_handle = None
         self.session = torrent_session
         self.flags = flags

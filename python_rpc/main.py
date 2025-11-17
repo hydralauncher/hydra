@@ -4,7 +4,12 @@ from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
 from http_multi_link_downloader import HttpMultiLinkDownloader
-import libtorrent as lt
+
+try:
+    import libtorrent as lt
+except Exception as e:
+    lt = None
+    print("Warning: libtorrent is not available, torrent features disabled:", e)
 
 app = Flask(__name__)
 
@@ -19,7 +24,10 @@ downloads = {}
 # This can be streamed down from Node
 downloading_game_id = -1
 
-torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+if lt is not None:
+    torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+else:
+    torrent_session = None
 
 if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
@@ -34,12 +42,15 @@ if start_download_payload:
         except Exception as e:
             print("Error starting multi-link download", e)
     elif initial_download['url'].startswith('magnet'):
-        torrent_downloader = TorrentDownloader(torrent_session)
-        downloads[initial_download['game_id']] = torrent_downloader
-        try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
-        except Exception as e:
-            print("Error starting torrent download", e)
+        if lt is None:
+            print("Warning: libtorrent is not available, skipping initial torrent download for", initial_download['game_id'])
+        else:
+            torrent_downloader = TorrentDownloader(torrent_session)
+            downloads[initial_download['game_id']] = torrent_downloader
+            try:
+                torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
+            except Exception as e:
+                print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
@@ -49,14 +60,17 @@ if start_download_payload:
             print("Error starting http download", e)
 
 if start_seeding_payload:
-    initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
-    for seed in initial_seeding:
-        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
-        downloads[seed['game_id']] = torrent_downloader
-        try:
-            torrent_downloader.start_download(seed['url'], seed['save_path'])
-        except Exception as e:
-            print("Error starting seeding", e)
+    if lt is None:
+        print("Warning: libtorrent is not available, skipping initial seeding payload")
+    else:
+        initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
+        for seed in initial_seeding:
+            torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+            downloads[seed['game_id']] = torrent_downloader
+            try:
+                torrent_downloader.start_download(seed['url'], seed['save_path'])
+            except Exception as e:
+                print("Error starting seeding", e)
 
 def validate_rpc_password():
     """Middleware to validate RPC password."""
@@ -153,11 +167,8 @@ def profile_image():
     data = request.get_json()
     image_path = data.get('image_path')
 
-    # use webp as default value for target_extension
-    target_extension = data.get('target_extension') or 'webp'
-
     try:
-        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path, target_extension)
+        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path)
         return jsonify({'imagePath': processed_image_path, 'mimeType': mime_type}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -217,9 +228,12 @@ def action():
         if downloader:
             downloader.cancel_download()
     elif action == 'resume_seeding':
-        torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
-        downloads[game_id] = torrent_downloader
-        torrent_downloader.start_download(data['url'], data['save_path'])
+        if lt is None:
+            print("Warning: libtorrent is not available, cannot resume seeding for", game_id)
+        else:
+            torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+            downloads[game_id] = torrent_downloader
+            torrent_downloader.start_download(data['url'], data['save_path'])
     elif action == 'pause_seeding':
         downloader = downloads.get(game_id)
         if downloader:

@@ -83,6 +83,12 @@
     gap: globals.$spacing-unit;
   }
 
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
   &__danger-zone {
     display: flex;
     flex-direction: column;

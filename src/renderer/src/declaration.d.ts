@@ -20,6 +20,7 @@ import type {
   ComparedAchievements,
   LibraryGame,
   GameRunning,
+  GamePlayStatus,
   TorBoxUser,
   Theme,
   Auth,
@@ -31,6 +32,8 @@ import type {
   Game,
   DiskUsage,
   DownloadSource,
+  DownloadSourcesExportResult,
+  DownloadSourcesImportResult,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -151,6 +154,12 @@ declare global {
       objectId: string,
       pinned: boolean
     ) => Promise<void>;
+    updateGameCollections: (params: {
+      shop: GameShop;
+      objectId: string;
+      tags?: string[];
+      playStatus?: GamePlayStatus | null;
+    }) => Promise<void>;
     updateLaunchOptions: (
       shop: GameShop,
       objectId: string,
@@ -221,6 +230,12 @@ declare global {
     syncDownloadSources: () => Promise<void>;
     getDownloadSourcesCheckBaseline: () => Promise<string | null>;
     getDownloadSourcesSinceValue: () => Promise<string | null>;
+    exportDownloadSources: (
+      filePath: string
+    ) => Promise<DownloadSourcesExportResult>;
+    importDownloadSources: (
+      filePath: string
+    ) => Promise<DownloadSourcesImportResult>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
@@ -277,6 +292,9 @@ declare global {
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
+    showSaveDialog: (
+      options: Electron.SaveDialogOptions
+    ) => Promise<Electron.SaveDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
     hydraApi: {
       get: <T = unknown>(

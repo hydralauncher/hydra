@@ -106,6 +106,11 @@ export class PythonRPC {
         "main.py"
       );
 
+      // In dev mode we always run the raw Python script instead of the
+      // bundled hydra-python-rpc.exe, because the local exe may be built
+      // with libtorrent and fail to start on systems where libtorrent
+      // cannot be loaded. The Python sources themselves handle missing
+      // libtorrent gracefully and simply disable torrent features.
       const childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
         stdio: ["inherit", "inherit"],
       });

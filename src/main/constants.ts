@@ -1,59 +1,59 @@
 import { app } from "electron";
 import path from "node:path";
-import { SystemPath } from "./services/system-path";
+import { SystemPath } from "@main/services/system-path";
 
-export const defaultDownloadsPath = SystemPath.getPath("downloads");
+const apiUrl = import.meta.env.MAIN_VITE_API_URL ?? "";
 
-export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
+export const isStaging = () => apiUrl.includes("staging");
 
-export const windowsStartMenuPath = path.join(
-  SystemPath.getPath("appData"),
-  "Microsoft",
-  "Windows",
-  "Start Menu",
-  "Programs"
-);
+export const defaultDownloadsPath = () => SystemPath.getPath("downloads");
 
-export const publicProfilePath = "C:/Users/Public";
+export const windowsStartMenuPath = () =>
+  path.join(
+    SystemPath.getPath("appData"),
+    "Microsoft",
+    "Windows",
+    "Start Menu",
+    "Programs"
+  );
 
-export const levelDatabasePath = path.join(
-  SystemPath.getPath("userData"),
-  `hydra-db${isStaging ? "-staging" : ""}`
-);
+export const publicProfilePath = () => "C:/Users/Public";
 
-export const commonRedistPath = path.join(
-  SystemPath.getPath("userData"),
-  "CommonRedist"
-);
+export const levelDatabasePath = () =>
+  path.join(
+    SystemPath.getPath("userData"),
+    `hydra-db${isStaging() ? "-staging" : ""}`
+  );
 
-export const logsPath = path.join(
-  SystemPath.getPath("userData"),
-  `logs${isStaging ? "-staging" : ""}`
-);
+export const commonRedistPath = () =>
+  path.join(SystemPath.getPath("userData"), "CommonRedist");
 
-export const achievementSoundPath = app.isPackaged
-  ? path.join(process.resourcesPath, "achievement.wav")
-  : path.join(__dirname, "..", "..", "resources", "achievement.wav");
+export const logsPath = () =>
+  path.join(SystemPath.getPath("userData"), `logs${isStaging() ? "-staging" : ""}`);
 
-export const backupsPath = path.join(SystemPath.getPath("userData"), "Backups");
+export const achievementSoundPath = () =>
+  app.isPackaged
+    ? path.join(process.resourcesPath, "achievement.wav")
+    : path.join(__dirname, "..", "..", "resources", "achievement.wav");
 
-export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
+export const backupsPath = () =>
+  path.join(SystemPath.getPath("userData"), "Backups");
 
-export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
+export const appVersion = () =>
+  app.getVersion() + (isStaging() ? "-staging" : "");
 
-export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
+export const ASSETS_PATH = () =>
+  path.join(SystemPath.getPath("userData"), "Assets");
+
+export const THEMES_PATH = () =>
+  path.join(SystemPath.getPath("userData"), "themes");
 
 export const MAIN_LOOP_INTERVAL = 2000;
 
 export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
 
-export const DECKY_PLUGINS_LOCATION = path.join(
-  SystemPath.getPath("home"),
-  "homebrew",
-  "plugins"
-);
+export const DECKY_PLUGINS_LOCATION = () =>
+  path.join(SystemPath.getPath("home"), "homebrew", "plugins");
 
-export const HYDRA_DECKY_PLUGIN_LOCATION = path.join(
-  DECKY_PLUGINS_LOCATION,
-  "Hydra"
-);
+export const HYDRA_DECKY_PLUGIN_LOCATION = () =>
+  path.join(DECKY_PLUGINS_LOCATION(), "Hydra");

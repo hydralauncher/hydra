@@ -1,5 +1,5 @@
 import { app, dialog } from "electron";
-import { logger } from "./logger";
+import log from "electron-log";
 
 export class SystemPath {
   static readonly paths = {
@@ -21,9 +21,9 @@ export class SystemPath {
       try {
         app.getPath(pathName);
       } catch (error) {
-        logger.error(`Error getting path ${pathName}`);
+        log.error(`Error getting path ${pathName}`);
         if (error instanceof Error) {
-          logger.error(error.message, error.stack);
+          log.error(error.message, error.stack);
         }
 
         dialog.showErrorBox(
@@ -38,7 +38,7 @@ export class SystemPath {
     try {
       return app.getPath(pathName);
     } catch (error) {
-      console.error(`Error getting path: ${error}`);
+      log.error(`Error getting path: ${error}`);
       return "";
     }
   }

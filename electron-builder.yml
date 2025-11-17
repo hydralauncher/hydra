@@ -69,4 +69,4 @@ publish:
   owner: hydralauncher
   repo: hydra
 electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
+  mirror: https://github.com/electron/electron/releases/download/v

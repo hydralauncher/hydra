@@ -38,6 +38,7 @@ const addGameToLibrary = async (
       isDeleted: false,
       playTimeInMilliseconds: 0,
       lastTimePlayed: null,
+      tags: [],
     };
 
     await gamesSublevel.put(gameKey, game);

@@ -19,7 +19,7 @@ export class TorBoxClient {
       baseURL: this.baseURL,
       headers: {
         Authorization: `Bearer ${apiToken}`,
-        "User-Agent": `Hydra/${appVersion}`,
+        "User-Agent": `Hydra/${appVersion()}`,
       },
     });
   }

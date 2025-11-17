@@ -57,6 +57,23 @@
     gap: calc(globals.$spacing-unit);
   }
 
+  &__status-filter {
+    min-width: 140px;
+  }
+
+  &__tag-filter {
+    max-width: 220px;
+
+    .text-field-container__text-field--dark {
+      background-color: globals.$dark-background-color;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .text-field-container__text-field--dark:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
   &__header-controls {
     display: flex;
     flex-direction: column;

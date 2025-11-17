@@ -13,11 +13,13 @@ const copyCustomGameAsset = async (
     throw new Error("Source file does not exist");
   }
 
-  if (!fs.existsSync(ASSETS_PATH)) {
-    fs.mkdirSync(ASSETS_PATH, { recursive: true });
+  const assetsRoot = ASSETS_PATH();
+
+  if (!fs.existsSync(assetsRoot)) {
+    fs.mkdirSync(assetsRoot, { recursive: true });
   }
 
-  const customGamesAssetsPath = path.join(ASSETS_PATH, "custom-games");
+  const customGamesAssetsPath = path.join(assetsRoot, "custom-games");
   if (!fs.existsSync(customGamesAssetsPath)) {
     fs.mkdirSync(customGamesAssetsPath, { recursive: true });
   }

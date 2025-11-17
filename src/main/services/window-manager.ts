@@ -197,7 +197,7 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged || isStaging)
+      if (!app.isPackaged || isStaging())
         WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
@@ -395,7 +395,7 @@ export class WindowManager {
     this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.loadWindowURL(this.notificationWindow, "achievement-notification");
 
-    if (!app.isPackaged || isStaging) {
+    if (!app.isPackaged || isStaging()) {
       this.notificationWindow.webContents.openDevTools();
     }
   }
@@ -474,7 +474,7 @@ export class WindowManager {
       editorWindow.once("ready-to-show", () => {
         editorWindow.show();
         this.mainWindow?.webContents.openDevTools();
-        if (!app.isPackaged || isStaging) {
+        if (!app.isPackaged || isStaging()) {
           editorWindow.webContents.openDevTools();
         }
       });

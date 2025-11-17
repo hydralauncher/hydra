@@ -33,29 +33,26 @@ const getHydraDeckyPluginInfo = async (
     }
 
     // Check if plugin folder exists
-    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION)) {
+    if (!fs.existsSync(HYDRA_DECKY_PLUGIN_LOCATION())) {
       logger.log("Hydra Decky plugin not installed");
       return {
         installed: false,
         version: null,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: HYDRA_DECKY_PLUGIN_LOCATION(),
         outdated: true,
         expectedVersion,
       };
     }
 
     // Check if package.json exists
-    const packageJsonPath = path.join(
-      HYDRA_DECKY_PLUGIN_LOCATION,
-      "package.json"
-    );
+    const packageJsonPath = path.join(HYDRA_DECKY_PLUGIN_LOCATION(), "package.json");
 
     if (!fs.existsSync(packageJsonPath)) {
       logger.log("Hydra Decky plugin package.json not found");
       return {
         installed: false,
         version: null,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: HYDRA_DECKY_PLUGIN_LOCATION(),
         outdated: true,
         expectedVersion,
       };
@@ -75,7 +72,7 @@ const getHydraDeckyPluginInfo = async (
     return {
       installed: true,
       version,
-      path: HYDRA_DECKY_PLUGIN_LOCATION,
+      path: HYDRA_DECKY_PLUGIN_LOCATION(),
       outdated,
       expectedVersion,
     };
@@ -84,7 +81,7 @@ const getHydraDeckyPluginInfo = async (
     return {
       installed: false,
       version: null,
-      path: HYDRA_DECKY_PLUGIN_LOCATION,
+      path: HYDRA_DECKY_PLUGIN_LOCATION(),
       outdated: true,
       expectedVersion: null,
     };

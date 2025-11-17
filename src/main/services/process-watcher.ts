@@ -164,11 +164,26 @@ export const watchProcesses = async () => {
       continue;
     }
 
-    const executable = executablePath
-      .slice(executablePath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
-      .toLowerCase();
+    const normalizedExecutablePath = path.normalize(executablePath);
+    const executable = path.basename(normalizedExecutablePath).toLowerCase();
 
-    const hasProcess = processMap.get(executable)?.has(executablePath);
+    const paths = processMap.get(executable);
+    let hasProcess = false;
+
+    if (paths) {
+      const normalizedTarget = normalizedExecutablePath.toLowerCase();
+
+      for (const processPath of paths) {
+        if (!processPath) continue;
+
+        const normalizedProcessPath = path.normalize(processPath).toLowerCase();
+
+        if (normalizedProcessPath === normalizedTarget) {
+          hasProcess = true;
+          break;
+        }
+      }
+    }
 
     if (hasProcess) {
       if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {

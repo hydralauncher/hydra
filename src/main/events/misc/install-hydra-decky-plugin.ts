@@ -20,7 +20,7 @@ const installHydraDeckyPlugin = async (
       logger.log("Plugin installed successfully");
       return {
         success: true,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: HYDRA_DECKY_PLUGIN_LOCATION(),
         currentVersion: result.currentVersion,
         expectedVersion: result.expectedVersion,
       };
@@ -28,7 +28,7 @@ const installHydraDeckyPlugin = async (
       logger.error("Failed to install plugin");
       return {
         success: false,
-        path: HYDRA_DECKY_PLUGIN_LOCATION,
+        path: HYDRA_DECKY_PLUGIN_LOCATION(),
         currentVersion: result.currentVersion,
         expectedVersion: result.expectedVersion,
         error: "Plugin installation failed",
@@ -39,7 +39,7 @@ const installHydraDeckyPlugin = async (
     logger.error("Failed to install plugin:", error);
     return {
       success: false,
-      path: HYDRA_DECKY_PLUGIN_LOCATION,
+      path: HYDRA_DECKY_PLUGIN_LOCATION(),
       currentVersion: null,
       expectedVersion: "unknown",
       error: errorMessage,

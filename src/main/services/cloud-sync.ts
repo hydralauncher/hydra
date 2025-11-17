@@ -73,7 +73,7 @@ export class CloudSync {
     objectId: string,
     winePrefix: string | null
   ) {
-    const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
+    const backupPath = path.join(backupsPath(), `${shop}-${objectId}`);
 
     // Remove existing backup
     if (fs.existsSync(backupPath)) {
@@ -86,7 +86,7 @@ export class CloudSync {
 
     await Ludusavi.backupGame(shop, objectId, backupPath, winePrefix);
 
-    const tarLocation = path.join(backupsPath, `${crypto.randomUUID()}.tar`);
+    const tarLocation = path.join(backupsPath(), `${crypto.randomUUID()}.tar`);
 
     await tar.create(
       {

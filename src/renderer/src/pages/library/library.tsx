@@ -4,8 +4,8 @@ import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { LibraryGame } from "@types";
-import { GameContextMenu } from "@renderer/components";
+import type { GamePlayStatus, LibraryGame } from "@types";
+import { GameContextMenu, SelectField, TextField } from "@renderer/components";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
@@ -14,12 +14,20 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  type ElectronAPI = {
+    refreshLibraryAssets?: () => Promise<unknown>;
+    onLibraryBatchComplete?: (cb: () => void) => () => void;
+  };
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const savedViewMode = localStorage.getItem("library-view-mode");
     return (savedViewMode as ViewMode) || "compact";
   });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
+  type StatusFilter = "all" | "installed" | "not_installed" | GamePlayStatus;
+
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [tagFilter, setTagFilter] = useState<string>("");
   const [contextMenu, setContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -37,15 +45,22 @@ export default function Library() {
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
-
-    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+    const electron = (globalThis as unknown as { electron?: ElectronAPI })
+      .electron;
+    let unsubscribe: () => void = () => undefined;
+    if (electron?.refreshLibraryAssets) {
+      electron
+        .refreshLibraryAssets()
+        .then(() => updateLibrary())
+        .catch(() => updateLibrary());
+      if (electron.onLibraryBatchComplete) {
+        unsubscribe = electron.onLibraryBatchComplete(() => {
+          updateLibrary();
+        });
+      }
+    } else {
       updateLibrary();
-    });
-
-    window.electron
-      .refreshLibraryAssets()
-      .then(() => updateLibrary())
-      .catch(() => updateLibrary());
+    }
 
     return () => {
       unsubscribe();
@@ -72,7 +87,7 @@ export default function Library() {
   }, []);
 
   const filteredLibrary = useMemo(() => {
-    let filtered;
+    let filtered: LibraryGame[];
 
     switch (filterBy) {
       case "recently_played":
@@ -84,6 +99,23 @@ export default function Library() {
       case "all":
       default:
         filtered = library;
+    }
+
+    if (statusFilter !== "all") {
+      if (statusFilter === "installed") {
+        filtered = filtered.filter((game) => !!game.executablePath);
+      } else if (statusFilter === "not_installed") {
+        filtered = filtered.filter((game) => !game.executablePath);
+      } else {
+        filtered = filtered.filter((game) => game.playStatus === statusFilter);
+      }
+    }
+
+    if (tagFilter.trim()) {
+      const tagLower = tagFilter.trim().toLowerCase();
+      filtered = filtered.filter((game) =>
+        (game.tags ?? []).some((tag) => tag.toLowerCase() === tagLower)
+      );
     }
 
     if (!searchQuery.trim()) return filtered;
@@ -105,7 +137,7 @@ export default function Library() {
 
       return queryIndex === queryLower.length;
     });
-  }, [library, filterBy, searchQuery]);
+  }, [library, filterBy, statusFilter, tagFilter, searchQuery]);
 
   const sortedLibrary = filteredLibrary;
 
@@ -144,6 +176,55 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
+              <SelectField
+                theme="dark"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    (event.target.value as StatusFilter) ?? "all"
+                  )
+                }
+                options={[
+                  {
+                    key: "all",
+                    value: "all",
+                    label: t("play_status_all", { ns: "library" }),
+                  },
+                  {
+                    key: "installed",
+                    value: "installed",
+                    label: t("play_status_installed", { ns: "game_details" }),
+                  },
+                  {
+                    key: "not_installed",
+                    value: "not_installed",
+                    label: t("play_status_not_installed", {
+                      ns: "game_details",
+                    }),
+                  },
+                  {
+                    key: "completed",
+                    value: "completed",
+                    label: t("play_status_completed", { ns: "game_details" }),
+                  },
+                  {
+                    key: "abandoned",
+                    value: "abandoned",
+                    label: t("play_status_abandoned", { ns: "game_details" }),
+                  },
+                ]}
+                className="library__status-filter"
+              />
+
+              <TextField
+                theme="dark"
+                placeholder={t("collections_tags_filter_placeholder", {
+                  ns: "library",
+                })}
+                value={tagFilter}
+                onChange={(event) => setTagFilter(event.target.value)}
+                containerProps={{ className: "library__tag-filter" }}
+              />
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}

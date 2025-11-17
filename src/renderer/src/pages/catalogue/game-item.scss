@@ -80,3 +80,35 @@
     flex-wrap: wrap;
   }
 }
+
+// Adjust layout when used inside catalogue view modes
+.catalogue__games-list--compact,
+.catalogue__games-list--grid {
+  .game-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+
+    &__cover {
+      width: 100%;
+      height: 180px;
+      border-right: none;
+      border-bottom: 1px solid globals.$border-color;
+    }
+
+    &__cover-placeholder {
+      width: 100%;
+      height: 180px;
+      border-right: none;
+    }
+
+    &__details {
+      width: 100%;
+      padding: calc(globals.$spacing-unit * 2);
+    }
+
+    &__genres {
+      margin-bottom: 4px;
+    }
+  }
+}
