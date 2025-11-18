@@ -713,7 +713,9 @@
     "karma_description": "Earned from positive likes on reviews",
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
-    "loading_reviews": "Loading reviews..."
+    "loading_reviews": "Loading reviews...",
+    "souvenir_deleted_successfully": "Souvenir deleted successfully",
+    "souvenir_deletion_failed": "Failed to delete souvenir"
   },
   "library": {
     "library": "Library",
