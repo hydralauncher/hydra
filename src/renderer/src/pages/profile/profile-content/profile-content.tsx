@@ -88,6 +88,7 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
+    getUserProfile,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
@@ -459,6 +460,8 @@ export function ProfileContent() {
                     <SouvenirsTab
                       achievements={userProfile?.achievements || []}
                       onImageClick={handleImageClick}
+                      isMe={isMe}
+                      onAchievementDeleted={getUserProfile}
                     />
                   )}
                 </AnimatePresence>

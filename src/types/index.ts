@@ -191,12 +191,15 @@ export interface UserDetails {
 }
 
 export interface ProfileAchievement {
+  id: string;
   name: string;
+  displayName: string;
   imageUrl: string;
   unlockTime: number;
   gameTitle: string;
   gameIconUrl: string | null;
   achievementIcon: string | null;
+  gameId: string;
 }
 
 export interface UserProfile {

@@ -326,6 +326,41 @@
     }
   }
 
+  &__image-delete-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(244, 67, 54, 0.9);
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 3;
+    opacity: 0;
+
+    &:hover {
+      background: rgba(244, 67, 54, 1);
+      border-color: rgba(244, 67, 54, 0.7);
+      transform: scale(1.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  &__image-achievement-image-wrapper:hover &__image-delete-button {
+    opacity: 1;
+  }
+
   // Show overlay on keyboard focus for accessibility
   &__image-button:focus-visible + &__image-achievement-image-overlay {
     opacity: 1;

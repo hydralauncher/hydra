@@ -1,26 +1,55 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { SearchIcon } from "@primer/octicons-react";
+import { SearchIcon, XIcon } from "@primer/octicons-react";
+import { useState } from "react";
+import type { ProfileAchievement } from "@types";
+import { useToast } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
 import "./profile-content.scss";
 
-interface Achievement {
-  name: string;
-  imageUrl: string;
-  achievementIcon: string | null;
-  gameTitle: string;
-  gameIconUrl: string | null;
-}
-
 interface SouvenirsTabProps {
-  achievements: Achievement[];
+  achievements: ProfileAchievement[];
   onImageClick: (imageUrl: string, achievementName: string) => void;
+  isMe: boolean;
+  onAchievementDeleted: () => void;
 }
 
 export function SouvenirsTab({
   achievements,
   onImageClick,
+  isMe,
+  onAchievementDeleted,
 }: Readonly<SouvenirsTabProps>) {
   const { t } = useTranslation("user_profile");
+  const { showSuccessToast, showErrorToast } = useToast();
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+
+  const handleDeleteAchievement = async (achievement: ProfileAchievement) => {
+    if (deletingIds.has(achievement.id)) return;
+
+    setDeletingIds((prev) => new Set(prev).add(achievement.id));
+
+    try {
+      await window.electron.hydraApi.delete(
+        `/profile/games/achievements/${achievement.gameId}/${achievement.name}/image`
+      );
+
+      showSuccessToast(
+        t("souvenir_deleted_successfully", "Souvenir deleted successfully")
+      );
+      onAchievementDeleted();
+    } catch (error) {
+      logger.error("Failed to delete souvenir:", error);
+      showErrorToast(
+        t("souvenir_deletion_failed", "Failed to delete souvenir")
+      );
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(achievement.id);
+        return next;
+      });
+    }
+  };
 
   return (
     <motion.div
@@ -50,9 +79,12 @@ export function SouvenirsTab({
                     type="button"
                     className="profile-content__image-button"
                     onClick={() =>
-                      onImageClick(achievement.imageUrl, achievement.name)
+                      onImageClick(
+                        achievement.imageUrl,
+                        achievement.displayName
+                      )
                     }
-                    aria-label={`View ${achievement.name} screenshot in fullscreen`}
+                    aria-label={`View ${achievement.displayName} screenshot in fullscreen`}
                     style={{
                       cursor: "pointer",
                       padding: 0,
@@ -62,7 +94,7 @@ export function SouvenirsTab({
                   >
                     <img
                       src={achievement.imageUrl}
-                      alt={achievement.name}
+                      alt={achievement.displayName}
                       className="profile-content__image-achievement-image"
                       loading="lazy"
                     />
@@ -70,6 +102,22 @@ export function SouvenirsTab({
                   <div className="profile-content__image-achievement-image-overlay">
                     <SearchIcon size={20} />
                   </div>
+                  {isMe && (
+                    <button
+                      type="button"
+                      className="profile-content__image-delete-button"
+                      onClick={() => handleDeleteAchievement(achievement)}
+                      aria-label={`Delete ${achievement.displayName} souvenir`}
+                      disabled={deletingIds.has(achievement.id)}
+                      style={{
+                        cursor: deletingIds.has(achievement.id)
+                          ? "not-allowed"
+                          : "pointer",
+                      }}
+                    >
+                      <XIcon size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -84,7 +132,7 @@ export function SouvenirsTab({
                     />
                   )}
                   <span className="profile-content__image-achievement-name">
-                    {achievement.name}
+                    {achievement.displayName}
                   </span>
                 </div>
 
