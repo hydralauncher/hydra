@@ -421,6 +421,7 @@
     "launch_with_system": "Launch Hydra on system start-up",
     "general": "General",
     "behavior": "Behavior",
+    "achievements": "Achievements",
     "download_sources": "Download sources",
     "language": "Language",
     "api_token": "API Token",
@@ -544,6 +545,8 @@
     "show_download_speed_in_megabytes": "Show download speed in megabytes per second",
     "extract_files_by_default": "Extract files by default after download",
     "enable_steam_achievements": "Enable search for Steam achievements",
+    "enable_achievement_screenshots": "Enable achievement screenshots",
+    "open_screenshots_directory": "Open screenshots directory",
     "achievement_custom_notification_position": "Achievement custom notification position",
     "top-left": "Top left",
     "top-center": "Top center",
@@ -619,6 +622,7 @@
     "amount_minutes_short": "{{amount}}m",
     "last_time_played": "Last played {{period}}",
     "activity": "Recent Activity",
+    "souvenirs": "Souvenirs",
     "library": "Library",
     "pinned": "Pinned",
     "sort_by": "Sort by:",
@@ -709,7 +713,9 @@
     "karma_description": "Earned from positive likes on reviews",
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
-    "loading_reviews": "Loading reviews..."
+    "loading_reviews": "Loading reviews...",
+    "souvenir_deleted_successfully": "Souvenir deleted successfully",
+    "souvenir_deletion_failed": "Failed to delete souvenir"
   },
   "library": {
     "library": "Library",

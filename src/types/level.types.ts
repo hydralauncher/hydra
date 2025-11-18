@@ -86,7 +86,8 @@ export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   updatedAt: number | undefined;
-  language: string | undefined;
+  imageUrl?: string | null;
+  language?: string;
 }
 
 export type AchievementCustomNotificationPosition =
@@ -122,6 +123,7 @@ export interface UserPreferences {
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  enableAchievementScreenshots?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
 }
