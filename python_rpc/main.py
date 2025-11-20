@@ -153,8 +153,11 @@ def profile_image():
     data = request.get_json()
     image_path = data.get('image_path')
 
+    # use webp as default value for target_extension
+    target_extension = data.get('target_extension') or 'webp'
+
     try:
-        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path)
+        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path, target_extension)
         return jsonify({'imagePath': processed_image_path, 'mimeType': mime_type}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
