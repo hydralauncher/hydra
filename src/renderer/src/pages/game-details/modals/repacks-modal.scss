@@ -45,10 +45,24 @@
   &__repack-title {
     color: globals.$muted-color;
     word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
   }
 
   &__repack-info {
     font-size: globals.$small-font-size;
+  }
+
+  &__new-badge {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: rgb(187, 247, 208);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 9px;
+    text-align: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(34, 197, 94, 0.5);
   }
 
   &__no-results {

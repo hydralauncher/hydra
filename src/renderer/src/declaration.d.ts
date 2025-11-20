@@ -142,6 +142,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    clearNewDownloadOptions: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
     toggleGamePin: (
       shop: GameShop,
       objectId: string,
@@ -218,6 +222,8 @@ declare global {
     ) => Promise<void>;
     getDownloadSources: () => Promise<DownloadSource[]>;
     syncDownloadSources: () => Promise<void>;
+    getDownloadSourcesCheckBaseline: () => Promise<string | null>;
+    getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
@@ -430,6 +436,11 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Download Options */
+    onNewDownloadOptions: (
+      cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
+    ) => () => Electron.IpcRenderer;
   }
 
   interface Window {

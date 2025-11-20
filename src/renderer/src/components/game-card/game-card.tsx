@@ -47,7 +47,7 @@ export function GameCard({ game, ...props }: GameCardProps) {
     >
       <div className="game-card__backdrop">
         <img
-          src={game.libraryImageUrl}
+          src={game.libraryImageUrl ?? undefined}
           alt={game.title}
           className="game-card__cover"
           loading="lazy"
