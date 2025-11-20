@@ -45,4 +45,72 @@
     gap: globals.$spacing-unit;
     margin-top: calc(globals.$spacing-unit * 2);
   }
+
+  &__mode-toggle {
+    display: flex;
+    gap: globals.$spacing-unit;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__textarea-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+
+    label {
+      color: globals.$body-color;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+
+  &__textarea {
+    background-color: globals.$dark-background-color;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    padding: globals.$spacing-unit;
+    color: #dadbe1;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 200px;
+    outline: none;
+    transition: border-color ease 0.2s;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus {
+      border-color: #dadbe1;
+      cursor: text;
+    }
+  }
+
+  &__error {
+    color: globals.$error-color;
+    font-size: 12px;
+    margin-top: calc(globals.$spacing-unit / 2);
+  }
+
+  &__results {
+    margin-top: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit;
+    background-color: globals.$dark-background-color;
+    border-radius: 8px;
+    border: solid 1px globals.$border-color;
+
+    p {
+      margin: 0;
+      color: globals.$body-color;
+      font-size: 14px;
+    }
+  }
+
+  &__errors {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    margin-top: calc(globals.$spacing-unit / 2);
+  }
 }

@@ -99,6 +99,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Download sources */
   addDownloadSource: (url: string) =>
     ipcRenderer.invoke("addDownloadSource", url),
+  addDownloadSourcesBulk: (urls: string[]) =>
+    ipcRenderer.invoke("addDownloadSourcesBulk", urls),
   removeDownloadSource: (url: string, removeAll?: boolean) =>
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
   getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
