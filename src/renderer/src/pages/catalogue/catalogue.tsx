@@ -112,51 +112,32 @@ export default function Catalogue() {
   const language = i18n.language.split("-")[0];
 
   const steamGenresFilterItems = useMemo(() => {
-    if (!steamGenres["en"] || !Array.isArray(steamGenres["en"])) {
+    const genresForLanguage = steamGenres[language] || steamGenres["en"];
+    
+    if (!genresForLanguage || !Array.isArray(genresForLanguage)) {
       return [];
     }
 
-    const allGenres = steamGenres["en"];
-    
-    const popularGenres = [
-      "Action",
-      "Adventure", 
-      "RPG",
-      "Strategy",
-      "Indie",
-      "Casual",
-      "Simulation",
-      "Sports",
-      "Racing",
-      "Free to Play",
-      "Massively Multiplayer"
-    ];
+    const sortedGenres = [...genresForLanguage].sort((a, b) => a.localeCompare(b));
 
-    const availablePopularGenres = popularGenres.filter(genre => 
-      allGenres.includes(genre)
-    );
-
-    const remainingGenres = allGenres.filter(genre => 
-      !popularGenres.includes(genre)
-    );
-
-    const sortedRemainingGenres = remainingGenres.sort((a, b) => 
-      a.localeCompare(b)
-    );
-
-    const orderedGenres = [...availablePopularGenres, ...sortedRemainingGenres];
-
-    return orderedGenres.map((genre) => ({
-      label: genre,
-      value: genre,
-      checked: filters.genres.includes(genre),
-    }));
-  }, [steamGenres, filters.genres]);
+    return sortedGenres.map((genre) => {
+      const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+      const translatedGenre = t(genreKey, { defaultValue: genre });
+      
+      return {
+        label: translatedGenre,
+        value: genre,
+        checked: filters.genres.includes(genre),
+      };
+    });
+  }, [steamGenres, filters.genres, language, t]);
 
   const steamUserTagsFilterItems = useMemo(() => {
-    if (!steamUserTags[language]) return [];
+    const tagsForLanguage = steamUserTags[language] || steamUserTags["en"];
+    
+    if (!tagsForLanguage) return [];
 
-    return Object.entries(steamUserTags[language])
+    return Object.entries(tagsForLanguage)
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([key, value]) => ({
         label: key,
@@ -167,21 +148,29 @@ export default function Catalogue() {
 
   const groupedFilters = useMemo(() => {
     return [
-      ...filters.genres.map((genre) => ({
-        label: genre,
-        orbColor: filterCategoryColors.genres,
-        key: "genres",
-        value: genre,
-      })),
+      ...filters.genres.map((genre) => {
+        const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+        const translatedGenre = t(genreKey, { defaultValue: genre });
+        
+        return {
+          label: translatedGenre,
+          orbColor: filterCategoryColors.genres,
+          key: "genres",
+          value: genre,
+        };
+      }),
 
-      ...filters.tags.map((tag) => ({
-        label: Object.keys(steamUserTags[language]).find(
-          (key) => steamUserTags[language][key] === tag
-        ),
-        orbColor: filterCategoryColors.tags,
-        key: "tags",
-        value: tag,
-      })),
+      ...filters.tags.map((tag) => {
+        const tagsForLanguage = steamUserTags[language] || steamUserTags["en"];
+        return {
+          label: Object.keys(tagsForLanguage || {}).find(
+            (key) => tagsForLanguage[key] === tag
+          ),
+          orbColor: filterCategoryColors.tags,
+          key: "tags",
+          value: tag,
+        };
+      }),
 
       ...filters.downloadSourceFingerprints.map((fingerprint) => ({
         label: downloadSources.find(
@@ -206,7 +195,7 @@ export default function Catalogue() {
         value: publisher,
       })),
     ];
-  }, [filters, steamUserTags, downloadSources, language]);
+  }, [filters, steamUserTags, downloadSources, language, t]);
 
   const filterSections = useMemo(() => {
     return [
