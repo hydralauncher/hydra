@@ -111,24 +111,47 @@ export default function Catalogue() {
 
   const language = i18n.language.split("-")[0];
 
-  const steamGenresMapping = useMemo<Record<string, string>>(() => {
-    if (!steamGenres[language]) return {};
-
-    return steamGenres[language].reduce((prev, genre, index) => {
-      prev[genre] = steamGenres["en"][index];
-      return prev;
-    }, {});
-  }, [steamGenres, language]);
-
   const steamGenresFilterItems = useMemo(() => {
-    return Object.entries(steamGenresMapping)
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-      .map(([key, value]) => ({
-        label: key,
-        value: value,
-        checked: filters.genres.includes(value),
-      }));
-  }, [steamGenresMapping, filters.genres]);
+    if (!steamGenres["en"] || !Array.isArray(steamGenres["en"])) {
+      return [];
+    }
+
+    const allGenres = steamGenres["en"];
+    
+    const popularGenres = [
+      "Action",
+      "Adventure", 
+      "RPG",
+      "Strategy",
+      "Indie",
+      "Casual",
+      "Simulation",
+      "Sports",
+      "Racing",
+      "Free to Play",
+      "Massively Multiplayer"
+    ];
+
+    const availablePopularGenres = popularGenres.filter(genre => 
+      allGenres.includes(genre)
+    );
+
+    const remainingGenres = allGenres.filter(genre => 
+      !popularGenres.includes(genre)
+    );
+
+    const sortedRemainingGenres = remainingGenres.sort((a, b) => 
+      a.localeCompare(b)
+    );
+
+    const orderedGenres = [...availablePopularGenres, ...sortedRemainingGenres];
+
+    return orderedGenres.map((genre) => ({
+      label: genre,
+      value: genre,
+      checked: filters.genres.includes(genre),
+    }));
+  }, [steamGenres, filters.genres]);
 
   const steamUserTagsFilterItems = useMemo(() => {
     if (!steamUserTags[language]) return [];
@@ -145,9 +168,7 @@ export default function Catalogue() {
   const groupedFilters = useMemo(() => {
     return [
       ...filters.genres.map((genre) => ({
-        label: Object.keys(steamGenresMapping).find(
-          (key) => steamGenresMapping[key] === genre
-        ) as string,
+        label: genre,
         orbColor: filterCategoryColors.genres,
         key: "genres",
         value: genre,
@@ -185,7 +206,7 @@ export default function Catalogue() {
         value: publisher,
       })),
     ];
-  }, [filters, steamUserTags, downloadSources, steamGenresMapping, language]);
+  }, [filters, steamUserTags, downloadSources, language]);
 
   const filterSections = useMemo(() => {
     return [
