@@ -17,7 +17,8 @@ export interface GameItemProps {
 export function GameItem({ game }: GameItemProps) {
   const navigate = useNavigate();
 
-  const { i18n, t } = useTranslation("game_details");
+  const { i18n, t: tCatalogue } = useTranslation("catalogue");
+  const { t: tGameDetails } = useTranslation("game_details");
 
   const language = i18n.language.split("-")[0];
 
@@ -61,6 +62,13 @@ export function GameItem({ game }: GameItemProps) {
 
   const genres = useMemo(() => {
     return game.genres?.map((genre) => {
+      const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+      const translatedGenre = tCatalogue(genreKey, { defaultValue: "" });
+      
+      if (translatedGenre) {
+        return translatedGenre;
+      }
+
       const index = steamGenres["en"]?.findIndex(
         (steamGenre) => steamGenre === genre
       );
@@ -75,7 +83,7 @@ export function GameItem({ game }: GameItemProps) {
 
       return genre;
     });
-  }, [game.genres, language, steamGenres]);
+  }, [game.genres, language, steamGenres, tCatalogue]);
 
   const libraryImage = useMemo(() => {
     if (game.libraryImageUrl) {
@@ -127,7 +135,7 @@ export function GameItem({ game }: GameItemProps) {
             addGameToLibrary(e);
           }
         }}
-        title={added ? t("already_in_library") : t("add_to_library")}
+        title={added ? tGameDetails("already_in_library") : tGameDetails("add_to_library")}
       >
         {added ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
       </div>

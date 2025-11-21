@@ -13,6 +13,7 @@ export function useCatalogue() {
 
   const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
   const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
+  const [steamGenres, setSteamGenres] = useState<Record<string, string[]>>({});
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const getSteamUserTags = useCallback(() => {
@@ -24,6 +25,10 @@ export function useCatalogue() {
   const getSteamGenres = useCallback(() => {
     externalResourcesInstance.get("/steam-genres.json").then((response) => {
       dispatch(setGenres(response.data));
+      setSteamGenres(response.data);
+    }).catch((error) => {
+      console.warn("Failed to load steam genres:", error);
+      setSteamGenres({});
     });
   }, [dispatch]);
 
@@ -59,5 +64,5 @@ export function useCatalogue() {
     getDownloadSources,
   ]);
 
-  return { steamPublishers, downloadSources, steamDevelopers };
+  return { steamPublishers, downloadSources, steamDevelopers, steamGenres };
 }
