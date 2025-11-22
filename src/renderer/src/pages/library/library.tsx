@@ -131,9 +131,21 @@ export default function Library() {
 
   const hasGames = library.length > 0;
 
+  const getSecureRandomIndex = (length: number) => {
+    const buf = new Uint32Array(1);
+    const maxRange = 4294967296;
+    const limit = Math.floor(maxRange / length) * length;
+    let value = 0;
+    do {
+      window.crypto.getRandomValues(buf);
+      value = buf[0];
+    } while (value >= limit);
+    return value % length;
+  };
+
   const handleLibraryRandomizerClick = () => {
     if (filteredLibrary.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * filteredLibrary.length);
+    const randomIndex = getSecureRandomIndex(filteredLibrary.length);
     const randomGame = filteredLibrary[randomIndex];
     navigate(
       buildGameDetailsPath({
