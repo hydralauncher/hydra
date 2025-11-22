@@ -180,19 +180,15 @@ const handleDeepLinkPath = (uri?: string) => {
       const source = url.searchParams.get("source");
       const sound = url.searchParams.get("sound");
 
-      if (themeName && authorId && source) {
-        const encodedSource = encodeURIComponent(source);
-        const encodedSound = sound ? encodeURIComponent(sound) : "";
-        WindowManager.redirect(
-          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName ?? ""}&source=${encodedSource}${encodedSound ? `&sound=${encodedSound}` : ""}`
-        );
-        return;
-      }
+      if (themeName && authorId) {
+        const params = new URLSearchParams();
+        params.set("theme", themeName);
+        params.set("authorId", authorId);
+        if (authorName) params.set("authorName", authorName);
+        if (source) params.set("source", source);
+        if (sound) params.set("sound", sound);
 
-      if (themeName && authorId && authorName) {
-        WindowManager.redirect(
-          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
-        );
+        WindowManager.redirect(`settings?${params.toString()}`);
         return;
       }
     }

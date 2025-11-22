@@ -294,7 +294,12 @@ $hero-height: 350px;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
     animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
 
-    &:active { opacity: 0.9; }
-    &:hover { background-color: rgba(0, 0, 0, 0.5); color: globals.$body-color; }
+    &:active {
+      opacity: 0.9;
+    }
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: globals.$body-color;
+    }
   }
 }

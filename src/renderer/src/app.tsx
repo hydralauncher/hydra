@@ -224,7 +224,7 @@ export function App() {
       ]);
 
       const blocks: { name: string; content: string }[] = [];
-      const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([\s\S]*?)\}/gim;
+      const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([^}]*)\}/gim;
       let match: RegExpExecArray | null;
       while ((match = regex.exec(activeTheme.code)) !== null) {
         const name = match[1].toLowerCase();
@@ -286,7 +286,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(() => {
       playAudio();
     });
 
