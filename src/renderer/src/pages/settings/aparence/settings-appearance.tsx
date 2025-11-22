@@ -11,6 +11,8 @@ interface SettingsAppearanceProps {
     theme: string | null;
     authorId: string | null;
     authorName: string | null;
+    source: string | null;
+    sound: string | null;
   };
 }
 
@@ -24,6 +26,8 @@ export function SettingsAppearance({
     theme: string;
     authorId: string;
     authorName: string;
+    source?: string | null;
+    sound?: string | null;
   } | null>(null);
   const [hasShownModal, setHasShownModal] = useState(false);
 
@@ -51,14 +55,16 @@ export function SettingsAppearance({
     if (
       appearance.theme &&
       appearance.authorId &&
-      appearance.authorName &&
+      (appearance.authorName || appearance.source) &&
       !hasShownModal
     ) {
       setIsImportThemeModalVisible(true);
       setImportTheme({
         theme: appearance.theme,
         authorId: appearance.authorId,
-        authorName: appearance.authorName,
+        authorName: appearance.authorName || "",
+        source: appearance.source,
+        sound: appearance.sound,
       });
       setHasShownModal(true);
 
@@ -116,6 +122,8 @@ export function SettingsAppearance({
           themeName={importTheme.theme}
           authorId={importTheme.authorId}
           authorName={importTheme.authorName}
+          source={importTheme.source ?? null}
+          sound={importTheme.sound ?? null}
         />
       )}
     </div>

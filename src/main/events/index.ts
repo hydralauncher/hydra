@@ -100,6 +100,7 @@ import "./themes/remove-theme-achievement-sound";
 import "./themes/get-theme-sound-path";
 import "./themes/get-theme-sound-data-url";
 import "./themes/import-theme-sound-from-store";
+import "./themes/import-theme-sound-from-url";
 import "./download-sources/remove-download-source";
 import "./download-sources/get-download-sources";
 import { isPortableVersion } from "@main/helpers";

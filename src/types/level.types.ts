@@ -124,6 +124,8 @@ export interface UserPreferences {
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  showSidebarLibrary?: boolean;
+  showSidebarFavorites?: boolean;
 }
 
 export interface ScreenState {

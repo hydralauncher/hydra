@@ -356,6 +356,8 @@
     "no_repacks_found": "Источники для этой игры не найдены",
     "show": "Показать",
     "hide": "Скрыть",
+    "share": "Поделиться",
+    "link_copied": "Ссылка скопирована",
     "delete_review": "Удалить отзыв",
     "remove_review": "Удалить отзыв",
     "delete_review_modal_title": "Вы уверены, что хотите удалить свой отзыв?",
@@ -566,7 +568,10 @@
     "notification_preview": "Предварительный просмотр уведомления о достижении",
     "enable_friend_start_game_notifications": "Когда друг начинает играть в игру",
     "autoplay_trailers_on_game_page": "Автоматически начинать воспроизведение трейлеров на странице игры",
-    "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры"
+    "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
+    "show_sidebar_library": "Показывать библиотеку в боковой панели",
+    "show_sidebar_favorites": "Показывать избранное в боковой панели",
+    "theme_variant": "Вариант темы"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -681,7 +686,7 @@
     "report_reason_spam": "Спам",
     "report_reason_other": "Другое",
     "profile_reported": "Жалоба на профиль отправлена",
-    "your_friend_code": "Код вашего друга:",
+    "your_friend_code": "Код приглашения:",
     "upload_banner": "Загрузить баннер",
     "uploading_banner": "Загрузка баннера...",
     "background_image_updated": "Фоновое изображение обновлено",

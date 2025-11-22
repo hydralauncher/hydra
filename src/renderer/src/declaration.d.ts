@@ -428,6 +428,10 @@ declare global {
       themeName: string,
       storeUrl: string
     ) => Promise<void>;
+    importThemeSoundFromUrl: (
+      themeId: string,
+      soundUrl: string
+    ) => Promise<void>;
 
     /* Editor */
     openEditorWindow: (themeId: string) => Promise<void>;

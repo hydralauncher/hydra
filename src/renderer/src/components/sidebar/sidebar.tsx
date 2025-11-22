@@ -11,6 +11,7 @@ import {
   useLibrary,
   useToast,
   useUserDetails,
+  useAppSelector,
 } from "@renderer/hooks";
 
 import { routes } from "./routes";
@@ -75,6 +76,10 @@ export function Sidebar() {
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
@@ -337,77 +342,82 @@ export function Sidebar() {
             </ul>
           </section>
 
-          {favoriteGames.length > 0 && (
+          {favoriteGames.length > 0 &&
+            (userPreferences?.showSidebarFavorites ?? true) && (
+              <section className="sidebar__section">
+                <small className="sidebar__section-title">
+                  {t("favorites")}
+                </small>
+
+                <ul className="sidebar__menu">
+                  {favoriteGames.map((game) => (
+                    <SidebarGameItem
+                      key={game.id}
+                      game={game}
+                      handleSidebarGameClick={handleSidebarGameClick}
+                      getGameTitle={getGameTitle}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+          {(userPreferences?.showSidebarLibrary ?? true) && (
             <section className="sidebar__section">
-              <small className="sidebar__section-title">{t("favorites")}</small>
+              <div className="sidebar__section-header">
+                <small className="sidebar__section-title">
+                  {t("my_library")}
+                </small>
+                <div
+                  style={{ display: "flex", gap: "8px", alignItems: "center" }}
+                >
+                  <button
+                    type="button"
+                    className="sidebar__add-button"
+                    onClick={handleAddGameButtonClick}
+                    data-tooltip-id="add-custom-game-tooltip"
+                    data-tooltip-content={t("add_custom_game_tooltip")}
+                    data-tooltip-place="top"
+                  >
+                    <PlusIcon size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn("sidebar__play-button", {
+                      "sidebar__play-button--active": showPlayableOnly,
+                    })}
+                    onClick={handlePlayButtonClick}
+                    data-tooltip-id="show-playable-only-tooltip"
+                    data-tooltip-content={t("show_playable_only_tooltip")}
+                    data-tooltip-place="top"
+                  >
+                    <PlayIcon size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <TextField
+                ref={filterRef}
+                placeholder={t("filter")}
+                onChange={handleFilter}
+                theme="dark"
+              />
 
               <ul className="sidebar__menu">
-                {favoriteGames.map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                  />
-                ))}
+                {filteredLibrary
+                  .filter((game) => !game.favorite)
+                  .filter((game) => !showPlayableOnly || isGamePlayable(game))
+                  .map((game) => (
+                    <SidebarGameItem
+                      key={game.id}
+                      game={game}
+                      handleSidebarGameClick={handleSidebarGameClick}
+                      getGameTitle={getGameTitle}
+                    />
+                  ))}
               </ul>
             </section>
           )}
-
-          <section className="sidebar__section">
-            <div className="sidebar__section-header">
-              <small className="sidebar__section-title">
-                {t("my_library")}
-              </small>
-              <div
-                style={{ display: "flex", gap: "8px", alignItems: "center" }}
-              >
-                <button
-                  type="button"
-                  className="sidebar__add-button"
-                  onClick={handleAddGameButtonClick}
-                  data-tooltip-id="add-custom-game-tooltip"
-                  data-tooltip-content={t("add_custom_game_tooltip")}
-                  data-tooltip-place="top"
-                >
-                  <PlusIcon size={16} />
-                </button>
-                <button
-                  type="button"
-                  className={cn("sidebar__play-button", {
-                    "sidebar__play-button--active": showPlayableOnly,
-                  })}
-                  onClick={handlePlayButtonClick}
-                  data-tooltip-id="show-playable-only-tooltip"
-                  data-tooltip-content={t("show_playable_only_tooltip")}
-                  data-tooltip-place="top"
-                >
-                  <PlayIcon size={16} />
-                </button>
-              </div>
-            </div>
-
-            <TextField
-              ref={filterRef}
-              placeholder={t("filter")}
-              onChange={handleFilter}
-              theme="dark"
-            />
-
-            <ul className="sidebar__menu">
-              {filteredLibrary
-                .filter((game) => !game.favorite)
-                .filter((game) => !showPlayableOnly || isGamePlayable(game))
-                .map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                  />
-                ))}
-            </ul>
-          </section>
         </div>
       </div>
 

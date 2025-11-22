@@ -30,6 +30,8 @@ import {
   removeCustomCss,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
+  parseThemeBlocks,
+  parseCssVars,
 } from "./helpers";
 import "./app.scss";
 
@@ -207,6 +209,28 @@ export function App() {
     const activeTheme = await window.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
+
+      const blocks = parseThemeBlocks(activeTheme.code);
+
+      const parseVars = parseCssVars;
+
+      const storedVariant = globalThis.localStorage.getItem(
+        `customThemeVariant:${activeTheme.id}`
+      );
+      const rootBlock = blocks.find((b) => b.name === "root");
+      const selectedBlock = storedVariant
+        ? blocks.find((b) => b.name === storedVariant)
+        : null;
+      if (rootBlock) {
+        parseVars(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseVars(selectedBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
     } else {
       removeCustomCss();
     }
@@ -217,7 +241,7 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 
@@ -233,7 +257,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(() => {
       playAudio();
     });
 

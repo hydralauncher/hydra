@@ -4,9 +4,15 @@ import { Button } from "@renderer/components/button/button";
 import type { Theme } from "@types";
 import { useNavigate } from "react-router-dom";
 import "./theme-card.scss";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SelectField } from "@renderer/components/select-field/select-field";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  parseThemeBlocks,
+  parseCssVars,
+} from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 
 interface ThemeCardProps {
@@ -19,25 +25,71 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const navigate = useNavigate();
 
   const [deleteThemeModalVisible, setDeleteThemeModalVisible] = useState(false);
+  const [variantOptions, setVariantOptions] = useState<
+    { key: string; value: string; label: string }[]
+  >([]);
+  const variantStorageKey = useMemo(
+    () => `customThemeVariant:${theme.id}`,
+    [theme.id]
+  );
+  const [selectedVariant, setSelectedVariant] = useState<string>("root");
+
+  const parseVarsFromBlock = (content: string) => parseCssVars(content);
+
+  const parseVariantBlocks = (code: string) => parseThemeBlocks(code, true);
+
+  useEffect(() => {
+    const variantBlocks = parseVariantBlocks(theme.code);
+    const variantOpts = variantBlocks.length
+      ? variantBlocks.map((b) => ({
+          key: b.name,
+          value: b.name,
+          label: b.name,
+        }))
+      : [{ key: "root", value: "root", label: "root" }];
+    setVariantOptions(variantOpts);
+    const storedVariant =
+      globalThis.localStorage.getItem(variantStorageKey) ||
+      variantOpts[0]?.value ||
+      "root";
+    setSelectedVariant(storedVariant);
+
+    if (theme.isActive) {
+      const rootBlock = variantBlocks.find((b) => b.name === "root");
+      const selectedBlock = variantBlocks.find((b) => b.name === storedVariant);
+      if (rootBlock) {
+        parseVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseVarsFromBlock(selectedBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+    }
+  }, [theme.code, theme.isActive, variantStorageKey]);
 
   const handleSetTheme = async () => {
     try {
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = await globalThis.electron.getCustomThemeById(
+        theme.id
+      );
 
       if (!currentTheme) return;
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await globalThis.electron.getActiveCustomTheme();
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.toggleCustomTheme(activeTheme.id, false);
+        await globalThis.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.toggleCustomTheme(currentTheme.id, true);
+      await globalThis.electron.toggleCustomTheme(currentTheme.id, true);
 
       onListUpdated();
     } catch (error) {
@@ -48,7 +100,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const handleUnsetTheme = async () => {
     try {
       removeCustomCss();
-      await window.electron.toggleCustomTheme(theme.id, false);
+      await globalThis.electron.toggleCustomTheme(theme.id, false);
 
       onListUpdated();
     } catch (error) {
@@ -73,6 +125,40 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       >
         <div className="theme-card__header">
           <div className="theme-card__header__title">{theme.name}</div>
+          <div className="theme-card__header__controls">
+            {variantOptions.length > 1 && (
+              <SelectField
+                theme="dark"
+                label={t("theme_variant")}
+                value={selectedVariant}
+                options={variantOptions}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedVariant(value);
+                  globalThis.localStorage.setItem(variantStorageKey, value);
+                  const variantBlocks = parseVariantBlocks(theme.code);
+                  const rootBlock = variantBlocks.find(
+                    (b) => b.name === "root"
+                  );
+                  const selBlock = variantBlocks.find((b) => b.name === value);
+                  if (rootBlock) {
+                    parseVarsFromBlock(rootBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                  if (selBlock && value !== "root") {
+                    parseVarsFromBlock(selBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {theme.authorName && (
@@ -102,18 +188,20 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
           </div>
 
           <div className="theme-card__actions__right">
-            <Button
-              className={
-                theme.code.startsWith(THEME_WEB_STORE_URL)
-                  ? "theme-card__actions__right--external"
-                  : ""
-              }
-              onClick={() => window.electron.openEditorWindow(theme.id)}
-              title={t("edit_theme")}
-              theme="outline"
-            >
-              <PencilIcon />
-            </Button>
+            {theme.readOnly ? null : (
+              <Button
+                className={
+                  theme.code.startsWith(THEME_WEB_STORE_URL)
+                    ? "theme-card__actions__right--external"
+                    : ""
+                }
+                onClick={() => globalThis.electron.openEditorWindow(theme.id)}
+                title={t("edit_theme")}
+                theme="outline"
+              >
+                <PencilIcon />
+              </Button>
+            )}
 
             <Button
               onClick={() => setDeleteThemeModalVisible(true)}

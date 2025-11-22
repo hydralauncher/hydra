@@ -86,6 +86,7 @@ export function AddThemeModal({
         author: userDetails?.id,
         authorName: userDetails?.username,
         code: DEFAULT_THEME_CODE,
+        readOnly: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
