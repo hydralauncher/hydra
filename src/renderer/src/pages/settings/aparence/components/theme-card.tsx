@@ -7,7 +7,12 @@ import "./theme-card.scss";
 import { useEffect, useMemo, useState } from "react";
 import { SelectField } from "@renderer/components/select-field/select-field";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  parseThemeBlocks,
+  parseCssVars,
+} from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 
 interface ThemeCardProps {
@@ -29,120 +34,9 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   );
   const [selectedVariant, setSelectedVariant] = useState<string>("root");
 
-  const parseVarsFromBlock = (content: string) => {
-    const vars: { key: string; value: string }[] = [];
-    const isNameChar = (c: string) => {
-      const x = c.charCodeAt(0);
-      return (
-        (x >= 48 && x <= 57) ||
-        (x >= 65 && x <= 90) ||
-        (x >= 97 && x <= 122) ||
-        c === "_" ||
-        c === "-"
-      );
-    };
-    const len = content.length;
-    let i = 0;
-    while (i < len) {
-      const startIdx = content.indexOf("--", i);
-      if (startIdx === -1) break;
-      let j = startIdx + 2;
-      while (j < len && isNameChar(content[j])) j++;
-      const name = content.slice(startIdx, j).trim();
-      while (j < len && /\s/.test(content[j])) j++;
-      if (j >= len || content[j] !== ":") {
-        i = j + 1;
-        continue;
-      }
-      j++;
-      while (j < len && /\s/.test(content[j])) j++;
-      const valueStart = j;
-      let paren = 0;
-      let inSingle = false;
-      let inDouble = false;
-      while (j < len) {
-        const ch = content[j];
-        if (!inSingle && !inDouble) {
-          if (ch === "(") paren++;
-          else if (ch === ")") paren = Math.max(0, paren - 1);
-          else if (ch === '"') inDouble = true;
-          else if (ch === "'") inSingle = true;
-          else if (ch === ";" && paren === 0) break;
-        } else if (inDouble) {
-          if (ch === '"') inDouble = false;
-        } else if (inSingle) {
-          if (ch === "'") inSingle = false;
-        }
-        j++;
-      }
-      const value = content.slice(valueStart, j).trim();
-      if (name) vars.push({ key: name, value });
-      if (j < len && content[j] === ";") j++;
-      i = j;
-    }
-    return vars;
-  };
+  const parseVarsFromBlock = (content: string) => parseCssVars(content);
 
-  const parseVariantBlocks = (code: string) => {
-    const blocks: { name: string; content: string }[] = [];
-    const disallowed = new Set([
-      "hover",
-      "active",
-      "focus",
-      "disabled",
-      "before",
-      "after",
-      "visited",
-      "checked",
-      "placeholder",
-      "focus-visible",
-      "focus-within",
-      "selection",
-      "target",
-    ]);
-    const isValidChar = (c: string) => {
-      const x = c.charCodeAt(0);
-      return (
-        (x >= 48 && x <= 57) ||
-        (x >= 65 && x <= 90) ||
-        (x >= 97 && x <= 122) ||
-        c === "_" ||
-        c === "-"
-      );
-    };
-    const len = code.length;
-    let i = 0;
-    while (i < len) {
-      if (code[i] !== ":") {
-        i++;
-        continue;
-      }
-      let j = i + 1;
-      while (j < len && /\s/.test(code[j])) j++;
-      const start = j;
-      while (j < len && isValidChar(code[j])) j++;
-      const name = code.slice(start, j).toLowerCase();
-      if (!name) {
-        i++;
-        continue;
-      }
-      while (j < len && /\s/.test(code[j])) j++;
-      if (j >= len || code[j] !== "{") {
-        i++;
-        continue;
-      }
-      j++;
-      const contentStart = j;
-      while (j < len && code[j] !== "}") j++;
-      const content = code.slice(contentStart, j);
-      if (!disallowed.has(name)) {
-        const hasVars = parseVarsFromBlock(content).length > 0;
-        if (hasVars) blocks.push({ name, content });
-      }
-      i = j + 1;
-    }
-    return blocks;
-  };
+  const parseVariantBlocks = (code: string) => parseThemeBlocks(code, true);
 
   useEffect(() => {
     const variantBlocks = parseVariantBlocks(theme.code);
