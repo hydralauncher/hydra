@@ -79,7 +79,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       : [{ key: "root", value: "root", label: "root" }];
     setVariantOptions(variantOpts);
     const storedVariant =
-      window.localStorage.getItem(variantStorageKey) ||
+      globalThis.localStorage.getItem(variantStorageKey) ||
       variantOpts[0]?.value ||
       "root";
     setSelectedVariant(storedVariant);
@@ -102,22 +102,24 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
   const handleSetTheme = async () => {
     try {
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = await globalThis.electron.getCustomThemeById(
+        theme.id
+      );
 
       if (!currentTheme) return;
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await globalThis.electron.getActiveCustomTheme();
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.toggleCustomTheme(activeTheme.id, false);
+        await globalThis.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.toggleCustomTheme(currentTheme.id, true);
+      await globalThis.electron.toggleCustomTheme(currentTheme.id, true);
 
       onListUpdated();
     } catch (error) {
@@ -128,7 +130,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const handleUnsetTheme = async () => {
     try {
       removeCustomCss();
-      await window.electron.toggleCustomTheme(theme.id, false);
+      await globalThis.electron.toggleCustomTheme(theme.id, false);
 
       onListUpdated();
     } catch (error) {
@@ -163,7 +165,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                 onChange={(e) => {
                   const value = e.target.value;
                   setSelectedVariant(value);
-                  window.localStorage.setItem(variantStorageKey, value);
+                  globalThis.localStorage.setItem(variantStorageKey, value);
                   const variantBlocks = parseVariantBlocks(theme.code);
                   const rootBlock = variantBlocks.find(
                     (b) => b.name === "root"
@@ -223,7 +225,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                     ? "theme-card__actions__right--external"
                     : ""
                 }
-                onClick={() => window.electron.openEditorWindow(theme.id)}
+                onClick={() => globalThis.electron.openEditorWindow(theme.id)}
                 title={t("edit_theme")}
                 theme="outline"
               >

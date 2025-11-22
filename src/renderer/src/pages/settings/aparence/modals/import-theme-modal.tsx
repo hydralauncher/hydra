@@ -61,19 +61,29 @@ export const ImportThemeModal = ({
         if (response?.data) {
           theme.code = response.data;
         }
+      } else {
+        const storeCssUrl = `${THEME_WEB_STORE_URL}/themes/${themeName.toLowerCase()}/theme.css`;
+        const response = await axios.get<string>(storeCssUrl, {
+          responseType: "text",
+        });
+        if (response?.data) {
+          theme.code = response.data;
+        }
       }
 
-      await window.electron.addCustomTheme(theme);
+      await globalThis.electron.addCustomTheme(theme);
 
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = await globalThis.electron.getCustomThemeById(
+        theme.id
+      );
 
       if (!currentTheme) return;
 
       try {
         if (sound) {
-          await window.electron.importThemeSoundFromUrl(theme.id, sound);
+          await globalThis.electron.importThemeSoundFromUrl(theme.id, sound);
         } else {
-          await window.electron.importThemeSoundFromStore(
+          await globalThis.electron.importThemeSoundFromStore(
             theme.id,
             themeName,
             THEME_WEB_STORE_URL
@@ -83,18 +93,18 @@ export const ImportThemeModal = ({
         logger.error("Failed to import theme sound", soundError);
       }
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await globalThis.electron.getActiveCustomTheme();
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.toggleCustomTheme(activeTheme.id, false);
+        await globalThis.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.toggleCustomTheme(currentTheme.id, true);
+      await globalThis.electron.toggleCustomTheme(currentTheme.id, true);
       onThemeImported();
       showSuccessToast(t("theme_imported"));
       onClose();

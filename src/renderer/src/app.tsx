@@ -243,7 +243,7 @@ export function App() {
         return vars;
       };
 
-      const storedVariant = window.localStorage.getItem(
+      const storedVariant = globalThis.localStorage.getItem(
         `customThemeVariant:${activeTheme.id}`
       );
       const rootBlock = blocks.find((b) => b.name === "root");
@@ -270,7 +270,7 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 
