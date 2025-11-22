@@ -19,6 +19,7 @@ export function useSearchSuggestions(
   const [isLoading, setIsLoading] = useState(false);
   const library = useAppSelector((state) => state.library.value);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef<Map<string, SearchSuggestion[]>>(new Map());
 
   const getLibrarySuggestions = useCallback(
     (searchQuery: string, limit: number = 3): SearchSuggestion[] => {
@@ -67,6 +68,15 @@ export function useSearchSuggestions(
         return;
       }
 
+      const cacheKey = `${searchQuery.toLowerCase()}_${limit}`;
+      const cachedResults = cacheRef.current.get(cacheKey);
+
+      if (cachedResults) {
+        setSuggestions(cachedResults);
+        setIsLoading(false);
+        return;
+      }
+
       abortControllerRef.current?.abort();
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -98,6 +108,7 @@ export function useSearchSuggestions(
           })
         );
 
+        cacheRef.current.set(cacheKey, catalogueSuggestions);
         setSuggestions(catalogueSuggestions);
       } catch (error) {
         if (!abortController.signal.aborted) {
