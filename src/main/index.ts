@@ -158,64 +158,50 @@ const handleDeepLinkPath = (uri?: string) => {
   try {
     const url = new URL(uri);
 
-    if (url.host === "install-source") {
-      WindowManager.redirect(`settings${url.search}`);
-      return;
-    }
-
-    if (url.host === "profile") {
-      const userId = url.searchParams.get("userId");
-
-      if (userId) {
-        WindowManager.redirect(`profile/${userId}`);
-      }
-
-      return;
-    }
-
-    if (url.host === "install-theme") {
-      const themeName = url.searchParams.get("theme");
-      const authorId = url.searchParams.get("authorId");
-      const authorName = url.searchParams.get("authorName");
-      const source = url.searchParams.get("source");
-      const sound = url.searchParams.get("sound");
-
-      if (themeName && authorId) {
+    const handlers: Record<string, (u: URL) => void> = {
+      "install-source": (u) => {
+        WindowManager.redirect(`settings${u.search}`);
+      },
+      profile: (u) => {
+        const userId = u.searchParams.get("userId");
+        if (userId) WindowManager.redirect(`profile/${userId}`);
+      },
+      "install-theme": (u) => {
+        const themeName = u.searchParams.get("theme");
+        const authorId = u.searchParams.get("authorId");
+        if (!themeName || !authorId) return;
+        const authorName = u.searchParams.get("authorName");
+        const source = u.searchParams.get("source");
+        const sound = u.searchParams.get("sound");
         const params = new URLSearchParams();
         params.set("theme", themeName);
         params.set("authorId", authorId);
         if (authorName) params.set("authorName", authorName);
         if (source) params.set("source", source);
         if (sound) params.set("sound", sound);
-
         WindowManager.redirect(`settings?${params.toString()}`);
-        return;
-      }
-    }
+      },
+      game: (u) => {
+        const shop = u.searchParams.get("shop");
+        const objectId = u.searchParams.get("objectId");
+        const title = u.searchParams.get("title");
+        if (shop && objectId && title) {
+          WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
+          return;
+        }
+        const pathSegments = u.pathname.split("/").filter(Boolean);
+        if (pathSegments.length >= 2) {
+          const [pathShop, pathObjectId] = pathSegments;
+          const pathTitle = title ?? "";
+          WindowManager.redirect(
+            `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
+          );
+        }
+      },
+    };
 
-    if (url.host === "game") {
-      const shop = url.searchParams.get("shop");
-      const objectId = url.searchParams.get("objectId");
-      const title = url.searchParams.get("title");
-
-      if (shop && objectId && title) {
-        WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
-        return;
-      }
-
-      const pathSegments = url.pathname
-        .split("/")
-        .filter((segment) => segment.length > 0);
-
-      if (pathSegments.length >= 2) {
-        const [pathShop, pathObjectId] = pathSegments;
-        const pathTitle = title ?? "";
-        WindowManager.redirect(
-          `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
-        );
-        return;
-      }
-    }
+    const handler = handlers[url.host];
+    if (handler) handler(url);
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
   }
