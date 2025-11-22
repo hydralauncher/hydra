@@ -1,6 +1,6 @@
 <div align="center">
 
-[<img src="./resources/icon.png" width="144"/>](https://help.hydralauncher.gg)
+[<img src="https://raw.githubusercontent.com/hydralauncher/hydra/refs/heads/main/resources/icon.png" width="144"/>](https://help.hydralauncher.gg)
 
   <h1 align="center">Hydra Launcher</h1>
 
