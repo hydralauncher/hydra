@@ -18,6 +18,8 @@ export interface SettingsContext {
     theme: string | null;
     authorId: string | null;
     authorName: string | null;
+    source: string | null;
+    sound: string | null;
   };
 }
 
@@ -34,6 +36,8 @@ export const settingsContext = createContext<SettingsContext>({
     theme: null,
     authorId: null,
     authorName: null,
+    source: null,
+    sound: null,
   },
 });
 
@@ -53,10 +57,14 @@ export function SettingsContextProvider({
     theme: string | null;
     authorId: string | null;
     authorName: string | null;
+    source: string | null;
+    sound: string | null;
   }>({
     theme: null,
     authorId: null,
     authorName: null,
+    source: null,
+    sound: null,
   });
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
@@ -67,6 +75,8 @@ export function SettingsContextProvider({
   const defaultAppearanceTheme = searchParams.get("theme");
   const defaultAppearanceAuthorId = searchParams.get("authorId");
   const defaultAppearanceAuthorName = searchParams.get("authorName");
+  const defaultAppearanceSource = searchParams.get("source");
+  const defaultAppearanceSound = searchParams.get("sound");
 
   useEffect(() => {
     if (sourceUrl) setCurrentCategoryIndex(2);
@@ -93,18 +103,22 @@ export function SettingsContextProvider({
     if (
       defaultAppearanceTheme &&
       defaultAppearanceAuthorId &&
-      defaultAppearanceAuthorName
+      (defaultAppearanceAuthorName || defaultAppearanceSource)
     ) {
       setAppearance({
         theme: defaultAppearanceTheme,
         authorId: defaultAppearanceAuthorId,
         authorName: defaultAppearanceAuthorName,
+        source: defaultAppearanceSource,
+        sound: defaultAppearanceSound,
       });
     }
   }, [
     defaultAppearanceTheme,
     defaultAppearanceAuthorId,
     defaultAppearanceAuthorName,
+    defaultAppearanceSource,
+    defaultAppearanceSound,
   ]);
 
   const clearTheme = useCallback(() => {
@@ -112,6 +126,8 @@ export function SettingsContextProvider({
       theme: null,
       authorId: null,
       authorName: null,
+      source: null,
+      sound: null,
     });
   }, []);
 

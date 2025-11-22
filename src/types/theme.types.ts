@@ -7,6 +7,7 @@ export interface Theme {
   code: string;
   hasCustomSound?: boolean;
   originalSoundPath?: string;
+  readOnly?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

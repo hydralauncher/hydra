@@ -3,6 +3,7 @@ import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
 import { Theme } from "@types";
+import { useState } from "react";
 import {
   injectCustomCss,
   removeCustomCss,
@@ -11,6 +12,7 @@ import {
 import { useToast } from "@renderer/hooks";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 import { logger } from "@renderer/logger";
+import axios from "axios";
 
 interface ImportThemeModalProps {
   visible: boolean;
@@ -19,6 +21,8 @@ interface ImportThemeModalProps {
   themeName: string;
   authorId: string;
   authorName: string;
+  source: string | null;
+  sound: string | null;
 }
 
 export const ImportThemeModal = ({
@@ -28,9 +32,12 @@ export const ImportThemeModal = ({
   themeName,
   authorId,
   authorName,
+  source,
+  sound,
 }: ImportThemeModalProps) => {
   const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useToast();
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleImportTheme = async () => {
     const theme: Theme = {
@@ -42,9 +49,20 @@ export const ImportThemeModal = ({
       code: `${THEME_WEB_STORE_URL}/themes/${themeName.toLowerCase()}/theme.css`,
       createdAt: new Date(),
       updatedAt: new Date(),
+      readOnly: true,
     };
 
     try {
+      setIsImporting(true);
+      if (source) {
+        const response = await axios.get<string>(source, {
+          responseType: "text",
+        });
+        if (response?.data) {
+          theme.code = response.data;
+        }
+      }
+
       await window.electron.addCustomTheme(theme);
 
       const currentTheme = await window.electron.getCustomThemeById(theme.id);
@@ -52,11 +70,15 @@ export const ImportThemeModal = ({
       if (!currentTheme) return;
 
       try {
-        await window.electron.importThemeSoundFromStore(
-          theme.id,
-          themeName,
-          THEME_WEB_STORE_URL
-        );
+        if (sound) {
+          await window.electron.importThemeSoundFromUrl(theme.id, sound);
+        } else {
+          await window.electron.importThemeSoundFromStore(
+            theme.id,
+            themeName,
+            THEME_WEB_STORE_URL
+          );
+        }
       } catch (soundError) {
         logger.error("Failed to import theme sound", soundError);
       }
@@ -80,6 +102,8 @@ export const ImportThemeModal = ({
       logger.error(error);
       showErrorToast(t("error_importing_theme"));
       onClose();
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -95,7 +119,11 @@ export const ImportThemeModal = ({
           {t("cancel")}
         </Button>
 
-        <Button theme="primary" onClick={handleImportTheme}>
+        <Button
+          theme="primary"
+          onClick={handleImportTheme}
+          disabled={isImporting}
+        >
           {t("import_theme")}
         </Button>
       </div>

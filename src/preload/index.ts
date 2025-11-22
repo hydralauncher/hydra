@@ -596,6 +596,8 @@ contextBridge.exposeInMainWorld("electron", {
       themeName,
       storeUrl
     ),
+  importThemeSoundFromUrl: (themeId: string, soundUrl: string) =>
+    ipcRenderer.invoke("importThemeSoundFromUrl", themeId, soundUrl),
 
   /* Editor */
   openEditorWindow: (themeId: string) =>

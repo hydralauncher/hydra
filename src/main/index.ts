@@ -177,11 +177,47 @@ const handleDeepLinkPath = (uri?: string) => {
       const themeName = url.searchParams.get("theme");
       const authorId = url.searchParams.get("authorId");
       const authorName = url.searchParams.get("authorName");
+      const source = url.searchParams.get("source");
+      const sound = url.searchParams.get("sound");
+
+      if (themeName && authorId && source) {
+        const encodedSource = encodeURIComponent(source);
+        const encodedSound = sound ? encodeURIComponent(sound) : "";
+        WindowManager.redirect(
+          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName ?? ""}&source=${encodedSource}${encodedSound ? `&sound=${encodedSound}` : ""}`
+        );
+        return;
+      }
 
       if (themeName && authorId && authorName) {
         WindowManager.redirect(
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
+        return;
+      }
+    }
+
+    if (url.host === "game") {
+      const shop = url.searchParams.get("shop");
+      const objectId = url.searchParams.get("objectId");
+      const title = url.searchParams.get("title");
+
+      if (shop && objectId && title) {
+        WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
+        return;
+      }
+
+      const pathSegments = url.pathname
+        .split("/")
+        .filter((segment) => segment.length > 0);
+
+      if (pathSegments.length >= 2) {
+        const [pathShop, pathObjectId] = pathSegments;
+        const pathTitle = title ?? "";
+        WindowManager.redirect(
+          `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
+        );
+        return;
       }
     }
   } catch (error) {
@@ -200,12 +236,22 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  handleDeepLinkPath(commandLine.pop());
+  const deepLinkArg = commandLine.find((arg) =>
+    arg.startsWith(`${PROTOCOL}://`)
+  );
+  handleDeepLinkPath(deepLinkArg);
 });
 
-app.on("open-url", (_event, url) => {
-  handleDeepLinkPath(url);
+app.on("will-finish-launching", () => {
+  app.on("open-url", (_event, url) => {
+    handleDeepLinkPath(url);
+  });
 });
+
+const initialDeepLink = process.argv.find((arg) =>
+  arg.startsWith(`${PROTOCOL}://`)
+);
+handleDeepLinkPath(initialDeepLink);
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
