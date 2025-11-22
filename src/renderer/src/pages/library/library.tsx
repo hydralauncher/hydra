@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { TelescopeIcon, StarIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
-import { GameContextMenu } from "@renderer/components";
+import { GameContextMenu, Button } from "@renderer/components";
+import { buildGameDetailsPath } from "@renderer/helpers";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
@@ -14,6 +16,7 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const savedViewMode = localStorage.getItem("library-view-mode");
@@ -128,6 +131,19 @@ export default function Library() {
 
   const hasGames = library.length > 0;
 
+  const handleLibraryRandomizerClick = () => {
+    if (filteredLibrary.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * filteredLibrary.length);
+    const randomGame = filteredLibrary[randomIndex];
+    navigate(
+      buildGameDetailsPath({
+        shop: randomGame.shop,
+        objectId: randomGame.objectId,
+        title: randomGame.title,
+      })
+    );
+  };
+
   return (
     <section className="library__content">
       {hasGames && (
@@ -144,6 +160,14 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
+              <Button
+                onClick={handleLibraryRandomizerClick}
+                theme="outline"
+                disabled={filteredLibrary.length === 0}
+              >
+                <StarIcon size={16} />
+                {t("home:surprise_me")}
+              </Button>
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
