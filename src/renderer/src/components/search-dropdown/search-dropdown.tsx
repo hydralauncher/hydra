@@ -1,11 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  ClockIcon,
-  SearchIcon,
-  TrashIcon,
-  XIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { SearchHistoryEntry } from "@renderer/hooks/use-search-history";
@@ -144,11 +139,10 @@ export function SearchDropdown({
             </span>
             <button
               type="button"
-              className="search-dropdown__clear-button"
+              className="search-dropdown__clear-text-button"
               onClick={onClearHistory}
-              title={t("clear_history")}
             >
-              <TrashIcon size={14} />
+              clear
             </button>
           </div>
           <ul className="search-dropdown__list">
