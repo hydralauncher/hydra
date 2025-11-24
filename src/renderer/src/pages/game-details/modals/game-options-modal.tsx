@@ -8,11 +8,12 @@ import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
-import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import { FileIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
+import { LinuxCompatibilityTab } from "./linux-compatibility-tab";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -168,38 +169,6 @@ export function GameOptionsModal({
 
   const handleClearExecutablePath = async () => {
     await window.electron.updateExecutablePath(game.shop, game.objectId, null);
-
-    updateGame();
-  };
-
-  const handleChangeWinePrefixPath = async () => {
-    const defaultPath =
-      await window.electron.getDefaultWinePrefixSelectionPath();
-
-    const { filePaths } = await window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-      defaultPath: defaultPath ?? game?.winePrefixPath ?? "",
-    });
-
-    if (filePaths && filePaths.length > 0) {
-      try {
-        await window.electron.selectGameWinePrefix(
-          game.shop,
-          game.objectId,
-          filePaths[0]
-        );
-        await updateGame();
-      } catch (error) {
-        showErrorToast(
-          t("invalid_wine_prefix_path"),
-          t("invalid_wine_prefix_path_description")
-        );
-      }
-    }
-  };
-
-  const handleClearWinePrefixPath = async () => {
-    await window.electron.selectGameWinePrefix(game.shop, game.objectId, null);
     updateGame();
   };
 
@@ -393,41 +362,7 @@ export function GameOptionsModal({
           )}
 
           {shouldShowWinePrefixConfiguration && (
-            <div className="game-options-modal__wine-prefix">
-              <div className="game-options-modal__header">
-                <h2>{t("wine_prefix")}</h2>
-                <h4 className="game-options-modal__header-description">
-                  {t("wine_prefix_description")}
-                </h4>
-              </div>
-              <TextField
-                value={game.winePrefixPath || ""}
-                readOnly
-                theme="dark"
-                disabled
-                placeholder={t("no_directory_selected")}
-                rightContent={
-                  <>
-                    <Button
-                      type="button"
-                      theme="outline"
-                      onClick={handleChangeWinePrefixPath}
-                    >
-                      <FileDirectoryIcon />
-                      {t("select_executable")}
-                    </Button>
-                    {game.winePrefixPath && (
-                      <Button
-                        onClick={handleClearWinePrefixPath}
-                        theme="outline"
-                      >
-                        {t("clear")}
-                      </Button>
-                    )}
-                  </>
-                }
-              />
-            </div>
+            <LinuxCompatibilityTab game={game} />
           )}
 
           <div className="game-options-modal__launch-options">

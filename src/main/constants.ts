@@ -1,10 +1,12 @@
 import { app } from "electron";
 import path from "node:path";
 import { SystemPath } from "./services/system-path";
+import { XDGPath } from "./services/xdg-path";
 
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
-export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
+export const isStaging =
+  import.meta.env?.MAIN_VITE_API_URL?.includes("staging") ?? false;
 
 export const windowsStartMenuPath = path.join(
   SystemPath.getPath("appData"),
@@ -17,17 +19,17 @@ export const windowsStartMenuPath = path.join(
 export const publicProfilePath = "C:/Users/Public";
 
 export const levelDatabasePath = path.join(
-  SystemPath.getPath("userData"),
+  XDGPath.getPath("config"),
   `hydra-db${isStaging ? "-staging" : ""}`
 );
 
 export const commonRedistPath = path.join(
-  SystemPath.getPath("userData"),
+  XDGPath.getPath("data"),
   "CommonRedist"
 );
 
 export const logsPath = path.join(
-  SystemPath.getPath("userData"),
+  XDGPath.getPath("cache"),
   `logs${isStaging ? "-staging" : ""}`
 );
 
@@ -35,13 +37,13 @@ export const achievementSoundPath = app.isPackaged
   ? path.join(process.resourcesPath, "achievement.wav")
   : path.join(__dirname, "..", "..", "resources", "achievement.wav");
 
-export const backupsPath = path.join(SystemPath.getPath("userData"), "Backups");
+export const backupsPath = path.join(XDGPath.getPath("data"), "Backups");
 
 export const appVersion = app.getVersion() + (isStaging ? "-staging" : "");
 
-export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
+export const ASSETS_PATH = path.join(XDGPath.getPath("data"), "Assets");
 
-export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
+export const THEMES_PATH = path.join(XDGPath.getPath("data"), "themes");
 
 export const MAIN_LOOP_INTERVAL = 2000;
 

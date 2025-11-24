@@ -9,6 +9,7 @@ import type { SteamAppDetails, SteamShortcut } from "@types";
 
 import { logger } from "./logger";
 import { SystemPath } from "./system-path";
+import { XDGPath } from "./xdg-path";
 
 export interface SteamAppDetailsResponse {
   [key: string]: {
@@ -181,4 +182,18 @@ export const writeSteamShortcuts = async (
     ),
     buffer
   );
+};
+
+export const createHydraLauncherScript = (gameId: string) => {
+  const scriptsPath = path.join(XDGPath.getPath("data"), "launcher-scripts");
+  if (!fs.existsSync(scriptsPath)) {
+    fs.mkdirSync(scriptsPath, { recursive: true });
+  }
+
+  const scriptPath = path.join(scriptsPath, `${gameId}.sh`);
+  const scriptContent = `#!/bin/bash
+hydra --launch ${gameId}`;
+
+  fs.writeFileSync(scriptPath, scriptContent, { mode: "755" });
+  return scriptPath;
 };

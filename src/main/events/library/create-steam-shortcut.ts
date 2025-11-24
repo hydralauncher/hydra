@@ -73,6 +73,8 @@ const copyAssetIfExists = async (
   }
 };
 
+import { createHydraLauncherScript } from "@main/services/steam";
+
 const createSteamShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -82,10 +84,7 @@ const createSteamShortcut = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (game) {
-    if (!game.executablePath) {
-      throw new Error("No executable path found for game");
-    }
-
+    const launcherPath = createHydraLauncherScript(game.objectId);
     const assets = await getGameAssets(objectId, shop);
 
     const steamUserIds = await getSteamUsersIds();
@@ -100,7 +99,7 @@ const createSteamShortcut = async (
 
     const newShortcut = composeSteamShortcut(
       game.title,
-      game.executablePath,
+      launcherPath,
       iconImage
     );
 
