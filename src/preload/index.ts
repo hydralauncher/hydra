@@ -18,6 +18,7 @@ import type {
   ShortcutLocation,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  Game,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -619,4 +620,16 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+
+  /* Linux */
+  discoverProtonRunners: () => ipcRenderer.invoke("discoverProtonRunners"),
+  getProtonDBTier: (appId: number) =>
+    ipcRenderer.invoke("getProtonDBTier", appId),
+  updateGameRunner: (shop: GameShop, objectId: string, runnerPath: string) =>
+    ipcRenderer.invoke("updateGameRunner", shop, objectId, runnerPath),
+  updateGameLinuxConfig: (
+    shop: GameShop,
+    objectId: string,
+    linuxConfig: Game["linux"]
+  ) => ipcRenderer.invoke("updateGameLinuxConfig", shop, objectId, linuxConfig),
 });
