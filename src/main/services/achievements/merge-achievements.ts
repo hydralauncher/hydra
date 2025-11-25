@@ -226,10 +226,10 @@ const addImagesToNewAchievementsIfEnabled = async (
         const achievementIndex = achievementsWithImages.findIndex(
           (a) => a.name.toUpperCase() === achievement.name.toUpperCase()
         );
-        if (achievementIndex !== -1 && uploadResult.imageUrl) {
+        if (achievementIndex !== -1 && uploadResult.imageKey) {
           achievementsWithImages[achievementIndex] = {
             ...achievementsWithImages[achievementIndex],
-            imageUrl: uploadResult.imageUrl,
+            imageKey: uploadResult.imageKey,
           };
         }
       } catch (error) {
