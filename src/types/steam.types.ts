@@ -16,8 +16,11 @@ export interface SteamVideoSource {
 
 export interface SteamMovies {
   id: number;
-  mp4: SteamVideoSource;
-  webm: SteamVideoSource;
+  dash_av1?: string;
+  dash_h264?: string;
+  hls_h264?: string;
+  mp4?: SteamVideoSource;
+  webm?: SteamVideoSource;
   thumbnail: string;
   name: string;
   highlight: boolean;

@@ -20,13 +20,6 @@ import {
   WSClient,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
-import path from "node:path";
-
-const helloAddon = require(
-  path.join(__dirname, "..", "..", "native_build", "hello_napi.node")
-);
-
-console.log(helloAddon.hello());
 
 export const loadState = async () => {
   await Lock.acquireLock();
