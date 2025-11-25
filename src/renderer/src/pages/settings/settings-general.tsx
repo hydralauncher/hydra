@@ -61,6 +61,21 @@ export function SettingsGeneral() {
 
   const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const achievementCustomNotificationPositionOptions = useMemo(() => {
+    return [
+      "top-left",
+      "top-center",
+      "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
+    ].map((position) => ({
+      key: position,
+      value: position,
+      label: t(position),
+    }));
+  }, [t]);
+
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
       setDefaultDownloadsPath(path);
@@ -134,21 +149,6 @@ export function SettingsGeneral() {
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
-
-  const achievementCustomNotificationPositionOptions = useMemo(() => {
-    return [
-      "top-left",
-      "top-center",
-      "top-right",
-      "bottom-left",
-      "bottom-center",
-      "bottom-right",
-    ].map((position) => ({
-      key: position,
-      value: position,
-      label: t(position),
-    }));
-  }, [t]);
 
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>

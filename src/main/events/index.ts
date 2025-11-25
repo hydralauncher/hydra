@@ -1,4 +1,9 @@
-import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
+import {
+  appVersion,
+  defaultDownloadsPath,
+  isStaging,
+  screenshotsPath,
+} from "@main/constants";
 import { ipcMain } from "electron";
 
 import "./catalogue/get-game-shop-details";
@@ -40,6 +45,7 @@ import "./library/create-steam-shortcut";
 import "./library/copy-custom-game-asset";
 import "./misc/open-checkout";
 import "./misc/open-external";
+import "./misc/open-folder";
 import "./misc/show-open-dialog";
 import "./misc/show-item-in-folder";
 import "./misc/install-common-redist";
@@ -109,3 +115,4 @@ ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isStaging", () => isStaging);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
+ipcMain.handle("getScreenshotsPath", () => screenshotsPath);
