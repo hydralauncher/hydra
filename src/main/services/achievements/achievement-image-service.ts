@@ -15,7 +15,7 @@ export class AchievementImageService {
 
     const response = await HydraApi.post<{
       presignedUrl: string;
-      imageUrl: string;
+      imageKey: string;
     }>("/presigned-urls/achievement-image", {
       imageExt: path.extname(imagePath).slice(1),
       imageLength: fileSizeInBytes,
@@ -29,7 +29,7 @@ export class AchievementImageService {
       },
     });
 
-    return response.imageUrl;
+    return response.imageKey;
   }
 
   private static async storeImageLocally(imagePath: string): Promise<string> {
@@ -82,34 +82,29 @@ export class AchievementImageService {
    * @param achievementName - The achievement name
    * @param imagePath - Path to the image file to upload
    * @param shop - The game shop (optional)
-   * @returns Promise with success status and image URL
+   * @returns Promise with success status and imageKey (for subscribers) or imageUrl (for non-subscribers)
    */
   static async uploadAchievementImage(
     gameId: string,
     achievementName: string,
     imagePath: string
-  ): Promise<{ success: boolean; imageUrl: string }> {
+  ): Promise<{ success: boolean; imageKey?: string; imageUrl?: string }> {
     try {
-      let imageUrl: string;
-
       const hasSubscription = await this.hasActiveSubscription();
 
       if (hasSubscription) {
-        imageUrl = await this.uploadImageToCDN(imagePath);
-        // Removed per new single-call sync: image URL will be included
-        // in the PUT /profile/games/achievements payload later.
-        // No direct API call here anymore.
+        const imageKey = await this.uploadImageToCDN(imagePath);
         logger.log(
           `Achievement image uploaded to CDN for ${gameId}:${achievementName}`
         );
+        return { success: true, imageKey };
       } else {
-        imageUrl = await this.storeImageLocally(imagePath);
+        const imageUrl = await this.storeImageLocally(imagePath);
         logger.log(
           `Achievement image stored locally for ${gameId}:${achievementName}`
         );
+        return { success: true, imageUrl };
       }
-
-      return { success: true, imageUrl };
     } catch (error) {
       logger.error(
         `Failed to upload achievement image for ${gameId}:${achievementName}:`,
@@ -125,14 +120,14 @@ export class AchievementImageService {
    * @param achievementName - The achievement name
    * @param imagePath - Path to the image file to upload
    * @param shop - The game shop
-   * @returns Promise with success status and image URL
+   * @returns Promise with success status and imageKey or imageUrl
    */
   static async uploadAndUpdateAchievementImage(
     gameId: string,
     achievementName: string,
     imagePath: string,
     shop: GameShop
-  ): Promise<{ success: boolean; imageUrl: string }> {
+  ): Promise<{ success: boolean; imageKey?: string; imageUrl?: string }> {
     try {
       const result = await this.uploadAchievementImage(
         gameId,
@@ -140,7 +135,9 @@ export class AchievementImageService {
         imagePath
       );
 
-      await this.updateLocalAchievementData(shop, gameId, result.imageUrl);
+      if (result.imageUrl) {
+        await this.updateLocalAchievementData(shop, gameId, result.imageUrl);
+      }
 
       this.cleanupImageFile(imagePath);
 
