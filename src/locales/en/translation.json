@@ -715,7 +715,11 @@
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
     "souvenir_deleted_successfully": "Souvenir deleted successfully",
-    "souvenir_deletion_failed": "Failed to delete souvenir"
+    "souvenir_deletion_failed": "Failed to delete souvenir",
+    "delete_souvenir_modal_title": "Are you sure you want to delete this souvenir?",
+    "delete_souvenir_modal_description": "This action cannot be undone.",
+    "delete_souvenir_modal_delete_button": "Delete",
+    "delete_souvenir_modal_cancel_button": "Cancel"
   },
   "library": {
     "library": "Library",

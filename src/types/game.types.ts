@@ -5,6 +5,7 @@ export type ShortcutLocation = "desktop" | "start_menu";
 export interface UnlockedAchievement {
   name: string;
   unlockTime: number;
+  imageKey?: string | null;
   imageUrl?: string | null;
 }
 

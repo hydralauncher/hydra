@@ -200,6 +200,7 @@ export interface ProfileAchievement {
   gameIconUrl: string | null;
   achievementIcon: string | null;
   gameId: string;
+  description: string;
 }
 
 export interface UserProfile {
