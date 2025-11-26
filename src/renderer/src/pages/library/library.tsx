@@ -19,7 +19,7 @@ export default function Library() {
   const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const savedViewMode = localStorage.getItem("library-view-mode");
+    const savedViewMode = globalThis.localStorage.getItem("library-view-mode");
     return (savedViewMode as ViewMode) || "compact";
   });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
@@ -35,7 +35,7 @@ export default function Library() {
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    localStorage.setItem("library-view-mode", mode);
+    globalThis.localStorage.setItem("library-view-mode", mode);
   }, []);
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function Library() {
     const limit = Math.floor(maxRange / length) * length;
     let value = 0;
     do {
-      window.crypto.getRandomValues(buf);
+      globalThis.crypto.getRandomValues(buf);
       value = buf[0];
     } while (value >= limit);
     return value % length;

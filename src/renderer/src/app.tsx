@@ -77,15 +77,16 @@ export function App() {
   const { showSuccessToast } = useToast();
 
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    Promise.all([
+      globalThis.electron.getUserPreferences(),
+      updateLibrary(),
+    ]).then(([preferences]) => {
+      dispatch(setUserPreferences(preferences));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onDownloadProgress(
+    const unsubscribe = globalThis.electron.onDownloadProgress(
       (downloadProgress) => {
         if (downloadProgress?.progress === 1) {
           clearDownload();
@@ -103,7 +104,7 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onHardDelete(() => {
+    const unsubscribe = globalThis.electron.onHardDelete(() => {
       updateLibrary();
     });
 
@@ -125,7 +126,7 @@ export function App() {
       .then((response) => {
         if (response) {
           updateUserDetails(response);
-          window.electron.syncFriendRequests();
+          globalThis.electron.syncFriendRequests();
         }
       })
       .finally(() => {
@@ -142,14 +143,14 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
+        globalThis.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+    const unsubscribe = globalThis.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
         const lastGame = gamesRunning[gamesRunning.length - 1];
         const libraryGame = library.find(
@@ -176,11 +177,11 @@ export function App() {
 
   useEffect(() => {
     const listeners = [
-      window.electron.onSignIn(onSignIn),
-      window.electron.onLibraryBatchComplete(() => {
+      globalThis.electron.onSignIn(onSignIn),
+      globalThis.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
-      window.electron.onSignOut(() => clearUserDetails()),
+      globalThis.electron.onSignOut(() => clearUserDetails()),
     ];
 
     return () => {
@@ -204,7 +205,7 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const activeTheme = await globalThis.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
       const blocks: { name: string; content: string }[] = [];
@@ -223,26 +224,54 @@ export function App() {
         "selection",
         "target",
       ]);
-      const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([\s\S]*?)\}/gim;
-      let match: RegExpExecArray | null;
-      while ((match = regex.exec(activeTheme.code)) !== null) {
-        const name = match[1].toLowerCase();
-        const content = match[2];
-        if (disallowed.has(name)) continue;
-        blocks.push({ name, content });
+      const codeStr = activeTheme.code;
+      let i = 0;
+      while (i < codeStr.length) {
+        if (codeStr[i] === ":") {
+          let j = i + 1;
+          while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+          const start = j;
+          while (j < codeStr.length && /[a-zA-Z0-9_-]/.test(codeStr[j])) j++;
+          const name = codeStr.slice(start, j).toLowerCase();
+          while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+          if (codeStr[j] !== "{") {
+            i++;
+            continue;
+          }
+          let k = j + 1;
+          let depth = 1;
+          while (k < codeStr.length && depth > 0) {
+            const ch = codeStr[k];
+            if (ch === "{") depth++;
+            else if (ch === "}") depth--;
+            k++;
+          }
+          const content = codeStr.slice(j + 1, k - 1);
+          if (!disallowed.has(name)) {
+            blocks.push({ name, content });
+          }
+          i = k;
+        } else {
+          i++;
+        }
       }
 
       const parseVars = (content: string) => {
         const vars: { key: string; value: string }[] = [];
-        const varRegex = /--([a-z0-9_-]+)\s*:\s*([^;]+);/gi;
-        let m: RegExpExecArray | null;
-        while ((m = varRegex.exec(content)) !== null) {
-          vars.push({ key: `--${m[1]}`, value: m[2].trim() });
+        const pieces = content.split(";");
+        for (const piece of pieces) {
+          const idx = piece.indexOf(":");
+          if (idx === -1) continue;
+          const left = piece.slice(0, idx).trim();
+          const right = piece.slice(idx + 1).trim();
+          if (left.startsWith("--") && right) {
+            vars.push({ key: left, value: right });
+          }
         }
         return vars;
       };
 
-      const storedVariant = window.localStorage.getItem(
+      const storedVariant = globalThis.localStorage.getItem(
         `customThemeVariant:${activeTheme.id}`
       );
       const rootBlock = blocks.find((b) => b.name === "root");
@@ -269,7 +298,7 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 
@@ -285,7 +314,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(() => {
       playAudio();
     });
 
@@ -300,7 +329,7 @@ export function App() {
 
   return (
     <>
-      {window.electron.platform === "win32" && (
+      {globalThis.electron.platform === "win32" && (
         <div className="title-bar">
           <h4>
             Hydra

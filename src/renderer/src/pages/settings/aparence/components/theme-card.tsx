@@ -28,10 +28,15 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
   const parseVarsFromBlock = (content: string) => {
     const vars: { key: string; value: string }[] = [];
-    const varRegex = /--([a-z0-9_-]+)\s*:\s*([^;]+);/gi;
-    let m: RegExpExecArray | null;
-    while ((m = varRegex.exec(content)) !== null) {
-      vars.push({ key: `--${m[1]}`, value: m[2].trim() });
+    const pieces = content.split(";");
+    for (const piece of pieces) {
+      const idx = piece.indexOf(":");
+      if (idx === -1) continue;
+      const left = piece.slice(0, idx).trim();
+      const right = piece.slice(idx + 1).trim();
+      if (left.startsWith("--") && right) {
+        vars.push({ key: left, value: right });
+      }
     }
     return vars;
   };
@@ -53,36 +58,61 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       "selection",
       "target",
     ]);
-    const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([\s\S]*?)\}/gim;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(code)) !== null) {
-      const name = match[1].toLowerCase();
-      const content = match[2];
-      if (disallowed.has(name)) continue;
-      const hasVars = parseVarsFromBlock(content).length > 0;
-      if (hasVars) blocks.push({ name, content });
+    const codeStr = code;
+    let i = 0;
+    while (i < codeStr.length) {
+      if (codeStr[i] === ":") {
+        let j = i + 1;
+        while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+        const start = j;
+        while (j < codeStr.length && /[a-zA-Z0-9_-]/.test(codeStr[j])) j++;
+        const name = codeStr.slice(start, j).toLowerCase();
+        while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+        if (codeStr[j] !== "{") {
+          i++;
+          continue;
+        }
+        let k = j + 1;
+        let depth = 1;
+        while (k < codeStr.length && depth > 0) {
+          const ch = codeStr[k];
+          if (ch === "{") depth++;
+          else if (ch === "}") depth--;
+          k++;
+        }
+        const content = codeStr.slice(j + 1, k - 1);
+        if (!disallowed.has(name)) {
+          const hasVars = parseVarsFromBlock(content).length > 0;
+          if (hasVars) blocks.push({ name, content });
+        }
+        i = k;
+      } else {
+        i++;
+      }
     }
     return blocks;
   };
 
   const handleSetTheme = async () => {
     try {
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = await globalThis.electron.getCustomThemeById(
+        theme.id
+      );
 
       if (!currentTheme) return;
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await globalThis.electron.getActiveCustomTheme();
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.toggleCustomTheme(activeTheme.id, false);
+        await globalThis.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.toggleCustomTheme(currentTheme.id, true);
+      await globalThis.electron.toggleCustomTheme(currentTheme.id, true);
 
       onListUpdated();
     } catch (error) {
@@ -93,7 +123,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const handleUnsetTheme = async () => {
     try {
       removeCustomCss();
-      await window.electron.toggleCustomTheme(theme.id, false);
+      await globalThis.electron.toggleCustomTheme(theme.id, false);
 
       onListUpdated();
     } catch (error) {
@@ -112,7 +142,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       : [{ key: "root", value: "root", label: "root" }];
     setVariantOptions(variantOpts);
     const storedVariant =
-      window.localStorage.getItem(variantStorageKey) ||
+      globalThis.localStorage.getItem(variantStorageKey) ||
       variantOpts[0]?.value ||
       "root";
     setSelectedVariant(storedVariant);
@@ -160,7 +190,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                 onChange={(e) => {
                   const value = e.target.value;
                   setSelectedVariant(value);
-                  window.localStorage.setItem(variantStorageKey, value);
+                  globalThis.localStorage.setItem(variantStorageKey, value);
                   const variantBlocks = parseVariantBlocks(theme.code);
                   const rootBlock = variantBlocks.find(
                     (b) => b.name === "root"
@@ -219,7 +249,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                   ? "theme-card__actions__right--external"
                   : ""
               }
-              onClick={() => window.electron.openEditorWindow(theme.id)}
+              onClick={() => globalThis.electron.openEditorWindow(theme.id)}
               title={t("edit_theme")}
               theme="outline"
             >

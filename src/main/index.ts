@@ -162,57 +162,14 @@ const handleDeepLinkPath = (uri?: string) => {
 
   try {
     const url = new URL(uri);
-
-    if (url.host === "install-source") {
-      WindowManager.redirect(`settings${url.search}`);
-      return;
-    }
-
-    if (url.host === "profile") {
-      const userId = url.searchParams.get("userId");
-
-      if (userId) {
-        WindowManager.redirect(`profile/${userId}`);
-      }
-
-      return;
-    }
-
-    if (url.host === "install-theme") {
-      const themeName = url.searchParams.get("theme");
-      const authorId = url.searchParams.get("authorId");
-      const authorName = url.searchParams.get("authorName");
-
-      if (themeName && authorId && authorName) {
-        WindowManager.redirect(
-          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
-        );
-      }
-    }
-
-    if (url.host === "game") {
-      const shop = url.searchParams.get("shop");
-      const objectId = url.searchParams.get("objectId");
-      const title = url.searchParams.get("title");
-
-      if (shop && objectId && title) {
-        WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
-        return;
-      }
-
-      const pathSegments = url.pathname
-        .split("/")
-        .filter((segment) => segment.length > 0);
-
-      if (pathSegments.length >= 2) {
-        const [pathShop, pathObjectId] = pathSegments;
-        const pathTitle = title ?? "";
-        WindowManager.redirect(
-          `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
-        );
-        return;
-      }
-    }
+    const handlers: Record<string, (u: URL) => void> = {
+      "install-source": handleInstallSource,
+      profile: handleProfileHost,
+      "install-theme": handleInstallThemeHost,
+      game: handleGameHost,
+    };
+    const handler = handlers[url.host];
+    if (handler) handler(url);
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
   }
@@ -274,3 +231,44 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+const handleInstallSource = (urlObj: URL) => {
+  WindowManager.redirect(`settings${urlObj.search}`);
+};
+
+const handleProfileHost = (urlObj: URL) => {
+  const userId = urlObj.searchParams.get("userId");
+  if (userId) {
+    WindowManager.redirect(`profile/${userId}`);
+  }
+};
+
+const handleInstallThemeHost = (urlObj: URL) => {
+  const themeName = urlObj.searchParams.get("theme");
+  const authorId = urlObj.searchParams.get("authorId");
+  const authorName = urlObj.searchParams.get("authorName");
+  if (themeName && authorId && authorName) {
+    WindowManager.redirect(
+      `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
+    );
+  }
+};
+
+const handleGameHost = (urlObj: URL) => {
+  const shop = urlObj.searchParams.get("shop");
+  const objectId = urlObj.searchParams.get("objectId");
+  const title = urlObj.searchParams.get("title");
+  if (shop && objectId && title) {
+    WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
+    return;
+  }
+  const pathSegments = urlObj.pathname
+    .split("/")
+    .filter((segment) => segment.length > 0);
+  if (pathSegments.length >= 2) {
+    const [pathShop, pathObjectId] = pathSegments;
+    const pathTitle = title ?? "";
+    WindowManager.redirect(
+      `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
+    );
+  }
+};
