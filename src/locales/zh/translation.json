@@ -88,7 +88,8 @@
     "show_playable_only_tooltip": "仅显示可游玩",
     "update_decky_plugin": "更新 Decky 插件",
     "update_decky_plugin_message": "有新版本的 Hydra Decky 插件可用。现在要更新吗？",
-    "update_decky_plugin_title": "更新 Hydra Decky 插件"
+    "update_decky_plugin_title": "更新 Hydra Decky 插件",
+    "library": "游戏库"
   },
   "header": {
     "search": "搜索游戏",
@@ -98,7 +99,9 @@
     "search_results": "搜索结果",
     "settings": "设置",
     "version_available_install": "版本 {{version}} 已可用. 点击此处重新启动并安装.",
-    "version_available_download": "版本 {{version}} 可用. 点击此处下载."
+    "version_available_download": "版本 {{version}} 可用. 点击此处下载.",
+    "search_library": "搜索游戏库",
+    "library": "游戏库"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "没有正在进行的下载",
@@ -365,7 +368,8 @@
     "would_you_recommend_this_game": "您想为此游戏留下评价吗？",
     "write_review_placeholder": "分享您对本游戏的看法...",
     "yes": "是",
-    "you_seemed_to_enjoy_this_game": "您似乎很喜欢这款游戏"
+    "you_seemed_to_enjoy_this_game": "您似乎很喜欢这款游戏",
+    "new_download_option": "新"
   },
   "activation": {
     "title": "激活 Hydra",
@@ -584,7 +588,16 @@
     "proxy_info_title": "关于代理设置",
     "proxy_info_direct": "直连：所有网络流量将直接连接，不使用任何代理",
     "proxy_info_system": "系统代理：使用操作系统配置的代理设置",
-    "proxy_info_manual": "手动配置：自定义代理服务器地址和端口，支持 HTTP、SOCKS5 和 SOCKS4 协议"
+    "proxy_info_manual": "手动配置：自定义代理服务器地址和端口，支持 HTTP、SOCKS5 和 SOCKS4 协议",
+    "remove": "移除",
+    "no_sound_file_selected": "未选择声音文件",
+    "preview": "预览",
+    "select": "选择",
+    "select_achievement_sound": "选择成就音效",
+    "preview_sound": "预览音效",
+    "remove_achievement_sound": "移除成就音效",
+    "change_achievement_sound": "更改成就音效",
+    "achievement_sound_volume": "成就音效音量"
   },
   "notifications": {
     "download_complete": "下载完成",
@@ -752,5 +765,26 @@
     "hydra_cloud": "Hydra Cloud",
     "hydra_cloud_feature_found": "您刚刚发现了一个Hydra Cloud功能！",
     "learn_more": "了解更多"
+  },
+  "library": {
+    "library": "游戏库",
+    "play": "开始游戏",
+    "download": "下载",
+    "downloading": "正在下载",
+    "game": "游戏",
+    "games": "游戏",
+    "grid_view": "网格视图",
+    "compact_view": "紧凑视图",
+    "large_view": "大型视图",
+    "no_games_title": "你的游戏库还是空的",
+    "no_games_description": "从目录添加或下载游戏，立刻开始游玩吧",
+    "amount_hours": "{{amount}} 小时",
+    "amount_minutes": "{{amount}} 分钟",
+    "amount_hours_short": "{{amount}} 小时",
+    "amount_minutes_short": "{{amount}} 分钟",
+    "manual_playtime_tooltip": "此游玩时长已被手动修改",
+    "all_games": "全部游戏",
+    "recently_played": "最近游玩",
+    "favorites": "收藏"
   }
 }
