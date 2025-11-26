@@ -4,10 +4,11 @@ import { Button } from "@renderer/components/button/button";
 import type { Theme } from "@types";
 import { useNavigate } from "react-router-dom";
 import "./theme-card.scss";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
 import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
+import { SelectField } from "@renderer/components";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -19,6 +20,50 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const navigate = useNavigate();
 
   const [deleteThemeModalVisible, setDeleteThemeModalVisible] = useState(false);
+  const [variantOptions, setVariantOptions] = useState<
+    { key: string; value: string; label: string }[]
+  >([]);
+  const [selectedVariant, setSelectedVariant] = useState<string>("root");
+  const variantStorageKey = `customThemeVariant:${theme.id}`;
+
+  const parseVarsFromBlock = (content: string) => {
+    const vars: { key: string; value: string }[] = [];
+    const varRegex = /--([a-z0-9_-]+)\s*:\s*([^;]+);/gi;
+    let m: RegExpExecArray | null;
+    while ((m = varRegex.exec(content)) !== null) {
+      vars.push({ key: `--${m[1]}`, value: m[2].trim() });
+    }
+    return vars;
+  };
+
+  const parseVariantBlocks = (code: string) => {
+    const blocks: { name: string; content: string }[] = [];
+    const disallowed = new Set([
+      "hover",
+      "active",
+      "focus",
+      "disabled",
+      "before",
+      "after",
+      "visited",
+      "checked",
+      "placeholder",
+      "focus-visible",
+      "focus-within",
+      "selection",
+      "target",
+    ]);
+    const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([\s\S]*?)\}/gim;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(code)) !== null) {
+      const name = match[1].toLowerCase();
+      const content = match[2];
+      if (disallowed.has(name)) continue;
+      const hasVars = parseVarsFromBlock(content).length > 0;
+      if (hasVars) blocks.push({ name, content });
+    }
+    return blocks;
+  };
 
   const handleSetTheme = async () => {
     try {
@@ -56,6 +101,38 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
     }
   };
 
+  useEffect(() => {
+    const variantBlocks = parseVariantBlocks(theme.code);
+    const variantOpts = variantBlocks.length
+      ? variantBlocks.map((b) => ({
+          key: b.name,
+          value: b.name,
+          label: b.name,
+        }))
+      : [{ key: "root", value: "root", label: "root" }];
+    setVariantOptions(variantOpts);
+    const storedVariant =
+      window.localStorage.getItem(variantStorageKey) ||
+      variantOpts[0]?.value ||
+      "root";
+    setSelectedVariant(storedVariant);
+
+    if (theme.isActive) {
+      const rootBlock = variantBlocks.find((b) => b.name === "root");
+      const selectedBlock = variantBlocks.find((b) => b.name === storedVariant);
+      if (rootBlock) {
+        parseVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseVarsFromBlock(selectedBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+    }
+  }, [theme.code, theme.isActive, variantStorageKey]);
+
   return (
     <>
       <DeleteThemeModal
@@ -73,6 +150,40 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       >
         <div className="theme-card__header">
           <div className="theme-card__header__title">{theme.name}</div>
+          <div className="theme-card__header__controls">
+            {variantOptions.length > 1 && (
+              <SelectField
+                theme="dark"
+                label={t("theme_variant")}
+                value={selectedVariant}
+                options={variantOptions}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedVariant(value);
+                  window.localStorage.setItem(variantStorageKey, value);
+                  const variantBlocks = parseVariantBlocks(theme.code);
+                  const rootBlock = variantBlocks.find(
+                    (b) => b.name === "root"
+                  );
+                  const selBlock = variantBlocks.find((b) => b.name === value);
+                  if (rootBlock) {
+                    parseVarsFromBlock(rootBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                  if (selBlock && value !== "root") {
+                    parseVarsFromBlock(selBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {theme.authorName && (

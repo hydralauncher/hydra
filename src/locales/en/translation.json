@@ -369,7 +369,9 @@
     "hide_original": "Hide original",
     "review_from_blocked_user": "Review from blocked user",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "share": "Share",
+    "link_copied": "Link copied"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -571,7 +573,10 @@
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on game page",
-    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup"
+    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
+    "theme_variant": "Theme variant",
+    "show_sidebar_library": "Show vertical library in sidebar",
+    "show_sidebar_favorites": "Show favorites in sidebar"
   },
   "notifications": {
     "download_complete": "Download complete",

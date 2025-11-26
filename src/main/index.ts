@@ -146,6 +146,11 @@ app.whenReady().then(async () => {
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
+
+  const initialDeepLink = process.argv.find((arg) =>
+    arg.startsWith(`${PROTOCOL}://`)
+  );
+  handleDeepLinkPath(initialDeepLink);
 });
 
 app.on("browser-window-created", (_, window) => {
@@ -184,6 +189,30 @@ const handleDeepLinkPath = (uri?: string) => {
         );
       }
     }
+
+    if (url.host === "game") {
+      const shop = url.searchParams.get("shop");
+      const objectId = url.searchParams.get("objectId");
+      const title = url.searchParams.get("title");
+
+      if (shop && objectId && title) {
+        WindowManager.redirect(`game/${shop}/${objectId}?title=${title}`);
+        return;
+      }
+
+      const pathSegments = url.pathname
+        .split("/")
+        .filter((segment) => segment.length > 0);
+
+      if (pathSegments.length >= 2) {
+        const [pathShop, pathObjectId] = pathSegments;
+        const pathTitle = title ?? "";
+        WindowManager.redirect(
+          `game/${pathShop}/${pathObjectId}?title=${pathTitle}`
+        );
+        return;
+      }
+    }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
   }
@@ -200,11 +229,16 @@ app.on("second-instance", (_event, commandLine) => {
     WindowManager.createMainWindow();
   }
 
-  handleDeepLinkPath(commandLine.pop());
+  const deepLinkArg = commandLine.find((arg) =>
+    arg.startsWith(`${PROTOCOL}://`)
+  );
+  handleDeepLinkPath(deepLinkArg);
 });
 
-app.on("open-url", (_event, url) => {
-  handleDeepLinkPath(url);
+app.on("will-finish-launching", () => {
+  app.on("open-url", (_event, url) => {
+    handleDeepLinkPath(url);
+  });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

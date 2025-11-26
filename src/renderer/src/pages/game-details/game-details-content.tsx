@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { PencilIcon } from "@primer/octicons-react";
+import { PencilIcon, CopyIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import { HeroPanel } from "./hero";
@@ -14,7 +14,7 @@ import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary } from "@renderer/hooks";
+import { useUserDetails, useLibrary, useToast } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 import "./hero.scss";
@@ -69,6 +69,7 @@ export function GameDetailsContent() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { updateLibrary, library } = useLibrary();
+  const { showSuccessToast } = useToast();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -128,6 +129,15 @@ export function GameDetailsContent() {
     setShowEditGameModal(true);
   };
 
+  const copyShareLink = async () => {
+    if (!shop || !objectId || !game?.title) return;
+    const params = new URLSearchParams({ shop, objectId, title: game.title });
+    await navigator.clipboard.writeText(
+      `hydralauncher://game?${params.toString()}`
+    );
+    showSuccessToast(t("link_copied"));
+  };
+
   const handleGameUpdated = () => {
     updateGame();
     updateLibrary();
@@ -174,6 +184,18 @@ export function GameDetailsContent() {
                     title={t("edit_game_modal_button")}
                   >
                     <PencilIcon size={16} />
+                  </button>
+                )}
+
+                {shop && objectId && game?.title && (
+                  <button
+                    type="button"
+                    className="game-details__share-button"
+                    onClick={copyShareLink}
+                    title={t("share")}
+                  >
+                    <CopyIcon size={16} />
+                    <span style={{ marginLeft: 8 }}>{t("share")}</span>
                   </button>
                 )}
 

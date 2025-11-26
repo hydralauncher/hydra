@@ -207,6 +207,58 @@ export function App() {
     const activeTheme = await window.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
+      const blocks: { name: string; content: string }[] = [];
+      const disallowed = new Set([
+        "hover",
+        "active",
+        "focus",
+        "disabled",
+        "before",
+        "after",
+        "visited",
+        "checked",
+        "placeholder",
+        "focus-visible",
+        "focus-within",
+        "selection",
+        "target",
+      ]);
+      const regex = /^\s*:(root|[a-z0-9_-]+)\s*\{([\s\S]*?)\}/gim;
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(activeTheme.code)) !== null) {
+        const name = match[1].toLowerCase();
+        const content = match[2];
+        if (disallowed.has(name)) continue;
+        blocks.push({ name, content });
+      }
+
+      const parseVars = (content: string) => {
+        const vars: { key: string; value: string }[] = [];
+        const varRegex = /--([a-z0-9_-]+)\s*:\s*([^;]+);/gi;
+        let m: RegExpExecArray | null;
+        while ((m = varRegex.exec(content)) !== null) {
+          vars.push({ key: `--${m[1]}`, value: m[2].trim() });
+        }
+        return vars;
+      };
+
+      const storedVariant = window.localStorage.getItem(
+        `customThemeVariant:${activeTheme.id}`
+      );
+      const rootBlock = blocks.find((b) => b.name === "root");
+      const selectedBlock = storedVariant
+        ? blocks.find((b) => b.name === storedVariant)
+        : null;
+      if (rootBlock) {
+        parseVars(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseVars(selectedBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
     } else {
       removeCustomCss();
     }
