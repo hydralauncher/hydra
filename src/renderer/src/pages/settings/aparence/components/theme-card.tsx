@@ -4,10 +4,16 @@ import { Button } from "@renderer/components/button/button";
 import type { Theme } from "@types";
 import { useNavigate } from "react-router-dom";
 import "./theme-card.scss";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  parseThemeVariantBlocks,
+  parseCssVarsFromBlock,
+} from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
+import { SelectField } from "@renderer/components";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -19,25 +25,32 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const navigate = useNavigate();
 
   const [deleteThemeModalVisible, setDeleteThemeModalVisible] = useState(false);
+  const [variantOptions, setVariantOptions] = useState<
+    { key: string; value: string; label: string }[]
+  >([]);
+  const [selectedVariant, setSelectedVariant] = useState<string>("root");
+  const variantStorageKey = `customThemeVariant:${theme.id}`;
 
   const handleSetTheme = async () => {
     try {
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = await globalThis.electron.getCustomThemeById(
+        theme.id
+      );
 
       if (!currentTheme) return;
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const activeTheme = await globalThis.electron.getActiveCustomTheme();
 
       if (activeTheme) {
         removeCustomCss();
-        await window.electron.toggleCustomTheme(activeTheme.id, false);
+        await globalThis.electron.toggleCustomTheme(activeTheme.id, false);
       }
 
       if (currentTheme.code) {
         injectCustomCss(currentTheme.code);
       }
 
-      await window.electron.toggleCustomTheme(currentTheme.id, true);
+      await globalThis.electron.toggleCustomTheme(currentTheme.id, true);
 
       onListUpdated();
     } catch (error) {
@@ -48,13 +61,43 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   const handleUnsetTheme = async () => {
     try {
       removeCustomCss();
-      await window.electron.toggleCustomTheme(theme.id, false);
+      await globalThis.electron.toggleCustomTheme(theme.id, false);
 
       onListUpdated();
     } catch (error) {
       console.error(error);
     }
   };
+
+  useEffect(() => {
+    const variantBlocks = parseThemeVariantBlocks(theme.code);
+    const variantOpts = variantBlocks
+      .filter((b) => b.name !== "root")
+      .map((b) => ({ key: b.name, value: b.name, label: b.name }));
+    setVariantOptions(variantOpts);
+    const storedVariant =
+      globalThis.localStorage.getItem(variantStorageKey) ||
+      variantOpts[0]?.value ||
+      "root";
+    setSelectedVariant(storedVariant);
+
+    if (theme.isActive) {
+      const rootBlock = variantBlocks.find((b) => b.name === "root");
+      const selectedBlock = variantBlocks.find((b) => b.name === storedVariant);
+      if (rootBlock) {
+        parseCssVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseCssVarsFromBlock(selectedBlock.content).forEach(
+          ({ key, value }) => {
+            document.documentElement.style.setProperty(key, value);
+          }
+        );
+      }
+    }
+  }, [theme.code, theme.isActive, variantStorageKey]);
 
   return (
     <>
@@ -73,6 +116,40 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       >
         <div className="theme-card__header">
           <div className="theme-card__header__title">{theme.name}</div>
+          <div className="theme-card__header__controls">
+            {variantOptions.length > 0 && (
+              <SelectField
+                theme="dark"
+                label={t("theme_variant")}
+                value={selectedVariant}
+                options={variantOptions}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedVariant(value);
+                  globalThis.localStorage.setItem(variantStorageKey, value);
+                  const variantBlocks = parseThemeVariantBlocks(theme.code);
+                  const rootBlock = variantBlocks.find(
+                    (b) => b.name === "root"
+                  );
+                  const selBlock = variantBlocks.find((b) => b.name === value);
+                  if (rootBlock) {
+                    parseCssVarsFromBlock(rootBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                  if (selBlock && value !== "root") {
+                    parseCssVarsFromBlock(selBlock.content).forEach(
+                      ({ key, value }) => {
+                        document.documentElement.style.setProperty(key, value);
+                      }
+                    );
+                  }
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {theme.authorName && (
@@ -108,7 +185,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                   ? "theme-card__actions__right--external"
                   : ""
               }
-              onClick={() => window.electron.openEditorWindow(theme.id)}
+              onClick={() => globalThis.electron.openEditorWindow(theme.id)}
               title={t("edit_theme")}
               theme="outline"
             >

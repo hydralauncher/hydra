@@ -367,7 +367,9 @@
     "show_translation": "Показать перевод",
     "show_original_translated_from": "Показать оригинал (переведено с {{language}})",
     "hide_original": "Скрыть оригинал",
-    "review_from_blocked_user": "Отзыв от заблокированного пользователя"
+    "review_from_blocked_user": "Отзыв от заблокированного пользователя",
+    "share": "Поделиться",
+    "link_copied": "Ссылка скопирована"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -566,7 +568,10 @@
     "notification_preview": "Предварительный просмотр уведомления о достижении",
     "enable_friend_start_game_notifications": "Когда друг начинает играть в игру",
     "autoplay_trailers_on_game_page": "Автоматически начинать воспроизведение трейлеров на странице игры",
-    "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры"
+    "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
+    "theme_variant": "Вариант темы",
+    "show_sidebar_library": "Показывать вертикальную библиотеку в боковом меню",
+    "show_sidebar_favorites": "Показывать раздел «Избранное» в боковом меню"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",

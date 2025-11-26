@@ -30,6 +30,8 @@ import {
   removeCustomCss,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
+  parseThemeVariantBlocks,
+  parseCssVarsFromBlock,
 } from "./helpers";
 import "./app.scss";
 
@@ -77,15 +79,16 @@ export function App() {
   const { showSuccessToast } = useToast();
 
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    Promise.all([
+      globalThis.electron.getUserPreferences(),
+      updateLibrary(),
+    ]).then(([preferences]) => {
+      dispatch(setUserPreferences(preferences));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onDownloadProgress(
+    const unsubscribe = globalThis.electron.onDownloadProgress(
       (downloadProgress) => {
         if (downloadProgress?.progress === 1) {
           clearDownload();
@@ -103,7 +106,7 @@ export function App() {
   }, [clearDownload, setLastPacket, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onHardDelete(() => {
+    const unsubscribe = globalThis.electron.onHardDelete(() => {
       updateLibrary();
     });
 
@@ -125,7 +128,7 @@ export function App() {
       .then((response) => {
         if (response) {
           updateUserDetails(response);
-          window.electron.syncFriendRequests();
+          globalThis.electron.syncFriendRequests();
         }
       })
       .finally(() => {
@@ -142,14 +145,14 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
+        globalThis.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
   }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+    const unsubscribe = globalThis.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
         const lastGame = gamesRunning[gamesRunning.length - 1];
         const libraryGame = library.find(
@@ -176,11 +179,11 @@ export function App() {
 
   useEffect(() => {
     const listeners = [
-      window.electron.onSignIn(onSignIn),
-      window.electron.onLibraryBatchComplete(() => {
+      globalThis.electron.onSignIn(onSignIn),
+      globalThis.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
-      window.electron.onSignOut(() => clearUserDetails()),
+      globalThis.electron.onSignOut(() => clearUserDetails()),
     ];
 
     return () => {
@@ -204,9 +207,28 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const activeTheme = await globalThis.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
+      const blocks = parseThemeVariantBlocks(activeTheme.code);
+
+      const storedVariant = globalThis.localStorage.getItem(
+        `customThemeVariant:${activeTheme.id}`
+      );
+      const rootBlock = blocks.find((b) => b.name === "root");
+      const selectedBlock = storedVariant
+        ? blocks.find((b) => b.name === storedVariant)
+        : null;
+      if (rootBlock) {
+        parseCssVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
+      if (selectedBlock && storedVariant !== "root") {
+        parseCssVarsFromBlock(selectedBlock.content).forEach(({ key, value }) => {
+          document.documentElement.style.setProperty(key, value);
+        });
+      }
     } else {
       removeCustomCss();
     }
@@ -217,7 +239,7 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+    const unsubscribe = globalThis.electron.onCustomThemeUpdated(() => {
       loadAndApplyTheme();
     });
 
@@ -233,7 +255,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+    const unsubscribe = globalThis.electron.onAchievementUnlocked(() => {
       playAudio();
     });
 
@@ -248,7 +270,7 @@ export function App() {
 
   return (
     <>
-      {window.electron.platform === "win32" && (
+      {globalThis.electron.platform === "win32" && (
         <div className="title-bar">
           <h4>
             Hydra
