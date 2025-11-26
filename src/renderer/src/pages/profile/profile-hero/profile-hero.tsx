@@ -318,16 +318,20 @@ export function ProfileHero() {
                       if (!badge) return null;
 
                       return (
-                        <img
+                        <span
+                          className="profile-hero__badge-item"
                           key={badge.name}
-                          src={badge.badge.url}
-                          alt={badge.name}
-                          width={24}
-                          height={24}
-                          data-tooltip-place="top"
-                          data-tooltip-content={badge.description}
-                          data-tooltip-id="badge-name"
-                        />
+                        >
+                          <img
+                            src={badge.badge.url}
+                            alt={badge.name}
+                            width={24}
+                            height={24}
+                            data-tooltip-place="top"
+                            data-tooltip-content={badge.description}
+                            data-tooltip-id="badge-name"
+                          />
+                        </span>
                       );
                     })}
 

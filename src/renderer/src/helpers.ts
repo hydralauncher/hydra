@@ -157,27 +157,22 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
 export const parseThemeVariantBlocks = (
   code: string
 ): { name: string; content: string }[] => {
-  const disallowed = new Set([
-    "hover",
-    "active",
-    "focus",
-    "disabled",
-    "before",
-    "after",
-    "visited",
-    "checked",
-    "placeholder",
-    "focus-visible",
-    "focus-within",
-    "selection",
-    "target",
-  ]);
-
   const blocks: { name: string; content: string }[] = [];
   const codeStr = code || "";
   let i = 0;
+  const seen = new Set<string>();
   while (i < codeStr.length) {
     if (codeStr[i] === ":") {
+      let p = i - 1;
+      while (p >= 0 && codeStr[p] !== "\n") {
+        if (!/\s/.test(codeStr[p])) break;
+        p--;
+      }
+      const isLineStart = p < 0 || codeStr[p] === "\n";
+      if (!isLineStart) {
+        i++;
+        continue;
+      }
       let j = i + 1;
       while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
       const start = j;
@@ -197,8 +192,15 @@ export const parseThemeVariantBlocks = (
         k++;
       }
       const content = codeStr.slice(j + 1, k - 1);
-      if (!disallowed.has(name)) {
+      const isVendor =
+        name.startsWith("-") ||
+        name.includes("webkit") ||
+        name.includes("moz") ||
+        name.includes("ms");
+      const hasVars = parseCssVarsFromBlock(content).length > 0;
+      if (!isVendor && hasVars && !seen.has(name)) {
         blocks.push({ name, content });
+        seen.add(name);
       }
       i = k;
     } else {

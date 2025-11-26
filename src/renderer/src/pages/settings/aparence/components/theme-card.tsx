@@ -71,13 +71,9 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
   useEffect(() => {
     const variantBlocks = parseThemeVariantBlocks(theme.code);
-    const variantOpts = variantBlocks.length
-      ? variantBlocks.map((b) => ({
-          key: b.name,
-          value: b.name,
-          label: b.name,
-        }))
-      : [{ key: "root", value: "root", label: "root" }];
+    const variantOpts = variantBlocks
+      .filter((b) => b.name !== "root")
+      .map((b) => ({ key: b.name, value: b.name, label: b.name }));
     setVariantOptions(variantOpts);
     const storedVariant =
       globalThis.localStorage.getItem(variantStorageKey) ||
@@ -121,7 +117,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
         <div className="theme-card__header">
           <div className="theme-card__header__title">{theme.name}</div>
           <div className="theme-card__header__controls">
-            {variantOptions.length > 1 && (
+            {variantOptions.length > 0 && (
               <SelectField
                 theme="dark"
                 label={t("theme_variant")}
