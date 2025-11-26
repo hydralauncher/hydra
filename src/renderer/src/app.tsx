@@ -30,6 +30,8 @@ import {
   removeCustomCss,
   getAchievementSoundUrl,
   getAchievementSoundVolume,
+  parseThemeVariantBlocks,
+  parseCssVarsFromBlock,
 } from "./helpers";
 import "./app.scss";
 
@@ -208,68 +210,7 @@ export function App() {
     const activeTheme = await globalThis.electron.getActiveCustomTheme();
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
-      const blocks: { name: string; content: string }[] = [];
-      const disallowed = new Set([
-        "hover",
-        "active",
-        "focus",
-        "disabled",
-        "before",
-        "after",
-        "visited",
-        "checked",
-        "placeholder",
-        "focus-visible",
-        "focus-within",
-        "selection",
-        "target",
-      ]);
-      const codeStr = activeTheme.code;
-      let i = 0;
-      while (i < codeStr.length) {
-        if (codeStr[i] === ":") {
-          let j = i + 1;
-          while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
-          const start = j;
-          while (j < codeStr.length && /[a-zA-Z0-9_-]/.test(codeStr[j])) j++;
-          const name = codeStr.slice(start, j).toLowerCase();
-          while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
-          if (codeStr[j] !== "{") {
-            i++;
-            continue;
-          }
-          let k = j + 1;
-          let depth = 1;
-          while (k < codeStr.length && depth > 0) {
-            const ch = codeStr[k];
-            if (ch === "{") depth++;
-            else if (ch === "}") depth--;
-            k++;
-          }
-          const content = codeStr.slice(j + 1, k - 1);
-          if (!disallowed.has(name)) {
-            blocks.push({ name, content });
-          }
-          i = k;
-        } else {
-          i++;
-        }
-      }
-
-      const parseVars = (content: string) => {
-        const vars: { key: string; value: string }[] = [];
-        const pieces = content.split(";");
-        for (const piece of pieces) {
-          const idx = piece.indexOf(":");
-          if (idx === -1) continue;
-          const left = piece.slice(0, idx).trim();
-          const right = piece.slice(idx + 1).trim();
-          if (left.startsWith("--") && right) {
-            vars.push({ key: left, value: right });
-          }
-        }
-        return vars;
-      };
+      const blocks = parseThemeVariantBlocks(activeTheme.code);
 
       const storedVariant = globalThis.localStorage.getItem(
         `customThemeVariant:${activeTheme.id}`
@@ -279,12 +220,12 @@ export function App() {
         ? blocks.find((b) => b.name === storedVariant)
         : null;
       if (rootBlock) {
-        parseVars(rootBlock.content).forEach(({ key, value }) => {
+        parseCssVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
           document.documentElement.style.setProperty(key, value);
         });
       }
       if (selectedBlock && storedVariant !== "root") {
-        parseVars(selectedBlock.content).forEach(({ key, value }) => {
+        parseCssVarsFromBlock(selectedBlock.content).forEach(({ key, value }) => {
           document.documentElement.style.setProperty(key, value);
         });
       }

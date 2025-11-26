@@ -6,7 +6,12 @@ import { useNavigate } from "react-router-dom";
 import "./theme-card.scss";
 import { useState, useEffect } from "react";
 import { DeleteThemeModal } from "../modals/delete-theme-modal";
-import { injectCustomCss, removeCustomCss } from "@renderer/helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  parseThemeVariantBlocks,
+  parseCssVarsFromBlock,
+} from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 import { SelectField } from "@renderer/components";
 
@@ -25,73 +30,6 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   >([]);
   const [selectedVariant, setSelectedVariant] = useState<string>("root");
   const variantStorageKey = `customThemeVariant:${theme.id}`;
-
-  const parseVarsFromBlock = (content: string) => {
-    const vars: { key: string; value: string }[] = [];
-    const pieces = content.split(";");
-    for (const piece of pieces) {
-      const idx = piece.indexOf(":");
-      if (idx === -1) continue;
-      const left = piece.slice(0, idx).trim();
-      const right = piece.slice(idx + 1).trim();
-      if (left.startsWith("--") && right) {
-        vars.push({ key: left, value: right });
-      }
-    }
-    return vars;
-  };
-
-  const parseVariantBlocks = (code: string) => {
-    const blocks: { name: string; content: string }[] = [];
-    const disallowed = new Set([
-      "hover",
-      "active",
-      "focus",
-      "disabled",
-      "before",
-      "after",
-      "visited",
-      "checked",
-      "placeholder",
-      "focus-visible",
-      "focus-within",
-      "selection",
-      "target",
-    ]);
-    const codeStr = code;
-    let i = 0;
-    while (i < codeStr.length) {
-      if (codeStr[i] === ":") {
-        let j = i + 1;
-        while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
-        const start = j;
-        while (j < codeStr.length && /[a-zA-Z0-9_-]/.test(codeStr[j])) j++;
-        const name = codeStr.slice(start, j).toLowerCase();
-        while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
-        if (codeStr[j] !== "{") {
-          i++;
-          continue;
-        }
-        let k = j + 1;
-        let depth = 1;
-        while (k < codeStr.length && depth > 0) {
-          const ch = codeStr[k];
-          if (ch === "{") depth++;
-          else if (ch === "}") depth--;
-          k++;
-        }
-        const content = codeStr.slice(j + 1, k - 1);
-        if (!disallowed.has(name)) {
-          const hasVars = parseVarsFromBlock(content).length > 0;
-          if (hasVars) blocks.push({ name, content });
-        }
-        i = k;
-      } else {
-        i++;
-      }
-    }
-    return blocks;
-  };
 
   const handleSetTheme = async () => {
     try {
@@ -132,7 +70,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
   };
 
   useEffect(() => {
-    const variantBlocks = parseVariantBlocks(theme.code);
+    const variantBlocks = parseThemeVariantBlocks(theme.code);
     const variantOpts = variantBlocks.length
       ? variantBlocks.map((b) => ({
           key: b.name,
@@ -151,14 +89,16 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
       const rootBlock = variantBlocks.find((b) => b.name === "root");
       const selectedBlock = variantBlocks.find((b) => b.name === storedVariant);
       if (rootBlock) {
-        parseVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
+        parseCssVarsFromBlock(rootBlock.content).forEach(({ key, value }) => {
           document.documentElement.style.setProperty(key, value);
         });
       }
       if (selectedBlock && storedVariant !== "root") {
-        parseVarsFromBlock(selectedBlock.content).forEach(({ key, value }) => {
-          document.documentElement.style.setProperty(key, value);
-        });
+        parseCssVarsFromBlock(selectedBlock.content).forEach(
+          ({ key, value }) => {
+            document.documentElement.style.setProperty(key, value);
+          }
+        );
       }
     }
   }, [theme.code, theme.isActive, variantStorageKey]);
@@ -191,20 +131,20 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
                   const value = e.target.value;
                   setSelectedVariant(value);
                   globalThis.localStorage.setItem(variantStorageKey, value);
-                  const variantBlocks = parseVariantBlocks(theme.code);
+                  const variantBlocks = parseThemeVariantBlocks(theme.code);
                   const rootBlock = variantBlocks.find(
                     (b) => b.name === "root"
                   );
                   const selBlock = variantBlocks.find((b) => b.name === value);
                   if (rootBlock) {
-                    parseVarsFromBlock(rootBlock.content).forEach(
+                    parseCssVarsFromBlock(rootBlock.content).forEach(
                       ({ key, value }) => {
                         document.documentElement.style.setProperty(key, value);
                       }
                     );
                   }
                   if (selBlock && value !== "root") {
-                    parseVarsFromBlock(selBlock.content).forEach(
+                    parseCssVarsFromBlock(selBlock.content).forEach(
                       ({ key, value }) => {
                         document.documentElement.style.setProperty(key, value);
                       }
