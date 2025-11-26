@@ -16,6 +16,7 @@ import {
   Ludusavi,
   Lock,
   DeckyPlugin,
+  DownloadSourcesChecker,
   WSClient,
   ProxyManager,
 } from "@main/services";
@@ -63,6 +64,9 @@ export const loadState = async () => {
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
+
+    // Check for new download options on startup
+    DownloadSourcesChecker.checkForChanges();
     WSClient.connect();
   });
 

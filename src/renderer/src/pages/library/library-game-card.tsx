@@ -25,12 +25,14 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const coverImage =
+  const coverImage = (
+    game.customIconUrl ??
     game.coverImageUrl ??
     game.libraryImageUrl ??
     game.libraryHeroImageUrl ??
     game.iconUrl ??
-    undefined;
+    ""
+  ).replaceAll("\\", "/");
 
   return (
     <button

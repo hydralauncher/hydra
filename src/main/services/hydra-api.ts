@@ -414,4 +414,45 @@ export class HydraApi {
       .then((response) => response.data)
       .catch(this.handleUnauthorizedError);
   }
+
+  static async checkDownloadSourcesChanges(
+    downloadSourceIds: string[],
+    games: Array<{ shop: string; objectId: string }>,
+    since: string
+  ) {
+    logger.info("HydraApi.checkDownloadSourcesChanges called with:", {
+      downloadSourceIds,
+      gamesCount: games.length,
+      since,
+      isLoggedIn: this.isLoggedIn(),
+    });
+
+    try {
+      const result = await this.post<
+        Array<{
+          shop: string;
+          objectId: string;
+          newDownloadOptionsCount: number;
+          downloadSourceIds: string[];
+        }>
+      >(
+        "/download-sources/changes",
+        {
+          downloadSourceIds,
+          games,
+          since,
+        },
+        { needsAuth: true }
+      );
+
+      logger.info(
+        "HydraApi.checkDownloadSourcesChanges completed successfully:",
+        result
+      );
+      return result;
+    } catch (error) {
+      logger.error("HydraApi.checkDownloadSourcesChanges failed:", error);
+      throw error;
+    }
+  }
 }
