@@ -105,15 +105,19 @@ export function GallerySlider() {
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        items.push({
-          id: String(video.id),
-          type: "video",
-          poster: video.thumbnail,
-          videoSrc: video.mp4.max.startsWith("http://")
-            ? video.mp4.max.replace("http://", "https://")
-            : video.mp4.max,
-          alt: t("video", { number: String(index + 1) }),
-        });
+        // Проверяем, что video.mp4 и video.mp4.max существуют
+        const videoUrl = video.mp4?.max;
+        if (videoUrl) {
+          items.push({
+            id: String(video.id),
+            type: "video",
+            poster: video.thumbnail,
+            videoSrc: videoUrl.startsWith("http://")
+              ? videoUrl.replace("http://", "https://")
+              : videoUrl,
+            alt: t("video", { number: String(index + 1) }),
+          });
+        }
       });
     }
 
