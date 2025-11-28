@@ -105,7 +105,6 @@ export function GallerySlider() {
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        // Проверяем, что video.mp4 и video.mp4.max существуют
         const videoUrl = video.mp4?.max;
         if (videoUrl) {
           items.push({
