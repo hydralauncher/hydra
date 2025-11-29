@@ -11,6 +11,7 @@ import {
 import { useToast } from "@renderer/hooks";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 import { logger } from "@renderer/logger";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 interface ImportThemeModalProps {
   visible: boolean;
@@ -45,9 +46,12 @@ export const ImportThemeModal = ({
     };
 
     try {
-      await window.electron.addCustomTheme(theme);
+      await levelDBService.put(theme.id, theme, "themes");
 
-      const currentTheme = await window.electron.getCustomThemeById(theme.id);
+      const currentTheme = (await levelDBService.get(
+        theme.id,
+        "themes"
+      )) as Theme | null;
 
       if (!currentTheme) return;
 
@@ -61,7 +65,10 @@ export const ImportThemeModal = ({
         logger.error("Failed to import theme sound", soundError);
       }
 
-      const activeTheme = await window.electron.getActiveCustomTheme();
+      const allThemes = (await levelDBService.values("themes")) as {
+        isActive?: boolean;
+      }[];
+      const activeTheme = allThemes.find((t) => t.isActive);
 
       if (activeTheme) {
         removeCustomCss();

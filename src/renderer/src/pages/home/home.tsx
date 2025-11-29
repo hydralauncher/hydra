@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { orderBy } from "lodash-es";
+import type { DownloadSource } from "@types";
 import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -40,7 +43,10 @@ export default function Home() {
       setCurrentCatalogueCategory(category);
       setIsLoading(true);
 
-      const downloadSources = await window.electron.getDownloadSources();
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const downloadSources = orderBy(sources, "createdAt", "desc");
 
       const params = {
         take: 12,

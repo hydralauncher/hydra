@@ -134,9 +134,11 @@ export function SettingsContextProvider({
 
   const updateUserPreferences = async (values: Partial<UserPreferences>) => {
     await window.electron.updateUserPreferences(values);
-    window.electron.getUserPreferences().then((userPreferences) => {
-      dispatch(setUserPreferences(userPreferences));
-    });
+    levelDBService
+      .get("userPreferences", null, "json")
+      .then((userPreferences) => {
+        dispatch(setUserPreferences(userPreferences as UserPreferences | null));
+      });
   };
 
   return (

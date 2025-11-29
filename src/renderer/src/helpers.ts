@@ -3,6 +3,7 @@ import type { GameShop } from "@types";
 import Color from "color";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
+import { levelDBService } from "./services/leveldb.service";
 
 export const formatDownloadProgress = (
   progress?: number,
@@ -127,7 +128,12 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
     .default;
 
   try {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      id: string;
+      isActive?: boolean;
+      hasCustomSound?: boolean;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
 
     if (activeTheme?.hasCustomSound) {
       const soundDataUrl = await window.electron.getThemeSoundDataUrl(
@@ -146,10 +152,18 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
 
 export const getAchievementSoundVolume = async (): Promise<number> => {
   try {
-    const prefs = await window.electron.getUserPreferences();
+    const prefs = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as { achievementSoundVolume?: number } | null;
     return prefs?.achievementSoundVolume ?? 0.15;
   } catch (error) {
     console.error("Failed to get sound volume", error);
     return 0.15;
   }
+};
+
+export const getGameKey = (shop: GameShop, objectId: string): string => {
+  return `${shop}:${objectId}`;
 };

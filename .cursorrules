@@ -28,6 +28,13 @@
 - Use async/await instead of promises when possible
 - Prefer named exports over default exports for utilities and services
 
+## TypeScript Array Syntax
+
+- **Always use `T[]` syntax instead of `Array<T>`** for array types
+- Prefer: `string[]`, `number[]`, `MyType[]`
+- Avoid: `Array<string>`, `Array<number>`, `Array<MyType>`
+- This applies to all type annotations, type assertions, and generic type parameters
+
 ## Comments
 
 - Keep comments concise and purposeful; avoid verbose explanations.

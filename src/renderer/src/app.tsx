@@ -31,6 +31,8 @@ import {
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
+import type { UserPreferences } from "@types";
 import "./app.scss";
 
 export interface AppProps {
@@ -77,11 +79,12 @@ export function App() {
   const { showSuccessToast } = useToast();
 
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    Promise.all([
+      levelDBService.get("userPreferences", null, "json"),
+      updateLibrary(),
+    ]).then(([preferences]) => {
+      dispatch(setUserPreferences(preferences as UserPreferences | null));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
@@ -204,7 +207,11 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+      code?: string;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
     } else {
