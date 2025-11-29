@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppSelector } from "./redux";
 import { debounce } from "lodash-es";
 import { logger } from "@renderer/logger";
+import type { GameShop } from "@types";
 
 export interface SearchSuggestion {
   title: string;
   objectId: string;
-  shop: string;
+  shop: GameShop;
   iconUrl: string | null;
   source: "library" | "catalogue";
 }
@@ -89,7 +90,7 @@ export function useSearchSuggestions(
           {
             title: string;
             objectId: string;
-            shop: string;
+            shop: GameShop;
             iconUrl: string | null;
           }[]
         >("/catalogue/search/suggestions", {
