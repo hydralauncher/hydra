@@ -11,9 +11,17 @@ import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type { Game, UserPreferences, UserProfile } from "@types";
-import { db, levelKeys } from "@main/level";
+import { db, levelKeys, themesSublevel } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
+import { getThemeSoundPath } from "@main/helpers";
+import { processProfileImage } from "@main/events/profile/process-profile-image";
+
+const getStaticImage = async (path: string) => {
+  return processProfileImage(path, "jpg")
+    .then((response) => response.imagePath)
+    .catch(() => path);
+};
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -30,14 +38,36 @@ async function downloadImage(url: string | null) {
   response.data.pipe(writer);
 
   return new Promise<string | undefined>((resolve) => {
-    writer.on("finish", () => {
-      resolve(outputPath);
+    writer.on("finish", async () => {
+      const staticImagePath = await getStaticImage(outputPath);
+      resolve(staticImagePath);
     });
     writer.on("error", () => {
       logger.error("Failed to download image", { url });
       resolve(undefined);
     });
   });
+}
+
+async function getAchievementSoundPath(): Promise<string> {
+  try {
+    const allThemes = await themesSublevel.values().all();
+    const activeTheme = allThemes.find((theme) => theme.isActive);
+
+    if (activeTheme?.hasCustomSound) {
+      const themeSoundPath = getThemeSoundPath(
+        activeTheme.id,
+        activeTheme.name
+      );
+      if (themeSoundPath) {
+        return themeSoundPath;
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to get theme sound path", error);
+  }
+
+  return achievementSoundPath;
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {
@@ -145,7 +175,8 @@ export const publishCombinedNewAchievementNotification = async (
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
   } else if (process.platform !== "linux") {
-    sound.play(achievementSoundPath);
+    const soundPath = await getAchievementSoundPath();
+    sound.play(soundPath);
   }
 };
 
@@ -205,6 +236,7 @@ export const publishNewAchievementNotification = async (info: {
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
   } else if (process.platform !== "linux") {
-    sound.play(achievementSoundPath);
+    const soundPath = await getAchievementSoundPath();
+    sound.play(soundPath);
   }
 };

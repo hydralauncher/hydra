@@ -90,6 +90,7 @@ export function ReviewItem({
     }
   };
 
+  // Format playtime similar to hero panel
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
 
@@ -103,6 +104,7 @@ export function ReviewItem({
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
+  // Determine which content to show - always show original for own reviews
   const displayContent = needsTranslation
     ? review.translations[userLanguage]
     : review.reviewHtml;
@@ -128,58 +130,60 @@ export function ReviewItem({
   return (
     <div className="game-details__review-item">
       <div className="game-details__review-header">
-        <div className="game-details__review-user">
-          <button
-            onClick={() => navigate(`/profile/${review.user.id}`)}
-            title={review.user.displayName}
-          >
-            <Avatar
-              src={review.user.profileImageUrl}
-              alt={review.user.displayName || "User"}
-              size={40}
-            />
-          </button>
-          <div className="game-details__review-user-info">
+        <div className="game-details__review-header-top">
+          <div className="game-details__review-user">
             <button
-              className="game-details__review-display-name game-details__review-display-name--clickable"
-              onClick={() =>
-                review.user.id && navigate(`/profile/${review.user.id}`)
-              }
+              onClick={() => navigate(`/profile/${review.user.id}`)}
+              title={review.user.displayName}
             >
-              {review.user.displayName || "Anonymous"}
+              <Avatar
+                src={review.user.profileImageUrl}
+                alt={review.user.displayName || "User"}
+                size={40}
+              />
             </button>
-            <div className="game-details__review-meta-row">
-              <div
-                className="game-details__review-score-stars"
-                title={getRatingText(review.score, t)}
+            <div className="game-details__review-user-info">
+              <button
+                className="game-details__review-display-name game-details__review-display-name--clickable"
+                onClick={() =>
+                  review.user.id && navigate(`/profile/${review.user.id}`)
+                }
               >
-                <Star
-                  size={12}
-                  className="game-details__review-star game-details__review-star--filled"
-                />
-                <span className="game-details__review-score-text">
-                  {review.score}/5
-                </span>
-              </div>
-              {Boolean(
-                review.playTimeInSeconds && review.playTimeInSeconds > 0
-              ) && (
-                <div className="game-details__review-playtime">
-                  <ClockIcon size={12} />
-                  <span>
-                    {t("review_played_for")}{" "}
-                    {formatPlayTime(review.playTimeInSeconds || 0)}
-                  </span>
-                </div>
-              )}
+                {review.user.displayName || "Anonymous"}
+              </button>
             </div>
           </div>
-        </div>
-        <div className="game-details__review-right">
           <div className="game-details__review-date">
             {formatDistance(new Date(review.createdAt), new Date(), {
               addSuffix: true,
             })}
+          </div>
+        </div>
+        <div className="game-details__review-header-bottom">
+          <div className="game-details__review-meta-row">
+            <div
+              className="game-details__review-score-stars"
+              title={getRatingText(review.score, t)}
+            >
+              <Star
+                size={12}
+                className="game-details__review-star game-details__review-star--filled"
+              />
+              <span className="game-details__review-score-text">
+                {review.score}/5
+              </span>
+            </div>
+            {Boolean(
+              review.playTimeInSeconds && review.playTimeInSeconds > 0
+            ) && (
+              <div className="game-details__review-playtime">
+                <ClockIcon size={12} />
+                <span>
+                  {t("review_played_for")}{" "}
+                  {formatPlayTime(review.playTimeInSeconds || 0)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
