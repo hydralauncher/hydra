@@ -1,4 +1,8 @@
-import { TorrentDownloader, TorrentSession, TorrentStatus } from "./hydra-native";
+import {
+  TorrentDownloader,
+  TorrentSession,
+  TorrentStatus,
+} from "./hydra-native";
 import { logger } from "./logger";
 
 // Global torrent session - matches Python's torrent_session
@@ -44,7 +48,10 @@ export class TorrentDownloadService {
       torrentDownloaders.set(downloadId, downloader);
       return downloader;
     } catch (error) {
-      logger.error(`Failed to create torrent downloader for ${downloadId}`, error);
+      logger.error(
+        `Failed to create torrent downloader for ${downloadId}`,
+        error
+      );
       return null;
     }
   }
@@ -95,7 +102,10 @@ export class TorrentDownloadService {
         logger.log(`Cancelled torrent download for ${downloadId}`);
       }
     } catch (error) {
-      logger.error(`Failed to cancel torrent download for ${downloadId}`, error);
+      logger.error(
+        `Failed to cancel torrent download for ${downloadId}`,
+        error
+      );
       throw error;
     }
   }
@@ -110,9 +120,11 @@ export class TorrentDownloadService {
       const status = downloader.getDownloadStatus();
       return status || null;
     } catch (error) {
-      logger.error(`Failed to get torrent download status for ${downloadId}`, error);
+      logger.error(
+        `Failed to get torrent download status for ${downloadId}`,
+        error
+      );
       return null;
     }
   }
 }
-

@@ -79,7 +79,10 @@ export function GameOptionsModal({
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
       const gameKey = getGameKey(game.shop, game.objectId);
-      const gameData = (await levelDBService.get(gameKey, "games")) as Game | null;
+      const gameData = (await levelDBService.get(
+        gameKey,
+        "games"
+      )) as Game | null;
       if (gameData) {
         const updated = {
           ...gameData,
@@ -221,7 +224,10 @@ export function GameOptionsModal({
     setLaunchOptions("");
 
     const gameKey = getGameKey(game.shop, game.objectId);
-    const gameData = (await levelDBService.get(gameKey, "games")) as Game | null;
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
     if (gameData) {
       const updated = { ...gameData, launchOptions: null };
       await levelDBService.put(gameKey, updated, "games");
@@ -268,7 +274,10 @@ export function GameOptionsModal({
     setAutomaticCloudSync(event.target.checked);
 
     const gameKey = getGameKey(game.shop, game.objectId);
-    const gameData = (await levelDBService.get(gameKey, "games")) as Game | null;
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
     if (gameData) {
       const updated = { ...gameData, automaticCloudSync: event.target.checked };
       await levelDBService.put(gameKey, updated, "games");

@@ -30,4 +30,3 @@ import "./update-executable-path";
 import "./update-game-custom-assets";
 import "./update-launch-options";
 import "./verify-executable-path";
-
