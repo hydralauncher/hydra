@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppSelector } from "./redux";
 import { debounce } from "lodash-es";
+import { logger } from "@renderer/logger";
 
 export interface SearchSuggestion {
   title: string;
@@ -85,12 +86,12 @@ export function useSearchSuggestions(
 
       try {
         const response = await window.electron.hydraApi.get<
-          Array<{
+          {
             title: string;
             objectId: string;
             shop: string;
             iconUrl: string | null;
-          }>
+          }[]
         >("/catalogue/search/suggestions", {
           params: {
             query: searchQuery,
@@ -113,6 +114,7 @@ export function useSearchSuggestions(
       } catch (error) {
         if (!abortController.signal.aborted) {
           setSuggestions([]);
+          logger.error("Failed to fetch catalogue suggestions", error);
         }
       } finally {
         if (!abortController.signal.aborted) {

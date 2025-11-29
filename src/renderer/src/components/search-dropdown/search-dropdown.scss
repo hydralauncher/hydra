@@ -44,7 +44,8 @@
     transition: color ease 0.2s;
 
     &:hover {
-      color: #dadbe1;
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.15);
     }
   }
 
@@ -76,6 +77,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: transparent;
+
+    &:hover {
+      color: #ff3333;
+      background-color: rgba(255, 85, 85, 0.2);
+    }
   }
 
   &__item {
@@ -134,8 +141,8 @@
   }
 
   &__highlight {
-    background-color: rgba(255, 193, 7, 0.3);
-    color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.4);
+    color: #ffa000;
     font-weight: 600;
     padding: 0 2px;
     border-radius: 2px;

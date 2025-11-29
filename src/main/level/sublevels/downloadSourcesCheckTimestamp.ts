@@ -7,7 +7,9 @@ export const getDownloadSourcesCheckBaseline = async (): Promise<
   string | null
 > => {
   try {
-    const timestamp = await db.get(levelKeys.downloadSourcesCheckBaseline);
+    const timestamp = await db.get(levelKeys.downloadSourcesCheckBaseline, {
+      valueEncoding: "utf8",
+    });
     return timestamp;
   } catch (error) {
     if (error instanceof Error && error.name === "NotFoundError") {
@@ -27,7 +29,9 @@ export const updateDownloadSourcesCheckBaseline = async (
   timestamp: string
 ): Promise<void> => {
   const utcTimestamp = new Date(timestamp).toISOString();
-  await db.put(levelKeys.downloadSourcesCheckBaseline, utcTimestamp);
+  await db.put(levelKeys.downloadSourcesCheckBaseline, utcTimestamp, {
+    valueEncoding: "utf8",
+  });
 };
 
 // Gets the 'since' value the API used in the last check (for modal comparison)
@@ -35,7 +39,9 @@ export const getDownloadSourcesSinceValue = async (): Promise<
   string | null
 > => {
   try {
-    const timestamp = await db.get(levelKeys.downloadSourcesSinceValue);
+    const timestamp = await db.get(levelKeys.downloadSourcesSinceValue, {
+      valueEncoding: "utf8",
+    });
     return timestamp;
   } catch (error) {
     if (error instanceof Error && error.name === "NotFoundError") {
@@ -55,5 +61,7 @@ export const updateDownloadSourcesSinceValue = async (
   timestamp: string
 ): Promise<void> => {
   const utcTimestamp = new Date(timestamp).toISOString();
-  await db.put(levelKeys.downloadSourcesSinceValue, utcTimestamp);
+  await db.put(levelKeys.downloadSourcesSinceValue, utcTimestamp, {
+    valueEncoding: "utf8",
+  });
 };

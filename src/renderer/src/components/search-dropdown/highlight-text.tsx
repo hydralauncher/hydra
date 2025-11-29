@@ -1,11 +1,11 @@
 import React from "react";
 
 interface HighlightTextProps {
-  text: string;
-  query: string;
+  readonly text: string;
+  readonly query: string;
 }
 
-export function HighlightText({ text, query }: HighlightTextProps) {
+export function HighlightText({ text, query }: Readonly<HighlightTextProps>) {
   if (!query.trim()) {
     return <>{text}</>;
   }
@@ -20,7 +20,7 @@ export function HighlightText({ text, query }: HighlightTextProps) {
   }
 
   const textWords = text.split(/\b/);
-  const matches: Array<{ start: number; end: number; text: string }> = [];
+  const matches: { start: number; end: number; text: string }[] = [];
 
   let currentIndex = 0;
   textWords.forEach((word) => {
@@ -45,7 +45,7 @@ export function HighlightText({ text, query }: HighlightTextProps) {
 
   matches.sort((a, b) => a.start - b.start);
 
-  const mergedMatches: Array<{ start: number; end: number }> = [];
+  const mergedMatches: { start: number; end: number }[] = [];
 
   if (matches.length === 0) {
     return <>{text}</>;
@@ -63,7 +63,7 @@ export function HighlightText({ text, query }: HighlightTextProps) {
   }
   mergedMatches.push(current);
 
-  const parts: Array<{ text: string; highlight: boolean }> = [];
+  const parts: { text: string; highlight: boolean; key: string }[] = [];
   let lastIndex = 0;
 
   mergedMatches.forEach((match) => {
@@ -71,12 +71,14 @@ export function HighlightText({ text, query }: HighlightTextProps) {
       parts.push({
         text: text.slice(lastIndex, match.start),
         highlight: false,
+        key: `${lastIndex}-${match.start}`,
       });
     }
 
     parts.push({
       text: text.slice(match.start, match.end),
       highlight: true,
+      key: `${match.start}-${match.end}`,
     });
 
     lastIndex = match.end;
@@ -86,18 +88,19 @@ export function HighlightText({ text, query }: HighlightTextProps) {
     parts.push({
       text: text.slice(lastIndex),
       highlight: false,
+      key: `${lastIndex}-${text.length}`,
     });
   }
 
   return (
     <>
-      {parts.map((part, index) =>
+      {parts.map((part) =>
         part.highlight ? (
-          <mark key={index} className="search-dropdown__highlight">
+          <mark key={part.key} className="search-dropdown__highlight">
             {part.text}
           </mark>
         ) : (
-          <React.Fragment key={index}>{part.text}</React.Fragment>
+          <React.Fragment key={part.key}>{part.text}</React.Fragment>
         )
       )}
     </>

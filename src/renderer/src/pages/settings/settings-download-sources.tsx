@@ -21,6 +21,8 @@ import { DownloadSourceStatus } from "@shared";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
 import { setFilters, clearFilters } from "@renderer/features";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { orderBy } from "lodash-es";
 import "./settings-download-sources.scss";
 import { logger } from "@renderer/logger";
 
@@ -52,8 +54,11 @@ export function SettingsDownloadSources() {
 
   useEffect(() => {
     const fetchDownloadSources = async () => {
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
     };
 
     fetchDownloadSources();
@@ -73,8 +78,11 @@ export function SettingsDownloadSources() {
     const intervalId = setInterval(async () => {
       try {
         await window.electron.syncDownloadSources();
-        const sources = await window.electron.getDownloadSources();
-        setDownloadSources(sources);
+        const sources = (await levelDBService.values(
+          "downloadSources"
+        )) as DownloadSource[];
+        const sorted = orderBy(sources, "createdAt", "desc");
+        setDownloadSources(sorted);
       } catch (error) {
         logger.error("Failed to fetch download sources:", error);
       }
@@ -88,8 +96,11 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(false, downloadSource.id);
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
       showSuccessToast(t("removed_download_source"));
     } catch (error) {
       logger.error("Failed to remove download source:", error);
@@ -103,8 +114,11 @@ export function SettingsDownloadSources() {
 
     try {
       await window.electron.removeDownloadSource(true);
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
       showSuccessToast(t("removed_all_download_sources"));
     } catch (error) {
       logger.error("Failed to remove all download sources:", error);
@@ -116,8 +130,11 @@ export function SettingsDownloadSources() {
 
   const handleAddDownloadSource = async () => {
     try {
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
     } catch (error) {
       logger.error("Failed to refresh download sources:", error);
     }
@@ -127,8 +144,11 @@ export function SettingsDownloadSources() {
     setIsSyncingDownloadSources(true);
     try {
       await window.electron.syncDownloadSources();
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
 
       showSuccessToast(t("download_sources_synced_successfully"));
     } finally {
