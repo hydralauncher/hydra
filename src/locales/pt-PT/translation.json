@@ -184,7 +184,8 @@
     "review_from_blocked_user": "Avaliação de utilizador bloqueado",
     "review_played_for": "Jogaste por",
     "show": "Mostrar",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "review_played_for": "Jogado por"
   },
   "activation": {
     "title": "Ativação",
@@ -470,7 +471,11 @@
     "achievements_unlocked": "Conquistas desbloqueadas",
     "earned_points": "Pontos ganhos",
     "show_achievements_on_profile": "Mostre as suas conquistas no perfil",
-    "show_points_on_profile": "Mostre os seus pontos ganhos no perfil"
+    "show_points_on_profile": "Mostre os seus pontos ganhos no perfil",
+    "user_reviews": "Avaliações",
+    "loading_reviews": "A carregar avaliações...",
+    "no_reviews": "Ainda não há avaliações",
+    "delete_review": "Eliminar avaliação"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",

@@ -13,6 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Каталог",
+    "library": "Библиотека",
     "downloads": "Загрузки",
     "settings": "Настройки",
     "my_library": "Библиотека",
@@ -194,6 +195,7 @@
     "download_in_progress": "Идёт загрузка",
     "download_paused": "Загрузка приостановлена",
     "last_downloaded_option": "Последний вариант загрузки",
+    "new_download_option": "Новый",
     "create_steam_shortcut": "Создать ярлык Steam",
     "create_shortcut_success": "Ярлык создан",
     "you_might_need_to_restart_steam": "Возможно, вам потребуется перезапустить Steam, чтобы увидеть изменения",
@@ -228,6 +230,7 @@
     "write_review_placeholder": "Поделитесь своими мыслями об этой игре...",
     "sort_newest": "Сначала новые",
     "no_reviews_yet": "Пока нет отзывов",
+    "review_played_for": "Играли",
     "be_first_to_review": "Станьте первым, кто поделится своими мыслями об этой игре!",
     "sort_oldest": "Сначала старые",
     "sort_highest_score": "Высший балл",
@@ -555,6 +558,12 @@
     "platinum": "Платиновый",
     "hidden": "Скрытый",
     "test_notification": "Тестовое уведомление",
+    "achievement_sound_volume": "Громкость звука достижения",
+    "select_achievement_sound": "Выбрать звук достижения",
+    "select": "Выбрать",
+    "preview": "Предпросмотр",
+    "remove": "Удалить",
+    "no_sound_file_selected": "Файл звука не выбран",
     "notification_preview": "Предварительный просмотр уведомления о достижении",
     "enable_friend_start_game_notifications": "Когда друг начинает играть в игру",
     "autoplay_trailers_on_game_page": "Автоматически начинать воспроизведение трейлеров на странице игры",
@@ -693,7 +702,11 @@
     "game_added_to_pinned": "Игра добавлена в закрепленные",
     "karma": "Карма",
     "karma_count": "карма",
-    "karma_description": "Заработана положительными оценками отзывов"
+    "karma_description": "Заработана положительными оценками отзывов",
+    "user_reviews": "Отзывы",
+    "loading_reviews": "Загрузка отзывов...",
+    "no_reviews": "Пока нет отзывов",
+    "delete_review": "Удалить отзыв"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
@@ -723,5 +736,26 @@
     "hydra_cloud_feature_found": "Вы только что открыли для себя функцию Hydra Cloud!",
     "learn_more": "Подробнее",
     "debrid_description": "Скачивайте в 4 раза быстрее с Nimbus"
+  },
+  "library": {
+    "library": "Библиотека",
+    "play": "Играть",
+    "download": "Скачать",
+    "downloading": "Скачивание",
+    "game": "игра",
+    "games": "игры",
+    "grid_view": "Вид сетки",
+    "compact_view": "Компактный вид",
+    "large_view": "Большой вид",
+    "no_games_title": "Ваша библиотека пуста",
+    "no_games_description": "Добавьте игры из каталога или скачайте их, чтобы начать",
+    "amount_hours": "{{amount}} часов",
+    "amount_minutes": "{{amount}} минут",
+    "amount_hours_short": "{{amount}}ч",
+    "amount_minutes_short": "{{amount}}м",
+    "manual_playtime_tooltip": "Время игры было обновлено вручную",
+    "all_games": "Все игры",
+    "recently_played": "Недавно сыгранные",
+    "favorites": "Избранное"
   }
 }

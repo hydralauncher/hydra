@@ -80,6 +80,12 @@ export function SidebarGameItem({
           <span className="sidebar__menu-item-button-label">
             {getGameTitle(game)}
           </span>
+
+          {(game.newDownloadOptionsCount ?? 0) > 0 && (
+            <span className="sidebar__game-badge">
+              +{game.newDownloadOptionsCount}
+            </span>
+          )}
         </button>
       </li>
 
