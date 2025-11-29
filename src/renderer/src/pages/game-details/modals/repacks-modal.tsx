@@ -146,7 +146,10 @@ export function RepacksModal({
         .get(gameKey, "games")
         .then((gameData) => {
           if (gameData) {
-            const updated = { ...(gameData as Game), newDownloadOptionsCount: undefined };
+            const updated = {
+              ...(gameData as Game),
+              newDownloadOptionsCount: undefined,
+            };
             return levelDBService.put(gameKey, updated, "games");
           }
         })

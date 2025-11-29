@@ -10,4 +10,3 @@ import "./open-external";
 import "./save-temp-file";
 import "./show-item-in-folder";
 import "./show-open-dialog";
-
