@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useState } from "react";
 
 import { setUserPreferences } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
+import { levelDBService } from "@renderer/services/leveldb.service";
 import type { UserBlocks, UserPreferences } from "@types";
 import { useSearchParams } from "react-router-dom";
 
