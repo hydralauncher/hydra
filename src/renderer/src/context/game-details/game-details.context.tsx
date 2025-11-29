@@ -3,7 +3,6 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
-import type { DownloadSource } from "@types";
 import { getSteamLanguage } from "@renderer/helpers";
 import {
   useAppDispatch,
@@ -13,6 +12,7 @@ import {
 } from "@renderer/hooks";
 
 import type {
+  DownloadSource,
   GameRepack,
   GameShop,
   GameStats,

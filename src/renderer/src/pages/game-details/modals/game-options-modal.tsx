@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import type { LibraryGame, ShortcutLocation } from "@types";
+import type { Game, LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -13,7 +13,6 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getGameKey } from "@renderer/helpers";
-import type { Game } from "@types";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 
@@ -84,9 +83,10 @@ export function GameOptionsModal({
         "games"
       )) as Game | null;
       if (gameData) {
+        const trimmedValue = value.trim();
         const updated = {
           ...gameData,
-          launchOptions: value.trim() !== "" ? value : null,
+          launchOptions: trimmedValue ? trimmedValue : null,
         };
         await levelDBService.put(gameKey, updated, "games");
       }

@@ -46,8 +46,8 @@
     justify-content: center;
 
     &:hover {
-      color: #dadbe1;
-      background-color: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.15);
     }
   }
 
@@ -83,8 +83,8 @@
     background-color: transparent;
 
     &:hover {
-      color: #ff5555;
-      background-color: rgba(255, 85, 85, 0.1);
+      color: #ff3333;
+      background-color: rgba(255, 85, 85, 0.2);
     }
   }
 
@@ -144,8 +144,8 @@
   }
 
   &__highlight {
-    background-color: rgba(255, 193, 7, 0.3);
-    color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.4);
+    color: #ffa000;
     font-weight: 600;
     padding: 0 2px;
     border-radius: 2px;

@@ -15,7 +15,7 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import type { DownloadSource, GameRepack } from "@types";
+import type { DownloadSource, Game, GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
@@ -25,7 +25,6 @@ import { useDate, useFeature, useAppDispatch } from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getGameKey } from "@renderer/helpers";
-import type { Game } from "@types";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -152,7 +151,6 @@ export function RepacksModal({
             };
             return levelDBService.put(gameKey, updated, "games");
           }
-          return Promise.resolve();
         })
         .catch(() => {});
 
