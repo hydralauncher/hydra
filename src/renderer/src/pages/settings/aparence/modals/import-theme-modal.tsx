@@ -66,6 +66,7 @@ export const ImportThemeModal = ({
       }
 
       const allThemes = (await levelDBService.values("themes")) as {
+        id: string;
         isActive?: boolean;
       }[];
       const activeTheme = allThemes.find((t) => t.isActive);

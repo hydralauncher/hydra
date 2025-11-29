@@ -152,6 +152,7 @@ export function RepacksModal({
             };
             return levelDBService.put(gameKey, updated, "games");
           }
+          return Promise.resolve();
         })
         .catch(() => {});
 
