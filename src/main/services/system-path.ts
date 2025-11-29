@@ -13,9 +13,7 @@ export class SystemPath {
   };
 
   static checkIfPathsAreAvailable() {
-    const paths = Object.keys(SystemPath.paths) as Array<
-      keyof typeof SystemPath.paths
-    >;
+    const paths = Object.keys(SystemPath.paths) as (keyof typeof SystemPath.paths)[];
 
     paths.forEach((pathName) => {
       try {
