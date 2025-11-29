@@ -75,7 +75,7 @@ export function useSearchSuggestions(
       setIsLoading(true);
 
       try {
-        const response = await globalThis.electron.hydraApi.get<
+        const response = await window.electron.hydraApi.get<
           {
             title: string;
             objectId: string;
