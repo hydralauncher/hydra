@@ -76,7 +76,13 @@ export default function Library() {
 
     switch (filterBy) {
       case "recently_played":
-        filtered = library.filter((game) => game.lastTimePlayed !== null);
+        filtered = library
+          .filter((game) => game.lastTimePlayed !== null)
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.lastTimePlayed).getTime() -
+              new Date(a.lastTimePlayed).getTime()
+          );
         break;
       case "favorites":
         filtered = library.filter((game) => game.favorite);
