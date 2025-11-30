@@ -13,7 +13,12 @@ const resumeGameDownload = async (
 
   const download = await downloadsSublevel.get(gameKey);
 
-  if (download?.status === "paused") {
+  // Allow resuming if status is "paused" OR "active" (for cases where app was closed during download)
+  if (
+    download &&
+    (download.status === "paused" || download.status === "active") &&
+    download.progress !== 1
+  ) {
     await DownloadManager.pauseDownload();
 
     for await (const [key, value] of downloadsSublevel.iterator()) {
