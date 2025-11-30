@@ -76,7 +76,7 @@ export function useHlsVideo(
           logger.warn("Failed to autoplay HLS video:", err);
         });
       }
-      
+
       return () => {
         video.src = "";
       };
@@ -99,4 +99,3 @@ export function useHlsVideo(
 
   return hlsRef.current;
 }
-

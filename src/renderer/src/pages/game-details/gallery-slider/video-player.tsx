@@ -46,7 +46,9 @@ export function VideoPlayer({
         muted={muted}
         autoPlay={autoplay}
         tabIndex={tabIndex}
-      />
+      >
+        <track kind="captions" />
+      </video>
     );
   }
 
@@ -62,7 +64,7 @@ export function VideoPlayer({
       tabIndex={tabIndex}
     >
       {videoSrc && <source src={videoSrc} type={videoType} />}
+      <track kind="captions" />
     </video>
   );
 }
-
