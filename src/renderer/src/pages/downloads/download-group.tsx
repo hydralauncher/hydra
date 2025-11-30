@@ -1,7 +1,10 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
 import { Badge, Button } from "@renderer/components";
-import { formatDownloadProgress } from "@renderer/helpers";
+import {
+  formatDownloadProgress,
+  buildGameDetailsPath,
+} from "@renderer/helpers";
 
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import { addMilliseconds } from "date-fns";
@@ -16,11 +19,14 @@ import {
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  ClockIcon,
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
@@ -33,6 +39,47 @@ import {
   GraphIcon,
 } from "@primer/octicons-react";
 import { average } from "color.js";
+
+interface AnimatedPercentageProps {
+  value: number;
+}
+
+function AnimatedPercentage({ value }: Readonly<AnimatedPercentageProps>) {
+  const percentageText = formatDownloadProgress(value);
+  const prevTextRef = useRef<string>(percentageText);
+  const chars = percentageText.split("");
+  const prevChars = prevTextRef.current.split("");
+
+  useEffect(() => {
+    prevTextRef.current = percentageText;
+  }, [percentageText]);
+
+  return (
+    <>
+      {chars.map((char, index) => {
+        const prevChar = prevChars[index];
+        const charChanged = prevChar !== char;
+
+        return (
+          <AnimatePresence key={`${index}`} mode="wait" initial={false}>
+            <motion.span
+              key={`${char}-${value}-${index}`}
+              initial={
+                charChanged ? { y: 10, opacity: 0 } : { y: 0, opacity: 1 }
+              }
+              animate={{ y: 0, opacity: 1 }}
+              exit={charChanged ? { y: -10, opacity: 0 } : undefined}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              style={{ display: "inline-block" }}
+            >
+              {char}
+            </motion.span>
+          </AnimatePresence>
+        );
+      })}
+    </>
+  );
+}
 
 interface SpeedChartProps {
   speeds: number[];
@@ -55,6 +102,7 @@ function SpeedChart({
     if (!ctx) return;
 
     let animationFrameId: number;
+    let resizeObserver: ResizeObserver | null = null;
 
     const draw = () => {
       const clientWidth = canvas.clientWidth;
@@ -66,10 +114,12 @@ function SpeedChart({
 
       const width = clientWidth;
       const height = 100;
-      const totalBars = 120;
       const barWidth = 4;
       const barGap = 10;
       const barSpacing = barWidth + barGap;
+
+      // Calculate how many bars can fit in the available width
+      const totalBars = Math.max(1, Math.floor((width + barGap) / barSpacing));
       const maxHeight = peakSpeed || Math.max(...speeds, 1);
 
       ctx.clearRect(0, 0, width, height);
@@ -126,8 +176,22 @@ function SpeedChart({
 
     animationFrameId = requestAnimationFrame(draw);
 
+    // Handle resize - trigger redraw when canvas size changes
+    resizeObserver = new ResizeObserver(() => {
+      // Cancel any pending animation frame to force immediate redraw
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      // Trigger a redraw that will recalculate bars based on new width
+      draw();
+    });
+    resizeObserver.observe(canvas);
+
     return () => {
       cancelAnimationFrame(animationFrameId);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [speeds, peakSpeed, color]);
 
@@ -173,6 +237,12 @@ function HeroDownloadView({
   cancelDownload,
   t,
 }: Readonly<HeroDownloadViewProps>) {
+  const navigate = useNavigate();
+
+  const handleLogoClick = useCallback(() => {
+    navigate(buildGameDetailsPath(game));
+  }, [navigate, game]);
+
   return (
     <div className="download-group download-group--hero">
       <div className="download-group__hero-background">
@@ -187,9 +257,33 @@ function HeroDownloadView({
         <div className="download-group__hero-action-row">
           <div className="download-group__hero-logo">
             {game.logoImageUrl ? (
-              <img src={game.logoImageUrl} alt={game.title} />
+              <img
+                src={game.logoImageUrl}
+                alt={game.title}
+                onClick={handleLogoClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleLogoClick();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              />
             ) : (
-              <h1>{game.title}</h1>
+              <h1
+                onClick={handleLogoClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleLogoClick();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                {game.title}
+              </h1>
             )}
           </div>
         </div>
@@ -198,23 +292,35 @@ function HeroDownloadView({
           <div className="download-group__progress-row download-group__progress-row--bar">
             <div className="download-group__progress-wrapper">
               <div className="download-group__progress-info-row">
-                <span className="download-group__progress-size">
-                  {isGameDownloading && lastPacket
-                    ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                    : `0 B / ${finalDownloadSize}`}
-                </span>
+                {lastPacket?.isCheckingFiles ? (
+                  <span className="download-group__progress-status">
+                    {t("checking_files")}
+                  </span>
+                ) : (
+                  <span className="download-group__progress-size">
+                    <DownloadIcon size={14} />
+                    {isGameDownloading && lastPacket
+                      ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
+                      : `0 B / ${finalDownloadSize}`}
+                  </span>
+                )}
                 <span></span>
               </div>
               <div className="download-group__progress-info-row">
-                <span className="download-group__progress-time">
-                  {isGameDownloading &&
-                  lastPacket?.timeRemaining &&
-                  lastPacket.timeRemaining > 0
-                    ? calculateETA()
-                    : ""}
-                </span>
+                {!lastPacket?.isCheckingFiles && (
+                  <span className="download-group__progress-time">
+                    {isGameDownloading &&
+                      lastPacket?.timeRemaining &&
+                      lastPacket.timeRemaining > 0 && (
+                        <>
+                          <ClockIcon size={14} />
+                          {calculateETA()}
+                        </>
+                      )}
+                  </span>
+                )}
                 <span className="download-group__progress-percentage">
-                  {formatDownloadProgress(currentProgress)}
+                  <AnimatedPercentage value={currentProgress} />
                 </span>
               </div>
               <div className="download-group__progress-bar">
@@ -355,7 +461,7 @@ export function DownloadGroup({
 
   const { formatDistance } = useDate();
 
-  const peakSpeedsRef = useRef<Record<string, number>>({});
+  const [peakSpeeds, setPeakSpeeds] = useState<Record<string, number>>({});
   const speedHistoryRef = useRef<Record<string, number[]>>({});
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
@@ -381,9 +487,12 @@ export function DownloadGroup({
     if (lastPacket?.gameId && lastPacket.downloadSpeed !== undefined) {
       const gameId = lastPacket.gameId;
 
-      const currentPeak = peakSpeedsRef.current[gameId] || 0;
+      const currentPeak = peakSpeeds[gameId] || 0;
       if (lastPacket.downloadSpeed > currentPeak) {
-        peakSpeedsRef.current[gameId] = lastPacket.downloadSpeed;
+        setPeakSpeeds((prev) => ({
+          ...prev,
+          [gameId]: lastPacket.downloadSpeed,
+        }));
       }
 
       if (!speedHistoryRef.current[gameId]) {
@@ -396,7 +505,7 @@ export function DownloadGroup({
         speedHistoryRef.current[gameId].shift();
       }
     }
-  }, [lastPacket?.gameId, lastPacket?.downloadSpeed]);
+  }, [lastPacket?.gameId, lastPacket?.downloadSpeed, peakSpeeds]);
 
   useEffect(() => {
     for (const game of library) {
@@ -408,7 +517,7 @@ export function DownloadGroup({
         // Fresh download - clear any old data
         if (speedHistoryRef.current[game.id]?.length > 0) {
           speedHistoryRef.current[game.id] = [];
-          peakSpeedsRef.current[game.id] = 0;
+          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
         }
       }
     }
@@ -424,7 +533,7 @@ export function DownloadGroup({
       ) {
         const timeout = setTimeout(() => {
           speedHistoryRef.current[game.id] = [];
-          peakSpeedsRef.current[game.id] = 0;
+          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
         }, 10_000);
         timeouts.push(timeout);
       }
@@ -677,7 +786,7 @@ export function DownloadGroup({
       ? (lastPacket?.downloadSpeed ?? 0)
       : 0;
     const finalDownloadSize = getFinalDownloadSize(game);
-    const peakSpeed = peakSpeedsRef.current[game.id] || 0;
+    const peakSpeed = peakSpeeds[game.id] || 0;
     const currentProgress =
       isGameDownloading && lastPacket
         ? lastPacket.progress
@@ -712,9 +821,10 @@ export function DownloadGroup({
       className={`download-group ${isQueuedGroup ? "download-group--queued" : ""} ${isCompletedGroup ? "download-group--completed" : ""}`}
     >
       <div className="download-group__header">
-        <h2>{title}</h2>
-        <div className="download-group__header-divider" />
-        <h3 className="download-group__header-count">{library.length}</h3>
+        <div className="download-group__header-title-group">
+          <h2>{title}</h2>
+          <h3 className="download-group__header-count">{library.length}</h3>
+        </div>
       </div>
 
       <ul className="download-group__simple-list">
@@ -728,13 +838,26 @@ export function DownloadGroup({
               <div className="download-group__simple-info">
                 <h3 className="download-group__simple-title">{game.title}</h3>
                 <div className="download-group__simple-meta">
-                  <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
-                  <span className="download-group__simple-size">{size}</span>
-                  {game.download?.progress === 1 && seeding && (
-                    <span className="download-group__simple-seeding">
-                      {t("seeding")}
-                    </span>
-                  )}
+                  <div className="download-group__simple-meta-row">
+                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
+                  </div>
+                  <div className="download-group__simple-meta-row">
+                    {game.download?.extracting ? (
+                      <span className="download-group__simple-extracting">
+                        {t("extracting")}
+                      </span>
+                    ) : (
+                      <span className="download-group__simple-size">
+                        <DownloadIcon size={14} />
+                        {size}
+                      </span>
+                    )}
+                    {game.download?.progress === 1 && seeding && (
+                      <span className="download-group__simple-seeding">
+                        {t("seeding")}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -771,8 +894,9 @@ export function DownloadGroup({
                     theme="primary"
                     onClick={() => resumeDownload(game.shop, game.objectId)}
                     className="download-group__simple-menu-btn"
+                    tooltip={t("resume")}
                   >
-                    <PlayIcon size={16} />
+                    <DownloadIcon size={16} />
                   </Button>
                 )}
                 <DropdownMenu align="end" items={getGameActions(game)}>

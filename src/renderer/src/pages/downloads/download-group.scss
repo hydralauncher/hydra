@@ -18,19 +18,26 @@
   &__header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit);
 
-    &-divider {
+    &-title-group {
+      display: flex;
+      align-items: center;
+      gap: calc(globals.$spacing-unit);
       flex: 1;
-      background-color: globals.$border-color;
-      height: 1px;
+
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.95);
+      }
     }
 
     &-count {
       background-color: rgba(255, 255, 255, 0.1);
       color: rgba(255, 255, 255, 0.7);
-      padding: 6px 10px;
+      padding: 4px 8px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
@@ -91,11 +98,25 @@
   &__hero-logo {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
 
     img {
       max-width: 180px;
       max-height: 60px;
       object-fit: contain;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &:focus {
+        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
 
       @container #{globals.$app-container} (min-width: 700px) {
         max-width: 220px;
@@ -124,6 +145,18 @@
       color: #ffffff;
       text-shadow: 2px 2px 12px rgba(0, 0, 0, 0.9);
       margin: 0;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &:focus {
+        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
 
       @container #{globals.$app-container} (min-width: 700px) {
         font-size: 26px;
@@ -217,15 +250,34 @@
     font-weight: 700;
     color: #ffffff;
     align-self: flex-end;
+    display: inline-block;
+    overflow: hidden;
+    line-height: 1.2;
+
+    span {
+      display: inline-block;
+    }
   }
 
   &__progress-size {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__progress-status {
     font-size: 13px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
   }
 
   &__progress-time {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
     font-size: 13px;
     color: globals.$muted-color;
   }
@@ -312,14 +364,7 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2);
     border-radius: 8px;
-    transition: all ease 0.2s;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.1);
-    }
   }
 
   &__simple-thumbnail {
@@ -329,6 +374,7 @@
     overflow: hidden;
     flex-shrink: 0;
     background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid globals.$border-color;
 
     img {
       width: 100%;
@@ -357,6 +403,12 @@
 
   &__simple-meta {
     display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__simple-meta-row {
+    display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 2);
     font-size: 13px;
@@ -364,7 +416,18 @@
   }
 
   &__simple-size {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
     font-weight: 500;
+  }
+
+  &__simple-extracting {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    font-weight: 500;
+    color: globals.$muted-color;
   }
 
   &__simple-seeding {
