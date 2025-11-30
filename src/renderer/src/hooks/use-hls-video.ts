@@ -23,7 +23,7 @@ export function useHlsVideo(
     const isHls = videoType === "application/x-mpegURL";
 
     if (!isHls) {
-      return;
+      return undefined;
     }
 
     if (Hls.isSupported()) {
@@ -45,7 +45,7 @@ export function useHlsVideo(
         }
       });
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
+      hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
@@ -82,6 +82,7 @@ export function useHlsVideo(
       };
     } else {
       logger.warn("HLS playback is not supported in this browser");
+      return undefined;
     }
   }, [videoRef, videoSrc, videoType, autoplay, muted, loop]);
 
