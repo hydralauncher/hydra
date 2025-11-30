@@ -6,7 +6,12 @@ import { formatDownloadProgress } from "@renderer/helpers";
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import { addMilliseconds } from "date-fns";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useDownload, useLibrary, useDate } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDownload,
+  useLibrary,
+  useDate,
+} from "@renderer/hooks";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
