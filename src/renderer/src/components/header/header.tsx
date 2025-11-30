@@ -15,6 +15,8 @@ import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
+import { buildGameDetailsPath } from "@renderer/helpers";
+import type { GameShop } from "@types";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -161,11 +163,11 @@ export function Header() {
   const handleSelectSuggestion = (suggestion: {
     title: string;
     objectId: string;
-    shop: string;
+    shop: GameShop;
   }) => {
     setIsDropdownVisible(false);
     inputRef.current?.blur();
-    navigate(`/game/${suggestion.shop}/${suggestion.objectId}`);
+    navigate(buildGameDetailsPath(suggestion));
   };
 
   const handleClearSearch = () => {

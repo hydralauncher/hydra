@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 export interface SearchHistoryEntry {
   query: string;
@@ -6,22 +7,32 @@ export interface SearchHistoryEntry {
   context: "library" | "catalogue";
 }
 
-const STORAGE_KEY = "search-history";
+const LEVELDB_KEY = "searchHistory";
 const MAX_HISTORY_ENTRIES = 15;
 
 export function useSearchHistory() {
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    const loadHistory = async () => {
+      if (isInitialized.current) return;
+      isInitialized.current = true;
+
       try {
-        const parsed = JSON.parse(stored) as SearchHistoryEntry[];
-        setHistory(parsed);
+        const data = (await levelDBService.get(LEVELDB_KEY, null, "json")) as
+          | SearchHistoryEntry[]
+          | null;
+
+        if (data) {
+          setHistory(data);
+        }
       } catch {
-        localStorage.removeItem(STORAGE_KEY);
+        setHistory([]);
       }
-    }
+    };
+
+    loadHistory();
   }, []);
 
   const addToHistory = useCallback(
@@ -39,7 +50,7 @@ export function useSearchHistory() {
           (entry) => entry.query.toLowerCase() !== query.toLowerCase().trim()
         );
         const updated = [newEntry, ...filtered].slice(0, MAX_HISTORY_ENTRIES);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        levelDBService.put(LEVELDB_KEY, updated, null, "json");
         return updated;
       });
     },
@@ -49,14 +60,14 @@ export function useSearchHistory() {
   const removeFromHistory = useCallback((query: string) => {
     setHistory((prev) => {
       const updated = prev.filter((entry) => entry.query !== query);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      levelDBService.put(LEVELDB_KEY, updated, null, "json");
       return updated;
     });
   }, []);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
-    localStorage.removeItem(STORAGE_KEY);
+    levelDBService.del(LEVELDB_KEY, null);
   }, []);
 
   const getRecentHistory = useCallback(
