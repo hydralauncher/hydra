@@ -397,6 +397,14 @@ function HeroDownloadView({
                   </div>
                 </div>
               )}
+
+            {game.download?.downloader && (
+              <div className="download-group__stat-item">
+                <div className="download-group__stat-content">
+                  <Badge>{DOWNLOADER_NAME[game.download.downloader]}</Badge>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="download-group__speed-chart">
@@ -437,13 +445,53 @@ export function DownloadGroup({
 
   const {
     lastPacket,
-    pauseDownload,
-    resumeDownload,
+    pauseDownload: pauseDownloadOriginal,
+    resumeDownload: resumeDownloadOriginal,
     cancelDownload,
     isGameDeleting,
     pauseSeeding,
     resumeSeeding,
   } = useDownload();
+
+  // Wrap resumeDownload with optimistic update
+  const resumeDownload = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      const gameId = `${shop}:${objectId}`;
+
+      // Optimistically mark as downloading
+      setOptimisticallyResumed((prev) => ({ ...prev, [gameId]: true }));
+
+      try {
+        await resumeDownloadOriginal(shop, objectId);
+      } catch (error) {
+        // If resume fails, remove optimistic state
+        setOptimisticallyResumed((prev) => {
+          const next = { ...prev };
+          delete next[gameId];
+          return next;
+        });
+        throw error;
+      }
+    },
+    [resumeDownloadOriginal]
+  );
+
+  // Wrap pauseDownload to clear optimistic state
+  const pauseDownload = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      const gameId = `${shop}:${objectId}`;
+
+      // Clear optimistic state when pausing
+      setOptimisticallyResumed((prev) => {
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+
+      await pauseDownloadOriginal(shop, objectId);
+    },
+    [pauseDownloadOriginal]
+  );
 
   const { formatDistance } = useDate();
 
@@ -452,6 +500,9 @@ export function DownloadGroup({
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
   );
+  const [optimisticallyResumed, setOptimisticallyResumed] = useState<
+    Record<string, boolean>
+  >({});
 
   const extractDominantColor = useCallback(
     async (imageUrl: string, gameId: string) => {
@@ -468,6 +519,45 @@ export function DownloadGroup({
     },
     [dominantColors]
   );
+
+  // Clear optimistic state when actual download starts or library updates
+  useEffect(() => {
+    if (lastPacket?.gameId) {
+      const gameId = lastPacket.gameId;
+
+      // Clear optimistic state when actual download starts
+      setOptimisticallyResumed((prev) => {
+        const next = { ...prev };
+        delete next[gameId];
+        return next;
+      });
+    }
+  }, [lastPacket?.gameId]);
+
+  // Clear optimistic state for games that are no longer active after library update
+  useEffect(() => {
+    setOptimisticallyResumed((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const gameId in next) {
+        if (next[gameId]) {
+          const game = library.find((g) => g.id === gameId);
+          // Clear if game doesn't exist or download status is not active
+          if (
+            !game ||
+            game.download?.status !== "active" ||
+            lastPacket?.gameId === gameId
+          ) {
+            delete next[gameId];
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [library, lastPacket?.gameId]);
 
   useEffect(() => {
     if (lastPacket?.gameId && lastPacket.downloadSpeed !== undefined) {
@@ -552,10 +642,12 @@ export function DownloadGroup({
   const isGameDownloadingMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     for (const game of library) {
-      map[game.id] = lastPacket?.gameId === game.id;
+      map[game.id] =
+        lastPacket?.gameId === game.id ||
+        optimisticallyResumed[game.id] === true;
     }
     return map;
-  }, [library, lastPacket?.gameId]);
+  }, [library, lastPacket?.gameId, optimisticallyResumed]);
 
   const getFinalDownloadSize = (game: LibraryGame) => {
     const download = game.download!;
@@ -830,7 +922,7 @@ export function DownloadGroup({
                     disabled={isGameDeleting(game.id)}
                     className="download-group__simple-menu-btn"
                   >
-                    <DownloadIcon size={16} />
+                    <PlayIcon size={16} />
                   </Button>
                 )}
                 {isQueuedGroup && game.download?.progress !== 1 && (
