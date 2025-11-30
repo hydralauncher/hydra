@@ -8248,6 +8248,11 @@ socks@^2.6.2:
     ip-address "^10.0.1"
     smart-buffer "^4.2.0"
 
+sonar-scanner@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/sonar-scanner/-/sonar-scanner-3.1.0.tgz#51c1c1101f54b98abc5d8565209b1d9232979343"
+  integrity sha512-KD7W3wHCKJKAakhn8ckxNYTxkdb1cnJa3ot0NVvO8CCeJjb0yvF0fW2yGdI09zMHsqxCRsl4dLtyCL2SUv47WA==
+
 sound-play@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/sound-play/-/sound-play-1.1.0.tgz#58ffa31d1bf51822d49d91ff7865591fd9376381"

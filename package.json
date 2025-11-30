@@ -29,7 +29,8 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "prepare": "husky",
-    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
+    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto",
+    "sonar": "sonar-scanner"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -129,6 +130,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sass-embedded": "^1.80.6",
+    "sonar-scanner": "^3.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "5.4.21",
