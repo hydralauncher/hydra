@@ -87,12 +87,16 @@ export function LibraryTab({
 
               <ul className="profile-content__games-grid">
                 {pinnedGames?.map((game) => (
-                  <li key={game.objectId} style={{ listStyle: "none" }}>
+                  <li
+                    key={game.objectId}
+                    style={{ listStyle: "none" }}
+                    className="user-library-game__wrapper"
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                  >
                     <UserLibraryGameCard
                       game={game}
                       statIndex={statsIndex}
-                      onMouseEnter={onMouseEnter}
-                      onMouseLeave={onMouseLeave}
                       sortBy={sortBy}
                     />
                   </li>
@@ -134,6 +138,9 @@ export function LibraryTab({
                       <motion.li
                         key={`${sortBy}-${game.objectId}`}
                         style={{ listStyle: "none" }}
+                        className="user-library-game__wrapper"
+                        onMouseEnter={onMouseEnter}
+                        onMouseLeave={onMouseLeave}
                         initial={
                           isNewGame
                             ? { opacity: 0.5, y: 15, scale: 0.96 }
@@ -160,8 +167,6 @@ export function LibraryTab({
                         <UserLibraryGameCard
                           game={game}
                           statIndex={statsIndex}
-                          onMouseEnter={onMouseEnter}
-                          onMouseLeave={onMouseLeave}
                           sortBy={sortBy}
                         />
                       </motion.li>

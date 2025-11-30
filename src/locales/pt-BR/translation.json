@@ -402,7 +402,11 @@
     "resume_seeding": "Semear",
     "options": "Gerenciar",
     "extract": "Extrair arquivos",
-    "extracting": "Extraindo arquivos…"
+    "extracting": "Extraindo arquivos…",
+    "network": "Rede",
+    "peak": "Pico",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

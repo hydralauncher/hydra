@@ -229,7 +229,13 @@
     "seeding": "A semear",
     "stop_seeding": "Parar de semear",
     "resume_seeding": "Semear",
-    "options": "Opções"
+    "options": "Opções",
+    "extract": "Extrair ficheiros",
+    "extracting": "A extrair ficheiros…",
+    "network": "Rede",
+    "peak": "Pico",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Local das transferências",

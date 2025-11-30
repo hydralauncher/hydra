@@ -414,7 +414,11 @@
     "resume_seeding": "Resume seeding",
     "options": "Manage",
     "extract": "Extract files",
-    "extracting": "Extracting files…"
+    "extracting": "Extracting files…",
+    "network": "Network",
+    "peak": "Peak",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Downloads path",
