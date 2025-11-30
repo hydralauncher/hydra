@@ -12,6 +12,7 @@ import {
 } from "@renderer/hooks";
 
 import type {
+  Download,
   DownloadSource,
   GameRepack,
   GameShop,
@@ -95,9 +96,19 @@ export function GameDetailsContextProvider({
   );
 
   const updateGame = useCallback(async () => {
-    return window.electron
-      .getGameByObjectId(shop, objectId)
-      .then((result) => setGame(result));
+    const gameKey = `${shop}:${objectId}`;
+    const [game, download] = await Promise.all([
+      levelDBService.get(gameKey, "games") as Promise<LibraryGame | null>,
+      levelDBService.get(gameKey, "downloads") as Promise<Download | null>,
+    ]);
+
+    if (!game || game.isDeleted) {
+      setGame(null);
+      return;
+    }
+
+    const { id: _id, ...gameWithoutId } = game;
+    setGame({ id: gameKey, ...gameWithoutId, download: download ?? null });
   }, [shop, objectId]);
 
   const isGameDownloading =

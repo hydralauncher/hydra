@@ -7,11 +7,13 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
 import { VERSION_CODENAME } from "@renderer/constants";
+import type jwt from "jsonwebtoken";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
@@ -60,7 +62,28 @@ export function BottomPanel() {
   }, [t, showSuccessToast]);
 
   useEffect(() => {
-    window.electron.getSessionHash().then((result) => setSessionHash(result));
+    const getSessionHash = async () => {
+      const auth = (await levelDBService.get("auth", null, "json")) as {
+        accessToken?: string;
+      } | null;
+
+      if (!auth?.accessToken) {
+        setSessionHash(null);
+        return;
+      }
+
+      try {
+        const jwtModule = await import("jsonwebtoken");
+        const payload = jwtModule.decode(
+          auth.accessToken
+        ) as jwt.JwtPayload | null;
+        setSessionHash(payload?.sessionId ?? null);
+      } catch {
+        setSessionHash(null);
+      }
+    };
+
+    getSessionHash();
   }, [userDetails?.id]);
 
   const status = useMemo(() => {

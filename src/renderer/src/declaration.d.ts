@@ -18,10 +18,8 @@ import type {
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
-  LibraryGame,
   GameRunning,
   TorBoxUser,
-  Theme,
   Auth,
   ShortcutLocation,
   ShopAssets,
@@ -142,10 +140,6 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
-    clearNewDownloadOptions: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<void>;
     toggleGamePin: (
       shop: GameShop,
       objectId: string,
@@ -162,7 +156,6 @@ declare global {
       winePrefixPath: string | null
     ) => Promise<void>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
@@ -177,10 +170,6 @@ declare global {
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
     deleteGameFolder: (shop: GameShop, objectId: string) => Promise<unknown>;
-    getGameByObjectId: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<LibraryGame | null>;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -194,9 +183,9 @@ declare global {
       playtimeInSeconds: number
     ) => Promise<void>;
     /* User preferences */
+    getUserPreferences: () => Promise<UserPreferences | null>;
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
-    getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
@@ -217,10 +206,7 @@ declare global {
       removeAll = false,
       downloadSourceId?: string
     ) => Promise<void>;
-    getDownloadSources: () => Promise<DownloadSource[]>;
     syncDownloadSources: () => Promise<void>;
-    getDownloadSourcesCheckBaseline: () => Promise<string | null>;
-    getDownloadSourcesSinceValue: () => Promise<string | null>;
 
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
@@ -237,10 +223,6 @@ declare global {
       shop: GameShop,
       gameArtifactId: string
     ) => Promise<void>;
-    getGameArtifacts: (
-      objectId: string,
-      shop: GameShop
-    ) => Promise<GameArtifact[]>;
     getGameBackupPreview: (
       objectId: string,
       shop: GameShop
@@ -355,7 +337,6 @@ declare global {
     getAuth: () => Promise<Auth | null>;
     signOut: () => Promise<void>;
     openAuthWindow: (page: AuthPage) => Promise<void>;
-    getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
@@ -408,13 +389,7 @@ declare global {
     showAchievementTestNotification: () => Promise<void>;
 
     /* Themes */
-    addCustomTheme: (theme: Theme) => Promise<void>;
-    getAllCustomThemes: () => Promise<Theme[]>;
-    deleteAllCustomThemes: () => Promise<void>;
-    deleteCustomTheme: (themeId: string) => Promise<void>;
     updateCustomTheme: (themeId: string, code: string) => Promise<void>;
-    getCustomThemeById: (themeId: string) => Promise<Theme | null>;
-    getActiveCustomTheme: () => Promise<Theme | null>;
     toggleCustomTheme: (themeId: string, isActive: boolean) => Promise<void>;
     copyThemeAchievementSound: (
       themeId: string,

@@ -13,7 +13,6 @@ import type {
   UpdateProfileRequest,
   SeedingStatus,
   GameAchievement,
-  Theme,
   FriendRequestSync,
   ShortcutLocation,
   AchievementCustomNotificationPosition,
@@ -86,7 +85,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* User preferences */
-  getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
+  getUserPreferences: () =>
+    ipcRenderer.invoke("leveldbGet", "userPreferences", null, "json"),
   updateUserPreferences: (preferences: UserPreferences) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
   autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
@@ -101,12 +101,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addDownloadSource", url),
   removeDownloadSource: (url: string, removeAll?: boolean) =>
     ipcRenderer.invoke("removeDownloadSource", url, removeAll),
-  getDownloadSources: () => ipcRenderer.invoke("getDownloadSources"),
   syncDownloadSources: () => ipcRenderer.invoke("syncDownloadSources"),
-  getDownloadSourcesCheckBaseline: () =>
-    ipcRenderer.invoke("getDownloadSourcesCheckBaseline"),
-  getDownloadSourcesSinceValue: () =>
-    ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
   toggleAutomaticCloudSync: (
@@ -183,8 +178,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
-  clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
     ipcRenderer.invoke("toggleGamePin", shop, objectId, pinned),
   updateLaunchOptions: (
@@ -201,7 +194,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("selectGameWinePrefix", shop, objectId, winePrefixPath),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
-  getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
@@ -230,8 +222,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeGame", shop, objectId),
   deleteGameFolder: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("deleteGameFolder", shop, objectId),
-  getGameByObjectId: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
@@ -287,8 +277,6 @@ contextBridge.exposeInMainWorld("electron", {
     gameArtifactId: string
   ) =>
     ipcRenderer.invoke("downloadGameArtifact", objectId, shop, gameArtifactId),
-  getGameArtifacts: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getGameArtifacts", objectId, shop),
   getGameBackupPreview: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameBackupPreview", objectId, shop),
   selectGameBackupPath: (
@@ -503,11 +491,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
 
   /* Auth */
-  getAuth: () => ipcRenderer.invoke("getAuth"),
+  getAuth: () => ipcRenderer.invoke("leveldbGet", "auth", null, "json"),
   signOut: () => ipcRenderer.invoke("signOut"),
   openAuthWindow: (page: AuthPage) =>
     ipcRenderer.invoke("openAuthWindow", page),
-  getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-signin", listener);
@@ -565,16 +552,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showAchievementTestNotification"),
 
   /* Themes */
-  addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
-  getAllCustomThemes: () => ipcRenderer.invoke("getAllCustomThemes"),
-  deleteAllCustomThemes: () => ipcRenderer.invoke("deleteAllCustomThemes"),
-  deleteCustomTheme: (themeId: string) =>
-    ipcRenderer.invoke("deleteCustomTheme", themeId),
   updateCustomTheme: (themeId: string, code: string) =>
     ipcRenderer.invoke("updateCustomTheme", themeId, code),
-  getCustomThemeById: (themeId: string) =>
-    ipcRenderer.invoke("getCustomThemeById", themeId),
-  getActiveCustomTheme: () => ipcRenderer.invoke("getActiveCustomTheme"),
   toggleCustomTheme: (themeId: string, isActive: boolean) =>
     ipcRenderer.invoke("toggleCustomTheme", themeId, isActive),
   copyThemeAchievementSound: (themeId: string, sourcePath: string) =>
