@@ -20,8 +20,10 @@ import {
   WSClient,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
+import { migrateToXDG } from "./services/migration";
 
 export const loadState = async () => {
+  migrateToXDG();
   await Lock.acquireLock();
 
   const userPreferences = await db.get<string, UserPreferences | null>(

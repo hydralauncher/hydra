@@ -1,0 +1,29 @@
+@import "@renderer/scss/globals.scss";
+
+.linux-compatibility-tab {
+  &__section {
+    margin-bottom: 1.5rem;
+  }
+
+  &__header {
+    margin-bottom: 1rem;
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    &-description {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  &__row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+}

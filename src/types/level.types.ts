@@ -62,6 +62,17 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  linux?: {
+    runnerPath?: string;
+    prefixPath?: string;
+    useSlr?: boolean;
+    envVars?: Record<string, string>;
+    arguments?: string;
+    protondbCache?: {
+      tier: string;
+      timestamp: number;
+    };
+  };
 }
 
 export interface Download {

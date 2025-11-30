@@ -37,6 +37,8 @@ import "./library/toggle-automatic-cloud-sync";
 import "./library/get-default-wine-prefix-selection-path";
 import "./library/cleanup-unused-assets";
 import "./library/create-steam-shortcut";
+import "./library/create-desktop-shortcut";
+import "./library/update-game-linux-config";
 import "./library/copy-custom-game-asset";
 import "./misc/open-checkout";
 import "./misc/open-external";
@@ -102,6 +104,9 @@ import "./themes/get-theme-sound-data-url";
 import "./themes/import-theme-sound-from-store";
 import "./download-sources/remove-download-source";
 import "./download-sources/get-download-sources";
+import "./linux/discover-proton-runners";
+import "./linux/get-protondb-tier";
+import "./linux/update-game-runner";
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

@@ -438,6 +438,25 @@ declare global {
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
     ) => () => Electron.IpcRenderer;
+
+    /* Linux */
+    discoverProtonRunners: () => Promise<
+      {
+        path: string;
+        name: string;
+      }[]
+    >;
+    getProtonDBTier: (appId: number) => Promise<string | null>;
+    updateGameRunner: (
+      shop: GameShop,
+      objectId: string,
+      runnerPath: string
+    ) => Promise<void>;
+    updateGameLinuxConfig: (
+      shop: GameShop,
+      objectId: string,
+      linuxConfig: Game["linux"]
+    ) => Promise<void>;
   }
 
   interface Window {
