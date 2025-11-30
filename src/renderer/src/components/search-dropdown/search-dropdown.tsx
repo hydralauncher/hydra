@@ -142,7 +142,7 @@ export function SearchDropdown({
               className="search-dropdown__clear-text-button"
               onClick={onClearHistory}
             >
-              clear
+              {t("clear_history")}
             </button>
           </div>
           <ul className="search-dropdown__list">
