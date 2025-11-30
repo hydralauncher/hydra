@@ -6,6 +6,7 @@ export interface CancelDownloadPayload {
   game_id: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
 export enum LibtorrentStatus {
   CheckingFiles = 1,
   DownloadingMetadata = 2,
