@@ -5,6 +5,7 @@ import type { Theme } from "@types";
 import { ImportThemeModal } from "./modals/import-theme-modal";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 interface SettingsAppearanceProps {
   appearance: {
@@ -31,7 +32,7 @@ export function SettingsAppearance({
   const navigate = useNavigate();
 
   const loadThemes = useCallback(async () => {
-    const themesList = await window.electron.getAllCustomThemes();
+    const themesList = (await levelDBService.values("themes")) as Theme[];
     setThemes(themesList);
   }, []);
 
