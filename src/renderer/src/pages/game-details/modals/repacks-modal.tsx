@@ -231,9 +231,19 @@ export function RepacksModal({
       return false;
     }
 
-    const lastCheckUtc = new Date(lastCheckTimestamp).toISOString();
+    try {
+      const lastCheckDate = new Date(lastCheckTimestamp);
 
-    return repack.createdAt > lastCheckUtc;
+      if (isNaN(lastCheckDate.getTime())) {
+        return false;
+      }
+
+      const lastCheckUtc = lastCheckDate.toISOString();
+
+      return repack.createdAt > lastCheckUtc;
+    } catch {
+      return false;
+    }
   };
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);

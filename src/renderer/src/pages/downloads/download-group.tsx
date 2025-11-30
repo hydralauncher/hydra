@@ -29,23 +29,6 @@ import {
 } from "@primer/octicons-react";
 import { average } from "color.js";
 
-const getProgressGradient = (
-  colorHex: string,
-  isPaused = false
-): string | undefined => {
-  const hex = isPaused ? "#ffffff" : colorHex || "#08ea79";
-  if (!hex.startsWith("#")) return undefined;
-
-  try {
-    const r = Number.parseInt(hex.slice(1, 3), 16);
-    const g = Number.parseInt(hex.slice(3, 5), 16);
-    const b = Number.parseInt(hex.slice(5, 7), 16);
-    return `linear-gradient(90deg, rgba(${r},${g},${b},0.95) 0%, rgba(${r},${g},${b},0.65) 100%)`;
-  } catch {
-    return undefined;
-  }
-};
-
 interface SpeedChartProps {
   speeds: number[];
   peakSpeed: number;
@@ -158,12 +141,12 @@ interface HeroDownloadViewProps {
   dominantColor: string;
   lastPacket: ReturnType<typeof useDownload>["lastPacket"];
   speedHistory: number[];
-  getGameActions: (game: LibraryGame) => DropdownMenuItem[];
   getStatusText: (game: LibraryGame) => string;
   formatSpeed: (speed: number) => string;
   calculateETA: () => string;
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
+  cancelDownload: (shop: GameShop, objectId: string) => void;
   t: (key: string) => string;
 }
 
@@ -177,12 +160,12 @@ function HeroDownloadView({
   dominantColor,
   lastPacket,
   speedHistory,
-  getGameActions,
   getStatusText,
   formatSpeed,
   calculateETA,
   pauseDownload,
   resumeDownload,
+  cancelDownload,
   t,
 }: Readonly<HeroDownloadViewProps>) {
   return (
@@ -196,16 +179,6 @@ function HeroDownloadView({
       </div>
 
       <div className="download-group__hero-content">
-        <div className="download-group__hero-header">
-          <div className="download-group__hero-actions">
-            <DropdownMenu align="end" items={getGameActions(game)}>
-              <Button className="download-group__hero-menu-btn" theme="outline">
-                <ThreeBarsIcon />
-              </Button>
-            </DropdownMenu>
-          </div>
-        </div>
-
         <div className="download-group__hero-action-row">
           <div className="download-group__hero-logo">
             {game.logoImageUrl ? (
@@ -214,70 +187,71 @@ function HeroDownloadView({
               <h1>{game.title}</h1>
             )}
           </div>
-
-          {isGameDownloading ? (
-            <Button
-              theme="primary"
-              onClick={() => pauseDownload(game.shop, game.objectId)}
-              className="download-group__hero-action-btn"
-              style={{
-                backgroundColor: dominantColor,
-                borderColor: dominantColor,
-              }}
-            >
-              <ColumnsIcon size={16} />
-              {t("pause")}
-            </Button>
-          ) : (
-            <Button
-              theme="primary"
-              onClick={() => resumeDownload(game.shop, game.objectId)}
-              className="download-group__hero-action-btn"
-              style={{
-                backgroundColor: dominantColor,
-                borderColor: dominantColor,
-              }}
-            >
-              <PlayIcon size={16} />
-              {t("resume")}
-            </Button>
-          )}
         </div>
 
         <div className="download-group__hero-progress">
-          <div className="download-group__progress-header">
-            <span className="download-group__progress-status">
-              {getStatusText(game)}
-            </span>
-            <span className="download-group__progress-percentage">
-              {formatDownloadProgress(currentProgress)}
-            </span>
-          </div>
-          <div className="download-group__progress-bar">
-            <div
-              className="download-group__progress-fill"
-              style={{
-                width: `${currentProgress * 100}%`,
-                background: getProgressGradient(
-                  dominantColor,
-                  game.download?.status === "paused"
-                ),
-              }}
-            />
-          </div>
-          <div className="download-group__progress-details">
-            <span className="download-group__progress-size">
-              {isGameDownloading && lastPacket
-                ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                : `0 B / ${finalDownloadSize}`}
-            </span>
-            <span className="download-group__progress-time">
-              {isGameDownloading &&
-              lastPacket?.timeRemaining &&
-              lastPacket.timeRemaining > 0
-                ? calculateETA()
-                : ""}
-            </span>
+          <div className="download-group__progress-row download-group__progress-row--bar">
+            <div className="download-group__progress-wrapper">
+              <div className="download-group__progress-info-row">
+                <span className="download-group__progress-status">
+                  {getStatusText(game)}
+                </span>
+                <span className="download-group__progress-percentage">
+                  {formatDownloadProgress(currentProgress)}
+                </span>
+              </div>
+              <div className="download-group__progress-info-row">
+                <span className="download-group__progress-size">
+                  {isGameDownloading && lastPacket
+                    ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
+                    : `0 B / ${finalDownloadSize}`}
+                </span>
+                <span className="download-group__progress-time">
+                  {isGameDownloading &&
+                  lastPacket?.timeRemaining &&
+                  lastPacket.timeRemaining > 0
+                    ? calculateETA()
+                    : ""}
+                </span>
+              </div>
+              <div className="download-group__progress-bar">
+                <div
+                  className="download-group__progress-fill"
+                  style={{
+                    width: `${currentProgress * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="download-group__hero-buttons">
+              {isGameDownloading ? (
+                <button
+                  type="button"
+                  onClick={() => pauseDownload(game.shop, game.objectId)}
+                  className="download-group__glass-btn"
+                >
+                  <ColumnsIcon size={14} />
+                  {t("pause")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => resumeDownload(game.shop, game.objectId)}
+                  className="download-group__glass-btn"
+                >
+                  <PlayIcon size={14} />
+                  {t("resume")}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => cancelDownload(game.shop, game.objectId)}
+                className="download-group__glass-btn"
+              >
+                <XCircleIcon size={14} />
+                {t("cancel")}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -717,12 +691,12 @@ export function DownloadGroup({
         dominantColor={dominantColor}
         lastPacket={lastPacket}
         speedHistory={speedHistoryRef.current[game.id] || []}
-        getGameActions={getGameActions}
         getStatusText={getStatusText}
         formatSpeed={formatSpeed}
         calculateETA={calculateETA}
         pauseDownload={pauseDownload}
         resumeDownload={resumeDownload}
+        cancelDownload={cancelDownload}
         t={t}
       />
     );
