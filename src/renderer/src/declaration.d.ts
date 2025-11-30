@@ -14,7 +14,6 @@ import type {
   GameStats,
   UserDetails,
   FriendRequestSync,
-  GameArtifact,
   LudusaviBackup,
   UserAchievement,
   ComparedAchievements,
