@@ -19,24 +19,25 @@ export function HighlightText({ text, query }: Readonly<HighlightTextProps>) {
     return <>{text}</>;
   }
 
-  const textWords = text.split(/\b/);
-  const matches: { start: number; end: number; text: string }[] = [];
+  const matches: { start: number; end: number }[] = [];
+  const textLower = text.toLowerCase();
 
-  let currentIndex = 0;
-  textWords.forEach((word) => {
-    const wordLower = word.toLowerCase();
+  queryWords.forEach((queryWord) => {
+    const escapedQuery = queryWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(
+      `(?:^|[\\s])${escapedQuery}(?=[\\s]|$)|^${escapedQuery}$`,
+      "gi"
+    );
 
-    queryWords.forEach((queryWord) => {
-      if (wordLower === queryWord) {
-        matches.push({
-          start: currentIndex,
-          end: currentIndex + word.length,
-          text: word,
-        });
-      }
-    });
+    let match;
+    while ((match = regex.exec(textLower)) !== null) {
+      const matchedText = match[0];
+      const leadingSpace = matchedText.startsWith(" ") ? 1 : 0;
+      const start = match.index + leadingSpace;
+      const end = start + queryWord.length;
 
-    currentIndex += word.length;
+      matches.push({ start, end });
+    }
   });
 
   if (matches.length === 0) {
@@ -46,16 +47,14 @@ export function HighlightText({ text, query }: Readonly<HighlightTextProps>) {
   matches.sort((a, b) => a.start - b.start);
 
   const mergedMatches: { start: number; end: number }[] = [];
-
-  if (matches.length === 0) {
-    return <>{text}</>;
-  }
-
   let current = matches[0];
 
   for (let i = 1; i < matches.length; i++) {
     if (matches[i].start <= current.end) {
-      current.end = Math.max(current.end, matches[i].end);
+      current = {
+        start: current.start,
+        end: Math.max(current.end, matches[i].end),
+      };
     } else {
       mergedMatches.push(current);
       current = matches[i];
