@@ -210,7 +210,6 @@ interface HeroDownloadViewProps {
   dominantColor: string;
   lastPacket: ReturnType<typeof useDownload>["lastPacket"];
   speedHistory: number[];
-  getStatusText: (game: LibraryGame) => string;
   formatSpeed: (speed: number) => string;
   calculateETA: () => string;
   pauseDownload: (shop: GameShop, objectId: string) => void;
@@ -229,7 +228,6 @@ function HeroDownloadView({
   dominantColor,
   lastPacket,
   speedHistory,
-  getStatusText,
   formatSpeed,
   calculateETA,
   pauseDownload,
@@ -257,33 +255,21 @@ function HeroDownloadView({
         <div className="download-group__hero-action-row">
           <div className="download-group__hero-logo">
             {game.logoImageUrl ? (
-              <img
-                src={game.logoImageUrl}
-                alt={game.title}
+              <button
+                type="button"
                 onClick={handleLogoClick}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleLogoClick();
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              />
-            ) : (
-              <h1
-                onClick={handleLogoClick}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleLogoClick();
-                  }
-                }}
-                role="button"
-                tabIndex={0}
+                className="download-group__hero-logo-button"
               >
-                {game.title}
-              </h1>
+                <img src={game.logoImageUrl} alt={game.title} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLogoClick}
+                className="download-group__hero-logo-button"
+              >
+                <h1>{game.title}</h1>
+              </button>
             )}
           </div>
         </div>
@@ -605,53 +591,6 @@ export function DownloadGroup({
     );
   };
 
-  const getCompletedStatusText = (game: LibraryGame) => {
-    const isTorrent = game.download?.downloader === Downloader.Torrent;
-    if (isTorrent) {
-      return isGameSeeding(game)
-        ? `${t("completed")} (${t("seeding")})`
-        : `${t("completed")} (${t("paused")})`;
-    }
-    return t("completed");
-  };
-
-  const getStatusText = (game: LibraryGame) => {
-    const isGameDownloading = isGameDownloadingMap[game.id];
-    const status = game.download?.status;
-
-    if (game.download?.extracting) {
-      return t("extracting");
-    }
-
-    if (isGameDeleting(game.id)) {
-      return t("deleting");
-    }
-
-    if (game.download?.progress === 1) {
-      return getCompletedStatusText(game);
-    }
-
-    if (isGameDownloading && lastPacket) {
-      if (lastPacket.isDownloadingMetadata) {
-        return t("downloading_metadata");
-      }
-      if (lastPacket.isCheckingFiles) {
-        return t("checking_files");
-      }
-      return t("download_in_progress");
-    }
-
-    switch (status) {
-      case "paused":
-      case "error":
-        return t("paused");
-      case "waiting":
-        return t("calculating_eta");
-      default:
-        return t("paused");
-    }
-  };
-
   const extractGameDownload = useCallback(
     async (shop: GameShop, objectId: string) => {
       await window.electron.extractGameDownload(shop, objectId);
@@ -770,7 +709,13 @@ export function DownloadGroup({
         progress: game.download?.progress || 0,
         isSeeding: isGameSeeding(game),
       })),
-    [library, lastPacket?.gameId]
+    [
+      library,
+      lastPacket?.gameId,
+      lastPacket?.download.fileSize,
+      isGameDownloadingMap,
+      seedingStatus,
+    ]
   );
 
   if (!library.length) return null;
@@ -805,7 +750,6 @@ export function DownloadGroup({
         dominantColor={dominantColor}
         lastPacket={lastPacket}
         speedHistory={speedHistoryRef.current[game.id] || []}
-        getStatusText={getStatusText}
         formatSpeed={formatSpeed}
         calculateETA={calculateETA}
         pauseDownload={pauseDownload}
