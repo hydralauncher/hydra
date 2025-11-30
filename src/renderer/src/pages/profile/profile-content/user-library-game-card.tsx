@@ -126,10 +126,17 @@ export function UserLibraryGameCard({
 
   return (
     <>
-      <button
-        type="button"
+      <div
         className="user-library-game__cover"
         onClick={() => navigate(buildUserGameDetailsPath(game))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            navigate(buildUserGameDetailsPath(game));
+          }
+        }}
+        role="button"
+        tabIndex={0}
         title={isTooltipHovered ? undefined : game.title}
       >
         <div className="user-library-game__overlay">
@@ -238,7 +245,7 @@ export function UserLibraryGameCard({
             onError={() => setImageError(true)}
           />
         )}
-      </button>
+      </div>
       <Tooltip
         id={game.objectId}
         style={{
