@@ -10,6 +10,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useCallback } from "react";
 import { generateUUID } from "@renderer/helpers";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 import "./modals.scss";
 
@@ -90,7 +91,7 @@ export function AddThemeModal({
         updatedAt: new Date(),
       };
 
-      await window.electron.addCustomTheme(theme);
+      await levelDBService.put(theme.id, theme, "themes");
       onThemeAdded();
       onClose();
       reset();

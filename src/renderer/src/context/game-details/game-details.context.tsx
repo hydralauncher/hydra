@@ -1,6 +1,8 @@
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
 import { setHeaderTitle } from "@renderer/features";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { orderBy } from "lodash-es";
 import { getSteamLanguage } from "@renderer/helpers";
 import {
   useAppDispatch,
@@ -10,6 +12,7 @@ import {
 } from "@renderer/hooks";
 
 import type {
+  DownloadSource,
   GameRepack,
   GameShop,
   GameStats,
@@ -297,7 +300,10 @@ export function GameDetailsContextProvider({
 
     const fetchDownloadSources = async () => {
       try {
-        const sources = await window.electron.getDownloadSources();
+        const sourcesRaw = (await levelDBService.values(
+          "downloadSources"
+        )) as DownloadSource[];
+        const sources = orderBy(sourcesRaw, "createdAt", "desc");
 
         const params = {
           take: 100,
