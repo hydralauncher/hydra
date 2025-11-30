@@ -305,9 +305,11 @@ function HeroDownloadView({
                       )}
                   </span>
                 )}
-                <span className="download-group__progress-percentage">
-                  <AnimatedPercentage value={currentProgress} />
-                </span>
+                {(!lastPacket?.isCheckingFiles || currentProgress > 0) && (
+                  <span className="download-group__progress-percentage">
+                    <AnimatedPercentage value={currentProgress} />
+                  </span>
+                )}
               </div>
               <div className="download-group__progress-bar">
                 <div
