@@ -4,9 +4,9 @@ import { Badge, Button } from "@renderer/components";
 import { formatDownloadProgress } from "@renderer/helpers";
 
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
-import { formatDistance, addMilliseconds } from "date-fns";
+import { addMilliseconds } from "date-fns";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary, useDate } from "@renderer/hooks";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
@@ -193,25 +193,23 @@ function HeroDownloadView({
           <div className="download-group__progress-row download-group__progress-row--bar">
             <div className="download-group__progress-wrapper">
               <div className="download-group__progress-info-row">
-                <span className="download-group__progress-status">
-                  {getStatusText(game)}
-                </span>
-                <span className="download-group__progress-percentage">
-                  {formatDownloadProgress(currentProgress)}
-                </span>
-              </div>
-              <div className="download-group__progress-info-row">
                 <span className="download-group__progress-size">
                   {isGameDownloading && lastPacket
                     ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
                     : `0 B / ${finalDownloadSize}`}
                 </span>
+                <span></span>
+              </div>
+              <div className="download-group__progress-info-row">
                 <span className="download-group__progress-time">
                   {isGameDownloading &&
                   lastPacket?.timeRemaining &&
                   lastPacket.timeRemaining > 0
                     ? calculateETA()
                     : ""}
+                </span>
+                <span className="download-group__progress-percentage">
+                  {formatDownloadProgress(currentProgress)}
                 </span>
               </div>
               <div className="download-group__progress-bar">
@@ -349,6 +347,8 @@ export function DownloadGroup({
     pauseSeeding,
     resumeSeeding,
   } = useDownload();
+
+  const { formatDistance } = useDate();
 
   const peakSpeedsRef = useRef<Record<string, number>>({});
   const speedHistoryRef = useRef<Record<string, number[]>>({});
