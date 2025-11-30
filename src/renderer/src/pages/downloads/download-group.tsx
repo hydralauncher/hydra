@@ -358,7 +358,7 @@ function HeroDownloadView({
               </span>
               <div className="download-group__stat-content">
                 <span className="download-group__stat-label">
-                  {t("network")}:
+                  {t("network")}
                 </span>
                 <span className="download-group__stat-value">
                   {isGameDownloading ? formatSpeed(downloadSpeed) : "0 B/s"}
@@ -371,37 +371,38 @@ function HeroDownloadView({
                 <GraphIcon size={16} />
               </span>
               <div className="download-group__stat-content">
-                <span className="download-group__stat-label">{t("peak")}:</span>
+                <span className="download-group__stat-label">{t("peak")}</span>
                 <span className="download-group__stat-value">
                   {peakSpeed > 0 ? formatSpeed(peakSpeed) : "0 B/s"}
                 </span>
               </div>
             </div>
 
-            {game.download?.downloader === Downloader.Torrent &&
-              isGameDownloading &&
-              lastPacket &&
-              (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0) && (
-                <div className="download-group__stat-item">
-                  <div className="download-group__stat-content">
-                    <span className="download-group__stat-label">
-                      Seeds:{" "}
-                      <span className="download-group__stat-value">
-                        {lastPacket.numSeeds}
-                      </span>
-                      , Peers:{" "}
-                      <span className="download-group__stat-value">
-                        {lastPacket.numPeers}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
             {game.download?.downloader && (
               <div className="download-group__stat-item">
-                <div className="download-group__stat-content">
+                <div
+                  className="download-group__stat-content"
+                  style={{
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Badge>{DOWNLOADER_NAME[game.download.downloader]}</Badge>
+                  {game.download?.downloader === Downloader.Torrent &&
+                    isGameDownloading &&
+                    lastPacket &&
+                    (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0) && (
+                      <span className="download-group__stat-label">
+                        {t("seeds")}{" "}
+                        <span className="download-group__stat-value">
+                          {lastPacket.numSeeds}
+                        </span>
+                        , {t("peers")}{" "}
+                        <span className="download-group__stat-value">
+                          {lastPacket.numPeers}
+                        </span>
+                      </span>
+                    )}
                 </div>
               </div>
             )}
@@ -436,6 +437,7 @@ export function DownloadGroup({
   seedingStatus,
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
+  const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -867,12 +869,36 @@ export function DownloadGroup({
         {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
           return (
             <li key={game.id} className="download-group__simple-card">
-              <div className="download-group__simple-thumbnail">
+              <button
+                type="button"
+                className="download-group__simple-thumbnail"
+                onClick={() => navigate(buildGameDetailsPath(game))}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
                 <img src={game.libraryImageUrl || ""} alt={game.title} />
-              </div>
+              </button>
 
               <div className="download-group__simple-info">
-                <h3 className="download-group__simple-title">{game.title}</h3>
+                <button
+                  type="button"
+                  className="download-group__simple-title"
+                  onClick={() => navigate(buildGameDetailsPath(game))}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                >
+                  {game.title}
+                </button>
                 <div className="download-group__simple-meta">
                   <div className="download-group__simple-meta-row">
                     <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>

@@ -414,7 +414,11 @@
     "resume_seeding": "Продолжить раздачу",
     "options": "Управлять",
     "extract": "Распаковать файлы",
-    "extracting": "Распаковка файлов…"
+    "extracting": "Распаковка файлов…",
+    "network": "Сеть",
+    "peak": "Пик",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Путь загрузок",

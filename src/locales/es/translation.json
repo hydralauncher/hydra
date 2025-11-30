@@ -414,7 +414,11 @@
     "resume_seeding": "Continuar sembrando",
     "options": "Administrar",
     "extract": "Extraer archivos",
-    "extracting": "Extrayendo archivos…"
+    "extracting": "Extrayendo archivos…",
+    "network": "Red",
+    "peak": "Pico",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
