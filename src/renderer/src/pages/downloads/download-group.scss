@@ -216,6 +216,7 @@
     font-size: 14px;
     font-weight: 700;
     color: #ffffff;
+    align-self: flex-end;
   }
 
   &__progress-size {
@@ -277,7 +278,9 @@
 
   &__stat-content {
     display: flex;
-    gap: 2px;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
+    width: 100%;
   }
 
   &__stat-label {
