@@ -1,0 +1,12 @@
+import "./can-install-common-redist";
+import "./check-homebrew-folder-exists";
+import "./delete-temp-file";
+import "./get-hydra-decky-plugin-info";
+import "./hydra-api-call";
+import "./install-common-redist";
+import "./install-hydra-decky-plugin";
+import "./open-checkout";
+import "./open-external";
+import "./save-temp-file";
+import "./show-item-in-folder";
+import "./show-open-dialog";

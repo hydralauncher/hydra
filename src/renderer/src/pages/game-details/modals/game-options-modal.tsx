@@ -1,7 +1,7 @@
 import { useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
-import type { LibraryGame, ShortcutLocation } from "@types";
+import type { Game, LibraryGame, ShortcutLocation } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
@@ -11,6 +11,8 @@ import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
 import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { getGameKey } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 
@@ -75,11 +77,19 @@ export function GameOptionsModal({
 
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
-      await window.electron.updateLaunchOptions(
-        game.shop,
-        game.objectId,
-        value
-      );
+      const gameKey = getGameKey(game.shop, game.objectId);
+      const gameData = (await levelDBService.get(
+        gameKey,
+        "games"
+      )) as Game | null;
+      if (gameData) {
+        const trimmedValue = value.trim();
+        const updated = {
+          ...gameData,
+          launchOptions: trimmedValue ? trimmedValue : null,
+        };
+        await levelDBService.put(gameKey, updated, "games");
+      }
       updateGame();
     }, 1000)
   ).current;
@@ -213,9 +223,16 @@ export function GameOptionsModal({
   const handleClearLaunchOptions = async () => {
     setLaunchOptions("");
 
-    window.electron
-      .updateLaunchOptions(game.shop, game.objectId, null)
-      .then(updateGame);
+    const gameKey = getGameKey(game.shop, game.objectId);
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
+    if (gameData) {
+      const updated = { ...gameData, launchOptions: null };
+      await levelDBService.put(gameKey, updated, "games");
+    }
+    updateGame();
   };
 
   const shouldShowWinePrefixConfiguration =
@@ -256,11 +273,15 @@ export function GameOptionsModal({
   ) => {
     setAutomaticCloudSync(event.target.checked);
 
-    await window.electron.toggleAutomaticCloudSync(
-      game.shop,
-      game.objectId,
-      event.target.checked
-    );
+    const gameKey = getGameKey(game.shop, game.objectId);
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
+    if (gameData) {
+      const updated = { ...gameData, automaticCloudSync: event.target.checked };
+      await levelDBService.put(gameKey, updated, "games");
+    }
 
     updateGame();
   };
