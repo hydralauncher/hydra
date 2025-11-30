@@ -14,7 +14,7 @@ export interface SteamVideoSource {
   "480": string;
 }
 
-export interface SteamMovies {
+export interface SteamMovie {
   id: number;
   dash_av1?: string;
   dash_h264?: string;
@@ -34,7 +34,7 @@ export interface SteamAppDetails {
   short_description: string;
   publishers: string[];
   genres: SteamGenre[];
-  movies?: SteamMovies[];
+  movies?: SteamMovie[];
   supported_languages: string;
   screenshots?: SteamScreenshot[];
   pc_requirements: {

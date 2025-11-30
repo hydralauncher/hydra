@@ -8,6 +8,7 @@ import {
 import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
+import { VideoPlayer } from "./video-player";
 import "./gallery-slider.scss";
 
 export function GallerySlider() {
@@ -106,8 +107,6 @@ export function GallerySlider() {
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        // Prefer new formats: HLS (best browser support), then DASH H264, then DASH AV1
-        // Fallback to old format: mp4/webm if new formats are not available
         let videoSrc: string | undefined;
         let videoType: string | undefined;
 
@@ -121,11 +120,9 @@ export function GallerySlider() {
           videoSrc = video.dash_av1;
           videoType = "application/dash+xml";
         } else if (video.mp4?.max) {
-          // Fallback to old format
           videoSrc = video.mp4.max;
           videoType = "video/mp4";
         } else if (video.webm?.max) {
-          // Fallback to webm if mp4 is not available
           videoSrc = video.webm.max;
           videoType = "video/webm";
         }
@@ -191,19 +188,17 @@ export function GallerySlider() {
           {mediaItems.map((item) => (
             <div key={item.id} className="gallery-slider__slide">
               {item.type === "video" ? (
-                <video
-                  controls
-                  className="gallery-slider__media"
+                <VideoPlayer
+                  videoSrc={item.videoSrc}
+                  videoType={item.videoType}
                   poster={item.poster}
+                  autoplay={autoplayEnabled}
                   loop
                   muted
-                  autoPlay={autoplayEnabled}
+                  controls
+                  className="gallery-slider__media"
                   tabIndex={-1}
-                >
-                  {item.videoSrc && (
-                    <source src={item.videoSrc} type={item.videoType} />
-                  )}
-                </video>
+                />
               ) : (
                 <img
                   className="gallery-slider__media"
