@@ -350,7 +350,7 @@ export function DownloadGroup({
     resumeSeeding,
   } = useDownload();
 
-  const peakSpeedsRef = useRef<Record<string, number>>({});
+  const [peakSpeeds, setPeakSpeeds] = useState<Record<string, number>>({});
   const speedHistoryRef = useRef<Record<string, number[]>>({});
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
@@ -376,9 +376,12 @@ export function DownloadGroup({
     if (lastPacket?.gameId && lastPacket.downloadSpeed !== undefined) {
       const gameId = lastPacket.gameId;
 
-      const currentPeak = peakSpeedsRef.current[gameId] || 0;
+      const currentPeak = peakSpeeds[gameId] || 0;
       if (lastPacket.downloadSpeed > currentPeak) {
-        peakSpeedsRef.current[gameId] = lastPacket.downloadSpeed;
+        setPeakSpeeds((prev) => ({
+          ...prev,
+          [gameId]: lastPacket.downloadSpeed,
+        }));
       }
 
       if (!speedHistoryRef.current[gameId]) {
@@ -391,7 +394,7 @@ export function DownloadGroup({
         speedHistoryRef.current[gameId].shift();
       }
     }
-  }, [lastPacket?.gameId, lastPacket?.downloadSpeed]);
+  }, [lastPacket?.gameId, lastPacket?.downloadSpeed, peakSpeeds]);
 
   useEffect(() => {
     for (const game of library) {
@@ -403,7 +406,7 @@ export function DownloadGroup({
         // Fresh download - clear any old data
         if (speedHistoryRef.current[game.id]?.length > 0) {
           speedHistoryRef.current[game.id] = [];
-          peakSpeedsRef.current[game.id] = 0;
+          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
         }
       }
     }
@@ -419,7 +422,7 @@ export function DownloadGroup({
       ) {
         const timeout = setTimeout(() => {
           speedHistoryRef.current[game.id] = [];
-          peakSpeedsRef.current[game.id] = 0;
+          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
         }, 10_000);
         timeouts.push(timeout);
       }
@@ -672,7 +675,7 @@ export function DownloadGroup({
       ? (lastPacket?.downloadSpeed ?? 0)
       : 0;
     const finalDownloadSize = getFinalDownloadSize(game);
-    const peakSpeed = peakSpeedsRef.current[game.id] || 0;
+    const peakSpeed = peakSpeeds[game.id] || 0;
     const currentProgress =
       isGameDownloading && lastPacket
         ? lastPacket.progress
