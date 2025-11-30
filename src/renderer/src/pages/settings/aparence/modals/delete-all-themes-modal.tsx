@@ -3,6 +3,7 @@ import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
 import { removeCustomCss } from "@renderer/helpers";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 interface DeleteAllThemesModalProps {
   visible: boolean;
@@ -18,13 +19,16 @@ export const DeleteAllThemesModal = ({
   const { t } = useTranslation("settings");
 
   const handleDeleteAllThemes = async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
 
     if (activeTheme) {
       removeCustomCss();
     }
 
-    await window.electron.deleteAllCustomThemes();
+    await levelDBService.clear("themes");
     await window.electron.closeEditorWindow();
     onClose();
     onThemesDeleted();

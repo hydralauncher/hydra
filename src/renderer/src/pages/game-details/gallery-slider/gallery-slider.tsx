@@ -100,20 +100,48 @@ export function GallerySlider() {
       src?: string;
       poster?: string;
       videoSrc?: string;
+      videoType?: string;
       alt: string;
     }> = [];
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        items.push({
-          id: String(video.id),
-          type: "video",
-          poster: video.thumbnail,
-          videoSrc: video.mp4.max.startsWith("http://")
-            ? video.mp4.max.replace("http://", "https://")
-            : video.mp4.max,
-          alt: t("video", { number: String(index + 1) }),
-        });
+        // Prefer new formats: HLS (best browser support), then DASH H264, then DASH AV1
+        // Fallback to old format: mp4/webm if new formats are not available
+        let videoSrc: string | undefined;
+        let videoType: string | undefined;
+
+        if (video.hls_h264) {
+          videoSrc = video.hls_h264;
+          videoType = "application/x-mpegURL";
+        } else if (video.dash_h264) {
+          videoSrc = video.dash_h264;
+          videoType = "application/dash+xml";
+        } else if (video.dash_av1) {
+          videoSrc = video.dash_av1;
+          videoType = "application/dash+xml";
+        } else if (video.mp4?.max) {
+          // Fallback to old format
+          videoSrc = video.mp4.max;
+          videoType = "video/mp4";
+        } else if (video.webm?.max) {
+          // Fallback to webm if mp4 is not available
+          videoSrc = video.webm.max;
+          videoType = "video/webm";
+        }
+
+        if (videoSrc) {
+          items.push({
+            id: String(video.id),
+            type: "video",
+            poster: video.thumbnail,
+            videoSrc: videoSrc.startsWith("http://")
+              ? videoSrc.replace("http://", "https://")
+              : videoSrc,
+            videoType,
+            alt: video.name || t("video", { number: String(index + 1) }),
+          });
+        }
       });
     }
 
@@ -172,7 +200,9 @@ export function GallerySlider() {
                   autoPlay={autoplayEnabled}
                   tabIndex={-1}
                 >
-                  <source src={item.videoSrc} />
+                  {item.videoSrc && (
+                    <source src={item.videoSrc} type={item.videoType} />
+                  )}
                 </video>
               ) : (
                 <img
