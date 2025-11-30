@@ -8,7 +8,6 @@ export interface SearchHistoryEntry {
 }
 
 const LEVELDB_KEY = "searchHistory";
-const LEGACY_STORAGE_KEY = "search-history";
 const MAX_HISTORY_ENTRIES = 15;
 
 export function useSearchHistory() {
@@ -21,23 +20,9 @@ export function useSearchHistory() {
       isInitialized.current = true;
 
       try {
-        let data = (await levelDBService.get(LEVELDB_KEY, null, "json")) as
+        const data = (await levelDBService.get(LEVELDB_KEY, null, "json")) as
           | SearchHistoryEntry[]
           | null;
-
-        if (!data) {
-          const legacyData = localStorage.getItem(LEGACY_STORAGE_KEY);
-          if (legacyData) {
-            try {
-              const parsed = JSON.parse(legacyData) as SearchHistoryEntry[];
-              await levelDBService.put(LEVELDB_KEY, parsed, null, "json");
-              localStorage.removeItem(LEGACY_STORAGE_KEY);
-              data = parsed;
-            } catch {
-              localStorage.removeItem(LEGACY_STORAGE_KEY);
-            }
-          }
-        }
 
         if (data) {
           setHistory(data);
