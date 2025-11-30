@@ -32,23 +32,31 @@ export class DownloadManager {
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
-    PythonRPC.spawn(
-      download?.status === "active"
-        ? await this.getDownloadPayload(download).catch((err) => {
-            logger.error("Error getting download payload", err);
-            return undefined;
-          })
-        : undefined,
-      downloadsToSeed?.map((download) => ({
-        action: "seed",
-        game_id: levelKeys.game(download.shop, download.objectId),
-        url: download.uri,
-        save_path: download.downloadPath,
-      }))
-    );
+    try {
+      await PythonRPC.spawn(
+        download?.status === "active"
+          ? await this.getDownloadPayload(download).catch((err) => {
+              logger.error("Error getting download payload", err);
+              return undefined;
+            })
+          : undefined,
+        downloadsToSeed?.map((download) => ({
+          action: "seed",
+          game_id: levelKeys.game(download.shop, download.objectId),
+          url: download.uri,
+          save_path: download.downloadPath,
+        }))
+      );
 
-    if (download) {
-      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
+      if (download) {
+        this.downloadingGameId = levelKeys.game(
+          download.shop,
+          download.objectId
+        );
+      }
+    } catch (err) {
+      logger.error("Failed to start Python RPC service", err);
+      throw err;
     }
   }
 
@@ -381,7 +389,9 @@ export class DownloadManager {
       case Downloader.TorBox: {
         const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
 
-        if (!url) return;
+        if (!url) {
+          throw new Error(DownloadError.NotCachedOnTorBox);
+        }
         return {
           action: "start",
           game_id: downloadId,
@@ -409,8 +419,81 @@ export class DownloadManager {
     }
   }
 
+  private static handleRPCStartError(error: unknown): never {
+    if (error instanceof Error) {
+      if (error.message.includes("Python executable not found")) {
+        throw new Error(
+          "Python is not installed or not found in PATH. Please install Python 3 and ensure it's accessible from the command line."
+        );
+      }
+      if (error.message.includes("binary not found")) {
+        throw new Error(
+          "Python RPC binary not found in the application bundle. The application may be corrupted. Please reinstall the application."
+        );
+      }
+      if (error.message.includes("failed to become ready")) {
+        throw new Error(
+          "Python RPC service failed to start. Please restart the application or check the logs for more information."
+        );
+      }
+    }
+    throw error;
+  }
+
+  private static async startRPCAndWait(): Promise<void> {
+    await this.startRPC();
+    const isNowHealthy = await PythonRPC.waitForService();
+    if (!isNowHealthy) {
+      throw new Error(
+        "Python RPC service failed to start or respond. Please check the application logs for more details."
+      );
+    }
+  }
+
+  private static async startRPCWhenNotRunning(): Promise<void> {
+    logger.warn("Python RPC service is not running, attempting to start it");
+    try {
+      await this.startRPCAndWait();
+    } catch (error) {
+      this.handleRPCStartError(error);
+    }
+  }
+
+  private static async restartRPC(): Promise<void> {
+    logger.warn(
+      "Python RPC service process exists but not responding, attempting restart"
+    );
+    PythonRPC.kill();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      await this.startRPCAndWait();
+    } catch (error) {
+      this.handleRPCStartError(error);
+    }
+  }
+
+  private static async ensureRPCIsRunning(): Promise<void> {
+    const isHealthy = await PythonRPC.checkHealth();
+
+    if (!isHealthy) {
+      const isRunning = PythonRPC.isRunning();
+      if (isRunning) {
+        await this.restartRPC();
+      } else {
+        await this.startRPCWhenNotRunning();
+      }
+    }
+  }
+
   static async startDownload(download: Download) {
+    await this.ensureRPCIsRunning();
+
     const payload = await this.getDownloadPayload(download);
+
+    if (!payload) {
+      throw new Error("Download payload is not available");
+    }
+
     await PythonRPC.rpc.post("/action", payload);
     this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
   }
