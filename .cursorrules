@@ -28,6 +28,19 @@
 - Use async/await instead of promises when possible
 - Prefer named exports over default exports for utilities and services
 
+## ESLint Issues
+
+- **Always try to fix ESLint errors properly before disabling rules**
+- When encountering ESLint errors, explore these solutions in order:
+  1. **Fix the code to comply with the rule** (e.g., add missing required elements, fix accessibility issues)
+  2. **Use minimal markup to satisfy the rule** (e.g., add empty `<track>` elements for videos without captions, add `role` attributes)
+  3. **Only disable the rule as a last resort** when no reasonable solution exists
+- When disabling a rule, always include a comment explaining why it's necessary
+- Examples of proper fixes:
+  - For `jsx-a11y/media-has-caption`: Add `<track kind="captions" />` even if no captions are available
+  - For `jsx-a11y/alt-text`: Add meaningful alt text or `alt=""` for decorative images
+  - For accessibility rules: Add appropriate ARIA attributes rather than disabling
+
 ## TypeScript Array Syntax
 
 - **Always use `T[]` syntax instead of `Array<T>`** for array types
