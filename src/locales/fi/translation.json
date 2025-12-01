@@ -164,6 +164,7 @@
     "repacks_modal_description": "Valitse repack ladattavaksi",
     "select_folder_hint": "Vaihtaaksesi oletuslatauskansiota, avaa <0>Asetukset</0>",
     "download_now": "Lataa nyt",
+    "copy_now": "Kopioi latauslinkki",
     "no_shop_details": "Kuvausta ei saatu",
     "download_options": "Lähteet",
     "download_path": "Latauspolku",
