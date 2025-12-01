@@ -130,9 +130,7 @@
     "react-dom": "^18.2.0",
     "sass-embedded": "^1.80.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0",
+    "typescript": "^5.3.3",
     "vite": "5.4.21",
     "vite-plugin-svgr": "^4.5.0"
   },
