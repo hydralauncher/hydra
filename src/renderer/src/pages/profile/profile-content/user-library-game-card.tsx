@@ -25,16 +25,12 @@ import "./user-library-game-card.scss";
 interface UserLibraryGameCardProps {
   game: UserGame;
   statIndex: number;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   sortBy?: string;
 }
 
 export function UserLibraryGameCard({
   game,
   statIndex,
-  onMouseEnter,
-  onMouseLeave,
   sortBy,
 }: UserLibraryGameCardProps) {
   const { userProfile, isMe, getUserLibraryGames } =
@@ -130,129 +126,126 @@ export function UserLibraryGameCard({
 
   return (
     <>
-      <li
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        className="user-library-game__wrapper"
+      <div
+        className="user-library-game__cover"
+        onClick={() => navigate(buildUserGameDetailsPath(game))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            navigate(buildUserGameDetailsPath(game));
+          }
+        }}
+        role="button"
+        tabIndex={0}
         title={isTooltipHovered ? undefined : game.title}
       >
-        <button
-          type="button"
-          className="user-library-game__cover"
-          onClick={() => navigate(buildUserGameDetailsPath(game))}
-        >
-          <div className="user-library-game__overlay">
-            {isMe && (
-              <div className="user-library-game__actions-container">
-                <button
-                  type="button"
-                  className="user-library-game__pin-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGamePinned();
-                  }}
-                  disabled={isPinning}
-                >
-                  {game.isPinned ? (
-                    <PinSlashIcon size={12} />
-                  ) : (
-                    <PinIcon size={12} />
-                  )}
-                </button>
-              </div>
-            )}
-            <div
-              className="user-library-game__playtime"
-              data-tooltip-place="top"
-              data-tooltip-content={
-                game.hasManuallyUpdatedPlaytime
-                  ? t("manual_playtime_tooltip")
-                  : undefined
-              }
-              data-tooltip-id={game.objectId}
-            >
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="user-library-game__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="user-library-game__playtime-long">
-                {formatPlayTime(game.playTimeInSeconds)}
-              </span>
-              <span className="user-library-game__playtime-short">
-                {formatPlayTime(game.playTimeInSeconds, true)}
-              </span>
+        <div className="user-library-game__overlay">
+          {isMe && (
+            <div className="user-library-game__actions-container">
+              <button
+                type="button"
+                className="user-library-game__pin-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleGamePinned();
+                }}
+                disabled={isPinning}
+              >
+                {game.isPinned ? (
+                  <PinSlashIcon size={12} />
+                ) : (
+                  <PinIcon size={12} />
+                )}
+              </button>
             </div>
+          )}
+          <div
+            className="user-library-game__playtime"
+            data-tooltip-place="top"
+            data-tooltip-content={
+              game.hasManuallyUpdatedPlaytime
+                ? t("manual_playtime_tooltip")
+                : undefined
+            }
+            data-tooltip-id={game.objectId}
+          >
+            {game.hasManuallyUpdatedPlaytime ? (
+              <AlertFillIcon
+                size={11}
+                className="user-library-game__manual-playtime"
+              />
+            ) : (
+              <ClockIcon size={11} />
+            )}
+            <span className="user-library-game__playtime-long">
+              {formatPlayTime(game.playTimeInSeconds)}
+            </span>
+            <span className="user-library-game__playtime-short">
+              {formatPlayTime(game.playTimeInSeconds, true)}
+            </span>
+          </div>
 
-            {userProfile?.hasActiveSubscription &&
-              game.achievementCount > 0 && (
-                <div className="user-library-game__stats">
-                  <div className="user-library-game__stats-header">
-                    <div className="user-library-game__stats-content">
-                      <div
-                        className="user-library-game__stats-item"
-                        style={{
-                          transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
-                        }}
-                      >
-                        <TrophyIcon size={13} />
-                        <span>
-                          {game.unlockedAchievementCount} /{" "}
-                          {game.achievementCount}
-                        </span>
-                      </div>
-
-                      {game.achievementsPointsEarnedSum > 0 && (
-                        <div
-                          className="user-library-game__stats-item"
-                          style={{
-                            transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
-                          }}
-                        >
-                          <HydraIcon width={16} height={16} />
-                          {formatAchievementPoints(
-                            game.achievementsPointsEarnedSum
-                          )}
-                        </div>
-                      )}
-                    </div>
-
+          {userProfile?.hasActiveSubscription && game.achievementCount > 0 && (
+            <div className="user-library-game__stats">
+              <div className="user-library-game__stats-header">
+                <div className="user-library-game__stats-content">
+                  <div
+                    className="user-library-game__stats-item"
+                    style={{
+                      transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
+                    }}
+                  >
+                    <TrophyIcon size={13} />
                     <span>
-                      {formatDownloadProgress(
-                        game.unlockedAchievementCount / game.achievementCount,
-                        1
-                      )}
+                      {game.unlockedAchievementCount} / {game.achievementCount}
                     </span>
                   </div>
 
-                  <progress
-                    max={1}
-                    value={
-                      game.unlockedAchievementCount / game.achievementCount
-                    }
-                    className="user-library-game__achievements-progress"
-                  />
+                  {game.achievementsPointsEarnedSum > 0 && (
+                    <div
+                      className="user-library-game__stats-item"
+                      style={{
+                        transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
+                      }}
+                    >
+                      <HydraIcon width={16} height={16} />
+                      {formatAchievementPoints(
+                        game.achievementsPointsEarnedSum
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-          </div>
 
-          {imageError || !game.coverImageUrl ? (
-            <div className="user-library-game__cover-placeholder">
-              <ImageIcon size={48} />
+                <span>
+                  {formatDownloadProgress(
+                    game.unlockedAchievementCount / game.achievementCount,
+                    1
+                  )}
+                </span>
+              </div>
+
+              <progress
+                max={1}
+                value={game.unlockedAchievementCount / game.achievementCount}
+                className="user-library-game__achievements-progress"
+              />
             </div>
-          ) : (
-            <img
-              src={game.coverImageUrl}
-              alt={game.title}
-              className="user-library-game__game-image"
-              onError={() => setImageError(true)}
-            />
           )}
-        </button>
-      </li>
+        </div>
+
+        {imageError || !game.coverImageUrl ? (
+          <div className="user-library-game__cover-placeholder">
+            <ImageIcon size={48} />
+          </div>
+        ) : (
+          <img
+            src={game.coverImageUrl}
+            alt={game.title}
+            className="user-library-game__game-image"
+            onError={() => setImageError(true)}
+          />
+        )}
+      </div>
       <Tooltip
         id={game.objectId}
         style={{
