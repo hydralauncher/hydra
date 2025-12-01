@@ -82,6 +82,7 @@
     "repacks_modal_description": "Tria quin reempaquetat vols baixar",
     "select_folder_hint": "Per a canviar la carpeta predefinida, vés a la <0>Configuració</0>",
     "download_now": "Baixa ara",
+    "copy_now": "Copiar l'enllaç de descàrrega",
     "no_shop_details": "No s'han pogut recuperar els detalls de la tenda.",
     "download_options": "Opcions de baixada",
     "download_path": "Ruta de baixada",

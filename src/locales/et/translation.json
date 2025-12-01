@@ -87,6 +87,7 @@
     "repacks_modal_description": "Vali repack, mida soovid alla laadida",
     "select_folder_hint": "Vaikimisi kausta muutmiseks mine <0>Seadetesse</0>",
     "download_now": "Laadi alla kohe",
+    "copy_now": "Kopeeri allalaadimislink",
     "no_shop_details": "Poe andmeid ei õnnestunud laadida.",
     "download_options": "Allalaadimise valikud",
     "download_path": "Allalaadimise tee",

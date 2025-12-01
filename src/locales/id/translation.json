@@ -82,6 +82,7 @@
     "repacks_modal_description": "Pilih repack yang ingin kamu unduh",
     "select_folder_hint": "Untuk ganti folder default, buka <0>Pengaturan</0>",
     "download_now": "Unduh sekarang",
+    "copy_now": "Salin Tautan Unduhan",
     "no_shop_details": "Gagal mendapatkan detail toko.",
     "download_options": "Opsi unduhan",
     "download_path": "Path unduhan",

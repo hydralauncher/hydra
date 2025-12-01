@@ -95,6 +95,7 @@
     "repacks_modal_description": "Escolhe a versão do jogo que desejas transferir",
     "select_folder_hint": "Para alterar o local predefinido, acede às <0>Definições</0>",
     "download_now": "Iniciar transferência",
+    "copy_now": "Copiar link de transferência",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
     "download_options": "Opções de transferência",
     "download_path": "Local de transferência",
