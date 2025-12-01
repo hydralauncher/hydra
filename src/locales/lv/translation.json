@@ -164,6 +164,7 @@
     "repacks_modal_description": "Izvēlieties repaku lejupielādei",
     "select_folder_hint": "Lai mainītu noklusējuma lejupielāžu mapi, atveriet <0>Iestatījumus</0>",
     "download_now": "Lejupielādēt tagad",
+    "copy_now": "Kopēt lejupielādes saiti",
     "no_shop_details": "Neizdevās iegūt aprakstu",
     "download_options": "Avoti",
     "download_path": "Ceļš lejupielādēm",

@@ -7,7 +7,7 @@ import {
   Modal,
   TextField,
 } from "@renderer/components";
-import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
+import { CheckCircleFillIcon, DownloadIcon, CopyIcon } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
@@ -173,6 +173,12 @@ export function DownloadSettingsModal({
     }
   };
 
+  const handleCopyClick = async () => {
+    if (repack && repack.uris[0]) {
+      navigator.clipboard.writeText(repack.uris[0]);
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -269,6 +275,13 @@ export function DownloadSettingsModal({
         >
           <DownloadIcon />
           {t("download_now")}
+        </Button>
+
+        <Button
+          onClick={handleCopyClick}
+        >
+          <CopyIcon />
+          {t("copy_now")}
         </Button>
       </div>
     </Modal>

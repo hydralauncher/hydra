@@ -173,6 +173,7 @@
     "repacks_modal_description": "Elegí el repack que querés descargar",
     "select_folder_hint": "Si querés cambiar la carpeta por defecto, andá a <0>Ajustes</0>",
     "download_now": "Descargar ahora",
+    "copy_now": "Copiar enlace de descarga",
     "no_shop_details": "No se pudieron obtener detalles de la tienda.",
     "download_options": "Opciones de descarga",
     "download_path": "Ruta de descarga",
