@@ -620,4 +620,28 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+
+  /* LevelDB Generic CRUD */
+  leveldb: {
+    get: (
+      key: string,
+      sublevelName?: string | null,
+      valueEncoding?: "json" | "utf8"
+    ) => ipcRenderer.invoke("leveldbGet", key, sublevelName, valueEncoding),
+    put: (
+      key: string,
+      value: unknown,
+      sublevelName?: string | null,
+      valueEncoding?: "json" | "utf8"
+    ) =>
+      ipcRenderer.invoke("leveldbPut", key, value, sublevelName, valueEncoding),
+    del: (key: string, sublevelName?: string | null) =>
+      ipcRenderer.invoke("leveldbDel", key, sublevelName),
+    clear: (sublevelName: string) =>
+      ipcRenderer.invoke("leveldbClear", sublevelName),
+    values: (sublevelName: string) =>
+      ipcRenderer.invoke("leveldbValues", sublevelName),
+    iterator: (sublevelName: string) =>
+      ipcRenderer.invoke("leveldbIterator", sublevelName),
+  },
 });
