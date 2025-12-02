@@ -15,9 +15,12 @@ export class HydraDebridClient {
 
   public static async getDownloadUrl(magnet: string) {
     try {
-      const response = await HydraApi.post("/debrid/request-file", {
-        magnet,
-      });
+      const response = await HydraApi.post<{ downloadUrl: string }>(
+        "/debrid/request-file",
+        {
+          magnet,
+        }
+      );
 
       return response.downloadUrl;
     } catch (error) {

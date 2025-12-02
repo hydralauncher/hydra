@@ -97,6 +97,18 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export type ProxyMode = "direct" | "system" | "manual";
+export type ProxyProtocol = "http" | "socks5" | "socks4";
+
+export interface ProxyConfig {
+  mode: ProxyMode;
+  protocol?: ProxyProtocol;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+}
+
 export interface UserPreferences {
   downloadsPath?: string | null;
   ggDealsApiKey?: string | null;
@@ -124,6 +136,7 @@ export interface UserPreferences {
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  proxyConfig?: ProxyConfig;
 }
 
 export interface ScreenState {

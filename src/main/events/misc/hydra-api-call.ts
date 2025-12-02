@@ -5,7 +5,7 @@ interface HydraApiCallPayload {
   method: "get" | "post" | "put" | "patch" | "delete";
   url: string;
   data?: unknown;
-  params?: unknown;
+  params?: Record<string, unknown>;
   options?: {
     needsAuth?: boolean;
     needsSubscription?: boolean;
