@@ -121,7 +121,7 @@ export default function Catalogue() {
     const sortedGenres = [...genresForLanguage].sort((a, b) => a.localeCompare(b));
 
     return sortedGenres.map((genre) => {
-      const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+      const genreKey = `genre_${genre.toLowerCase().replaceAll(/\s+/g, "_")}`;
       const translatedGenre = t(genreKey, { defaultValue: genre });
       
       return {
@@ -149,7 +149,7 @@ export default function Catalogue() {
   const groupedFilters = useMemo(() => {
     return [
       ...filters.genres.map((genre) => {
-        const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+        const genreKey = `genre_${genre.toLowerCase().replaceAll(/\s+/g, "_")}`;
         const translatedGenre = t(genreKey, { defaultValue: genre });
         
         return {

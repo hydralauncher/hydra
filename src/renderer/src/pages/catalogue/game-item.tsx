@@ -62,7 +62,7 @@ export function GameItem({ game }: GameItemProps) {
 
   const genres = useMemo(() => {
     return game.genres?.map((genre) => {
-      const genreKey = `genre_${genre.toLowerCase().replace(/\s+/g, "_")}`;
+      const genreKey = `genre_${genre.toLowerCase().replaceAll(/\s+/g, "_")}`;
       const translatedGenre = tCatalogue(genreKey, { defaultValue: "" });
       
       if (translatedGenre) {
