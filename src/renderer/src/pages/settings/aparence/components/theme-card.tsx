@@ -14,6 +14,7 @@ import {
 } from "@renderer/helpers";
 import { THEME_WEB_STORE_URL } from "@renderer/constants";
 import { SelectField } from "@renderer/components";
+import { levelDBService } from "@renderer/services/leveldb.service";
 
 interface ThemeCardProps {
   theme: Theme;
@@ -33,13 +34,18 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
 
   const handleSetTheme = async () => {
     try {
-      const currentTheme = await globalThis.electron.getCustomThemeById(
-        theme.id
-      );
+      const currentTheme = (await levelDBService.get(
+        theme.id,
+        "themes"
+      )) as Theme | null;
 
       if (!currentTheme) return;
 
-      const activeTheme = await globalThis.electron.getActiveCustomTheme();
+      const allThemes = (await levelDBService.values("themes")) as {
+        id: string;
+        isActive?: boolean;
+      }[];
+      const activeTheme = allThemes.find((t) => t.isActive);
 
       if (activeTheme) {
         removeCustomCss();

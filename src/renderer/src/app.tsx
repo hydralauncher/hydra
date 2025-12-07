@@ -33,6 +33,8 @@ import {
   parseThemeVariantBlocks,
   parseCssVarsFromBlock,
 } from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
+import type { UserPreferences } from "@types";
 import "./app.scss";
 
 export interface AppProps {
@@ -80,10 +82,10 @@ export function App() {
 
   useEffect(() => {
     Promise.all([
-      globalThis.electron.getUserPreferences(),
+      levelDBService.get("userPreferences", null, "json"),
       updateLibrary(),
     ]).then(([preferences]) => {
-      dispatch(setUserPreferences(preferences));
+      dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
@@ -207,7 +209,11 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await globalThis.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+      code?: string;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
       const blocks = parseThemeVariantBlocks(activeTheme.code);
