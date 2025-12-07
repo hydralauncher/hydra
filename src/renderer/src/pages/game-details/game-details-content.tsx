@@ -69,7 +69,7 @@ export function GameDetailsContent() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { updateLibrary, library } = useLibrary();
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -131,10 +131,19 @@ export function GameDetailsContent() {
 
   const copyShareLink = async () => {
     if (!shop || !objectId || !game?.title) return;
-    const params = new URLSearchParams({ shop, objectId, title: game.title });
-    await navigator.clipboard.writeText(
-      `hydralauncher://game?${params.toString()}`
-    );
+    let raw = shopDetails?.assets?.shortUrl || "";
+    if (!raw) {
+      showErrorToast(t("error") + ": Ссылка недоступна");
+      return;
+    }
+    raw = raw.trim();
+    raw = raw.replace(/^undefined\//i, "/");
+    if (!raw.startsWith("http")) {
+      const base = "https://hydra.la";
+      if (!raw.startsWith("/")) raw = "/" + raw;
+      raw = base + raw;
+    }
+    await navigator.clipboard.writeText(raw);
     showSuccessToast(t("link_copied"));
   };
 
@@ -187,12 +196,13 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {shop && objectId && game?.title && (
+                {shop && objectId && game?.title && shopDetails?.assets?.shortUrl && (
                   <button
                     type="button"
                     className="game-details__share-button"
                     onClick={copyShareLink}
                     title={t("share")}
+                    disabled={!shopDetails?.assets?.shortUrl}
                   >
                     <CopyIcon size={16} />
                     <span style={{ marginLeft: 8 }}>{t("share")}</span>
