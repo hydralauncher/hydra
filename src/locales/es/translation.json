@@ -458,7 +458,7 @@
     "description_confirmation_delete_all_sources": "Vas a eliminar todas las fuentes de descargas",
     "button_delete_all_sources": "Eliminar todo",
     "added_download_source": "Añadir fuente de descarga",
-    "adding": "Añadiendo…"
+    "adding": "Añadiendo…",
     "download_sources_synced": "Todas las fuentes de descarga están sincronizadas",
     "insert_valid_json_url": "Introducí una URL de json válida",
     "found_download_option_zero": "Sin opciones de descargas encontrada",
