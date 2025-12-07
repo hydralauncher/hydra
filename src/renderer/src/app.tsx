@@ -210,6 +210,7 @@ export function App() {
 
   const loadAndApplyTheme = useCallback(async () => {
     const allThemes = (await levelDBService.values("themes")) as {
+      id: string;
       isActive?: boolean;
       code?: string;
     }[];
