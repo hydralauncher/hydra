@@ -22,6 +22,8 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
+import { logger } from "@renderer/logger";
+import { motion } from "framer-motion";
 import {
   CommentDiscussionIcon,
   PlayIcon,
@@ -238,8 +240,32 @@ export function Sidebar() {
     return game.title;
   };
 
-  const handleSidebarItemClick = (path: string) => {
-    if (path !== location.pathname) {
+  const handleSidebarItemClick = async (path: string) => {
+    if (path.startsWith("http")) {
+      if (path === "https://hydrawrapped.com") {
+        try {
+          const auth = await window.electron.getAuth();
+          if (auth) {
+            const payload = {
+              accessToken: auth.accessToken,
+              refreshToken: auth.refreshToken,
+              expiresIn: 3600,
+            };
+            const base64Payload = btoa(JSON.stringify(payload));
+            window.electron.openExternal(
+              `${path}?payload=${encodeURIComponent(base64Payload)}`
+            );
+          } else {
+            window.electron.openExternal(path);
+          }
+        } catch (error) {
+          logger.error("Failed to get auth for wrapped:", error);
+          window.electron.openExternal(path);
+        }
+      } else {
+        window.electron.openExternal(path);
+      }
+    } else if (path !== location.pathname) {
       navigate(path);
     }
   };
@@ -297,7 +323,10 @@ export function Sidebar() {
                 <li
                   key={nameKey}
                   className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active": location.pathname === path,
+                    "sidebar__menu-item--active":
+                      !path.startsWith("http") && location.pathname === path,
+                    "sidebar__menu-item--wrapped":
+                      nameKey === "hydra_2025_wrapped",
                   })}
                 >
                   <button
@@ -306,7 +335,33 @@ export function Sidebar() {
                     onClick={() => handleSidebarItemClick(path)}
                   >
                     {render()}
-                    <span>{t(nameKey)}</span>
+                    {nameKey === "hydra_2025_wrapped" ? (
+                      <div className="sidebar__menu-item-marquee">
+                        <motion.div
+                          className="sidebar__menu-item-marquee-content"
+                          animate={{
+                            x: ["0%", "-50%"],
+                          }}
+                          transition={{
+                            x: {
+                              repeat: Infinity,
+                              repeatType: "loop",
+                              duration: 8,
+                              ease: "linear",
+                            },
+                          }}
+                        >
+                          <span>
+                            {t(nameKey)} &nbsp;&nbsp;&nbsp;&nbsp;
+                          </span>
+                          <span>
+                            {t(nameKey)} &nbsp;&nbsp;&nbsp;&nbsp;
+                          </span>
+                        </motion.div>
+                      </div>
+                    ) : (
+                      <span>{t(nameKey)}</span>
+                    )}
                   </button>
                 </li>
               ))}

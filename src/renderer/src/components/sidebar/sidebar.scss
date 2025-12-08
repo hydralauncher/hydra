@@ -88,6 +88,34 @@
         );
       }
     }
+
+    &--wrapped {
+      background: linear-gradient(
+        135deg,
+        rgba(74, 144, 226, 0.25) 0%,
+        rgba(123, 104, 238, 0.2) 25%,
+        rgba(59, 130, 246, 0.25) 50%,
+        rgba(96, 165, 250, 0.2) 75%,
+        rgba(74, 144, 226, 0.25) 100%
+      );
+      background-size: 200% 200%;
+      animation: wrapped-gradient-flow 8s ease infinite;
+      color: globals.$muted-color;
+      position: relative;
+      overflow: hidden;
+
+      &:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 144, 226, 0.35) 0%,
+          rgba(123, 104, 238, 0.3) 25%,
+          rgba(59, 130, 246, 0.35) 50%,
+          rgba(96, 165, 250, 0.3) 75%,
+          rgba(74, 144, 226, 0.35) 100%
+        );
+        background-size: 200% 200%;
+      }
+    }
   }
 
   &__menu-item-button {
@@ -104,6 +132,21 @@
   &__menu-item-button-label {
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  &__menu-item-marquee {
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__menu-item-marquee-content {
+    display: inline-flex;
+  }
+
+  &__menu-item-marquee-content span {
+    display: inline-block;
+    flex-shrink: 0;
   }
 
   &__game-icon {
@@ -226,5 +269,26 @@
     svg {
       display: block;
     }
+  }
+}
+
+@keyframes wrapped-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 1em));
   }
 }
