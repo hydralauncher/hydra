@@ -16,6 +16,7 @@
     "library": "Library",
     "downloads": "Downloads",
     "settings": "Settings",
+    "hydra_2025_wrapped": "Hydra Wrapped 2025 Available",
     "my_library": "My library",
     "downloading_metadata": "{{title}} (Downloading metadata…)",
     "paused": "{{title}} (Paused)",
