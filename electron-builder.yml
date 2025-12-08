@@ -40,6 +40,8 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
     - from: binaries/7zz
+    - from: binaries/aria2c
+    - from: python_rpc
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
