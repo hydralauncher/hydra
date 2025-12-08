@@ -15,6 +15,7 @@
     "catalogue": "Catálogo",
     "downloads": "Transferências",
     "settings": "Definições",
+    "hydra_2025_wrapped": "Hydra Wrapped 2025 Já disponível",
     "my_library": "Biblioteca",
     "downloading_metadata": "{{title}} (A transferir metadados…)",
     "paused": "{{title}} (Em pausa)",
@@ -229,7 +230,13 @@
     "seeding": "A semear",
     "stop_seeding": "Parar de semear",
     "resume_seeding": "Semear",
-    "options": "Opções"
+    "options": "Opções",
+    "extract": "Extrair ficheiros",
+    "extracting": "A extrair ficheiros…",
+    "network": "Rede",
+    "peak": "Pico",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Local das transferências",

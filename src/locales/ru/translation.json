@@ -16,6 +16,7 @@
     "library": "Библиотека",
     "downloads": "Загрузки",
     "settings": "Настройки",
+    "hydra_2025_wrapped": "Hydra Wrapped 2025 Доступно",
     "my_library": "Библиотека",
     "downloading_metadata": "{{title}} (Загрузка метаданных…)",
     "paused": "{{title}} (Приостановлено)",
@@ -414,7 +415,11 @@
     "resume_seeding": "Продолжить раздачу",
     "options": "Управлять",
     "extract": "Распаковать файлы",
-    "extracting": "Распаковка файлов…"
+    "extracting": "Распаковка файлов…",
+    "network": "Сеть",
+    "peak": "Пик",
+    "seeds": "Seeds",
+    "peers": "Peers"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
