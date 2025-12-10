@@ -18,6 +18,7 @@ interface DropdownMenuProps {
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
   alignOffset?: number;
+  collisionPadding?: number;
 }
 
 export function DropdownMenu({
@@ -29,6 +30,7 @@ export function DropdownMenu({
   loop = true,
   align = "center",
   alignOffset = 0,
+  collisionPadding = 16,
 }: Readonly<DropdownMenuProps>) {
   return (
     <DropdownMenuPrimitive.Root>
@@ -43,6 +45,7 @@ export function DropdownMenu({
           loop={loop}
           align={align}
           alignOffset={alignOffset}
+          collisionPadding={collisionPadding}
           className="dropdown-menu__content"
         >
           {title && (
