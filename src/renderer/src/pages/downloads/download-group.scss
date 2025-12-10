@@ -108,16 +108,11 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      transition: opacity 0.2s ease;
+      transition: scale 0.2s ease;
       outline: none;
 
       &:hover {
-        opacity: 0.8;
-      }
-
-      &:focus,
-      &:focus-visible {
-        outline: none;
+        scale: 1.05;
       }
     }
 
@@ -409,6 +404,22 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 1);
+  }
+
+  &__simple-title-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: opacity 0.2s ease;
+
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   &__simple-title {
