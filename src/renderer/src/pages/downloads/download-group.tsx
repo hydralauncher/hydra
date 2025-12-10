@@ -436,6 +436,7 @@ export function DownloadGroup({
   seedingStatus,
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
+  const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -872,7 +873,13 @@ export function DownloadGroup({
               </div>
 
               <div className="download-group__simple-info">
-                <h3 className="download-group__simple-title">{game.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => navigate(buildGameDetailsPath(game))}
+                  className="download-group__simple-title-button"
+                >
+                  <h3 className="download-group__simple-title">{game.title}</h3>
+                </button>
                 <div className="download-group__simple-meta">
                   <div className="download-group__simple-meta-row">
                     <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
