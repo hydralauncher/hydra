@@ -11,6 +11,7 @@ import {
   getAchievementSoundVolume,
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
+import { levelDBService } from "@renderer/services/leveldb.service";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
@@ -144,7 +145,11 @@ export function AchievementNotification() {
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+      code?: string;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code, shadowRootRef);
     } else {
