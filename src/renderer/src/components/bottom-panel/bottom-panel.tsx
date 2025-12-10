@@ -145,10 +145,10 @@ export function BottomPanel() {
       </button>
 
       <button
-        data-featurebase-changelog
+        data-open-workwonders-changelog-mini
         className="bottom-panel__version-button"
       >
-        <small data-featurebase-changelog>
+        <small>
           {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
           {VERSION_CODENAME}&quot;
         </small>
