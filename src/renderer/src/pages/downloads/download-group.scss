@@ -390,6 +390,21 @@
     flex-shrink: 0;
     background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid globals.$border-color;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+    }
 
     img {
       width: 100%;

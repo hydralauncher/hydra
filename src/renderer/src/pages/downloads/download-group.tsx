@@ -868,9 +868,13 @@ export function DownloadGroup({
         {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
           return (
             <li key={game.id} className="download-group__simple-card">
-              <div className="download-group__simple-thumbnail">
+              <button
+                type="button"
+                onClick={() => navigate(buildGameDetailsPath(game))}
+                className="download-group__simple-thumbnail"
+              >
                 <img src={game.libraryImageUrl || ""} alt={game.title} />
-              </div>
+              </button>
 
               <div className="download-group__simple-info">
                 <button
