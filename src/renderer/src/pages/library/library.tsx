@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { TelescopeIcon, StarIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
-import { GameContextMenu } from "@renderer/components";
+import { GameContextMenu, Button } from "@renderer/components";
+import { useNavigate } from "react-router-dom";
+import { buildGameDetailsPath } from "@renderer/helpers";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
@@ -14,9 +16,10 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const savedViewMode = localStorage.getItem("library-view-mode");
+    const savedViewMode = globalThis.localStorage.getItem("library-view-mode");
     return (savedViewMode as ViewMode) || "compact";
   });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
@@ -32,7 +35,7 @@ export default function Library() {
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    localStorage.setItem("library-view-mode", mode);
+    globalThis.localStorage.setItem("library-view-mode", mode);
   }, []);
 
   useEffect(() => {
@@ -134,6 +137,31 @@ export default function Library() {
 
   const hasGames = library.length > 0;
 
+  const getSecureRandomIndex = (length: number) => {
+    const buf = new Uint32Array(1);
+    const maxRange = 4294967296;
+    const limit = Math.floor(maxRange / length) * length;
+    let value = 0;
+    do {
+      globalThis.crypto.getRandomValues(buf);
+      value = buf[0];
+    } while (value >= limit);
+    return value % length;
+  };
+
+  const handleLibraryRandomizerClick = useCallback(() => {
+    if (filteredLibrary.length === 0) return;
+    const randomIndex = getSecureRandomIndex(filteredLibrary.length);
+    const randomGame = filteredLibrary[randomIndex];
+    navigate(
+      buildGameDetailsPath({
+        shop: randomGame.shop,
+        objectId: randomGame.objectId,
+        title: randomGame.title,
+      })
+    );
+  }, [filteredLibrary, navigate]);
+
   return (
     <section className="library__content">
       {hasGames && (
@@ -150,6 +178,17 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
+              <Button
+                onClick={handleLibraryRandomizerClick}
+                theme="outline"
+                disabled={filteredLibrary.length === 0}
+                style={{ marginRight: "8px" }}
+              >
+                <span style={{ display: "inline-flex", marginRight: 8 }}>
+                  <StarIcon size={16} />
+                </span>
+                {t("home:surprise_me")}
+              </Button>
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
