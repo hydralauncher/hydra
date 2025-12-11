@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
@@ -13,6 +13,7 @@ import { ArrowDownIcon } from "@primer/octicons-react";
 
 export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
+  const extraction = useAppSelector((state) => state.download.extraction);
 
   const { t } = useTranslation("downloads");
 
@@ -72,8 +73,10 @@ export default function Downloads() {
       /* Game has been manually added to the library */
       if (!next.download) return prev;
 
-      /* Is downloading */
-      if (lastPacket?.gameId === next.id || next.download.extracting)
+      /* Is downloading or extracting */
+      const isExtracting =
+        next.download.extracting || extraction?.visibleId === next.id;
+      if (lastPacket?.gameId === next.id || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
       /* Is either queued or paused */
@@ -96,7 +99,7 @@ export default function Downloads() {
       queued,
       complete,
     };
-  }, [library, lastPacket?.gameId]);
+  }, [library, lastPacket?.gameId, extraction?.visibleId]);
 
   const downloadGroups = [
     {

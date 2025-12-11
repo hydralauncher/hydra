@@ -536,5 +536,9 @@
     background-color: #fff;
     transition: width 0.3s ease;
     border-radius: 4px;
+
+    &--extraction {
+      background-color: #4caf50;
+    }
   }
 }

@@ -115,6 +115,7 @@
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
     "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
     "checking_files": "Verificando arquivos de {{title}}…",
+    "extracting": "Extraindo {{title}}… ({{percentage}} concluído)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Instalação concluída",
     "installation_complete_message": "Componentes recomendados instalados com sucesso"
@@ -190,6 +191,7 @@
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
     "download_in_progress": "Download em andamento",
     "download_paused": "Download pausado",
+    "extracting": "Extraindo",
     "last_downloaded_option": "Última opção baixada",
     "new_download_option": "Novo",
     "create_steam_shortcut": "Criar atalho na Steam",

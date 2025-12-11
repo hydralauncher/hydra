@@ -19,6 +19,8 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setExtractionProgress,
+  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
@@ -184,12 +186,19 @@ export function App() {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onExtractionProgress((shop, objectId, progress) => {
+        dispatch(setExtractionProgress({ shop, objectId, progress }));
+      }),
+      window.electron.onExtractionComplete(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
