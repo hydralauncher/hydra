@@ -9,6 +9,7 @@ import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 import { db, levelKeys } from "@main/level";
+import { ProxyManager } from "./proxy-manager";
 
 interface GamePayload {
   action: string;
@@ -29,9 +30,17 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
   public static readonly RPC_PORT = "8084";
-  public static readonly rpc = axios.create({
+  public static rpc = axios.create({
     baseURL: `http://localhost:${this.RPC_PORT}`,
   });
+
+  public static async updateProxyConfig() {
+    const proxyConfig = await ProxyManager.getAxiosProxyConfig();
+    this.rpc = axios.create({
+      baseURL: `http://localhost:${this.RPC_PORT}`,
+      proxy: proxyConfig,
+    });
+  }
 
   private static pythonProcess: cp.ChildProcess | null = null;
 

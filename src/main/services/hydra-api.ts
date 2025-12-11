@@ -12,6 +12,7 @@ import { db } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { WSClient } from "./ws";
+import { ProxyManager } from "./proxy-manager";
 
 export interface HydraApiOptions {
   needsAuth?: boolean;
@@ -132,9 +133,22 @@ export class HydraApi {
   }
 
   static async setupApi() {
+    const proxyConfig = await ProxyManager.getAxiosProxyConfig();
+    const agentConfig = await ProxyManager.getAxiosAgentConfig();
+
+    logger.log("HydraApi proxy options", {
+      proxy: proxyConfig || false,
+      hasHttpAgent: Boolean((agentConfig as { httpAgent?: unknown }).httpAgent),
+      hasHttpsAgent: Boolean(
+        (agentConfig as { httpsAgent?: unknown }).httpsAgent
+      ),
+    });
+
     this.instance = axios.create({
       baseURL: import.meta.env.MAIN_VITE_API_URL,
       headers: { "User-Agent": `Hydra Launcher v${appVersion}` },
+      proxy: proxyConfig,
+      ...agentConfig,
     });
 
     if (this.ADD_LOG_INTERCEPTOR) {
@@ -343,9 +357,9 @@ export class HydraApi {
     }
   }
 
-  static async get<T = any>(
+  static async get<T = unknown>(
     url: string,
-    params?: any,
+    params?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -361,9 +375,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async post<T = any>(
+  static async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -374,9 +388,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async put<T = any>(
+  static async put<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -387,9 +401,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async patch<T = any>(
+  static async patch<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -400,7 +414,7 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async delete<T = any>(url: string, options?: HydraApiOptions) {
+  static async delete<T = unknown>(url: string, options?: HydraApiOptions) {
     await this.validateOptions(options);
 
     return this.instance
