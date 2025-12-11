@@ -80,5 +80,11 @@
     &--disabled {
       opacity: globals.$disabled-opacity;
     }
+
+    &--extraction {
+      &::-webkit-progress-value {
+        background-color: #4caf50;
+      }
+    }
   }
 }
