@@ -70,23 +70,26 @@ def status():
     if auth_error:
         return auth_error
 
-    downloader = downloads.get(downloading_game_id)
-    if not downloader:
-        return jsonify(None)
-
-    status = downloader.get_download_status()
-    if not status:
-        return jsonify(None)
-
-    if isinstance(status, list):
-        if not status:  # Empty list
+    try:
+        downloader = downloads.get(downloading_game_id)
+        if not downloader:
             return jsonify(None)
 
-        # For multi-link downloader, use the aggregated status
-        # The status will already be aggregated by the HttpMultiLinkDownloader
-        return jsonify(status[0]), 200
+        status = downloader.get_download_status()
+        if not status:
+            return jsonify(None)
 
-    return jsonify(status), 200
+        if isinstance(status, list):
+            if not status:  # Empty list
+                return jsonify(None)
+
+            # For multi-link downloader, use the aggregated status
+            # The status will already be aggregated by the HttpMultiLinkDownloader
+            return jsonify(status[0]), 200
+
+        return jsonify(status), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/seed-status", methods=["GET"])
 def seed_status():
@@ -96,35 +99,41 @@ def seed_status():
     
     seed_status = []
 
-    for game_id, downloader in downloads.items():
-        if not downloader:
-            continue
-        
-        response = downloader.get_download_status()
-        if not response:
-            continue
-        
-        if isinstance(response, list):
-            # For multi-link downloader, check if all files are complete
-            if response and all(item['status'] == 'complete' for item in response):
-                seed_status.append({
-                    'gameId': game_id,
-                    'status': 'complete',
-                    'folderName': response[0]['folderName'],
-                    'fileSize': sum(item['fileSize'] for item in response),
-                    'bytesDownloaded': sum(item['bytesDownloaded'] for item in response),
-                    'downloadSpeed': 0,
-                    'numPeers': 0,
-                    'numSeeds': 0,
-                    'progress': 1.0
-                })
-        elif response.get('status') == 5:  # Original torrent seeding check
-            seed_status.append({
-                'gameId': game_id,
-                **response,
-            })
+    try:
+        for game_id, downloader in downloads.items():
+            if not downloader:
+                continue
+            
+            try:
+                response = downloader.get_download_status()
+                if not response:
+                    continue
+                
+                if isinstance(response, list):
+                    # For multi-link downloader, check if all files are complete
+                    if response and all(item['status'] == 'complete' for item in response):
+                        seed_status.append({
+                            'gameId': game_id,
+                            'status': 'complete',
+                            'folderName': response[0]['folderName'],
+                            'fileSize': sum(item['fileSize'] for item in response),
+                            'bytesDownloaded': sum(item['bytesDownloaded'] for item in response),
+                            'downloadSpeed': 0,
+                            'numPeers': 0,
+                            'numSeeds': 0,
+                            'progress': 1.0
+                        })
+                elif response.get('status') == 5:  # Original torrent seeding check
+                    seed_status.append({
+                        'gameId': game_id,
+                        **response,
+                    })
+            except Exception:
+                continue
 
-    return jsonify(seed_status), 200
+        return jsonify(seed_status), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/healthcheck", methods=["GET"])
 def healthcheck():
@@ -215,7 +224,13 @@ def action():
     elif action == 'cancel':
         downloader = downloads.get(game_id)
         if downloader:
-            downloader.cancel_download()
+            try:
+                downloader.cancel_download()
+            except Exception:
+                pass
+        # Remove from downloads dict after cancellation
+        if game_id in downloads:
+            del downloads[game_id]
     elif action == 'resume_seeding':
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[game_id] = torrent_downloader
