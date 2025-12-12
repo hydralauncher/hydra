@@ -15,6 +15,7 @@ import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, levelKeys } from "./level";
 import { loadState } from "./main";
+import type { UserPreferences } from "@types";
 
 const { autoUpdater } = updater;
 
@@ -140,8 +141,16 @@ app.whenReady().then(async () => {
 
   if (language) i18n.changeLanguage(language);
 
+  const userPreferences = await db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
+
+  const startupLocation = userPreferences?.startupLocation ?? ""
+
   if (!process.argv.includes("--hidden")) {
-    WindowManager.createMainWindow();
+    WindowManager.createMainWindow(startupLocation);
   }
 
   WindowManager.createNotificationWindow();
