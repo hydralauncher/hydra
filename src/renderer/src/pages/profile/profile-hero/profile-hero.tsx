@@ -394,10 +394,12 @@ export function ProfileHero() {
               <Button
                 theme="outline"
                 onClick={() => setShowWrappedModal(true)}
-                className="profile-hero__button--outline"
+                className="profile-hero__button--wrapped"
               >
                 <TrophyIcon />
-                {t("wrapped_2025")}
+                {t("view_wrapped_button", {
+                  displayName: userProfile.displayName,
+                })}
               </Button>
             </div>
           )}
