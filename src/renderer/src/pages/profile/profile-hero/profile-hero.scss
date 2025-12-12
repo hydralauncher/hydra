@@ -136,5 +136,35 @@
     &--outline {
       border-color: globals.$body-color;
     }
+
+    &--wrapped {
+      background: linear-gradient(
+        120deg,
+        #2A57FF 0%,
+        #2951E6 11%,
+        #2F5BFF 16%,
+        #2C56E8 29%,
+        #244ACC 34%,
+        #2245C2 40%,
+        #3A6BFF 45%,
+        #3766F2 50%,
+        #2444B8 56%,
+        #122A73 82%,
+        #2348B3 86%,
+        #1F429E 87%,
+        #10286A 93%,
+        #0E2A63 100%
+      );
+      background-color: #2A57FF;
+      background-size: 105% 100%;
+      background-position: 100% 50%;
+      border: none;
+      color: white;
+      transition: background-position 0.4s ease;
+
+      &:hover {
+        background-position: 0% 50%;
+      }
+    }
   }
 }

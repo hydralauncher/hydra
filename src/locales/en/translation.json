@@ -717,9 +717,7 @@
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
     "wrapped_2025": "Wrapped 2025",
-    "view_wrapped_title": "View {{displayName}}'s Wrapped 2025?",
-    "view_wrapped_yes": "Yes",
-    "view_wrapped_no": "No"
+    "view_wrapped_button": "View {{displayName}}'s Wrapped 2025"
   },
   "library": {
     "library": "Library",
