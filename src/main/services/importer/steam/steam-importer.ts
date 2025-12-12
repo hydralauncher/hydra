@@ -1,0 +1,84 @@
+import path from "node:path";
+import { SystemPath } from "../../system-path";
+import fs from "node:fs";
+import parseVDF from "./parse-VDF";
+
+class SteamImporter {
+  private steamInstallPath: string;
+  private steamLibraryPaths: string[];
+
+  constructor() {}
+
+  async initialize({ steamPath }: { steamPath: string | undefined }) {
+    this.steamInstallPath = steamPath ?? (await this.getSteamInstallPath());
+    this.steamLibraryPaths = await this.getSteamLibraryPaths();
+  }
+
+  async scanLibraries() {
+    var apps: Object[] = [];
+    for (const library of this.steamLibraryPaths) {
+      const libraryPath = path.join(library, "steamapps");
+      // read all files in the directory /steamapps
+      // filter for files with the pattern appmanifest_[appid].acf
+      const files = fs.readdirSync(libraryPath);
+      const appmanifests = files.filter((file) =>
+        file.match(/appmanifest_\d+\.acf/)
+      );
+      for (const appmanifest of appmanifests) {
+        const appmanifestPath = path.join(libraryPath, appmanifest);
+        const appmanifestContent = fs.readFileSync(appmanifestPath, "utf8");
+        const [_, app] = parseVDF(appmanifestContent) as [string, Object];
+        apps.push(app);
+      }
+    }
+    return apps;
+  }
+
+  private async getSteamInstallPath() {
+    const osType = process.platform;
+    const possiblePaths = {
+      linux: [
+        path.join(SystemPath.getPath("home"), ".steam", "steam"),
+        path.join(SystemPath.getPath("home"), ".local", "share", "Steam"),
+      ],
+      darwin: [
+        path.join(
+          SystemPath.getPath("home"),
+          "Library",
+          "Application Support",
+          "Steam"
+        ),
+      ],
+      win32: ["C:\\Program Files (x86)\\Steam", "C:\\Program Files\\Steam"],
+    };
+
+    const steamInstallPath = possiblePaths[osType];
+    if (!steamInstallPath)
+      throw new Error(`Steam install path not found for ${osType}`);
+
+    for (const path of steamInstallPath) {
+      if (
+        fs.existsSync(path) &&
+        fs.statSync(path).isDirectory() &&
+        fs.readdirSync(path).includes("steamapps")
+      ) {
+        return path;
+      }
+    }
+    throw new Error(`Steam install path not found for ${osType}`);
+  }
+
+  private async getSteamLibraryPaths() {
+    // read the file /steamapps/libraryfolders.vdf
+    const libraryFoldersPath = path.join(
+      this.steamInstallPath,
+      "steamapps",
+      "libraryfolders.vdf"
+    );
+    const libraryFolders = fs.readFileSync(libraryFoldersPath, "utf8");
+    const [_, libraries] = parseVDF(libraryFolders);
+    return (libraries as any).map((library) => library.path);
+  }
+}
+
+export default SteamImporter;

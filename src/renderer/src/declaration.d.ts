@@ -80,6 +80,10 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Library */
+    importSteamLibrary: () => Promise<void>;
+    onSteamLibraryImportProgress: (
+      cb: (progress: number) => void
+    ) => () => Electron.IpcRenderer;
     toggleAutomaticCloudSync: (
       shop: GameShop,
       objectId: string,
