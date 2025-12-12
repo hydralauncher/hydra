@@ -2,16 +2,20 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import "./profile-content.scss";
 
+export type ProfileTabType = "library" | "reviews";
+
 interface ProfileTabsProps {
-  activeTab: "library" | "reviews";
+  activeTab: ProfileTabType;
   reviewsTotalCount: number;
-  onTabChange: (tab: "library" | "reviews") => void;
+  onTabChange: (tab: ProfileTabType) => void;
+  onWrappedClick: () => void;
 }
 
 export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
   onTabChange,
+  onWrappedClick,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation("user_profile");
 
@@ -61,6 +65,15 @@ export function ProfileTabs({
             }}
           />
         )}
+      </div>
+      <div className="profile-content__tab-wrapper">
+        <button
+          type="button"
+          className="profile-content__tab"
+          onClick={onWrappedClick}
+        >
+          {t("wrapped_2025")}
+        </button>
       </div>
     </div>
   );
