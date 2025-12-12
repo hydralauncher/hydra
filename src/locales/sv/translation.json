@@ -101,6 +101,7 @@
     "repacks_modal_description": "Välj den repack du vill ladda ner",
     "select_folder_hint": "För att ändra standardmappen, gå till <0>Inställningar</0>",
     "download_now": "Ladda ner nu",
+    "copy_now": "Kopiera nedladdningslänk",
     "no_shop_details": "Kunde inte hämta butikens information.",
     "download_options": "Nedladdningsalternativ",
     "download_path": "Nedladdningsplats",
