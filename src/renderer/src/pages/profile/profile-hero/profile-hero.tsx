@@ -6,6 +6,7 @@ import {
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
+  TrophyIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -22,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
+import { WrappedFullscreenModal } from "../profile-content/wrapped-tab";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import { Tooltip } from "react-tooltip";
@@ -33,6 +35,7 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
   const {
@@ -272,6 +275,14 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
+      {userProfile && (
+        <WrappedFullscreenModal
+          userId={userProfile.id}
+          isOpen={showWrappedModal}
+          onClose={() => setShowWrappedModal(false)}
+        />
+      )}
+
       <section
         className="profile-hero__content-box"
         style={{ background: !backgroundImage ? heroBackground : undefined }}
@@ -378,6 +389,18 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
+          {userProfile && (
+            <div className="profile-hero__left-actions">
+              <Button
+                theme="outline"
+                onClick={() => setShowWrappedModal(true)}
+                className="profile-hero__button--outline"
+              >
+                <TrophyIcon />
+                {t("wrapped_2025")}
+              </Button>
+            </div>
+          )}
           <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>

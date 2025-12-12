@@ -8,14 +8,12 @@ interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
   onTabChange: (tab: ProfileTabType) => void;
-  onWrappedClick: () => void;
 }
 
 export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
   onTabChange,
-  onWrappedClick,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation("user_profile");
 
@@ -65,15 +63,6 @@ export function ProfileTabs({
             }}
           />
         )}
-      </div>
-      <div className="profile-content__tab-wrapper">
-        <button
-          type="button"
-          className="profile-content__tab"
-          onClick={onWrappedClick}
-        >
-          {t("wrapped_2025")}
-        </button>
       </div>
     </div>
   );
