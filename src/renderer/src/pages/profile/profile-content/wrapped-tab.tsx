@@ -81,7 +81,6 @@ export function WrappedFullscreenModal({
               <div className="wrapped-fullscreen-modal__spinner" />
             </div>
           )}
-          <div className="wrapped-fullscreen-modal__overlay" />
           <iframe
             src={`https://hydrawrapped.com/embed/${userId}?scale=${config.scale}`}
             className="wrapped-fullscreen-modal__iframe"
