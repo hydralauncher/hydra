@@ -82,6 +82,7 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   automaticallyExtract: boolean;
+  extractionProgress: number;
 }
 
 export interface GameAchievement {
