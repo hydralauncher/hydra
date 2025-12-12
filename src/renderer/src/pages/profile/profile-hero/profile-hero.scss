@@ -120,6 +120,11 @@
     }
   }
 
+  &__left-actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
   &__actions {
     display: flex;
     gap: globals.$spacing-unit;

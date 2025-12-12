@@ -1,12 +1,9 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 import { XIcon } from "@primer/octicons-react";
-import { ConfirmationModal } from "@renderer/components";
 import "./wrapped-tab.scss";
 
-interface WrappedModalProps {
+interface WrappedFullscreenModalProps {
   userId: string;
-  displayName: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -29,18 +26,16 @@ const getScaleConfigForHeight = (height: number): ScaleConfig => {
   return SCALE_CONFIGS[0.25];
 };
 
-export function WrappedConfirmModal({
+export function WrappedFullscreenModal({
   userId,
-  displayName,
   isOpen,
   onClose,
-}: Readonly<WrappedModalProps>) {
-  const { t } = useTranslation("user_profile");
-  const [showFullscreen, setShowFullscreen] = useState(false);
+}: Readonly<WrappedFullscreenModalProps>) {
   const [config, setConfig] = useState<ScaleConfig>(SCALE_CONFIGS[0.5]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!showFullscreen) return;
+    if (!isOpen) return;
 
     const updateConfig = () => {
       setConfig(getScaleConfigForHeight(window.innerHeight));
@@ -49,56 +44,51 @@ export function WrappedConfirmModal({
     updateConfig();
     window.addEventListener("resize", updateConfig);
     return () => window.removeEventListener("resize", updateConfig);
-  }, [showFullscreen]);
+  }, [isOpen]);
 
-  const handleConfirm = () => {
-    onClose();
-    setShowFullscreen(true);
-  };
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <>
-      <ConfirmationModal
-        visible={isOpen}
-        title={t("wrapped_2025")}
-        descriptionText={t("view_wrapped_title", { displayName })}
-        confirmButtonLabel={t("view_wrapped_yes")}
-        cancelButtonLabel={t("view_wrapped_no")}
-        onConfirm={handleConfirm}
-        onClose={onClose}
+    <dialog className="wrapped-fullscreen-modal" aria-modal="true" open>
+      <button
+        type="button"
+        className="wrapped-fullscreen-modal__backdrop"
+        onClick={onClose}
+        aria-label="Close wrapped"
       />
+      <div className="wrapped-fullscreen-modal__container">
+        <button
+          type="button"
+          className="wrapped-fullscreen-modal__close-button"
+          onClick={onClose}
+          aria-label="Close wrapped"
+        >
+          <XIcon size={24} />
+        </button>
 
-      {showFullscreen && (
-        <dialog className="wrapped-fullscreen-modal" aria-modal="true" open>
-          <button
-            type="button"
-            className="wrapped-fullscreen-modal__backdrop"
-            onClick={() => setShowFullscreen(false)}
-            aria-label="Close wrapped"
-          />
-          <div className="wrapped-fullscreen-modal__container">
-            <button
-              type="button"
-              className="wrapped-fullscreen-modal__close-button"
-              onClick={() => setShowFullscreen(false)}
-              aria-label="Close wrapped"
-            >
-              <XIcon size={24} />
-            </button>
-
-            <div
-              className="wrapped-fullscreen-modal__content"
-              style={{ width: config.width, height: config.height }}
-            >
-              <iframe
-                src={`https://hydrawrapped.com/embed/${userId}?scale=${config.scale}`}
-                className="wrapped-fullscreen-modal__iframe"
-                title="Wrapped 2025"
-              />
+        <div
+          className="wrapped-fullscreen-modal__content"
+          style={{ width: config.width, height: config.height }}
+        >
+          {isLoading && (
+            <div className="wrapped-fullscreen-modal__loader">
+              <div className="wrapped-fullscreen-modal__spinner" />
             </div>
-          </div>
-        </dialog>
-      )}
-    </>
+          )}
+          <iframe
+            src={`https://hydrawrapped.com/embed/${userId}?scale=${config.scale}`}
+            className="wrapped-fullscreen-modal__iframe"
+            title="Wrapped 2025"
+            onLoad={() => setIsLoading(false)}
+          />
+        </div>
+      </div>
+    </dialog>
   );
 }

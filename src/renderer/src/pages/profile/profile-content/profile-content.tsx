@@ -24,7 +24,6 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
-import { WrappedConfirmModal } from "./wrapped-tab";
 import { AnimatePresence } from "framer-motion";
 import "./profile-content.scss";
 
@@ -105,7 +104,6 @@ export function ProfileContent() {
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
-  const [wrappedModalVisible, setWrappedModalVisible] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -388,7 +386,6 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             onTabChange={setActiveTab}
-            onWrappedClick={() => setWrappedModalVisible(true)}
           />
 
           <div className="profile-content__tab-panels">
@@ -442,13 +439,6 @@ export function ProfileContent() {
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
         />
-
-        <WrappedConfirmModal
-          userId={userProfile.id}
-          displayName={userProfile.displayName}
-          isOpen={wrappedModalVisible}
-          onClose={() => setWrappedModalVisible(false)}
-        />
       </section>
     );
   }, [
@@ -470,7 +460,6 @@ export function ProfileContent() {
     isLoadingReviews,
     votingReviews,
     deleteModalVisible,
-    wrappedModalVisible,
   ]);
 
   return (
