@@ -331,35 +331,35 @@ function HeroDownloadView({
               </div>
             </div>
             {!isGameExtracting && (
-            <div className="download-group__hero-buttons">
-              {isGameDownloading ? (
+              <div className="download-group__hero-buttons">
+                {isGameDownloading ? (
+                  <button
+                    type="button"
+                    onClick={() => pauseDownload(game.shop, game.objectId)}
+                    className="download-group__glass-btn"
+                  >
+                    <ColumnsIcon size={14} />
+                    {t("pause")}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => resumeDownload(game.shop, game.objectId)}
+                    className="download-group__glass-btn"
+                  >
+                    <PlayIcon size={14} />
+                    {t("resume")}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => pauseDownload(game.shop, game.objectId)}
+                  onClick={() => cancelDownload(game.shop, game.objectId)}
                   className="download-group__glass-btn"
                 >
-                  <ColumnsIcon size={14} />
-                  {t("pause")}
+                  <XCircleIcon size={14} />
+                  {t("cancel")}
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => resumeDownload(game.shop, game.objectId)}
-                  className="download-group__glass-btn"
-                >
-                  <PlayIcon size={14} />
-                  {t("resume")}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => cancelDownload(game.shop, game.objectId)}
-                className="download-group__glass-btn"
-              >
-                <XCircleIcon size={14} />
-                {t("cancel")}
-              </button>
-            </div>
+              </div>
             )}
           </div>
         </div>
