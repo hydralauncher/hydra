@@ -715,7 +715,11 @@
     "karma_description": "Earned from positive likes on reviews",
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
-    "loading_reviews": "Loading reviews..."
+    "loading_reviews": "Loading reviews...",
+    "wrapped_2025": "Wrapped 2025",
+    "view_wrapped_title": "View {{displayName}}'s Wrapped 2025?",
+    "view_wrapped_yes": "Yes",
+    "view_wrapped_no": "No"
   },
   "library": {
     "library": "Library",
