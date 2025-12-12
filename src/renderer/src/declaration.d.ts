@@ -211,6 +211,10 @@ declare global {
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
+    onArchiveDeletionPrompt: (
+      cb: (archivePaths: string[]) => void
+    ) => () => Electron.IpcRenderer;
+    deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
     createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 

@@ -404,7 +404,11 @@
     "resume_seeding": "Semear",
     "options": "Gerenciar",
     "extract": "Extrair arquivos",
-    "extracting": "Extraindo arquivos…"
+    "extracting": "Extraindo arquivos…",
+    "delete_archive_title": "Deseja deletar {{fileName}}?",
+    "delete_archive_description": "O arquivo foi extraído com sucesso e não é mais necessário.",
+    "yes": "Sim",
+    "no": "Não"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",

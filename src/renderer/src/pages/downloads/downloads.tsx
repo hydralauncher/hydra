@@ -40,11 +40,13 @@ export default function Downloads() {
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
 
-    const unsubscribe = window.electron.onExtractionComplete(() => {
+    const unsubscribeExtraction = window.electron.onExtractionComplete(() => {
       updateLibrary();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeExtraction();
+    };
   }, [updateLibrary]);
 
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>

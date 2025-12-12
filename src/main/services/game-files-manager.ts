@@ -116,17 +116,15 @@ export class GameFilesManager {
       }
     }
 
-    for (const file of compressedFiles) {
-      const extractionPath = path.join(directoryPath, file);
+    const archivePaths = compressedFiles
+      .map((file) => path.join(directoryPath, file))
+      .filter((archivePath) => fs.existsSync(archivePath));
 
-      try {
-        if (fs.existsSync(extractionPath)) {
-          await fs.promises.unlink(extractionPath);
-          logger.info(`Deleted archive: ${file}`);
-        }
-      } catch (err) {
-        logger.error(`Failed to delete file: ${file}`, err);
-      }
+    if (archivePaths.length > 0) {
+      WindowManager.mainWindow?.webContents.send(
+        "on-archive-deletion-prompt",
+        archivePaths
+      );
     }
   }
 
@@ -186,12 +184,10 @@ export class GameFilesManager {
         await this.extractFilesInDirectory(extractionPath);
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          try {
-            await fs.promises.unlink(filePath);
-            logger.info(`Deleted archive: ${download.folderName}`);
-          } catch (err) {
-            logger.error(`Failed to delete file: ${download.folderName}`, err);
-          }
+          WindowManager.mainWindow?.webContents.send(
+            "on-archive-deletion-prompt",
+            [filePath]
+          );
         }
 
         await downloadsSublevel.put(this.gameKey, {
