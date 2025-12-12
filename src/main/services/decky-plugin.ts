@@ -76,14 +76,14 @@ export class DeckyPlugin {
 
     try {
       await SevenZip.extractFile({
-        filePath: zipPath,
-        outputPath: extractPath,
+          filePath: zipPath,
+          outputPath: extractPath,
       });
-      logger.log(`Plugin extracted to: ${extractPath}`);
+          logger.log(`Plugin extracted to: ${extractPath}`);
       return extractPath;
     } catch {
       throw new Error("Failed to extract plugin");
-    }
+        }
   }
 
   private static needsSudo(): boolean {
