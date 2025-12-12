@@ -416,7 +416,11 @@
     "resume_seeding": "Resume seeding",
     "options": "Manage",
     "extract": "Extract files",
-    "extracting": "Extracting files…"
+    "extracting": "Extracting files…",
+    "delete_archive_title": "Would you like to delete {{fileName}}?",
+    "delete_archive_description": "The file has been successfully extracted and it's no longer needed.",
+    "yes": "Yes",
+    "no": "No"
   },
   "settings": {
     "downloads_path": "Downloads path",
