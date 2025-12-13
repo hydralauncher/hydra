@@ -11,12 +11,10 @@ import { addMilliseconds } from "date-fns";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import {
   useAppSelector,
-  useAppDispatch,
   useDownload,
   useLibrary,
   useDate,
 } from "@renderer/hooks";
-import { clearPeakSpeed } from "@renderer/features";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
@@ -514,9 +512,9 @@ export function DownloadGroup({
 
   const { formatDistance } = useDate();
 
-  const dispatch = useAppDispatch();
+  // Get speed history and peak speeds from Redux (centralized state)
+  const speedHistory = useAppSelector((state) => state.download.speedHistory);
   const peakSpeeds = useAppSelector((state) => state.download.peakSpeeds);
-  const speedHistoryRef = useRef<Record<string, number[]>>({});
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
   );
@@ -579,62 +577,8 @@ export function DownloadGroup({
     });
   }, [library, lastPacket?.gameId]);
 
-  useEffect(() => {
-    if (!lastPacket?.gameId || lastPacket.downloadSpeed === undefined) return;
-
-    const gameId = lastPacket.gameId;
-    const downloadSpeed = lastPacket.downloadSpeed;
-
-    if (!speedHistoryRef.current[gameId]) {
-      speedHistoryRef.current[gameId] = [];
-    }
-
-    speedHistoryRef.current[gameId].push(downloadSpeed);
-
-    if (speedHistoryRef.current[gameId].length > 120) {
-      speedHistoryRef.current[gameId].shift();
-    }
-  }, [lastPacket]);
-
-  useEffect(() => {
-    for (const game of library) {
-      if (
-        game.download &&
-        game.download.progress < 0.01 &&
-        game.download.status !== "paused"
-      ) {
-        // Fresh download - clear any old data
-        if (speedHistoryRef.current[game.id]?.length > 0) {
-          speedHistoryRef.current[game.id] = [];
-          dispatch(clearPeakSpeed(game.id));
-        }
-      }
-    }
-  }, [library, dispatch]);
-
-  useEffect(() => {
-    const timeouts: NodeJS.Timeout[] = [];
-
-    for (const game of library) {
-      if (
-        game.download?.progress === 1 &&
-        speedHistoryRef.current[game.id]?.length > 0
-      ) {
-        const gameId = game.id;
-        const timeout = setTimeout(() => {
-          speedHistoryRef.current[gameId] = [];
-          dispatch(clearPeakSpeed(gameId));
-        }, 10_000);
-        timeouts.push(timeout);
-      }
-    }
-
-    return () => {
-      for (const timeout of timeouts) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [library, dispatch]);
+  // Speed history and peak speeds are now tracked in Redux (in setLastPacket reducer)
+  // No local effect needed - data is updated atomically when packets arrive
 
   useEffect(() => {
     if (library.length > 0 && title === t("download_in_progress")) {
@@ -839,7 +783,13 @@ export function DownloadGroup({
       ? (lastPacket?.downloadSpeed ?? 0)
       : 0;
     const finalDownloadSize = getFinalDownloadSize(game);
-    const peakSpeed = peakSpeeds[game.id] || 0;
+    // Use lastPacket.gameId for lookup since that's the key used to store the data
+    // Fall back to game.id if lastPacket is not available
+    const dataKey = lastPacket?.gameId ?? game.id;
+    const gameSpeedHistory = speedHistory[dataKey] ?? [];
+    const storedPeak = peakSpeeds[dataKey];
+    // Use stored peak if available and > 0, otherwise use current speed as initial value
+    const peakSpeed = storedPeak !== undefined && storedPeak > 0 ? storedPeak : downloadSpeed;
 
     let currentProgress = game.download?.progress || 0;
     if (isGameExtracting) {
@@ -861,7 +811,7 @@ export function DownloadGroup({
         currentProgress={currentProgress}
         dominantColor={dominantColor}
         lastPacket={lastPacket}
-        speedHistory={speedHistoryRef.current[game.id] || []}
+        speedHistory={gameSpeedHistory}
         formatSpeed={formatSpeed}
         calculateETA={calculateETA}
         pauseDownload={pauseDownload}
