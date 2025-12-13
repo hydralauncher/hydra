@@ -36,9 +36,9 @@ export class WindowManager {
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
       width: 1200,
-      height: 720,
+      height: 860,
       minWidth: 1024,
-      minHeight: 540,
+      minHeight: 860,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
       icon,
@@ -106,7 +106,7 @@ export class WindowManager {
         valueEncoding: "json",
       }
     );
-    return data ?? { isMaximized: false, height: 720, width: 1200 };
+    return data ?? { isMaximized: false, height: 860, width: 1200 };
   }
 
   private static updateInitialConfig(
@@ -224,7 +224,7 @@ export class WindowManager {
           ? {
               x: undefined,
               y: undefined,
-              height: this.initialConfigInitializationMainWindow.height ?? 720,
+              height: this.initialConfigInitializationMainWindow.height ?? 860,
               width: this.initialConfigInitializationMainWindow.width ?? 1200,
               isMaximized: true,
             }
