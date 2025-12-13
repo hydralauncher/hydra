@@ -112,7 +112,8 @@ contextBridge.exposeInMainWorld("electron", {
   importSteamLibrary: () => ipcRenderer.invoke("importSteamLibrary"),
   updateSteamLibrary: () => ipcRenderer.invoke("updateSteamLibrary"),
   watchSteamLibrary: () => ipcRenderer.invoke("watchSteamLibrary"),
-  stopWatchingSteamLibrary: () => ipcRenderer.invoke("stopWatchingSteamLibrary"),
+  stopWatchingSteamLibrary: () =>
+    ipcRenderer.invoke("stopWatchingSteamLibrary"),
   toggleAutomaticCloudSync: (
     shop: GameShop,
     objectId: string,

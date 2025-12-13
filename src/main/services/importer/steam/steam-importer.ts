@@ -26,7 +26,7 @@ class SteamImporter {
   }
 
   async scanLibraries() {
-    var apps: Object[] = [];
+    const apps: Object[] = [];
     for (const library of this.steamLibraryPaths) {
       const libraryPath = path.join(library, "steamapps");
       // read all files in the directory /steamapps
