@@ -74,7 +74,8 @@ export default function Steam() {
   // Filtrar apenas jogos Steam importados
   const steamLibrary = useMemo(() => {
     return library.filter(
-      (game) => game.shop === "steam" && game.isImported === true && !game.isDeleted
+      (game) =>
+        game.shop === "steam" && game.isImported === true && !game.isDeleted
     );
   }, [library]);
 
@@ -235,4 +236,3 @@ export default function Steam() {
     </section>
   );
 }
-

@@ -339,7 +339,8 @@ export function Sidebar() {
                       <button
                         type="button"
                         className={cn("sidebar__steam-update-button", {
-                          "sidebar__steam-update-button--loading": isUpdatingSteam,
+                          "sidebar__steam-update-button--loading":
+                            isUpdatingSteam,
                         })}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -347,7 +348,9 @@ export function Sidebar() {
                         }}
                         disabled={isUpdatingSteam}
                         data-tooltip-id="update-steam-tooltip"
-                        data-tooltip-content={t("update_steam_library") || "Update Steam library"}
+                        data-tooltip-content={
+                          t("update_steam_library") || "Update Steam library"
+                        }
                         data-tooltip-place="right"
                       >
                         <SyncIcon size={14} />
