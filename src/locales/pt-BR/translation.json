@@ -408,7 +408,9 @@
     "delete_archive_title": "Deseja deletar {{fileName}}?",
     "delete_archive_description": "O arquivo foi extraído com sucesso e não é mais necessário.",
     "yes": "Sim",
-    "no": "Não"
+    "no": "Não",
+    "network": "REDE",
+    "peak": "PICO"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
