@@ -789,7 +789,8 @@ export function DownloadGroup({
     const gameSpeedHistory = speedHistory[dataKey] ?? [];
     const storedPeak = peakSpeeds[dataKey];
     // Use stored peak if available and > 0, otherwise use current speed as initial value
-    const peakSpeed = storedPeak !== undefined && storedPeak > 0 ? storedPeak : downloadSpeed;
+    const peakSpeed =
+      storedPeak !== undefined && storedPeak > 0 ? storedPeak : downloadSpeed;
 
     let currentProgress = game.download?.progress || 0;
     if (isGameExtracting) {
