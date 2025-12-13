@@ -37,44 +37,28 @@ export function SettingsLibraryImport() {
     (state) => state.userPreferences.value
   );
 
-  const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
-  const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
+  console.log("userPreferences", userPreferences);
 
   const [form, setForm] = useState({
-    downloadsPath: "",
-    downloadNotificationsEnabled: false,
-    repackUpdatesNotificationsEnabled: false,
-    friendRequestNotificationsEnabled: false,
-    friendStartGameNotificationsEnabled: true,
-    achievementNotificationsEnabled: true,
-    achievementCustomNotificationsEnabled: true,
-    achievementCustomNotificationPosition:
-      "top-left" as AchievementCustomNotificationPosition,
-    achievementSoundVolume: 15,
-    language: "",
-    customStyles: window.localStorage.getItem("customStyles") || "",
+    syncSteamLibraryAutomatically:
+      userPreferences?.syncSteamLibraryAutomatically ?? false,
   });
 
-  const [steamLibraryImportProgress, setSteamLibraryImportProgress] =
-    useState<number>(0);
-
-  useEffect(() => {
-    const unlisten = window.electron.onSteamLibraryImportProgress(
-      (progress) => {
-        setSteamLibraryImportProgress(progress);
-      }
-    );
-
-    return () => unlisten();
-  }, []);
+  const handleChange = async (values: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...values }));
+    await updateUserPreferences(values);
+    if (values.syncSteamLibraryAutomatically) {
+      await window.electron.watchSteamLibrary();
+    } else {
+      await window.electron.stopWatchingSteamLibrary();
+    }
+  };
 
   const handleImportSteamLibrary = async () => {
-    setSteamLibraryImportProgress(0);
     try {
       await window.electron.importSteamLibrary();
     } catch (err) {
       logger.error(err);
-      setSteamLibraryImportProgress(0);
     }
   };
 
@@ -83,6 +67,16 @@ export function SettingsLibraryImport() {
       <ul className="settings-download-sources__list">
         <li className={`settings-download-sources__item`}>
           <h2>Steam</h2>
+          <CheckboxField
+            label={t("sync_steam_library_automatically")}
+            checked={form.syncSteamLibraryAutomatically}
+            onChange={() =>
+              handleChange({
+                syncSteamLibraryAutomatically:
+                  !form.syncSteamLibraryAutomatically,
+              })
+            }
+          />
           <Button theme="outline" onClick={() => handleImportSteamLibrary()}>
             Import library
           </Button>

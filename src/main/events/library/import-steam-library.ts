@@ -14,7 +14,7 @@ const importSteamLibrary = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<void> => {
   console.log("🔄️ Importing Steam library ");
-  const steamImporter = new SteamImporter();
+  const steamImporter = SteamImporter.getInstance();
   await steamImporter.initialize({ steamPath: undefined });
   const apps = await steamImporter.scanLibraries();
   for (const app of apps as any[]) {
@@ -38,7 +38,7 @@ const updateSteamLibrary = async (
   _event: Electron.IpcMainInvokeEvent
 ): Promise<number> => {
   console.log("🔄️ Updating Steam library ");
-  const steamImporter = new SteamImporter();
+  const steamImporter = SteamImporter.getInstance();
   await steamImporter.initialize({ steamPath: undefined });
   const apps = await steamImporter.scanLibraries();
 
@@ -116,5 +116,20 @@ const updateSteamLibrary = async (
   return newGamesCount;
 };
 
+const steamLibraryWatcher = async (_event: Electron.IpcMainInvokeEvent) => {
+  const steamImporter = SteamImporter.getInstance();
+  await steamImporter.initialize({ steamPath: undefined });
+  await steamImporter.startWatchers(() => updateSteamLibrary(_event));
+};
+
+const stopWatchingSteamLibrary = async (
+  _event: Electron.IpcMainInvokeEvent
+) => {
+  const steamImporter = SteamImporter.getInstance();
+  await steamImporter.stopWatchers();
+};
+
 registerEvent("importSteamLibrary", importSteamLibrary);
 registerEvent("updateSteamLibrary", updateSteamLibrary);
+registerEvent("watchSteamLibrary", steamLibraryWatcher);
+registerEvent("stopWatchingSteamLibrary", stopWatchingSteamLibrary);

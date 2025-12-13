@@ -13,6 +13,7 @@ const updateUserPreferences = async (
     levelKeys.userPreferences,
     { valueEncoding: "json" }
   );
+  console.log("userPreferences", userPreferences);
 
   if (preferences.language) {
     await db.put<string, string>(levelKeys.language, preferences.language, {
