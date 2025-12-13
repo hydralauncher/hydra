@@ -11,10 +11,12 @@ import { addMilliseconds } from "date-fns";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import {
   useAppSelector,
+  useAppDispatch,
   useDownload,
   useLibrary,
   useDate,
 } from "@renderer/hooks";
+import { updatePeakSpeed, clearPeakSpeed } from "@renderer/features";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
@@ -512,7 +514,8 @@ export function DownloadGroup({
 
   const { formatDistance } = useDate();
 
-  const [peakSpeeds, setPeakSpeeds] = useState<Record<string, number>>({});
+  const dispatch = useAppDispatch();
+  const peakSpeeds = useAppSelector((state) => state.download.peakSpeeds);
   const speedHistoryRef = useRef<Record<string, number[]>>({});
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
@@ -577,28 +580,23 @@ export function DownloadGroup({
   }, [library, lastPacket?.gameId]);
 
   useEffect(() => {
-    if (lastPacket?.gameId && lastPacket.downloadSpeed !== undefined) {
-      const gameId = lastPacket.gameId;
+    if (!lastPacket?.gameId || lastPacket.downloadSpeed === undefined) return;
 
-      const currentPeak = peakSpeeds[gameId] || 0;
-      if (lastPacket.downloadSpeed > currentPeak) {
-        setPeakSpeeds((prev) => ({
-          ...prev,
-          [gameId]: lastPacket.downloadSpeed,
-        }));
-      }
+    const gameId = lastPacket.gameId;
+    const downloadSpeed = lastPacket.downloadSpeed;
 
-      if (!speedHistoryRef.current[gameId]) {
-        speedHistoryRef.current[gameId] = [];
-      }
+    dispatch(updatePeakSpeed({ gameId, speed: downloadSpeed }));
 
-      speedHistoryRef.current[gameId].push(lastPacket.downloadSpeed);
-
-      if (speedHistoryRef.current[gameId].length > 120) {
-        speedHistoryRef.current[gameId].shift();
-      }
+    if (!speedHistoryRef.current[gameId]) {
+      speedHistoryRef.current[gameId] = [];
     }
-  }, [lastPacket?.gameId, lastPacket?.downloadSpeed, peakSpeeds]);
+
+    speedHistoryRef.current[gameId].push(downloadSpeed);
+
+    if (speedHistoryRef.current[gameId].length > 120) {
+      speedHistoryRef.current[gameId].shift();
+    }
+  }, [lastPacket, dispatch]);
 
   useEffect(() => {
     for (const game of library) {
@@ -610,11 +608,11 @@ export function DownloadGroup({
         // Fresh download - clear any old data
         if (speedHistoryRef.current[game.id]?.length > 0) {
           speedHistoryRef.current[game.id] = [];
-          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
+          dispatch(clearPeakSpeed(game.id));
         }
       }
     }
-  }, [library]);
+  }, [library, dispatch]);
 
   useEffect(() => {
     const timeouts: NodeJS.Timeout[] = [];
@@ -624,9 +622,10 @@ export function DownloadGroup({
         game.download?.progress === 1 &&
         speedHistoryRef.current[game.id]?.length > 0
       ) {
+        const gameId = game.id;
         const timeout = setTimeout(() => {
-          speedHistoryRef.current[game.id] = [];
-          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
+          speedHistoryRef.current[gameId] = [];
+          dispatch(clearPeakSpeed(gameId));
         }, 10_000);
         timeouts.push(timeout);
       }
@@ -637,7 +636,7 @@ export function DownloadGroup({
         clearTimeout(timeout);
       }
     };
-  }, [library]);
+  }, [library, dispatch]);
 
   useEffect(() => {
     if (library.length > 0 && title === t("download_in_progress")) {

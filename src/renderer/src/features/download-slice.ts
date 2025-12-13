@@ -12,6 +12,7 @@ export interface DownloadState {
   gameId: string | null;
   gamesWithDeletionInProgress: string[];
   extraction: ExtractionInfo | null;
+  peakSpeeds: Record<string, number>;
 }
 
 const initialState: DownloadState = {
@@ -19,6 +20,7 @@ const initialState: DownloadState = {
   gameId: null,
   gamesWithDeletionInProgress: [],
   extraction: null,
+  peakSpeeds: {},
 };
 
 export const downloadSlice = createSlice({
@@ -62,6 +64,19 @@ export const downloadSlice = createSlice({
     clearExtraction: (state) => {
       state.extraction = null;
     },
+    updatePeakSpeed: (
+      state,
+      action: PayloadAction<{ gameId: string; speed: number }>
+    ) => {
+      const { gameId, speed } = action.payload;
+      const currentPeak = state.peakSpeeds[gameId] || 0;
+      if (speed > currentPeak) {
+        state.peakSpeeds[gameId] = speed;
+      }
+    },
+    clearPeakSpeed: (state, action: PayloadAction<string>) => {
+      state.peakSpeeds[action.payload] = 0;
+    },
   },
 });
 
@@ -72,4 +87,6 @@ export const {
   removeGameFromDeleting,
   setExtractionProgress,
   clearExtraction,
+  updatePeakSpeed,
+  clearPeakSpeed,
 } = downloadSlice.actions;
