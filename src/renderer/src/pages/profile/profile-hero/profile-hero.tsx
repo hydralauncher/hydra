@@ -397,9 +397,11 @@ export function ProfileHero() {
                 className="profile-hero__button--wrapped"
               >
                 <TrophyIcon />
-                {t("view_wrapped_button", {
-                  displayName: userProfile.displayName,
-                })}
+                {isMe
+                  ? t("view_my_wrapped_button")
+                  : t("view_wrapped_button", {
+                      displayName: userProfile.displayName,
+                    })}
               </Button>
             </div>
           )}
