@@ -16,7 +16,7 @@ import {
   useLibrary,
   useDate,
 } from "@renderer/hooks";
-import { updatePeakSpeed, clearPeakSpeed } from "@renderer/features";
+import { clearPeakSpeed } from "@renderer/features";
 
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
@@ -585,8 +585,6 @@ export function DownloadGroup({
     const gameId = lastPacket.gameId;
     const downloadSpeed = lastPacket.downloadSpeed;
 
-    dispatch(updatePeakSpeed({ gameId, speed: downloadSpeed }));
-
     if (!speedHistoryRef.current[gameId]) {
       speedHistoryRef.current[gameId] = [];
     }
@@ -596,7 +594,7 @@ export function DownloadGroup({
     if (speedHistoryRef.current[gameId].length > 120) {
       speedHistoryRef.current[gameId].shift();
     }
-  }, [lastPacket, dispatch]);
+  }, [lastPacket]);
 
   useEffect(() => {
     for (const game of library) {

@@ -30,6 +30,15 @@ export const downloadSlice = createSlice({
     setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
       state.lastPacket = action.payload;
       if (!state.gameId && action.payload) state.gameId = action.payload.gameId;
+
+      // Track peak speed atomically when packet arrives
+      if (action.payload?.gameId && action.payload.downloadSpeed != null) {
+        const { gameId, downloadSpeed } = action.payload;
+        const currentPeak = state.peakSpeeds[gameId] || 0;
+        if (downloadSpeed > currentPeak) {
+          state.peakSpeeds[gameId] = downloadSpeed;
+        }
+      }
     },
     clearDownload: (state) => {
       state.lastPacket = null;
