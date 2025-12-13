@@ -8,6 +8,7 @@ import "./close-game";
 import "./copy-custom-game-asset";
 import "./create-game-shortcut";
 import "./create-steam-shortcut";
+import "./delete-archive";
 import "./delete-game-folder";
 import "./extract-game-download";
 import "./get-default-wine-prefix-selection-path";
