@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDate, useDownload } from "@renderer/hooks";
+import { useAppSelector, useDate, useDownload } from "@renderer/hooks";
 
 import { HeroPanelActions } from "./hero-panel-actions";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
@@ -18,8 +18,12 @@ export function HeroPanel() {
 
   const { lastPacket } = useDownload();
 
+  const extraction = useAppSelector((state) => state.download.extraction);
+
   const isGameDownloading =
     game?.download?.status === "active" && lastPacket?.gameId === game?.id;
+
+  const isExtracting = extraction?.visibleId === game?.id;
 
   const getInfo = () => {
     if (!game) {
@@ -49,6 +53,8 @@ export function HeroPanel() {
     (game?.download?.status === "active" && game?.download?.progress < 1) ||
     game?.download?.status === "paused";
 
+  const showExtractionProgressBar = isExtracting;
+
   return (
     <div className="hero-panel__container">
       <div className="hero-panel">
@@ -70,6 +76,14 @@ export function HeroPanel() {
                 ? "hero-panel__progress-bar--disabled"
                 : ""
             }`}
+          />
+        )}
+
+        {showExtractionProgressBar && (
+          <progress
+            max={1}
+            value={extraction?.progress ?? 0}
+            className="hero-panel__progress-bar hero-panel__progress-bar--extraction"
           />
         )}
       </div>
