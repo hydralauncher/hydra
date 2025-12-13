@@ -13,6 +13,7 @@
   },
   "sidebar": {
     "catalogue": "Catalogue",
+    "steam": "Steam",
     "library": "Library",
     "downloads": "Downloads",
     "settings": "Settings",
@@ -88,6 +89,10 @@
     "decky_plugin_installed": "Decky plugin v{{version}} installed successfully",
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
+    "update_steam_library": "Update Steam library",
+    "steam_library_updated": "{{count}} new game(s) imported",
+    "steam_library_up_to_date": "Steam library is up to date",
+    "steam_library_update_failed": "Failed to update Steam library",
     "confirm": "Confirm",
     "cancel": "Cancel"
   },

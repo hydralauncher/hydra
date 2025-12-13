@@ -26,12 +26,14 @@ import {
   CommentDiscussionIcon,
   PlayIcon,
   PlusIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { useDispatch } from "react-redux";
 import deckyIcon from "@renderer/assets/icons/decky.png";
+import { logger } from "@renderer/logger";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -78,6 +80,7 @@ export function Sidebar() {
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const [isUpdatingSteam, setIsUpdatingSteam] = useState(false);
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
@@ -274,6 +277,29 @@ export function Sidebar() {
     return sortedLibrary.filter((game) => game.favorite);
   }, [sortedLibrary]);
 
+  const handleUpdateSteamLibrary = async () => {
+    setIsUpdatingSteam(true);
+    try {
+      const newGamesCount = await window.electron.updateSteamLibrary();
+      updateLibrary();
+      if (newGamesCount > 0) {
+        showSuccessToast(
+          t("steam_library_updated", { count: newGamesCount }) ||
+            `${newGamesCount} new games imported`
+        );
+      } else {
+        showSuccessToast(
+          t("steam_library_up_to_date") || "Steam library is up to date"
+        );
+      }
+    } catch (error) {
+      showErrorToast(t("steam_library_update_failed") || "Failed to update");
+      logger.error("Failed to update Steam library:", error);
+    } finally {
+      setIsUpdatingSteam(false);
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -300,14 +326,34 @@ export function Sidebar() {
                     "sidebar__menu-item--active": location.pathname === path,
                   })}
                 >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={() => handleSidebarItemClick(path)}
-                  >
-                    {render()}
-                    <span>{t(nameKey)}</span>
-                  </button>
+                  <div className="sidebar__menu-item-container">
+                    <button
+                      type="button"
+                      className="sidebar__menu-item-button"
+                      onClick={() => handleSidebarItemClick(path)}
+                    >
+                      {render()}
+                      <span>{t(nameKey)}</span>
+                    </button>
+                    {nameKey === "steam" && (
+                      <button
+                        type="button"
+                        className={cn("sidebar__steam-update-button", {
+                          "sidebar__steam-update-button--loading": isUpdatingSteam,
+                        })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateSteamLibrary();
+                        }}
+                        disabled={isUpdatingSteam}
+                        data-tooltip-id="update-steam-tooltip"
+                        data-tooltip-content={t("update_steam_library") || "Update Steam library"}
+                        data-tooltip-place="right"
+                      >
+                        <SyncIcon size={14} />
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
               {window.electron.platform === "linux" && homebrewFolderExists && (
@@ -457,6 +503,7 @@ export function Sidebar() {
 
       <Tooltip id="add-custom-game-tooltip" />
       <Tooltip id="show-playable-only-tooltip" />
+      <Tooltip id="update-steam-tooltip" />
     </aside>
   );
 }

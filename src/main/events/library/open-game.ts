@@ -6,6 +6,10 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import { parseLaunchOptions } from "../helpers/parse-launch-options";
 
+const isProtocol = (path: string): boolean => {
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path);
+};
+
 const openGame = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -28,6 +32,13 @@ const openGame = async (
     launchOptions,
   });
 
+  // Se for um protocolo (steam://, uplay://, etc.), usa shell.openExternal
+  if (isProtocol(parsedPath)) {
+    shell.openExternal(parsedPath);
+    return;
+  }
+
+  // Se for um caminho real de executável
   if (parsedParams.length === 0) {
     shell.openPath(parsedPath);
     return;

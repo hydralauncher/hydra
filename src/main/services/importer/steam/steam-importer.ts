@@ -28,6 +28,21 @@ class SteamImporter {
         const appmanifestPath = path.join(libraryPath, appmanifest);
         const appmanifestContent = fs.readFileSync(appmanifestPath, "utf8");
         const [_, app] = parseVDF(appmanifestContent) as [string, Object];
+
+        // Verify if the installation directory exists
+        // if doesnt exists, set isInstalled to false
+        const appData = app as any;
+        if (appData.installdir) {
+          const installDirPath = path.join(
+            libraryPath,
+            "common",
+            appData.installdir
+          );
+          appData.isInstalled = fs.existsSync(installDirPath);
+        } else {
+          appData.isInstalled = false;
+        }
+
         apps.push(app);
       }
     }

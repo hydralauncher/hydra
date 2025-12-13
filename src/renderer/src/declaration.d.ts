@@ -81,6 +81,7 @@ declare global {
 
     /* Library */
     importSteamLibrary: () => Promise<void>;
+    updateSteamLibrary: () => Promise<number>;
     onSteamLibraryImportProgress: (
       cb: (progress: number) => void
     ) => () => Electron.IpcRenderer;

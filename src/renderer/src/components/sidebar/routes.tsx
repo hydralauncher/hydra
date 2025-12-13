@@ -5,6 +5,7 @@ import {
   HomeIcon,
   BookIcon,
 } from "@primer/octicons-react";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 export const routes = [
   {
@@ -16,6 +17,11 @@ export const routes = [
     path: "/catalogue",
     nameKey: "catalogue",
     render: () => <AppsIcon />,
+  },
+  {
+    path: "/steam",
+    nameKey: "steam",
+    render: () => <SteamLogo width={16} height={16} />,
   },
   {
     path: "/library",

@@ -31,6 +31,7 @@ import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
+import Steam from "./pages/steam/steam";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 
 console.log = logger.log;
@@ -70,6 +71,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route element={<App />}>
             <Route path="/" element={<Home />} />
             <Route path="/catalogue" element={<Catalogue />} />
+            <Route path="/steam" element={<Steam />} />
             <Route path="/library" element={<Library />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/game/:shop/:objectId" element={<GameDetails />} />

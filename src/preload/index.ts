@@ -110,6 +110,7 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Library */
   importSteamLibrary: () => ipcRenderer.invoke("importSteamLibrary"),
+  updateSteamLibrary: () => ipcRenderer.invoke("updateSteamLibrary"),
   onSteamLibraryImportProgress: (cb: (progress: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: number) =>
       cb(progress);

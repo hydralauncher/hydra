@@ -90,6 +90,13 @@
     }
   }
 
+  &__menu-item-container {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    width: 100%;
+  }
+
   &__menu-item-button {
     color: inherit;
     display: flex;
@@ -97,7 +104,7 @@
     gap: globals.$spacing-unit;
     cursor: pointer;
     overflow: hidden;
-    width: 100%;
+    flex: 1;
     padding: 9px globals.$spacing-unit;
   }
 
@@ -226,5 +233,53 @@
     svg {
       display: block;
     }
+  }
+
+  &__steam-update-button {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    .sidebar__menu-item:hover & {
+      opacity: 1;
+    }
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &:active {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &--loading {
+      animation: spin 1s linear infinite;
+    }
+
+    svg {
+      display: block;
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
