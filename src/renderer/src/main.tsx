@@ -21,6 +21,7 @@ import resources from "@locales";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
+import { levelDBService } from "./services/leveldb.service";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
@@ -48,7 +49,11 @@ i18n
     },
   })
   .then(async () => {
-    const userPreferences = await window.electron.getUserPreferences();
+    const userPreferences = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as { language?: string } | null;
 
     if (userPreferences?.language) {
       i18n.changeLanguage(userPreferences.language);

@@ -3,7 +3,6 @@
 .downloads {
   &__container {
     display: flex;
-    padding: calc(globals.$spacing-unit * 3);
     flex-direction: column;
     width: 100%;
   }

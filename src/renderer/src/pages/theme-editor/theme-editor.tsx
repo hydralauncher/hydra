@@ -16,6 +16,7 @@ import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
+import { levelDBService } from "@renderer/services/leveldb.service";
 import app from "../../app.scss?inline";
 import styles from "../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
@@ -64,15 +65,16 @@ export default function ThemeEditor() {
 
   useEffect(() => {
     if (themeId) {
-      window.electron.getCustomThemeById(themeId).then((loadedTheme) => {
-        if (loadedTheme) {
-          setTheme(loadedTheme);
-          setCode(loadedTheme.code);
-          if (loadedTheme.originalSoundPath) {
-            setSoundPath(loadedTheme.originalSoundPath);
+      levelDBService.get(themeId, "themes").then((loadedTheme) => {
+        const theme = loadedTheme as Theme | null;
+        if (theme) {
+          setTheme(theme);
+          setCode(theme.code);
+          if (theme.originalSoundPath) {
+            setSoundPath(theme.originalSoundPath);
           }
           if (shadowRootRef) {
-            injectCustomCss(loadedTheme.code, shadowRootRef);
+            injectCustomCss(theme.code, shadowRootRef);
           }
         }
       });
@@ -132,7 +134,10 @@ export default function ThemeEditor() {
     if (filePaths && filePaths.length > 0) {
       const originalPath = filePaths[0];
       await window.electron.copyThemeAchievementSound(theme.id, originalPath);
-      const updatedTheme = await window.electron.getCustomThemeById(theme.id);
+      const updatedTheme = (await levelDBService.get(
+        theme.id,
+        "themes"
+      )) as Theme | null;
       if (updatedTheme) {
         setTheme(updatedTheme);
         if (updatedTheme.originalSoundPath) {
@@ -146,7 +151,10 @@ export default function ThemeEditor() {
     if (!theme) return;
 
     await window.electron.removeThemeAchievementSound(theme.id);
-    const updatedTheme = await window.electron.getCustomThemeById(theme.id);
+    const updatedTheme = (await levelDBService.get(
+      theme.id,
+      "themes"
+    )) as Theme | null;
     if (updatedTheme) {
       setTheme(updatedTheme);
     }

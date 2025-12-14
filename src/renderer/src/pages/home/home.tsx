@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { orderBy } from "lodash-es";
 import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Button, GameCard, Hero } from "@renderer/components";
-import type { ShopAssets, Steam250Game } from "@types";
+import type { DownloadSource, ShopAssets, Steam250Game } from "@types";
 
 import flameIconStatic from "@renderer/assets/icons/flame-static.png";
 import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
@@ -40,7 +42,10 @@ export default function Home() {
       setCurrentCatalogueCategory(category);
       setIsLoading(true);
 
-      const downloadSources = await window.electron.getDownloadSources();
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const downloadSources = orderBy(sources, "createdAt", "desc");
 
       const params = {
         take: 12,

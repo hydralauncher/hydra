@@ -36,16 +36,13 @@ export class GofileApi {
   }
 
   public static async getDownloadLink(id: string) {
-    const searchParams = new URLSearchParams({
-      wt: WT,
-    });
-
     const response = await axios.get<{
       status: string;
       data: GofileContentsResponse;
-    }>(`https://api.gofile.io/contents/${id}?${searchParams.toString()}`, {
+    }>(`https://api.gofile.io/contents/${id}`, {
       headers: {
         Authorization: `Bearer ${this.token}`,
+        "X-Website-Token": WT,
       },
     });
 

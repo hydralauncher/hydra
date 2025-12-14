@@ -15,7 +15,7 @@ import {
   TextField,
   CheckboxField,
 } from "@renderer/components";
-import type { DownloadSource, GameRepack } from "@types";
+import type { DownloadSource, Game, GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
@@ -23,6 +23,8 @@ import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
 import { useDate, useFeature, useAppDispatch } from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { getGameKey } from "@renderer/helpers";
 import "./repacks-modal.scss";
 
 export interface RepacksModalProps {
@@ -98,8 +100,11 @@ export function RepacksModal({
 
   useEffect(() => {
     const fetchDownloadSources = async () => {
-      const sources = await window.electron.getDownloadSources();
-      setDownloadSources(sources);
+      const sources = (await levelDBService.values(
+        "downloadSources"
+      )) as DownloadSource[];
+      const sorted = orderBy(sources, "createdAt", "desc");
+      setDownloadSources(sorted);
     };
 
     fetchDownloadSources();
@@ -109,10 +114,19 @@ export function RepacksModal({
     const fetchLastCheckTimestamp = async () => {
       setIsLoadingTimestamp(true);
 
-      const timestamp = await window.electron.getDownloadSourcesSinceValue();
+      try {
+        const timestamp = (await levelDBService.get(
+          "downloadSourcesSinceValue",
+          null,
+          "utf8"
+        )) as string | null;
 
-      setLastCheckTimestamp(timestamp);
-      setIsLoadingTimestamp(false);
+        setLastCheckTimestamp(timestamp);
+      } catch {
+        setLastCheckTimestamp(null);
+      } finally {
+        setIsLoadingTimestamp(false);
+      }
     };
 
     if (visible) {
@@ -126,7 +140,20 @@ export function RepacksModal({
       game?.newDownloadOptionsCount &&
       game.newDownloadOptionsCount > 0
     ) {
-      globalThis.electron.clearNewDownloadOptions(game.shop, game.objectId);
+      const gameKey = getGameKey(game.shop, game.objectId);
+      levelDBService
+        .get(gameKey, "games")
+        .then((gameData) => {
+          if (gameData) {
+            const updated = {
+              ...(gameData as Game),
+              newDownloadOptionsCount: undefined,
+            };
+            return levelDBService.put(gameKey, updated, "games");
+          }
+          return Promise.resolve();
+        })
+        .catch(() => {});
 
       const gameId = `${game.shop}:${game.objectId}`;
       dispatch(clearNewDownloadOptions({ gameId }));
@@ -204,9 +231,19 @@ export function RepacksModal({
       return false;
     }
 
-    const lastCheckUtc = new Date(lastCheckTimestamp).toISOString();
+    try {
+      const lastCheckDate = new Date(lastCheckTimestamp);
 
-    return repack.createdAt > lastCheckUtc;
+      if (isNaN(lastCheckDate.getTime())) {
+        return false;
+      }
+
+      const lastCheckUtc = lastCheckDate.toISOString();
+
+      return repack.createdAt > lastCheckUtc;
+    } catch {
+      return false;
+    }
   };
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);

@@ -14,10 +14,6 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
-  type ElectronAPI = {
-    refreshLibraryAssets?: () => Promise<unknown>;
-    onLibraryBatchComplete?: (cb: () => void) => () => void;
-  };
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const savedViewMode = localStorage.getItem("library-view-mode");
@@ -41,22 +37,15 @@ export default function Library() {
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
-    const electron = (globalThis as unknown as { electron?: ElectronAPI })
-      .electron;
-    let unsubscribe: () => void = () => undefined;
-    if (electron?.refreshLibraryAssets) {
-      electron
-        .refreshLibraryAssets()
-        .then(() => updateLibrary())
-        .catch(() => updateLibrary());
-      if (electron.onLibraryBatchComplete) {
-        unsubscribe = electron.onLibraryBatchComplete(() => {
-          updateLibrary();
-        });
-      }
-    } else {
+
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
       updateLibrary();
-    }
+    });
+
+    window.electron
+      .refreshLibraryAssets()
+      .then(() => updateLibrary())
+      .catch(() => updateLibrary());
 
     return () => {
       unsubscribe();
@@ -87,7 +76,13 @@ export default function Library() {
 
     switch (filterBy) {
       case "recently_played":
-        filtered = library.filter((game) => game.lastTimePlayed !== null);
+        filtered = library
+          .filter((game) => game.lastTimePlayed !== null)
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.lastTimePlayed).getTime() -
+              new Date(a.lastTimePlayed).getTime()
+          );
         break;
       case "favorites":
         filtered = library.filter((game) => game.favorite);

@@ -93,11 +93,19 @@
   },
   "header": {
     "search": "Buscar jogos",
+    "search_library": "Buscar na biblioteca",
+    "recent_searches": "Buscas Recentes",
+    "suggestions": "Sugestões",
+    "clear_history": "Limpar",
+    "remove_from_history": "Remover do histórico",
+    "loading": "Carregando...",
+    "no_results": "Sem resultados",
+    "home": "Início",
     "catalogue": "Catálogo",
+    "library": "Biblioteca",
     "downloads": "Downloads",
     "search_results": "Resultados da busca",
     "settings": "Ajustes",
-    "home": "Início",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
     "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
   },
@@ -107,6 +115,7 @@
     "downloading": "Baixando {{title}}… ({{percentage}} concluído) - Conclusão {{eta}} - {{speed}}",
     "calculating_eta": "Baixando {{title}}… ({{percentage}} concluído) - Calculando tempo restante…",
     "checking_files": "Verificando arquivos de {{title}}…",
+    "extracting": "Extraindo {{title}}… ({{percentage}} concluído)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Instalação concluída",
     "installation_complete_message": "Componentes recomendados instalados com sucesso"
@@ -182,6 +191,7 @@
     "danger_zone_section_description": "Remova o jogo da sua biblioteca ou os arquivos que foram baixados pelo Hydra",
     "download_in_progress": "Download em andamento",
     "download_paused": "Download pausado",
+    "extracting": "Extraindo",
     "last_downloaded_option": "Última opção baixada",
     "new_download_option": "Novo",
     "create_steam_shortcut": "Criar atalho na Steam",
@@ -394,7 +404,11 @@
     "resume_seeding": "Semear",
     "options": "Gerenciar",
     "extract": "Extrair arquivos",
-    "extracting": "Extraindo arquivos…"
+    "extracting": "Extraindo arquivos…",
+    "delete_archive_title": "Deseja deletar {{fileName}}?",
+    "delete_archive_description": "O arquivo foi extraído com sucesso e não é mais necessário.",
+    "yes": "Sim",
+    "no": "Não"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
