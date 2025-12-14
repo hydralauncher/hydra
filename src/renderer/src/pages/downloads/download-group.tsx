@@ -412,10 +412,12 @@ function HeroDownloadView({
                 </div>
               )}
 
-            {game.download?.downloader && (
+            {game.download?.downloader !== undefined && (
               <div className="download-group__stat-item">
                 <div className="download-group__stat-content">
-                  <Badge>{DOWNLOADER_NAME[game.download.downloader]}</Badge>
+                  <Badge>
+                    {DOWNLOADER_NAME[Number(game.download.downloader)]}
+                  </Badge>
                 </div>
               </div>
             )}
@@ -856,7 +858,9 @@ export function DownloadGroup({
                 </button>
                 <div className="download-group__simple-meta">
                   <div className="download-group__simple-meta-row">
-                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
+                    <Badge>
+                      {DOWNLOADER_NAME[Number(game.download!.downloader)]}
+                    </Badge>
                   </div>
                   <div className="download-group__simple-meta-row">
                     {extraction?.visibleId === game.id ? (
