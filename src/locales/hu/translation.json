@@ -416,7 +416,7 @@
     "resume_seeding": "Seedelés folytatása",
     "options": "Kezelés",
     "extract": "Fájlok kibontása",
-    "extracting": "Fájlok kibontása…"
+    "extracting": "Fájlok kibontása…",
     "delete_archive_title": "Szeretnéd törölni ezt a fájlt? {{fileName}}",
     "delete_archive_description": "A tömörített fájl ki lett csomagolva, s többé nincs rá szükség. ",
     "yes": "Igen",
