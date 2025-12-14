@@ -94,6 +94,12 @@
   "header": {
     "search": "Search games",
     "search_library": "Search library",
+    "recent_searches": "Recent Searches",
+    "suggestions": "Suggestions",
+    "clear_history": "Clear",
+    "remove_from_history": "Remove from history",
+    "loading": "Loading...",
+    "no_results": "No results",
     "home": "Home",
     "catalogue": "Catalogue",
     "library": "Library",
@@ -109,6 +115,7 @@
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
+    "extracting": "Extracting {{title}}… ({{percentage}} complete)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Installation complete",
     "installation_complete_message": "Common redistributables installed successfully"
@@ -196,6 +203,7 @@
     "danger_zone_section_description": "Remove this game from your library or the files downloaded by Hydra",
     "download_in_progress": "Download in progress",
     "download_paused": "Download paused",
+    "extracting": "Extracting",
     "last_downloaded_option": "Last downloaded option",
     "new_download_option": "New",
     "create_steam_shortcut": "Create Steam shortcut",
@@ -408,7 +416,11 @@
     "resume_seeding": "Resume seeding",
     "options": "Manage",
     "extract": "Extract files",
-    "extracting": "Extracting files…"
+    "extracting": "Extracting files…",
+    "delete_archive_title": "Would you like to delete {{fileName}}?",
+    "delete_archive_description": "The file has been successfully extracted and it's no longer needed.",
+    "yes": "Yes",
+    "no": "No"
   },
   "settings": {
     "downloads_path": "Downloads path",

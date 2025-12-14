@@ -30,7 +30,7 @@ export class HydraApi {
   private static instance: AxiosInstance;
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
-  private static readonly ADD_LOG_INTERCEPTOR = true;
+  private static readonly ADD_LOG_INTERCEPTOR = false;
 
   private static secondsToMilliseconds(seconds: number) {
     return seconds * 1000;
@@ -58,7 +58,13 @@ export class HydraApi {
     const decodedBase64 = atob(payload as string);
     const jsonData = JSON.parse(decodedBase64);
 
-    const { accessToken, expiresIn, refreshToken } = jsonData;
+    const {
+      accessToken,
+      expiresIn,
+      refreshToken,
+      featurebaseJwt,
+      workwondersJwt,
+    } = jsonData;
 
     const now = new Date();
 
@@ -85,6 +91,8 @@ export class HydraApi {
         accessToken,
         refreshToken,
         tokenExpirationTimestamp,
+        featurebaseJwt,
+        workwondersJwt,
       },
       { valueEncoding: "json" }
     );

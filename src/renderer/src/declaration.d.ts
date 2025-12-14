@@ -208,6 +208,13 @@ declare global {
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
+    onExtractionProgress: (
+      cb: (shop: GameShop, objectId: string, progress: number) => void
+    ) => () => Electron.IpcRenderer;
+    onArchiveDeletionPrompt: (
+      cb: (archivePaths: string[]) => void
+    ) => () => Electron.IpcRenderer;
+    deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
     createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 
@@ -438,6 +445,25 @@ declare global {
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
     ) => () => Electron.IpcRenderer;
+
+    /* LevelDB Generic CRUD */
+    leveldb: {
+      get: (
+        key: string,
+        sublevelName?: string | null,
+        valueEncoding?: "json" | "utf8"
+      ) => Promise<unknown>;
+      put: (
+        key: string,
+        value: unknown,
+        sublevelName?: string | null,
+        valueEncoding?: "json" | "utf8"
+      ) => Promise<void>;
+      del: (key: string, sublevelName?: string | null) => Promise<void>;
+      clear: (sublevelName: string) => Promise<void>;
+      values: (sublevelName: string) => Promise<unknown[]>;
+      iterator: (sublevelName: string) => Promise<[string, unknown][]>;
+    };
   }
 
   interface Window {
