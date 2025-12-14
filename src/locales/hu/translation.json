@@ -94,7 +94,7 @@
   "header": {
     "search": "Keresés",
     "search_library": "Könyvtár böngészése",
-	"recent_searches": "Korábbi Keresések",
+    "recent_searches": "Korábbi Keresések",
     "suggestions": "Találatok",
     "clear_history": "Törlés",
     "remove_from_history": "Törlés az előzményekből",
@@ -420,7 +420,7 @@
     "delete_archive_title": "Szeretnéd törölni ezt a fájlt? {{fileName}}",
     "delete_archive_description": "A tömörített fájl ki lett csomagolva, s többé nincs rá szükség. ",
     "yes": "Igen",
-    "no": "Nem"																 	  
+    "no": "Nem"
   },
   "settings": {
     "downloads_path": "Letöltési útvonalak",
