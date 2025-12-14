@@ -389,7 +389,7 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
-          {userProfile && (
+          {userProfile?.hasCompletedWrapped2025 && (
             <div className="profile-hero__left-actions">
               <Button
                 theme="outline"
