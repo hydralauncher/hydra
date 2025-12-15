@@ -11,11 +11,20 @@ interface SteamApp {
 }
 
 class SteamImporter {
+  private static instance: SteamImporter;
   private steamInstallPath: string;
   private steamLibraryPaths: string[];
+  private watchers: Map<string, fs.FSWatcher> = new Map();
 
-  constructor() {
-    // Constructor intentionally empty
+  private constructor() {
+    this.watchers = new Map();
+  }
+
+  static getInstance(): SteamImporter {
+    if (!SteamImporter.instance) {
+      SteamImporter.instance = new SteamImporter();
+    }
+    return SteamImporter.instance;
   }
 
   async initialize({ steamPath }: { steamPath: string | undefined }) {
@@ -59,6 +68,27 @@ class SteamImporter {
       }
     }
     return apps;
+  }
+
+  async startWatchers(callback: (library: string) => void) {
+    if (this.watchers.size > 0) this.stopWatchers();
+
+    // start a watcher for each library path
+    for (const library of this.steamLibraryPaths) {
+      const libraryPath = path.join(library, "steamapps");
+      const watcher = fs.watch(libraryPath, (_event, _filename) => {
+        callback(libraryPath);
+      });
+      this.watchers.set(library, watcher);
+    }
+    console.log("🔄️ Steam library watchers started");
+  }
+
+  async stopWatchers() {
+    for (const [_, watcher] of this.watchers) {
+      watcher.close();
+    }
+    this.watchers.clear();
   }
 
   private async getSteamInstallPath() {

@@ -1,16 +1,34 @@
-import { useEffect } from "react";
-import { Button } from "@renderer/components";
+import { useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Button, CheckboxField } from "@renderer/components";
 import { logger } from "@renderer/logger";
+import { useAppSelector } from "@renderer/hooks";
+import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
 
 export function SettingsLibraryImport() {
-  useEffect(() => {
-    const unlisten = window.electron.onSteamLibraryImportProgress(() => {
-      // Progress handler
-    });
+  const { t } = useTranslation("settings");
 
-    return () => unlisten();
-  }, []);
+  const { updateUserPreferences } = useContext(settingsContext);
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const [form, setForm] = useState({
+    syncSteamLibraryAutomatically:
+      userPreferences?.syncSteamLibraryAutomatically ?? false,
+  });
+
+  const handleChange = async (values: Partial<typeof form>) => {
+    setForm((prev) => ({ ...prev, ...values }));
+    await updateUserPreferences(values);
+    if (values.syncSteamLibraryAutomatically) {
+      await window.electron.watchSteamLibrary();
+    } else {
+      await window.electron.stopWatchingSteamLibrary();
+    }
+  };
 
   const handleImportSteamLibrary = async () => {
     try {
@@ -25,6 +43,16 @@ export function SettingsLibraryImport() {
       <ul className="settings-download-sources__list">
         <li className={`settings-download-sources__item`}>
           <h2>Steam</h2>
+          <CheckboxField
+            label={t("sync_steam_library_automatically")}
+            checked={form.syncSteamLibraryAutomatically}
+            onChange={() =>
+              handleChange({
+                syncSteamLibraryAutomatically:
+                  !form.syncSteamLibraryAutomatically,
+              })
+            }
+          />
           <Button theme="outline" onClick={() => handleImportSteamLibrary()}>
             Import library
           </Button>
