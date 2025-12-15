@@ -81,7 +81,6 @@ class SteamImporter {
       });
       this.watchers.set(library, watcher);
     }
-    console.log("Steam library watchers started");
   }
 
   async stopWatchers() {

@@ -31,4 +31,3 @@ export const useSteamLibraryUpdate = () => {
     return () => unlisten();
   }, [updateLibrary, showSuccessToast, t]);
 };
-

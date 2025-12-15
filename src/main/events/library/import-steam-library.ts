@@ -8,7 +8,6 @@ import { getGameShopDetails } from "../catalogue/get-game-shop-details";
 export const updateSteamLibrary = async (
   _event?: Electron.IpcMainInvokeEvent
 ): Promise<number> => {
-  console.log("Updating Steam library");
   const steamImporter = SteamImporter.getInstance();
   await steamImporter.initialize({ steamPath: undefined });
   const apps = await steamImporter.scanLibraries();
@@ -84,11 +83,6 @@ export const updateSteamLibrary = async (
       }
     }
   }
-
-  console.log(
-    `Steam library updated. ${newGamesCount} new games imported, ${removedGamesCount} games removed`
-  );
-
   // Enviar evento IPC para o renderer atualizar a interface
   WindowManager.mainWindow?.webContents.send("on-steam-library-updated", {
     newGamesCount,
