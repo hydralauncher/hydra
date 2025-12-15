@@ -3,19 +3,28 @@ import { SystemPath } from "../../system-path";
 import fs from "node:fs";
 import parseVDF from "./parse-VDF";
 
+interface SteamApp {
+  appid: string;
+  name: string;
+  installdir?: string;
+  isInstalled?: boolean;
+}
+
 class SteamImporter {
   private steamInstallPath: string;
   private steamLibraryPaths: string[];
 
-  constructor() {}
+  constructor() {
+    // Constructor intentionally empty
+  }
 
   async initialize({ steamPath }: { steamPath: string | undefined }) {
     this.steamInstallPath = steamPath ?? (await this.getSteamInstallPath());
     this.steamLibraryPaths = await this.getSteamLibraryPaths();
   }
 
-  async scanLibraries() {
-    var apps: Object[] = [];
+  async scanLibraries(): Promise<SteamApp[]> {
+    const apps: SteamApp[] = [];
     for (const library of this.steamLibraryPaths) {
       const libraryPath = path.join(library, "steamapps");
       // read all files in the directory /steamapps
@@ -27,11 +36,14 @@ class SteamImporter {
       for (const appmanifest of appmanifests) {
         const appmanifestPath = path.join(libraryPath, appmanifest);
         const appmanifestContent = fs.readFileSync(appmanifestPath, "utf8");
-        const [_, app] = parseVDF(appmanifestContent) as [string, Object];
+        const [_, app] = parseVDF(appmanifestContent) as [
+          string,
+          Record<string, unknown>,
+        ];
 
         // Verify if the installation directory exists
         // if doesnt exists, set isInstalled to false
-        const appData = app as any;
+        const appData = app as unknown as SteamApp;
         if (appData.installdir) {
           const installDirPath = path.join(
             libraryPath,
@@ -43,7 +55,7 @@ class SteamImporter {
           appData.isInstalled = false;
         }
 
-        apps.push(app);
+        apps.push(appData);
       }
     }
     return apps;
@@ -92,7 +104,9 @@ class SteamImporter {
     );
     const libraryFolders = fs.readFileSync(libraryFoldersPath, "utf8");
     const [_, libraries] = parseVDF(libraryFolders);
-    return (libraries as any).map((library) => library.path);
+    return (libraries as Array<{ path: string }>).map(
+      (library) => library.path
+    );
   }
 }
 

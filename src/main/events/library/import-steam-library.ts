@@ -1,12 +1,5 @@
-import type { LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
-import {
-  downloadsSublevel,
-  gameAchievementsSublevel,
-  gamesShopAssetsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "@main/level";
+import { gamesSublevel, levelKeys } from "@main/level";
 import addGameToLibrary from "./add-game-to-library";
 import SteamImporter from "@main/services/importer/steam/steam-importer";
 
