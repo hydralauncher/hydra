@@ -3,6 +3,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import addGameToLibrary from "./add-game-to-library";
 import SteamImporter from "@main/services/importer/steam/steam-importer";
 import { WindowManager } from "@main/services/window-manager";
+import { getGameShopDetails } from "../catalogue/get-game-shop-details";
 
 export const updateSteamLibrary = async (
   _event?: Electron.IpcMainInvokeEvent
@@ -65,6 +66,8 @@ export const updateSteamLibrary = async (
       });
       newGamesCount++;
     }
+
+    await getGameShopDetails(event, app.appid, "steam", "english");
   }
 
   // Remover jogos desinstalados

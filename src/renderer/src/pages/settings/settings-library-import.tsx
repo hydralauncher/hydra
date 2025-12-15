@@ -4,7 +4,9 @@ import { Button, CheckboxField } from "@renderer/components";
 import { logger } from "@renderer/logger";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import "./settings-general.scss";
+import "./settings-library-import.scss";
 
 export function SettingsLibraryImport() {
   const { t } = useTranslation("settings");
@@ -42,7 +44,10 @@ export function SettingsLibraryImport() {
     <div className="settings-general">
       <ul className="settings-download-sources__list">
         <li className={`settings-download-sources__item`}>
-          <h2>{t("steam")}</h2>
+          <h2 className="settings-library-import__steam-title">
+            <SteamLogo width={20} height={20} />
+            {t("steam")}
+          </h2>
           <CheckboxField
             label={t("sync_steam_library_automatically")}
             checked={form.syncSteamLibraryAutomatically}
