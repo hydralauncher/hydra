@@ -10,6 +10,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import { useSteamLibraryUpdate } from "@renderer/hooks/use-steam-library-update";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -48,6 +49,9 @@ export function App() {
 
   // Listen for new download options updates
   useDownloadOptionsListener();
+
+  // Listen for Steam library updates
+  useSteamLibraryUpdate();
 
   const { t } = useTranslation("app");
 

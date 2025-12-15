@@ -2,35 +2,12 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import addGameToLibrary from "./add-game-to-library";
 import SteamImporter from "@main/services/importer/steam/steam-importer";
+import { WindowManager } from "@main/services/window-manager";
 
-const importSteamLibrary = async (
-  _event: Electron.IpcMainInvokeEvent
-): Promise<void> => {
-  console.log("🔄️ Importing Steam library ");
-  const steamImporter = SteamImporter.getInstance();
-  await steamImporter.initialize({ steamPath: undefined });
-  const apps = await steamImporter.scanLibraries();
-  for (const app of apps as any[]) {
-    const gameKey = levelKeys.game("steam", app.appid);
-    await addGameToLibrary(_event, "steam", app.appid, app.name);
-    const game = await gamesSublevel.get(gameKey);
-    if (game) {
-      console.log("Game", game);
-      await gamesSublevel.put(gameKey, {
-        ...game,
-        isImported: true,
-        executablePath: `steam://rungameid/${app.appid}`,
-      });
-    }
-  }
-
-  console.log("Steam library imported");
-};
-
-const updateSteamLibrary = async (
-  _event: Electron.IpcMainInvokeEvent
+export const updateSteamLibrary = async (
+  _event?: Electron.IpcMainInvokeEvent
 ): Promise<number> => {
-  console.log("🔄️ Updating Steam library ");
+  console.log("Updating Steam library");
   const steamImporter = SteamImporter.getInstance();
   await steamImporter.initialize({ steamPath: undefined });
   const apps = await steamImporter.scanLibraries();
@@ -76,7 +53,9 @@ const updateSteamLibrary = async (
 
     // Importar apenas jogos novos
     const gameKey = levelKeys.game("steam", app.appid);
-    await addGameToLibrary(_event, "steam", app.appid, app.name);
+    // Se não tiver evento (chamado pelo watcher), criar um objeto vazio
+    const event = _event || ({} as Electron.IpcMainInvokeEvent);
+    await addGameToLibrary(event, "steam", app.appid, app.name);
     const game = await gamesSublevel.get(gameKey);
     if (game) {
       await gamesSublevel.put(gameKey, {
@@ -104,15 +83,22 @@ const updateSteamLibrary = async (
   }
 
   console.log(
-    `✅ Steam library updated. ${newGamesCount} new games imported, ${removedGamesCount} games removed`
+    `Steam library updated. ${newGamesCount} new games imported, ${removedGamesCount} games removed`
   );
+
+  // Enviar evento IPC para o renderer atualizar a interface
+  WindowManager.mainWindow?.webContents.send("on-steam-library-updated", {
+    newGamesCount,
+    removedGamesCount,
+  });
+
   return newGamesCount;
 };
 
 const steamLibraryWatcher = async (_event: Electron.IpcMainInvokeEvent) => {
   const steamImporter = SteamImporter.getInstance();
   await steamImporter.initialize({ steamPath: undefined });
-  await steamImporter.startWatchers(() => updateSteamLibrary(_event));
+  await steamImporter.startWatchers(() => updateSteamLibrary());
 };
 
 const stopWatchingSteamLibrary = async (
@@ -122,7 +108,6 @@ const stopWatchingSteamLibrary = async (
   await steamImporter.stopWatchers();
 };
 
-registerEvent("importSteamLibrary", importSteamLibrary);
 registerEvent("updateSteamLibrary", updateSteamLibrary);
 registerEvent("watchSteamLibrary", steamLibraryWatcher);
 registerEvent("stopWatchingSteamLibrary", stopWatchingSteamLibrary);

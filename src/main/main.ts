@@ -33,6 +33,19 @@ export const loadState = async () => {
 
   await import("./events");
 
+  // verify if checkbox is activated, if yes import and initialize watchers
+  if (userPreferences?.syncSteamLibraryAutomatically) {
+    const { default: SteamImporter } = await import(
+      "./services/importer/steam/steam-importer"
+    );
+    const { updateSteamLibrary } = await import(
+      "./events/library/import-steam-library"
+    );
+    const steamImporter = SteamImporter.getInstance();
+    await steamImporter.initialize({ steamPath: undefined });
+    await steamImporter.startWatchers(() => updateSteamLibrary());
+  }
+
   Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {

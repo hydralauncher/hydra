@@ -109,11 +109,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
   /* Library */
-  importSteamLibrary: () => ipcRenderer.invoke("importSteamLibrary"),
   updateSteamLibrary: () => ipcRenderer.invoke("updateSteamLibrary"),
   watchSteamLibrary: () => ipcRenderer.invoke("watchSteamLibrary"),
   stopWatchingSteamLibrary: () =>
     ipcRenderer.invoke("stopWatchingSteamLibrary"),
+  onSteamLibraryUpdated: (
+    cb: (data: { newGamesCount: number; removedGamesCount: number }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      data: { newGamesCount: number; removedGamesCount: number }
+    ) => cb(data);
+    ipcRenderer.on("on-steam-library-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-steam-library-updated", listener);
+  },
   toggleAutomaticCloudSync: (
     shop: GameShop,
     objectId: string,

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField } from "@renderer/components";
 import { logger } from "@renderer/logger";
@@ -32,7 +32,7 @@ export function SettingsLibraryImport() {
 
   const handleImportSteamLibrary = async () => {
     try {
-      await window.electron.importSteamLibrary();
+      await window.electron.updateSteamLibrary();
     } catch (err) {
       logger.error(err);
     }
@@ -42,7 +42,7 @@ export function SettingsLibraryImport() {
     <div className="settings-general">
       <ul className="settings-download-sources__list">
         <li className={`settings-download-sources__item`}>
-          <h2>Steam</h2>
+          <h2>{t("steam")}</h2>
           <CheckboxField
             label={t("sync_steam_library_automatically")}
             checked={form.syncSteamLibraryAutomatically}
@@ -54,7 +54,7 @@ export function SettingsLibraryImport() {
             }
           />
           <Button theme="outline" onClick={() => handleImportSteamLibrary()}>
-            Import library
+            {t("import_library")}
           </Button>
         </li>
       </ul>
