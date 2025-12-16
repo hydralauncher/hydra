@@ -82,6 +82,7 @@ export function Header() {
     if (location.pathname.startsWith("/game")) return headerTitle;
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
+    if (location.pathname.startsWith("/notifications")) return headerTitle;
     if (location.pathname.startsWith("/library"))
       return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");

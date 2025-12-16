@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
+import { BadgesBox } from "./badges-box";
 import { FriendsBox } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
@@ -429,6 +430,7 @@ export function ProfileContent() {
             <UserStatsBox />
             <UserKarmaBox />
             <RecentGamesBox />
+            <BadgesBox />
             <FriendsBox />
             <ReportProfile />
           </div>

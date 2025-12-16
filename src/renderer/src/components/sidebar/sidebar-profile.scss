@@ -46,6 +46,7 @@
     white-space: nowrap;
   }
 
+  &__notification-button,
   &__friends-button {
     color: globals.$muted-color;
     cursor: pointer;
@@ -62,6 +63,7 @@
     }
   }
 
+  &__notification-button-badge,
   &__friends-button-badge {
     background-color: globals.$success-color;
     display: flex;
@@ -73,6 +75,8 @@
     position: absolute;
     top: -5px;
     right: -5px;
+    font-size: 10px;
+    font-weight: bold;
   }
 
   &__game-running-icon {

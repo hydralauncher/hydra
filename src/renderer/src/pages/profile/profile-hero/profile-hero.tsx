@@ -3,6 +3,7 @@ import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
   CheckCircleFillIcon,
+  CopyIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
@@ -24,7 +25,6 @@ import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
-import { Tooltip } from "react-tooltip";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -35,14 +35,8 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
-  const {
-    isMe,
-    badges,
-    getUserProfile,
-    userProfile,
-    heroBackground,
-    backgroundImage,
-  } = useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -251,6 +245,13 @@ export function ProfileHero() {
     }
   }, [isMe]);
 
+  const copyFriendCode = useCallback(() => {
+    if (userProfile?.id) {
+      navigator.clipboard.writeText(userProfile.id);
+      showSuccessToast(t("friend_code_copied"));
+    }
+  }, [userProfile, showSuccessToast, t]);
+
   const currentGame = useMemo(() => {
     if (isMe) {
       if (gameRunning)
@@ -311,28 +312,14 @@ export function ProfileHero() {
                     {userProfile?.displayName}
                   </h2>
 
-                  <div className="profile-hero__badges">
-                    {userProfile.badges.map((badgeName) => {
-                      const badge = badges.find((b) => b.name === badgeName);
-
-                      if (!badge) return null;
-
-                      return (
-                        <img
-                          key={badge.name}
-                          src={badge.badge.url}
-                          alt={badge.name}
-                          width={24}
-                          height={24}
-                          data-tooltip-place="top"
-                          data-tooltip-content={badge.description}
-                          data-tooltip-id="badge-name"
-                        />
-                      );
-                    })}
-
-                    <Tooltip id="badge-name" />
-                  </div>
+                  <button
+                    type="button"
+                    className="profile-hero__copy-button"
+                    onClick={copyFriendCode}
+                    title={t("copy_friend_code")}
+                  >
+                    <CopyIcon size={16} />
+                  </button>
                 </div>
               ) : (
                 <Skeleton width={150} height={28} />
