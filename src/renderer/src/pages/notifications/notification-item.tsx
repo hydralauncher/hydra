@@ -177,6 +177,11 @@ export function NotificationItem({
         "notification-item--unread": !notification.isRead,
       })}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          handleClick();
+        }
+      }}
       role="button"
       tabIndex={0}
     >
