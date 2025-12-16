@@ -76,6 +76,7 @@ export function AllFriendsModal({
       setHasMore(true);
       fetchFriends(0, false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, userId]);
 
   const handleScroll = useCallback(() => {
@@ -152,6 +153,11 @@ export function AllFriendsModal({
                 key={friend.id}
                 className="all-friends-modal__item"
                 onClick={() => handleFriendClick(friend.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    handleFriendClick(friend.id);
+                  }
+                }}
                 role="button"
                 tabIndex={0}
               >
