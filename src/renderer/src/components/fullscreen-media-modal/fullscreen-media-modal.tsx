@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
