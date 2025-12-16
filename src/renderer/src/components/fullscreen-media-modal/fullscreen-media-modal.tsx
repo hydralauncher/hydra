@@ -65,7 +65,7 @@ export function FullscreenMediaModal({
 
   return createPortal(
     <Backdrop>
-      <div className="fullscreen-media-modal" role="dialog" aria-label={alt}>
+      <dialog className="fullscreen-media-modal" open aria-label={alt}>
         <button
           type="button"
           onClick={onClose}
@@ -81,7 +81,7 @@ export function FullscreenMediaModal({
         >
           <img src={src} alt={alt} className="fullscreen-media-modal__image" />
         </div>
-      </div>
+      </dialog>
     </Backdrop>,
     document.body
   );
