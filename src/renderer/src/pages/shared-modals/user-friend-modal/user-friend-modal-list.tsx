@@ -2,7 +2,7 @@ import type { UserFriend } from "@types";
 import { useEffect, useRef, useState } from "react";
 import { UserFriendItem } from "./user-friend-item";
 import { useNavigate } from "react-router-dom";
-import { useToast, useUserDetails } from "@renderer/hooks";
+import { useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "./user-friend-modal-list.scss";
@@ -19,7 +19,6 @@ export const UserFriendModalList = ({
   closeModal,
 }: UserFriendModalListProps) => {
   const { t } = useTranslation("user_profile");
-  const { showErrorToast } = useToast();
   const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
@@ -28,7 +27,7 @@ export const UserFriendModalList = ({
   const [friends, setFriends] = useState<UserFriend[]>([]);
   const listContainer = useRef<HTMLDivElement>(null);
 
-  const { userDetails, undoFriendship } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const isMe = userDetails?.id == userId;
 
   const loadNextPage = () => {
@@ -88,16 +87,6 @@ export const UserFriendModalList = ({
     navigate(`/profile/${userId}`);
   };
 
-  const handleUndoFriendship = (userId: string) => {
-    undoFriendship(userId)
-      .then(() => {
-        reloadList();
-      })
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
       <div ref={listContainer} className="user-friend-modal-list">
@@ -108,8 +97,7 @@ export const UserFriendModalList = ({
             displayName={friend.displayName}
             profileImageUrl={friend.profileImageUrl}
             onClickItem={handleClickFriend}
-            onClickUndoFriendship={handleUndoFriendship}
-            type={isMe ? "ACCEPTED" : null}
+            type={null}
             key={"modal" + friend.id}
           />
         ))}

@@ -1,0 +1,54 @@
+@use "../../../scss/globals.scss";
+
+.add-friend-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  width: 100%;
+  min-width: 400px;
+
+  &__actions {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: globals.$spacing-unit;
+  }
+
+  &__button {
+    align-self: flex-end;
+    white-space: nowrap;
+  }
+
+  &__pending-status {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    text-align: center;
+    padding: calc(globals.$spacing-unit / 2);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-top: calc(globals.$spacing-unit * -1);
+  }
+
+  &__pending-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+
+    h3 {
+      margin: 0;
+      font-size: globals.$body-font-size;
+      font-weight: 600;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__pending-list {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: globals.$spacing-unit;
+  }
+}

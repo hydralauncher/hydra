@@ -2,9 +2,11 @@ import { userProfileContext } from "@renderer/context";
 import { useFormat, useUserDetails } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PlusIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar, Link } from "@renderer/components";
 import { AllFriendsModal } from "./all-friends-modal";
+import { AddFriendModal } from "./add-friend-modal";
 import "./friends-box.scss";
 
 export function FriendsBox() {
@@ -13,6 +15,7 @@ export function FriendsBox() {
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
   const [showAllFriendsModal, setShowAllFriendsModal] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -45,13 +48,16 @@ export function FriendsBox() {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            className="friends-box__view-all"
-            onClick={() => setShowAllFriendsModal(true)}
-          >
-            {t("view_all")}
-          </button>
+          {isMe && (
+            <button
+              type="button"
+              className="friends-box__add-friend-button"
+              onClick={() => setShowAddFriendModal(true)}
+            >
+              <PlusIcon size={16} />
+              {t("add_friends")}
+            </button>
+          )}
         </div>
 
         <div className="friends-box__box">
@@ -90,16 +96,31 @@ export function FriendsBox() {
               </li>
             ))}
           </ul>
+          <div className="friends-box__view-all-container">
+            <button
+              type="button"
+              className="friends-box__view-all"
+              onClick={() => setShowAllFriendsModal(true)}
+            >
+              {t("view_all")}
+            </button>
+          </div>
         </div>
       </div>
 
       {userProfile && (
-        <AllFriendsModal
-          visible={showAllFriendsModal}
-          onClose={() => setShowAllFriendsModal(false)}
-          userId={userProfile.id}
-          isMe={isMe}
-        />
+        <>
+          <AllFriendsModal
+            visible={showAllFriendsModal}
+            onClose={() => setShowAllFriendsModal(false)}
+            userId={userProfile.id}
+            isMe={isMe}
+          />
+          <AddFriendModal
+            visible={showAddFriendModal}
+            onClose={() => setShowAddFriendModal(false)}
+          />
+        </>
       )}
     </>
   );

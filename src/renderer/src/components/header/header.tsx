@@ -324,7 +324,8 @@ export function Header() {
       <SearchDropdown
         visible={
           isDropdownVisible &&
-          (historyItems.length > 0 ||
+          (searchValue.trim().length > 0 ||
+            historyItems.length > 0 ||
             suggestions.length > 0 ||
             isLoadingSuggestions)
         }

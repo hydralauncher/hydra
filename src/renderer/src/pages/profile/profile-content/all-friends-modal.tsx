@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { XCircleIcon } from "@primer/octicons-react";
 import { Modal, Avatar, Button } from "@renderer/components";
-import { useToast, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { UserFriend } from "@types";
@@ -26,15 +24,12 @@ export function AllFriendsModal({
 }: AllFriendsModalProps) {
   const { t } = useTranslation("user_profile");
   const navigate = useNavigate();
-  const { undoFriendship } = useUserDetails();
-  const { showSuccessToast, showErrorToast } = useToast();
 
   const [friends, setFriends] = useState<UserFriend[]>([]);
   const [totalFriends, setTotalFriends] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const [removingId, setRemovingId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const fetchFriends = useCallback(
@@ -99,26 +94,6 @@ export function AllFriendsModal({
     }
   };
 
-  const handleRemoveFriend = useCallback(
-    async (e: React.MouseEvent, friendId: string) => {
-      e.stopPropagation();
-      setRemovingId(friendId);
-
-      try {
-        await undoFriendship(friendId);
-        setFriends((prev) => prev.filter((f) => f.id !== friendId));
-        setTotalFriends((prev) => prev - 1);
-        showSuccessToast(t("friendship_removed"));
-      } catch (error) {
-        logger.error("Failed to remove friend", error);
-        showErrorToast(t("try_again"));
-      } finally {
-        setRemovingId(null);
-      }
-    },
-    [undoFriendship, showSuccessToast, showErrorToast, t]
-  );
-
   const getGameImage = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
       return <img alt={game.title} width={16} height={16} src={game.iconUrl} />;
@@ -177,17 +152,6 @@ export function AllFriendsModal({
                     </div>
                   )}
                 </div>
-                {isMe && (
-                  <button
-                    type="button"
-                    className="all-friends-modal__remove"
-                    onClick={(e) => handleRemoveFriend(e, friend.id)}
-                    disabled={removingId === friend.id}
-                    title={t("undo_friendship")}
-                  >
-                    <XCircleIcon size={20} />
-                  </button>
-                )}
               </div>
             ))}
           </div>
