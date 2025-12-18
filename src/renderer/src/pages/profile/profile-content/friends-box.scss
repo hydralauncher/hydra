@@ -13,6 +13,33 @@
     border-radius: 4px;
     border: solid 1px globals.$border-color;
     padding: calc(globals.$spacing-unit * 2);
+    position: relative;
+  }
+
+  &__add-friend-button {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__view-all-container {
+    background-color: globals.$background-color;
+    padding-top: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+    display: flex;
+    justify-content: flex-start;
   }
 
   &__list {

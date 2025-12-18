@@ -34,15 +34,15 @@
     background: none;
     border: none;
     color: globals.$body-color;
+    background-color: rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    padding: calc(globals.$spacing-unit / 2);
-    border-radius: 4px;
+    padding: calc(globals.$spacing-unit / 1.5);
+    border-radius: 6px;
     transition: all ease 0.2s;
-    opacity: 0.7;
 
     &:hover {
       opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(0, 0, 0, 0.4);
     }
   }
 

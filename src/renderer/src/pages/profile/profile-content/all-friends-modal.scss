@@ -98,27 +98,4 @@
     justify-content: center;
     padding-top: globals.$spacing-unit;
   }
-
-  &__remove {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: globals.$body-color;
-    cursor: pointer;
-    padding: globals.$spacing-unit;
-    border-radius: 50%;
-    transition: all ease 0.2s;
-    opacity: 0.5;
-
-    &:hover {
-      opacity: 1;
-      color: globals.$error-color;
-      background-color: rgba(globals.$error-color, 0.1);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-  }
 }

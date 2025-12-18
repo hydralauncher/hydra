@@ -428,9 +428,9 @@ export function ProfileContent() {
         {shouldShowRightContent && (
           <div className="profile-content__right-content">
             <UserStatsBox />
+            <BadgesBox />
             <UserKarmaBox />
             <RecentGamesBox />
-            <BadgesBox />
             <FriendsBox />
             <ReportProfile />
           </div>
