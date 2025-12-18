@@ -420,7 +420,9 @@
     "delete_archive_title": "Would you like to delete {{fileName}}?",
     "delete_archive_description": "The file has been successfully extracted and it's no longer needed.",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "network": "NETWORK",
+    "peak": "PEAK"
   },
   "settings": {
     "downloads_path": "Downloads path",
