@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
-import { Backdrop } from "../backdrop/backdrop";
 import "./fullscreen-media-modal.scss";
 
 export interface FullscreenMediaModalProps {
@@ -64,7 +63,7 @@ export function FullscreenMediaModal({
   if (!visible || !src) return null;
 
   return createPortal(
-    <Backdrop>
+    <div className="fullscreen-media-modal__overlay">
       <dialog className="fullscreen-media-modal" open aria-label={alt}>
         <button
           type="button"
@@ -82,7 +81,7 @@ export function FullscreenMediaModal({
           <img src={src} alt={alt} className="fullscreen-media-modal__image" />
         </div>
       </dialog>
-    </Backdrop>,
+    </div>,
     document.body
   );
 }

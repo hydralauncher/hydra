@@ -1,5 +1,21 @@
 @use "../../scss/globals.scss";
 
+.fullscreen-media-modal__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(2px);
+  z-index: globals.$backdrop-z-index;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+}
+
 .fullscreen-media-modal {
   display: flex;
   justify-content: center;
@@ -7,12 +23,17 @@
   width: 100%;
   height: 100%;
   position: relative;
-  background-color: rgba(0, 0, 0, 0.5);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: none;
+  max-height: none;
 
   &__close-button {
     position: absolute;
-    top: calc(globals.$spacing-unit * 4);
-    right: calc(globals.$spacing-unit * 3);
+    top: calc(globals.$spacing-unit * 5);
+    right: calc(globals.$spacing-unit * 4);
     cursor: pointer;
     color: globals.$body-color;
     background-color: rgba(0, 0, 0, 0.5);
