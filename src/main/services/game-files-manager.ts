@@ -3,24 +3,58 @@ import fs from "node:fs";
 import type { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
-import { SevenZip } from "./7zip";
+import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
 
+const PROGRESS_THROTTLE_MS = 1000;
+
 export class GameFilesManager {
+  private lastProgressUpdate = 0;
+
   constructor(
     private readonly shop: GameShop,
     private readonly objectId: string
   ) {}
 
-  private async clearExtractionState() {
-    const gameKey = levelKeys.game(this.shop, this.objectId);
-    const download = await downloadsSublevel.get(gameKey);
+  private get gameKey() {
+    return levelKeys.game(this.shop, this.objectId);
+  }
 
-    await downloadsSublevel.put(gameKey, {
-      ...download!,
+  private async updateExtractionProgress(progress: number, force = false) {
+    const now = Date.now();
+
+    if (!force && now - this.lastProgressUpdate < PROGRESS_THROTTLE_MS) {
+      return;
+    }
+
+    this.lastProgressUpdate = now;
+
+    const download = await downloadsSublevel.get(this.gameKey);
+    if (!download) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      extractionProgress: progress,
+    });
+
+    WindowManager.mainWindow?.webContents.send(
+      "on-extraction-progress",
+      this.shop,
+      this.objectId,
+      progress
+    );
+  }
+
+  private async clearExtractionState() {
+    const download = await downloadsSublevel.get(this.gameKey);
+    if (!download) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
       extracting: false,
+      extractionProgress: 0,
     });
 
     WindowManager.mainWindow?.webContents.send(
@@ -29,6 +63,10 @@ export class GameFilesManager {
       this.objectId
     );
   }
+
+  private readonly handleProgress = (progress: ExtractionProgress) => {
+    this.updateExtractionProgress(progress.percent / 100);
+  };
 
   async extractFilesInDirectory(directoryPath: string) {
     if (!fs.existsSync(directoryPath)) return;
@@ -42,53 +80,66 @@ export class GameFilesManager {
       (file) => /part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file)
     );
 
-    await Promise.all(
-      filesToExtract.map((file) => {
-        return new Promise((resolve, reject) => {
-          SevenZip.extractFile(
-            {
-              filePath: path.join(directoryPath, file),
-              cwd: directoryPath,
-              passwords: ["online-fix.me", "steamrip.com"],
-            },
-            () => {
-              resolve(true);
-            },
-            () => {
-              reject(new Error(`Failed to extract file: ${file}`));
-              this.clearExtractionState();
-            }
-          );
-        });
-      })
-    );
+    if (filesToExtract.length === 0) return;
 
-    compressedFiles.forEach((file) => {
-      const extractionPath = path.join(directoryPath, file);
+    await this.updateExtractionProgress(0, true);
 
-      if (fs.existsSync(extractionPath)) {
-        fs.unlink(extractionPath, (err) => {
-          if (err) {
-            logger.error(`Failed to delete file: ${file}`, err);
+    const totalFiles = filesToExtract.length;
+    let completedFiles = 0;
 
-            this.clearExtractionState();
+    for (const file of filesToExtract) {
+      try {
+        const result = await SevenZip.extractFile(
+          {
+            filePath: path.join(directoryPath, file),
+            cwd: directoryPath,
+            passwords: ["online-fix.me", "steamrip.com"],
+          },
+          (progress) => {
+            const overallProgress =
+              (completedFiles + progress.percent / 100) / totalFiles;
+            this.updateExtractionProgress(overallProgress);
           }
-        });
+        );
+
+        if (result.success) {
+          completedFiles++;
+          await this.updateExtractionProgress(
+            completedFiles / totalFiles,
+            true
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed to extract file: ${file}`, err);
+        await this.clearExtractionState();
+        return;
       }
-    });
+    }
+
+    const archivePaths = compressedFiles
+      .map((file) => path.join(directoryPath, file))
+      .filter((archivePath) => fs.existsSync(archivePath));
+
+    if (archivePaths.length > 0) {
+      WindowManager.mainWindow?.webContents.send(
+        "on-archive-deletion-prompt",
+        archivePaths
+      );
+    }
   }
 
   async setExtractionComplete(publishNotification = true) {
-    const gameKey = levelKeys.game(this.shop, this.objectId);
-
     const [download, game] = await Promise.all([
-      downloadsSublevel.get(gameKey),
-      gamesSublevel.get(gameKey),
+      downloadsSublevel.get(this.gameKey),
+      gamesSublevel.get(this.gameKey),
     ]);
 
-    await downloadsSublevel.put(gameKey, {
-      ...download!,
+    if (!download) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
       extracting: false,
+      extractionProgress: 0,
     });
 
     WindowManager.mainWindow?.webContents.send(
@@ -97,17 +148,15 @@ export class GameFilesManager {
       this.objectId
     );
 
-    if (publishNotification) {
-      publishExtractionCompleteNotification(game!);
+    if (publishNotification && game) {
+      publishExtractionCompleteNotification(game);
     }
   }
 
   async extractDownloadedFile() {
-    const gameKey = levelKeys.game(this.shop, this.objectId);
-
     const [download, game] = await Promise.all([
-      downloadsSublevel.get(gameKey),
-      gamesSublevel.get(gameKey),
+      downloadsSublevel.get(this.gameKey),
+      gamesSublevel.get(this.gameKey),
     ]);
 
     if (!download || !game) return false;
@@ -119,39 +168,39 @@ export class GameFilesManager {
       path.parse(download.folderName!).name
     );
 
-    SevenZip.extractFile(
-      {
-        filePath,
-        outputPath: extractionPath,
-        passwords: ["online-fix.me", "steamrip.com"],
-      },
-      async () => {
+    await this.updateExtractionProgress(0, true);
+
+    try {
+      const result = await SevenZip.extractFile(
+        {
+          filePath,
+          outputPath: extractionPath,
+          passwords: ["online-fix.me", "steamrip.com"],
+        },
+        this.handleProgress
+      );
+
+      if (result.success) {
         await this.extractFilesInDirectory(extractionPath);
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          fs.unlink(filePath, (err) => {
-            if (err) {
-              logger.error(
-                `Failed to delete file: ${download.folderName}`,
-                err
-              );
-
-              this.clearExtractionState();
-            }
-          });
+          WindowManager.mainWindow?.webContents.send(
+            "on-archive-deletion-prompt",
+            [filePath]
+          );
         }
 
-        await downloadsSublevel.put(gameKey, {
-          ...download!,
+        await downloadsSublevel.put(this.gameKey, {
+          ...download,
           folderName: path.parse(download.folderName!).name,
         });
 
-        this.setExtractionComplete();
-      },
-      () => {
-        this.clearExtractionState();
+        await this.setExtractionComplete();
       }
-    );
+    } catch (err) {
+      logger.error(`Failed to extract downloaded file: ${filePath}`, err);
+      await this.clearExtractionState();
+    }
 
     return true;
   }
