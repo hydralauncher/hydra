@@ -9,7 +9,12 @@ import {
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { Avatar, Button, Link } from "@renderer/components";
+import {
+  Avatar,
+  Button,
+  FullscreenMediaModal,
+  Link,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
@@ -33,6 +38,7 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
 
   const {
@@ -246,10 +252,12 @@ export function ProfileHero() {
   ]);
 
   const handleAvatarClick = useCallback(() => {
-    if (isMe) {
+    if (userProfile?.profileImageUrl) {
+      setShowFullscreenAvatar(true);
+    } else if (isMe) {
       setShowEditProfileModal(true);
     }
-  }, [isMe]);
+  }, [isMe, userProfile?.profileImageUrl]);
 
   const currentGame = useMemo(() => {
     if (isMe) {
@@ -270,6 +278,13 @@ export function ProfileHero() {
       <EditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
+      />
+
+      <FullscreenMediaModal
+        visible={showFullscreenAvatar}
+        onClose={() => setShowFullscreenAvatar(false)}
+        src={userProfile?.profileImageUrl}
+        alt={userProfile?.displayName}
       />
 
       <section

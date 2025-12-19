@@ -126,21 +126,10 @@ export class DownloadManager {
         }
       );
 
-      if (WindowManager.mainWindow && download) {
-        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-        WindowManager.mainWindow.webContents.send(
-          "on-download-progress",
-          JSON.parse(
-            JSON.stringify({
-              ...status,
-              game,
-            })
-          )
-        );
-      }
-
       const shouldExtract = download.automaticallyExtract;
 
+      // Handle download completion BEFORE sending progress to renderer
+      // This ensures extraction starts and DB is updated before UI reacts
       if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
@@ -154,6 +143,7 @@ export class DownloadManager {
             shouldSeed: true,
             queued: false,
             extracting: shouldExtract,
+            extractionProgress: shouldExtract ? 0 : download.extractionProgress,
           });
         } else {
           await downloadsSublevel.put(gameId, {
@@ -162,12 +152,22 @@ export class DownloadManager {
             shouldSeed: false,
             queued: false,
             extracting: shouldExtract,
+            extractionProgress: shouldExtract ? 0 : download.extractionProgress,
           });
 
           this.cancelDownload(gameId);
         }
 
         if (shouldExtract) {
+          // Send initial extraction progress BEFORE download progress
+          // This ensures the UI shows extraction immediately
+          WindowManager.mainWindow?.webContents.send(
+            "on-extraction-progress",
+            game.shop,
+            game.objectId,
+            0
+          );
+
           const gameFilesManager = new GameFilesManager(
             game.shop,
             game.objectId
@@ -208,6 +208,18 @@ export class DownloadManager {
         } else {
           this.downloadingGameId = null;
         }
+      }
+
+      // Send progress to renderer after completion handling
+      if (WindowManager.mainWindow && download) {
+        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
+        WindowManager.mainWindow.webContents.send(
+          "on-download-progress",
+          structuredClone({
+            ...status,
+            game,
+          })
+        );
       }
     }
   }
