@@ -108,16 +108,11 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      transition: opacity 0.2s ease;
+      transition: scale 0.2s ease;
       outline: none;
 
       &:hover {
-        opacity: 0.8;
-      }
-
-      &:focus,
-      &:focus-visible {
-        outline: none;
+        scale: 1.05;
       }
     }
 
@@ -395,6 +390,21 @@
     flex-shrink: 0;
     background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid globals.$border-color;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+    }
 
     img {
       width: 100%;
@@ -409,6 +419,21 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 1);
+  }
+
+  &__simple-title-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: opacity 0.2s ease;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   }
 
   &__simple-title {
@@ -511,5 +536,9 @@
     background-color: #fff;
     transition: width 0.3s ease;
     border-radius: 4px;
+
+    &--extraction {
+      background-color: #fff;
+    }
   }
 }

@@ -1,7 +1,12 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { useDate, useDownload, useFormat } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useDownload,
+  useFormat,
+} from "@renderer/hooks";
 import { Link } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -17,6 +22,9 @@ export function HeroPanelPlaytime() {
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();
   const { formatDistance } = useDate();
+  const extraction = useAppSelector((state) => state.download.extraction);
+
+  const isExtracting = extraction?.visibleId === game?.id;
 
   useEffect(() => {
     if (game?.lastTimePlayed) {
@@ -52,6 +60,16 @@ export function HeroPanelPlaytime() {
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
 
+  const extractionInProgressInfo = (
+    <div className="hero-panel-playtime__download-details">
+      <Link to="/downloads" className="hero-panel-playtime__downloads-link">
+        {t("extracting")}
+      </Link>
+
+      <small>{formatDownloadProgress(extraction?.progress ?? 0)}</small>
+    </div>
+  );
+
   const downloadInProgressInfo = (
     <div className="hero-panel-playtime__download-details">
       <Link to="/downloads" className="hero-panel-playtime__downloads-link">
@@ -72,7 +90,8 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("not_played_yet", { title: game?.title })}</p>
-        {hasDownload && downloadInProgressInfo}
+        {isExtracting && extractionInProgressInfo}
+        {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
     );
   }
@@ -81,7 +100,8 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("playing_now")}</p>
-        {hasDownload && downloadInProgressInfo}
+        {isExtracting && extractionInProgressInfo}
+        {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
     );
   }
@@ -113,9 +133,9 @@ export function HeroPanelPlaytime() {
         })}
       </p>
 
-      {hasDownload ? (
-        downloadInProgressInfo
-      ) : (
+      {isExtracting && extractionInProgressInfo}
+      {!isExtracting && hasDownload && downloadInProgressInfo}
+      {!isExtracting && !hasDownload && (
         <p>
           {t("last_time_played", {
             period: lastTimePlayed,
