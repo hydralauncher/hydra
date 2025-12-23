@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { PeopleIcon, BellIcon } from "@primer/octicons-react";
+import { BellIcon } from "@primer/octicons-react";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
@@ -16,8 +15,7 @@ export function SidebarProfile() {
 
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, friendRequestCount, showFriendsModal } =
-    useUserDetails();
+  const { userDetails } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -114,29 +112,6 @@ export function SidebarProfile() {
     );
   }, [t, notificationCount, navigate]);
 
-  const friendsButton = useMemo(() => {
-    if (!userDetails) return null;
-
-    return (
-      <button
-        type="button"
-        className="sidebar-profile__friends-button"
-        onClick={() =>
-          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-        }
-        title={t("friends")}
-      >
-        {friendRequestCount > 0 && (
-          <small className="sidebar-profile__friends-button-badge">
-            {friendRequestCount > 99 ? "99+" : friendRequestCount}
-          </small>
-        )}
-
-        <PeopleIcon size={16} />
-      </button>
-    );
-  }, [userDetails, t, friendRequestCount, showFriendsModal]);
-
   const gameRunningDetails = () => {
     if (!userDetails || !gameRunning) return null;
 
@@ -185,7 +160,6 @@ export function SidebarProfile() {
       </button>
 
       {notificationsButton}
-      {friendsButton}
     </div>
   );
 }

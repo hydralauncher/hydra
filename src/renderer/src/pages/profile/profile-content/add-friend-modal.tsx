@@ -1,9 +1,8 @@
-import { Button, Modal, TextField } from "@renderer/components";
+import { Avatar, Button, Modal, TextField } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { UserFriendItem } from "@renderer/pages/shared-modals/user-friend-modal/user-friend-item";
 import "./add-friend-modal.scss";
 
 interface AddFriendModalProps {
@@ -80,22 +79,6 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
     });
   };
 
-  const handleAcceptFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "ACCEPTED")
-      .then(() => {
-        showSuccessToast(t("request_accepted"));
-      })
-      .catch(() => {
-        showErrorToast(t("try_again"));
-      });
-  };
-
-  const handleRefuseFriendRequest = (userId: string) => {
-    updateFriendRequestState(userId, "REFUSED").catch(() => {
-      showErrorToast(t("try_again"));
-    });
-  };
-
   const sentRequests = friendRequests.filter((req) => req.type === "SENT");
   const currentRequest =
     friendCode.length === 8
@@ -139,17 +122,31 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
             <h3>{t("pending")}</h3>
             <div className="add-friend-modal__pending-list">
               {sentRequests.map((request) => (
-                <UserFriendItem
+                <button
                   key={request.id}
-                  displayName={request.displayName}
-                  type={request.type}
-                  profileImageUrl={request.profileImageUrl}
-                  userId={request.id}
-                  onClickAcceptRequest={handleAcceptFriendRequest}
-                  onClickCancelRequest={handleCancelFriendRequest}
-                  onClickRefuseRequest={handleRefuseFriendRequest}
-                  onClickItem={handleClickRequest}
-                />
+                  type="button"
+                  className="add-friend-modal__friend-item"
+                  onClick={() => handleClickRequest(request.id)}
+                >
+                  <Avatar
+                    src={request.profileImageUrl}
+                    alt={request.displayName}
+                    size={40}
+                  />
+                  <span className="add-friend-modal__friend-name">
+                    {request.displayName}
+                  </span>
+                  <Button
+                    theme="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelFriendRequest(request.id);
+                    }}
+                    type="button"
+                  >
+                    {t("cancel_request")}
+                  </Button>
+                </button>
               ))}
             </div>
           </div>

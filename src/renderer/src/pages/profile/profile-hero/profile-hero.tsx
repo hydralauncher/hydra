@@ -20,6 +20,7 @@ import {
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -34,6 +35,7 @@ type FriendAction =
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -312,14 +314,32 @@ export function ProfileHero() {
                     {userProfile?.displayName}
                   </h2>
 
-                  <button
+                  <motion.button
                     type="button"
                     className="profile-hero__copy-button"
                     onClick={copyFriendCode}
                     title={t("copy_friend_code")}
+                    onMouseEnter={() => setIsCopyButtonHovered(true)}
+                    onMouseLeave={() => setIsCopyButtonHovered(false)}
+                    initial={{ width: 28 }}
+                    animate={{
+                      width: isCopyButtonHovered ? 94 : 28,
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
                   >
                     <CopyIcon size={16} />
-                  </button>
+                    <motion.span
+                      className="profile-hero__friend-code"
+                      initial={{ opacity: 0, marginLeft: 0 }}
+                      animate={{
+                        opacity: isCopyButtonHovered ? 1 : 0,
+                        marginLeft: isCopyButtonHovered ? 8 : 0,
+                      }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
+                      {userProfile?.id}
+                    </motion.span>
+                  </motion.button>
                 </div>
               ) : (
                 <Skeleton width={150} height={28} />

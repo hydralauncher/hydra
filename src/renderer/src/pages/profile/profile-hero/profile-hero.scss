@@ -30,7 +30,7 @@
   &__copy-button {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     background: none;
     border: none;
     color: globals.$body-color;
@@ -38,12 +38,22 @@
     cursor: pointer;
     padding: calc(globals.$spacing-unit / 1.5);
     border-radius: 6px;
-    transition: all ease 0.2s;
+    transition: background-color ease 0.2s;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
 
     &:hover {
       opacity: 1;
       background-color: rgba(0, 0, 0, 0.4);
     }
+  }
+
+  &__friend-code {
+    font-size: globals.$small-font-size;
+    font-family: monospace;
+    white-space: nowrap;
   }
 
   &__user-information {
