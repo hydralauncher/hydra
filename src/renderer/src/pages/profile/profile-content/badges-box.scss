@@ -75,6 +75,14 @@
     margin: 0;
   }
 
+  &__view-all-container {
+    background-color: globals.$background-color;
+    padding-top: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+    display: flex;
+    justify-content: flex-start;
+  }
+
   &__view-all {
     background: none;
     border: none;

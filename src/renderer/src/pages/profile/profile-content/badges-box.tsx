@@ -28,15 +28,6 @@ export function BadgesBox() {
               {numberFormatter.format(userProfile.badges.length)}
             </span>
           </div>
-          {hasMoreBadges && (
-            <button
-              type="button"
-              className="badges-box__view-all"
-              onClick={() => setShowAllBadgesModal(true)}
-            >
-              {t("view_all")}
-            </button>
-          )}
         </div>
 
         <div className="badges-box__box">
@@ -66,6 +57,17 @@ export function BadgesBox() {
               );
             })}
           </div>
+          {hasMoreBadges && (
+            <div className="badges-box__view-all-container">
+              <button
+                type="button"
+                className="badges-box__view-all"
+                onClick={() => setShowAllBadgesModal(true)}
+              >
+                {t("view_all")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
