@@ -170,6 +170,7 @@ export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
 export interface Badge {
   name: string;
+  title: string;
   description: string;
   badge: {
     url: string;

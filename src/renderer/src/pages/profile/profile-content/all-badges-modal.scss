@@ -1,31 +1,41 @@
 @use "../../../scss/globals.scss";
 
-.badges-box {
-  &__section-header {
+.all-badges-modal {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  max-height: 400px;
+  margin-top: calc(globals.$spacing-unit * -1);
+
+  &__title {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
   }
 
-  &__box {
-    background-color: globals.$background-color;
-    border-radius: 4px;
-    border: solid 1px globals.$border-color;
-    padding: calc(globals.$spacing-unit * 2);
+  &__count {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
   }
 
   &__list {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
+    overflow-y: auto;
+    padding-right: globals.$spacing-unit;
   }
 
   &__item {
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 2);
-    width: 100%;
     padding: calc(globals.$spacing-unit * 1.5);
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
@@ -73,20 +83,5 @@
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.6);
     margin: 0;
-  }
-
-  &__view-all {
-    background: none;
-    border: none;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-    transition: color ease 0.2s;
-
-    &:hover {
-      color: globals.$muted-color;
-    }
   }
 }
