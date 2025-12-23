@@ -53,7 +53,6 @@ export function App() {
   const { clearDownload, setLastPacket } = useDownload();
 
   const {
-    userDetails,
     hasActiveSubscription,
     fetchUserDetails,
     updateUserDetails,
