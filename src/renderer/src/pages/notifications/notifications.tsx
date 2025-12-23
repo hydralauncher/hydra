@@ -344,30 +344,30 @@ export default function Notifications() {
   };
 
   return (
-    <div className="notifications">
-      <div className="notifications__actions">
-        <Button theme="outline" onClick={handleMarkAllAsRead}>
-          {t("mark_all_as_read")}
-        </Button>
-        <Button theme="danger" onClick={handleClearAll}>
-          {t("clear_all")}
-        </Button>
-      </div>
-
+    <>
       {isLoading && mergedNotifications.length === 0 ? (
         <div className="notifications__loading">
           <span>{t("loading")}</span>
         </div>
       ) : mergedNotifications.length === 0 ? (
         <div className="notifications__empty">
-          <BellIcon size={48} className="notifications__empty-icon" />
-          <span className="notifications__empty-title">{t("empty_title")}</span>
-          <span className="notifications__empty-description">
-            {t("empty_description")}
-          </span>
+          <div className="notifications__icon-container">
+            <BellIcon size={24} />
+          </div>
+          <h2>{t("empty_title")}</h2>
+          <p>{t("empty_description")}</p>
         </div>
       ) : (
-        <>
+        <div className="notifications">
+          <div className="notifications__actions">
+            <Button theme="outline" onClick={handleMarkAllAsRead}>
+              {t("mark_all_as_read")}
+            </Button>
+            <Button theme="danger" onClick={handleClearAll}>
+              {t("clear_all")}
+            </Button>
+          </div>
+
           <div className="notifications__list">
             <AnimatePresence mode="popLayout">
               {displayedNotifications.map(renderNotification)}
@@ -385,8 +385,8 @@ export default function Notifications() {
               </Button>
             </div>
           )}
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }

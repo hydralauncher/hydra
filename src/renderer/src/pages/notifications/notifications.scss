@@ -23,33 +23,31 @@
 
   &__empty {
     display: flex;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
     flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__icon-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 6);
-    text-align: center;
-    color: globals.$body-color;
-
-    &-icon {
-      opacity: 0.4;
-    }
-
-    &-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: globals.$muted-color;
-    }
-
-    &-description {
-      font-size: globals.$body-font-size;
-    }
+    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__loading {
     display: flex;
+    width: 100%;
+    height: 100%;
     justify-content: center;
-    padding: calc(globals.$spacing-unit * 4);
+    align-items: center;
   }
 
   &__load-more {

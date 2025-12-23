@@ -125,7 +125,7 @@ export function NotificationItem({
         return {
           title: t("friend_request_accepted_title"),
           description: t("friend_request_accepted_description", {
-            displayName: notification.variables.senderDisplayName,
+            displayName: notification.variables.accepterDisplayName,
           }),
           showActions: false,
         };
