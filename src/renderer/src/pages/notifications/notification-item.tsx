@@ -174,7 +174,9 @@ export function NotificationItem({
   return (
     <div
       className={cn("notification-item", {
-        "notification-item--unread": !notification.isRead,
+        "notification-item--unread":
+          !notification.isRead ||
+          notification.type === "FRIEND_REQUEST_RECEIVED",
       })}
       onClick={handleClick}
       onKeyDown={(e) => {
