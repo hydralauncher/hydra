@@ -2,17 +2,7 @@
 
 .user-karma {
   &__box {
-    background-color: globals.$background-color;
-    border-radius: 4px;
-    border: solid 1px globals.$border-color;
     padding: calc(globals.$spacing-unit * 2);
-  }
-
-  &__section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__content {

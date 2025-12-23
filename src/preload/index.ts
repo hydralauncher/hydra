@@ -498,7 +498,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("updateProfile", updateProfile),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
-  syncFriendRequests: () => ipcRenderer.invoke("syncFriendRequests"),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

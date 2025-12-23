@@ -18,24 +18,18 @@ export function UserKarmaBox() {
   if (karma === undefined || karma === null) return null;
 
   return (
-    <div>
-      <div className="user-karma__section-header">
-        <h2>{t("karma")}</h2>
-      </div>
-
-      <div className="user-karma__box">
-        <div className="user-karma__content">
-          <div className="user-karma__stats-row">
-            <p className="user-karma__description">
-              <Award size={20} /> {numberFormatter.format(karma)}{" "}
-              {t("karma_count")}
-            </p>
-          </div>
-          <div className="user-karma__info">
-            <small className="user-karma__info-text">
-              {t("karma_description")}
-            </small>
-          </div>
+    <div className="user-karma__box">
+      <div className="user-karma__content">
+        <div className="user-karma__stats-row">
+          <p className="user-karma__description">
+            <Award size={20} /> {numberFormatter.format(karma)}{" "}
+            {t("karma_count")}
+          </p>
+        </div>
+        <div className="user-karma__info">
+          <small className="user-karma__info-text">
+            {t("karma_description")}
+          </small>
         </div>
       </div>
     </div>

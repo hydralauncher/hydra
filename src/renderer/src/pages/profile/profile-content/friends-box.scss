@@ -1,17 +1,7 @@
 @use "../../../scss/globals.scss";
 
 .friends-box {
-  &__section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: calc(globals.$spacing-unit * 2);
-  }
-
   &__box {
-    background-color: globals.$background-color;
-    border-radius: 4px;
-    border: solid 1px globals.$border-color;
     padding: calc(globals.$spacing-unit * 2);
     position: relative;
   }
@@ -35,7 +25,6 @@
   }
 
   &__view-all-container {
-    background-color: globals.$background-color;
     padding-top: calc(globals.$spacing-unit * 2);
     margin-top: calc(globals.$spacing-unit * 2);
     display: flex;

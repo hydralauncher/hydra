@@ -51,4 +51,29 @@
     overflow-y: auto;
     padding-right: globals.$spacing-unit;
   }
+
+  &__friend-item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__friend-name {
+    flex: 1;
+    font-weight: 600;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

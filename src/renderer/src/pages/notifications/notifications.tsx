@@ -343,13 +343,17 @@ export default function Notifications() {
     );
   };
 
-  return (
-    <>
-      {isLoading && mergedNotifications.length === 0 ? (
+  const renderContent = () => {
+    if (isLoading && mergedNotifications.length === 0) {
+      return (
         <div className="notifications__loading">
           <span>{t("loading")}</span>
         </div>
-      ) : mergedNotifications.length === 0 ? (
+      );
+    }
+
+    if (mergedNotifications.length === 0) {
+      return (
         <div className="notifications__empty">
           <div className="notifications__icon-container">
             <BellIcon size={24} />
@@ -357,36 +361,40 @@ export default function Notifications() {
           <h2>{t("empty_title")}</h2>
           <p>{t("empty_description")}</p>
         </div>
-      ) : (
-        <div className="notifications">
-          <div className="notifications__actions">
-            <Button theme="outline" onClick={handleMarkAllAsRead}>
-              {t("mark_all_as_read")}
-            </Button>
-            <Button theme="danger" onClick={handleClearAll}>
-              {t("clear_all")}
-            </Button>
-          </div>
+      );
+    }
 
-          <div className="notifications__list">
-            <AnimatePresence mode="popLayout">
-              {displayedNotifications.map(renderNotification)}
-            </AnimatePresence>
-          </div>
-
-          {pagination.hasMore && (
-            <div className="notifications__load-more">
-              <Button
-                theme="outline"
-                onClick={handleLoadMore}
-                disabled={isLoading}
-              >
-                {isLoading ? t("loading") : t("load_more")}
-              </Button>
-            </div>
-          )}
+    return (
+      <div className="notifications">
+        <div className="notifications__actions">
+          <Button theme="outline" onClick={handleMarkAllAsRead}>
+            {t("mark_all_as_read")}
+          </Button>
+          <Button theme="danger" onClick={handleClearAll}>
+            {t("clear_all")}
+          </Button>
         </div>
-      )}
-    </>
-  );
+
+        <div className="notifications__list">
+          <AnimatePresence mode="popLayout">
+            {displayedNotifications.map(renderNotification)}
+          </AnimatePresence>
+        </div>
+
+        {pagination.hasMore && (
+          <div className="notifications__load-more">
+            <Button
+              theme="outline"
+              onClick={handleLoadMore}
+              disabled={isLoading}
+            >
+              {isLoading ? t("loading") : t("load_more")}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return <>{renderContent()}</>;
 }

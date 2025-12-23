@@ -1,5 +1,5 @@
 import { userProfileContext } from "@renderer/context";
-import { useFormat, useUserDetails } from "@renderer/hooks";
+import { useUserDetails } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PlusIcon } from "@primer/octicons-react";
@@ -10,10 +10,9 @@ import { AddFriendModal } from "./add-friend-modal";
 import "./friends-box.scss";
 
 export function FriendsBox() {
-  const { userProfile, userStats } = useContext(userProfileContext);
+  const { userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
-  const { numberFormatter } = useFormat();
   const [showAllFriendsModal, setShowAllFriendsModal] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
 
@@ -38,73 +37,50 @@ export function FriendsBox() {
 
   return (
     <>
-      <div>
-        <div className="friends-box__section-header">
-          <div className="profile-content__section-title-group">
-            <h2>{t("friends")}</h2>
-            {userStats && (
-              <span className="profile-content__section-badge">
-                {numberFormatter.format(userStats.friendsCount)}
-              </span>
-            )}
-          </div>
-          {isMe && (
-            <button
-              type="button"
-              className="friends-box__add-friend-button"
-              onClick={() => setShowAddFriendModal(true)}
+      <div className="friends-box__box">
+        <ul className="friends-box__list">
+          {userProfile?.friends.map((friend) => (
+            <li
+              key={friend.id}
+              title={
+                friend.currentGame
+                  ? t("playing", { game: friend.currentGame.title })
+                  : undefined
+              }
             >
-              <PlusIcon size={16} />
-              {t("add_friends")}
-            </button>
-          )}
-        </div>
-
-        <div className="friends-box__box">
-          <ul className="friends-box__list">
-            {userProfile?.friends.map((friend) => (
-              <li
-                key={friend.id}
-                title={
-                  friend.currentGame
-                    ? t("playing", { game: friend.currentGame.title })
-                    : undefined
-                }
+              <Link
+                to={`/profile/${friend.id}`}
+                className="friends-box__list-item"
               >
-                <Link
-                  to={`/profile/${friend.id}`}
-                  className="friends-box__list-item"
-                >
-                  <Avatar
-                    size={32}
-                    src={friend.profileImageUrl}
-                    alt={friend.displayName}
-                  />
+                <Avatar
+                  size={32}
+                  src={friend.profileImageUrl}
+                  alt={friend.displayName}
+                />
 
-                  <div className="friends-box__friend-details">
-                    <span className="friends-box__friend-name">
-                      {friend.displayName}
-                    </span>
-                    {friend.currentGame && (
-                      <div className="friends-box__game-info">
-                        {getGameImage(friend.currentGame)}
-                        <small>{friend.currentGame.title}</small>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="friends-box__view-all-container">
-            <button
-              type="button"
-              className="friends-box__view-all"
-              onClick={() => setShowAllFriendsModal(true)}
-            >
-              {t("view_all")}
-            </button>
-          </div>
+                <div className="friends-box__friend-details">
+                  <span className="friends-box__friend-name">
+                    {friend.displayName}
+                  </span>
+                  {friend.currentGame && (
+                    <div className="friends-box__game-info">
+                      {getGameImage(friend.currentGame)}
+                      <small>{friend.currentGame.title}</small>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="friends-box__view-all-container">
+          <button
+            type="button"
+            className="friends-box__view-all"
+            onClick={() => setShowAllFriendsModal(true)}
+          >
+            {t("view_all")}
+          </button>
         </div>
       </div>
 
@@ -122,6 +98,34 @@ export function FriendsBox() {
           />
         </>
       )}
+    </>
+  );
+}
+
+export function FriendsBoxAddButton() {
+  const { userProfile } = useContext(userProfileContext);
+  const { userDetails } = useUserDetails();
+  const { t } = useTranslation("user_profile");
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+
+  const isMe = userDetails?.id === userProfile?.id;
+
+  if (!isMe) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="friends-box__add-friend-button"
+        onClick={() => setShowAddFriendModal(true)}
+      >
+        <PlusIcon size={16} />
+        {t("add_friends")}
+      </button>
+      <AddFriendModal
+        visible={showAddFriendModal}
+        onClose={() => setShowAddFriendModal(false)}
+      />
     </>
   );
 }

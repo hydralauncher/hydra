@@ -46,8 +46,7 @@
     white-space: nowrap;
   }
 
-  &__notification-button,
-  &__friends-button {
+  &__notification-button {
     color: globals.$muted-color;
     cursor: pointer;
     border-radius: 50%;
@@ -63,8 +62,7 @@
     }
   }
 
-  &__notification-button-badge,
-  &__friends-button-badge {
+  &__notification-button-badge {
     background-color: globals.$success-color;
     display: flex;
     justify-content: center;
