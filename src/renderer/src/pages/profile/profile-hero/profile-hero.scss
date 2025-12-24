@@ -30,7 +30,7 @@
   &__copy-button {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-end;
     background: none;
     border: none;
     color: globals.$body-color;
@@ -51,7 +51,7 @@
   }
 
   &__friend-code {
-    font-size: globals.$small-font-size;
+    font-size: 0.875rem;
     font-family: monospace;
     white-space: nowrap;
   }

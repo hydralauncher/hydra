@@ -1,16 +1,18 @@
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { useFormat } from "@renderer/hooks";
+import { useFormat, useUserDetails } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
+import { Award } from "lucide-react";
 import "./user-stats-box.scss";
 
 export function UserStatsBox() {
   const { showHydraCloudModal } = useSubscription();
-  const { userStats, isMe } = useContext(userProfileContext);
+  const { userStats, isMe, userProfile } = useContext(userProfileContext);
+  const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
 
@@ -32,6 +34,9 @@ export function UserStatsBox() {
   );
 
   if (!userStats) return null;
+
+  const karma = isMe ? userDetails?.karma : userProfile?.karma;
+  const hasKarma = karma !== undefined && karma !== null;
 
   return (
     <div className="user-stats__box">
@@ -108,6 +113,23 @@ export function UserStatsBox() {
             </p>
           </div>
         </li>
+
+        {hasKarma && karma !== undefined && karma !== null && (
+          <li className="user-stats__list-item user-stats__list-item--karma">
+            <h3 className="user-stats__list-title">{t("karma")}</h3>
+            <div className="user-stats__stats-row">
+              <p className="user-stats__list-description">
+                <Award size={20} /> {numberFormatter.format(karma)}{" "}
+                {t("karma_count")}
+              </p>
+            </div>
+            <div className="user-stats__karma-info">
+              <small className="user-stats__karma-info-text">
+                {t("karma_description")}
+              </small>
+            </div>
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -7,6 +7,47 @@
   width: 100%;
   min-width: 400px;
 
+  &__my-code {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__my-code-label {
+    font-size: 0.875rem;
+    color: globals.$muted-color;
+    font-weight: 500;
+  }
+
+  &__my-code-value {
+    font-size: 0.875rem;
+    color: globals.$body-color;
+    font-family: monospace;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  &__copy-icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    cursor: pointer;
+    padding: calc(globals.$spacing-unit / 2);
+    border-radius: 4px;
+    transition: all ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: globals.$body-color;
+    }
+  }
+
   &__actions {
     display: flex;
     flex-direction: row;
