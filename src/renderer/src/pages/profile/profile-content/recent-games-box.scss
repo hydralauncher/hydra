@@ -47,13 +47,15 @@
   }
 
   &__game-title {
-    font-weight: bold;
+    font-size: 0.8rem;
+    font-weight: 600;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
   &__game-description {
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;

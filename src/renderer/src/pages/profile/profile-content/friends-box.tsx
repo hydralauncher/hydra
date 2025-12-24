@@ -9,6 +9,8 @@ import { AllFriendsModal } from "./all-friends-modal";
 import { AddFriendModal } from "./add-friend-modal";
 import "./friends-box.scss";
 
+const MAX_VISIBLE_FRIENDS = 5;
+
 export function FriendsBox() {
   const { userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
@@ -35,11 +37,15 @@ export function FriendsBox() {
 
   if (!userProfile?.friends.length) return null;
 
+  const visibleFriends = userProfile.friends.slice(0, MAX_VISIBLE_FRIENDS);
+  const totalFriends = userProfile.friends.length;
+  const showViewAllButton = totalFriends > MAX_VISIBLE_FRIENDS;
+
   return (
     <>
       <div className="friends-box__box">
         <ul className="friends-box__list">
-          {userProfile?.friends.map((friend) => (
+          {visibleFriends.map((friend) => (
             <li
               key={friend.id}
               title={
@@ -73,15 +79,17 @@ export function FriendsBox() {
             </li>
           ))}
         </ul>
-        <div className="friends-box__view-all-container">
-          <button
-            type="button"
-            className="friends-box__view-all"
-            onClick={() => setShowAllFriendsModal(true)}
-          >
-            {t("view_all")}
-          </button>
-        </div>
+        {showViewAllButton && (
+          <div className="friends-box__view-all-container">
+            <button
+              type="button"
+              className="friends-box__view-all"
+              onClick={() => setShowAllFriendsModal(true)}
+            >
+              {t("view_all")}
+            </button>
+          </div>
+        )}
       </div>
 
       {userProfile && (

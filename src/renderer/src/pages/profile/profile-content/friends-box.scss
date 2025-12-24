@@ -60,11 +60,12 @@
 
   &__friend-name {
     color: globals.$muted-color;
-    font-weight: bold;
-    font-size: globals.$body-font-size;
+    font-size: 0.8rem;
+    font-weight: 600;
   }
 
   &__game-info {
+    font-size: 0.75rem;
     display: flex;
     gap: globals.$spacing-unit;
     align-items: center;

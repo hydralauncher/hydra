@@ -3,6 +3,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { CopyIcon } from "@primer/octicons-react";
 import "./add-friend-modal.scss";
 
 interface AddFriendModalProps {
@@ -22,9 +23,17 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
     updateFriendRequestState,
     friendRequests,
     fetchFriendRequests,
+    userDetails,
   } = useUserDetails();
 
   const { showSuccessToast, showErrorToast } = useToast();
+
+  const copyMyFriendCode = () => {
+    if (userDetails?.id) {
+      navigator.clipboard.writeText(userDetails.id);
+      showSuccessToast(t("friend_code_copied"));
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -88,6 +97,25 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
   return (
     <Modal visible={visible} title={t("add_friends")} onClose={onClose}>
       <div className="add-friend-modal">
+        {userDetails?.id && (
+          <div className="add-friend-modal__my-code">
+            <span className="add-friend-modal__my-code-label">
+              {t("your_friend_code")}
+            </span>
+            <span className="add-friend-modal__my-code-value">
+              {userDetails.id}
+            </span>
+            <button
+              onClick={copyMyFriendCode}
+              type="button"
+              className="add-friend-modal__copy-icon-button"
+              title={t("copy_friend_code")}
+            >
+              <CopyIcon size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="add-friend-modal__actions">
           <TextField
             label={t("friend_code")}

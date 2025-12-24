@@ -323,22 +323,22 @@ export function ProfileHero() {
                     onMouseLeave={() => setIsCopyButtonHovered(false)}
                     initial={{ width: 28 }}
                     animate={{
-                      width: isCopyButtonHovered ? 94 : 28,
+                      width: isCopyButtonHovered ? 105 : 28,
                     }}
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                   >
-                    <CopyIcon size={16} />
                     <motion.span
                       className="profile-hero__friend-code"
-                      initial={{ opacity: 0, marginLeft: 0 }}
+                      initial={{ opacity: 0, marginRight: 0 }}
                       animate={{
                         opacity: isCopyButtonHovered ? 1 : 0,
-                        marginLeft: isCopyButtonHovered ? 8 : 0,
+                        marginRight: isCopyButtonHovered ? 8 : 0,
                       }}
                       transition={{ duration: 0.2, ease: "easeInOut" }}
                     >
                       {userProfile?.id}
                     </motion.span>
+                    <CopyIcon size={16} />
                   </motion.button>
                 </div>
               ) : (
