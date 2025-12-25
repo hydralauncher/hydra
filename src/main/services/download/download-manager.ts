@@ -44,7 +44,9 @@ export class DownloadManager {
       const urlObj = new URL(url);
       const filename = urlObj.pathname.split('/').pop();
       if (filename?.length) return filename;
-    } catch {}
+    } catch {
+      // Invalid URL
+    }
 
     return undefined;
   }
