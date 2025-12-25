@@ -30,35 +30,45 @@ export class DownloadManager {
   private static downloadingGameId: string | null = null;
 
   private static extractFilename(url: string, originalUrl?: string): string | undefined {
-    if (originalUrl && originalUrl.includes('#')) {
+    if (originalUrl?.includes('#')) {
       const hashPart = originalUrl.split('#')[1];
-      if (hashPart && !hashPart.startsWith('http')) {
-        return hashPart;
-      }
+      if (hashPart && !hashPart.startsWith('http')) return hashPart;
     }
 
     if (url.includes('#')) {
       const hashPart = url.split('#')[1];
-      if (hashPart && !hashPart.startsWith('http')) {
-        return hashPart;
-      }
+      if (hashPart && !hashPart.startsWith('http')) return hashPart;
     }
 
     try {
       const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const filename = pathname.split('/').pop();
-      if (filename && filename.length > 0) {
-        return filename;
-      }
-    } catch {
-    }
+      const filename = urlObj.pathname.split('/').pop();
+      if (filename?.length) return filename;
+    } catch {}
 
     return undefined;
   }
 
   private static sanitizeFilename(filename: string): string {
     return filename.replace(/[<>:"/\\|?*]/g, '_');
+  }
+
+  private static createDownloadPayload(directUrl: string, originalUrl: string, downloadId: string, savePath: string) {
+    const filename = this.extractFilename(directUrl, originalUrl);
+    const sanitizedFilename = filename ? this.sanitizeFilename(filename) : undefined;
+    
+    if (sanitizedFilename) {
+      logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
+    }
+
+    return {
+      action: "start" as const,
+      game_id: downloadId,
+      url: directUrl,
+      save_path: savePath,
+      out: sanitizedFilename,
+      allow_multiple_connections: true,
+    };
   }
 
   public static async startRPC(
@@ -86,9 +96,7 @@ export class DownloadManager {
   }
 
   private static async getDownloadStatus() {
-    const response = await PythonRPC.rpc.get<LibtorrentPayload | null>(
-      "/status"
-    );
+    const response = await PythonRPC.rpc.get<LibtorrentPayload | null>("/status");
     if (response.data === null || !this.downloadingGameId) return null;
     const downloadId = this.downloadingGameId;
 
@@ -104,8 +112,7 @@ export class DownloadManager {
         status,
       } = response.data;
 
-      const isDownloadingMetadata =
-        status === LibtorrentStatus.DownloadingMetadata;
+      const isDownloadingMetadata = status === LibtorrentStatus.DownloadingMetadata;
       const isCheckingFiles = status === LibtorrentStatus.CheckingFiles;
 
       const download = await downloadsSublevel.get(downloadId);
@@ -154,21 +161,14 @@ export class DownloadManager {
 
       const userPreferences = await db.get<string, UserPreferences | null>(
         levelKeys.userPreferences,
-        {
-          valueEncoding: "json",
-        }
+        { valueEncoding: "json" }
       );
 
       if (WindowManager.mainWindow && download) {
         WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
         WindowManager.mainWindow.webContents.send(
           "on-download-progress",
-          JSON.parse(
-            JSON.stringify({
-              ...status,
-              game,
-            })
-          )
+          JSON.parse(JSON.stringify({ ...status, game }))
         );
       }
 
@@ -177,10 +177,7 @@ export class DownloadManager {
       if (progress === 1 && download) {
         publishDownloadCompleteNotification(game);
 
-        if (
-          userPreferences?.seedAfterDownloadComplete &&
-          download.downloader === Downloader.Torrent
-        ) {
+        if (userPreferences?.seedAfterDownloadComplete && download.downloader === Downloader.Torrent) {
           await downloadsSublevel.put(gameId, {
             ...download,
             status: "seeding",
@@ -201,38 +198,25 @@ export class DownloadManager {
         }
 
         if (shouldExtract) {
-          const gameFilesManager = new GameFilesManager(
-            game.shop,
-            game.objectId
-          );
+          const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
 
-          if (
-            FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-              download.folderName?.endsWith(ext)
-            )
-          ) {
+          if (FILE_EXTENSIONS_TO_EXTRACT.some((ext) => download.folderName?.endsWith(ext))) {
             gameFilesManager.extractDownloadedFile();
           } else {
             gameFilesManager
-              .extractFilesInDirectory(
-                path.join(download.downloadPath, download.folderName!)
-              )
-              .then(() => {
-                gameFilesManager.setExtractionComplete();
-              });
+              .extractFilesInDirectory(path.join(download.downloadPath, download.folderName!))
+              .then(() => gameFilesManager.setExtractionComplete());
           }
         }
 
         const downloads = await downloadsSublevel
           .values()
           .all()
-          .then((games) => {
-            return sortBy(
-              games.filter((game) => game.status === "paused" && game.queued),
-              "timestamp",
-              "DESC"
-            );
-          });
+          .then((games) => sortBy(
+            games.filter((game) => game.status === "paused" && game.queued),
+            "timestamp",
+            "DESC"
+          ));
 
         const [nextItemOnQueue] = downloads;
 
@@ -259,9 +243,7 @@ export class DownloadManager {
 
       if (!download) return;
 
-      const totalSize = await getDirSize(
-        path.join(download.downloadPath, status.folderName)
-      );
+      const totalSize = await getDirSize(path.join(download.downloadPath, status.folderName));
 
       if (totalSize < status.fileSize) {
         await this.cancelDownload(status.gameId);
@@ -282,10 +264,7 @@ export class DownloadManager {
 
   static async pauseDownload(downloadKey = this.downloadingGameId) {
     await PythonRPC.rpc
-      .post("/action", {
-        action: "pause",
-        game_id: downloadKey,
-      } as PauseDownloadPayload)
+      .post("/action", { action: "pause", game_id: downloadKey } as PauseDownloadPayload)
       .catch(() => {});
 
     if (downloadKey === this.downloadingGameId) {
@@ -300,13 +279,8 @@ export class DownloadManager {
 
   static async cancelDownload(downloadKey = this.downloadingGameId) {
     await PythonRPC.rpc
-      .post("/action", {
-        action: "cancel",
-        game_id: downloadKey,
-      })
-      .catch((err) => {
-        logger.error("Failed to cancel game download", err);
-      });
+      .post("/action", { action: "cancel", game_id: downloadKey })
+      .catch((err) => logger.error("Failed to cancel game download", err));
 
     if (downloadKey === this.downloadingGameId) {
       WindowManager.mainWindow?.setProgressBar(-1);
@@ -339,7 +313,6 @@ export class DownloadManager {
         const id = download.uri.split("/").pop();
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
-
         await GofileApi.checkDownloadUrl(downloadLink);
 
         return {
@@ -386,22 +359,7 @@ export class DownloadManager {
         try {
           const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
           logger.log(`[DownloadManager] Buzzheavier direct URL obtained`);
-
-          const filename = this.extractFilename(directUrl, download.uri);
-          const sanitizedFilename = filename ? this.sanitizeFilename(filename) : undefined;
-          
-          if (sanitizedFilename) {
-            logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
-          }
-
-          return {
-            action: "start",
-            game_id: downloadId,
-            url: directUrl,
-            save_path: download.downloadPath,
-            out: sanitizedFilename,
-            allow_multiple_connections: true,
-          };
+          return this.createDownloadPayload(directUrl, download.uri, downloadId, download.downloadPath);
         } catch (error) {
           logger.error(`[DownloadManager] Error processing Buzzheavier download:`, error);
           throw error;
@@ -412,22 +370,7 @@ export class DownloadManager {
         try {
           const directUrl = await FuckingFastApi.getDirectLink(download.uri);
           logger.log(`[DownloadManager] FuckingFast direct URL obtained`);
-
-          const filename = this.extractFilename(directUrl, download.uri);
-          const sanitizedFilename = filename ? this.sanitizeFilename(filename) : undefined;
-          
-          if (sanitizedFilename) {
-            logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
-          }
-
-          return {
-            action: "start",
-            game_id: downloadId,
-            url: directUrl,
-            save_path: download.downloadPath,
-            out: sanitizedFilename,
-            allow_multiple_connections: true,
-          };
+          return this.createDownloadPayload(directUrl, download.uri, downloadId, download.downloadPath);
         } catch (error) {
           logger.error(`[DownloadManager] Error processing FuckingFast download:`, error);
           throw error;
@@ -435,7 +378,6 @@ export class DownloadManager {
       }
       case Downloader.Mediafire: {
         const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
-
         return {
           action: "start",
           game_id: downloadId,
@@ -452,7 +394,6 @@ export class DownloadManager {
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
-
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
 
         return {
@@ -465,7 +406,6 @@ export class DownloadManager {
       }
       case Downloader.TorBox: {
         const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
-
         if (!url) return;
         return {
           action: "start",
@@ -477,10 +417,7 @@ export class DownloadManager {
         };
       }
       case Downloader.Hydra: {
-        const downloadUrl = await HydraDebridClient.getDownloadUrl(
-          download.uri
-        );
-
+        const downloadUrl = await HydraDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
 
         return {
