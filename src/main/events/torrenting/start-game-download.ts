@@ -81,7 +81,7 @@ const startGameDownload = async (
     queued: true,
     extracting: false,
     automaticallyExtract,
-    extractionProgress: null,
+    extractionProgress: 0,
   };
 
   try {
