@@ -41,7 +41,6 @@ const startGameDownload = async (
   const game = await gamesSublevel.get(gameKey);
   const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
 
-  /* Delete any previous download */
   await downloadsSublevel.del(gameKey);
 
   if (game) {
@@ -82,6 +81,7 @@ const startGameDownload = async (
     queued: true,
     extracting: false,
     automaticallyExtract,
+    extractionProgress: null,
   };
 
   try {
