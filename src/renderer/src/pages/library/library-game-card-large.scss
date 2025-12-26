@@ -144,6 +144,24 @@
     color: globals.$warning-color;
   }
 
+  &__steam-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      filter: brightness(1.2);
+      opacity: 1;
+
+      path {
+        fill: #ffffff;
+      }
+    }
+  }
+
   &__achievements {
     display: flex;
     flex-direction: column;

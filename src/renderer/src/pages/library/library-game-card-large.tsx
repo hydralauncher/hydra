@@ -2,6 +2,7 @@ import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -94,19 +95,25 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
-          <div className="library-game-card-large__playtime">
-            {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
-                className="library-game-card-large__manual-playtime"
-              />
-            ) : (
-              <ClockIcon size={11} />
-            )}
-            <span className="library-game-card-large__playtime-text">
-              {formatPlayTime(game.playTimeInMilliseconds)}
-            </span>
-          </div>
+          {game.shop === "steam" && game.isImported ? (
+            <div className="library-game-card-large__steam-badge">
+              <SteamLogo width={16} height={16} />
+            </div>
+          ) : (
+            <div className="library-game-card-large__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card-large__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card-large__playtime-text">
+                {formatPlayTime(game.playTimeInMilliseconds)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="library-game-card-large__logo-container">

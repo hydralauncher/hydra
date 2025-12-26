@@ -52,5 +52,5 @@ const addGameToLibrary = async (
     );
   }
 };
-
+export default addGameToLibrary;
 registerEvent("addGameToLibrary", addGameToLibrary);

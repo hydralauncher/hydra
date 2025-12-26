@@ -1,0 +1,11 @@
+@use "../../scss/globals.scss";
+
+.settings-library-import__steam-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    flex-shrink: 0;
+  }
+}

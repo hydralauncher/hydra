@@ -14,6 +14,7 @@ import "./extract-game-download";
 import "./get-default-wine-prefix-selection-path";
 import "./get-game-by-object-id";
 import "./get-library";
+import "./import-steam-library";
 import "./open-game-executable-path";
 import "./open-game-installer-path";
 import "./open-game-installer";

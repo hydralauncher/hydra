@@ -2,6 +2,7 @@ import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import { SettingsGeneral } from "./settings-general";
 import { SettingsBehavior } from "./settings-behavior";
+import { SettingsLibraryImport } from "./settings-library-import";
 import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
@@ -24,6 +25,7 @@ export default function Settings() {
       { tabLabel: t("general"), contentTitle: t("general") },
       { tabLabel: t("behavior"), contentTitle: t("behavior") },
       { tabLabel: t("download_sources"), contentTitle: t("download_sources") },
+      { tabLabel: t("library_import"), contentTitle: t("library_import") },
       {
         tabLabel: t("appearance"),
         contentTitle: t("appearance"),
@@ -57,10 +59,14 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 3) {
-              return <SettingsAppearance appearance={appearance} />;
+              return <SettingsLibraryImport />;
             }
 
             if (currentCategoryIndex === 4) {
+              return <SettingsAppearance appearance={appearance} />;
+            }
+
+            if (currentCategoryIndex === 5) {
               return <SettingsDebrid />;
             }
 

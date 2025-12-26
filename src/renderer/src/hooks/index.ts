@@ -7,6 +7,7 @@ export * from "./use-user-details";
 export * from "./use-format";
 export * from "./use-feature";
 export * from "./use-download-options-listener";
+export * from "./use-steam-library-update";
 export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
