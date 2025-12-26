@@ -412,10 +412,12 @@ function HeroDownloadView({
                 </div>
               )}
 
-            {game.download?.downloader && (
+            {game.download?.downloader !== undefined && (
               <div className="download-group__stat-item">
                 <div className="download-group__stat-content">
-                  <Badge>{DOWNLOADER_NAME[game.download.downloader]}</Badge>
+                  <Badge>
+                    {DOWNLOADER_NAME[Number(game.download.downloader)]}
+                  </Badge>
                 </div>
               </div>
             )}
@@ -512,8 +514,9 @@ export function DownloadGroup({
 
   const { formatDistance } = useDate();
 
-  const [peakSpeeds, setPeakSpeeds] = useState<Record<string, number>>({});
-  const speedHistoryRef = useRef<Record<string, number[]>>({});
+  // Get speed history and peak speeds from Redux (centralized state)
+  const speedHistory = useAppSelector((state) => state.download.speedHistory);
+  const peakSpeeds = useAppSelector((state) => state.download.peakSpeeds);
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
   );
@@ -576,68 +579,8 @@ export function DownloadGroup({
     });
   }, [library, lastPacket?.gameId]);
 
-  useEffect(() => {
-    if (lastPacket?.gameId && lastPacket.downloadSpeed !== undefined) {
-      const gameId = lastPacket.gameId;
-
-      const currentPeak = peakSpeeds[gameId] || 0;
-      if (lastPacket.downloadSpeed > currentPeak) {
-        setPeakSpeeds((prev) => ({
-          ...prev,
-          [gameId]: lastPacket.downloadSpeed,
-        }));
-      }
-
-      if (!speedHistoryRef.current[gameId]) {
-        speedHistoryRef.current[gameId] = [];
-      }
-
-      speedHistoryRef.current[gameId].push(lastPacket.downloadSpeed);
-
-      if (speedHistoryRef.current[gameId].length > 120) {
-        speedHistoryRef.current[gameId].shift();
-      }
-    }
-  }, [lastPacket?.gameId, lastPacket?.downloadSpeed, peakSpeeds]);
-
-  useEffect(() => {
-    for (const game of library) {
-      if (
-        game.download &&
-        game.download.progress < 0.01 &&
-        game.download.status !== "paused"
-      ) {
-        // Fresh download - clear any old data
-        if (speedHistoryRef.current[game.id]?.length > 0) {
-          speedHistoryRef.current[game.id] = [];
-          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
-        }
-      }
-    }
-  }, [library]);
-
-  useEffect(() => {
-    const timeouts: NodeJS.Timeout[] = [];
-
-    for (const game of library) {
-      if (
-        game.download?.progress === 1 &&
-        speedHistoryRef.current[game.id]?.length > 0
-      ) {
-        const timeout = setTimeout(() => {
-          speedHistoryRef.current[game.id] = [];
-          setPeakSpeeds((prev) => ({ ...prev, [game.id]: 0 }));
-        }, 10_000);
-        timeouts.push(timeout);
-      }
-    }
-
-    return () => {
-      for (const timeout of timeouts) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [library]);
+  // Speed history and peak speeds are now tracked in Redux (in setLastPacket reducer)
+  // No local effect needed - data is updated atomically when packets arrive
 
   useEffect(() => {
     if (library.length > 0 && title === t("download_in_progress")) {
@@ -842,7 +785,14 @@ export function DownloadGroup({
       ? (lastPacket?.downloadSpeed ?? 0)
       : 0;
     const finalDownloadSize = getFinalDownloadSize(game);
-    const peakSpeed = peakSpeeds[game.id] || 0;
+    // Use lastPacket.gameId for lookup since that's the key used to store the data
+    // Fall back to game.id if lastPacket is not available
+    const dataKey = lastPacket?.gameId ?? game.id;
+    const gameSpeedHistory = speedHistory[dataKey] ?? [];
+    const storedPeak = peakSpeeds[dataKey];
+    // Use stored peak if available and > 0, otherwise use current speed as initial value
+    const peakSpeed =
+      storedPeak !== undefined && storedPeak > 0 ? storedPeak : downloadSpeed;
 
     let currentProgress = game.download?.progress || 0;
     if (isGameExtracting) {
@@ -864,7 +814,7 @@ export function DownloadGroup({
         currentProgress={currentProgress}
         dominantColor={dominantColor}
         lastPacket={lastPacket}
-        speedHistory={speedHistoryRef.current[game.id] || []}
+        speedHistory={gameSpeedHistory}
         formatSpeed={formatSpeed}
         calculateETA={calculateETA}
         pauseDownload={pauseDownload}
@@ -908,7 +858,9 @@ export function DownloadGroup({
                 </button>
                 <div className="download-group__simple-meta">
                   <div className="download-group__simple-meta-row">
-                    <Badge>{DOWNLOADER_NAME[game.download!.downloader]}</Badge>
+                    <Badge>
+                      {DOWNLOADER_NAME[Number(game.download!.downloader)]}
+                    </Badge>
                   </div>
                   <div className="download-group__simple-meta-row">
                     {extraction?.visibleId === game.id ? (
