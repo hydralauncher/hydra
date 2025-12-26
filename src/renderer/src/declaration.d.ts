@@ -285,6 +285,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getSystemProxy: () => Promise<{ host: string; port: number } | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,

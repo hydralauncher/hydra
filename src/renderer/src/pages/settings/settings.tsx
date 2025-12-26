@@ -13,6 +13,7 @@ import { useMemo } from "react";
 import "./settings.scss";
 import { SettingsAppearance } from "./aparence/settings-appearance";
 import { SettingsDebrid } from "./settings-debrid";
+import { SettingsProxy } from "./settings-proxy";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -29,6 +30,7 @@ export default function Settings() {
         contentTitle: t("appearance"),
       },
       { tabLabel: t("debrid"), contentTitle: t("debrid") },
+      { tabLabel: t("proxy"), contentTitle: t("proxy") },
     ];
 
     if (userDetails)
@@ -62,6 +64,10 @@ export default function Settings() {
 
             if (currentCategoryIndex === 4) {
               return <SettingsDebrid />;
+            }
+
+            if (currentCategoryIndex === 5) {
+              return <SettingsProxy />;
             }
 
             return <SettingsAccount />;

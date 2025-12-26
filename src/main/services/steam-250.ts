@@ -2,10 +2,14 @@ import axios from "axios";
 import { JSDOM } from "jsdom";
 
 import type { Steam250Game } from "@types";
+import { ProxyManager } from "./proxy-manager";
 
 export const requestSteam250 = async (path: string) => {
+  const proxyConfig = await ProxyManager.getAxiosProxyConfig();
+  const agentConfig = await ProxyManager.getAxiosAgentConfig();
+
   return axios
-    .get(`https://steam250.com${path}`)
+    .get(`https://steam250.com${path}`, { proxy: proxyConfig, ...agentConfig })
     .then((response) => {
       const { window } = new JSDOM(response.data);
       const { document } = window;

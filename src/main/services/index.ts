@@ -19,4 +19,5 @@ export * from "./wine";
 export * from "./lock";
 export * from "./decky-plugin";
 export * from "./user";
+export * from "./proxy-manager";
 export * from "./download-sources-checker";
