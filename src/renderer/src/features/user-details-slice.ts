@@ -1,5 +1,4 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import type { FriendRequest, UserDetails } from "@types";
 
 export interface UserDetailsState {
@@ -7,9 +6,6 @@ export interface UserDetailsState {
   profileBackground: null | string;
   friendRequests: FriendRequest[];
   friendRequestCount: number;
-  isFriendsModalVisible: boolean;
-  friendRequetsModalTab: UserFriendModalTab | null;
-  friendModalUserId: string;
 }
 
 const initialState: UserDetailsState = {
@@ -17,9 +13,6 @@ const initialState: UserDetailsState = {
   profileBackground: null,
   friendRequests: [],
   friendRequestCount: 0,
-  isFriendsModalVisible: false,
-  friendRequetsModalTab: null,
-  friendModalUserId: "",
 };
 
 export const userDetailsSlice = createSlice({
@@ -38,18 +31,6 @@ export const userDetailsSlice = createSlice({
     setFriendRequestCount: (state, action: PayloadAction<number>) => {
       state.friendRequestCount = action.payload;
     },
-    setFriendsModalVisible: (
-      state,
-      action: PayloadAction<{ initialTab: UserFriendModalTab; userId: string }>
-    ) => {
-      state.isFriendsModalVisible = true;
-      state.friendRequetsModalTab = action.payload.initialTab;
-      state.friendModalUserId = action.payload.userId;
-    },
-    setFriendsModalHidden: (state) => {
-      state.isFriendsModalVisible = false;
-      state.friendRequetsModalTab = null;
-    },
   },
 });
 
@@ -58,6 +39,4 @@ export const {
   setProfileBackground,
   setFriendRequests,
   setFriendRequestCount,
-  setFriendsModalVisible,
-  setFriendsModalHidden,
 } = userDetailsSlice.actions;
