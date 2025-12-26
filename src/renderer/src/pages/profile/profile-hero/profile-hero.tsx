@@ -7,6 +7,7 @@ import {
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
+  TrophyIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -29,6 +30,7 @@ import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
+import { WrappedFullscreenModal } from "../profile-content/wrapped-tab";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import "./profile-hero.scss";
@@ -39,6 +41,7 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
   const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
@@ -283,6 +286,13 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
+      {userProfile && (
+        <WrappedFullscreenModal
+          userId={userProfile.id}
+          isOpen={showWrappedModal}
+          onClose={() => setShowWrappedModal(false)}
+        />
+      )}
       <FullscreenMediaModal
         visible={showFullscreenAvatar}
         onClose={() => setShowFullscreenAvatar(false)}
@@ -400,6 +410,22 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
+          {userProfile?.hasCompletedWrapped2025 && (
+            <div className="profile-hero__left-actions">
+              <Button
+                theme="outline"
+                onClick={() => setShowWrappedModal(true)}
+                className="profile-hero__button--wrapped"
+              >
+                <TrophyIcon />
+                {isMe
+                  ? t("view_my_wrapped_button")
+                  : t("view_wrapped_button", {
+                      displayName: userProfile.displayName,
+                    })}
+              </Button>
+            </div>
+          )}
           <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>
