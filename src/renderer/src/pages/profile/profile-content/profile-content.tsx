@@ -22,7 +22,7 @@ import { ProfileSection } from "../profile-section/profile-section";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { ProfileTabs } from "./profile-tabs";
+import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { AnimatePresence } from "framer-motion";
@@ -96,7 +96,7 @@ export function ProfileContent() {
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const statsAnimation = useRef(-1);
 
-  const [activeTab, setActiveTab] = useState<"library" | "reviews">("library");
+  const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
