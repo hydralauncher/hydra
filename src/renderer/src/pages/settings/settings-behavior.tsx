@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField } from "@renderer/components";
+import { CheckboxField, SelectField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
@@ -12,6 +12,11 @@ export function SettingsBehavior() {
     (state) => state.userPreferences.value
   );
 
+  const startupLocations = [
+    { value: "home", label: "sidebar:home" },
+    { value: "library", label: "sidebar:library" },
+    { value: "catalogue", label: "sidebar:catalogue" },
+  ];
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
 
   const { updateUserPreferences } = useContext(settingsContext);
@@ -29,6 +34,7 @@ export function SettingsBehavior() {
     enableSteamAchievements: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
+    startupLocation: "home",
   });
 
   const { t } = useTranslation("settings");
@@ -53,6 +59,7 @@ export function SettingsBehavior() {
           userPreferences.enableSteamAchievements ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        startupLocation: userPreferences.startupLocation ?? "home",
       });
     }
   }, [userPreferences]);
@@ -70,6 +77,20 @@ export function SettingsBehavior() {
 
   return (
     <>
+      <SelectField
+        label={t("startup_location", "Startup Location")}
+        value={form.startupLocation}
+        onChange={(event) =>
+          handleChange({
+            startupLocation: event.target.value,
+          })
+        }
+        options={startupLocations.map((location) => ({
+          key: location.value,
+          value: location.value,
+          label: t(location.label),
+        }))}
+      />
       <CheckboxField
         label={t("quit_app_instead_hiding")}
         checked={form.preferQuitInsteadOfHiding}

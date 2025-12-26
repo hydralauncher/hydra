@@ -118,7 +118,7 @@ export class WindowManager {
     };
   }
 
-  public static async createMainWindow() {
+  public static async createMainWindow(hash: string = "") {
     if (this.mainWindow) return;
 
     const { isMaximized = false, ...configWithoutMaximized } =
@@ -195,7 +195,7 @@ export class WindowManager {
       }
     );
 
-    this.loadMainWindowURL();
+    this.loadMainWindowURL(hash);
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
