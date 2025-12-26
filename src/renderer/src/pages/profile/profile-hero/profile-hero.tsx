@@ -3,9 +3,11 @@ import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
   CheckCircleFillIcon,
+  CopyIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
+  TrophyIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -24,12 +26,13 @@ import {
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
+import { WrappedFullscreenModal } from "../profile-content/wrapped-tab";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
-import { Tooltip } from "react-tooltip";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -38,17 +41,13 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
 
-  const {
-    isMe,
-    badges,
-    getUserProfile,
-    userProfile,
-    heroBackground,
-    backgroundImage,
-  } = useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -259,6 +258,13 @@ export function ProfileHero() {
     }
   }, [isMe, userProfile?.profileImageUrl]);
 
+  const copyFriendCode = useCallback(() => {
+    if (userProfile?.id) {
+      navigator.clipboard.writeText(userProfile.id);
+      showSuccessToast(t("friend_code_copied"));
+    }
+  }, [userProfile, showSuccessToast, t]);
+
   const currentGame = useMemo(() => {
     if (isMe) {
       if (gameRunning)
@@ -280,6 +286,13 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
+      {userProfile && (
+        <WrappedFullscreenModal
+          userId={userProfile.id}
+          isOpen={showWrappedModal}
+          onClose={() => setShowWrappedModal(false)}
+        />
+      )}
       <FullscreenMediaModal
         visible={showFullscreenAvatar}
         onClose={() => setShowFullscreenAvatar(false)}
@@ -326,28 +339,32 @@ export function ProfileHero() {
                     {userProfile?.displayName}
                   </h2>
 
-                  <div className="profile-hero__badges">
-                    {userProfile.badges.map((badgeName) => {
-                      const badge = badges.find((b) => b.name === badgeName);
-
-                      if (!badge) return null;
-
-                      return (
-                        <img
-                          key={badge.name}
-                          src={badge.badge.url}
-                          alt={badge.name}
-                          width={24}
-                          height={24}
-                          data-tooltip-place="top"
-                          data-tooltip-content={badge.description}
-                          data-tooltip-id="badge-name"
-                        />
-                      );
-                    })}
-
-                    <Tooltip id="badge-name" />
-                  </div>
+                  <motion.button
+                    type="button"
+                    className="profile-hero__copy-button"
+                    onClick={copyFriendCode}
+                    title={t("copy_friend_code")}
+                    onMouseEnter={() => setIsCopyButtonHovered(true)}
+                    onMouseLeave={() => setIsCopyButtonHovered(false)}
+                    initial={{ width: 28 }}
+                    animate={{
+                      width: isCopyButtonHovered ? 105 : 28,
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <motion.span
+                      className="profile-hero__friend-code"
+                      initial={{ opacity: 0, marginRight: 0 }}
+                      animate={{
+                        opacity: isCopyButtonHovered ? 1 : 0,
+                        marginRight: isCopyButtonHovered ? 8 : 0,
+                      }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
+                      {userProfile?.id}
+                    </motion.span>
+                    <CopyIcon size={16} />
+                  </motion.button>
                 </div>
               ) : (
                 <Skeleton width={150} height={28} />
@@ -393,6 +410,22 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
+          {userProfile?.hasCompletedWrapped2025 && (
+            <div className="profile-hero__left-actions">
+              <Button
+                theme="outline"
+                onClick={() => setShowWrappedModal(true)}
+                className="profile-hero__button--wrapped"
+              >
+                <TrophyIcon />
+                {isMe
+                  ? t("view_my_wrapped_button")
+                  : t("view_wrapped_button", {
+                      displayName: userProfile.displayName,
+                    })}
+              </Button>
+            </div>
+          )}
           <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>

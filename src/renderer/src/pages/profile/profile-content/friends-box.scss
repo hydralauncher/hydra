@@ -1,18 +1,34 @@
 @use "../../../scss/globals.scss";
 
 .friends-box {
-  &__section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: calc(globals.$spacing-unit * 2);
+  &__box {
+    padding: calc(globals.$spacing-unit * 2);
+    position: relative;
   }
 
-  &__box {
-    background-color: globals.$background-color;
-    border-radius: 4px;
-    border: solid 1px globals.$border-color;
-    padding: calc(globals.$spacing-unit * 2);
+  &__add-friend-button {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__view-all-container {
+    padding-top: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+    display: flex;
+    justify-content: flex-start;
   }
 
   &__list {
@@ -44,11 +60,12 @@
 
   &__friend-name {
     color: globals.$muted-color;
-    font-weight: bold;
-    font-size: globals.$body-font-size;
+    font-size: 0.8rem;
+    font-weight: 600;
   }
 
   &__game-info {
+    font-size: 0.75rem;
     display: flex;
     gap: globals.$spacing-unit;
     align-items: center;
@@ -62,5 +79,20 @@
 
   &__game-image {
     border-radius: 4px;
+  }
+
+  &__view-all {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
   }
 }
