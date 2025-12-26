@@ -172,20 +172,14 @@ export function NotificationItem({
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={cn("notification-item", {
         "notification-item--unread":
           !notification.isRead ||
           notification.type === "FRIEND_REQUEST_RECEIVED",
       })}
       onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          handleClick();
-        }
-      }}
-      role="button"
-      tabIndex={0}
     >
       <div
         className={cn("notification-item__picture", {
@@ -229,6 +223,6 @@ export function NotificationItem({
           <XIcon size={16} />
         </button>
       )}
-    </div>
+    </button>
   );
 }

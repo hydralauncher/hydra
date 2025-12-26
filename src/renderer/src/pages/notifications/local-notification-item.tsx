@@ -25,7 +25,7 @@ export function LocalNotificationItem({
   notification,
   onDismiss,
   onMarkAsRead,
-}: LocalNotificationItemProps) {
+}: Readonly<LocalNotificationItemProps>) {
   const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
   const navigate = useNavigate();
@@ -64,18 +64,12 @@ export function LocalNotificationItem({
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={cn("notification-item", {
         "notification-item--unread": !notification.isRead,
       })}
       onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          handleClick();
-        }
-      }}
-      role="button"
-      tabIndex={0}
     >
       <div className="notification-item__picture">
         {notification.pictureUrl ? (
@@ -104,6 +98,6 @@ export function LocalNotificationItem({
       >
         <XIcon size={16} />
       </button>
-    </div>
+    </button>
   );
 }
