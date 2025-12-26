@@ -2,10 +2,12 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import "./profile-content.scss";
 
+export type ProfileTabType = "library" | "reviews";
+
 interface ProfileTabsProps {
-  activeTab: "library" | "reviews";
+  activeTab: ProfileTabType;
   reviewsTotalCount: number;
-  onTabChange: (tab: "library" | "reviews") => void;
+  onTabChange: (tab: ProfileTabType) => void;
 }
 
 export function ProfileTabs({

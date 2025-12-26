@@ -214,6 +214,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  hasCompletedWrapped2025: boolean;
 }
 
 export interface UpdateProfileRequest {

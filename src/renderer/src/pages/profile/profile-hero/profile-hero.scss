@@ -144,6 +144,11 @@
     }
   }
 
+  &__left-actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
   &__actions {
     display: flex;
     gap: globals.$spacing-unit;
@@ -154,6 +159,36 @@
   &__button {
     &--outline {
       border-color: globals.$body-color;
+    }
+
+    &--wrapped {
+      background: linear-gradient(
+        120deg,
+        #2a57ff 0%,
+        #2951e6 11%,
+        #2f5bff 16%,
+        #2c56e8 29%,
+        #244acc 34%,
+        #2245c2 40%,
+        #3a6bff 45%,
+        #3766f2 50%,
+        #2444b8 56%,
+        #122a73 82%,
+        #2348b3 86%,
+        #1f429e 87%,
+        #10286a 93%,
+        #0e2a63 100%
+      );
+      background-color: #2a57ff;
+      background-size: 105% 100%;
+      background-position: 100% 50%;
+      border: none;
+      color: white;
+      transition: background-position 0.4s ease;
+
+      &:hover {
+        background-position: 0% 50%;
+      }
     }
   }
 }
