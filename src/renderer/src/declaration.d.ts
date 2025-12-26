@@ -14,6 +14,7 @@ import type {
   GameStats,
   UserDetails,
   FriendRequestSync,
+  NotificationSync,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -31,6 +32,7 @@ import type {
   Game,
   DiskUsage,
   DownloadSource,
+  LocalNotification,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -387,9 +389,11 @@ declare global {
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
-    syncFriendRequests: () => Promise<void>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
+    ) => () => Electron.IpcRenderer;
+    onSyncNotificationCount: (
+      cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
     updateFriendRequest: (
       userId: string,
@@ -398,6 +402,15 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+    getLocalNotifications: () => Promise<LocalNotification[]>;
+    getLocalNotificationsCount: () => Promise<number>;
+    markLocalNotificationRead: (id: string) => Promise<void>;
+    markAllLocalNotificationsRead: () => Promise<void>;
+    deleteLocalNotification: (id: string) => Promise<void>;
+    clearAllLocalNotifications: () => Promise<void>;
+    onLocalNotificationCreated: (
+      cb: (notification: LocalNotification) => void
+    ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
       cb: (
         position?: AchievementCustomNotificationPosition,
