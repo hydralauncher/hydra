@@ -21,7 +21,9 @@ export class BuzzheavierApi {
   private static async getBuzzheavierDirectLink(url: string): Promise<string> {
     try {
       const baseUrl = url.split("#")[0];
-      logger.log(`[Buzzheavier] Starting download link extraction for: ${baseUrl}`);
+      logger.log(
+        `[Buzzheavier] Starting download link extraction for: ${baseUrl}`
+      );
 
       await axios.get(baseUrl, {
         headers: { "User-Agent": HOSTER_USER_AGENT },
@@ -46,7 +48,9 @@ export class BuzzheavierApi {
       const hxRedirect = headResponse.headers["hx-redirect"];
       logger.log(`[Buzzheavier] Received hx-redirect header: ${hxRedirect}`);
       if (!hxRedirect) {
-        logger.error(`[Buzzheavier] No hx-redirect header found. Status: ${headResponse.status}`);
+        logger.error(
+          `[Buzzheavier] No hx-redirect header found. Status: ${headResponse.status}`
+        );
         throw new Error(
           "Could not extract download link. File may be deleted or is a directory."
         );
