@@ -29,6 +29,7 @@ export function SettingsBehavior() {
     enableSteamAchievements: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
+    enableNewDownloadOptionsBadges: true,
   });
 
   const { t } = useTranslation("settings");
@@ -53,6 +54,8 @@ export function SettingsBehavior() {
           userPreferences.enableSteamAchievements ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        enableNewDownloadOptionsBadges:
+          userPreferences.enableNewDownloadOptionsBadges ?? true,
       });
     }
   }, [userPreferences]);
@@ -209,6 +212,17 @@ export function SettingsBehavior() {
           <QuestionIcon size={12} />
         </small>
       </div>
+
+      <CheckboxField
+        label={t("enable_new_download_options_badges")}
+        checked={form.enableNewDownloadOptionsBadges}
+        onChange={() =>
+          handleChange({
+            enableNewDownloadOptionsBadges:
+              !form.enableNewDownloadOptionsBadges,
+          })
+        }
+      />
     </>
   );
 }
