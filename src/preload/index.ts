@@ -267,6 +267,29 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-extraction-complete", listener);
     return () => ipcRenderer.removeListener("on-extraction-complete", listener);
   },
+  onExtractionProgress: (
+    cb: (shop: GameShop, objectId: string, progress: number) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string,
+      progress: number
+    ) => cb(shop, objectId, progress);
+    ipcRenderer.on("on-extraction-progress", listener);
+    return () => ipcRenderer.removeListener("on-extraction-progress", listener);
+  },
+  onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      archivePaths: string[]
+    ) => cb(archivePaths);
+    ipcRenderer.on("on-archive-deletion-prompt", listener);
+    return () =>
+      ipcRenderer.removeListener("on-archive-deletion-prompt", listener);
+  },
+  deleteArchive: (filePath: string) =>
+    ipcRenderer.invoke("deleteArchive", filePath),
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>

@@ -74,21 +74,16 @@ export class DeckyPlugin {
 
     await fs.promises.mkdir(extractPath, { recursive: true });
 
-    return new Promise((resolve, reject) => {
-      SevenZip.extractFile(
-        {
-          filePath: zipPath,
-          outputPath: extractPath,
-        },
-        () => {
-          logger.log(`Plugin extracted to: ${extractPath}`);
-          resolve(extractPath);
-        },
-        () => {
-          reject(new Error("Failed to extract plugin"));
-        }
-      );
-    });
+    try {
+      await SevenZip.extractFile({
+        filePath: zipPath,
+        outputPath: extractPath,
+      });
+      logger.log(`Plugin extracted to: ${extractPath}`);
+      return extractPath;
+    } catch {
+      throw new Error("Failed to extract plugin");
+    }
   }
 
   private static needsSudo(): boolean {

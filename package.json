@@ -70,6 +70,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.544.0",
+    "node-7z": "^3.0.0",
     "parse-torrent": "^11.0.18",
     "rc-virtual-list": "^3.18.3",
     "react-dnd": "^16.0.1",
