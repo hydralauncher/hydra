@@ -23,7 +23,6 @@ import {
   clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
@@ -54,12 +53,7 @@ export function App() {
   const { clearDownload, setLastPacket } = useDownload();
 
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -135,7 +129,6 @@ export function App() {
       .then((response) => {
         if (response) {
           updateUserDetails(response);
-          window.electron.syncFriendRequests();
         }
       })
       .finally(() => {
@@ -152,7 +145,6 @@ export function App() {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -304,15 +296,6 @@ export function App() {
         archivePaths={archivePaths}
         onClose={() => setShowArchiveDeletionModal(false)}
       />
-
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
 
       <main>
         <Sidebar />
