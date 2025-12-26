@@ -32,18 +32,27 @@ export class DownloadManager {
   private static extractFilename(url: string, originalUrl?: string): string | undefined {
     if (originalUrl?.includes('#')) {
       const hashPart = originalUrl.split('#')[1];
-      if (hashPart && !hashPart.startsWith('http')) return hashPart;
+      if (hashPart && !hashPart.startsWith('http') && hashPart.includes('.')) {
+        return hashPart;
+      }
     }
 
     if (url.includes('#')) {
       const hashPart = url.split('#')[1];
-      if (hashPart && !hashPart.startsWith('http')) return hashPart;
+      if (hashPart && !hashPart.startsWith('http') && hashPart.includes('.')) {
+        return hashPart;
+      }
     }
 
     try {
       const urlObj = new URL(url);
-      const filename = urlObj.pathname.split('/').pop();
-      if (filename?.length) return filename;
+      const pathname = urlObj.pathname;
+      const pathParts = pathname.split('/');
+      const filename = pathParts[pathParts.length - 1];
+      
+      if (filename && filename.includes('.') && filename.length > 0) {
+        return decodeURIComponent(filename);
+      }
     } catch {
       // Invalid URL
     }
@@ -56,11 +65,13 @@ export class DownloadManager {
   }
 
   private static createDownloadPayload(directUrl: string, originalUrl: string, downloadId: string, savePath: string) {
-    const filename = this.extractFilename(directUrl, originalUrl);
+    const filename = this.extractFilename(originalUrl, directUrl) || this.extractFilename(directUrl);
     const sanitizedFilename = filename ? this.sanitizeFilename(filename) : undefined;
     
     if (sanitizedFilename) {
       logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
+    } else {
+      logger.log(`[DownloadManager] No filename extracted, aria2 will use default`);
     }
 
     return {
