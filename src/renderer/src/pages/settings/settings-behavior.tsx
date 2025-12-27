@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { QuestionIcon } from "@primer/octicons-react";
 
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -27,6 +27,7 @@ export function SettingsBehavior() {
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
     enableSteamAchievements: false,
+    enableAchievementScreenshots: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
     enableNewDownloadOptionsBadges: true,
@@ -52,6 +53,8 @@ export function SettingsBehavior() {
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
+        enableAchievementScreenshots:
+          userPreferences.enableAchievementScreenshots ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
         enableNewDownloadOptionsBadges:
@@ -159,17 +162,6 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             seedAfterDownloadComplete: !form.seedAfterDownloadComplete,
-          })
-        }
-      />
-
-      <CheckboxField
-        label={t("show_hidden_achievement_description")}
-        checked={form.showHiddenAchievementsDescription}
-        onChange={() =>
-          handleChange({
-            showHiddenAchievementsDescription:
-              !form.showHiddenAchievementsDescription,
           })
         }
       />
