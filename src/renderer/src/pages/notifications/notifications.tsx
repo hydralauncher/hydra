@@ -130,6 +130,32 @@ export default function Notifications() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = window.electron.onSyncNotificationCount(() => {
+      if (userDetails) {
+        fetchApiNotifications(0, false);
+      }
+      fetchLocalNotifications();
+    });
+
+    return () => unsubscribe();
+  }, [userDetails, fetchApiNotifications, fetchLocalNotifications]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userDetails) {
+        fetchApiNotifications(0, false);
+        fetchLocalNotifications();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [userDetails, fetchApiNotifications, fetchLocalNotifications]);
+
   const mergedNotifications = useMemo<MergedNotification[]>(() => {
     const sortByDate = (a: MergedNotification, b: MergedNotification) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
