@@ -50,7 +50,7 @@ export class DownloadManager {
       const pathParts = pathname.split('/');
       const filename = pathParts[pathParts.length - 1];
       
-      if (filename && filename.includes('.') && filename.length > 0) {
+      if (filename?.includes('.') && filename.length > 0) {
         return decodeURIComponent(filename);
       }
     } catch {
@@ -61,7 +61,7 @@ export class DownloadManager {
   }
 
   private static sanitizeFilename(filename: string): string {
-    return filename.replace(/[<>:"/\\|?*]/g, '_');
+    return filename.replaceAll(/[<>:"/\\|?*]/g, '_');
   }
 
   private static createDownloadPayload(directUrl: string, originalUrl: string, downloadId: string, savePath: string) {
