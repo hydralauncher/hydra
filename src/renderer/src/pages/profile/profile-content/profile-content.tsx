@@ -10,6 +10,7 @@ import {
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
+import { TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
@@ -18,14 +19,17 @@ import { BadgesBox } from "./badges-box";
 import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
+import { logger } from "@renderer/logger";
+import { AnimatePresence } from "framer-motion";
 import { ProfileSection } from "../profile-section/profile-section";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
+import { FullscreenImageModal } from "@renderer/components/fullscreen-image-modal";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
-import { AnimatePresence } from "framer-motion";
+import { SouvenirsTab } from "./souvenirs-tab";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -85,6 +89,7 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
+    getUserProfile,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
@@ -94,6 +99,10 @@ export function ProfileContent() {
   const [statsIndex, setStatsIndex] = useState(0);
   const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
+  const [fullscreenImage, setFullscreenImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
   const statsAnimation = useRef(-1);
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
@@ -206,7 +215,7 @@ export function ProfileContent() {
       setReviews((prev) => prev.filter((review) => review.id !== reviewId));
       setReviewsTotalCount((prev) => prev - 1);
     } catch (error) {
-      console.error("Failed to delete review:", error);
+      logger.error("Failed to delete review:", error);
     }
   };
 
@@ -301,7 +310,7 @@ export function ProfileContent() {
         `/games/${review.game.shop}/${review.game.objectId}/reviews/${reviewId}/${endpoint}`
       );
     } catch (error) {
-      console.error("Failed to vote on review:", error);
+      logger.error("Failed to vote on review:", error);
 
       // Rollback optimistic update on error
       setReviews((prev) =>
@@ -333,6 +342,17 @@ export function ProfileContent() {
 
   const handleOnMouseLeaveGameCard = () => {
     setIsAnimationRunning(true);
+  };
+
+  const handleImageClick = (imageUrl: string, achievementName: string) => {
+    setFullscreenImage({
+      url: imageUrl,
+      alt: `${achievementName} screenshot`,
+    });
+  };
+
+  const closeFullscreenImage = () => {
+    setFullscreenImage(null);
   };
 
   useEffect(() => {
@@ -381,46 +401,70 @@ export function ProfileContent() {
     return (
       <section className="profile-content__section">
         <div className="profile-content__main">
-          <ProfileTabs
-            activeTab={activeTab}
-            reviewsTotalCount={reviewsTotalCount}
-            onTabChange={setActiveTab}
-          />
+          {!hasAnyGames && (
+            <div className="profile-content__no-games">
+              <div className="profile-content__telescope-icon">
+                <TelescopeIcon size={24} />
+              </div>
+              <h2>{t("no_recent_activity_title")}</h2>
+              {isMe && <p>{t("no_recent_activity_description")}</p>}
+            </div>
+          )}
 
-          <div className="profile-content__tab-panels">
-            <AnimatePresence mode="wait">
-              {activeTab === "library" && (
-                <LibraryTab
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                  pinnedGames={pinnedGames}
-                  libraryGames={libraryGames}
-                  hasMoreLibraryGames={hasMoreLibraryGames}
-                  isLoadingLibraryGames={isLoadingLibraryGames}
-                  statsIndex={statsIndex}
-                  userStats={userStats}
-                  animatedGameIdsRef={animatedGameIdsRef}
-                  onLoadMore={handleLoadMore}
-                  onMouseEnter={handleOnMouseEnterGameCard}
-                  onMouseLeave={handleOnMouseLeaveGameCard}
-                  isMe={isMe}
-                />
-              )}
+          {hasAnyGames && (
+            <div>
+              <ProfileTabs
+                activeTab={activeTab}
+                reviewsTotalCount={reviewsTotalCount}
+                souvenirsCount={userProfile?.achievements?.length || 0}
+                onTabChange={setActiveTab}
+              />
 
-              {activeTab === "reviews" && (
-                <ReviewsTab
-                  reviews={reviews}
-                  isLoadingReviews={isLoadingReviews}
-                  votingReviews={votingReviews}
-                  userDetailsId={userDetails?.id}
-                  formatPlayTime={formatPlayTime}
-                  getRatingText={getRatingText}
-                  onVote={handleVoteReview}
-                  onDelete={handleDeleteClick}
-                />
-              )}
-            </AnimatePresence>
-          </div>
+              <div className="profile-content__tab-panels">
+                <AnimatePresence mode="wait">
+                  {activeTab === "library" && (
+                    <LibraryTab
+                      sortBy={sortBy}
+                      onSortChange={setSortBy}
+                      pinnedGames={pinnedGames}
+                      libraryGames={libraryGames}
+                      hasMoreLibraryGames={hasMoreLibraryGames}
+                      isLoadingLibraryGames={isLoadingLibraryGames}
+                      statsIndex={statsIndex}
+                      userStats={userStats}
+                      animatedGameIdsRef={animatedGameIdsRef}
+                      onLoadMore={handleLoadMore}
+                      onMouseEnter={handleOnMouseEnterGameCard}
+                      onMouseLeave={handleOnMouseLeaveGameCard}
+                      isMe={isMe}
+                    />
+                  )}
+
+                  {activeTab === "reviews" && (
+                    <ReviewsTab
+                      reviews={reviews}
+                      isLoadingReviews={isLoadingReviews}
+                      votingReviews={votingReviews}
+                      userDetailsId={userDetails?.id}
+                      formatPlayTime={formatPlayTime}
+                      getRatingText={getRatingText}
+                      onVote={handleVoteReview}
+                      onDelete={handleDeleteClick}
+                    />
+                  )}
+
+                  {activeTab === "souvenirs" && (
+                    <SouvenirsTab
+                      achievements={userProfile?.achievements || []}
+                      onImageClick={handleImageClick}
+                      isMe={isMe}
+                      onAchievementDeleted={getUserProfile}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
 
         {shouldShowRightContent && (
@@ -475,15 +519,25 @@ export function ProfileContent() {
     statsIndex,
     libraryGames,
     pinnedGames,
-
     sortBy,
     activeTab,
-    // ensure reviews UI updates correctly
     reviews,
     reviewsTotalCount,
     isLoadingReviews,
     votingReviews,
     deleteModalVisible,
+    handleOnMouseEnterGameCard,
+    handleOnMouseLeaveGameCard,
+    handleImageClick,
+    handleLoadMore,
+    formatPlayTime,
+    getRatingText,
+    handleVoteReview,
+    handleDeleteClick,
+    userDetails,
+    animatedGameIdsRef,
+    hasMoreLibraryGames,
+    isLoadingLibraryGames,
   ]);
 
   return (
@@ -491,6 +545,13 @@ export function ProfileContent() {
       <ProfileHero />
 
       {content}
+
+      <FullscreenImageModal
+        isOpen={fullscreenImage !== null}
+        imageUrl={fullscreenImage?.url || ""}
+        imageAlt={fullscreenImage?.alt || ""}
+        onClose={closeFullscreenImage}
+      />
     </div>
   );
 }
