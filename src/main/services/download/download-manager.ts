@@ -217,7 +217,7 @@ export class DownloadManager {
             gameFilesManager.extractDownloadedFile();
           } else {
             gameFilesManager
-              .extractFilesInDirectory(path.join(download.downloadPath, download.folderName!))
+              .extractFilesInDirectory(path.join(download.downloadPath, download.folderName))
               .then(() => gameFilesManager.setExtractionComplete());
           }
         }
