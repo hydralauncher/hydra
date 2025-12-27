@@ -14,12 +14,11 @@ import "./library.scss";
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
-  type ElectronAPI = {
-    refreshLibraryAssets?: () => Promise<unknown>;
-    onLibraryBatchComplete?: (cb: () => void) => () => void;
-  };
 
-  const [viewMode, setViewMode] = useState<ViewMode>("compact");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const savedViewMode = localStorage.getItem("library-view-mode");
+    return (savedViewMode as ViewMode) || "compact";
+  });
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const [contextMenu, setContextMenu] = useState<{
     game: LibraryGame | null;
@@ -31,24 +30,22 @@ export default function Library() {
   const dispatch = useAppDispatch();
   const { t } = useTranslation("library");
 
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem("library-view-mode", mode);
+  }, []);
+
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
-    const electron = (globalThis as unknown as { electron?: ElectronAPI })
-      .electron;
-    let unsubscribe: () => void = () => undefined;
-    if (electron?.refreshLibraryAssets) {
-      electron
-        .refreshLibraryAssets()
-        .then(() => updateLibrary())
-        .catch(() => updateLibrary());
-      if (electron.onLibraryBatchComplete) {
-        unsubscribe = electron.onLibraryBatchComplete(() => {
-          updateLibrary();
-        });
-      }
-    } else {
+
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
       updateLibrary();
-    }
+    });
+
+    window.electron
+      .refreshLibraryAssets()
+      .then(() => updateLibrary())
+      .catch(() => updateLibrary());
 
     return () => {
       unsubscribe();
@@ -71,7 +68,7 @@ export default function Library() {
   );
 
   const handleCloseContextMenu = useCallback(() => {
-    setContextMenu({ game: null, visible: false, position: { x: 0, y: 0 } });
+    setContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
 
   const filteredLibrary = useMemo(() => {
@@ -79,7 +76,13 @@ export default function Library() {
 
     switch (filterBy) {
       case "recently_played":
-        filtered = library.filter((game) => game.lastTimePlayed !== null);
+        filtered = library
+          .filter((game) => game.lastTimePlayed !== null)
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.lastTimePlayed).getTime() -
+              new Date(a.lastTimePlayed).getTime()
+          );
         break;
       case "favorites":
         filtered = library.filter((game) => game.favorite);
@@ -147,7 +150,10 @@ export default function Library() {
             </div>
 
             <div className="library__controls-right">
-              <ViewOptions viewMode={viewMode} onViewModeChange={setViewMode} />
+              <ViewOptions
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+              />
             </div>
           </div>
         </div>

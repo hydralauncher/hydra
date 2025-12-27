@@ -2,17 +2,7 @@
 
 .user-stats {
   &__box {
-    background-color: globals.$background-color;
-    border-radius: 4px;
-    border: solid 1px globals.$border-color;
     padding: calc(globals.$spacing-unit * 2);
-  }
-
-  &__section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__list {
@@ -42,13 +32,15 @@
   }
 
   &__list-title {
-    font-weight: bold;
+    font-size: 0.8rem;
+    font-weight: 600;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
 
   &__list-description {
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
@@ -71,5 +63,11 @@
       text-decoration: underline;
       cursor: pointer;
     }
+  }
+
+  &__karma-info-text {
+    color: globals.$muted-color;
+    font-size: 0.75rem;
+    line-height: 1.4;
   }
 }

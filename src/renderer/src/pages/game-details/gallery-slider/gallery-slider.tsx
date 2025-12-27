@@ -8,6 +8,7 @@ import {
 import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
+import { VideoPlayer } from "./video-player";
 import "./gallery-slider.scss";
 
 export function GallerySlider() {
@@ -100,20 +101,44 @@ export function GallerySlider() {
       src?: string;
       poster?: string;
       videoSrc?: string;
+      videoType?: string;
       alt: string;
     }> = [];
 
     if (shopDetails?.movies) {
       shopDetails.movies.forEach((video, index) => {
-        items.push({
-          id: String(video.id),
-          type: "video",
-          poster: video.thumbnail,
-          videoSrc: video.mp4.max.startsWith("http://")
-            ? video.mp4.max.replace("http://", "https://")
-            : video.mp4.max,
-          alt: t("video", { number: String(index + 1) }),
-        });
+        let videoSrc: string | undefined;
+        let videoType: string | undefined;
+
+        if (video.hls_h264) {
+          videoSrc = video.hls_h264;
+          videoType = "application/x-mpegURL";
+        } else if (video.dash_h264) {
+          videoSrc = video.dash_h264;
+          videoType = "application/dash+xml";
+        } else if (video.dash_av1) {
+          videoSrc = video.dash_av1;
+          videoType = "application/dash+xml";
+        } else if (video.mp4?.max) {
+          videoSrc = video.mp4.max;
+          videoType = "video/mp4";
+        } else if (video.webm?.max) {
+          videoSrc = video.webm.max;
+          videoType = "video/webm";
+        }
+
+        if (videoSrc) {
+          items.push({
+            id: String(video.id),
+            type: "video",
+            poster: video.thumbnail,
+            videoSrc: videoSrc.startsWith("http://")
+              ? videoSrc.replace("http://", "https://")
+              : videoSrc,
+            videoType,
+            alt: video.name || t("video", { number: String(index + 1) }),
+          });
+        }
       });
     }
 
@@ -163,17 +188,17 @@ export function GallerySlider() {
           {mediaItems.map((item) => (
             <div key={item.id} className="gallery-slider__slide">
               {item.type === "video" ? (
-                <video
-                  controls
-                  className="gallery-slider__media"
+                <VideoPlayer
+                  videoSrc={item.videoSrc}
+                  videoType={item.videoType}
                   poster={item.poster}
+                  autoplay={autoplayEnabled}
                   loop
                   muted
-                  autoPlay={autoplayEnabled}
+                  controls
+                  className="gallery-slider__media"
                   tabIndex={-1}
-                >
-                  <source src={item.videoSrc} />
-                </video>
+                />
               ) : (
                 <img
                   className="gallery-slider__media"

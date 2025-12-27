@@ -1,6 +1,7 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
@@ -55,6 +56,8 @@ const getImageWithCustomPriority = (
 
 export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
+  const [searchParams] = useSearchParams();
+  const reviewsRef = useRef<HTMLDivElement>(null);
 
   const {
     objectId,
@@ -136,6 +139,16 @@ export function GameDetailsContent() {
   useEffect(() => {
     getGameArtifacts();
   }, [getGameArtifacts]);
+
+  // Scroll to reviews section if reviews=true in URL
+  useEffect(() => {
+    const shouldScrollToReviews = searchParams.get("reviews") === "true";
+    if (shouldScrollToReviews && reviewsRef.current) {
+      setTimeout(() => {
+        reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  }, [searchParams, objectId]);
 
   const isCustomGame = game?.shop === "custom";
 
@@ -229,15 +242,17 @@ export function GameDetailsContent() {
             )}
 
             {shop !== "custom" && shop && objectId && (
-              <GameReviews
-                shop={shop}
-                objectId={objectId}
-                game={game}
-                userDetailsId={userDetails?.id}
-                isGameInLibrary={isGameInLibrary}
-                hasUserReviewed={hasUserReviewed}
-                onUserReviewedChange={setHasUserReviewed}
-              />
+              <div ref={reviewsRef}>
+                <GameReviews
+                  shop={shop}
+                  objectId={objectId}
+                  game={game}
+                  userDetailsId={userDetails?.id}
+                  isGameInLibrary={isGameInLibrary}
+                  hasUserReviewed={hasUserReviewed}
+                  onUserReviewedChange={setHasUserReviewed}
+                />
+              </div>
             )}
           </div>
 
