@@ -102,6 +102,7 @@
     "repacks_modal_description": "Wähle das Repack, das du herunterladen möchtest",
     "select_folder_hint": "Um das Standardverzeichnis zu ändern, gehe zu den <0>Einstellungen</0>",
     "download_now": "Jetzt herunterladen",
+    "copy_now": "Link zum Herunterladen kopieren",
     "no_shop_details": "Shop-Details konnten nicht abgerufen werden.",
     "download_options": "Download-Optionen",
     "download_path": "Download-Verzeichnis",

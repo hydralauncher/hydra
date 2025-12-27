@@ -173,6 +173,7 @@
     "repacks_modal_description": "Choisissez le repack que vous souhaitez télécharger",
     "select_folder_hint": "Pour changer le dossier par défaut, allez dans les <0>Paramètres</0>",
     "download_now": "Télécharger maintenant",
+    "copy_now": "Lien de téléchargement à copier",
     "no_shop_details": "Impossible d'obtenir les détails du magasin.",
     "download_options": "Options de téléchargement",
     "download_path": "Emplacement de téléchargement",

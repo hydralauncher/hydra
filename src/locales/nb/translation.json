@@ -86,6 +86,7 @@
     "repacks_modal_description": "Velg den gjennpakking du vil laste ned",
     "select_folder_hint": "For å endre standard mappen, gå til <0>Innstillingene</0>",
     "download_now": "Last ned nå",
+    "copy_now": "Kopier nedlastingslenke",
     "no_shop_details": "Kunne ikke modta butikksdetaljene.",
     "download_options": "Nedlastingsmuligheter",
     "download_path": "Nedlastingssti",

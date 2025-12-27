@@ -86,6 +86,7 @@
     "repacks_modal_description": "Vælg den repack du vil downloade",
     "select_folder_hint": "For at ændre standard mappen, gå til <0>Instillingerne</0>",
     "download_now": "Download nu",
+    "copy_now": "Kopier downloadlink",
     "no_shop_details": "Kunne ikke modtage butiks detaljerne.",
     "download_options": "Download muligheder",
     "download_path": "Download sti",

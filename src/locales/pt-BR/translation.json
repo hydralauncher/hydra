@@ -163,6 +163,7 @@
     "repacks_modal_description": "Escolha o repack do jogo que deseja baixar",
     "select_folder_hint": "Para trocar o diretório padrão, acesse a <0>Tela de Ajustes</0>",
     "download_now": "Iniciar download",
+    "copy_now": "Copiar link de download",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
     "download_options": "Opções de download",
     "download_path": "Diretório de download",

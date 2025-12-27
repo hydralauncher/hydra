@@ -174,6 +174,7 @@
     "repacks_modal_description": "Válaszd ki a repacket amit leszeretnél tölteni",
     "select_folder_hint": "A letöltési mappát a <0>Beállításokban</0> változtathatod meg",
     "download_now": "Letöltés",
+    "copy_now": "Másolj letöltési link",
     "no_shop_details": "A bolt adatai nem érhetőek el.",
     "download_options": "Letöltési opciók",
     "download_path": "Letöltési hely",

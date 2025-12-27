@@ -166,6 +166,7 @@
     "repacks_modal_description": "İndirmek istediğiniz paketi seçin",
     "select_folder_hint": "Varsayılan klasörü değiştirmek için <0>Ayarlar</0> bölümüne gidin",
     "download_now": "Şimdi indir",
+    "copy_now": "İndirme Bağlantısını Kopyala",
     "no_shop_details": "Mağaza bilgileri alınamadı.",
     "download_options": "İndirme seçenekleri",
     "download_path": "İndirme yolu",
