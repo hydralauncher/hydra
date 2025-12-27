@@ -137,7 +137,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            COMMIT_MSG="v${{ steps.get-version.outputs.version }}"
+            COMMIT_MSG="${{ steps.get-version.outputs.version }}"
             
             git commit -m "$COMMIT_MSG"
             

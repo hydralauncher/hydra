@@ -10,7 +10,7 @@ import cn from "classnames";
 
 export interface ModalProps {
   visible: boolean;
-  title: string;
+  title: React.ReactNode;
   description?: string;
   onClose: () => void;
   large?: boolean;
@@ -115,7 +115,6 @@ export function Modal({
           "modal--large": large,
         })}
         role="dialog"
-        aria-labelledby={title}
         aria-describedby={description}
         ref={modalContentRef}
         data-hydra-dialog

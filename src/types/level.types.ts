@@ -20,6 +20,8 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
+  featurebaseJwt: string;
+  workwondersJwt: string;
 }
 
 export interface User {
@@ -56,6 +58,8 @@ export interface Game {
   launchOptions?: string | null;
   favorite?: boolean;
   isPinned?: boolean;
+  achievementCount?: number;
+  unlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
@@ -78,6 +82,7 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   automaticallyExtract: boolean;
+  extractionProgress: number;
 }
 
 export interface GameAchievement {
@@ -124,6 +129,7 @@ export interface UserPreferences {
   enableAchievementScreenshots?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  enableNewDownloadOptionsBadges?: boolean;
 }
 
 export interface ScreenState {

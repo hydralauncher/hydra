@@ -1,7 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -12,12 +12,18 @@ interface LibraryGameCardLargeProps {
   ) => void;
 }
 
+const normalizePathForCss = (url: string | null | undefined): string => {
+  if (!url) return "";
+  return url.replaceAll("\\", "/");
+};
+
 const getImageWithCustomPriority = (
   customUrl: string | null | undefined,
   originalUrl: string | null | undefined,
   fallbackUrl?: string | null | undefined
 ) => {
-  return customUrl || originalUrl || fallbackUrl || "";
+  const selectedUrl = customUrl || originalUrl || fallbackUrl || "";
+  return normalizePathForCss(selectedUrl);
 };
 
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
@@ -30,26 +36,48 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const backgroundImage = useMemo(
     () =>
       getImageWithCustomPriority(
+        game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl,
-        game.iconUrl
+        game.libraryImageUrl ?? game.iconUrl
       ),
-    [game.libraryHeroImageUrl, game.libraryImageUrl, game.iconUrl]
+    [
+      game.customHeroImageUrl,
+      game.libraryHeroImageUrl,
+      game.libraryImageUrl,
+      game.iconUrl,
+    ]
   );
 
+  const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
+    game.unlockedAchievementCount ?? 0
+  );
+
+  useEffect(() => {
+    if (game.unlockedAchievementCount) return;
+
+    window.electron
+      .getUnlockedAchievements(game.objectId, game.shop)
+      .then((achievements) => {
+        setUnlockedAchievementsCount(
+          achievements.filter((a) => a.unlocked).length
+        );
+      });
+  }, [game]);
+
   const backgroundStyle = useMemo(
-    () => ({ backgroundImage: `url(${backgroundImage})` }),
+    () =>
+      backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
     [backgroundImage]
   );
 
   const achievementBarStyle = useMemo(
     () => ({
-      width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
+      width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
     }),
-    [game.unlockedAchievementCount, game.achievementCount]
+    [unlockedAchievementsCount, game.achievementCount]
   );
 
-  const logoImage = game.logoImageUrl;
+  const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
   return (
     <button
@@ -104,14 +132,12 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                     className="library-game-card-large__achievement-trophy"
                   />
                   <span className="library-game-card-large__achievement-count">
-                    {game.unlockedAchievementCount ?? 0} /{" "}
-                    {game.achievementCount ?? 0}
+                    {unlockedAchievementsCount} / {game.achievementCount ?? 0}
                   </span>
                 </div>
                 <span className="library-game-card-large__achievement-percentage">
                   {Math.round(
-                    ((game.unlockedAchievementCount ?? 0) /
-                      (game.achievementCount ?? 1)) *
+                    (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
                       100
                   )}
                   %

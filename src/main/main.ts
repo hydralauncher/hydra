@@ -1,5 +1,5 @@
 import { downloadsSublevel } from "./level/sublevels/downloads";
-import { sortBy } from "lodash-es";
+import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { UserPreferences } from "@types";
@@ -33,9 +33,7 @@ export const loadState = async () => {
 
   await import("./events");
 
-  if (process.platform !== "darwin") {
-    Aria2.spawn();
-  }
+  Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
@@ -59,8 +57,10 @@ export const loadState = async () => {
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
 
-    // Check for new download options on startup
-    DownloadSourcesChecker.checkForChanges();
+    // Check for new download options on startup (if enabled)
+    (async () => {
+      await DownloadSourcesChecker.checkForChanges();
+    })();
     WSClient.connect();
   });
 
@@ -68,7 +68,7 @@ export const loadState = async () => {
     .values()
     .all()
     .then((games) => {
-      return sortBy(games, "timestamp", "DESC");
+      return orderBy(games, "timestamp", "desc");
     });
 
   downloads.forEach((download) => {

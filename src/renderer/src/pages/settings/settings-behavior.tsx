@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { QuestionIcon } from "@primer/octicons-react";
 
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
@@ -29,6 +30,7 @@ export function SettingsBehavior() {
     enableAchievementScreenshots: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
+    enableNewDownloadOptionsBadges: true,
   });
 
   const { t } = useTranslation("settings");
@@ -55,6 +57,8 @@ export function SettingsBehavior() {
           userPreferences.enableAchievementScreenshots ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        enableNewDownloadOptionsBadges:
+          userPreferences.enableNewDownloadOptionsBadges ?? true,
       });
     }
   }, [userPreferences]);
@@ -178,6 +182,36 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             extractFilesByDefault: !form.extractFilesByDefault,
+          })
+        }
+      />
+
+      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
+        <CheckboxField
+          label={t("enable_steam_achievements")}
+          checked={form.enableSteamAchievements}
+          onChange={() =>
+            handleChange({
+              enableSteamAchievements: !form.enableSteamAchievements,
+            })
+          }
+        />
+
+        <small
+          className="settings-behavior__checkbox-container--tooltip"
+          data-open-article="steam-achievements"
+        >
+          <QuestionIcon size={12} />
+        </small>
+      </div>
+
+      <CheckboxField
+        label={t("enable_new_download_options_badges")}
+        checked={form.enableNewDownloadOptionsBadges}
+        onChange={() =>
+          handleChange({
+            enableNewDownloadOptionsBadges:
+              !form.enableNewDownloadOptionsBadges,
           })
         }
       />
