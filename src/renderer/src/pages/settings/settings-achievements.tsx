@@ -1,10 +1,17 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { CheckboxField, Button, SelectField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-achievements.scss";
-import { QuestionIcon } from "@primer/octicons-react";
+import { QuestionIcon, UnmuteIcon } from "@primer/octicons-react";
 import { AchievementCustomNotificationPosition } from "@types";
 
 export function SettingsAchievements() {
@@ -23,7 +30,10 @@ export function SettingsAchievements() {
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
       "top-left" as AchievementCustomNotificationPosition,
+    achievementSoundVolume: 15,
   });
+
+  const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (userPreferences) {
@@ -41,6 +51,9 @@ export function SettingsAchievements() {
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:
           userPreferences.achievementCustomNotificationPosition ?? "top-left",
+        achievementSoundVolume: Math.round(
+          (userPreferences.achievementSoundVolume ?? 0.15) * 100
+        ),
       }));
     }
   }, [userPreferences]);
@@ -64,6 +77,21 @@ export function SettingsAchievements() {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
   };
+
+  const handleVolumeChange = useCallback(
+    (newVolume: number) => {
+      setForm((prev) => ({ ...prev, achievementSoundVolume: newVolume }));
+
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+
+      volumeUpdateTimeoutRef.current = setTimeout(() => {
+        updateUserPreferences({ achievementSoundVolume: newVolume / 100 });
+      }, 300);
+    },
+    [updateUserPreferences]
+  );
 
   const handleChangeAchievementCustomNotificationPosition = async (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -194,6 +222,42 @@ export function SettingsAchievements() {
               </Button>
             </>
           )}
+
+        {form.achievementNotificationsEnabled && (
+          <div className="settings-achievements__volume-control">
+            <label htmlFor="achievement-volume">
+              {t("achievement_sound_volume")}
+            </label>
+            <div className="settings-achievements__volume-slider-wrapper">
+              <UnmuteIcon
+                size={16}
+                className="settings-achievements__volume-icon"
+              />
+              <input
+                id="achievement-volume"
+                type="range"
+                min="0"
+                max="100"
+                value={form.achievementSoundVolume}
+                onChange={(e) => {
+                  const volumePercent = parseInt(e.target.value, 10);
+                  if (!isNaN(volumePercent)) {
+                    handleVolumeChange(volumePercent);
+                  }
+                }}
+                className="settings-achievements__volume-slider"
+                style={
+                  {
+                    "--volume-percent": `${form.achievementSoundVolume}%`,
+                  } as React.CSSProperties
+                }
+              />
+              <span className="settings-achievements__volume-value">
+                {form.achievementSoundVolume}%
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
