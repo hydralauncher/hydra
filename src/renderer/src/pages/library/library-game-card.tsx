@@ -30,13 +30,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const coverImage = (
-    game.coverImageUrl ??
-    game.libraryImageUrl ??
-    game.libraryHeroImageUrl ??
-    game.iconUrl ??
-    ""
-  ).replaceAll("\\", "/");
+  const coverImage = game.coverImageUrl?.replaceAll("\\", "/") ?? "";
 
   const [imageError, setImageError] = useState(false);
 
