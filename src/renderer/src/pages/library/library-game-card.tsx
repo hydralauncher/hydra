@@ -1,6 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -33,10 +33,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const coverImage = game.coverImageUrl?.replaceAll("\\", "/") ?? "";
 
   const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    setImageError(false);
-  }, [coverImage]);
 
   return (
     <button
