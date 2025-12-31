@@ -129,6 +129,7 @@ export interface UserPreferences {
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   syncSteamLibraryAutomatically?: boolean;
+  enableNewDownloadOptionsBadges?: boolean;
 }
 
 export interface ScreenState {
