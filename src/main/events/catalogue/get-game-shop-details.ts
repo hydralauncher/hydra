@@ -20,7 +20,7 @@ const getLocalizedSteamAppDetails = async (
   return getSteamAppDetails(objectId, language);
 };
 
-const getGameShopDetails = async (
+export const getGameShopDetails = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
   shop: GameShop,

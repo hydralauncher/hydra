@@ -62,6 +62,7 @@ export interface Game {
   unlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
+  isImported?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
 }
@@ -127,6 +128,7 @@ export interface UserPreferences {
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  syncSteamLibraryAutomatically?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
 }
 

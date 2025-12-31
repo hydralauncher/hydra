@@ -2,6 +2,7 @@ import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { memo } from "react";
 import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
+import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -46,22 +47,28 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     >
       <div className="library-game-card__overlay">
         <div className="library-game-card__top-section">
-          <div className="library-game-card__playtime">
-            {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
-                className="library-game-card__manual-playtime"
-              />
-            ) : (
-              <ClockIcon size={11} />
-            )}
-            <span className="library-game-card__playtime-long">
-              {formatPlayTime(game.playTimeInMilliseconds)}
-            </span>
-            <span className="library-game-card__playtime-short">
-              {formatPlayTime(game.playTimeInMilliseconds, true)}
-            </span>
-          </div>
+          {game.shop === "steam" && game.isImported ? (
+            <div className="library-game-card__steam-badge">
+              <SteamLogo width={16} height={16} />
+            </div>
+          ) : (
+            <div className="library-game-card__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card__playtime-long">
+                {formatPlayTime(game.playTimeInMilliseconds)}
+              </span>
+              <span className="library-game-card__playtime-short">
+                {formatPlayTime(game.playTimeInMilliseconds, true)}
+              </span>
+            </div>
+          )}
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (
