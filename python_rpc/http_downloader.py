@@ -17,10 +17,7 @@ class HttpDownloader:
         else:
             options = {"dir": save_path}
             if header:
-                if isinstance(header, list):
-                    options["header"] = header
-                else:
-                    options["header"] = header
+                options["header"] = header
             if out:
                 options["out"] = out
             downloads = self.aria2.add(url, options=options)
