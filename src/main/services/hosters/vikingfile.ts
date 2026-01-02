@@ -1,4 +1,5 @@
 import axios from "axios";
+import { logger } from "../logger";
 
 interface UnlockResponse {
   link: string;
@@ -44,7 +45,10 @@ export class VikingFileApi {
 
       return redirectUrl;
     } catch (error) {
-      // Fallback to the redirect URL if following redirect fails
+      logger.error(
+        `[VikingFile] Error following redirect, using redirect URL:`,
+        error
+      );
       return redirectUrl;
     }
   }
