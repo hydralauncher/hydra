@@ -175,6 +175,7 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
+    "loading": "Loading...",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
     "download_path": "Download path",
