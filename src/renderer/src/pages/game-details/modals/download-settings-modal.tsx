@@ -99,10 +99,9 @@ export function DownloadSettingsModal({
 
     for (const uri of repack.uris) {
       const uriDownloaders = getDownloadersForUri(uri);
-      if (uriDownloaders.length > 0) {
-        const downloader = uriDownloaders[0];
-        const isAvailable = !unavailableUrisSet.has(uri);
+      const isAvailable = !unavailableUrisSet.has(uri);
 
+      for (const downloader of uriDownloaders) {
         const existing = downloaderMap.get(downloader);
         if (existing) {
           existing.hasAvailable = existing.hasAvailable || isAvailable;
