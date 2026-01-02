@@ -8,6 +8,7 @@ import {
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
+  VikingFileApi,
 } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -498,6 +499,29 @@ export class DownloadManager {
           save_path: download.downloadPath,
           allow_multiple_connections: true,
         };
+      }
+      case Downloader.VikingFile: {
+        logger.log(
+          `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
+        );
+        try {
+          const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
+          logger.log(`[DownloadManager] VikingFile direct URL obtained`);
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+            header:
+              "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+          };
+        } catch (error) {
+          logger.error(
+            `[DownloadManager] Error processing VikingFile download:`,
+            error
+          );
+          throw error;
+        }
       }
     }
   }

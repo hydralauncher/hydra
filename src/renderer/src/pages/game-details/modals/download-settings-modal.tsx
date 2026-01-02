@@ -7,8 +7,13 @@ import {
   Modal,
   TextField,
 } from "@renderer/components";
-import { CheckCircleFillIcon, DownloadIcon } from "@primer/octicons-react";
-import { Downloader, formatBytes, getDownloadersForUris } from "@shared";
+import { DownloadIcon } from "@primer/octicons-react";
+import {
+  Downloader,
+  formatBytes,
+  getDownloadersForUri,
+  getDownloadersForUris,
+} from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
@@ -81,6 +86,41 @@ export function DownloadSettingsModal({
   const downloaders = useMemo(() => {
     return getDownloadersForUris(repack?.uris ?? []);
   }, [repack?.uris]);
+
+  const downloadOptions = useMemo(() => {
+    if (!repack) return [];
+
+    const unavailableUrisSet = new Set(repack.unavailableUris ?? []);
+
+    const downloaderMap = new Map<
+      Downloader,
+      { hasAvailable: boolean; hasUnavailable: boolean }
+    >();
+
+    for (const uri of repack.uris) {
+      const uriDownloaders = getDownloadersForUri(uri);
+      if (uriDownloaders.length > 0) {
+        const downloader = uriDownloaders[0];
+        const isAvailable = !unavailableUrisSet.has(uri);
+
+        const existing = downloaderMap.get(downloader);
+        if (existing) {
+          existing.hasAvailable = existing.hasAvailable || isAvailable;
+          existing.hasUnavailable = existing.hasUnavailable || !isAvailable;
+        } else {
+          downloaderMap.set(downloader, {
+            hasAvailable: isAvailable,
+            hasUnavailable: !isAvailable,
+          });
+        }
+      }
+    }
+
+    return Array.from(downloaderMap.entries()).map(([downloader, status]) => ({
+      downloader,
+      isAvailable: status.hasAvailable,
+    }));
+  }, [repack]);
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
@@ -186,31 +226,47 @@ export function DownloadSettingsModal({
         <div className="download-settings-modal__downloads-path-field">
           <span>{t("downloader")}</span>
 
-          <div className="download-settings-modal__downloaders">
-            {downloaders.map((downloader) => {
-              const shouldDisableButton =
-                (downloader === Downloader.RealDebrid &&
+          <div className="download-settings-modal__downloaders-list">
+            {downloadOptions.map((option) => {
+              const isUnavailable = !option.isAvailable;
+              const shouldDisableOption =
+                isUnavailable ||
+                (option.downloader === Downloader.RealDebrid &&
                   !userPreferences?.realDebridApiToken) ||
-                (downloader === Downloader.TorBox &&
+                (option.downloader === Downloader.TorBox &&
                   !userPreferences?.torBoxApiToken) ||
-                (downloader === Downloader.Hydra &&
+                (option.downloader === Downloader.Hydra &&
                   !isFeatureEnabled(Feature.Nimbus));
 
+              const isSelected = selectedDownloader === option.downloader;
+
               return (
-                <Button
-                  key={downloader}
-                  className="download-settings-modal__downloader-option"
-                  theme={
-                    selectedDownloader === downloader ? "primary" : "outline"
-                  }
-                  disabled={shouldDisableButton}
-                  onClick={() => setSelectedDownloader(downloader)}
+                <button
+                  type="button"
+                  key={option.downloader}
+                  className={`download-settings-modal__downloader-item ${
+                    isSelected
+                      ? "download-settings-modal__downloader-item--selected"
+                      : ""
+                  } ${
+                    shouldDisableOption
+                      ? "download-settings-modal__downloader-item--disabled"
+                      : ""
+                  }`}
+                  disabled={shouldDisableOption}
+                  onClick={() => setSelectedDownloader(option.downloader)}
                 >
-                  {selectedDownloader === downloader && (
-                    <CheckCircleFillIcon className="download-settings-modal__downloader-icon" />
-                  )}
-                  {DOWNLOADER_NAME[downloader]}
-                </Button>
+                  <span className="download-settings-modal__downloader-name">
+                    {DOWNLOADER_NAME[option.downloader]}
+                  </span>
+                  <span
+                    className={`download-settings-modal__availability-indicator ${
+                      option.isAvailable
+                        ? "download-settings-modal__availability-indicator--available"
+                        : "download-settings-modal__availability-indicator--unavailable"
+                    }`}
+                  />
+                </button>
               );
             })}
           </div>

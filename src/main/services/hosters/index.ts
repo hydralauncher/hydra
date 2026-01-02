@@ -5,3 +5,4 @@ export * from "./mediafire";
 export * from "./pixeldrain";
 export * from "./buzzheavier";
 export * from "./fuckingfast";
+export * from "./vikingfile";
