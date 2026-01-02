@@ -21,6 +21,7 @@ export class Aria2 {
         "--rpc-listen-all",
         "--file-allocation=none",
         "--allow-overwrite=true",
+        "--disable-ipv6",
       ],
       { stdio: "inherit", windowsHide: true }
     );

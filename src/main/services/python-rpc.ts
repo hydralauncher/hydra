@@ -1,4 +1,5 @@
 import axios from "axios";
+import http from "http";
 
 import cp from "node:child_process";
 import fs from "node:fs";
@@ -31,6 +32,9 @@ export class PythonRPC {
   public static readonly RPC_PORT = "8084";
   public static readonly rpc = axios.create({
     baseURL: `http://localhost:${this.RPC_PORT}`,
+    httpAgent: new http.Agent({
+      family: 4, // Force IPv4
+    }),
   });
 
   private static pythonProcess: cp.ChildProcess | null = null;

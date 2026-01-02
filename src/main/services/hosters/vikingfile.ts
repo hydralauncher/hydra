@@ -1,4 +1,5 @@
 import axios from "axios";
+import https from "https";
 import { logger } from "../logger";
 
 interface UnlockResponse {
@@ -33,6 +34,9 @@ export class VikingFileApi {
         maxRedirects: 0,
         validateStatus: (status) =>
           status === 301 || status === 302 || status === 200,
+        httpsAgent: new https.Agent({
+          family: 4, // Force IPv4
+        }),
       });
 
       if (
