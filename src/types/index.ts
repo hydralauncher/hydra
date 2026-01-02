@@ -20,6 +20,7 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;

@@ -124,6 +124,9 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://fuckingfast.co")) {
     return [Downloader.FuckingFast];
   }
+  if (uri.startsWith("https://vikingfile.com")) {
+    return [Downloader.VikingFile];
+  }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];

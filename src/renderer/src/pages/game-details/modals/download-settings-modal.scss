@@ -19,23 +19,67 @@
     color: globals.$body-color;
   }
 
-  &__downloaders {
-    display: grid;
-    gap: globals.$spacing-unit;
-    grid-template-columns: repeat(2, 1fr);
+  &__downloaders-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid globals.$border-color;
+    border-radius: 4px;
+    padding: calc(globals.$spacing-unit / 2);
+    background-color: globals.$dark-background-color;
   }
 
-  &__downloader-option {
-    position: relative;
+  &__downloader-item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+    color: globals.$body-color;
+    font-size: 14px;
+    text-align: left;
 
-    &:only-child {
-      grid-column: 1 / -1;
+    &:hover:not(&--disabled) {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--selected {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   }
 
-  &__downloader-icon {
-    position: absolute;
-    left: calc(globals.$spacing-unit * 2);
+  &__downloader-name {
+    flex: 1;
+  }
+
+  &__availability-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &--available {
+      background-color: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    }
+
+    &--unavailable {
+      background-color: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
   }
 
   &__path-error {
