@@ -7,7 +7,7 @@ import {
   Modal,
   TextField,
 } from "@renderer/components";
-import { DownloadIcon } from "@primer/octicons-react";
+import { DownloadIcon, SyncIcon } from "@primer/octicons-react";
 import {
   Downloader,
   formatBytes,
@@ -323,8 +323,17 @@ export function DownloadSettingsModal({
             !hasWritePermission
           }
         >
-          <DownloadIcon />
-          {t("download_now")}
+          {downloadStarting ? (
+            <>
+              <SyncIcon className="download-settings-modal__loading-spinner" />
+              {t("loading")}
+            </>
+          ) : (
+            <>
+              <DownloadIcon />
+              {t("download_now")}
+            </>
+          )}
         </Button>
       </div>
     </Modal>
