@@ -796,6 +796,7 @@
     "empty_description": "You're all caught up! Check back later for new updates.",
     "empty_filter_description": "No notifications match this filter.",
     "filter_all": "All",
+    "filter_unread": "Unread",
     "filter_friends": "Friends",
     "filter_badges": "Badges",
     "filter_upvotes": "Upvotes",
