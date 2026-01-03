@@ -1,6 +1,6 @@
 import axios from "axios";
-import http from "http";
-import https from "https";
+import http from "node:http";
+import https from "node:https";
 import {
   HOSTER_USER_AGENT,
   extractHosterFilename,
