@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import {
+  Badge,
   Button,
   CheckboxField,
   Link,
   Modal,
   TextField,
 } from "@renderer/components";
-import { DownloadIcon, SyncIcon } from "@primer/octicons-react";
 import {
-  Downloader,
-  formatBytes,
-  getDownloadersForUri,
-  getDownloadersForUris,
-} from "@shared";
+  DownloadIcon,
+  SyncIcon,
+  CheckCircleFillIcon,
+} from "@primer/octicons-react";
+import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
+import { motion } from "framer-motion";
+import { Tooltip } from "react-tooltip";
+import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import "./download-settings-modal.scss";
 
 export interface DownloadSettingsModalProps {
@@ -56,6 +59,7 @@ export function DownloadSettingsModal({
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
     null
   );
+  const [showRealDebridModal, setShowRealDebridModal] = useState(false);
 
   const { isFeatureEnabled, Feature } = useFeature();
 
@@ -83,51 +87,115 @@ export function DownloadSettingsModal({
     }
   }, [visible, checkFolderWritePermission, selectedPath]);
 
-  const downloaders = useMemo(() => {
-    return getDownloadersForUris(repack?.uris ?? []);
-  }, [repack?.uris]);
-
   const downloadOptions = useMemo(() => {
-    if (!repack) return [];
-
-    const unavailableUrisSet = new Set(repack.unavailableUris ?? []);
+    const unavailableUrisSet = new Set(repack?.unavailableUris ?? []);
 
     const downloaderMap = new Map<
       Downloader,
       { hasAvailable: boolean; hasUnavailable: boolean }
     >();
 
-    for (const uri of repack.uris) {
-      const uriDownloaders = getDownloadersForUri(uri);
-      const isAvailable = !unavailableUrisSet.has(uri);
+    if (repack) {
+      for (const uri of repack.uris) {
+        const uriDownloaders = getDownloadersForUri(uri);
+        const isAvailable = !unavailableUrisSet.has(uri);
 
-      for (const downloader of uriDownloaders) {
-        const existing = downloaderMap.get(downloader);
-        if (existing) {
-          existing.hasAvailable = existing.hasAvailable || isAvailable;
-          existing.hasUnavailable = existing.hasUnavailable || !isAvailable;
-        } else {
-          downloaderMap.set(downloader, {
-            hasAvailable: isAvailable,
-            hasUnavailable: !isAvailable,
-          });
+        for (const downloader of uriDownloaders) {
+          const existing = downloaderMap.get(downloader);
+          if (existing) {
+            existing.hasAvailable = existing.hasAvailable || isAvailable;
+            existing.hasUnavailable = existing.hasUnavailable || !isAvailable;
+          } else {
+            downloaderMap.set(downloader, {
+              hasAvailable: isAvailable,
+              hasUnavailable: !isAvailable,
+            });
+          }
         }
       }
     }
 
-    return Array.from(downloaderMap.entries()).map(([downloader, status]) => ({
-      downloader,
-      isAvailable: status.hasAvailable,
-    }));
-  }, [repack]);
+    const allDownloaders = Object.values(Downloader).filter(
+      (value) => typeof value === "number"
+    ) as Downloader[];
+
+    return allDownloaders
+      .filter((downloader) => downloader !== Downloader.Hydra) // Temporarily comment out Nimbus
+      .map((downloader) => {
+        const status = downloaderMap.get(downloader);
+        const canHandle = status !== undefined;
+        const isAvailable = status?.hasAvailable ?? false;
+
+        let isConfigured = true;
+        if (downloader === Downloader.RealDebrid) {
+          isConfigured = !!userPreferences?.realDebridApiToken;
+        } else if (downloader === Downloader.TorBox) {
+          isConfigured = !!userPreferences?.torBoxApiToken;
+        }
+        // } else if (downloader === Downloader.Hydra) {
+        //   isConfigured = isFeatureEnabled(Feature.Nimbus);
+        // }
+
+        const isAvailableButNotConfigured =
+          isAvailable && !isConfigured && canHandle;
+
+        return {
+          downloader,
+          isAvailable: isAvailable && isConfigured,
+          canHandle,
+          isAvailableButNotConfigured,
+        };
+      })
+      .sort((a, b) => {
+        if (a.isAvailable && !b.isAvailable) return -1;
+        if (!a.isAvailable && b.isAvailable) return 1;
+        if (
+          a.canHandle &&
+          !a.isAvailable &&
+          !a.isAvailableButNotConfigured &&
+          !b.canHandle
+        )
+          return -1;
+        if (
+          !a.canHandle &&
+          b.canHandle &&
+          !b.isAvailable &&
+          !b.isAvailableButNotConfigured
+        )
+          return 1;
+        if (a.isAvailableButNotConfigured && !b.canHandle) return -1;
+        if (!a.canHandle && b.isAvailableButNotConfigured) return 1;
+        if (
+          a.isAvailableButNotConfigured &&
+          b.canHandle &&
+          !b.isAvailable &&
+          !b.isAvailableButNotConfigured
+        )
+          return 1;
+        if (
+          !a.isAvailableButNotConfigured &&
+          a.canHandle &&
+          !a.isAvailable &&
+          b.isAvailableButNotConfigured
+        )
+          return -1;
+        return 0;
+      });
+  }, [
+    repack,
+    userPreferences?.realDebridApiToken,
+    userPreferences?.torBoxApiToken,
+    isFeatureEnabled,
+    Feature,
+  ]);
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
       if (availableDownloaders.length === 0) return null;
 
-      if (availableDownloaders.includes(Downloader.Hydra)) {
-        return Downloader.Hydra;
-      }
+      // if (availableDownloaders.includes(Downloader.Hydra)) {
+      //   return Downloader.Hydra;
+      // }
 
       if (availableDownloaders.includes(Downloader.RealDebrid)) {
         return Downloader.RealDebrid;
@@ -151,26 +219,12 @@ export function DownloadSettingsModal({
         .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
     }
 
-    const filteredDownloaders = downloaders.filter((downloader) => {
-      if (downloader === Downloader.RealDebrid)
-        return userPreferences?.realDebridApiToken;
-      if (downloader === Downloader.TorBox)
-        return userPreferences?.torBoxApiToken;
-      if (downloader === Downloader.Hydra)
-        return isFeatureEnabled(Feature.Nimbus);
-      return true;
-    });
+    const availableDownloaders = downloadOptions
+      .filter((option) => option.isAvailable)
+      .map((option) => option.downloader);
 
-    setSelectedDownloader(getDefaultDownloader(filteredDownloaders));
-  }, [
-    Feature,
-    isFeatureEnabled,
-    getDefaultDownloader,
-    userPreferences?.downloadsPath,
-    downloaders,
-    userPreferences?.realDebridApiToken,
-    userPreferences?.torBoxApiToken,
-  ]);
+    setSelectedDownloader(getDefaultDownloader(availableDownloaders));
+  }, [getDefaultDownloader, userPreferences?.downloadsPath, downloadOptions]);
 
   const handleChooseDownloadsPath = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
@@ -225,49 +279,111 @@ export function DownloadSettingsModal({
         <div className="download-settings-modal__downloads-path-field">
           <span>{t("downloader")}</span>
 
-          <div className="download-settings-modal__downloaders-list">
-            {downloadOptions.map((option) => {
-              const isUnavailable = !option.isAvailable;
-              const shouldDisableOption =
-                isUnavailable ||
-                (option.downloader === Downloader.RealDebrid &&
-                  !userPreferences?.realDebridApiToken) ||
-                (option.downloader === Downloader.TorBox &&
-                  !userPreferences?.torBoxApiToken) ||
-                (option.downloader === Downloader.Hydra &&
-                  !isFeatureEnabled(Feature.Nimbus));
+          <div className="download-settings-modal__downloaders-list-wrapper">
+            <div className="download-settings-modal__downloaders-list">
+              {downloadOptions.map((option, index) => {
+                const isSelected = selectedDownloader === option.downloader;
+                const tooltipId = `availability-indicator-${option.downloader}`;
+                const isLastItem = index === downloadOptions.length - 1;
 
-              const isSelected = selectedDownloader === option.downloader;
+                const Indicator = option.isAvailable ? motion.span : "span";
 
-              return (
-                <button
-                  type="button"
-                  key={option.downloader}
-                  className={`download-settings-modal__downloader-item ${
-                    isSelected
-                      ? "download-settings-modal__downloader-item--selected"
-                      : ""
-                  } ${
-                    shouldDisableOption
-                      ? "download-settings-modal__downloader-item--disabled"
-                      : ""
-                  }`}
-                  disabled={shouldDisableOption}
-                  onClick={() => setSelectedDownloader(option.downloader)}
-                >
-                  <span className="download-settings-modal__downloader-name">
-                    {DOWNLOADER_NAME[option.downloader]}
-                  </span>
-                  <span
-                    className={`download-settings-modal__availability-indicator ${
-                      option.isAvailable
-                        ? "download-settings-modal__availability-indicator--available"
-                        : "download-settings-modal__availability-indicator--unavailable"
-                    }`}
-                  />
-                </button>
-              );
-            })}
+                return (
+                  <div
+                    key={option.downloader}
+                    className="download-settings-modal__downloader-item-wrapper"
+                  >
+                    <button
+                      type="button"
+                      className={`download-settings-modal__downloader-item ${
+                        isSelected
+                          ? "download-settings-modal__downloader-item--selected"
+                          : ""
+                      } ${
+                        isLastItem
+                          ? "download-settings-modal__downloader-item--last"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (
+                          option.downloader === Downloader.RealDebrid &&
+                          option.isAvailableButNotConfigured
+                        ) {
+                          setShowRealDebridModal(true);
+                        } else {
+                          setSelectedDownloader(option.downloader);
+                        }
+                      }}
+                    >
+                      <span className="download-settings-modal__downloader-name">
+                        {DOWNLOADER_NAME[option.downloader]}
+                      </span>
+                      <div className="download-settings-modal__availability-indicator-wrapper">
+                        {option.isAvailable ? (
+                          <Indicator
+                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--available download-settings-modal__availability-indicator--pulsating`}
+                            animate={{
+                              scale: [1, 1.1, 1],
+                              opacity: [1, 0.7, 1],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                            data-tooltip-id={tooltipId}
+                            data-tooltip-content={t("downloader_online")}
+                          />
+                        ) : option.isAvailableButNotConfigured ? (
+                          <span
+                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--warning`}
+                            data-tooltip-id={tooltipId}
+                            data-tooltip-content={t(
+                              "downloader_not_configured"
+                            )}
+                          />
+                        ) : option.canHandle ? (
+                          <span
+                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
+                            data-tooltip-id={tooltipId}
+                            data-tooltip-content={t("downloader_offline")}
+                          />
+                        ) : (
+                          <span
+                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--not-present`}
+                            data-tooltip-id={tooltipId}
+                            data-tooltip-content={t("downloader_not_available")}
+                          />
+                        )}
+                      </div>
+                      <Tooltip id={tooltipId} />
+                      {isSelected ? (
+                        <motion.div
+                          className="download-settings-modal__check-icon-wrapper"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 20,
+                          }}
+                        >
+                          <CheckCircleFillIcon
+                            size={16}
+                            className="download-settings-modal__check-icon"
+                          />
+                        </motion.div>
+                      ) : option.downloader === Downloader.RealDebrid &&
+                        option.canHandle ? (
+                        <div className="download-settings-modal__recommendation-badge">
+                          <Badge>{t("recommended")}</Badge>
+                        </div>
+                      ) : null}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -319,7 +435,14 @@ export function DownloadSettingsModal({
           disabled={
             downloadStarting ||
             selectedDownloader === null ||
-            !hasWritePermission
+            !hasWritePermission ||
+            downloadOptions.some(
+              (option) =>
+                option.downloader === selectedDownloader &&
+                (option.isAvailableButNotConfigured ||
+                  (!option.isAvailable && option.canHandle) ||
+                  !option.canHandle)
+            )
           }
         >
           {downloadStarting ? (
@@ -335,6 +458,11 @@ export function DownloadSettingsModal({
           )}
         </Button>
       </div>
+
+      <RealDebridInfoModal
+        visible={showRealDebridModal}
+        onClose={() => setShowRealDebridModal(false)}
+      />
     </Modal>
   );
 }
