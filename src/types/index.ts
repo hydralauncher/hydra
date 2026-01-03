@@ -187,6 +187,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   featurebaseJwt: string;
+  workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
   quirks?: {

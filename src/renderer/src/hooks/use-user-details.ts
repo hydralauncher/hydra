@@ -59,6 +59,7 @@ export function useUserDetails() {
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
         featurebaseJwt: userDetails?.featurebaseJwt || "",
+        workwondersJwt: userDetails?.workwondersJwt || "",
         karma: userDetails?.karma || 0,
       });
     },
