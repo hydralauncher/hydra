@@ -1,0 +1,37 @@
+@use "../../../scss/globals.scss";
+
+.real-debrid-info-modal {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2.5);
+    width: 100%;
+    max-width: 500px;
+  }
+
+  &__description-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__description {
+    margin: 0;
+    color: globals.$body-color;
+    line-height: 1.6;
+  }
+
+  &__create-account {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    color: #c0c1c7;
+    text-decoration: underline;
+    font-size: 14px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
