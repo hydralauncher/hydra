@@ -151,14 +151,28 @@ export class DownloadManager {
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
 
-        await downloadsSublevel.put(downloadId, {
+        const updatedDownload = {
           ...download,
           bytesDownloaded,
           fileSize,
           progress,
           folderName,
-          status: "active",
-        });
+          status: "active" as const,
+        };
+
+        await downloadsSublevel.put(downloadId, updatedDownload);
+
+        return {
+          numPeers,
+          numSeeds,
+          downloadSpeed,
+          timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+          isDownloadingMetadata,
+          isCheckingFiles,
+          progress,
+          gameId: downloadId,
+          download: updatedDownload,
+        } as DownloadProgress;
       }
 
       return {
