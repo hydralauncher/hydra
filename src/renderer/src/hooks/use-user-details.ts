@@ -111,7 +111,7 @@ export function useUserDetails() {
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.hydraApi.delete(`/profile/friends/${userId}`);
+    window.electron.hydraApi.delete(`/profile/friend-requests/${userId}`);
 
   const blockUser = (userId: string) =>
     window.electron.hydraApi.post(`/users/${userId}/block`);
