@@ -170,10 +170,6 @@ export function DownloadSettingsModal({
     (availableDownloaders: Downloader[]) => {
       if (availableDownloaders.length === 0) return null;
 
-      // if (availableDownloaders.includes(Downloader.Hydra)) {
-      //   return Downloader.Hydra;
-      // }
-
       if (availableDownloaders.includes(Downloader.RealDebrid)) {
         return Downloader.RealDebrid;
       }
