@@ -123,11 +123,6 @@ export function UserStatsBox() {
                 {t("karma_count")}
               </p>
             </div>
-            <div className="user-stats__karma-info">
-              <small className="user-stats__karma-info-text">
-                {t("karma_description")}
-              </small>
-            </div>
           </li>
         )}
       </ul>
