@@ -119,6 +119,17 @@ export function DownloadSettingsModal({
       (value) => typeof value === "number"
     ) as Downloader[];
 
+    const getDownloaderPriority = (option: {
+      isAvailable: boolean;
+      canHandle: boolean;
+      isAvailableButNotConfigured: boolean;
+    }) => {
+      if (option.isAvailable) return 0;
+      if (option.canHandle && !option.isAvailableButNotConfigured) return 1;
+      if (option.isAvailableButNotConfigured) return 2;
+      return 3;
+    };
+
     return allDownloaders
       .filter((downloader) => downloader !== Downloader.Hydra) // Temporarily comment out Nimbus
       .map((downloader) => {
@@ -146,41 +157,7 @@ export function DownloadSettingsModal({
           isAvailableButNotConfigured,
         };
       })
-      .sort((a, b) => {
-        if (a.isAvailable && !b.isAvailable) return -1;
-        if (!a.isAvailable && b.isAvailable) return 1;
-        if (
-          a.canHandle &&
-          !a.isAvailable &&
-          !a.isAvailableButNotConfigured &&
-          !b.canHandle
-        )
-          return -1;
-        if (
-          !a.canHandle &&
-          b.canHandle &&
-          !b.isAvailable &&
-          !b.isAvailableButNotConfigured
-        )
-          return 1;
-        if (a.isAvailableButNotConfigured && !b.canHandle) return -1;
-        if (!a.canHandle && b.isAvailableButNotConfigured) return 1;
-        if (
-          a.isAvailableButNotConfigured &&
-          b.canHandle &&
-          !b.isAvailable &&
-          !b.isAvailableButNotConfigured
-        )
-          return 1;
-        if (
-          !a.isAvailableButNotConfigured &&
-          a.canHandle &&
-          !a.isAvailable &&
-          b.isAvailableButNotConfigured
-        )
-          return -1;
-        return 0;
-      });
+      .sort((a, b) => getDownloaderPriority(a) - getDownloaderPriority(b));
   }, [
     repack,
     userPreferences?.realDebridApiToken,
@@ -292,6 +269,90 @@ export function DownloadSettingsModal({
                   !option.canHandle ||
                   (!option.isAvailable && !option.isAvailableButNotConfigured);
 
+                const getAvailabilityIndicator = () => {
+                  if (option.isAvailable) {
+                    return (
+                      <Indicator
+                        className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--available download-settings-modal__availability-indicator--pulsating`}
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          opacity: [1, 0.7, 1],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                        data-tooltip-id={tooltipId}
+                        data-tooltip-content={t("downloader_online")}
+                      />
+                    );
+                  }
+
+                  if (option.isAvailableButNotConfigured) {
+                    return (
+                      <span
+                        className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--warning`}
+                        data-tooltip-id={tooltipId}
+                        data-tooltip-content={t("downloader_not_configured")}
+                      />
+                    );
+                  }
+
+                  if (option.canHandle) {
+                    return (
+                      <span
+                        className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
+                        data-tooltip-id={tooltipId}
+                        data-tooltip-content={t("downloader_offline")}
+                      />
+                    );
+                  }
+
+                  return (
+                    <span
+                      className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--not-present`}
+                      data-tooltip-id={tooltipId}
+                      data-tooltip-content={t("downloader_not_available")}
+                    />
+                  );
+                };
+
+                const getRightContent = () => {
+                  if (isSelected) {
+                    return (
+                      <motion.div
+                        className="download-settings-modal__check-icon-wrapper"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                        }}
+                      >
+                        <CheckCircleFillIcon
+                          size={16}
+                          className="download-settings-modal__check-icon"
+                        />
+                      </motion.div>
+                    );
+                  }
+
+                  if (
+                    option.downloader === Downloader.RealDebrid &&
+                    option.canHandle
+                  ) {
+                    return (
+                      <div className="download-settings-modal__recommendation-badge">
+                        <Badge>{t("recommended")}</Badge>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                };
+
                 return (
                   <div
                     key={option.downloader}
@@ -324,66 +385,10 @@ export function DownloadSettingsModal({
                         {DOWNLOADER_NAME[option.downloader]}
                       </span>
                       <div className="download-settings-modal__availability-indicator-wrapper">
-                        {option.isAvailable ? (
-                          <Indicator
-                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--available download-settings-modal__availability-indicator--pulsating`}
-                            animate={{
-                              scale: [1, 1.1, 1],
-                              opacity: [1, 0.7, 1],
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                            }}
-                            data-tooltip-id={tooltipId}
-                            data-tooltip-content={t("downloader_online")}
-                          />
-                        ) : option.isAvailableButNotConfigured ? (
-                          <span
-                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--warning`}
-                            data-tooltip-id={tooltipId}
-                            data-tooltip-content={t(
-                              "downloader_not_configured"
-                            )}
-                          />
-                        ) : option.canHandle ? (
-                          <span
-                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
-                            data-tooltip-id={tooltipId}
-                            data-tooltip-content={t("downloader_offline")}
-                          />
-                        ) : (
-                          <span
-                            className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--not-present`}
-                            data-tooltip-id={tooltipId}
-                            data-tooltip-content={t("downloader_not_available")}
-                          />
-                        )}
+                        {getAvailabilityIndicator()}
                       </div>
                       <Tooltip id={tooltipId} />
-                      {isSelected ? (
-                        <motion.div
-                          className="download-settings-modal__check-icon-wrapper"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 20,
-                          }}
-                        >
-                          <CheckCircleFillIcon
-                            size={16}
-                            className="download-settings-modal__check-icon"
-                          />
-                        </motion.div>
-                      ) : option.downloader === Downloader.RealDebrid &&
-                        option.canHandle ? (
-                        <div className="download-settings-modal__recommendation-badge">
-                          <Badge>{t("recommended")}</Badge>
-                        </div>
-                      ) : null}
+                      {getRightContent()}
                     </button>
                   </div>
                 );

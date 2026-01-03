@@ -52,11 +52,6 @@
     }
   }
 
-  &__recommendation-badge {
-    margin-left: calc(globals.$spacing-unit);
-    font-size: 10px;
-  }
-
   &__downloader-item {
     display: flex;
     align-items: center;
