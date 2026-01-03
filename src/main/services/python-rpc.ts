@@ -1,5 +1,5 @@
 import axios from "axios";
-import http from "http";
+import http from "node:http";
 
 import cp from "node:child_process";
 import fs from "node:fs";
