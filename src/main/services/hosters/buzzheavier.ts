@@ -1,4 +1,6 @@
 import axios from "axios";
+import http from "node:http";
+import https from "node:https";
 import {
   HOSTER_USER_AGENT,
   extractHosterFilename,
@@ -28,6 +30,12 @@ export class BuzzheavierApi {
       await axios.get(baseUrl, {
         headers: { "User-Agent": HOSTER_USER_AGENT },
         timeout: 30000,
+        httpAgent: new http.Agent({
+          family: 4, // Force IPv4
+        }),
+        httpsAgent: new https.Agent({
+          family: 4, // Force IPv4
+        }),
       });
 
       const downloadUrl = `${baseUrl}/download`;
@@ -43,6 +51,12 @@ export class BuzzheavierApi {
         validateStatus: (status) =>
           status === 200 || status === 204 || status === 301 || status === 302,
         timeout: 30000,
+        httpAgent: new http.Agent({
+          family: 4, // Force IPv4
+        }),
+        httpsAgent: new https.Agent({
+          family: 4, // Force IPv4
+        }),
       });
 
       const hxRedirect = headResponse.headers["hx-redirect"];
