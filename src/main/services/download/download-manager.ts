@@ -52,7 +52,7 @@ export class DownloadManager {
                            /filename="([^"]+)"/.exec(url) ||
                            /filename%2A%3DUTF-8%27%27([^&]+)/.exec(url);
       
-      if (filenameMatch && filenameMatch[1]) {
+      if (filenameMatch?.[1]) {
         return decodeURIComponent(filenameMatch[1]);
       }
     }
