@@ -24,7 +24,7 @@ import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
-import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
+import { BuzzheavierApi, FuckingFastApi, RootzApi } from "@main/services/hosters";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -33,17 +33,36 @@ export class DownloadManager {
     url: string,
     originalUrl?: string
   ): string | undefined {
+    logger.log(`[extractFilename] URL: ${url}, Original URL: ${originalUrl}`);
+    
     if (originalUrl?.includes("#")) {
       const hashPart = originalUrl.split("#")[1];
+      logger.log(`[extractFilename] Found hash in original URL: ${hashPart}`);
       if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
+        logger.log(`[extractFilename] Using filename from original URL hash: ${hashPart}`);
         return hashPart;
       }
     }
 
     if (url.includes("#")) {
       const hashPart = url.split("#")[1];
+      logger.log(`[extractFilename] Found hash in URL: ${hashPart}`);
       if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
+        logger.log(`[extractFilename] Using filename from URL hash: ${hashPart}`);
         return hashPart;
+      }
+    }
+
+    // Проверяем параметр response-content-disposition в URL
+    if (url.includes("response-content-disposition=")) {
+      const filenameMatch = /filename%3D%22([^"]+)%22/.exec(url) || 
+                           /filename="([^"]+)"/.exec(url) ||
+                           /filename%2A%3DUTF-8%27%27([^&]+)/.exec(url);
+      
+      if (filenameMatch && filenameMatch[1]) {
+        const decoded = decodeURIComponent(filenameMatch[1]);
+        logger.log(`[extractFilename] Extracted from content-disposition: ${decoded}`);
+        return decoded;
       }
     }
 
@@ -52,14 +71,27 @@ export class DownloadManager {
       const pathname = urlObj.pathname;
       const pathParts = pathname.split("/");
       const filename = pathParts[pathParts.length - 1];
+      
+      logger.log(`[extractFilename] Extracted from path: ${filename}`);
 
       if (filename?.includes(".") && filename.length > 0) {
-        return decodeURIComponent(filename);
+        const decoded = decodeURIComponent(filename);
+        logger.log(`[extractFilename] Decoded filename: ${decoded}`);
+        
+        // Удаляем timestamp префикс (например, "1766892201326-")
+        const withoutTimestamp = decoded.replace(/^\d+-/, "");
+        if (withoutTimestamp !== decoded) {
+          logger.log(`[extractFilename] Removed timestamp prefix: ${withoutTimestamp}`);
+          return withoutTimestamp;
+        }
+        
+        return decoded;
       }
-    } catch {
-      // Invalid URL
+    } catch (error) {
+      logger.log(`[extractFilename] Error parsing URL: ${error}`);
     }
 
+    logger.log(`[extractFilename] No filename found`);
     return undefined;
   }
 
@@ -82,20 +114,28 @@ export class DownloadManager {
 
     if (sanitizedFilename) {
       logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
+      
+      return {
+        action: "start" as const,
+        game_id: downloadId,
+        url: directUrl,
+        save_path: savePath,
+        out: sanitizedFilename,
+        allow_multiple_connections: true,
+      };
     } else {
       logger.log(
         `[DownloadManager] No filename extracted, aria2 will use default`
       );
+      
+      return {
+        action: "start" as const,
+        game_id: downloadId,
+        url: directUrl,
+        save_path: savePath,
+        allow_multiple_connections: true,
+      };
     }
-
-    return {
-      action: "start" as const,
-      game_id: downloadId,
-      url: directUrl,
-      save_path: savePath,
-      out: sanitizedFilename,
-      allow_multiple_connections: true,
-    };
   }
 
   public static async startRPC(
@@ -440,6 +480,27 @@ export class DownloadManager {
         } catch (error) {
           logger.error(
             `[DownloadManager] Error processing FuckingFast download:`,
+            error
+          );
+          throw error;
+        }
+      }
+      case Downloader.Rootz: {
+        logger.log(
+          `[DownloadManager] Processing Rootz download for URI: ${download.uri}`
+        );
+        try {
+          const directUrl = await RootzApi.getDirectLink(download.uri);
+          logger.log(`[DownloadManager] Rootz direct URL obtained`);
+          return this.createDownloadPayload(
+            directUrl,
+            download.uri,
+            downloadId,
+            download.downloadPath
+          );
+        } catch (error) {
+          logger.error(
+            `[DownloadManager] Error processing Rootz download:`,
             error
           );
           throw error;
