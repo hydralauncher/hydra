@@ -87,15 +87,27 @@
     &--last {
       border-bottom: none;
     }
+
+    &:disabled {
+      cursor: default;
+
+      &:hover {
+        background-color: transparent;
+      }
+
+      .download-settings-modal__downloader-name {
+        opacity: 0.5;
+      }
+
+      .download-settings-modal__availability-indicator-wrapper {
+        opacity: 0.5;
+      }
+    }
   }
 
   &__downloader-item-wrapper {
     display: flex;
     flex-direction: column;
-  }
-
-  &__recommendation-badge {
-    margin-left: auto;
   }
 
   &__check-icon {

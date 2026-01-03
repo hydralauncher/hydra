@@ -288,6 +288,10 @@ export function DownloadSettingsModal({
 
                 const Indicator = option.isAvailable ? motion.span : "span";
 
+                const isDisabled =
+                  !option.canHandle ||
+                  (!option.isAvailable && !option.isAvailableButNotConfigured);
+
                 return (
                   <div
                     key={option.downloader}
@@ -304,6 +308,7 @@ export function DownloadSettingsModal({
                           ? "download-settings-modal__downloader-item--last"
                           : ""
                       }`}
+                      disabled={isDisabled}
                       onClick={() => {
                         if (
                           option.downloader === Downloader.RealDebrid &&
