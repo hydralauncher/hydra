@@ -33,36 +33,27 @@ export class DownloadManager {
     url: string,
     originalUrl?: string
   ): string | undefined {
-    logger.log(`[extractFilename] URL: ${url}, Original URL: ${originalUrl}`);
-    
     if (originalUrl?.includes("#")) {
       const hashPart = originalUrl.split("#")[1];
-      logger.log(`[extractFilename] Found hash in original URL: ${hashPart}`);
       if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        logger.log(`[extractFilename] Using filename from original URL hash: ${hashPart}`);
         return hashPart;
       }
     }
 
     if (url.includes("#")) {
       const hashPart = url.split("#")[1];
-      logger.log(`[extractFilename] Found hash in URL: ${hashPart}`);
       if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
-        logger.log(`[extractFilename] Using filename from URL hash: ${hashPart}`);
         return hashPart;
       }
     }
 
-    // Проверяем параметр response-content-disposition в URL
     if (url.includes("response-content-disposition=")) {
       const filenameMatch = /filename%3D%22([^"]+)%22/.exec(url) || 
                            /filename="([^"]+)"/.exec(url) ||
                            /filename%2A%3DUTF-8%27%27([^&]+)/.exec(url);
       
       if (filenameMatch && filenameMatch[1]) {
-        const decoded = decodeURIComponent(filenameMatch[1]);
-        logger.log(`[extractFilename] Extracted from content-disposition: ${decoded}`);
-        return decoded;
+        return decodeURIComponent(filenameMatch[1]);
       }
     }
 
@@ -71,27 +62,15 @@ export class DownloadManager {
       const pathname = urlObj.pathname;
       const pathParts = pathname.split("/");
       const filename = pathParts[pathParts.length - 1];
-      
-      logger.log(`[extractFilename] Extracted from path: ${filename}`);
 
       if (filename?.includes(".") && filename.length > 0) {
         const decoded = decodeURIComponent(filename);
-        logger.log(`[extractFilename] Decoded filename: ${decoded}`);
-        
-        // Удаляем timestamp префикс (например, "1766892201326-")
-        const withoutTimestamp = decoded.replace(/^\d+-/, "");
-        if (withoutTimestamp !== decoded) {
-          logger.log(`[extractFilename] Removed timestamp prefix: ${withoutTimestamp}`);
-          return withoutTimestamp;
-        }
-        
-        return decoded;
+        return decoded.replace(/^\d+-/, "");
       }
-    } catch (error) {
-      logger.log(`[extractFilename] Error parsing URL: ${error}`);
+    } catch {
+      // Invalid URL
     }
 
-    logger.log(`[extractFilename] No filename found`);
     return undefined;
   }
 
