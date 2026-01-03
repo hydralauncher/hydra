@@ -9128,10 +9128,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.0.9.tgz#ec2cf8f47304cc9c52b273383443f3978cd381a1"
-  integrity sha512-ZhzOXL+/Vq9wCzneE8NUvL3RVIaFMygFtjO5BKXSXsP1iSq2jZ9l3xedmxwZyyTvMYN5t4oIwCwFE0NWujtH9A==
+workwonders-sdk@0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.0.10.tgz#377167370a39c905c5228f8972c37c19004b7b21"
+  integrity sha512-bnswhlLRz1TCiqGV8l+VEOBej7u1SAkzLMEv6A60Sp0+S4j4pnmSve92KeOts/GYtUeNDuNM7fLPwZwMKY3sAg==
   dependencies:
     ky "^1.11.0"
 

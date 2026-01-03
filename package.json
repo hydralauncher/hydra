@@ -91,7 +91,7 @@
     "user-agents": "^1.1.387",
     "uuid": "^13.0.0",
     "winreg": "^1.2.5",
-    "workwonders-sdk": "0.0.9",
+    "workwonders-sdk": "0.0.10",
     "ws": "^8.18.1",
     "yaml": "^2.6.1",
     "yup": "^1.5.0"
