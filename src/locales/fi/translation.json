@@ -673,8 +673,7 @@
     "game_removed_from_pinned": "Peli poistettu kiinnitetyistä",
     "game_added_to_pinned": "Peli lisätty kiinnitettyihin",
     "karma": "Karma",
-    "karma_count": "karmaa",
-    "karma_description": "Ansittu positiivisilla arvosteluäänillä"
+    "karma_count": "karmaa"
   },
   "achievement": {
     "achievement_unlocked": "Saavutus avattu",
