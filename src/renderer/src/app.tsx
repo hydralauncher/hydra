@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWondersSdk } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -51,6 +51,8 @@ export function App() {
   const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
+
+  const wokwondersRef = useRef<WorkWondersSdk | null>(null);
 
   const {
     hasActiveSubscription,
@@ -114,7 +116,24 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
-  useEffect(() => {
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (wokwondersRef.current) return;
+
+      wokwondersRef.current = new WorkWondersSdk();
+      await wokwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale,
+      });
+
+      await wokwondersRef.current.initChangelogWidget();
+      wokwondersRef.current.initChangelogWidgetMini();
+    },
+    [wokwondersRef]
+  );
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -125,21 +144,26 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
@@ -203,6 +227,7 @@ export function App() {
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    wokwondersRef.current?.notifyUrlChange();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
