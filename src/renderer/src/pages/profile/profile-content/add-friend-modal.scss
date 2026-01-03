@@ -100,8 +100,10 @@
     padding: calc(globals.$spacing-unit * 1.5);
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
+    border: none;
     cursor: pointer;
     transition: all ease 0.2s;
+    text-align: left;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
