@@ -52,7 +52,7 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const wokwondersRef = useRef<WorkWondersSdk | null>(null);
+  const workwondersRef = useRef<WorkWondersSdk | null>(null);
 
   const {
     hasActiveSubscription,
@@ -118,24 +118,25 @@ export function App() {
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {
-      if (wokwondersRef.current) return;
+      if (workwondersRef.current) return;
 
       const possibleLocales = ["en", "pt", "ru"];
 
       const parsedLocale =
         possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
 
-      wokwondersRef.current = new WorkWondersSdk();
-      await wokwondersRef.current.init({
+      workwondersRef.current = new WorkWondersSdk();
+      await workwondersRef.current.init({
         organization: "hydra",
         token,
         locale: parsedLocale,
       });
 
-      await wokwondersRef.current.initChangelogWidget();
-      wokwondersRef.current.initChangelogWidgetMini();
+      await workwondersRef.current.initChangelogWidget();
+      workwondersRef.current.initChangelogWidgetMini();
+      workwondersRef.current.initFeedbackWidget();
     },
-    [wokwondersRef]
+    [workwondersRef]
   );
 
   const setupExternalResources = useCallback(async () => {
@@ -232,7 +233,7 @@ export function App() {
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
-    wokwondersRef.current?.notifyUrlChange();
+    workwondersRef.current?.notifyUrlChange();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
