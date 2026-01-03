@@ -24,7 +24,7 @@ import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
-import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
+import { BuzzheavierApi, FuckingFastApi, RootzApi } from "@main/services/hosters";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -47,6 +47,16 @@ export class DownloadManager {
       }
     }
 
+    if (url.includes("response-content-disposition=")) {
+      const filenameMatch = /filename%3D%22([^"]+)%22/.exec(url) || 
+                           /filename="([^"]+)"/.exec(url) ||
+                           /filename%2A%3DUTF-8%27%27([^&]+)/.exec(url);
+      
+      if (filenameMatch?.[1]) {
+        return decodeURIComponent(filenameMatch[1]);
+      }
+    }
+
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
@@ -54,7 +64,8 @@ export class DownloadManager {
       const filename = pathParts[pathParts.length - 1];
 
       if (filename?.includes(".") && filename.length > 0) {
-        return decodeURIComponent(filename);
+        const decoded = decodeURIComponent(filename);
+        return decoded.replace(/^\d+-/, "");
       }
     } catch {
       // Invalid URL
@@ -82,20 +93,28 @@ export class DownloadManager {
 
     if (sanitizedFilename) {
       logger.log(`[DownloadManager] Using filename: ${sanitizedFilename}`);
+      
+      return {
+        action: "start" as const,
+        game_id: downloadId,
+        url: directUrl,
+        save_path: savePath,
+        out: sanitizedFilename,
+        allow_multiple_connections: true,
+      };
     } else {
       logger.log(
         `[DownloadManager] No filename extracted, aria2 will use default`
       );
+      
+      return {
+        action: "start" as const,
+        game_id: downloadId,
+        url: directUrl,
+        save_path: savePath,
+        allow_multiple_connections: true,
+      };
     }
-
-    return {
-      action: "start" as const,
-      game_id: downloadId,
-      url: directUrl,
-      save_path: savePath,
-      out: sanitizedFilename,
-      allow_multiple_connections: true,
-    };
   }
 
   public static async startRPC(
@@ -440,6 +459,27 @@ export class DownloadManager {
         } catch (error) {
           logger.error(
             `[DownloadManager] Error processing FuckingFast download:`,
+            error
+          );
+          throw error;
+        }
+      }
+      case Downloader.Rootz: {
+        logger.log(
+          `[DownloadManager] Processing Rootz download for URI: ${download.uri}`
+        );
+        try {
+          const directUrl = await RootzApi.getDirectLink(download.uri);
+          logger.log(`[DownloadManager] Rootz direct URL obtained`);
+          return this.createDownloadPayload(
+            directUrl,
+            download.uri,
+            downloadId,
+            download.downloadPath
+          );
+        } catch (error) {
+          logger.error(
+            `[DownloadManager] Error processing Rootz download:`,
             error
           );
           throw error;

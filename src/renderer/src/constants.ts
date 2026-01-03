@@ -14,6 +14,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.FuckingFast]: "FuckingFast",
   [Downloader.TorBox]: "TorBox",
   [Downloader.Hydra]: "Nimbus",
+  [Downloader.Rootz]: "Rootz",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;

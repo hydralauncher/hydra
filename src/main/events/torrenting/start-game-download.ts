@@ -158,6 +158,24 @@ const startGameDownload = async (
           };
         }
       }
+       
+      if (downloader === Downloader.Rootz) {
+        if (err.message.includes("Rate limit")) {
+          return {
+            ok: false,
+            error: "Rootz: Rate limit exceeded",
+          };
+        }
+        if (
+          err.message.includes("not found") ||
+          err.message.includes("deleted")
+        ) {
+          return {
+            ok: false,
+            error: "Rootz: File not found",
+          };
+        }
+      }
 
       return { ok: false, error: err.message };
     }
