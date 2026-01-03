@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BellIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,6 +18,11 @@ import type {
 } from "@types";
 import "./notifications.scss";
 
+type NotificationFilter = "all" | "unread";
+
+const STAGGER_DELAY_MS = 70;
+const EXIT_DURATION_MS = 250;
+
 export default function Notifications() {
   const { t, i18n } = useTranslation("notifications_page");
   const { showSuccessToast, showErrorToast } = useToast();
@@ -34,12 +39,14 @@ export default function Notifications() {
   >([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [clearingIds, setClearingIds] = useState<Set<string>>(new Set());
+  const [isClearing, setIsClearing] = useState(false);
+  const [filter, setFilter] = useState<NotificationFilter>("all");
   const [pagination, setPagination] = useState({
     total: 0,
     hasMore: false,
     skip: 0,
   });
+  const clearingTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   const fetchLocalNotifications = useCallback(async () => {
     try {
@@ -65,7 +72,11 @@ export default function Notifications() {
   }, [i18n.language]);
 
   const fetchApiNotifications = useCallback(
-    async (skip = 0, append = false) => {
+    async (
+      skip = 0,
+      append = false,
+      filterParam: NotificationFilter = "all"
+    ) => {
       if (!userDetails) return;
 
       try {
@@ -74,7 +85,7 @@ export default function Notifications() {
           await window.electron.hydraApi.get<NotificationsResponse>(
             "/profile/notifications",
             {
-              params: { filter: "all", take: 20, skip },
+              params: { filter: filterParam, take: 20, skip },
               needsAuth: true,
             }
           );
@@ -101,24 +112,24 @@ export default function Notifications() {
     [userDetails]
   );
 
-  const fetchAllNotifications = useCallback(async () => {
-    setIsLoading(true);
-    await Promise.all([
-      fetchLocalNotifications(),
-      fetchBadges(),
-      userDetails ? fetchApiNotifications(0, false) : Promise.resolve(),
-    ]);
-    setIsLoading(false);
-  }, [
-    fetchLocalNotifications,
-    fetchBadges,
-    fetchApiNotifications,
-    userDetails,
-  ]);
+  const fetchAllNotifications = useCallback(
+    async (filterParam: NotificationFilter = "all") => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchLocalNotifications(),
+        fetchBadges(),
+        userDetails
+          ? fetchApiNotifications(0, false, filterParam)
+          : Promise.resolve(),
+      ]);
+      setIsLoading(false);
+    },
+    [fetchLocalNotifications, fetchBadges, fetchApiNotifications, userDetails]
+  );
 
   useEffect(() => {
-    fetchAllNotifications();
-  }, [fetchAllNotifications]);
+    fetchAllNotifications(filter);
+  }, [fetchAllNotifications, filter]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onLocalNotificationCreated(
@@ -128,6 +139,13 @@ export default function Notifications() {
     );
 
     return () => unsubscribe();
+  }, []);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      clearingTimeoutsRef.current.forEach(clearTimeout);
+    };
   }, []);
 
   const mergedNotifications = useMemo<MergedNotification[]>(() => {
@@ -144,23 +162,28 @@ export default function Notifications() {
       .filter((n) => n.priority !== 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
-    const localWithSource: MergedNotification[] = localNotifications.map(
-      (n) => ({
+    // Filter local notifications based on current filter
+    const filteredLocalNotifications =
+      filter === "unread"
+        ? localNotifications.filter((n) => !n.isRead)
+        : localNotifications;
+
+    const localWithSource: MergedNotification[] =
+      filteredLocalNotifications.map((n) => ({
         ...n,
         source: "local" as const,
-      })
-    );
+      }));
 
     const lowPriority = [...lowPriorityApi, ...localWithSource].sort(
       sortByDate
     );
 
     return [...highPriority, ...lowPriority];
-  }, [apiNotifications, localNotifications]);
+  }, [apiNotifications, localNotifications, filter]);
 
   const displayedNotifications = useMemo(() => {
-    return mergedNotifications.filter((n) => !clearingIds.has(n.id));
-  }, [mergedNotifications, clearingIds]);
+    return mergedNotifications;
+  }, [mergedNotifications]);
 
   const notifyCountChange = useCallback(() => {
     window.dispatchEvent(new CustomEvent("notificationsChanged"));
@@ -251,42 +274,86 @@ export default function Notifications() {
     [showErrorToast, t, notifyCountChange]
   );
 
+  const removeNotificationFromState = useCallback(
+    (notification: MergedNotification) => {
+      if (notification.source === "api") {
+        setApiNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      } else {
+        setLocalNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }
+    },
+    []
+  );
+
+  const removeNotificationWithDelay = useCallback(
+    (notification: MergedNotification, delayMs: number): Promise<void> => {
+      return new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          removeNotificationFromState(notification);
+          resolve();
+        }, delayMs);
+
+        clearingTimeoutsRef.current.push(timeout);
+      });
+    },
+    [removeNotificationFromState]
+  );
+
   const handleClearAll = useCallback(async () => {
+    if (isClearing) return;
+
     try {
-      // Mark all as clearing for animation
-      const allIds = new Set([
-        ...apiNotifications.map((n) => n.id),
-        ...localNotifications.map((n) => n.id),
-      ]);
-      setClearingIds(allIds);
+      setIsClearing(true);
 
-      // Wait for exit animation
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Clear any existing timeouts
+      clearingTimeoutsRef.current.forEach(clearTimeout);
+      clearingTimeoutsRef.current = [];
 
-      // Clear all API notifications
-      if (userDetails && apiNotifications.length > 0) {
+      // Snapshot current notifications for staggered removal
+      const notificationsToRemove = [...displayedNotifications];
+      const totalNotifications = notificationsToRemove.length;
+
+      if (totalNotifications === 0) {
+        setIsClearing(false);
+        return;
+      }
+
+      // Remove items one by one with staggered delays for visual effect
+      const removalPromises = notificationsToRemove.map((notification, index) =>
+        removeNotificationWithDelay(notification, index * STAGGER_DELAY_MS)
+      );
+
+      // Wait for all items to be removed from state
+      await Promise.all(removalPromises);
+
+      // Wait for the last exit animation to complete
+      await new Promise((resolve) => setTimeout(resolve, EXIT_DURATION_MS));
+
+      // Perform actual backend deletions (state is already cleared by staggered removal)
+      if (userDetails) {
         await window.electron.hydraApi.delete(`/profile/notifications/all`, {
           needsAuth: true,
         });
-        setApiNotifications([]);
       }
-
-      // Clear all local notifications
       await window.electron.clearAllLocalNotifications();
-      setLocalNotifications([]);
-
-      setClearingIds(new Set());
       setPagination({ total: 0, hasMore: false, skip: 0 });
       notifyCountChange();
       showSuccessToast(t("cleared_all"));
     } catch (error) {
       logger.error("Failed to clear all notifications", error);
-      setClearingIds(new Set());
       showErrorToast(t("failed_to_clear"));
+    } finally {
+      setIsClearing(false);
+      clearingTimeoutsRef.current = [];
     }
   }, [
-    apiNotifications,
-    localNotifications,
+    displayedNotifications,
+    isClearing,
+    removeNotificationWithDelay,
     userDetails,
     showSuccessToast,
     showErrorToast,
@@ -296,9 +363,19 @@ export default function Notifications() {
 
   const handleLoadMore = useCallback(() => {
     if (pagination.hasMore && !isLoading) {
-      fetchApiNotifications(pagination.skip, true);
+      fetchApiNotifications(pagination.skip, true, filter);
     }
-  }, [pagination, isLoading, fetchApiNotifications]);
+  }, [pagination, isLoading, fetchApiNotifications, filter]);
+
+  const handleFilterChange = useCallback(
+    (newFilter: NotificationFilter) => {
+      if (newFilter !== filter) {
+        setFilter(newFilter);
+        setPagination({ total: 0, hasMore: false, skip: 0 });
+      }
+    },
+    [filter]
+  );
 
   const handleAcceptFriendRequest = useCallback(() => {
     showSuccessToast(t("friend_request_accepted"));
@@ -317,10 +394,13 @@ export default function Notifications() {
     return (
       <motion.div
         key={key}
-        layout
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 100, transition: { duration: 0.2 } }}
+        exit={{
+          opacity: 0,
+          x: 80,
+          transition: { duration: EXIT_DURATION_MS / 1000 },
+        }}
         transition={{ duration: 0.2 }}
       >
         {notification.source === "local" ? (
@@ -343,8 +423,57 @@ export default function Notifications() {
     );
   };
 
+  const unreadCount = useMemo(() => {
+    const apiUnread = apiNotifications.filter((n) => !n.isRead).length;
+    const localUnread = localNotifications.filter((n) => !n.isRead).length;
+    return apiUnread + localUnread;
+  }, [apiNotifications, localNotifications]);
+
+  const renderFilterTabs = () => (
+    <div className="notifications__filter-tabs">
+      <div className="notifications__tab-wrapper">
+        <button
+          type="button"
+          className={`notifications__tab ${filter === "all" ? "notifications__tab--active" : ""}`}
+          onClick={() => handleFilterChange("all")}
+        >
+          {t("filter_all")}
+        </button>
+        {filter === "all" && (
+          <motion.div
+            className="notifications__tab-underline"
+            layoutId="notifications-tab-underline"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </div>
+      <div className="notifications__tab-wrapper">
+        <button
+          type="button"
+          className={`notifications__tab ${filter === "unread" ? "notifications__tab--active" : ""}`}
+          onClick={() => handleFilterChange("unread")}
+        >
+          {t("filter_unread")}
+          {unreadCount > 0 && (
+            <span className="notifications__tab-badge">{unreadCount}</span>
+          )}
+        </button>
+        {filter === "unread" && (
+          <motion.div
+            className="notifications__tab-underline"
+            layoutId="notifications-tab-underline"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  const hasNoNotifications = mergedNotifications.length === 0;
+  const shouldDisableActions = isClearing || hasNoNotifications;
+
   const renderContent = () => {
-    if (isLoading && mergedNotifications.length === 0) {
+    if (isLoading && hasNoNotifications) {
       return (
         <div className="notifications__loading">
           <span>{t("loading")}</span>
@@ -352,36 +481,61 @@ export default function Notifications() {
       );
     }
 
-    if (mergedNotifications.length === 0) {
-      return (
-        <div className="notifications__empty">
-          <div className="notifications__icon-container">
-            <BellIcon size={24} />
-          </div>
-          <h2>{t("empty_title")}</h2>
-          <p>{t("empty_description")}</p>
-        </div>
-      );
-    }
-
     return (
       <div className="notifications">
-        <div className="notifications__actions">
-          <Button theme="outline" onClick={handleMarkAllAsRead}>
-            {t("mark_all_as_read")}
-          </Button>
-          <Button theme="danger" onClick={handleClearAll}>
-            {t("clear_all")}
-          </Button>
+        <div className="notifications__header">
+          {renderFilterTabs()}
+          <div className="notifications__actions">
+            <Button
+              theme="outline"
+              onClick={handleMarkAllAsRead}
+              disabled={shouldDisableActions}
+            >
+              {t("mark_all_as_read")}
+            </Button>
+            <Button
+              theme="danger"
+              onClick={handleClearAll}
+              disabled={shouldDisableActions}
+            >
+              {t("clear_all")}
+            </Button>
+          </div>
         </div>
 
-        <div className="notifications__list">
-          <AnimatePresence mode="popLayout">
-            {displayedNotifications.map(renderNotification)}
-          </AnimatePresence>
-        </div>
+        {/* Keep AnimatePresence mounted during clearing to preserve exit animations */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={filter}
+            className="notifications__content-wrapper"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {hasNoNotifications && !isClearing ? (
+              <div className="notifications__empty">
+                <div className="notifications__icon-container">
+                  <BellIcon size={24} />
+                </div>
+                <h2>{t("empty_title")}</h2>
+                <p>
+                  {filter === "unread"
+                    ? t("empty_filter_description")
+                    : t("empty_description")}
+                </p>
+              </div>
+            ) : (
+              <div className="notifications__list">
+                <AnimatePresence>
+                  {displayedNotifications.map(renderNotification)}
+                </AnimatePresence>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-        {pagination.hasMore && (
+        {pagination.hasMore && !isClearing && (
           <div className="notifications__load-more">
             <Button
               theme="outline"
