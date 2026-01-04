@@ -64,6 +64,7 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  steamShortcutAppId?: number;
 }
 
 export interface Download {
