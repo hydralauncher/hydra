@@ -226,6 +226,7 @@ declare global {
       objectId: string,
       enable: boolean
     ) => Promise<void>;
+    updateSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;

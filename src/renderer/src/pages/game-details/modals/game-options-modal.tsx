@@ -341,9 +341,13 @@ export function GameOptionsModal({
         !game.launchInVR
       );
 
+      // Sync with steam shortcut
+      await window.electron.updateSteamShortcut(game.shop, game.objectId);
+
       showSuccessToast(
         game.launchInVR ? t("vr_flag_disabled") : t("vr_flag_enabled")
       );
+
       updateGame();
     } catch (error) {
       showErrorToast(t("vr_flag_error"));

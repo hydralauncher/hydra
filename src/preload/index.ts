@@ -250,6 +250,8 @@ contextBridge.exposeInMainWorld("electron", {
   addGameVRFlag: (shop: GameShop, objectId: string, enable: boolean) => {
     return ipcRenderer.invoke("addGameVRFlag", shop, objectId, enable);
   },
+  updateSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("updateSteamShortcut", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
