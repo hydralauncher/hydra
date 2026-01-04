@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
 import type { Game, LibraryGame, ShortcutLocation } from "@types";
@@ -54,6 +54,20 @@ export function GameOptionsModal({
     game.automaticCloudSync ?? false
   );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [steamShortcutExists, setSteamShortcutExists] = useState(false);
+
+  useEffect(() => {
+    if (game.shop !== "custom") {
+      console.log(
+        "Checking Steam shortcut existence for",
+        window.electron.checkSteamShortcut(game.shop, game.objectId)
+      );
+      window.electron
+        .checkSteamShortcut(game.shop, game.objectId)
+        .then(setSteamShortcutExists)
+        .catch(() => setSteamShortcutExists(false));
+    }
+  }, [game.shop, game.objectId]);
 
   const {
     removeGameInstaller,
@@ -139,10 +153,41 @@ export function GameOptionsModal({
         t("you_might_need_to_restart_steam")
       );
 
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
+
       updateGame();
     } catch (error: unknown) {
       logger.error("Failed to create Steam shortcut", error);
       showErrorToast(t("create_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
+    }
+  };
+
+  const handleDeleteSteamShortcut = async () => {
+    try {
+      setCreatingSteamShortcut(true);
+      await window.electron.deleteSteamShortcut(game.shop, game.objectId);
+
+      showSuccessToast(
+        t("delete_shortcut_success"),
+        t("you_might_need_to_restart_steam")
+      );
+
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
+
+      updateGame();
+    } catch (error: unknown) {
+      logger.error("Failed to delete Steam shortcut", error);
+      showErrorToast(t("delete_shortcut_error"));
     } finally {
       setCreatingSteamShortcut(false);
     }
@@ -374,16 +419,26 @@ export function GameOptionsModal({
                   >
                     {t("create_shortcut")}
                   </Button>
-                  {game.shop !== "custom" && (
-                    <Button
-                      onClick={handleCreateSteamShortcut}
-                      theme="outline"
-                      disabled={creatingSteamShortcut}
-                    >
-                      <SteamLogo />
-                      {t("create_steam_shortcut")}
-                    </Button>
-                  )}
+                  {game.shop !== "custom" &&
+                    (steamShortcutExists ? (
+                      <Button
+                        onClick={handleDeleteSteamShortcut}
+                        theme="danger"
+                        disabled={creatingSteamShortcut}
+                      >
+                        <SteamLogo />
+                        {t("delete_steam_shortcut")}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleCreateSteamShortcut}
+                        theme="outline"
+                        disabled={creatingSteamShortcut}
+                      >
+                        <SteamLogo />
+                        {t("create_steam_shortcut")}
+                      </Button>
+                    ))}
                   {shouldShowCreateStartMenuShortcut && (
                     <Button
                       onClick={() => handleCreateShortcut("start_menu")}

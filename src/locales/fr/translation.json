@@ -375,7 +375,10 @@
     "hide_original": "Masquer l’original",
     "review_from_blocked_user": "Avis d’un utilisateur bloqué",
     "show": "Afficher",
-    "hide": "Masquer"
+    "hide": "Masquer",
+    "delete_shortcut_success": "Raccourci Steam supprimé avec succès",
+    "delete_shortcut_error": "Échec de la suppression du raccourci Steam",
+    "delete_steam_shortcut": "Supprimer le raccourci Steam"
   },
   "activation": {
     "title": "Activer Hydra",

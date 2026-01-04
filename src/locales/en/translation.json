@@ -385,7 +385,10 @@
     "hide_original": "Hide original",
     "review_from_blocked_user": "Review from blocked user",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "delete_shortcut_success": "Steam shortcut deleted successfully",
+    "delete_shortcut_error": "Failed to delete Steam shortcut",
+    "delete_steam_shortcut": "Delete Steam shortcut"
   },
   "activation": {
     "title": "Activate Hydra",
