@@ -375,7 +375,11 @@
     "hide_original": "Masquer l’original",
     "review_from_blocked_user": "Avis d’un utilisateur bloqué",
     "show": "Afficher",
-    "hide": "Masquer"
+    "hide": "Masquer",
+    "vr_flag": "Jeu VR (Dans Steam : mettre à jour le flag VR ou supprimer/recréer le raccourci)",
+    "vr_flag_enabled": "Jeu flaggé comme VR",
+    "vr_flag_disabled": "Jeu dé-flaggé VR",
+    "vr_flag_error": "Erreur lors de la mise à jour du flag VR"
   },
   "activation": {
     "title": "Activer Hydra",
