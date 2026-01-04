@@ -20,6 +20,7 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
@@ -144,6 +145,10 @@ export interface FriendRequestSync {
   friendRequestCount: number;
 }
 
+export interface NotificationSync {
+  notificationCount: number;
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -166,6 +171,7 @@ export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
 export interface Badge {
   name: string;
+  title: string;
   description: string;
   badge: {
     url: string;
@@ -182,6 +188,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   featurebaseJwt: string;
+  workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
   quirks?: {
@@ -209,6 +216,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  hasCompletedWrapped2025: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -310,6 +318,58 @@ export interface GameArtifact {
   downloadCount: number;
   label?: string;
   isFrozen: boolean;
+}
+
+export type NotificationType =
+  | "FRIEND_REQUEST_RECEIVED"
+  | "FRIEND_REQUEST_ACCEPTED"
+  | "BADGE_RECEIVED"
+  | "REVIEW_UPVOTE";
+
+export type LocalNotificationType =
+  | "EXTRACTION_COMPLETE"
+  | "DOWNLOAD_COMPLETE"
+  | "UPDATE_AVAILABLE"
+  | "ACHIEVEMENT_UNLOCKED";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  variables: Record<string, string>;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  priority: number;
+  createdAt: string;
+}
+
+export interface LocalNotification {
+  id: string;
+  type: LocalNotificationType;
+  title: string;
+  description: string;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type MergedNotification =
+  | (Notification & { source: "api" })
+  | (LocalNotification & { source: "local" });
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  pagination: {
+    total: number;
+    take: number;
+    skip: number;
+    hasMore: boolean;
+  };
+}
+
+export interface NotificationCountResponse {
+  count: number;
 }
 
 export interface ComparedAchievements {

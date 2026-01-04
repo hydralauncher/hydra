@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWondersSdk } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -23,7 +23,6 @@ import {
   clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
@@ -53,13 +52,10 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const workwondersRef = useRef<WorkWondersSdk | null>(null);
+
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -120,7 +116,30 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
-  useEffect(() => {
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      workwondersRef.current = new WorkWondersSdk();
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      await workwondersRef.current.initChangelogWidget();
+      workwondersRef.current.initChangelogWidgetMini();
+      workwondersRef.current.initFeedbackWidget();
+    },
+    [workwondersRef]
+  );
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -131,28 +150,31 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          window.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -211,6 +233,7 @@ export function App() {
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    workwondersRef.current?.notifyUrlChange();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -304,15 +327,6 @@ export function App() {
         archivePaths={archivePaths}
         onClose={() => setShowArchiveDeletionModal(false)}
       />
-
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
 
       <main>
         <Sidebar />

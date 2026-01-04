@@ -5,10 +5,12 @@ import {
   updateDownloadSourcesCheckBaseline,
   updateDownloadSourcesSinceValue,
   downloadSourcesSublevel,
+  db,
+  levelKeys,
 } from "@main/level";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
-import type { Game } from "@types";
+import type { Game, UserPreferences } from "@types";
 
 interface DownloadSourcesChangeResponse {
   shop: string;
@@ -101,6 +103,20 @@ export class DownloadSourcesChecker {
     logger.info("DownloadSourcesChecker.checkForChanges() called");
 
     try {
+      const userPreferences = await db.get<string, UserPreferences | null>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
+
+      if (userPreferences?.enableNewDownloadOptionsBadges === false) {
+        logger.info(
+          "New download options badges are disabled, skipping download sources check"
+        );
+        return;
+      }
+
       // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
