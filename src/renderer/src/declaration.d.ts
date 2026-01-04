@@ -219,6 +219,14 @@ declare global {
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
     createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    deleteSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
+    addGameVRFlag: (
+      shop: GameShop,
+      objectId: string,
+      enable: boolean
+    ) => Promise<void>;
+    updateSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
