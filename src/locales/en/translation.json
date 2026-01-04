@@ -403,7 +403,11 @@
     "hide_original": "Hide original",
     "review_from_blocked_user": "Review from blocked user",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
+    "vr_flag_enabled": "Game flagged as VR",
+    "vr_flag_disabled": "Game unflagged VR",
+    "vr_flag_error": "Error updating VR flag"
   },
   "activation": {
     "title": "Activate Hydra",
