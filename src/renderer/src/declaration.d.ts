@@ -282,7 +282,9 @@ declare global {
     isStaging: () => Promise<boolean>;
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
+    getScreenshotsPath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
+    openFolder: (path: string) => Promise<string>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
