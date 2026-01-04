@@ -33,3 +33,4 @@ import "./update-launch-options";
 import "./verify-executable-path";
 import "./delete-steam-shortcut";
 import "./check-steam-shortcut";
+import "./add-game-vr-flag.ts";

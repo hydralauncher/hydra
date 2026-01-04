@@ -101,7 +101,8 @@ const createSteamShortcut = async (
     const newShortcut = composeSteamShortcut(
       game.title,
       game.executablePath,
-      iconImage
+      iconImage,
+      game.launchInVR
     );
 
     for (const steamUserId of steamUserIds) {

@@ -65,6 +65,7 @@ export interface Game {
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
   steamShortcutAppId?: number;
+  launchInVR?: boolean;
 }
 
 export interface Download {

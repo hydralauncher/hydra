@@ -331,6 +331,25 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const toggleGameVR = async () => {
+    if (!game?.objectId) return;
+
+    try {
+      await window.electron.addGameVRFlag(
+        game.shop,
+        game.objectId,
+        !game.launchInVR
+      );
+
+      showSuccessToast(
+        game.launchInVR ? t("vr_flag_disabled") : t("vr_flag_enabled")
+      );
+      updateGame();
+    } catch (error) {
+      showErrorToast(t("vr_flag_error"));
+    }
+  };
+
   return (
     <>
       <DeleteGameModal
@@ -451,6 +470,15 @@ export function GameOptionsModal({
               )}
             </div>
           </div>
+
+          <CheckboxField
+            label={
+              <div className="hero-panel-actions__vr-label">{t("vr_flag")}</div>
+            }
+            checked={game?.launchInVR || false}
+            disabled={deleting}
+            onChange={toggleGameVR}
+          />
 
           {game.shop !== "custom" && (
             <CheckboxField

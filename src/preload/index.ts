@@ -247,6 +247,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
   checkSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
+  addGameVRFlag: (shop: GameShop, objectId: string, enable: boolean) => {
+    return ipcRenderer.invoke("addGameVRFlag", shop, objectId, enable);
+  },
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
