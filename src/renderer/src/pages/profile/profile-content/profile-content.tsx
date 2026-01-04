@@ -14,14 +14,15 @@ import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
-import { FriendsBox } from "./friends-box";
+import { BadgesBox } from "./badges-box";
+import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
-import { UserKarmaBox } from "./user-karma-box";
+import { ProfileSection } from "../profile-section/profile-section";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { ProfileTabs } from "./profile-tabs";
+import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { AnimatePresence } from "framer-motion";
@@ -95,7 +96,7 @@ export function ProfileContent() {
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
   const statsAnimation = useRef(-1);
 
-  const [activeTab, setActiveTab] = useState<"library" | "reviews">("library");
+  const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -186,8 +187,6 @@ export function ProfileContent() {
       );
       setReviews(response.reviews);
       setReviewsTotalCount(response.totalCount);
-    } catch (error) {
-      // Error handling for fetching reviews
     } finally {
       setIsLoadingReviews(false);
     }
@@ -426,10 +425,35 @@ export function ProfileContent() {
 
         {shouldShowRightContent && (
           <div className="profile-content__right-content">
-            <UserStatsBox />
-            <UserKarmaBox />
-            <RecentGamesBox />
-            <FriendsBox />
+            {userStats && (
+              <ProfileSection title={t("stats")} defaultOpen={true}>
+                <UserStatsBox />
+              </ProfileSection>
+            )}
+            {userProfile?.badges.length > 0 && (
+              <ProfileSection
+                title={t("badges")}
+                count={userProfile.badges.length}
+                defaultOpen={true}
+              >
+                <BadgesBox />
+              </ProfileSection>
+            )}
+            {userProfile?.recentGames.length > 0 && (
+              <ProfileSection title={t("activity")} defaultOpen={true}>
+                <RecentGamesBox />
+              </ProfileSection>
+            )}
+            {userProfile?.friends.length > 0 && (
+              <ProfileSection
+                title={t("friends")}
+                count={userStats?.friendsCount || userProfile.friends.length}
+                action={<FriendsBoxAddButton />}
+                defaultOpen={true}
+              >
+                <FriendsBox />
+              </ProfileSection>
+            )}
             <ReportProfile />
           </div>
         )}

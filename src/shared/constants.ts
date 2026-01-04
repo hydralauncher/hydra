@@ -8,6 +8,9 @@ export enum Downloader {
   Mediafire,
   TorBox,
   Hydra,
+  Buzzheavier,
+  FuckingFast,
+  VikingFile,
 }
 
 export enum DownloadSourceStatus {
