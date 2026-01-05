@@ -343,9 +343,9 @@ export class HydraApi {
     }
   }
 
-  static async get<T = any>(
+  static async get<T = unknown>(
     url: string,
-    params?: any,
+    params?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -361,9 +361,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async post<T = any>(
+  static async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -374,9 +374,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async put<T = any>(
+  static async put<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -387,9 +387,9 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async patch<T = any>(
+  static async patch<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -400,7 +400,7 @@ export class HydraApi {
       .catch(this.handleUnauthorizedError);
   }
 
-  static async delete<T = any>(url: string, options?: HydraApiOptions) {
+  static async delete<T = unknown>(url: string, options?: HydraApiOptions) {
     await this.validateOptions(options);
 
     return this.instance

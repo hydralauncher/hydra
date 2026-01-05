@@ -162,8 +162,6 @@ export function DownloadSettingsModal({
     repack,
     userPreferences?.realDebridApiToken,
     userPreferences?.torBoxApiToken,
-    isFeatureEnabled,
-    Feature,
   ]);
 
   const getDefaultDownloader = useCallback(

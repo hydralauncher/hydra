@@ -1,8 +1,8 @@
 import { ipcMain } from "electron";
 
-export const registerEvent = (
+export const registerEvent = <T = unknown, R = unknown>(
   name: string,
-  listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => any
+  listener: (event: Electron.IpcMainInvokeEvent, ...args: T[]) => R
 ) => {
   ipcMain.handle(name, async (event: Electron.IpcMainInvokeEvent, ...args) => {
     return Promise.resolve(listener(event, ...args)).then((result) => {

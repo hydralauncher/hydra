@@ -32,7 +32,10 @@ export class PythonRPC {
   private static restartCount = 0;
   private static readonly MAX_RESTARTS = 5;
 
-  private static logStream(readable: Readable | null, type: "stdout" | "stderr") {
+  private static logStream(
+    readable: Readable | null,
+    type: "stdout" | "stderr"
+  ) {
     if (!readable) return;
 
     readable.setEncoding("utf-8");

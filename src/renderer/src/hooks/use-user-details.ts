@@ -68,6 +68,7 @@ export function useUserDetails() {
       userDetails?.username,
       userDetails?.subscription,
       userDetails?.featurebaseJwt,
+      userDetails?.workwondersJwt,
       userDetails?.karma,
     ]
   );
