@@ -67,6 +67,27 @@ export class PythonRPC {
     return newPassword;
   }
 
+  private static getPythonExecutable() {
+    const isWin = process.platform === "win32";
+    const names = isWin ? ["python.exe"] : ["python3", "python"];
+
+    for (const name of names) {
+      const paths = (process.env.PATH || "").split(path.delimiter);
+      for (const p of paths) {
+        const fullPath = path.join(p, name);
+        try {
+          if (fs.existsSync(fullPath)) {
+            return fullPath;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    return isWin ? "python" : "python3";
+  }
+
   public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
@@ -114,9 +135,13 @@ export class PythonRPC {
         "main.py"
       );
 
-      childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
-        stdio: ["pipe", "pipe", "pipe"],
-      });
+      childProcess = cp.spawn(
+        this.getPythonExecutable(),
+        [scriptPath, ...commonArgs],
+        {
+          stdio: ["pipe", "pipe", "pipe"],
+        }
+      );
     }
 
     this.logStream(childProcess.stdout, "stdout");
