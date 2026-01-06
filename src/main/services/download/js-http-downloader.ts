@@ -147,6 +147,32 @@ export class JsHttpDownloader {
       signal: this.abortController?.signal,
     });
 
+    // Handle 416 Range Not Satisfiable - existing file is larger than server file
+    // This happens when downloading same game from different source
+    if (response.status === 416 && startByte > 0) {
+      logger.log(
+        "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
+      );
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      this.bytesDownloaded = 0;
+      this.resetSpeedTracking();
+
+      // Retry without Range header
+      const headersWithoutRange = { ...requestHeaders };
+      delete headersWithoutRange["Range"];
+
+      return this.executeDownload(
+        url,
+        headersWithoutRange,
+        filePath,
+        0,
+        savePath,
+        usedFallback
+      );
+    }
+
     if (!response.ok && response.status !== 206) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
