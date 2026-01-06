@@ -134,7 +134,7 @@ export class JsHttpDownloader {
   ): Promise<void> {
     const response = await fetch(url, {
       headers: requestHeaders,
-      signal: this.abortController!.signal,
+      signal: this.abortController?.signal,
     });
 
     if (!response.ok && response.status !== 206) {
