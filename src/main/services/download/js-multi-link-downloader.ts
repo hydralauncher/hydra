@@ -61,7 +61,7 @@ export class JsMultiLinkDownloader {
       });
 
       const status = this.downloader.getDownloadStatus();
-      if (status && status.status === "complete") {
+      if (status?.status === "complete") {
         this.completedDownloads.push({
           name: status.folderName,
           size: status.fileSize,
@@ -105,7 +105,7 @@ export class JsMultiLinkDownloader {
       });
 
       const status = this.downloader.getDownloadStatus();
-      if (status && status.status === "complete") {
+      if (status?.status === "complete") {
         this.completedDownloads.push({
           name: status.folderName,
           size: status.fileSize,
