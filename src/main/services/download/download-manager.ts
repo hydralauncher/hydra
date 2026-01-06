@@ -454,34 +454,52 @@ export class DownloadManager {
         const token = await GofileApi.authorize();
         const downloadLink = await GofileApi.getDownloadLink(id!);
         await GofileApi.checkDownloadUrl(downloadLink);
+        const filename =
+          this.extractFilename(download.uri, downloadLink) ||
+          this.extractFilename(downloadLink);
 
         return {
           url: downloadLink,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
           headers: { Cookie: `accountToken=${token}` },
         };
       }
       case Downloader.PixelDrain: {
         const id = download.uri.split("/").pop();
         const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
 
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.Qiwi: {
         const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
+
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.Datanodes: {
         const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
+
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.Buzzheavier: {
@@ -516,18 +534,27 @@ export class DownloadManager {
       }
       case Downloader.Mediafire: {
         const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
+
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
 
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.TorBox: {
@@ -545,10 +572,14 @@ export class DownloadManager {
           download.uri
         );
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
+        const filename =
+          this.extractFilename(download.uri, downloadUrl) ||
+          this.extractFilename(downloadUrl);
 
         return {
           url: downloadUrl,
           savePath: download.downloadPath,
+          filename: filename ? this.sanitizeFilename(filename) : undefined,
         };
       }
       case Downloader.VikingFile: {

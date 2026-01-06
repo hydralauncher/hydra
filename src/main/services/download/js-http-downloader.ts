@@ -50,7 +50,7 @@ export class JsHttpDownloader {
     this.isDownloading = true;
 
     const { url, savePath, filename, headers = {} } = options;
-    const { filePath, startByte } = this.prepareDownloadPath(
+    const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
       savePath,
       filename,
       url
@@ -58,7 +58,14 @@ export class JsHttpDownloader {
     const requestHeaders = this.buildRequestHeaders(headers, startByte);
 
     try {
-      await this.executeDownload(url, requestHeaders, filePath, startByte);
+      await this.executeDownload(
+        url,
+        requestHeaders,
+        filePath,
+        startByte,
+        savePath,
+        usedFallback
+      );
     } catch (err) {
       this.handleDownloadError(err as Error);
     } finally {
@@ -71,9 +78,10 @@ export class JsHttpDownloader {
     savePath: string,
     filename: string | undefined,
     url: string
-  ): { filePath: string; startByte: number } {
-    const resolvedFilename =
-      filename || this.extractFilename(url) || "download";
+  ): { filePath: string; startByte: number; usedFallback: boolean } {
+    const extractedFilename = filename || this.extractFilename(url);
+    const usedFallback = !extractedFilename;
+    const resolvedFilename = extractedFilename || "download";
     this.folderName = resolvedFilename;
     const filePath = path.join(savePath, resolvedFilename);
 
@@ -90,7 +98,7 @@ export class JsHttpDownloader {
     }
 
     this.resetSpeedTracking();
-    return { filePath, startByte };
+    return { filePath, startByte, usedFallback };
   }
 
   private buildRequestHeaders(
@@ -130,7 +138,9 @@ export class JsHttpDownloader {
     url: string,
     requestHeaders: Record<string, string>,
     filePath: string,
-    startByte: number
+    startByte: number,
+    savePath: string,
+    usedFallback: boolean
   ): Promise<void> {
     const response = await fetch(url, {
       headers: requestHeaders,
@@ -143,12 +153,25 @@ export class JsHttpDownloader {
 
     this.parseFileSize(response, startByte);
 
+    // If we used "download" fallback, try to get filename from Content-Disposition
+    let actualFilePath = filePath;
+    if (usedFallback && startByte === 0) {
+      const headerFilename = this.parseContentDisposition(response);
+      if (headerFilename) {
+        actualFilePath = path.join(savePath, headerFilename);
+        this.folderName = headerFilename;
+        logger.log(
+          `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
+        );
+      }
+    }
+
     if (!response.body) {
       throw new Error("Response body is null");
     }
 
     const flags = startByte > 0 ? "a" : "w";
-    this.writeStream = fs.createWriteStream(filePath, { flags });
+    this.writeStream = fs.createWriteStream(actualFilePath, { flags });
 
     const readableStream = this.createReadableStream(response.body.getReader());
     await pipeline(readableStream, this.writeStream);
@@ -156,6 +179,25 @@ export class JsHttpDownloader {
     this.status = "complete";
     this.downloadSpeed = 0;
     logger.log("[JsHttpDownloader] Download complete");
+  }
+
+  private parseContentDisposition(response: Response): string | undefined {
+    const header = response.headers.get("content-disposition");
+    if (!header) return undefined;
+
+    // Try to extract filename from Content-Disposition header
+    // Formats: attachment; filename="file.zip" or attachment; filename=file.zip
+    const filenameMatch = /filename\*?=['"]?(?:UTF-8'')?([^"';\n]+)['"]?/i.exec(
+      header
+    );
+    if (filenameMatch?.[1]) {
+      try {
+        return decodeURIComponent(filenameMatch[1].trim());
+      } catch {
+        return filenameMatch[1].trim();
+      }
+    }
+    return undefined;
   }
 
   private createReadableStream(
