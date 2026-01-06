@@ -594,7 +594,9 @@
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on game page",
-    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup"
+    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
+    "downloads": "Downloads",
+    "use_native_http_downloader": "Use native HTTP downloader (experimental)"
   },
   "notifications": {
     "download_complete": "Download complete",
