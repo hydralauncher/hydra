@@ -2,7 +2,7 @@ import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
-import type { UserPreferences } from "@types";
+import type { Download, UserPreferences } from "@types";
 import {
   SystemPath,
   CommonRedistManager,
@@ -74,7 +74,7 @@ export const loadState = async () => {
       return orderBy(games, "timestamp", "desc");
     });
 
-  let interruptedDownload = null;
+  let interruptedDownload: Download | null = null;
 
   for (const download of downloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
