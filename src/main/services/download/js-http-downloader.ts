@@ -108,7 +108,10 @@ export class JsHttpDownloader {
       this.writeStream = fs.createWriteStream(filePath, { flags });
 
       const reader = response.body.getReader();
-      const self = this;
+      const onChunk = (length: number) => {
+        this.bytesDownloaded += length;
+        this.updateSpeed();
+      };
 
       const readableStream = new Readable({
         async read() {
@@ -120,8 +123,7 @@ export class JsHttpDownloader {
               return;
             }
 
-            self.bytesDownloaded += value.length;
-            self.updateSpeed();
+            onChunk(value.length);
             this.push(Buffer.from(value));
           } catch (err) {
             if ((err as Error).name === "AbortError") {
