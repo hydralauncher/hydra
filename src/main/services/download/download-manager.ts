@@ -450,9 +450,9 @@ export class DownloadManager {
   } | null> {
     switch (download.downloader) {
       case Downloader.Gofile: {
-        const id = download.uri.split("/").pop();
+        const id = download.uri.split("/").pop()!;
         const token = await GofileApi.authorize();
-        const downloadLink = await GofileApi.getDownloadLink(id!);
+        const downloadLink = await GofileApi.getDownloadLink(id);
         await GofileApi.checkDownloadUrl(downloadLink);
 
         return {
@@ -462,8 +462,8 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const id = download.uri.split("/").pop();
-        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+        const id = download.uri.split("/").pop()!;
+        const downloadUrl = await PixelDrainApi.getDownloadUrl(id);
 
         return {
           url: downloadUrl,
@@ -576,9 +576,9 @@ export class DownloadManager {
 
     switch (download.downloader) {
       case Downloader.Gofile: {
-        const id = download.uri.split("/").pop();
+        const id = download.uri.split("/").pop()!;
         const token = await GofileApi.authorize();
-        const downloadLink = await GofileApi.getDownloadLink(id!);
+        const downloadLink = await GofileApi.getDownloadLink(id);
         await GofileApi.checkDownloadUrl(downloadLink);
 
         return {
@@ -592,8 +592,8 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const id = download.uri.split("/").pop();
-        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+        const id = download.uri.split("/").pop()!;
+        const downloadUrl = await PixelDrainApi.getDownloadUrl(id);
 
         return {
           action: "start",

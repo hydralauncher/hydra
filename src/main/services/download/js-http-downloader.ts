@@ -50,7 +50,28 @@ export class JsHttpDownloader {
     this.isDownloading = true;
 
     const { url, savePath, filename, headers = {} } = options;
+    const { filePath, startByte } = this.prepareDownloadPath(
+      savePath,
+      filename,
+      url
+    );
+    const requestHeaders = this.buildRequestHeaders(headers, startByte);
 
+    try {
+      await this.executeDownload(url, requestHeaders, filePath, startByte);
+    } catch (err) {
+      this.handleDownloadError(err as Error);
+    } finally {
+      this.isDownloading = false;
+      this.cleanup();
+    }
+  }
+
+  private prepareDownloadPath(
+    savePath: string,
+    filename: string | undefined,
+    url: string
+  ): { filePath: string; startByte: number } {
     const resolvedFilename =
       filename || this.extractFilename(url) || "download";
     this.folderName = resolvedFilename;
@@ -68,90 +89,114 @@ export class JsHttpDownloader {
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
     }
 
-    // Reset speed tracking to avoid incorrect speed calculation after resume
-    this.lastSpeedUpdate = Date.now();
-    this.bytesAtLastSpeedUpdate = this.bytesDownloaded;
-    this.downloadSpeed = 0;
+    this.resetSpeedTracking();
+    return { filePath, startByte };
+  }
 
+  private buildRequestHeaders(
+    headers: Record<string, string>,
+    startByte: number
+  ): Record<string, string> {
     const requestHeaders: Record<string, string> = { ...headers };
     if (startByte > 0) {
       requestHeaders["Range"] = `bytes=${startByte}-`;
     }
+    return requestHeaders;
+  }
 
-    try {
-      const response = await fetch(url, {
-        headers: requestHeaders,
-        signal: this.abortController.signal,
-      });
+  private resetSpeedTracking(): void {
+    this.lastSpeedUpdate = Date.now();
+    this.bytesAtLastSpeedUpdate = this.bytesDownloaded;
+    this.downloadSpeed = 0;
+  }
 
-      if (!response.ok && response.status !== 206) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  private parseFileSize(response: Response, startByte: number): void {
+    const contentRange = response.headers.get("content-range");
+    if (contentRange) {
+      const match = /bytes \d+-\d+\/(\d+)/.exec(contentRange);
+      if (match) {
+        this.fileSize = Number.parseInt(match[1], 10);
       }
+      return;
+    }
 
-      const contentLength = response.headers.get("content-length");
-      const contentRange = response.headers.get("content-range");
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      this.fileSize = startByte + Number.parseInt(contentLength, 10);
+    }
+  }
 
-      if (contentRange) {
-        const match = contentRange.match(/bytes \d+-\d+\/(\d+)/);
-        if (match) {
-          this.fileSize = parseInt(match[1], 10);
-        }
-      } else if (contentLength) {
-        this.fileSize = startByte + parseInt(contentLength, 10);
-      }
+  private async executeDownload(
+    url: string,
+    requestHeaders: Record<string, string>,
+    filePath: string,
+    startByte: number
+  ): Promise<void> {
+    const response = await fetch(url, {
+      headers: requestHeaders,
+      signal: this.abortController!.signal,
+    });
 
-      if (!response.body) {
-        throw new Error("Response body is null");
-      }
+    if (!response.ok && response.status !== 206) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-      const flags = startByte > 0 ? "a" : "w";
-      this.writeStream = fs.createWriteStream(filePath, { flags });
+    this.parseFileSize(response, startByte);
 
-      const reader = response.body.getReader();
-      const onChunk = (length: number) => {
-        this.bytesDownloaded += length;
-        this.updateSpeed();
-      };
+    if (!response.body) {
+      throw new Error("Response body is null");
+    }
 
-      const readableStream = new Readable({
-        async read() {
-          try {
-            const { done, value } = await reader.read();
+    const flags = startByte > 0 ? "a" : "w";
+    this.writeStream = fs.createWriteStream(filePath, { flags });
 
+    const readableStream = this.createReadableStream(response.body.getReader());
+    await pipeline(readableStream, this.writeStream);
+
+    this.status = "complete";
+    this.downloadSpeed = 0;
+    logger.log("[JsHttpDownloader] Download complete");
+  }
+
+  private createReadableStream(
+    reader: ReadableStreamDefaultReader<Uint8Array>
+  ): Readable {
+    const onChunk = (length: number) => {
+      this.bytesDownloaded += length;
+      this.updateSpeed();
+    };
+
+    return new Readable({
+      read() {
+        reader
+          .read()
+          .then(({ done, value }) => {
             if (done) {
               this.push(null);
               return;
             }
-
             onChunk(value.length);
             this.push(Buffer.from(value));
-          } catch (err) {
-            if ((err as Error).name === "AbortError") {
+          })
+          .catch((err: Error) => {
+            if (err.name === "AbortError") {
               this.push(null);
             } else {
-              this.destroy(err as Error);
+              this.destroy(err);
             }
-          }
-        },
-      });
+          });
+      },
+    });
+  }
 
-      await pipeline(readableStream, this.writeStream);
-
-      this.status = "complete";
-      this.downloadSpeed = 0;
-      logger.log("[JsHttpDownloader] Download complete");
-    } catch (err) {
-      if ((err as Error).name === "AbortError") {
-        logger.log("[JsHttpDownloader] Download aborted");
-        this.status = "paused";
-      } else {
-        logger.error("[JsHttpDownloader] Download error:", err);
-        this.status = "error";
-        throw err;
-      }
-    } finally {
-      this.isDownloading = false;
-      this.cleanup();
+  private handleDownloadError(err: Error): void {
+    if (err.name === "AbortError") {
+      logger.log("[JsHttpDownloader] Download aborted");
+      this.status = "paused";
+    } else {
+      logger.error("[JsHttpDownloader] Download error:", err);
+      this.status = "error";
+      throw err;
     }
   }
 
@@ -232,7 +277,7 @@ export class JsHttpDownloader {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
       const pathParts = pathname.split("/");
-      const filename = pathParts[pathParts.length - 1];
+      const filename = pathParts.at(-1);
 
       if (filename?.includes(".") && filename.length > 0) {
         return decodeURIComponent(filename);
