@@ -259,7 +259,7 @@ export class JsHttpDownloader {
     }
   }
 
-  cancelDownload(): void {
+  cancelDownload(deleteFile = true): void {
     if (this.abortController) {
       logger.log("[JsHttpDownloader] Cancelling download");
       this.abortController.abort();
@@ -267,7 +267,7 @@ export class JsHttpDownloader {
 
     this.cleanup();
 
-    if (this.currentOptions) {
+    if (deleteFile && this.currentOptions && this.status !== "complete") {
       const filePath = path.join(this.currentOptions.savePath, this.folderName);
       if (fs.existsSync(filePath)) {
         try {
