@@ -156,15 +156,20 @@ export class DownloadManager {
       const { progress, downloadSpeed, bytesDownloaded, fileSize, folderName } =
         status;
 
+      const updatedDownload = {
+        ...download,
+        bytesDownloaded,
+        fileSize,
+        progress,
+        folderName,
+        status:
+          status.status === "complete"
+            ? ("complete" as const)
+            : ("active" as const),
+      };
+
       if (status.status === "active" || status.status === "complete") {
-        await downloadsSublevel.put(downloadId, {
-          ...download,
-          bytesDownloaded,
-          fileSize,
-          progress,
-          folderName,
-          status: status.status === "complete" ? "complete" : "active",
-        });
+        await downloadsSublevel.put(downloadId, updatedDownload);
       }
 
       return {
@@ -176,7 +181,7 @@ export class DownloadManager {
         isCheckingFiles: false,
         progress,
         gameId: downloadId,
-        download,
+        download: updatedDownload,
       };
     } catch (err) {
       logger.error("[DownloadManager] Error getting JS download status:", err);
