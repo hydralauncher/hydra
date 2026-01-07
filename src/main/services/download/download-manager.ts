@@ -156,10 +156,13 @@ export class DownloadManager {
       const { progress, downloadSpeed, bytesDownloaded, fileSize, folderName } =
         status;
 
+      const finalFileSize =
+        fileSize && fileSize > 0 ? fileSize : download.fileSize;
+
       const updatedDownload = {
         ...download,
         bytesDownloaded,
-        fileSize,
+        fileSize: finalFileSize,
         progress,
         folderName,
         status:
@@ -176,7 +179,11 @@ export class DownloadManager {
         numPeers: 0,
         numSeeds: 0,
         downloadSpeed,
-        timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+        timeRemaining: calculateETA(
+          finalFileSize ?? 0,
+          bytesDownloaded,
+          downloadSpeed
+        ),
         isDownloadingMetadata: false,
         isCheckingFiles: false,
         progress,
