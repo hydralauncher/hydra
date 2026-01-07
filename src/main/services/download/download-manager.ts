@@ -770,21 +770,66 @@ export class DownloadManager {
 
     if (useJsDownloader && isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
+      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
+
+      // Get download options (this includes API calls for Gofile/Mediafire)
+      // We still await this to catch errors, but start actual download async
       const options = await this.getJsDownloadOptions(download);
 
       if (!options) {
         throw new Error("Failed to get download options for JS downloader");
       }
 
+      // Try to get file size from HEAD request before starting download
+      // This ensures UI shows file size immediately instead of waiting
+      try {
+        const headResponse = await fetch(options.url, {
+          method: "HEAD",
+          headers: options.headers,
+        });
+
+        if (headResponse.ok) {
+          const contentLength = headResponse.headers.get("content-length");
+          if (contentLength) {
+            const fileSize = Number.parseInt(contentLength, 10);
+            const downloadId = this.downloadingGameId;
+            const currentDownload = await downloadsSublevel.get(downloadId);
+            if (currentDownload) {
+              await downloadsSublevel.put(downloadId, {
+                ...currentDownload,
+                fileSize,
+              });
+              logger.log(
+                `[DownloadManager] Pre-fetched file size: ${fileSize} bytes`
+              );
+            }
+          }
+        }
+      } catch {
+        // If HEAD request fails, continue anyway - file size will be known from actual download
+        logger.log(
+          "[DownloadManager] Could not pre-fetch file size, will get from download response"
+        );
+      }
+
+      // Start download asynchronously (don't await) so UI returns immediately
       this.jsDownloader = new JsHttpDownloader();
       this.usingJsDownloader = true;
-      this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
 
+      // Start download in background
       this.jsDownloader.startDownload(options).catch((err) => {
         logger.error("[DownloadManager] JS download error:", err);
         this.usingJsDownloader = false;
         this.jsDownloader = null;
       });
+
+      // Poll status immediately after a short delay to get file size from response headers
+      // This ensures UI shows file size quickly instead of waiting for watchDownloads loop (2s interval)
+      setTimeout(() => {
+        this.getDownloadStatusFromJs().catch(() => {
+          // Ignore errors - status will be updated by watchDownloads loop
+        });
+      }, 500);
     } else {
       logger.log("[DownloadManager] Using Python RPC downloader");
       const payload = await this.getDownloadPayload(download);

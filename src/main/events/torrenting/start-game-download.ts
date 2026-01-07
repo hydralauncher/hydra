@@ -85,8 +85,18 @@ const startGameDownload = async (
   };
 
   try {
-    await DownloadManager.startDownload(download).then(() => {
-      return downloadsSublevel.put(gameKey, download);
+    // Save download to DB immediately so UI can show it
+    await downloadsSublevel.put(gameKey, download);
+
+    // Start download asynchronously (don't await) to avoid blocking UI
+    // This is especially important for Gofile/Mediafire which make API calls
+    DownloadManager.startDownload(download).catch((err) => {
+      logger.error("Failed to start download after save:", err);
+      // Update download status to error
+      downloadsSublevel.put(gameKey, {
+        ...download,
+        status: "error",
+      });
     });
 
     const updatedGame = await gamesSublevel.get(gameKey);
