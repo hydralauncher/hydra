@@ -613,10 +613,17 @@ export function DownloadGroup({
     const download = game.download!;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
-    if (download.fileSize != null) return formatBytes(download.fileSize);
-
-    if (lastPacket?.download.fileSize && isGameDownloading)
+    // Check lastPacket first for most up-to-date size during active downloads
+    if (
+      isGameDownloading &&
+      lastPacket?.download.fileSize &&
+      lastPacket.download.fileSize > 0
+    )
       return formatBytes(lastPacket.download.fileSize);
+
+    // Then check the stored download size (must be > 0 to be valid)
+    if (download.fileSize != null && download.fileSize > 0)
+      return formatBytes(download.fileSize);
 
     return "N/A";
   };
