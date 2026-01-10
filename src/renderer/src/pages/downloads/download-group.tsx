@@ -844,7 +844,7 @@ export function DownloadGroup({
           visible={cancelModalVisible}
           title={t("cancel_download")}
           descriptionText={t("cancel_download_description")}
-          confirmButtonLabel={t("cancel")}
+          confirmButtonLabel={t("yes_cancel")}
           cancelButtonLabel={t("keep_downloading")}
           onConfirm={handleConfirmCancel}
           onClose={handleCancelModalClose}
@@ -877,7 +877,7 @@ export function DownloadGroup({
         visible={cancelModalVisible}
         title={t("cancel_download")}
         descriptionText={t("cancel_download_description")}
-        confirmButtonLabel={t("cancel")}
+        confirmButtonLabel={t("yes_cancel")}
         cancelButtonLabel={t("keep_downloading")}
         onConfirm={handleConfirmCancel}
         onClose={handleCancelModalClose}

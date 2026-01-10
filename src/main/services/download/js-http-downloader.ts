@@ -258,7 +258,11 @@ export class JsHttpDownloader {
   }
 
   private handleDownloadError(err: Error): void {
-    if (err.name === "AbortError") {
+    // Handle abort/cancellation errors - these are expected when user pauses/cancels
+    if (
+      err.name === "AbortError" ||
+      (err as NodeJS.ErrnoException).code === "ERR_STREAM_PREMATURE_CLOSE"
+    ) {
       logger.log("[JsHttpDownloader] Download aborted");
       this.status = "paused";
     } else {
