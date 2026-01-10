@@ -34,7 +34,9 @@ export const loadState = async () => {
 
   await import("./events");
 
-  if (!userPreferences?.useNativeHttpDownloader) {
+  // Only spawn aria2 if user explicitly disabled native HTTP downloader
+  // Default is to use native HTTP downloader (aria2 is opt-in)
+  if (userPreferences?.useNativeHttpDownloader === false) {
     Aria2.spawn();
   }
 
@@ -124,8 +126,9 @@ export const loadState = async () => {
 
   // For torrents or if JS downloader is disabled, use Python RPC
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
+  // Default to true - native HTTP downloader is enabled by default
   const useJsDownloader =
-    userPreferences?.useNativeHttpDownloader && !isTorrent;
+    (userPreferences?.useNativeHttpDownloader ?? true) && !isTorrent;
 
   if (useJsDownloader && downloadToResume) {
     // Start Python RPC for seeding only, then resume HTTP download with JS
