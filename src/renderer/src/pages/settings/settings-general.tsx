@@ -53,6 +53,7 @@ export function SettingsGeneral() {
     achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
+    useNativeHttpDownloader: false,
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
@@ -131,6 +132,8 @@ export function SettingsGeneral() {
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
+        useNativeHttpDownloader:
+          userPreferences.useNativeHttpDownloader ?? false,
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
@@ -246,6 +249,18 @@ export function SettingsGeneral() {
           value: language.option,
           label: language.nativeName,
         }))}
+      />
+
+      <h2 className="settings-general__section-title">{t("downloads")}</h2>
+
+      <CheckboxField
+        label={t("use_native_http_downloader")}
+        checked={form.useNativeHttpDownloader}
+        onChange={() =>
+          handleChange({
+            useNativeHttpDownloader: !form.useNativeHttpDownloader,
+          })
+        }
       />
 
       <h2 className="settings-general__section-title">{t("notifications")}</h2>
