@@ -111,7 +111,8 @@ export class DownloadManager {
       levelKeys.userPreferences,
       { valueEncoding: "json" }
     );
-    return userPreferences?.useNativeHttpDownloader ?? false;
+    // Default to true - native HTTP downloader is enabled by default (opt-out)
+    return userPreferences?.useNativeHttpDownloader ?? true;
   }
 
   private static isHttpDownloader(downloader: Downloader): boolean {
@@ -483,6 +484,9 @@ export class DownloadManager {
     filename?: string;
     headers?: Record<string, string>;
   } | null> {
+    // If resuming and we already have a folderName, use it to ensure we find the partial file
+    const resumingFilename = download.folderName || undefined;
+
     switch (download.downloader) {
       case Downloader.Gofile: {
         const id = download.uri.split("/").pop();
@@ -490,6 +494,7 @@ export class DownloadManager {
         const downloadLink = await GofileApi.getDownloadLink(id!);
         await GofileApi.checkDownloadUrl(downloadLink);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadLink) ||
           this.extractFilename(downloadLink);
 
@@ -504,6 +509,7 @@ export class DownloadManager {
         const id = download.uri.split("/").pop();
         const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -516,6 +522,7 @@ export class DownloadManager {
       case Downloader.Qiwi: {
         const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -528,6 +535,7 @@ export class DownloadManager {
       case Downloader.Datanodes: {
         const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -543,6 +551,7 @@ export class DownloadManager {
         );
         const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, directUrl) ||
           this.extractFilename(directUrl);
 
@@ -558,6 +567,7 @@ export class DownloadManager {
         );
         const directUrl = await FuckingFastApi.getDirectLink(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, directUrl) ||
           this.extractFilename(directUrl);
 
@@ -570,6 +580,7 @@ export class DownloadManager {
       case Downloader.Mediafire: {
         const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -583,6 +594,7 @@ export class DownloadManager {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -599,7 +611,7 @@ export class DownloadManager {
         return {
           url,
           savePath: download.downloadPath,
-          filename: name,
+          filename: resumingFilename || name,
         };
       }
       case Downloader.Hydra: {
@@ -608,6 +620,7 @@ export class DownloadManager {
         );
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
@@ -623,6 +636,7 @@ export class DownloadManager {
         );
         const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
         const filename =
+          resumingFilename ||
           this.extractFilename(download.uri, downloadUrl) ||
           this.extractFilename(downloadUrl);
 
