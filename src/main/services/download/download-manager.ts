@@ -75,6 +75,34 @@ export class DownloadManager {
     return filename.replaceAll(/[<>:"/\\|?*]/g, "_");
   }
 
+  private static resolveFilename(
+    resumingFilename: string | undefined,
+    originalUrl: string,
+    downloadUrl: string
+  ): string | undefined {
+    if (resumingFilename) return resumingFilename;
+
+    const extracted =
+      this.extractFilename(originalUrl, downloadUrl) ||
+      this.extractFilename(downloadUrl);
+
+    return extracted ? this.sanitizeFilename(extracted) : undefined;
+  }
+
+  private static buildDownloadOptions(
+    url: string,
+    savePath: string,
+    filename: string | undefined,
+    headers?: Record<string, string>
+  ) {
+    return {
+      url,
+      savePath,
+      filename,
+      headers,
+    };
+  }
+
   private static createDownloadPayload(
     directUrl: string,
     originalUrl: string,
@@ -286,100 +314,127 @@ export class DownloadManager {
 
   public static async watchDownloads() {
     const status = await this.getDownloadStatus();
+    if (!status) return;
 
-    if (status) {
-      const { gameId, progress } = status;
+    const { gameId, progress } = status;
+    const [download, game] = await Promise.all([
+      downloadsSublevel.get(gameId),
+      gamesSublevel.get(gameId),
+    ]);
 
-      const [download, game] = await Promise.all([
-        downloadsSublevel.get(gameId),
-        gamesSublevel.get(gameId),
-      ]);
+    if (!download || !game) return;
 
-      if (!download || !game) return;
+    this.sendProgressUpdate(progress, status, game);
 
-      const userPreferences = await db.get<string, UserPreferences | null>(
-        levelKeys.userPreferences,
-        { valueEncoding: "json" }
+    if (progress === 1) {
+      await this.handleDownloadCompletion(download, game, gameId);
+    }
+  }
+
+  private static sendProgressUpdate(
+    progress: number,
+    status: DownloadProgress,
+    game: any
+  ) {
+    if (WindowManager.mainWindow) {
+      WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
+      WindowManager.mainWindow.webContents.send(
+        "on-download-progress",
+        structuredClone({ ...status, game })
+      );
+    }
+  }
+
+  private static async handleDownloadCompletion(
+    download: Download,
+    game: any,
+    gameId: string
+  ) {
+    publishDownloadCompleteNotification(game);
+
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    await this.updateDownloadStatus(
+      download,
+      gameId,
+      userPreferences?.seedAfterDownloadComplete
+    );
+
+    if (download.automaticallyExtract) {
+      this.handleExtraction(download, game);
+    }
+
+    await this.processNextQueuedDownload();
+  }
+
+  private static async updateDownloadStatus(
+    download: Download,
+    gameId: string,
+    shouldSeed?: boolean
+  ) {
+    const shouldExtract = download.automaticallyExtract;
+
+    if (shouldSeed && download.downloader === Downloader.Torrent) {
+      await downloadsSublevel.put(gameId, {
+        ...download,
+        status: "seeding",
+        shouldSeed: true,
+        queued: false,
+        extracting: shouldExtract,
+      });
+    } else {
+      await downloadsSublevel.put(gameId, {
+        ...download,
+        status: "complete",
+        shouldSeed: false,
+        queued: false,
+        extracting: shouldExtract,
+      });
+      this.cancelDownload(gameId);
+    }
+  }
+
+  private static handleExtraction(download: Download, game: any) {
+    const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
+
+    if (
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+        download.folderName?.endsWith(ext)
+      )
+    ) {
+      gameFilesManager.extractDownloadedFile();
+    } else if (download.folderName) {
+      gameFilesManager
+        .extractFilesInDirectory(
+          path.join(download.downloadPath, download.folderName)
+        )
+        .then(() => gameFilesManager.setExtractionComplete());
+    }
+  }
+
+  private static async processNextQueuedDownload() {
+    const downloads = await downloadsSublevel
+      .values()
+      .all()
+      .then((games) =>
+        sortBy(
+          games.filter((game) => game.status === "paused" && game.queued),
+          "timestamp",
+          "DESC"
+        )
       );
 
-      if (WindowManager.mainWindow && download) {
-        WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-        WindowManager.mainWindow.webContents.send(
-          "on-download-progress",
-          structuredClone({ ...status, game })
-        );
-      }
+    const [nextItemOnQueue] = downloads;
 
-      const shouldExtract = download.automaticallyExtract;
-
-      if (progress === 1 && download) {
-        publishDownloadCompleteNotification(game);
-
-        if (
-          userPreferences?.seedAfterDownloadComplete &&
-          download.downloader === Downloader.Torrent
-        ) {
-          await downloadsSublevel.put(gameId, {
-            ...download,
-            status: "seeding",
-            shouldSeed: true,
-            queued: false,
-            extracting: shouldExtract,
-          });
-        } else {
-          await downloadsSublevel.put(gameId, {
-            ...download,
-            status: "complete",
-            shouldSeed: false,
-            queued: false,
-            extracting: shouldExtract,
-          });
-
-          this.cancelDownload(gameId);
-        }
-
-        if (shouldExtract) {
-          const gameFilesManager = new GameFilesManager(
-            game.shop,
-            game.objectId
-          );
-
-          if (
-            FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-              download.folderName?.endsWith(ext)
-            )
-          ) {
-            gameFilesManager.extractDownloadedFile();
-          } else if (download.folderName) {
-            gameFilesManager
-              .extractFilesInDirectory(
-                path.join(download.downloadPath, download.folderName)
-              )
-              .then(() => gameFilesManager.setExtractionComplete());
-          }
-        }
-
-        const downloads = await downloadsSublevel
-          .values()
-          .all()
-          .then((games) =>
-            sortBy(
-              games.filter((game) => game.status === "paused" && game.queued),
-              "timestamp",
-              "DESC"
-            )
-          );
-
-        const [nextItemOnQueue] = downloads;
-
-        if (nextItemOnQueue) {
-          this.resumeDownload(nextItemOnQueue);
-        } else {
-          this.downloadingGameId = null;
-          this.usingJsDownloader = false;
-          this.jsDownloader = null;
-        }
-      }
+    if (nextItemOnQueue) {
+      this.resumeDownload(nextItemOnQueue);
+    } else {
+      this.downloadingGameId = null;
+      this.usingJsDownloader = false;
+      this.jsDownloader = null;
     }
   }
 
@@ -484,171 +539,233 @@ export class DownloadManager {
     filename?: string;
     headers?: Record<string, string>;
   } | null> {
-    // If resuming and we already have a folderName, use it to ensure we find the partial file
     const resumingFilename = download.folderName || undefined;
 
     switch (download.downloader) {
-      case Downloader.Gofile: {
-        const id = download.uri.split("/").pop();
-        const token = await GofileApi.authorize();
-        const downloadLink = await GofileApi.getDownloadLink(id!);
-        await GofileApi.checkDownloadUrl(downloadLink);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadLink) ||
-          this.extractFilename(downloadLink);
-
-        return {
-          url: downloadLink,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-          headers: { Cookie: `accountToken=${token}` },
-        };
-      }
-      case Downloader.PixelDrain: {
-        const id = download.uri.split("/").pop();
-        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.Qiwi: {
-        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.Datanodes: {
-        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.Buzzheavier: {
-        logger.log(
-          `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
-        );
-        const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, directUrl) ||
-          this.extractFilename(directUrl);
-
-        return {
-          url: directUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.FuckingFast: {
-        logger.log(
-          `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
-        );
-        const directUrl = await FuckingFastApi.getDirectLink(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, directUrl) ||
-          this.extractFilename(directUrl);
-
-        return {
-          url: directUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.Mediafire: {
-        const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.RealDebrid: {
-        const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.TorBox: {
-        const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
-        if (!url) return null;
-
-        return {
-          url,
-          savePath: download.downloadPath,
-          filename: resumingFilename || name,
-        };
-      }
-      case Downloader.Hydra: {
-        const downloadUrl = await HydraDebridClient.getDownloadUrl(
-          download.uri
-        );
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
-      case Downloader.VikingFile: {
-        logger.log(
-          `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
-        );
-        const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
-        const filename =
-          resumingFilename ||
-          this.extractFilename(download.uri, downloadUrl) ||
-          this.extractFilename(downloadUrl);
-
-        return {
-          url: downloadUrl,
-          savePath: download.downloadPath,
-          filename: filename ? this.sanitizeFilename(filename) : undefined,
-        };
-      }
+      case Downloader.Gofile:
+        return this.getGofileDownloadOptions(download, resumingFilename);
+      case Downloader.PixelDrain:
+        return this.getPixelDrainDownloadOptions(download, resumingFilename);
+      case Downloader.Qiwi:
+        return this.getQiwiDownloadOptions(download, resumingFilename);
+      case Downloader.Datanodes:
+        return this.getDatanodesDownloadOptions(download, resumingFilename);
+      case Downloader.Buzzheavier:
+        return this.getBuzzheavierDownloadOptions(download, resumingFilename);
+      case Downloader.FuckingFast:
+        return this.getFuckingFastDownloadOptions(download, resumingFilename);
+      case Downloader.Mediafire:
+        return this.getMediafireDownloadOptions(download, resumingFilename);
+      case Downloader.RealDebrid:
+        return this.getRealDebridDownloadOptions(download, resumingFilename);
+      case Downloader.TorBox:
+        return this.getTorBoxDownloadOptions(download, resumingFilename);
+      case Downloader.Hydra:
+        return this.getHydraDownloadOptions(download, resumingFilename);
+      case Downloader.VikingFile:
+        return this.getVikingFileDownloadOptions(download, resumingFilename);
       default:
         return null;
     }
+  }
+
+  private static async getGofileDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const id = download.uri.split("/").pop();
+    const token = await GofileApi.authorize();
+    const downloadLink = await GofileApi.getDownloadLink(id!);
+    await GofileApi.checkDownloadUrl(downloadLink);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadLink
+    );
+    return this.buildDownloadOptions(
+      downloadLink,
+      download.downloadPath,
+      filename,
+      { Cookie: `accountToken=${token}` }
+    );
+  }
+
+  private static async getPixelDrainDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const id = download.uri.split("/").pop();
+    const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getQiwiDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getDatanodesDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getBuzzheavierDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    logger.log(
+      `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
+    );
+    const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      directUrl
+    );
+    return this.buildDownloadOptions(
+      directUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getFuckingFastDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    logger.log(
+      `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
+    );
+    const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      directUrl
+    );
+    return this.buildDownloadOptions(
+      directUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getMediafireDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getRealDebridDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
+    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getTorBoxDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
+    if (!url) return null;
+    return this.buildDownloadOptions(
+      url,
+      download.downloadPath,
+      resumingFilename || name
+    );
+  }
+
+  private static async getHydraDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await HydraDebridClient.getDownloadUrl(download.uri);
+    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getVikingFileDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    logger.log(
+      `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
+    );
+    const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
   }
 
   private static async getDownloadPayload(download: Download) {
