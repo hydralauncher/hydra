@@ -4,10 +4,11 @@ import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
 import {
   GofileApi,
-  QiwiApi,
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
+  VikingFileApi,
+  RootzApi,
 } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -24,11 +25,7 @@ import { sortBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
-import {
-  BuzzheavierApi,
-  FuckingFastApi,
-  VikingFileApi,
-} from "@main/services/hosters";
+import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 
 export class DownloadManager {
@@ -546,8 +543,6 @@ export class DownloadManager {
         return this.getGofileDownloadOptions(download, resumingFilename);
       case Downloader.PixelDrain:
         return this.getPixelDrainDownloadOptions(download, resumingFilename);
-      case Downloader.Qiwi:
-        return this.getQiwiDownloadOptions(download, resumingFilename);
       case Downloader.Datanodes:
         return this.getDatanodesDownloadOptions(download, resumingFilename);
       case Downloader.Buzzheavier:
@@ -564,6 +559,8 @@ export class DownloadManager {
         return this.getHydraDownloadOptions(download, resumingFilename);
       case Downloader.VikingFile:
         return this.getVikingFileDownloadOptions(download, resumingFilename);
+      case Downloader.Rootz:
+        return this.getRootzDownloadOptions(download, resumingFilename);
       default:
         return null;
     }
@@ -596,23 +593,6 @@ export class DownloadManager {
   ) {
     const id = download.uri.split("/").pop();
     const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
-    const filename = this.resolveFilename(
-      resumingFilename,
-      download.uri,
-      downloadUrl
-    );
-    return this.buildDownloadOptions(
-      downloadUrl,
-      download.downloadPath,
-      filename
-    );
-  }
-
-  private static async getQiwiDownloadOptions(
-    download: Download,
-    resumingFilename?: string
-  ) {
-    const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -768,6 +748,23 @@ export class DownloadManager {
     );
   }
 
+  private static async getRootzDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
   private static async getDownloadPayload(download: Download) {
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
@@ -792,15 +789,6 @@ export class DownloadManager {
         const id = download.uri.split("/").pop();
         const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
 
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
-      case Downloader.Qiwi: {
-        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
         return {
           action: "start",
           game_id: downloadId,
@@ -924,6 +912,15 @@ export class DownloadManager {
           downloadId,
           download.downloadPath
         );
+      }
+      case Downloader.Rootz: {
+        const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+        };
       }
       default:
         return undefined;
