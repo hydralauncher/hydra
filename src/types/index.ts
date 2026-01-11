@@ -94,6 +94,16 @@ export interface GameRunning {
   sessionDurationInMillis: number;
 }
 
+export interface GamePayload {
+  action: string;
+  game_id: string;
+  url: string | string[];
+  save_path: string;
+  header?: string;
+  out?: string;
+  total_size?: number;
+}
+
 export interface Steam250Game {
   title: string;
   objectId: string;

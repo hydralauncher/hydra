@@ -345,7 +345,7 @@ export class HydraApi {
 
   static async get<T = any>(
     url: string,
-    params?: any,
+    params?: Record<string, unknown>,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -363,7 +363,7 @@ export class HydraApi {
 
   static async post<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -376,7 +376,7 @@ export class HydraApi {
 
   static async put<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);
@@ -389,7 +389,7 @@ export class HydraApi {
 
   static async patch<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     await this.validateOptions(options);

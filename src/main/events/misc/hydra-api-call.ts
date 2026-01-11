@@ -21,7 +21,7 @@ const hydraApiCall = async (
 
   switch (method) {
     case "get":
-      return HydraApi.get(url, params, options);
+      return HydraApi.get(url, params as Record<string, unknown>, options);
     case "post":
       return HydraApi.post(url, data, options);
     case "put":

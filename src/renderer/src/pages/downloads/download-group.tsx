@@ -593,11 +593,14 @@ export function DownloadGroup({
     }
   }, [library, title, t, extractDominantColor]);
 
-  const isGameSeeding = (game: LibraryGame) => {
-    const entry = seedingStatus.find((s) => s.gameId === game.id);
-    if (entry?.status) return entry.status === "seeding";
-    return game.download?.status === "seeding";
-  };
+  const isGameSeeding = useCallback(
+    (game: LibraryGame) => {
+      const entry = seedingStatus.find((s) => s.gameId === game.id);
+      if (entry?.status) return entry.status === "seeding";
+      return game.download?.status === "seeding";
+    },
+    [seedingStatus]
+  );
 
   const isGameDownloadingMap = useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -609,17 +612,20 @@ export function DownloadGroup({
     return map;
   }, [library, lastPacket?.gameId, optimisticallyResumed]);
 
-  const getFinalDownloadSize = (game: LibraryGame) => {
-    const download = game.download!;
-    const isGameDownloading = isGameDownloadingMap[game.id];
+  const getFinalDownloadSize = useCallback(
+    (game: LibraryGame) => {
+      const download = game.download!;
+      const isGameDownloading = isGameDownloadingMap[game.id];
 
-    if (download.fileSize != null) return formatBytes(download.fileSize);
+      if (download.fileSize != null) return formatBytes(download.fileSize);
 
-    if (lastPacket?.download.fileSize && isGameDownloading)
-      return formatBytes(lastPacket.download.fileSize);
+      if (lastPacket?.download.fileSize && isGameDownloading)
+        return formatBytes(lastPacket.download.fileSize);
 
-    return "N/A";
-  };
+      return "N/A";
+    },
+    [isGameDownloadingMap, lastPacket?.download.fileSize]
+  );
 
   const formatSpeed = (speed: number): string => {
     return userPreferences?.showDownloadSpeedInMegabytes
@@ -761,13 +767,7 @@ export function DownloadGroup({
         progress: game.download?.progress || 0,
         isSeeding: isGameSeeding(game),
       })),
-    [
-      library,
-      lastPacket?.gameId,
-      lastPacket?.download.fileSize,
-      isGameDownloadingMap,
-      seedingStatus,
-    ]
+    [library, getFinalDownloadSize, isGameSeeding]
   );
 
   if (!library.length) return null;
