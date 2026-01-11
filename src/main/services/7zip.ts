@@ -46,7 +46,7 @@ export class SevenZip {
     onProgress?: (progress: ExtractionProgress) => void
   ): Promise<ExtractionResult> {
     return new Promise((resolve, reject) => {
-      const tryPassword = (index = -1) => {
+      const tryPassword = (index = 0) => {
         const password = passwords[index] ?? "";
         logger.info(
           `Trying password "${password || "(empty)"}" on ${filePath}`
@@ -115,7 +115,7 @@ export class SevenZip {
         });
       };
 
-      tryPassword();
+      tryPassword(0);
     });
   }
 
