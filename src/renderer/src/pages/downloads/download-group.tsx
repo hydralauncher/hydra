@@ -699,14 +699,6 @@ export function DownloadGroup({
     if (game.download?.progress === 1) {
       const actions = [
         {
-          label: t("install"),
-          disabled: deleting,
-          onClick: () => {
-            openGameInstaller(game.shop, game.objectId);
-          },
-          icon: <DownloadIcon />,
-        },
-        {
           label: t("extract"),
           disabled: game.download.extracting,
           icon: <FileDirectoryIcon />,
