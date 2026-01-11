@@ -10,16 +10,7 @@ import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
 import { app, dialog } from "electron";
 import { db, levelKeys } from "@main/level";
-
-interface GamePayload {
-  action: string;
-  game_id: string;
-  url: string | string[];
-  save_path: string;
-  header?: string;
-  out?: string;
-  total_size?: number;
-}
+import { GamePayload } from "@types";
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   darwin: "hydra-python-rpc",
@@ -38,12 +29,26 @@ export class PythonRPC {
   });
 
   private static pythonProcess: cp.ChildProcess | null = null;
+  private static restartCount = 0;
+  private static readonly MAX_RESTARTS = 5;
 
-  private static logStderr(readable: Readable | null) {
+  private static logStream(
+    readable: Readable | null,
+    type: "stdout" | "stderr"
+  ) {
     if (!readable) return;
 
     readable.setEncoding("utf-8");
-    readable.on("data", pythonRpcLogger.log);
+    readable.on("data", (data) => {
+      const message = data.trim();
+      if (!message) return;
+
+      if (type === "stderr") {
+        pythonRpcLogger.error(message);
+      } else {
+        pythonRpcLogger.info(message);
+      }
+    });
   }
 
   private static async getRPCPassword() {
@@ -62,6 +67,27 @@ export class PythonRPC {
     return newPassword;
   }
 
+  private static getPythonExecutable() {
+    const isWin = process.platform === "win32";
+    const names = isWin ? ["python.exe"] : ["python3", "python"];
+
+    for (const name of names) {
+      const paths = (process.env.PATH || "").split(path.delimiter);
+      for (const p of paths) {
+        const fullPath = path.join(p, name);
+        try {
+          if (fs.existsSync(fullPath)) {
+            return fullPath;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    return isWin ? "python" : "python3";
+  }
+
   public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
@@ -75,6 +101,8 @@ export class PythonRPC {
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
     ];
+
+    let childProcess: cp.ChildProcess;
 
     if (app.isPackaged) {
       const binaryName = binaryNameByPlatform[process.platform]!;
@@ -91,16 +119,13 @@ export class PythonRPC {
         );
 
         app.quit();
+        return;
       }
 
-      const childProcess = cp.spawn(binaryPath, commonArgs, {
+      childProcess = cp.spawn(binaryPath, commonArgs, {
         windowsHide: true,
-        stdio: ["inherit", "inherit"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
-
-      this.logStderr(childProcess.stderr);
-
-      this.pythonProcess = childProcess;
     } else {
       const scriptPath = path.join(
         __dirname,
@@ -110,15 +135,36 @@ export class PythonRPC {
         "main.py"
       );
 
-      const childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
-        stdio: ["inherit", "inherit"],
-      });
-
-      this.logStderr(childProcess.stderr);
-
-      this.pythonProcess = childProcess;
+      childProcess = cp.spawn(
+        this.getPythonExecutable(),
+        [scriptPath, ...commonArgs],
+        {
+          stdio: ["pipe", "pipe", "pipe"],
+        }
+      );
     }
 
+    this.logStream(childProcess.stdout, "stdout");
+    this.logStream(childProcess.stderr, "stderr");
+
+    childProcess.on("exit", (code) => {
+      pythonRpcLogger.warn(`Python process exited with code ${code}`);
+      this.pythonProcess = null;
+
+      if (this.restartCount < this.MAX_RESTARTS) {
+        this.restartCount++;
+        pythonRpcLogger.info(
+          `Attempting to restart Python RPC (${this.restartCount}/${this.MAX_RESTARTS})...`
+        );
+        setTimeout(() => this.spawn(initialDownload, initialSeeding), 2000);
+      } else {
+        pythonRpcLogger.error(
+          "Maximum Python RPC restart attempts reached. Please restart the application."
+        );
+      }
+    });
+
+    this.pythonProcess = childProcess;
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
   }
 

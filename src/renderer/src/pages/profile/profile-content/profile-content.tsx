@@ -111,18 +111,21 @@ export function ProfileContent() {
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
 
-  const formatPlayTime = (playTimeInSeconds: number) => {
-    const minutes = playTimeInSeconds / 60;
+  const formatPlayTime = useCallback(
+    (playTimeInSeconds: number) => {
+      const minutes = playTimeInSeconds / 60;
 
-    if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-      return t("amount_minutes", {
-        amount: minutes.toFixed(0),
-      });
-    }
+      if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
+        return t("amount_minutes", {
+          amount: minutes.toFixed(0),
+        });
+      }
 
-    const hours = minutes / 60;
-    return t("amount_hours", { amount: numberFormatter.format(hours) });
-  };
+      const hours = minutes / 60;
+      return t("amount_hours", { amount: numberFormatter.format(hours) });
+    },
+    [t, numberFormatter]
+  );
 
   useEffect(() => {
     dispatch(setHeaderTitle(""));
@@ -170,13 +173,7 @@ export function ProfileContent() {
     setActiveTab("library");
   }, [userProfile?.id]);
 
-  useEffect(() => {
-    if (userProfile?.id) {
-      fetchUserReviews();
-    }
-  }, [userProfile?.id]);
-
-  const fetchUserReviews = async () => {
+  const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
 
     setIsLoadingReviews(true);
@@ -190,142 +187,154 @@ export function ProfileContent() {
     } finally {
       setIsLoadingReviews(false);
     }
-  };
+  }, [userProfile?.id]);
 
-  const handleDeleteReview = async (reviewId: string) => {
-    try {
-      const reviewToDeleteObj = reviews.find(
-        (review) => review.id === reviewId
-      );
-      if (!reviewToDeleteObj) return;
-
-      await window.electron.hydraApi.delete(
-        `/games/${reviewToDeleteObj.game.shop}/${reviewToDeleteObj.game.objectId}/reviews/${reviewId}`
-      );
-      // Remove the review from the local state
-      setReviews((prev) => prev.filter((review) => review.id !== reviewId));
-      setReviewsTotalCount((prev) => prev - 1);
-    } catch (error) {
-      console.error("Failed to delete review:", error);
+  useEffect(() => {
+    if (userProfile?.id) {
+      fetchUserReviews();
     }
-  };
+  }, [userProfile?.id, fetchUserReviews]);
 
-  const handleDeleteClick = (reviewId: string) => {
+  const handleDeleteReview = useCallback(
+    async (reviewId: string) => {
+      try {
+        const reviewToDeleteObj = reviews.find(
+          (review) => review.id === reviewId
+        );
+        if (!reviewToDeleteObj) return;
+
+        await window.electron.hydraApi.delete(
+          `/games/${reviewToDeleteObj.game.shop}/${reviewToDeleteObj.game.objectId}/reviews/${reviewId}`
+        );
+        // Remove the review from the local state
+        setReviews((prev) => prev.filter((review) => review.id !== reviewId));
+        setReviewsTotalCount((prev) => prev - 1);
+      } catch (error) {
+        console.error("Failed to delete review:", error);
+      }
+    },
+    [reviews]
+  );
+
+  const handleDeleteClick = useCallback((reviewId: string) => {
     setReviewToDelete(reviewId);
     setDeleteModalVisible(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useCallback(() => {
     if (reviewToDelete) {
       handleDeleteReview(reviewToDelete);
       setReviewToDelete(null);
     }
-  };
+  }, [reviewToDelete, handleDeleteReview]);
 
-  const handleDeleteCancel = () => {
+  const handleDeleteCancel = useCallback(() => {
     setDeleteModalVisible(false);
     setReviewToDelete(null);
-  };
+  }, []);
 
-  const handleVoteReview = async (reviewId: string, isUpvote: boolean) => {
-    if (votingReviews.has(reviewId)) return;
+  const handleVoteReview = useCallback(
+    async (reviewId: string, isUpvote: boolean) => {
+      if (votingReviews.has(reviewId)) return;
 
-    setVotingReviews((prev) => new Set(prev).add(reviewId));
+      setVotingReviews((prev) => new Set(prev).add(reviewId));
 
-    const review = reviews.find((r) => r.id === reviewId);
-    if (!review) {
-      setVotingReviews((prev) => {
-        const next = new Set(prev);
-        next.delete(reviewId);
-        return next;
-      });
-      return;
-    }
+      const review = reviews.find((r) => r.id === reviewId);
+      if (!review) {
+        setVotingReviews((prev) => {
+          const next = new Set(prev);
+          next.delete(reviewId);
+          return next;
+        });
+        return;
+      }
 
-    const wasUpvoted = review.hasUpvoted;
-    const wasDownvoted = review.hasDownvoted;
+      const wasUpvoted = review.hasUpvoted;
+      const wasDownvoted = review.hasDownvoted;
 
-    // Optimistic update
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id !== reviewId) return r;
-
-        let newUpvotes = r.upvotes;
-        let newDownvotes = r.downvotes;
-        let newHasUpvoted = r.hasUpvoted;
-        let newHasDownvoted = r.hasDownvoted;
-
-        if (isUpvote) {
-          if (wasUpvoted) {
-            // Remove upvote
-            newUpvotes--;
-            newHasUpvoted = false;
-          } else {
-            // Add upvote
-            newUpvotes++;
-            newHasUpvoted = true;
-            if (wasDownvoted) {
-              // Remove downvote if it was downvoted
-              newDownvotes--;
-              newHasDownvoted = false;
-            }
-          }
-        } else if (wasDownvoted) {
-          // Remove downvote
-          newDownvotes--;
-          newHasDownvoted = false;
-        } else {
-          // Add downvote
-          newDownvotes++;
-          newHasDownvoted = true;
-          if (wasUpvoted) {
-            // Remove upvote if it was upvoted
-            newUpvotes--;
-            newHasUpvoted = false;
-          }
-        }
-
-        return {
-          ...r,
-          upvotes: newUpvotes,
-          downvotes: newDownvotes,
-          hasUpvoted: newHasUpvoted,
-          hasDownvoted: newHasDownvoted,
-        };
-      })
-    );
-
-    try {
-      const endpoint = isUpvote ? "upvote" : "downvote";
-      await window.electron.hydraApi.put(
-        `/games/${review.game.shop}/${review.game.objectId}/reviews/${reviewId}/${endpoint}`
-      );
-    } catch (error) {
-      console.error("Failed to vote on review:", error);
-
-      // Rollback optimistic update on error
+      // Optimistic update
       setReviews((prev) =>
         prev.map((r) => {
           if (r.id !== reviewId) return r;
+
+          let newUpvotes = r.upvotes;
+          let newDownvotes = r.downvotes;
+          let newHasUpvoted = r.hasUpvoted;
+          let newHasDownvoted = r.hasDownvoted;
+
+          if (isUpvote) {
+            if (wasUpvoted) {
+              // Remove upvote
+              newUpvotes--;
+              newHasUpvoted = false;
+            } else {
+              // Add upvote
+              newUpvotes++;
+              newHasUpvoted = true;
+              if (wasDownvoted) {
+                // Remove downvote if it was downvoted
+                newDownvotes--;
+                newHasDownvoted = false;
+              }
+            }
+          } else if (wasDownvoted) {
+            // Remove downvote
+            newDownvotes--;
+            newHasDownvoted = false;
+          } else {
+            // Add downvote
+            newDownvotes++;
+            newHasDownvoted = true;
+            if (wasUpvoted) {
+              // Remove upvote if it was upvoted
+              newUpvotes--;
+              newHasUpvoted = false;
+            }
+          }
+
           return {
             ...r,
-            upvotes: review.upvotes,
-            downvotes: review.downvotes,
-            hasUpvoted: review.hasUpvoted,
-            hasDownvoted: review.hasDownvoted,
+            upvotes: newUpvotes,
+            downvotes: newDownvotes,
+            hasUpvoted: newHasUpvoted,
+            hasDownvoted: newHasDownvoted,
           };
         })
       );
-    } finally {
-      setTimeout(() => {
-        setVotingReviews((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(reviewId);
-          return newSet;
-        });
-      }, 500);
-    }
-  };
+
+      try {
+        const endpoint = isUpvote ? "upvote" : "downvote";
+        await window.electron.hydraApi.put(
+          `/games/${review.game.shop}/${review.game.objectId}/reviews/${reviewId}/${endpoint}`
+        );
+      } catch (error) {
+        console.error("Failed to vote on review:", error);
+
+        // Rollback optimistic update on error
+        setReviews((prev) =>
+          prev.map((r) => {
+            if (r.id !== reviewId) return r;
+            return {
+              ...r,
+              upvotes: review.upvotes,
+              downvotes: review.downvotes,
+              hasUpvoted: review.hasUpvoted,
+              hasDownvoted: review.hasDownvoted,
+            };
+          })
+        );
+      } finally {
+        setTimeout(() => {
+          setVotingReviews((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(reviewId);
+            return newSet;
+          });
+        }, 500);
+      }
+    },
+    [votingReviews, reviews]
+  );
 
   const handleOnMouseEnterGameCard = () => {
     setIsAnimationRunning(false);
@@ -470,7 +479,6 @@ export function ProfileContent() {
     isMe,
     usersAreFriends,
     userStats,
-    numberFormatter,
     t,
     statsIndex,
     libraryGames,
@@ -484,6 +492,15 @@ export function ProfileContent() {
     isLoadingReviews,
     votingReviews,
     deleteModalVisible,
+    formatPlayTime,
+    handleDeleteClick,
+    handleDeleteCancel,
+    handleDeleteConfirm,
+    handleLoadMore,
+    handleVoteReview,
+    hasMoreLibraryGames,
+    isLoadingLibraryGames,
+    userDetails?.id,
   ]);
 
   return (

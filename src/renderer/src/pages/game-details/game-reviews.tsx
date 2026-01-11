@@ -40,7 +40,7 @@ export function GameReviews({
   hasUserReviewed,
   onUserReviewedChange,
 }: Readonly<GameReviewsProps>) {
-  const { t, i18n } = useTranslation("game_details");
+  const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [reviews, setReviews] = useState<GameReview[]>([]);
@@ -199,7 +199,7 @@ export function GameReviews({
         }
       }
     },
-    [objectId, shop, reviewsPage, reviewsSortBy, i18n.language]
+    [objectId, shop, reviewsPage, reviewsSortBy]
   );
 
   const handleVoteReview = async (
