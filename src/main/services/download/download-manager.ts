@@ -4,11 +4,11 @@ import { publishDownloadCompleteNotification } from "../notifications";
 import type { Download, DownloadProgress, UserPreferences } from "@types";
 import {
   GofileApi,
-  QiwiApi,
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
   VikingFileApi,
+  RootzApi,
 } from "../hosters";
 import { PythonRPC } from "../python-rpc";
 import {
@@ -400,15 +400,6 @@ export class DownloadManager {
           save_path: download.downloadPath,
         };
       }
-      case Downloader.Qiwi: {
-        const downloadUrl = await QiwiApi.getDownloadUrl(download.uri);
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
       case Downloader.Datanodes: {
         const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
         return {
@@ -536,6 +527,15 @@ export class DownloadManager {
           );
           throw error;
         }
+      }
+      case Downloader.Rootz: {
+        const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+        };
       }
     }
   }

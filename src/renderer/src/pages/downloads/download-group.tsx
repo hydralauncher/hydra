@@ -32,12 +32,12 @@ import {
   FileDirectoryIcon,
   LinkIcon,
   PlayIcon,
-  ThreeBarsIcon,
   TrashIcon,
   UnlinkIcon,
   XCircleIcon,
   GraphIcon,
 } from "@primer/octicons-react";
+import { MoreVertical, Folder } from "lucide-react";
 import { average } from "color.js";
 
 interface AnimatedPercentageProps {
@@ -452,6 +452,7 @@ export function DownloadGroup({
   seedingStatus,
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
+  const { t: tGameDetails } = useTranslation("game_details");
   const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
@@ -522,6 +523,9 @@ export function DownloadGroup({
   );
   const [optimisticallyResumed, setOptimisticallyResumed] = useState<
     Record<string, boolean>
+  >({});
+  const [gameActionTypes, setGameActionTypes] = useState<
+    Record<string, "install" | "open-folder">
   >({});
 
   const extractDominantColor = useCallback(
@@ -770,6 +774,37 @@ export function DownloadGroup({
     ]
   );
 
+  // Fetch action types for completed games
+  useEffect(() => {
+    const fetchActionTypes = async () => {
+      const completedGames = library.filter(
+        (game) => game.download?.progress === 1
+      );
+
+      const actionTypesPromises = completedGames.map(async (game) => {
+        try {
+          const actionType = await window.electron.getGameInstallerActionType(
+            game.shop,
+            game.objectId
+          );
+          return { gameId: game.id, actionType };
+        } catch {
+          return { gameId: game.id, actionType: "open-folder" as const };
+        }
+      });
+
+      const results = await Promise.all(actionTypesPromises);
+      const newActionTypes: Record<string, "install" | "open-folder"> = {};
+      results.forEach(({ gameId, actionType }) => {
+        newActionTypes[gameId] = actionType;
+      });
+
+      setGameActionTypes((prev) => ({ ...prev, ...newActionTypes }));
+    };
+
+    fetchActionTypes();
+  }, [library]);
+
   if (!library.length) return null;
 
   const isDownloadingGroup = title === t("download_in_progress");
@@ -901,16 +936,35 @@ export function DownloadGroup({
               )}
 
               <div className="download-group__simple-actions">
-                {game.download?.progress === 1 && (
-                  <Button
-                    theme="primary"
-                    onClick={() => openGameInstaller(game.shop, game.objectId)}
-                    disabled={isGameDeleting(game.id)}
-                    className="download-group__simple-menu-btn"
-                  >
-                    <PlayIcon size={16} />
-                  </Button>
-                )}
+                {game.download?.progress === 1 &&
+                  (() => {
+                    const actionType =
+                      gameActionTypes[game.id] || "open-folder";
+                    const isInstall = actionType === "install";
+
+                    return (
+                      <Button
+                        theme="primary"
+                        onClick={() =>
+                          openGameInstaller(game.shop, game.objectId)
+                        }
+                        disabled={isGameDeleting(game.id)}
+                        className="download-group__simple-action-btn"
+                      >
+                        {isInstall ? (
+                          <>
+                            <DownloadIcon size={16} />
+                            {t("install")}
+                          </>
+                        ) : (
+                          <>
+                            <Folder size={16} />
+                            {tGameDetails("open_folder")}
+                          </>
+                        )}
+                      </Button>
+                    );
+                  })()}
                 {isQueuedGroup && game.download?.progress !== 1 && (
                   <Button
                     theme="primary"
@@ -926,7 +980,7 @@ export function DownloadGroup({
                     theme="outline"
                     className="download-group__simple-menu-btn"
                   >
-                    <ThreeBarsIcon />
+                    <MoreVertical size={16} />
                   </Button>
                 </DropdownMenu>
               </div>
