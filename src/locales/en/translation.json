@@ -716,8 +716,15 @@
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:",
     "copy_friend_code": "Copy friend code",
+    "copied": "Copied!",
     "upload_banner": "Upload banner",
     "uploading_banner": "Uploading banner…",
+    "change_banner": "Change banner",
+    "replace_banner": "Replace banner",
+    "remove_banner": "Remove banner",
+    "remove_banner_modal_title": "Remove banner?",
+    "remove_banner_confirmation": "Are you sure you want to remove your banner? You can always pick a new one when you want.",
+    "remove": "Remove",
     "background_image_updated": "Background image updated",
     "stats": "Stats",
     "achievements": "achievements",
@@ -738,9 +745,7 @@
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
-    "wrapped_2025": "Wrapped 2025",
-    "view_my_wrapped_button": "View My Wrapped 2025",
-    "view_wrapped_button": "View {{displayName}}'s Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025"
   },
   "library": {
     "library": "Library",
