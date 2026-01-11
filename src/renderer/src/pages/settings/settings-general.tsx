@@ -53,7 +53,7 @@ export function SettingsGeneral() {
     achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
-    useNativeHttpDownloader: false,
+    useNativeHttpDownloader: true,
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
@@ -133,7 +133,7 @@ export function SettingsGeneral() {
           userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
         useNativeHttpDownloader:
-          userPreferences.useNativeHttpDownloader ?? false,
+          userPreferences.useNativeHttpDownloader ?? true,
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
