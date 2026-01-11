@@ -668,8 +668,7 @@
     "game_removed_from_pinned": "Гру видалено із закріплених",
     "game_added_to_pinned": "Гру додано до закріплених",
     "karma": "Карма",
-    "karma_count": "карма",
-    "karma_description": "Зароблена позитивними оцінками на відгуках"
+    "karma_count": "карма"
   },
   "achievement": {
     "achievement_unlocked": "Досягнення розблоковано",
