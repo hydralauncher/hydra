@@ -4,6 +4,20 @@
   &__box {
     padding: calc(globals.$spacing-unit * 2);
     position: relative;
+
+    &--empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__empty-text {
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    margin: 0;
+    text-align: center;
   }
 
   &__add-friend-button {
