@@ -37,6 +37,12 @@ export function SettingsGeneral() {
     (state) => state.userPreferences.value
   );
 
+  const lastPacket = useAppSelector((state) => state.download.lastPacket);
+  const hasActiveDownload =
+    lastPacket !== null &&
+    lastPacket.progress < 1 &&
+    !lastPacket.isDownloadingMetadata;
+
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
 
@@ -256,12 +262,19 @@ export function SettingsGeneral() {
       <CheckboxField
         label={t("use_native_http_downloader")}
         checked={form.useNativeHttpDownloader}
+        disabled={hasActiveDownload}
         onChange={() =>
           handleChange({
             useNativeHttpDownloader: !form.useNativeHttpDownloader,
           })
         }
       />
+
+      {hasActiveDownload && (
+        <p className="settings-general__disabled-hint">
+          {t("cannot_change_downloader_while_downloading")}
+        </p>
+      )}
 
       <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
