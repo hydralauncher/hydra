@@ -34,11 +34,7 @@ export const loadState = async () => {
 
   await import("./events");
 
-  // Only spawn aria2 if user explicitly disabled native HTTP downloader
-  // Default is to use native HTTP downloader (aria2 is opt-in)
-  if (userPreferences?.useNativeHttpDownloader === false) {
-    Aria2.spawn();
-  }
+  Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
