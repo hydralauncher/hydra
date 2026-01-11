@@ -404,6 +404,10 @@
     "completed": "Completed",
     "removed": "Not downloaded",
     "cancel": "Cancel",
+    "cancel_download": "Cancel download?",
+    "cancel_download_description": "Are you sure you want to cancel this download? All downloaded files will be deleted.",
+    "keep_downloading": "No, keep downloading",
+    "yes_cancel": "Yes, cancel",
     "filter": "Filter downloaded games",
     "remove": "Remove",
     "downloading_metadata": "Downloading metadata…",
@@ -594,7 +598,10 @@
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on game page",
-    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup"
+    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
+    "downloads": "Downloads",
+    "use_native_http_downloader": "Use native HTTP downloader (experimental)",
+    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress"
   },
   "notifications": {
     "download_complete": "Download complete",
