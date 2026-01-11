@@ -73,6 +73,7 @@ export interface Download {
   folderName: string | null;
   downloadPath: string;
   progress: number;
+  manualOrder: number;
   downloader: Downloader;
   bytesDownloaded: number;
   fileSize: number | null;

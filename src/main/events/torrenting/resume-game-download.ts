@@ -20,19 +20,28 @@ const resumeGameDownload = async (
   ) {
     await DownloadManager.pauseDownload();
 
+    let gamesToDownloadCount = 2
     for await (const [key, value] of downloadsSublevel.iterator()) {
       if (value.status === "active" && value.progress !== 1) {
         await downloadsSublevel.put(key, {
           ...value,
+          manualOrder: 1,
           status: "paused",
         });
+      } else {
+        await downloadsSublevel.put(key, {
+          ...value,
+          manualOrder: gamesToDownloadCount,
+        });
       }
+      gamesToDownloadCount++
     }
 
     await DownloadManager.resumeDownload(download);
 
     await downloadsSublevel.put(gameKey, {
       ...download,
+      manualOrder: 0,
       status: "active",
       timestamp: Date.now(),
       queued: true,

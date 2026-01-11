@@ -21,6 +21,7 @@ const extractGameDownload = async (
 
   await downloadsSublevel.put(gameKey, {
     ...download,
+    manualOrder: 0,
     extracting: true,
     extractionProgress: 0,
   });

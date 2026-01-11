@@ -382,6 +382,12 @@
     border-radius: 8px;
   }
 
+  &__simple-arrows {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+  }
+
   &__simple-thumbnail {
     width: 200px;
     height: 100px;

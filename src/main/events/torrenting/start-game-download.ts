@@ -29,13 +29,21 @@ const startGameDownload = async (
 
   await DownloadManager.pauseDownload();
 
+  let gamesToDownloadCount = 2
   for await (const [key, value] of downloadsSublevel.iterator()) {
     if (value.status === "active" && value.progress !== 1) {
       await downloadsSublevel.put(key, {
         ...value,
+        manualOrder: 1,
         status: "paused",
       });
+    } else {
+      await downloadsSublevel.put(key, {
+        ...value,
+        manualOrder: gamesToDownloadCount,
+      });
     }
+    gamesToDownloadCount++
   }
 
   const game = await gamesSublevel.get(gameKey);
@@ -71,6 +79,7 @@ const startGameDownload = async (
     status: "active",
     progress: 0,
     bytesDownloaded: 0,
+    manualOrder: 0,
     downloadPath,
     downloader,
     uri,

@@ -30,6 +30,8 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
   LinkIcon,
   PlayIcon,
   ThreeBarsIcon,
@@ -753,6 +755,10 @@ export function DownloadGroup({
     ];
   };
 
+  const isDownloadingGroup = title === t("download_in_progress");
+  const isQueuedGroup = title === t("queued_downloads");
+  const isCompletedGroup = title === t("downloads_completed");
+
   const downloadInfo = useMemo(
     () =>
       library.map((game) => ({
@@ -770,11 +776,56 @@ export function DownloadGroup({
     ]
   );
 
-  if (!library.length) return null;
+const orderUpInDownloadQueue = async (shop: GameShop, objectId: string) => {
+  const indexFromCurrentGame = downloadInfo.findIndex(info => info.game.objectId === objectId)
 
-  const isDownloadingGroup = title === t("download_in_progress");
-  const isQueuedGroup = title === t("queued_downloads");
-  const isCompletedGroup = title === t("downloads_completed");
+  if(indexFromCurrentGame === -1) return
+  
+  const aboveObject = downloadInfo.at(indexFromCurrentGame-1)
+  const currentObject = downloadInfo.at(indexFromCurrentGame)
+
+  if(!aboveObject || !currentObject) return
+
+  const objectIdFromEntryAbove = aboveObject.game.objectId
+  const objectIdFromEntry = currentObject.game.objectId
+
+  if(!objectIdFromEntryAbove || !objectIdFromEntry) return
+
+  const manualOrderFromEntryAbove = aboveObject.game.download?.manualOrder
+  const manualOrderFromEntry = currentObject.game.download?.manualOrder
+  
+  if(typeof manualOrderFromEntry != "number" || typeof manualOrderFromEntryAbove != "number") return
+
+  await window.electron.setDownloadManualOrder(shop, objectIdFromEntry, objectIdFromEntryAbove, manualOrderFromEntry, manualOrderFromEntryAbove)
+
+  updateLibrary()
+}
+
+const orderDownInDownloadQueue = async (shop: GameShop, objectId: string) => {
+  const indexFromCurrentGame = downloadInfo.findIndex(info => info.game.objectId === objectId)
+
+  if(indexFromCurrentGame === -1) return
+
+  const belowObject = downloadInfo.at(indexFromCurrentGame+1)
+  const currentObject = downloadInfo.at(indexFromCurrentGame)
+
+  if(!belowObject || !currentObject) return
+
+  const objectIdFromEntryBelow = belowObject.game.objectId
+  const objectIdFromEntry = currentObject.game.objectId
+
+  if(!objectIdFromEntryBelow || !objectIdFromEntry) return
+
+  const manualOrderFromEntryBelow = belowObject.game.download?.manualOrder
+  const manualOrderFromEntry = currentObject.game.download?.manualOrder
+  
+  if(typeof manualOrderFromEntry != "number" || typeof manualOrderFromEntryBelow != "number") return
+
+  await window.electron.setDownloadManualOrder(shop, objectIdFromEntry, objectIdFromEntryBelow, manualOrderFromEntry, manualOrderFromEntryBelow)
+  updateLibrary()
+}
+
+  if (!library.length) return null;
 
   if (isDownloadingGroup && library.length > 0) {
     const game = library[0];
@@ -837,9 +888,29 @@ export function DownloadGroup({
       </div>
 
       <ul className="download-group__simple-list">
-        {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
+        {downloadInfo.map(({ game, size, progress, isSeeding: seeding }, index) => {
           return (
             <li key={game.id} className="download-group__simple-card">
+              <div
+                className="download-group__simple-arrows"
+              >
+
+                {isQueuedGroup && index > 0 && (
+                  <div 
+                    onClick={() => orderUpInDownloadQueue(game.shop, game.objectId)}
+                  >
+                    <ArrowUpIcon size={18} />
+                  </div>
+                )}
+
+                {isQueuedGroup && index < downloadInfo.length - 1 && (
+                  <div
+                    onClick={() => orderDownInDownloadQueue(game.shop, game.objectId)}
+                  >
+                    <ArrowDownIcon size={18} />
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => navigate(buildGameDetailsPath(game))}

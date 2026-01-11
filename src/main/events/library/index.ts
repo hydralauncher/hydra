@@ -11,6 +11,7 @@ import "./create-steam-shortcut";
 import "./delete-archive";
 import "./delete-game-folder";
 import "./extract-game-download";
+import "./set-download-manual-order";
 import "./get-default-wine-prefix-selection-path";
 import "./get-game-by-object-id";
 import "./get-library";
