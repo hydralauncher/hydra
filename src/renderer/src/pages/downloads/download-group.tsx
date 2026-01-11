@@ -783,11 +783,10 @@ export function DownloadGroup({
 
       const actionTypesPromises = completedGames.map(async (game) => {
         try {
-          const actionType =
-            await window.electron.getGameInstallerActionType(
-              game.shop,
-              game.objectId
-            );
+          const actionType = await window.electron.getGameInstallerActionType(
+            game.shop,
+            game.objectId
+          );
           return { gameId: game.id, actionType };
         } catch {
           return { gameId: game.id, actionType: "open-folder" as const };
@@ -937,31 +936,35 @@ export function DownloadGroup({
               )}
 
               <div className="download-group__simple-actions">
-                {game.download?.progress === 1 && (() => {
-                  const actionType = gameActionTypes[game.id] || "open-folder";
-                  const isInstall = actionType === "install";
-                  
-                  return (
-                    <Button
-                      theme="primary"
-                      onClick={() => openGameInstaller(game.shop, game.objectId)}
-                      disabled={isGameDeleting(game.id)}
-                      className="download-group__simple-action-btn"
-                    >
-                      {isInstall ? (
-                        <>
-                          <DownloadIcon size={16} />
-                          {t("install")}
-                        </>
-                      ) : (
-                        <>
-                          <Folder size={16} />
-                          {tGameDetails("open_folder")}
-                        </>
-                      )}
-                    </Button>
-                  );
-                })()}
+                {game.download?.progress === 1 &&
+                  (() => {
+                    const actionType =
+                      gameActionTypes[game.id] || "open-folder";
+                    const isInstall = actionType === "install";
+
+                    return (
+                      <Button
+                        theme="primary"
+                        onClick={() =>
+                          openGameInstaller(game.shop, game.objectId)
+                        }
+                        disabled={isGameDeleting(game.id)}
+                        className="download-group__simple-action-btn"
+                      >
+                        {isInstall ? (
+                          <>
+                            <DownloadIcon size={16} />
+                            {t("install")}
+                          </>
+                        ) : (
+                          <>
+                            <Folder size={16} />
+                            {tGameDetails("open_folder")}
+                          </>
+                        )}
+                      </Button>
+                    );
+                  })()}
                 {isQueuedGroup && game.download?.progress !== 1 && (
                   <Button
                     theme="primary"

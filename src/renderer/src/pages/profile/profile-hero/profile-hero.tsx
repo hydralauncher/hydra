@@ -260,10 +260,10 @@ export function ProfileHero() {
     if (userProfile?.id) {
       navigator.clipboard.writeText(userProfile.id);
       setIsCopied(true);
-      
+
       const startTime = performance.now();
       const duration = 1200; // 1.2 seconds
-      
+
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         if (elapsed < duration) {
@@ -272,7 +272,7 @@ export function ProfileHero() {
           setIsCopied(false);
         }
       };
-      
+
       requestAnimationFrame(animate);
     }
   }, [userProfile]);
