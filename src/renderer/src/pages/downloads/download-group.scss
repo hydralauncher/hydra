@@ -427,7 +427,7 @@
     padding: 0;
     cursor: pointer;
     text-align: left;
-    width: 100%;
+    width: fit-content;
     transition: opacity 0.2s ease;
 
     &:focus,
@@ -509,6 +509,7 @@
   &__simple-menu-btn {
     padding: calc(globals.$spacing-unit);
     min-height: unset;
+    border-radius: 8px;
   }
 
   &__simple-action-btn {
@@ -516,6 +517,7 @@
     min-height: unset;
     gap: calc(globals.$spacing-unit);
     min-width: 120px;
+    border-radius: 8px;
   }
 
   &__progress-wrapper {
