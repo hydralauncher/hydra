@@ -206,6 +206,8 @@ contextBridge.exposeInMainWorld("electron", {
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
+  getGameInstallerActionType: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>

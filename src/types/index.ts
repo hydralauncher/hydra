@@ -20,6 +20,7 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
@@ -187,6 +188,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   featurebaseJwt: string;
+  workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
   quirks?: {

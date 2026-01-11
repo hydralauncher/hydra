@@ -59,6 +59,7 @@ export function useUserDetails() {
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
         featurebaseJwt: userDetails?.featurebaseJwt || "",
+        workwondersJwt: userDetails?.workwondersJwt || "",
         karma: userDetails?.karma || 0,
       });
     },
@@ -111,7 +112,7 @@ export function useUserDetails() {
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.hydraApi.delete(`/profile/friends/${userId}`);
+    window.electron.hydraApi.delete(`/profile/friend-requests/${userId}`);
 
   const blockUser = (userId: string) =>
     window.electron.hydraApi.post(`/users/${userId}/block`);

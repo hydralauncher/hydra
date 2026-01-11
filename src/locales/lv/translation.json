@@ -676,8 +676,7 @@
     "game_removed_from_pinned": "Spēle dzēsta no piespraustajiem",
     "game_added_to_pinned": "Spēle pievienota piespraustajiem",
     "karma": "Karma",
-    "karma_count": "karma",
-    "karma_description": "Nopelnīta ar pozitīviem atsauksmju vērtējumiem"
+    "karma_count": "karma"
   },
   "achievement": {
     "achievement_unlocked": "Sasniegums atbloķēts",

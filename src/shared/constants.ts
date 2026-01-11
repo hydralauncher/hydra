@@ -3,13 +3,14 @@ export enum Downloader {
   Torrent,
   Gofile,
   PixelDrain,
-  Qiwi,
   Datanodes,
   Mediafire,
   TorBox,
   Hydra,
   Buzzheavier,
   FuckingFast,
+  VikingFile,
+  Rootz,
 }
 
 export enum DownloadSourceStatus {

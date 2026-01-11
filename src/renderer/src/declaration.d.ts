@@ -167,6 +167,10 @@ declare global {
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getGameInstallerActionType: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     openGame: (
