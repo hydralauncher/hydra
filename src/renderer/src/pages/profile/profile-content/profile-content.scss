@@ -206,6 +206,313 @@
       display: block;
     }
   }
+
+  &__images-section {
+    margin-bottom: calc(globals.$spacing-unit * 3);
+  }
+
+  &__images-grid {
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+    padding-bottom: calc(globals.$spacing-unit);
+    grid-template-columns: repeat(2, 1fr);
+
+    @container #{globals.$app-container} (min-width: 1000px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 1300px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2000px) {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 2600px) {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    @container #{globals.$app-container} (min-width: 3000px) {
+      grid-template-columns: repeat(8, 1fr);
+    }
+  }
+
+  &__image-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all ease 0.2s;
+    position: relative;
+    container-type: inline-size;
+
+    &:hover {
+      transform: translateY(-4px);
+      background: rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    @container (max-width: 240px) {
+      .profile-content__image-achievement-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      .profile-content__image-achievement-name {
+        font-size: 13px;
+      }
+
+      .profile-content__image-game-title {
+        font-size: 11px;
+      }
+    }
+
+    @container (max-width: 280px) {
+      .profile-content__image-card-content {
+        gap: calc(globals.$spacing-unit * 0.75);
+      }
+    }
+  }
+
+  &__image-card-header {
+    width: 100%;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    position: relative;
+  }
+
+  &__image-achievement-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+
+    .profile-content__image-button {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    &:hover .profile-content__image-achievement-image-overlay {
+      opacity: 1;
+    }
+  }
+
+  &__image-achievement-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+    display: block;
+  }
+
+  &__image-achievement-image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+
+    svg {
+      color: white;
+    }
+  }
+
+  &__image-delete-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    background: transparent;
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 6px;
+    padding: 0;
+    color: rgba(244, 67, 54, 0.9);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+
+    &:hover {
+      background: rgba(244, 67, 54, 0.1);
+      border-color: rgba(244, 67, 54, 0.8);
+      color: #ff7961;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: rgba(244, 67, 54, 0.2);
+    }
+  }
+
+  // Show overlay on keyboard focus for accessibility
+  &__image-button:focus-visible + &__image-achievement-image-overlay {
+    opacity: 1;
+  }
+
+  &__image-card-content {
+    padding: 16px;
+    background: #121212;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__image-card-row {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    align-items: center;
+  }
+
+  &__image-achievement-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__image-achievement-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  &__image-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+    height: 100%;
+  }
+
+  &__image-unlock-time {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    z-index: 2;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__image-achievement-info {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+    position: relative;
+    z-index: 2;
+  }
+
+  &__image-achievement-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+
+    &--large {
+      width: 36px;
+      height: 36px;
+    }
+  }
+
+  &__image-achievement-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__image-game-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 1);
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+  }
+
+  &__image-game-left {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__image-game-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__image-game-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__image-item {
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform ease 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  &__image {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: border-color ease 0.2s;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
 }
 
 // Reviews minimal styles

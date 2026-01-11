@@ -1,6 +1,12 @@
 import { darkenColor } from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats, UserGame } from "@types";
+import type {
+  Badge,
+  UserProfile,
+  UserStats,
+  UserGame,
+  ProfileAchievement,
+} from "@types";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useState } from "react";
@@ -202,22 +208,56 @@ export function UserProfileContextProvider({
     getUserStats();
     getUserLibraryGames();
 
-    return window.electron.hydraApi
-      .get<UserProfile>(`/users/${userId}`)
-      .then((userProfile) => {
-        setUserProfile(userProfile);
+    const currentLanguage = i18n.language.split("-")[0];
+    const supportedLanguages = ["pt", "ru", "es"];
+    const language = supportedLanguages.includes(currentLanguage)
+      ? currentLanguage
+      : "en";
+
+    const params = new URLSearchParams({ language });
+
+    // Fetch main profile data
+    const profilePromise = window.electron.hydraApi
+      .get<UserProfile>(`/users/${userId}?${params.toString()}`)
+      .catch(() => {
+        showErrorToast(t("user_not_found"));
+        navigate(-1);
+        throw new Error("Profile not found");
+      });
+
+    // Fetch achievements separately
+    const achievementsPromise = window.electron.hydraApi
+      .get<
+        ProfileAchievement[]
+      >(`/users/${userId}/achievements?${params.toString()}`)
+      .catch(() => null); // If achievements fail, just return null
+
+    return Promise.all([profilePromise, achievementsPromise]).then(
+      ([userProfile, achievements]) => {
+        // Merge achievements into the profile
+        const profileWithAchievements = {
+          ...userProfile,
+          achievements: achievements || null,
+        };
+
+        setUserProfile(profileWithAchievements);
 
         if (userProfile.profileImageUrl) {
           getHeroBackgroundFromImageUrl(userProfile.profileImageUrl).then(
             (color) => setHeroBackground(color)
           );
         }
-      })
-      .catch(() => {
-        showErrorToast(t("user_not_found"));
-        navigate(-1);
-      });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+      }
+    );
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    showErrorToast,
+    userId,
+    t,
+    i18n,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];

@@ -47,6 +47,17 @@ button {
   font-family: inherit;
 }
 
+dialog {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+}
+
 h1,
 h2,
 h3,

@@ -21,4 +21,25 @@
       cursor: pointer;
     }
   }
+
+  &__button-container {
+    margin-top: 16px;
+  }
+
+  &__section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    &-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    // Add spacing between elements in the section
+    > * + * {
+      margin-top: 16px;
+    }
+  }
 }

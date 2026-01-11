@@ -13,7 +13,7 @@ const getModifiedSinceHeader = (
     return undefined;
   }
 
-  if (userLanguage != cachedAchievements.language) {
+  if (userLanguage !== cachedAchievements.language) {
     return undefined;
   }
 
