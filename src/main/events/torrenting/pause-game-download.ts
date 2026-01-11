@@ -16,7 +16,7 @@ const pauseGameDownload = async (
   if (download) {
     await DownloadManager.pauseDownload(gameKey);
 
-    let gamesToDownloadCount = 2
+    let gamesToDownloadCount = 2;
     for await (const [key, value] of downloadsSublevel.iterator()) {
       if (value.status === "active" && value.progress !== 1) {
         await downloadsSublevel.put(key, {
@@ -30,7 +30,7 @@ const pauseGameDownload = async (
           manualOrder: gamesToDownloadCount,
         });
       }
-      gamesToDownloadCount++
+      gamesToDownloadCount++;
     }
   }
 };

@@ -88,9 +88,11 @@ export default function Downloads() {
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
-    const queued = orderBy(result.queued, (game) => game.download?.manualOrder, [
-      "asc",
-    ]);
+    const queued = orderBy(
+      result.queued,
+      (game) => game.download?.manualOrder,
+      ["asc"]
+    );
 
     const complete = orderBy(result.complete, (game) =>
       game.download?.progress === 1 ? 0 : 1
@@ -142,7 +144,11 @@ export default function Downloads() {
               <DownloadGroup
                 key={group.title}
                 title={group.title}
-                library={group.title === t("queued_downloads") ? group.library : orderBy(group.library, ["updatedAt"], ["desc"])}
+                library={
+                  group.title === t("queued_downloads")
+                    ? group.library
+                    : orderBy(group.library, ["updatedAt"], ["desc"])
+                }
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}

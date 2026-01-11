@@ -8,7 +8,7 @@ const setDownloadManualOrder = async (
   objectIdFrom: string,
   objectIdTo: string,
   manualOrderFrom: number,
-  manualOrderTo: number,
+  manualOrderTo: number
 ): Promise<boolean> => {
   const gameKeyFrom = levelKeys.game(shop, objectIdFrom);
   const gameKeyTo = levelKeys.game(shop, objectIdTo);
@@ -25,18 +25,18 @@ const setDownloadManualOrder = async (
 
   if (!downloadFrom || !gameFrom || !downloadTo || !gameTo) return false;
 
-  if(manualOrderTo === manualOrderFrom){
-    manualOrderTo--
+  if (manualOrderTo === manualOrderFrom) {
+    manualOrderTo--;
   }
 
   await downloadsSublevel.put(gameKeyFrom, {
     ...downloadFrom,
-    manualOrder: manualOrderTo 
+    manualOrder: manualOrderTo,
   });
 
   await downloadsSublevel.put(gameKeyTo, {
     ...downloadTo,
-    manualOrder: manualOrderFrom 
+    manualOrder: manualOrderFrom,
   });
 
   return true;

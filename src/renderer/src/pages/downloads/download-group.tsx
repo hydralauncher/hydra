@@ -776,54 +776,78 @@ export function DownloadGroup({
     ]
   );
 
-const orderUpInDownloadQueue = async (shop: GameShop, objectId: string) => {
-  const indexFromCurrentGame = downloadInfo.findIndex(info => info.game.objectId === objectId)
+  const orderUpInDownloadQueue = async (shop: GameShop, objectId: string) => {
+    const indexFromCurrentGame = downloadInfo.findIndex(
+      (info) => info.game.objectId === objectId
+    );
 
-  if(indexFromCurrentGame === -1) return
-  
-  const aboveObject = downloadInfo.at(indexFromCurrentGame-1)
-  const currentObject = downloadInfo.at(indexFromCurrentGame)
+    if (indexFromCurrentGame === -1) return;
 
-  if(!aboveObject || !currentObject) return
+    const aboveObject = downloadInfo.at(indexFromCurrentGame - 1);
+    const currentObject = downloadInfo.at(indexFromCurrentGame);
 
-  const objectIdFromEntryAbove = aboveObject.game.objectId
-  const objectIdFromEntry = currentObject.game.objectId
+    if (!aboveObject || !currentObject) return;
 
-  if(!objectIdFromEntryAbove || !objectIdFromEntry) return
+    const objectIdFromEntryAbove = aboveObject.game.objectId;
+    const objectIdFromEntry = currentObject.game.objectId;
 
-  const manualOrderFromEntryAbove = aboveObject.game.download?.manualOrder
-  const manualOrderFromEntry = currentObject.game.download?.manualOrder
-  
-  if(typeof manualOrderFromEntry != "number" || typeof manualOrderFromEntryAbove != "number") return
+    if (!objectIdFromEntryAbove || !objectIdFromEntry) return;
 
-  await window.electron.setDownloadManualOrder(shop, objectIdFromEntry, objectIdFromEntryAbove, manualOrderFromEntry, manualOrderFromEntryAbove)
+    const manualOrderFromEntryAbove = aboveObject.game.download?.manualOrder;
+    const manualOrderFromEntry = currentObject.game.download?.manualOrder;
 
-  updateLibrary()
-}
+    if (
+      typeof manualOrderFromEntry != "number" ||
+      typeof manualOrderFromEntryAbove != "number"
+    )
+      return;
 
-const orderDownInDownloadQueue = async (shop: GameShop, objectId: string) => {
-  const indexFromCurrentGame = downloadInfo.findIndex(info => info.game.objectId === objectId)
+    await window.electron.setDownloadManualOrder(
+      shop,
+      objectIdFromEntry,
+      objectIdFromEntryAbove,
+      manualOrderFromEntry,
+      manualOrderFromEntryAbove
+    );
 
-  if(indexFromCurrentGame === -1) return
+    updateLibrary();
+  };
 
-  const belowObject = downloadInfo.at(indexFromCurrentGame+1)
-  const currentObject = downloadInfo.at(indexFromCurrentGame)
+  const orderDownInDownloadQueue = async (shop: GameShop, objectId: string) => {
+    const indexFromCurrentGame = downloadInfo.findIndex(
+      (info) => info.game.objectId === objectId
+    );
 
-  if(!belowObject || !currentObject) return
+    if (indexFromCurrentGame === -1) return;
 
-  const objectIdFromEntryBelow = belowObject.game.objectId
-  const objectIdFromEntry = currentObject.game.objectId
+    const belowObject = downloadInfo.at(indexFromCurrentGame + 1);
+    const currentObject = downloadInfo.at(indexFromCurrentGame);
 
-  if(!objectIdFromEntryBelow || !objectIdFromEntry) return
+    if (!belowObject || !currentObject) return;
 
-  const manualOrderFromEntryBelow = belowObject.game.download?.manualOrder
-  const manualOrderFromEntry = currentObject.game.download?.manualOrder
-  
-  if(typeof manualOrderFromEntry != "number" || typeof manualOrderFromEntryBelow != "number") return
+    const objectIdFromEntryBelow = belowObject.game.objectId;
+    const objectIdFromEntry = currentObject.game.objectId;
 
-  await window.electron.setDownloadManualOrder(shop, objectIdFromEntry, objectIdFromEntryBelow, manualOrderFromEntry, manualOrderFromEntryBelow)
-  updateLibrary()
-}
+    if (!objectIdFromEntryBelow || !objectIdFromEntry) return;
+
+    const manualOrderFromEntryBelow = belowObject.game.download?.manualOrder;
+    const manualOrderFromEntry = currentObject.game.download?.manualOrder;
+
+    if (
+      typeof manualOrderFromEntry != "number" ||
+      typeof manualOrderFromEntryBelow != "number"
+    )
+      return;
+
+    await window.electron.setDownloadManualOrder(
+      shop,
+      objectIdFromEntry,
+      objectIdFromEntryBelow,
+      manualOrderFromEntry,
+      manualOrderFromEntryBelow
+    );
+    updateLibrary();
+  };
 
   if (!library.length) return null;
 
@@ -888,122 +912,131 @@ const orderDownInDownloadQueue = async (shop: GameShop, objectId: string) => {
       </div>
 
       <ul className="download-group__simple-list">
-        {downloadInfo.map(({ game, size, progress, isSeeding: seeding }, index) => {
-          return (
-            <li key={game.id} className="download-group__simple-card">
-              <div
-                className="download-group__simple-arrows"
-              >
-
-                {isQueuedGroup && index > 0 && (
-                  <div 
-                    onClick={() => orderUpInDownloadQueue(game.shop, game.objectId)}
-                  >
-                    <ArrowUpIcon size={18} />
-                  </div>
-                )}
-
-                {isQueuedGroup && index < downloadInfo.length - 1 && (
-                  <div
-                    onClick={() => orderDownInDownloadQueue(game.shop, game.objectId)}
-                  >
-                    <ArrowDownIcon size={18} />
-                  </div>
-                )}
-              </div>
-              <button
+        {downloadInfo.map(
+          ({ game, size, progress, isSeeding: seeding }, index) => {
+            return (
+              <li key={game.id} className="download-group__simple-card">
+                <button
                 type="button"
-                onClick={() => navigate(buildGameDetailsPath(game))}
-                className="download-group__simple-thumbnail"
-              >
-                <img src={game.libraryImageUrl || ""} alt={game.title} />
-              </button>
+                 className="download-group__simple-arrows">
+                  {isQueuedGroup && index > 0 && (
+                    <div
+                      onClick={() =>
+                        orderUpInDownloadQueue(game.shop, game.objectId)
+                      }
+                    >
+                      <ArrowUpIcon size={18} />
+                    </div>
+                  )}
 
-              <div className="download-group__simple-info">
+                  {isQueuedGroup && index < downloadInfo.length - 1 && (
+                    <div
+                      onClick={() =>
+                        orderDownInDownloadQueue(game.shop, game.objectId)
+                      }
+                    >
+                      <ArrowDownIcon size={18} />
+                    </div>
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => navigate(buildGameDetailsPath(game))}
-                  className="download-group__simple-title-button"
+                  className="download-group__simple-thumbnail"
                 >
-                  <h3 className="download-group__simple-title">{game.title}</h3>
+                  <img src={game.libraryImageUrl || ""} alt={game.title} />
                 </button>
-                <div className="download-group__simple-meta">
-                  <div className="download-group__simple-meta-row">
-                    <Badge>
-                      {DOWNLOADER_NAME[Number(game.download!.downloader)]}
-                    </Badge>
-                  </div>
-                  <div className="download-group__simple-meta-row">
-                    {extraction?.visibleId === game.id ? (
-                      <span className="download-group__simple-extracting">
-                        {t("extracting")} (
-                        {Math.round(extraction.progress * 100)}%)
-                      </span>
-                    ) : (
-                      <span className="download-group__simple-size">
-                        <DownloadIcon size={14} />
-                        {size}
-                      </span>
-                    )}
-                    {game.download?.progress === 1 && seeding && (
-                      <span className="download-group__simple-seeding">
-                        {t("seeding")}
-                      </span>
-                    )}
+
+                <div className="download-group__simple-info">
+                  <button
+                    type="button"
+                    onClick={() => navigate(buildGameDetailsPath(game))}
+                    className="download-group__simple-title-button"
+                  >
+                    <h3 className="download-group__simple-title">
+                      {game.title}
+                    </h3>
+                  </button>
+                  <div className="download-group__simple-meta">
+                    <div className="download-group__simple-meta-row">
+                      <Badge>
+                        {DOWNLOADER_NAME[Number(game.download!.downloader)]}
+                      </Badge>
+                    </div>
+                    <div className="download-group__simple-meta-row">
+                      {extraction?.visibleId === game.id ? (
+                        <span className="download-group__simple-extracting">
+                          {t("extracting")} (
+                          {Math.round(extraction.progress * 100)}%)
+                        </span>
+                      ) : (
+                        <span className="download-group__simple-size">
+                          <DownloadIcon size={14} />
+                          {size}
+                        </span>
+                      )}
+                      {game.download?.progress === 1 && seeding && (
+                        <span className="download-group__simple-seeding">
+                          {t("seeding")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {isQueuedGroup && (
-                <div className="download-group__simple-progress">
-                  <span className="download-group__simple-progress-text">
-                    {formatDownloadProgress(progress)}
-                  </span>
-                  <div className="download-group__progress-bar download-group__progress-bar--small">
-                    <div
-                      className="download-group__progress-fill"
-                      style={{
-                        width: `${progress * 100}%`,
-                        backgroundColor: "#fff",
-                      }}
-                    />
+                {isQueuedGroup && (
+                  <div className="download-group__simple-progress">
+                    <span className="download-group__simple-progress-text">
+                      {formatDownloadProgress(progress)}
+                    </span>
+                    <div className="download-group__progress-bar download-group__progress-bar--small">
+                      <div
+                        className="download-group__progress-fill"
+                        style={{
+                          width: `${progress * 100}%`,
+                          backgroundColor: "#fff",
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="download-group__simple-actions">
-                {game.download?.progress === 1 && (
-                  <Button
-                    theme="primary"
-                    onClick={() => openGameInstaller(game.shop, game.objectId)}
-                    disabled={isGameDeleting(game.id)}
-                    className="download-group__simple-menu-btn"
-                  >
-                    <PlayIcon size={16} />
-                  </Button>
-                )}
-                {isQueuedGroup && game.download?.progress !== 1 && (
-                  <Button
-                    theme="primary"
-                    onClick={() => resumeDownload(game.shop, game.objectId)}
-                    className="download-group__simple-menu-btn"
-                    tooltip={t("resume")}
-                  >
-                    <DownloadIcon size={16} />
-                  </Button>
-                )}
-                <DropdownMenu align="end" items={getGameActions(game)}>
-                  <Button
-                    theme="outline"
-                    className="download-group__simple-menu-btn"
-                  >
-                    <ThreeBarsIcon />
-                  </Button>
-                </DropdownMenu>
-              </div>
-            </li>
-          );
-        })}
+                <div className="download-group__simple-actions">
+                  {game.download?.progress === 1 && (
+                    <Button
+                      theme="primary"
+                      onClick={() =>
+                        openGameInstaller(game.shop, game.objectId)
+                      }
+                      disabled={isGameDeleting(game.id)}
+                      className="download-group__simple-menu-btn"
+                    >
+                      <PlayIcon size={16} />
+                    </Button>
+                  )}
+                  {isQueuedGroup && game.download?.progress !== 1 && (
+                    <Button
+                      theme="primary"
+                      onClick={() => resumeDownload(game.shop, game.objectId)}
+                      className="download-group__simple-menu-btn"
+                      tooltip={t("resume")}
+                    >
+                      <DownloadIcon size={16} />
+                    </Button>
+                  )}
+                  <DropdownMenu align="end" items={getGameActions(game)}>
+                    <Button
+                      theme="outline"
+                      className="download-group__simple-menu-btn"
+                    >
+                      <ThreeBarsIcon />
+                    </Button>
+                  </DropdownMenu>
+                </div>
+              </li>
+            );
+          }
+        )}
       </ul>
     </div>
   );

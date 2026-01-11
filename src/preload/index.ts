@@ -239,8 +239,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
-  setDownloadManualOrder: (shop: GameShop, objectIdFrom: string, objectIdTo: string, manualOrderFrom: number, manualOrderTo: number) =>
-    ipcRenderer.invoke("setDownloadManualOrder", shop, objectIdFrom, objectIdTo, manualOrderFrom, manualOrderTo),
+  setDownloadManualOrder: (
+    shop: GameShop,
+    objectIdFrom: string,
+    objectIdTo: string,
+    manualOrderFrom: number,
+    manualOrderTo: number
+  ) =>
+    ipcRenderer.invoke(
+      "setDownloadManualOrder",
+      shop,
+      objectIdFrom,
+      objectIdTo,
+      manualOrderFrom,
+      manualOrderTo
+    ),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (shop: GameShop, objectId: string) =>
