@@ -13,6 +13,7 @@ import "./delete-game-folder";
 import "./extract-game-download";
 import "./get-default-wine-prefix-selection-path";
 import "./get-game-by-object-id";
+import "./get-game-installer-action-type";
 import "./get-library";
 import "./open-game-executable-path";
 import "./open-game-installer-path";

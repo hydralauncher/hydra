@@ -225,21 +225,6 @@ export function Header() {
   };
 
   useEffect(() => {
-    const prevPath = sessionStorage.getItem("prevPath");
-    const currentPath = location.pathname;
-
-    if (
-      prevPath?.startsWith("/catalogue") &&
-      !currentPath.startsWith("/catalogue") &&
-      catalogueSearchValue
-    ) {
-      dispatch(setFilters({ title: "" }));
-    }
-
-    sessionStorage.setItem("prevPath", currentPath);
-  }, [location.pathname, catalogueSearchValue, dispatch]);
-
-  useEffect(() => {
     if (!isDropdownVisible) return;
 
     const handleResize = () => {
