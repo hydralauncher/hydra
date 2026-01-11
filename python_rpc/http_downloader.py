@@ -1,4 +1,5 @@
 import aria2p
+from aria2p.client import ClientException as DownloadNotFound
 
 class HttpDownloader:
     def __init__(self):
@@ -11,12 +12,16 @@ class HttpDownloader:
             )
         )
 
-    def start_download(self, url: str, save_path: str, header: str, out: str = None):
+    def start_download(self, url: str, save_path: str, header, out: str = None):
         if self.download:
             self.aria2.resume([self.download])
         else:
-            downloads = self.aria2.add(url, options={"header": header, "dir": save_path, "out": out})
-            
+            options = {"dir": save_path}
+            if header:
+                options["header"] = header
+            if out:
+                options["out"] = out
+            downloads = self.aria2.add(url, options=options)
             self.download = downloads[0]
     
     def pause_download(self):
@@ -32,7 +37,11 @@ class HttpDownloader:
         if self.download == None:
             return None
 
-        download = self.aria2.get_download(self.download.gid)
+        try:
+            download = self.aria2.get_download(self.download.gid)
+        except DownloadNotFound:
+            self.download = None
+            return None
 
         response = {
             'folderName': download.name,

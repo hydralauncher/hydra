@@ -10,6 +10,7 @@ export enum Downloader {
   Hydra,
   Buzzheavier,
   FuckingFast,
+  VikingFile,
 }
 
 export enum DownloadSourceStatus {

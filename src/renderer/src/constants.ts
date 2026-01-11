@@ -1,6 +1,6 @@
 import { Downloader } from "@shared";
 
-export const VERSION_CODENAME = "Supernova";
+export const VERSION_CODENAME = "Harbinger";
 
 export const DOWNLOADER_NAME = {
   [Downloader.RealDebrid]: "Real-Debrid",
@@ -14,6 +14,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.FuckingFast]: "FuckingFast",
   [Downloader.TorBox]: "TorBox",
   [Downloader.Hydra]: "Nimbus",
+  [Downloader.VikingFile]: "VikingFile",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
