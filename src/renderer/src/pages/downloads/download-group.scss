@@ -511,6 +511,13 @@
     min-height: unset;
   }
 
+  &__simple-action-btn {
+    padding: calc(globals.$spacing-unit);
+    min-height: unset;
+    gap: calc(globals.$spacing-unit);
+    min-width: 120px;
+  }
+
   &__progress-wrapper {
     flex: 1;
     display: flex;
