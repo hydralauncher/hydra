@@ -916,29 +916,29 @@ export function DownloadGroup({
           ({ game, size, progress, isSeeding: seeding }, index) => {
             return (
               <li key={game.id} className="download-group__simple-card">
-                <button
-                type="button"
-                 className="download-group__simple-arrows">
+                <div className="download-group__simple-arrows">
                   {isQueuedGroup && index > 0 && (
-                    <div
+                    <button
+                    type="button"
                       onClick={() =>
                         orderUpInDownloadQueue(game.shop, game.objectId)
                       }
                     >
                       <ArrowUpIcon size={18} />
-                    </div>
+                    </button>
                   )}
 
                   {isQueuedGroup && index < downloadInfo.length - 1 && (
-                    <div
+                    <button
+                      type="button"
                       onClick={() =>
                         orderDownInDownloadQueue(game.shop, game.objectId)
                       }
                     >
                       <ArrowDownIcon size={18} />
-                    </div>
+                    </button>
                   )}
-                </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => navigate(buildGameDetailsPath(game))}
