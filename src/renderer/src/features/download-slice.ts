@@ -31,11 +31,16 @@ export const downloadSlice = createSlice({
   reducers: {
     setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
       state.lastPacket = action.payload;
-      if (!state.gameId && action.payload) state.gameId = action.payload.gameId;
+
+      // Ensure payload exists and has a valid gameId before accessing
+      const payload = action.payload;
+      if (!state.gameId && payload?.gameId) {
+        state.gameId = payload.gameId;
+      }
 
       // Track peak speed and speed history atomically when packet arrives
-      if (action.payload?.gameId && action.payload.downloadSpeed != null) {
-        const { gameId, downloadSpeed } = action.payload;
+      if (payload?.gameId && payload.downloadSpeed != null) {
+        const { gameId, downloadSpeed } = payload;
 
         // Update peak speed if this is higher
         const currentPeak = state.peakSpeeds[gameId] || 0;
