@@ -677,6 +677,27 @@
     "delete_review": "Eliminar avaliação",
     "wrapped_2025": "Wrapped 2025"
   },
+  "library": {
+    "library": "Biblioteca",
+    "play": "Jogar",
+    "download": "Transferir",
+    "downloading": "A transferir",
+    "game": "jogo",
+    "games": "jogos",
+    "grid_view": "Vista em grelha",
+    "compact_view": "Vista compacta",
+    "large_view": "Vista grande",
+    "no_games_title": "A tua biblioteca está vazia",
+    "no_games_description": "Adiciona jogos do catálogo ou transfere-os para começar",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
+    "all_games": "Todos os Jogos",
+    "recently_played": "Jogados Recentemente",
+    "favorites": "Favoritos"
+  },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "As tuas Conquistas",
