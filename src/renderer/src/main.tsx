@@ -46,7 +46,7 @@ Sentry.init({
   tracesSampleRate: 0.5,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
-  release: await window.electron.getVersion(),
+  release: "hydra-launcher@" + (await window.electron.getVersion()),
 });
 
 const isStaging = await window.electron.isStaging();
