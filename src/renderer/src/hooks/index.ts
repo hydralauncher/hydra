@@ -8,7 +8,6 @@ export * from "./use-format";
 export * from "./use-feature";
 export * from "./use-download-options-listener";
 export * from "./use-game-card";
-export * from "./use-game-disk-usage";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
 export * from "./use-hls-video";

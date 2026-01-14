@@ -84,6 +84,45 @@
     gap: calc(globals.$spacing-unit);
   }
 
+  &__size-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 6px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    min-height: 28px;
+    box-sizing: border-box;
+  }
+
+  &__size-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  &__size-bar-line {
+    height: 4px;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0.8)
+    );
+  }
+
+  &__size-bar-text {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
   &__logo-container {
     flex: 1;
     display: flex;
@@ -137,25 +176,6 @@
   }
 
   &__playtime-text {
-    font-weight: 500;
-  }
-
-  &__disk-usage {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: rgba(255, 255, 255, 0.95);
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-size: 12px;
-  }
-
-  &__disk-usage-text {
     font-weight: 500;
   }
 

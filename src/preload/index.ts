@@ -299,8 +299,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDiskFreeSpace", path),
   checkFolderWritePermission: (path: string) =>
     ipcRenderer.invoke("checkFolderWritePermission", path),
-  getGameDiskUsage: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("getGameDiskUsage", shop, objectId),
 
   /* Cloud save */
   uploadSaveGame: (
