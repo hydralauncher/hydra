@@ -1,3 +1,6 @@
+import path from "node:path";
+import fs from "node:fs";
+
 import type { LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
 import {
@@ -28,9 +31,40 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
                 achievements?.unlockedAchievements.length ?? 0;
             }
 
+            // Verify installer still exists, clear if deleted externally
+            let installerSizeInBytes = game.installerSizeInBytes;
+            if (installerSizeInBytes && download?.folderName) {
+              const installerPath = path.join(
+                download.downloadPath,
+                download.folderName
+              );
+
+              if (!fs.existsSync(installerPath)) {
+                installerSizeInBytes = null;
+                gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+              }
+            }
+
+            // Verify installed folder still exists, clear if deleted externally
+            let installedSizeInBytes = game.installedSizeInBytes;
+            if (installedSizeInBytes && game.executablePath) {
+              const executableDir = path.dirname(game.executablePath);
+
+              if (!fs.existsSync(executableDir)) {
+                installedSizeInBytes = null;
+                gamesSublevel.put(key, {
+                  ...game,
+                  installerSizeInBytes,
+                  installedSizeInBytes: null,
+                });
+              }
+            }
+
             return {
               id: key,
               ...game,
+              installerSizeInBytes,
+              installedSizeInBytes,
               download: download ?? null,
               unlockedAchievementCount,
               achievementCount: game.achievementCount ?? 0,

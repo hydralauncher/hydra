@@ -1,5 +1,8 @@
+import path from "node:path";
+
 import { registerEvent } from "../register-event";
 import { parseExecutablePath } from "../helpers/parse-executable-path";
+import { getDirectorySize } from "../helpers/get-directory-size";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 
@@ -18,12 +21,29 @@ const updateExecutablePath = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
+  // Update immediately without size so UI responds fast
   await gamesSublevel.put(gameKey, {
     ...game,
     executablePath: parsedPath,
+    installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
     automaticCloudSync:
       executablePath === null ? false : game.automaticCloudSync,
   });
+
+  // Calculate size in background and update later
+  if (parsedPath) {
+    const executableDir = path.dirname(parsedPath);
+
+    getDirectorySize(executableDir).then(async (installedSizeInBytes) => {
+      const currentGame = await gamesSublevel.get(gameKey);
+      if (!currentGame) return;
+
+      await gamesSublevel.put(gameKey, {
+        ...currentGame,
+        installedSizeInBytes,
+      });
+    });
+  }
 };
 
 registerEvent("updateExecutablePath", updateExecutablePath);
