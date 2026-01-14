@@ -238,6 +238,13 @@ declare global {
     /* Hardware */
     getDiskFreeSpace: (path: string) => Promise<DiskUsage>;
     checkFolderWritePermission: (path: string) => Promise<boolean>;
+    getGameDiskUsage: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<{
+      installerSize: number | null;
+      installedSize: number | null;
+    }>;
 
     /* Cloud save */
     uploadSaveGame: (

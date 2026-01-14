@@ -1,7 +1,13 @@
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
-import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
+import { useGameCard, useGameDiskUsage } from "@renderer/hooks";
+import {
+  ClockIcon,
+  AlertFillIcon,
+  TrophyIcon,
+  DatabaseIcon,
+} from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -30,8 +36,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
 }: Readonly<LibraryGameCardLargeProps>) {
+  const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const { installedSize, isLoading: isDiskUsageLoading } = useGameDiskUsage(
+    game.shop,
+    game.objectId
+  );
 
   const backgroundImage = useMemo(
     () =>
@@ -94,6 +106,18 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
+          {installedSize && !isDiskUsageLoading && (
+            <div
+              className="library-game-card-large__disk-usage"
+              title={t("disk_usage_tooltip")}
+            >
+              <DatabaseIcon size={11} />
+              <span className="library-game-card-large__disk-usage-text">
+                {installedSize}
+              </span>
+            </div>
+          )}
+
           <div className="library-game-card-large__playtime">
             {game.hasManuallyUpdatedPlaytime ? (
               <AlertFillIcon
