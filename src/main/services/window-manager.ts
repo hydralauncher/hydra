@@ -138,10 +138,19 @@ export class WindowManager {
       (details, callback) => {
         if (
           details.webContentsId !== this.mainWindow?.webContents.id ||
-          details.url.includes("chatwoot") ||
-          details.url.includes("workwonders")
+          details.url.includes("chatwoot")
         ) {
           return callback(details);
+        }
+
+        if (details.url.includes("workwonders")) {
+          return callback({
+            ...details,
+            requestHeaders: {
+              Origin: "https://workwonders.app",
+              ...details.requestHeaders,
+            },
+          });
         }
 
         const userAgent = new UserAgent();
