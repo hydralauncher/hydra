@@ -28,7 +28,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               const achievements = await gameAchievementsSublevel.get(key);
 
               unlockedAchievementCount =
-                achievements?.unlockedAchievements.length ?? 0;
+                achievements?.unlockedAchievements?.length ?? 0;
             }
 
             // Verify installer still exists, clear if deleted externally

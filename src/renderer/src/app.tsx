@@ -134,7 +134,10 @@ export function App() {
 
       await workwondersRef.current.initChangelogWidget();
       workwondersRef.current.initChangelogWidgetMini();
-      workwondersRef.current.initFeedbackWidget();
+
+      if (token) {
+        workwondersRef.current.initFeedbackWidget();
+      }
     },
     [workwondersRef]
   );
