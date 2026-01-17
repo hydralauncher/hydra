@@ -1,0 +1,180 @@
+@use "../../scss/globals.scss";
+
+.game-details {
+  &__wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    transition: all ease 0.3s;
+
+    &--blurred {
+      filter: blur(20px);
+    }
+  }
+
+  &__container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+  }
+
+  // Description Section Styles
+  &__description-container {
+    display: flex;
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+    background: linear-gradient(
+      0deg,
+      globals.$background-color 50%,
+      globals.$dark-background-color 100%
+    );
+    padding: calc(globals.$spacing-unit * 1.5);
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__description-content {
+    width: 100%;
+    min-height: 100%;
+    min-width: 0;
+    flex: 1;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__description {
+    user-select: text;
+    line-height: 22px;
+    font-size: globals.$body-font-size;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    overflow-x: auto;
+    min-height: auto;
+    transition: max-height 0.3s ease-in-out;
+
+    @media (min-width: 1280px) {
+      width: 60%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
+    }
+
+    &--collapsed {
+      max-height: 300px;
+      overflow: hidden;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(transparent, globals.$background-color);
+        pointer-events: none;
+      }
+    }
+
+    &--expanded {
+      max-height: none;
+    }
+
+    img,
+    video {
+      border-radius: 5px;
+      margin-top: globals.$spacing-unit;
+      margin-bottom: calc(globals.$spacing-unit * 3);
+      display: block !important;
+      max-width: 100% !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      box-sizing: border-box !important;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    a {
+      color: globals.$body-color;
+    }
+
+    .bb_tag {
+      margin-top: calc(globals.$spacing-unit * 2);
+      margin-bottom: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__description-toggle {
+    background: none;
+    border: 1px solid globals.$border-color;
+    color: globals.$body-color;
+    padding: calc(globals.$spacing-unit * 0.75)
+      calc(globals.$spacing-unit * 1.5);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: globals.$body-font-size;
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    transition: all 0.2s ease;
+    align-self: center;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  // Skeleton-specific styles
+  &__skeleton {
+    .react-loading-skeleton {
+      background: linear-gradient(90deg, #1c1c1c 25%, #2a2a2a 50%, #1c1c1c 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+    }
+
+    // Ensure skeleton elements maintain proper spacing
+    .description-header {
+      margin-bottom: calc(globals.$spacing-unit * 1.5);
+    }
+
+    .content-sidebar {
+      min-width: 300px;
+      max-width: 300px;
+    }
+
+    // Hero panel skeleton spacing
+    .hero-panel__content {
+      display: flex;
+      flex-direction: column;
+      gap: calc(globals.$spacing-unit * 0.5);
+    }
+
+    // Review items skeleton spacing
+    .review-item-skeleton {
+      border: 1px solid globals.$border-color;
+      border-radius: 8px;
+      padding: calc(globals.$spacing-unit * 1);
+      margin-bottom: calc(globals.$spacing-unit * 1);
+    }
+
+    // Sidebar section spacing
+    .sidebar-section-skeleton {
+      margin-bottom: calc(globals.$spacing-unit * 1.5);
+    }
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -1,18 +1,21 @@
-import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
-import { IsNull, Not } from "typeorm";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import path from "node:path";
 import { app } from "electron";
 import { removeSymbolsFromName } from "@shared";
+import { GameShop, ShortcutLocation } from "@types";
+import { gamesSublevel, levelKeys } from "@main/level";
+import { SystemPath } from "@main/services/system-path";
+import { windowsStartMenuPath } from "@main/constants";
 
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
-  id: number
+  shop: GameShop,
+  objectId: string,
+  location: ShortcutLocation
 ): Promise<boolean> => {
-  const game = await gameRepository.findOne({
-    where: { id, executablePath: Not(IsNull()) },
-  });
+  const gameKey = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(gameKey);
 
   if (game) {
     const filePath = game.executablePath;
@@ -24,7 +27,10 @@ const createGameShortcut = async (
     const options = {
       filePath,
       name: removeSymbolsFromName(game.title),
-      outputPath: app.getPath("desktop"),
+      outputPath:
+        location === "desktop"
+          ? SystemPath.getPath("desktop")
+          : windowsStartMenuPath,
     };
 
     return createDesktopShortcut({

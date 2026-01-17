@@ -1,0 +1,85 @@
+@use "../../../scss/globals.scss";
+
+.game-language-section {
+  background-color: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__header-item {
+    display: flex;
+    align-items: center;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    flex: 1;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+
+    &--center {
+      justify-content: flex-start;
+      flex: 0 0 60px;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__row {
+    display: flex;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__cell {
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+    font-size: globals.$body-font-size;
+    color: globals.$body-color;
+    display: flex;
+    align-items: center;
+    flex: 1;
+
+    &--language {
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &--center {
+      justify-content: flex-start;
+      flex: 0 0 60px;
+    }
+  }
+
+  &__check {
+    color: globals.$body-color;
+    opacity: 0.8;
+  }
+
+  &__cross {
+    color: globals.$body-color;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 320px) {
+    &__header,
+    &__cell {
+      padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 0.5);
+      font-size: calc(globals.$small-font-size * 0.9);
+    }
+  }
+}

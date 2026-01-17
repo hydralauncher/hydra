@@ -1,0 +1,54 @@
+@use "../../scss/globals.scss";
+
+.select-field {
+  display: inline-flex;
+  transition: all ease 0.2s;
+  width: fit-content;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid globals.$border-color;
+  height: 40px;
+  min-height: 40px;
+
+  &__container {
+    flex: 1;
+  }
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  &--focused {
+    border-color: #dadbe1;
+  }
+
+  &--primary {
+    background-color: globals.$dark-background-color;
+  }
+
+  &--dark {
+    background-color: globals.$background-color;
+  }
+
+  &__option {
+    background-color: globals.$dark-background-color;
+    border-right: 4px solid;
+    border-color: transparent;
+    border-radius: 8px;
+    width: fit-content;
+    height: 100%;
+    outline: none;
+    color: #dadbe1;
+    cursor: default;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    text-overflow: ellipsis;
+    padding: globals.$spacing-unit;
+  }
+
+  &__label {
+    margin-bottom: globals.$spacing-unit;
+    display: block;
+    color: globals.$body-color;
+  }
+}

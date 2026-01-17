@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
+import "./settings-behavior.scss";
+import { QuestionIcon } from "@primer/octicons-react";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -19,8 +21,15 @@ export function SettingsBehavior() {
     runAtStartup: false,
     startMinimized: false,
     disableNsfwAlert: false,
+    enableAutoInstall: false,
     seedAfterDownloadComplete: false,
     showHiddenAchievementsDescription: false,
+    showDownloadSpeedInMegabytes: false,
+    extractFilesByDefault: true,
+    enableSteamAchievements: false,
+    autoplayGameTrailers: true,
+    hideToTrayOnGameStart: false,
+    enableNewDownloadOptionsBadges: true,
   });
 
   const { t } = useTranslation("settings");
@@ -28,13 +37,25 @@ export function SettingsBehavior() {
   useEffect(() => {
     if (userPreferences) {
       setForm({
-        preferQuitInsteadOfHiding: userPreferences.preferQuitInsteadOfHiding,
-        runAtStartup: userPreferences.runAtStartup,
-        startMinimized: userPreferences.startMinimized,
-        disableNsfwAlert: userPreferences.disableNsfwAlert,
-        seedAfterDownloadComplete: userPreferences.seedAfterDownloadComplete,
+        preferQuitInsteadOfHiding:
+          userPreferences.preferQuitInsteadOfHiding ?? false,
+        runAtStartup: userPreferences.runAtStartup ?? false,
+        startMinimized: userPreferences.startMinimized ?? false,
+        disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
+        enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+        seedAfterDownloadComplete:
+          userPreferences.seedAfterDownloadComplete ?? false,
         showHiddenAchievementsDescription:
-          userPreferences.showHiddenAchievementsDescription,
+          userPreferences.showHiddenAchievementsDescription ?? false,
+        showDownloadSpeedInMegabytes:
+          userPreferences.showDownloadSpeedInMegabytes ?? false,
+        extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
+        enableSteamAchievements:
+          userPreferences.enableSteamAchievements ?? false,
+        autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
+        hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        enableNewDownloadOptionsBadges:
+          userPreferences.enableNewDownloadOptionsBadges ?? true,
       });
     }
   }, [userPreferences]);
@@ -62,6 +83,16 @@ export function SettingsBehavior() {
         }
       />
 
+      <CheckboxField
+        label={t("hide_to_tray_on_game_start")}
+        checked={form.hideToTrayOnGameStart}
+        onChange={() =>
+          handleChange({
+            hideToTrayOnGameStart: !form.hideToTrayOnGameStart,
+          })
+        }
+      />
+
       {showRunAtStartup && (
         <CheckboxField
           label={t("launch_with_system")}
@@ -77,7 +108,9 @@ export function SettingsBehavior() {
       )}
 
       {showRunAtStartup && (
-        <div style={{ opacity: form.runAtStartup ? 1 : 0.5 }}>
+        <div
+          className={`settings-behavior__checkbox-container ${form.runAtStartup ? "settings-behavior__checkbox-container--enabled" : ""}`}
+        >
           <CheckboxField
             label={t("launch_minimized")}
             style={{ cursor: form.runAtStartup ? "pointer" : "not-allowed" }}
@@ -93,6 +126,24 @@ export function SettingsBehavior() {
           />
         </div>
       )}
+
+      {window.electron.platform === "linux" && (
+        <CheckboxField
+          label={t("enable_auto_install")}
+          checked={form.enableAutoInstall}
+          onChange={() =>
+            handleChange({ enableAutoInstall: !form.enableAutoInstall })
+          }
+        />
+      )}
+
+      <CheckboxField
+        label={t("autoplay_trailers_on_game_page")}
+        checked={form.autoplayGameTrailers}
+        onChange={() =>
+          handleChange({ autoplayGameTrailers: !form.autoplayGameTrailers })
+        }
+      />
 
       <CheckboxField
         label={t("disable_nsfw_alert")}
@@ -119,6 +170,56 @@ export function SettingsBehavior() {
           handleChange({
             showHiddenAchievementsDescription:
               !form.showHiddenAchievementsDescription,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_download_speed_in_megabytes")}
+        checked={form.showDownloadSpeedInMegabytes}
+        onChange={() =>
+          handleChange({
+            showDownloadSpeedInMegabytes: !form.showDownloadSpeedInMegabytes,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("extract_files_by_default")}
+        checked={form.extractFilesByDefault}
+        onChange={() =>
+          handleChange({
+            extractFilesByDefault: !form.extractFilesByDefault,
+          })
+        }
+      />
+
+      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
+        <CheckboxField
+          label={t("enable_steam_achievements")}
+          checked={form.enableSteamAchievements}
+          onChange={() =>
+            handleChange({
+              enableSteamAchievements: !form.enableSteamAchievements,
+            })
+          }
+        />
+
+        <small
+          className="settings-behavior__checkbox-container--tooltip"
+          data-open-article="steam-achievements"
+        >
+          <QuestionIcon size={12} />
+        </small>
+      </div>
+
+      <CheckboxField
+        label={t("enable_new_download_options_badges")}
+        checked={form.enableNewDownloadOptionsBadges}
+        onChange={() =>
+          handleChange({
+            enableNewDownloadOptionsBadges:
+              !form.enableNewDownloadOptionsBadges,
           })
         }
       />

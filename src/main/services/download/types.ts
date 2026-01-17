@@ -1,9 +1,9 @@
 export interface PauseDownloadPayload {
-  game_id: number;
+  game_id: string;
 }
 
 export interface CancelDownloadPayload {
-  game_id: number;
+  game_id: string;
 }
 
 export enum LibtorrentStatus {
@@ -24,13 +24,15 @@ export interface LibtorrentPayload {
   fileSize: number;
   folderName: string;
   status: LibtorrentStatus;
-  gameId: number;
+  gameId: string;
 }
 
 export interface ProcessPayload {
   exe: string | null;
   pid: number;
   name: string;
+  environ?: Record<string, string> | null;
+  cwd?: string | null;
 }
 
 export interface PauseSeedingPayload {

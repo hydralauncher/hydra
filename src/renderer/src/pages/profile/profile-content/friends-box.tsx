@@ -1,25 +1,33 @@
 import { userProfileContext } from "@renderer/context";
-import { useFormat } from "@renderer/hooks";
-import { useContext } from "react";
+import { useUserDetails } from "@renderer/hooks";
+import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PlusIcon } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import * as styles from "./profile-content.css";
 import { Avatar, Link } from "@renderer/components";
+import { AllFriendsModal } from "./all-friends-modal";
+import { AddFriendModal } from "./add-friend-modal";
+import "./friends-box.scss";
+
+const MAX_VISIBLE_FRIENDS = 5;
 
 export function FriendsBox() {
-  const { userProfile, userStats } = useContext(userProfileContext);
-
+  const { userProfile } = useContext(userProfileContext);
+  const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
+  const [showAllFriendsModal, setShowAllFriendsModal] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
 
-  const { numberFormatter } = useFormat();
+  const isMe = userDetails?.id === userProfile?.id;
+  const hasFriends = userProfile?.friends && userProfile.friends.length > 0;
 
   const getGameImage = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
       return (
         <img
+          className="friends-box__game-image"
           alt={game.title}
           width={16}
-          style={{ borderRadius: 4 }}
           src={game.iconUrl}
         />
       );
@@ -28,20 +36,25 @@ export function FriendsBox() {
     return <SteamLogo width={16} height={16} />;
   };
 
-  if (!userProfile?.friends.length) return null;
+  if (!hasFriends) {
+    if (!isMe) return null;
+
+    return (
+      <div className="friends-box__box friends-box__box--empty">
+        <p className="friends-box__empty-text">{t("no_friends_yet")}</p>
+      </div>
+    );
+  }
+
+  const visibleFriends = userProfile.friends.slice(0, MAX_VISIBLE_FRIENDS);
+  const totalFriends = userProfile.friends.length;
+  const showViewAllButton = totalFriends > MAX_VISIBLE_FRIENDS;
 
   return (
-    <div>
-      <div className={styles.sectionHeader}>
-        <h2>{t("friends")}</h2>
-        {userStats && (
-          <span>{numberFormatter.format(userStats.friendsCount)}</span>
-        )}
-      </div>
-
-      <div className={styles.box}>
-        <ul className={styles.list}>
-          {userProfile?.friends.map((friend) => (
+    <>
+      <div className="friends-box__box">
+        <ul className="friends-box__list">
+          {visibleFriends.map((friend) => (
             <li
               key={friend.id}
               title={
@@ -50,21 +63,22 @@ export function FriendsBox() {
                   : undefined
               }
             >
-              <Link to={`/profile/${friend.id}`} className={styles.listItem}>
+              <Link
+                to={`/profile/${friend.id}`}
+                className="friends-box__list-item"
+              >
                 <Avatar
                   size={32}
                   src={friend.profileImageUrl}
                   alt={friend.displayName}
                 />
 
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                >
-                  <span className={styles.friendName}>
+                <div className="friends-box__friend-details">
+                  <span className="friends-box__friend-name">
                     {friend.displayName}
                   </span>
                   {friend.currentGame && (
-                    <div style={{ display: "flex", gap: 4 }}>
+                    <div className="friends-box__game-info">
                       {getGameImage(friend.currentGame)}
                       <small>{friend.currentGame.title}</small>
                     </div>
@@ -74,7 +88,61 @@ export function FriendsBox() {
             </li>
           ))}
         </ul>
+        {showViewAllButton && (
+          <div className="friends-box__view-all-container">
+            <button
+              type="button"
+              className="friends-box__view-all"
+              onClick={() => setShowAllFriendsModal(true)}
+            >
+              {t("view_all")}
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+
+      {userProfile && (
+        <>
+          <AllFriendsModal
+            visible={showAllFriendsModal}
+            onClose={() => setShowAllFriendsModal(false)}
+            userId={userProfile.id}
+            isMe={isMe}
+          />
+          <AddFriendModal
+            visible={showAddFriendModal}
+            onClose={() => setShowAddFriendModal(false)}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+export function FriendsBoxAddButton() {
+  const { userProfile } = useContext(userProfileContext);
+  const { userDetails } = useUserDetails();
+  const { t } = useTranslation("user_profile");
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+
+  const isMe = userDetails?.id === userProfile?.id;
+
+  if (!isMe) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="friends-box__add-friend-button"
+        onClick={() => setShowAddFriendModal(true)}
+      >
+        <PlusIcon size={16} />
+        {t("add_friends")}
+      </button>
+      <AddFriendModal
+        visible={showAddFriendModal}
+        onClose={() => setShowAddFriendModal(false)}
+      />
+    </>
   );
 }

@@ -1,18 +1,15 @@
-import { useCallback, useEffect, useRef } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWondersSdk } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
   useDownload,
   useLibrary,
-  useRepacks,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-
-import * as styles from "./app.css";
+import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -22,13 +19,23 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setExtractionProgress,
+  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
-import { downloadSourcesWorker } from "./workers";
-import { downloadSourcesTable } from "./dexie";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
+
+import {
+  injectCustomCss,
+  removeCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
+import type { UserPreferences } from "@types";
+import "./app.scss";
 
 export interface AppProps {
   children: React.ReactNode;
@@ -38,20 +45,17 @@ export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
 
-  const { t } = useTranslation("app");
+  // Listen for new download options updates
+  useDownloadOptionsListener();
 
-  const { updateRepacks } = useRepacks();
+  const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const workwondersRef = useRef<WorkWondersSdk | null>(null);
+
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    syncFriendRequests,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -73,18 +77,23 @@ export function App() {
 
   const { showSuccessToast } = useToast();
 
+  const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
+    useState(false);
+  const [archivePaths, setArchivePaths] = useState<string[]>([]);
+
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    Promise.all([
+      levelDBService.get("userPreferences", null, "json"),
+      updateLibrary(),
+    ]).then(([preferences]) => {
+      dispatch(setUserPreferences(preferences as UserPreferences | null));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress.game.progress === 1) {
+        if (downloadProgress?.progress === 1) {
           clearDownload();
           updateLibrary();
           return;
@@ -107,7 +116,33 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
-  useEffect(() => {
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      workwondersRef.current = new WorkWondersSdk();
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      await workwondersRef.current.initChangelogWidget();
+      workwondersRef.current.initChangelogWidgetMini();
+
+      if (token) {
+        workwondersRef.current.initFeedbackWidget();
+      }
+    },
+    [workwondersRef]
+  );
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -118,38 +153,35 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, syncFriendRequests, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [
-    fetchUserDetails,
-    syncFriendRequests,
-    t,
-    showSuccessToast,
-    updateUserDetails,
-  ]);
+  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
@@ -184,15 +216,27 @@ export function App() {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onExtractionProgress((shop, objectId, progress) => {
+        dispatch(setExtractionProgress({ shop, objectId, progress }));
+      }),
+      window.electron.onExtractionComplete(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+      }),
+      window.electron.onArchiveDeletionPrompt((paths) => {
+        setArchivePaths(paths);
+        setShowArchiveDeletionModal(true);
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    workwondersRef.current?.notifyUrlChange();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -206,32 +250,48 @@ export function App() {
     });
   }, [dispatch, draggingDisabled]);
 
+  const loadAndApplyTheme = useCallback(async () => {
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+      code?: string;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
+    if (activeTheme?.code) {
+      injectCustomCss(activeTheme.code);
+    } else {
+      removeCustomCss();
+    }
+  }, []);
+
   useEffect(() => {
-    updateRepacks();
+    loadAndApplyTheme();
+  }, [loadAndApplyTheme]);
 
-    const id = crypto.randomUUID();
-    const channel = new BroadcastChannel(`download_sources:sync:${id}`);
+  useEffect(() => {
+    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
+      loadAndApplyTheme();
+    });
 
-    channel.onmessage = (event: MessageEvent<number>) => {
-      const newRepacksCount = event.data;
-      window.electron.publishNewRepacksNotification(newRepacksCount);
-      updateRepacks();
+    return () => unsubscribe();
+  }, [loadAndApplyTheme]);
 
-      downloadSourcesTable.toArray().then((downloadSources) => {
-        downloadSources
-          .filter((source) => !source.fingerprint)
-          .forEach((downloadSource) => {
-            window.electron
-              .putDownloadSource(downloadSource.objectIds)
-              .then(({ fingerprint }) => {
-                downloadSourcesTable.update(downloadSource.id, { fingerprint });
-              });
-          });
-      });
+  const playAudio = useCallback(async () => {
+    const soundUrl = await getAchievementSoundUrl();
+    const volume = await getAchievementSoundVolume();
+    const audio = new Audio(soundUrl);
+    audio.volume = volume;
+    audio.play();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onAchievementUnlocked(() => {
+      playAudio();
+    });
+
+    return () => {
+      unsubscribe();
     };
-
-    downloadSourcesWorker.postMessage(["SYNC_DOWNLOAD_SOURCES", id]);
-  }, [updateRepacks]);
+  }, [playAudio]);
 
   const handleToastClose = useCallback(() => {
     dispatch(closeToast());
@@ -240,11 +300,11 @@ export function App() {
   return (
     <>
       {window.electron.platform === "win32" && (
-        <div className={styles.titleBar}>
+        <div className="title-bar">
           <h4>
             Hydra
             {hasActiveSubscription && (
-              <span className={styles.cloudText}> Cloud</span>
+              <span className="title-bar__cloud-text"> Cloud</span>
             )}
           </h4>
         </div>
@@ -252,9 +312,11 @@ export function App() {
 
       <Toast
         visible={toast.visible}
+        title={toast.title}
         message={toast.message}
         type={toast.type}
         onClose={handleToastClose}
+        duration={toast.duration}
       />
 
       <HydraCloudModal
@@ -263,22 +325,23 @@ export function App() {
         feature={hydraCloudFeature}
       />
 
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
+      <ArchiveDeletionModal
+        visible={showArchiveDeletionModal}
+        archivePaths={archivePaths}
+        onClose={() => setShowArchiveDeletionModal(false)}
+      />
 
       <main>
         <Sidebar />
 
-        <article className={styles.container}>
+        <article className="container">
           <Header />
 
-          <section ref={contentRef} className={styles.content}>
+          <section
+            ref={contentRef}
+            id="scrollableDiv"
+            className="container__content"
+          >
             <Outlet />
           </section>
         </article>

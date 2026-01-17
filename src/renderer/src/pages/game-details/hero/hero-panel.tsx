@@ -1,29 +1,29 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDate, useDownload } from "@renderer/hooks";
+import { useAppSelector, useDate, useDownload } from "@renderer/hooks";
 
 import { HeroPanelActions } from "./hero-panel-actions";
-import * as styles from "./hero-panel.css";
 import { HeroPanelPlaytime } from "./hero-panel-playtime";
 
 import { gameDetailsContext } from "@renderer/context";
+import "./hero-panel.scss";
 
-export interface HeroPanelProps {
-  isHeaderStuck: boolean;
-}
-
-export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
+export function HeroPanel() {
   const { t } = useTranslation("game_details");
 
   const { formatDate } = useDate();
 
-  const { game, repacks, gameColor } = useContext(gameDetailsContext);
+  const { game, repacks } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
 
+  const extraction = useAppSelector((state) => state.download.extraction);
+
   const isGameDownloading =
-    game?.status === "active" && lastPacket?.game.id === game?.id;
+    game?.download?.status === "active" && lastPacket?.gameId === game?.id;
+
+  const isExtracting = extraction?.visibleId === game?.id;
 
   const getInfo = () => {
     if (!game) {
@@ -50,17 +50,16 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
   };
 
   const showProgressBar =
-    (game?.status === "active" && game?.progress < 1) ||
-    game?.status === "paused";
+    (game?.download?.status === "active" && game?.download?.progress < 1) ||
+    game?.download?.status === "paused";
+
+  const showExtractionProgressBar = isExtracting;
 
   return (
-    <>
-      <div
-        style={{ backgroundColor: gameColor }}
-        className={styles.panel({ stuck: isHeaderStuck })}
-      >
-        <div className={styles.content}>{getInfo()}</div>
-        <div className={styles.actions}>
+    <div className="hero-panel__container">
+      <div className="hero-panel">
+        <div className="hero-panel__content">{getInfo()}</div>
+        <div className="hero-panel__actions">
           <HeroPanelActions />
         </div>
 
@@ -68,14 +67,26 @@ export function HeroPanel({ isHeaderStuck }: HeroPanelProps) {
           <progress
             max={1}
             value={
-              isGameDownloading ? lastPacket?.game.progress : game?.progress
+              isGameDownloading
+                ? lastPacket?.progress
+                : game?.download?.progress
             }
-            className={styles.progressBar({
-              disabled: game?.status === "paused",
-            })}
+            className={`hero-panel__progress-bar ${
+              game?.download?.status === "paused"
+                ? "hero-panel__progress-bar--disabled"
+                : ""
+            }`}
+          />
+        )}
+
+        {showExtractionProgressBar && (
+          <progress
+            max={1}
+            value={extraction?.progress ?? 0}
+            className="hero-panel__progress-bar hero-panel__progress-bar--extraction"
           />
         )}
       </div>
-    </>
+    </div>
   );
 }

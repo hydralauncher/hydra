@@ -1,0 +1,112 @@
+@use "../../../scss/globals.scss";
+
+.friends-box {
+  &__box {
+    padding: calc(globals.$spacing-unit * 2);
+    position: relative;
+
+    &--empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: calc(globals.$spacing-unit * 2);
+    }
+  }
+
+  &__empty-text {
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    margin: 0;
+    text-align: center;
+  }
+
+  &__add-friend-button {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__view-all-container {
+    padding-top: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__list-item {
+    display: flex;
+    cursor: pointer;
+    transition: all ease 0.1s;
+    color: globals.$muted-color;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    padding: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
+    align-items: center;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      text-decoration: none;
+    }
+  }
+
+  &__friend-name {
+    color: globals.$muted-color;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  &__game-info {
+    font-size: 0.75rem;
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__friend-details {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__game-image {
+    border-radius: 4px;
+  }
+
+  &__view-all {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+}

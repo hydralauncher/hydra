@@ -1,0 +1,50 @@
+@use "../../scss/globals.scss";
+
+.pagination {
+  display: flex;
+  gap: 4px;
+
+  &__button {
+    width: 40px;
+    max-width: 40px;
+    max-height: 40px;
+  }
+
+  &__ellipsis {
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    &-text {
+      font-size: 16px;
+    }
+  }
+
+  &__page-input {
+    box-sizing: border-box;
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    border: solid 1px globals.$border-color;
+    background-color: transparent;
+    color: globals.$muted-color;
+    text-align: center;
+    font-size: 12px;
+    padding: 0 6px;
+    outline: none;
+  }
+
+  &__double-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0; // remove whitespace node width between SVGs
+  }
+
+  &__double-chevron > svg + svg {
+    margin-left: -8px; // pull the second chevron closer
+  }
+}

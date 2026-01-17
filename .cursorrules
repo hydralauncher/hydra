@@ -1,0 +1,57 @@
+# Hydra Project Rules
+
+## Logging
+
+- **Always use `logger` instead of `console` for logging** in both main and renderer processes
+- In main process: `import { logger } from "@main/services";`
+- In renderer process: `import { logger } from "@renderer/logger";`
+- Replace all instances of:
+  - `console.log()` → `logger.log()`
+  - `console.error()` → `logger.error()`
+  - `console.warn()` → `logger.warn()`
+  - `console.info()` → `logger.info()`
+  - `console.debug()` → `logger.debug()`
+- Do not use `console` for any logging purposes
+
+## Internationalization (i18n)
+
+- All user-facing strings must be translated using i18next
+- Use the `useTranslation` hook in React components: `const { t } = useTranslation("namespace");`
+- Add new translation keys to `src/locales/en/translation.json`
+- Never hardcode English strings in the UI code
+- Placeholder text in form fields must also be translated
+
+## Code Style
+
+- Use ESLint and Prettier for code formatting
+- Follow TypeScript strict mode conventions
+- Use async/await instead of promises when possible
+- Prefer named exports over default exports for utilities and services
+
+## ESLint Issues
+
+- **Always try to fix ESLint errors properly before disabling rules**
+- When encountering ESLint errors, explore these solutions in order:
+  1. **Fix the code to comply with the rule** (e.g., add missing required elements, fix accessibility issues)
+  2. **Use minimal markup to satisfy the rule** (e.g., add empty `<track>` elements for videos without captions, add `role` attributes)
+  3. **Only disable the rule as a last resort** when no reasonable solution exists
+- When disabling a rule, always include a comment explaining why it's necessary
+- Examples of proper fixes:
+  - For `jsx-a11y/media-has-caption`: Add `<track kind="captions" />` even if no captions are available
+  - For `jsx-a11y/alt-text`: Add meaningful alt text or `alt=""` for decorative images
+  - For accessibility rules: Add appropriate ARIA attributes rather than disabling
+
+## TypeScript Array Syntax
+
+- **Always use `T[]` syntax instead of `Array<T>`** for array types
+- Prefer: `string[]`, `number[]`, `MyType[]`
+- Avoid: `Array<string>`, `Array<number>`, `Array<MyType>`
+- This applies to all type annotations, type assertions, and generic type parameters
+
+## Comments
+
+- Keep comments concise and purposeful; avoid verbose explanations.
+- Focus on the "why" or non-obvious context, not restating the code.
+- Prefer self-explanatory naming and structure over excessive comments.
+- Do not comment every line or obvious behavior; remove stale comments.
+- Use docblocks only where they add value (public APIs, complex logic).

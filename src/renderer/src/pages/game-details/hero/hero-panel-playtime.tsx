@@ -1,25 +1,30 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import * as styles from "./hero-panel.css";
 import { formatDownloadProgress } from "@renderer/helpers";
-import { useDate, useDownload, useFormat } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useDownload,
+  useFormat,
+} from "@renderer/hooks";
 import { Link } from "@renderer/components";
-
 import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { AlertFillIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
+import "./hero-panel-playtime.scss";
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
   const { game, isGameRunning } = useContext(gameDetailsContext);
-
   const { t } = useTranslation("game_details");
-
   const { numberFormatter } = useFormat();
-
   const { progress, lastPacket } = useDownload();
-
   const { formatDistance } = useDate();
+  const extraction = useAppSelector((state) => state.download.extraction);
+
+  const isExtracting = extraction?.visibleId === game?.id;
 
   useEffect(() => {
     if (game?.lastTimePlayed) {
@@ -49,21 +54,34 @@ export function HeroPanelPlaytime() {
   if (!game) return null;
 
   const hasDownload =
-    ["active", "paused"].includes(game.status as string) && game.progress !== 1;
+    ["active", "paused"].includes(game.download?.status as string) &&
+    game.download?.progress !== 1;
 
   const isGameDownloading =
-    game.status === "active" && lastPacket?.game.id === game.id;
+    game.download?.status === "active" && lastPacket?.gameId === game.id;
+
+  const extractionInProgressInfo = (
+    <div className="hero-panel-playtime__download-details">
+      <Link to="/downloads" className="hero-panel-playtime__downloads-link">
+        {t("extracting")}
+      </Link>
+
+      <small>{formatDownloadProgress(extraction?.progress ?? 0)}</small>
+    </div>
+  );
 
   const downloadInProgressInfo = (
-    <div className={styles.downloadDetailsRow}>
-      <Link to="/downloads" className={styles.downloadsLink}>
-        {game.status === "active"
+    <div className="hero-panel-playtime__download-details">
+      <Link to="/downloads" className="hero-panel-playtime__downloads-link">
+        {game.download?.status === "active"
           ? t("download_in_progress")
           : t("download_paused")}
       </Link>
 
       <small>
-        {isGameDownloading ? progress : formatDownloadProgress(game.progress)}
+        {isGameDownloading
+          ? progress
+          : formatDownloadProgress(game.download?.progress)}
       </small>
     </div>
   );
@@ -72,7 +90,8 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("not_played_yet", { title: game?.title })}</p>
-        {hasDownload && downloadInProgressInfo}
+        {isExtracting && extractionInProgressInfo}
+        {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
     );
   }
@@ -81,28 +100,57 @@ export function HeroPanelPlaytime() {
     return (
       <>
         <p>{t("playing_now")}</p>
-
-        {hasDownload && downloadInProgressInfo}
+        {isExtracting && extractionInProgressInfo}
+        {!isExtracting && hasDownload && downloadInProgressInfo}
       </>
     );
   }
 
   return (
     <>
-      <p>
+      <p
+        className="hero-panel-playtime__play-time"
+        data-tooltip-place="right"
+        data-tooltip-content={
+          game.hasManuallyUpdatedPlaytime
+            ? t("manual_playtime_tooltip")
+            : undefined
+        }
+        data-tooltip-id={
+          game.hasManuallyUpdatedPlaytime
+            ? "manual-playtime-warning"
+            : undefined
+        }
+      >
+        {game.hasManuallyUpdatedPlaytime && (
+          <AlertFillIcon
+            size={16}
+            className="hero-panel-playtime__manual-warning"
+          />
+        )}
         {t("play_time", {
           amount: formattedPlayTime,
         })}
       </p>
 
-      {hasDownload ? (
-        downloadInProgressInfo
-      ) : (
+      {isExtracting && extractionInProgressInfo}
+      {!isExtracting && hasDownload && downloadInProgressInfo}
+      {!isExtracting && !hasDownload && (
         <p>
           {t("last_time_played", {
             period: lastTimePlayed,
           })}
         </p>
+      )}
+
+      {game.hasManuallyUpdatedPlaytime && (
+        <Tooltip
+          id="manual-playtime-warning"
+          style={{
+            zIndex: 9999,
+          }}
+          openOnClick={false}
+        />
       )}
     </>
   );

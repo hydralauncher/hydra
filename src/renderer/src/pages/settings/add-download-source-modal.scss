@@ -1,0 +1,48 @@
+@use "../../scss/globals.scss";
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.add-download-source-modal {
+  &__container {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 500px;
+  }
+
+  &__validation-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: calc(globals.$spacing-unit * 3);
+  }
+
+  &__validation-info {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__validate-button {
+    align-self: flex-end;
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+    margin-right: calc(globals.$spacing-unit / 2);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    margin-top: calc(globals.$spacing-unit * 2);
+  }
+}

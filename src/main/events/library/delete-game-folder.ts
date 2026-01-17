@@ -1,61 +1,55 @@
 import path from "node:path";
 import fs from "node:fs";
 
-import { gameRepository } from "@main/repository";
-
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { logger } from "@main/services";
 import { registerEvent } from "../register-event";
+import { GameShop } from "@types";
+import { downloadsSublevel, levelKeys } from "@main/level";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ): Promise<void> => {
-  const game = await gameRepository.findOne({
-    where: [
-      {
-        id: gameId,
-        isDeleted: false,
-        status: "removed",
-      },
-      {
-        id: gameId,
-        progress: 1,
-        isDeleted: false,
-      },
-    ],
-  });
+  const downloadKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(downloadKey);
 
-  if (!game) return;
+  if (!download?.folderName) return;
 
-  if (game.folderName) {
-    const folderPath = path.join(
-      game.downloadPath ?? (await getDownloadsPath()),
-      game.folderName
-    );
+  const folderPath = path.join(
+    download.downloadPath ?? (await getDownloadsPath()),
+    download.folderName
+  );
 
-    if (fs.existsSync(folderPath)) {
+  const metaPath = `${folderPath}.meta`;
+
+  const deleteFile = async (filePath: string, isDirectory = false) => {
+    if (fs.existsSync(filePath)) {
       await new Promise<void>((resolve, reject) => {
         fs.rm(
-          folderPath,
-          { recursive: true, force: true, maxRetries: 5, retryDelay: 200 },
+          filePath,
+          {
+            recursive: isDirectory,
+            force: true,
+            maxRetries: 5,
+            retryDelay: 200,
+          },
           (error) => {
             if (error) {
               logger.error(error);
               reject();
             }
-
             resolve();
           }
         );
       });
     }
-  }
+  };
 
-  await gameRepository.update(
-    { id: gameId },
-    { downloadPath: null, folderName: null, status: null, progress: 0 }
-  );
+  await deleteFile(folderPath, true);
+  await deleteFile(metaPath);
+  await downloadsSublevel.del(downloadKey);
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);

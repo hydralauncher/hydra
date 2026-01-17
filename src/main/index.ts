@@ -3,16 +3,18 @@ import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
-import fs from "node:fs";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
-import { logger, WindowManager } from "@main/services";
-import { dataSource } from "@main/data-source";
+import {
+  logger,
+  clearGamesPlaytime,
+  WindowManager,
+  Lock,
+  Aria2,
+} from "@main/services";
 import resources from "@locales";
-import { userPreferencesRepository } from "@main/repository";
-import { knexClient, migrationConfig } from "./knex-client";
-import { databaseDirectory } from "./constants";
 import { PythonRPC } from "./services/python-rpc";
-import { Aria2 } from "./services/aria2";
+import { db, levelKeys } from "./level";
+import { loadState } from "./main";
 
 const { autoUpdater } = updater;
 
@@ -27,7 +29,9 @@ autoUpdater.logger = logger;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-app.commandLine.appendSwitch("--no-sandbox");
+if (process.platform !== "linux") {
+  app.commandLine.appendSwitch("--no-sandbox");
+}
 
 i18n.init({
   resources,
@@ -50,21 +54,6 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
-const runMigrations = async () => {
-  if (!fs.existsSync(databaseDirectory)) {
-    fs.mkdirSync(databaseDirectory, { recursive: true });
-  }
-
-  await knexClient.migrate.list(migrationConfig).then((result) => {
-    logger.log(
-      "Migrations to run:",
-      result[1].map((migration) => migration.name)
-    );
-  });
-
-  await knexClient.migrate.latest(migrationConfig);
-};
-
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -76,31 +65,87 @@ app.whenReady().then(async () => {
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
-  await runMigrations()
-    .then(() => {
-      logger.log("Migrations executed successfully");
-    })
-    .catch((err) => {
-      logger.log("Migrations failed to run:", err);
+  protocol.handle("gradient", (request) => {
+    const gradientCss = decodeURIComponent(
+      request.url.slice("gradient:".length)
+    );
+
+    // Parse gradient CSS safely without regex to prevent ReDoS
+    let direction = "45deg";
+    let color1 = "#4a90e2";
+    let color2 = "#7b68ee";
+
+    // Simple string parsing approach - more secure than regex
+    if (
+      gradientCss.startsWith("linear-gradient(") &&
+      gradientCss.endsWith(")")
+    ) {
+      const content = gradientCss.slice(16, -1); // Remove "linear-gradient(" and ")"
+      const parts = content.split(",").map((part) => part.trim());
+
+      if (parts.length >= 3) {
+        direction = parts[0];
+        color1 = parts[1];
+        color2 = parts[2];
+      }
+    }
+
+    let x1 = "0%",
+      y1 = "0%",
+      x2 = "100%",
+      y2 = "100%";
+
+    if (direction === "to right") {
+      y2 = "0%";
+    } else if (direction === "to bottom") {
+      x2 = "0%";
+    } else if (direction === "45deg") {
+      y1 = "100%";
+      y2 = "0%";
+    } else if (direction === "225deg") {
+      x1 = "100%";
+      x2 = "0%";
+    } else if (direction === "315deg") {
+      x1 = "100%";
+      y1 = "100%";
+      x2 = "0%";
+      y2 = "0%";
+    }
+    // Note: "135deg" case removed as it uses all default values
+
+    const svgContent = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+        <defs>
+          <linearGradient id="grad" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+            <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grad)" />
+      </svg>
+    `;
+
+    return new Response(svgContent, {
+      headers: { "Content-Type": "image/svg+xml" },
     });
-
-  await dataSource.initialize();
-
-  await import("./main");
-
-  const userPreferences = await userPreferencesRepository.findOne({
-    where: { id: 1 },
   });
 
-  if (userPreferences?.language) {
-    i18n.changeLanguage(userPreferences.language);
-  }
+  await loadState();
+
+  const language = await db
+    .get<string, string>(levelKeys.language, {
+      valueEncoding: "utf8",
+    })
+    .catch(() => "en");
+
+  if (language) i18n.changeLanguage(language);
 
   if (!process.argv.includes("--hidden")) {
     WindowManager.createMainWindow();
   }
 
-  WindowManager.createSystemTray(userPreferences?.language || "en");
+  WindowManager.createNotificationWindow();
+  WindowManager.createSystemTray(language || "en");
 });
 
 app.on("browser-window-created", (_, window) => {
@@ -115,6 +160,29 @@ const handleDeepLinkPath = (uri?: string) => {
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
+      return;
+    }
+
+    if (url.host === "profile") {
+      const userId = url.searchParams.get("userId");
+
+      if (userId) {
+        WindowManager.redirect(`profile/${userId}`);
+      }
+
+      return;
+    }
+
+    if (url.host === "install-theme") {
+      const themeName = url.searchParams.get("theme");
+      const authorId = url.searchParams.get("authorId");
+      const authorName = url.searchParams.get("authorName");
+
+      if (themeName && authorId && authorName) {
+        WindowManager.redirect(
+          `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
+        );
+      }
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
@@ -146,10 +214,20 @@ app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
 });
 
-app.on("before-quit", () => {
-  /* Disconnects libtorrent */
-  PythonRPC.kill();
-  Aria2.kill();
+let canAppBeClosed = false;
+
+app.on("before-quit", async (e) => {
+  await Lock.releaseLock();
+
+  if (!canAppBeClosed) {
+    e.preventDefault();
+    /* Disconnects libtorrent */
+    PythonRPC.kill();
+    Aria2.kill();
+    await clearGamesPlaytime();
+    canAppBeClosed = true;
+    app.quit();
+  }
 });
 
 app.on("activate", () => {

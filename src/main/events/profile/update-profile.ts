@@ -7,7 +7,7 @@ import { omit } from "lodash-es";
 import axios from "axios";
 import { fileTypeFromFile } from "file-type";
 
-const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
+export const patchUserProfile = async (updateProfile: UpdateProfileRequest) => {
   return HydraApi.patch<UserProfile>("/profile", updateProfile);
 };
 
@@ -51,22 +51,30 @@ const updateProfile = async (
     "backgroundImageUrl",
   ]);
 
-  if (updateProfile.profileImageUrl) {
-    const profileImageUrl = await uploadImage(
-      "profile-image",
-      updateProfile.profileImageUrl
-    ).catch(() => undefined);
+  if (updateProfile.profileImageUrl !== undefined) {
+    if (updateProfile.profileImageUrl === null) {
+      payload["profileImageUrl"] = null;
+    } else {
+      const profileImageUrl = await uploadImage(
+        "profile-image",
+        updateProfile.profileImageUrl
+      ).catch(() => undefined);
 
-    payload["profileImageUrl"] = profileImageUrl;
+      payload["profileImageUrl"] = profileImageUrl;
+    }
   }
 
-  if (updateProfile.backgroundImageUrl) {
-    const backgroundImageUrl = await uploadImage(
-      "background-image",
-      updateProfile.backgroundImageUrl
-    ).catch(() => undefined);
+  if (updateProfile.backgroundImageUrl !== undefined) {
+    if (updateProfile.backgroundImageUrl === null) {
+      payload["backgroundImageUrl"] = null;
+    } else {
+      const backgroundImageUrl = await uploadImage(
+        "background-image",
+        updateProfile.backgroundImageUrl
+      ).catch(() => undefined);
 
-    payload["backgroundImageUrl"] = backgroundImageUrl;
+      payload["backgroundImageUrl"] = backgroundImageUrl;
+    }
   }
 
   return patchUserProfile(payload);

@@ -1,0 +1,198 @@
+@use "../../../scss/globals.scss";
+
+.gallery-slider {
+  &__container {
+    padding: calc(globals.$spacing-unit * 1.5) 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-height: 80vh;
+
+    @media (min-width: 1024px) {
+      max-height: 70vh;
+    }
+
+    @media (min-width: 1280px) {
+      max-height: 60vh;
+    }
+  }
+
+  &__viewport {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+
+    @media (min-width: 1280px) {
+      width: 60%;
+      max-height: 500px;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
+      max-height: 600px;
+    }
+  }
+
+  &__container-inner {
+    display: flex;
+    height: 100%;
+  }
+
+  &__slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__media {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  &__preview {
+    width: 100%;
+    padding: globals.$spacing-unit 0;
+    height: auto;
+    display: flex;
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: calc(globals.$spacing-unit / 2);
+
+    @media (min-width: 1280px) {
+      width: 60%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      width: 20%;
+    }
+
+    &::-webkit-scrollbar {
+      height: 10px;
+    }
+  }
+
+  &__preview-button {
+    cursor: pointer;
+    width: 20%;
+    display: block;
+    flex-shrink: 0;
+    flex-grow: 0;
+    opacity: 0.3;
+    transition:
+      translate 0.3s ease-in-out,
+      opacity 0.2s ease;
+    border-radius: 4px;
+    border: solid 1px globals.$border-color;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 16/9;
+
+    @media (min-width: 1024px) {
+      width: 15%;
+    }
+
+    @media (min-width: 1280px) {
+      width: 12%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 10%;
+    }
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &--active {
+      opacity: 1;
+    }
+  }
+
+  &__preview-image {
+    width: 100%;
+    display: flex;
+  }
+
+  &__play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.2s ease;
+    pointer-events: none;
+
+    .gallery-slider__preview-button:hover & {
+      background-color: rgba(0, 0, 0, 0.6);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+  }
+
+  &__button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    color: globals.$muted-color;
+    width: 48px;
+    height: 48px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    &--left {
+      left: globals.$spacing-unit;
+      transform: translateY(-50%) translateX(-100px);
+      opacity: 0;
+
+      .gallery-slider__viewport:hover & {
+        transform: translateY(-50%) translateX(0);
+        opacity: 1;
+      }
+    }
+
+    &--right {
+      right: globals.$spacing-unit;
+      transform: translateY(-50%) translateX(100px);
+      opacity: 0;
+
+      .gallery-slider__viewport:hover & {
+        transform: translateY(-50%) translateX(0);
+        opacity: 1;
+      }
+    }
+  }
+}

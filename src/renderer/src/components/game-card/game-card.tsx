@@ -1,38 +1,32 @@
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
-import type { GameStats } from "@types";
+import type { GameStats, ShopAssets } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
-import * as styles from "./game-card.css";
+import "./game-card.scss";
+
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
+import { StarRating } from "../star-rating/star-rating";
 import { useCallback, useState } from "react";
-import { useFormat, useRepacks } from "@renderer/hooks";
-import { steamUrlBuilder } from "@shared";
+import { useFormat } from "@renderer/hooks";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   > {
-  game: any;
+  game: ShopAssets;
 }
 
 const shopIcon = {
-  steam: <SteamLogo className={styles.shopIcon} />,
+  steam: <SteamLogo className="game-card__shop-icon" />,
 };
 
 export function GameCard({ game, ...props }: GameCardProps) {
   const { t } = useTranslation("game_card");
 
   const [stats, setStats] = useState<GameStats | null>(null);
-
-  const { getRepacksForObjectId } = useRepacks();
-  const repacks = getRepacksForObjectId(game.objectId);
-
-  const uniqueRepackers = Array.from(
-    new Set(repacks.map((repack) => repack.repacker))
-  );
 
   const handleHover = useCallback(() => {
     if (!stats) {
@@ -48,47 +42,60 @@ export function GameCard({ game, ...props }: GameCardProps) {
     <button
       {...props}
       type="button"
-      className={styles.card}
+      className="game-card"
       onMouseEnter={handleHover}
     >
-      <div className={styles.backdrop}>
+      <div className="game-card__backdrop">
         <img
-          src={steamUrlBuilder.library(game.objectId)}
+          src={game.libraryImageUrl ?? undefined}
           alt={game.title}
-          className={styles.cover}
+          className="game-card__cover"
           loading="lazy"
         />
 
-        <div className={styles.content}>
-          <div className={styles.titleContainer}>
+        <div className="game-card__content">
+          <div className="game-card__title-container">
             {shopIcon[game.shop]}
-            <p className={styles.title}>{game.title}</p>
+            <p className="game-card__title">{game.title}</p>
           </div>
 
-          {uniqueRepackers.length > 0 ? (
-            <ul className={styles.downloadOptions}>
-              {uniqueRepackers.map((repacker) => (
-                <li key={repacker}>
-                  <Badge>{repacker}</Badge>
+          {game.downloadSources.length > 0 ? (
+            <ul className="game-card__download-options">
+              {game.downloadSources.slice(0, 3).map((sourceName) => (
+                <li key={sourceName}>
+                  <Badge>{sourceName}</Badge>
                 </li>
               ))}
+              {game.downloadSources.length > 3 && (
+                <li>
+                  <Badge>
+                    +{game.downloadSources.length - 3}{" "}
+                    {t("game_card:available", {
+                      count: game.downloadSources.length - 3,
+                    })}
+                  </Badge>
+                </li>
+              )}
             </ul>
           ) : (
-            <p className={styles.noDownloadsLabel}>{t("no_downloads")}</p>
+            <p className="game-card__no-download-label">{t("no_downloads")}</p>
           )}
-          <div className={styles.specifics}>
-            <div className={styles.specificsItem}>
+
+          <div className="game-card__specifics">
+            <div className="game-card__specifics-item">
               <DownloadIcon />
               <span>
                 {stats ? numberFormatter.format(stats.downloadCount) : "…"}
               </span>
             </div>
-
-            <div className={styles.specificsItem}>
+            <div className="game-card__specifics-item">
               <PeopleIcon />
               <span>
-                {stats ? numberFormatter.format(stats?.playerCount) : "…"}
+                {stats ? numberFormatter.format(stats.playerCount) : "…"}
               </span>
+            </div>
+            <div className="game-card__specifics-item">
+              <StarRating rating={stats?.averageScore || null} size={14} />
             </div>
           </div>
         </div>

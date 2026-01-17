@@ -1,10 +1,13 @@
-import { gameShopCacheRepository } from "@main/repository";
-import { getSteamAppDetails } from "@main/services";
+import { getSteamAppDetails, logger } from "@main/services";
 
-import type { ShopDetails, GameShop, SteamAppDetails } from "@types";
+import type { ShopDetails, GameShop, ShopDetailsWithAssets } from "@types";
 
 import { registerEvent } from "../register-event";
-import { steamGamesWorker } from "@main/workers";
+import {
+  gamesShopAssetsSublevel,
+  gamesShopCacheSublevel,
+  levelKeys,
+} from "@main/level";
 
 const getLocalizedSteamAppDetails = async (
   objectId: string,
@@ -14,22 +17,7 @@ const getLocalizedSteamAppDetails = async (
     return getSteamAppDetails(objectId, language);
   }
 
-  return getSteamAppDetails(objectId, language).then(
-    async (localizedAppDetails) => {
-      const steamGame = await steamGamesWorker.run(Number(objectId), {
-        name: "getById",
-      });
-
-      if (steamGame && localizedAppDetails) {
-        return {
-          ...localizedAppDetails,
-          name: steamGame.name,
-        };
-      }
-
-      return null;
-    }
-  );
+  return getSteamAppDetails(objectId, language);
 };
 
 const getGameShopDetails = async (
@@ -37,42 +25,46 @@ const getGameShopDetails = async (
   objectId: string,
   shop: GameShop,
   language: string
-): Promise<ShopDetails | null> => {
+): Promise<ShopDetailsWithAssets | null> => {
+  if (shop === "custom") return null;
+
   if (shop === "steam") {
-    const cachedData = await gameShopCacheRepository.findOne({
-      where: { objectID: objectId, language },
-    });
+    const [cachedData, cachedAssets] = await Promise.all([
+      gamesShopCacheSublevel.get(
+        levelKeys.gameShopCacheItem(shop, objectId, language)
+      ),
+      gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
+    ]);
 
     const appDetails = getLocalizedSteamAppDetails(objectId, language).then(
       (result) => {
         if (result) {
-          gameShopCacheRepository.upsert(
-            {
-              objectID: objectId,
-              shop: "steam",
-              language,
-              serializedData: JSON.stringify(result),
-            },
-            ["objectID"]
-          );
+          result.name = cachedAssets?.title ?? result.name;
+
+          gamesShopCacheSublevel
+            .put(levelKeys.gameShopCacheItem(shop, objectId, language), result)
+            .catch((err) => {
+              logger.error("Could not cache game details", err);
+            });
+
+          return {
+            ...result,
+            assets: cachedAssets ?? null,
+          };
         }
 
-        return result;
+        return null;
       }
     );
 
-    const cachedGame = cachedData?.serializedData
-      ? (JSON.parse(cachedData?.serializedData) as SteamAppDetails)
-      : null;
-
-    if (cachedGame) {
+    if (cachedData) {
       return {
-        ...cachedGame,
-        objectId,
-      } as ShopDetails;
+        ...cachedData,
+        assets: cachedAssets ?? null,
+      };
     }
 
-    return Promise.resolve(appDetails);
+    return appDetails;
   }
 
   throw new Error("Not implemented");

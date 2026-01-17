@@ -1,0 +1,27 @@
+@use "../../../scss/globals.scss";
+
+.hero-panel-playtime {
+  &__download-details {
+    gap: globals.$spacing-unit;
+    display: flex;
+    color: globals.$body-color;
+    align-items: center;
+  }
+
+  &__downloads-link {
+    color: globals.$body-color;
+    text-decoration: underline;
+  }
+
+  &__play-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+  }
+
+  &__manual-warning {
+    color: #f59e0b; // Warning amber color
+    flex-shrink: 0;
+  }
+}

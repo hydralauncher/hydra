@@ -5,9 +5,8 @@ import type {
   UserAchievement,
 } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button, Link } from "@renderer/components";
+import { Button, Link, StarRating } from "@renderer/components";
 
-import * as styles from "./sidebar.css";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
@@ -15,18 +14,19 @@ import {
   DownloadIcon,
   LockIcon,
   PeopleIcon,
+  StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
-import { howLongToBeatEntriesTable } from "@renderer/dexie";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import "./sidebar.scss";
+import { GameLanguageSection } from "./game-language-section";
 
-const fakeAchievements: UserAchievement[] = [
+const achievementsPlaceholder: UserAchievement[] = [
   {
     displayName: "Timber!!",
-    name: "",
+    name: "1",
     hidden: false,
     description: "Chop down your first tree.",
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0fbb33098c9da39d1d4771d8209afface9c46e81.jpg",
@@ -37,7 +37,7 @@ const fakeAchievements: UserAchievement[] = [
   },
   {
     displayName: "Supreme Helper Minion!",
-    name: "",
+    name: "2",
     hidden: false,
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/0a6ff6a36670c96ceb4d30cf6fd69d2fdf55f38e.jpg",
     icongray:
@@ -47,7 +47,7 @@ const fakeAchievements: UserAchievement[] = [
   },
   {
     displayName: "Feast of Midas",
-    name: "",
+    name: "3",
     hidden: false,
     icon: "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/105600/2d10311274fe7c92ab25cc29afdca86b019ad472.jpg",
     icongray:
@@ -64,7 +64,6 @@ export function Sidebar() {
   }>({ isLoading: true, data: null });
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
-
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
@@ -72,82 +71,47 @@ export function Sidebar() {
     useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
-
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
-
   const { numberFormatter } = useFormat();
 
   useEffect(() => {
     if (objectId) {
       setHowLongToBeat({ isLoading: true, data: null });
 
-      howLongToBeatEntriesTable
-        .where({ shop, objectId })
-        .first()
-        .then(async (cachedHowLongToBeat) => {
-          if (cachedHowLongToBeat) {
-            setHowLongToBeat({
-              isLoading: false,
-              data: cachedHowLongToBeat.categories,
-            });
-          } else {
-            try {
-              const howLongToBeat = await window.electron.getHowLongToBeat(
-                objectId,
-                shop
-              );
-
-              if (howLongToBeat) {
-                howLongToBeatEntriesTable.add({
-                  objectId,
-                  shop: "steam",
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  categories: howLongToBeat,
-                });
-              }
-
-              setHowLongToBeat({ isLoading: false, data: howLongToBeat });
-            } catch (err) {
-              setHowLongToBeat({ isLoading: false, data: null });
-            }
+      // Directly fetch from API without checking cache
+      window.electron.hydraApi
+        .get<HowLongToBeatCategory[] | null>(
+          `/games/${shop}/${objectId}/how-long-to-beat`,
+          {
+            needsAuth: false,
           }
+        )
+        .then((howLongToBeatData) => {
+          setHowLongToBeat({ isLoading: false, data: howLongToBeatData });
+        })
+        .catch(() => {
+          setHowLongToBeat({ isLoading: false, data: null });
         });
     }
-  }, [objectId, shop, gameTitle]);
+  }, [objectId, shop]);
 
   return (
-    <aside className={styles.contentSidebar}>
+    <aside className="content-sidebar">
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 1,
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0, 0, 0, 0.7)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              gap: `${SPACING_UNIT}px`,
-            }}
-          >
+          <div className="achievements-placeholder">
             <LockIcon size={36} />
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
-          <ul className={styles.list} style={{ filter: "blur(4px)" }}>
-            {fakeAchievements.map((achievement, index) => (
-              <li key={index}>
-                <div className={styles.listItem}>
+          <ul className="list achievements-placeholder__blur">
+            {achievementsPlaceholder.map((achievement) => (
+              <li key={achievement.name}>
+                <div className="list__item">
                   <img
-                    style={{ filter: "blur(8px)" }}
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
+                    className={`list__item-image achievements-placeholder__blur ${
+                      achievement.unlocked ? "" : "list__item-image--locked"
+                    }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
                   />
@@ -164,6 +128,7 @@ export function Sidebar() {
           </ul>
         </SidebarSection>
       )}
+
       {userDetails && achievements && achievements.length > 0 && (
         <SidebarSection
           title={t("achievements_count", {
@@ -171,10 +136,10 @@ export function Sidebar() {
             achievementsCount: achievements.length,
           })}
         >
-          <ul className={styles.list}>
+          <ul className="list">
             {!hasActiveSubscription && (
               <button
-                className={styles.subscriptionRequiredButton}
+                className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
               >
                 <CloudOfflineIcon size={16} />
@@ -182,21 +147,21 @@ export function Sidebar() {
               </button>
             )}
 
-            {achievements.slice(0, 4).map((achievement, index) => (
-              <li key={index}>
+            {achievements.slice(0, 4).map((achievement) => (
+              <li key={achievement.displayName}>
                 <Link
                   to={buildGameAchievementPath({
                     shop: shop,
                     objectId: objectId!,
                     title: gameTitle,
                   })}
-                  className={styles.listItem}
+                  className="list__item"
                   title={achievement.description}
                 >
                   <img
-                    className={styles.listItemImage({
-                      unlocked: achievement.unlocked,
-                    })}
+                    className={`list__item-image ${
+                      achievement.unlocked ? "" : "list__item-image--locked"
+                    }`}
                     src={achievement.icon}
                     alt={achievement.displayName}
                   />
@@ -212,7 +177,6 @@ export function Sidebar() {
             ))}
 
             <Link
-              style={{ textAlign: "center" }}
               to={buildGameAchievementPath({
                 shop: shop,
                 objectId: objectId!,
@@ -227,21 +191,36 @@ export function Sidebar() {
 
       {stats && (
         <SidebarSection title={t("stats")}>
-          <div className={styles.statsSection}>
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
+          <div className="stats__section">
+            <div className="stats__category">
+              <p className="stats__category-title">
                 <DownloadIcon size={18} />
                 {t("download_count")}
               </p>
               <p>{numberFormatter.format(stats?.downloadCount)}</p>
             </div>
 
-            <div className={styles.statsCategory}>
-              <p className={styles.statsCategoryTitle}>
+            <div className="stats__category">
+              <p className="stats__category-title">
                 <PeopleIcon size={18} />
                 {t("player_count")}
               </p>
               <p>{numberFormatter.format(stats?.playerCount)}</p>
+            </div>
+
+            <div className="stats__category">
+              <p className="stats__category-title">
+                <StarIcon size={18} />
+                {t("rating_count")}
+              </p>
+              <StarRating
+                rating={
+                  stats?.averageScore === 0
+                    ? null
+                    : (stats?.averageScore ?? null)
+                }
+                size={16}
+              />
             </div>
           </div>
         </SidebarSection>
@@ -253,9 +232,9 @@ export function Sidebar() {
       />
 
       <SidebarSection title={t("requirements")}>
-        <div className={styles.requirementButtonContainer}>
+        <div className="requirement__button-container">
           <Button
-            className={styles.requirementButton}
+            className="requirement__button"
             onClick={() => setActiveRequirement("minimum")}
             theme={activeRequirement === "minimum" ? "primary" : "outline"}
           >
@@ -263,7 +242,7 @@ export function Sidebar() {
           </Button>
 
           <Button
-            className={styles.requirementButton}
+            className="requirement__button"
             onClick={() => setActiveRequirement("recommended")}
             theme={activeRequirement === "recommended" ? "primary" : "outline"}
           >
@@ -272,7 +251,7 @@ export function Sidebar() {
         </div>
 
         <div
-          className={styles.requirementsDetails}
+          className="requirement__details"
           dangerouslySetInnerHTML={{
             __html:
               shopDetails?.pc_requirements?.[activeRequirement] ??
@@ -282,6 +261,8 @@ export function Sidebar() {
           }}
         />
       </SidebarSection>
+
+      <GameLanguageSection />
     </aside>
   );
 }

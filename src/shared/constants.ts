@@ -3,12 +3,21 @@ export enum Downloader {
   Torrent,
   Gofile,
   PixelDrain,
-  Qiwi,
+  Datanodes,
+  Mediafire,
+  TorBox,
+  Hydra,
+  Buzzheavier,
+  FuckingFast,
+  VikingFile,
+  Rootz,
 }
 
 export enum DownloadSourceStatus {
-  UpToDate,
-  Errored,
+  PendingMatching = "PENDING_MATCHING",
+  Matched = "MATCHED",
+  Matching = "MATCHING",
+  Failed = "FAILED",
 }
 
 export enum CatalogueCategory {
@@ -31,6 +40,7 @@ export enum Cracker {
   onlineFix = "OnlineFix",
   goldberg = "Goldberg",
   userstats = "user_stats",
+  Steam = "Steam",
   rld = "RLD!",
   empress = "EMPRESS",
   skidrow = "SKIDROW",
@@ -41,3 +51,19 @@ export enum Cracker {
   rle = "RLE",
   razor1911 = "RAZOR1911",
 }
+
+export enum AuthPage {
+  SignIn = "/",
+  UpdateEmail = "/update-email",
+  UpdatePassword = "/update-password",
+}
+
+export enum DownloadError {
+  NotCachedOnRealDebrid = "download_error_not_cached_on_real_debrid",
+  NotCachedOnTorBox = "download_error_not_cached_on_torbox",
+  GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
+  RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
+  NotCachedOnHydra = "download_error_not_cached_on_hydra",
+}
+
+export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];

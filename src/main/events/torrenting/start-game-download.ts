@@ -1,99 +1,169 @@
 import { registerEvent } from "../register-event";
-import type { StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi } from "@main/services";
-
-import { Not } from "typeorm";
-import { steamGamesWorker } from "@main/workers";
+import type { Download, StartGameDownloadPayload } from "@types";
+import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
-import { steamUrlBuilder } from "@shared";
-import { dataSource } from "@main/data-source";
-import { DownloadQueue, Game } from "@main/entity";
+import { Downloader, DownloadError } from "@shared";
+import {
+  downloadsSublevel,
+  gamesShopAssetsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
+import { AxiosError } from "axios";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
-  const { objectId, title, shop, downloadPath, downloader, uri } = payload;
+  const {
+    objectId,
+    title,
+    shop,
+    downloadPath,
+    downloader,
+    uri,
+    automaticallyExtract,
+  } = payload;
 
-  return dataSource.transaction(async (transactionalEntityManager) => {
-    const gameRepository = transactionalEntityManager.getRepository(Game);
-    const downloadQueueRepository =
-      transactionalEntityManager.getRepository(DownloadQueue);
+  const gameKey = levelKeys.game(shop, objectId);
 
-    const game = await gameRepository.findOne({
-      where: {
-        objectID: objectId,
-        shop,
-      },
-    });
+  await DownloadManager.pauseDownload();
 
-    await DownloadManager.pauseDownload();
-
-    await gameRepository.update(
-      { status: "active", progress: Not(1) },
-      { status: "paused" }
-    );
-
-    if (game) {
-      await gameRepository.update(
-        {
-          id: game.id,
-        },
-        {
-          status: "active",
-          progress: 0,
-          bytesDownloaded: 0,
-          downloadPath,
-          downloader,
-          uri,
-          isDeleted: false,
-        }
-      );
-    } else {
-      const steamGame = await steamGamesWorker.run(Number(objectId), {
-        name: "getById",
-      });
-
-      const iconUrl = steamGame?.clientIcon
-        ? steamUrlBuilder.icon(objectId, steamGame.clientIcon)
-        : null;
-
-      await gameRepository.insert({
-        title,
-        iconUrl,
-        objectID: objectId,
-        downloader,
-        shop,
-        status: "active",
-        downloadPath,
-        uri,
+  for await (const [key, value] of downloadsSublevel.iterator()) {
+    if (value.status === "active" && value.progress !== 1) {
+      await downloadsSublevel.put(key, {
+        ...value,
+        status: "paused",
       });
     }
+  }
 
-    const updatedGame = await gameRepository.findOne({
-      where: {
-        objectID: objectId,
-      },
+  const game = await gamesSublevel.get(gameKey);
+  const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
+
+  await downloadsSublevel.del(gameKey);
+
+  if (game) {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      isDeleted: false,
+    });
+  } else {
+    await gamesSublevel.put(gameKey, {
+      title,
+      iconUrl: gameAssets?.iconUrl ?? null,
+      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
+      logoImageUrl: gameAssets?.logoImageUrl ?? null,
+      objectId,
+      shop,
+      remoteId: null,
+      playTimeInMilliseconds: 0,
+      lastTimePlayed: null,
+      isDeleted: false,
+    });
+  }
+
+  await DownloadManager.cancelDownload(gameKey);
+
+  const download: Download = {
+    shop,
+    objectId,
+    status: "active",
+    progress: 0,
+    bytesDownloaded: 0,
+    downloadPath,
+    downloader,
+    uri,
+    folderName: null,
+    fileSize: null,
+    shouldSeed: false,
+    timestamp: Date.now(),
+    queued: true,
+    extracting: false,
+    automaticallyExtract,
+    extractionProgress: 0,
+  };
+
+  try {
+    await DownloadManager.startDownload(download).then(() => {
+      return downloadsSublevel.put(gameKey, download);
     });
 
-    await DownloadManager.cancelDownload(updatedGame!.id);
-    await DownloadManager.startDownload(updatedGame!);
-
-    await downloadQueueRepository.delete({ game: { id: updatedGame!.id } });
-    await downloadQueueRepository.insert({ game: { id: updatedGame!.id } });
+    const updatedGame = await gamesSublevel.get(gameKey);
 
     await Promise.all([
       createGame(updatedGame!).catch(() => {}),
-      HydraApi.post(
-        "/games/download",
-        {
-          objectId: updatedGame!.objectID,
-          shop: updatedGame!.shop,
-        },
-        { needsAuth: false }
-      ).catch(() => {}),
+      HydraApi.post(`/games/${shop}/${objectId}/download`, null, {
+        needsAuth: false,
+      }).catch(() => {}),
     ]);
-  });
+
+    return { ok: true };
+  } catch (err: unknown) {
+    logger.error("Failed to start download", err);
+
+    if (err instanceof AxiosError) {
+      if (err.response?.status === 429 && downloader === Downloader.Gofile) {
+        return { ok: false, error: DownloadError.GofileQuotaExceeded };
+      }
+
+      if (
+        err.response?.status === 403 &&
+        downloader === Downloader.RealDebrid
+      ) {
+        return {
+          ok: false,
+          error: DownloadError.RealDebridAccountNotAuthorized,
+        };
+      }
+
+      if (downloader === Downloader.TorBox) {
+        return { ok: false, error: err.response?.data?.detail };
+      }
+    }
+
+    if (err instanceof Error) {
+      if (downloader === Downloader.Buzzheavier) {
+        if (err.message.includes("Rate limit")) {
+          return {
+            ok: false,
+            error: "Buzzheavier: Rate limit exceeded",
+          };
+        }
+        if (
+          err.message.includes("not found") ||
+          err.message.includes("deleted")
+        ) {
+          return {
+            ok: false,
+            error: "Buzzheavier: File not found",
+          };
+        }
+      }
+
+      if (downloader === Downloader.FuckingFast) {
+        if (err.message.includes("Rate limit")) {
+          return {
+            ok: false,
+            error: "FuckingFast: Rate limit exceeded",
+          };
+        }
+        if (
+          err.message.includes("not found") ||
+          err.message.includes("deleted")
+        ) {
+          return {
+            ok: false,
+            error: "FuckingFast: File not found",
+          };
+        }
+      }
+
+      return { ok: false, error: err.message };
+    }
+
+    return { ok: false };
+  }
 };
 
 registerEvent("startGameDownload", startGameDownload);

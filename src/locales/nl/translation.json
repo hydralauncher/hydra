@@ -1,7 +1,6 @@
 {
   "language_name": "Nederlands",
   "home": {
-    "featured": "Uitgelicht",
     "surprise_me": "Verrasing",
     "no_results": "Geen resultaten gevonden"
   },
@@ -14,7 +13,8 @@
     "paused": "{{title}} (Gepauzeerd)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",
     "filter": "Filter Bibliotheek",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Favorieten"
   },
   "header": {
     "search": "Zoek spellen",
@@ -29,10 +29,7 @@
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Conclusion {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Volgende Pagina",
-    "previous_page": "Vorige Pagina"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Open download Instellingen",
     "download_options_zero": "Geen download Instellingen",
@@ -110,8 +107,14 @@
     "launch_with_system": "Start Hydra bij het opstarten van het systeem",
     "general": "Algemeen",
     "behavior": "Gedrag",
+    "cancel_button_confirmation_delete_all_sources": "Nee",
+    "confirm_button_confirmation_delete_all_sources": "Ja, verwijder alles",
+    "description_confirmation_delete_all_sources": "Je verwijdert alle downloadbronnen",
+    "title_confirmation_delete_all_sources": "Verwijder alle downloadbronnen",
+    "removed_download_sources": "Downloadbronnen verwijderd",
+    "button_delete_all_sources": "Verwijder alle downloadbronnen",
     "enable_real_debrid": "Enable Real-Debrid",
-    "real_debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
+    "debrid_api_token_hint": "U kunt uw API-sleutel <0>hier</0> verkrijgen.",
     "save_changes": "Wijzigingen opslaan"
   },
   "notifications": {

@@ -1,30 +1,32 @@
 import { useId } from "react";
-import * as styles from "./checkbox-field.css";
 import { CheckIcon } from "@primer/octicons-react";
+import "./checkbox-field.scss";
 
 export interface CheckboxFieldProps
   extends React.DetailedHTMLProps<
     React.InputHTMLAttributes<HTMLInputElement>,
     HTMLInputElement
   > {
-  label: string;
+  label: string | React.ReactNode;
 }
 
 export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
   const id = useId();
 
   return (
-    <div className={styles.checkboxField}>
-      <div className={styles.checkbox({ checked: props.checked })}>
+    <div className="checkbox-field">
+      <div
+        className={`checkbox-field__checkbox ${props.checked ? "checked" : ""}`}
+      >
         <input
           id={id}
           type="checkbox"
-          className={styles.checkboxInput}
+          className="checkbox-field__input"
           {...props}
         />
         {props.checked && <CheckIcon />}
       </div>
-      <label htmlFor={id} className={styles.checkboxLabel}>
+      <label htmlFor={id} className="checkbox-field__label">
         {label}
       </label>
     </div>

@@ -4,35 +4,21 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
-  setFriendsModalVisible,
-  setFriendsModalHidden,
-  setFriendRequestCount,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
   UpdateProfileRequest,
   UserDetails,
+  FriendRequest,
 } from "@types";
-import * as Sentry from "@sentry/react";
-import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
-import { isFuture, isToday } from "date-fns";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const {
-    userDetails,
-    profileBackground,
-    friendRequests,
-    friendRequestCount,
-    isFriendsModalVisible,
-    friendModalUserId,
-    friendRequetsModalTab,
-  } = useAppSelector((state) => state.userDetails);
+  const { userDetails, profileBackground, friendRequests, friendRequestCount } =
+    useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
-    Sentry.setUser(null);
-
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
 
@@ -47,12 +33,6 @@ export function useUserDetails() {
 
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
-      Sentry.setUser({
-        id: userDetails.id,
-        username: userDetails.username,
-        email: userDetails.email ?? undefined,
-      });
-
       dispatch(setUserDetails(userDetails));
       window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
     },
@@ -78,46 +58,35 @@ export function useUserDetails() {
         ...response,
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
+        featurebaseJwt: userDetails?.featurebaseJwt || "",
+        workwondersJwt: userDetails?.workwondersJwt || "",
+        karma: userDetails?.karma || 0,
       });
     },
-    [updateUserDetails, userDetails?.username, userDetails?.subscription]
+    [
+      updateUserDetails,
+      userDetails?.username,
+      userDetails?.subscription,
+      userDetails?.featurebaseJwt,
+      userDetails?.karma,
+    ]
   );
 
-  const syncFriendRequests = useCallback(async () => {
-    return window.electron
-      .syncFriendRequests()
-      .then((sync) => {
-        dispatch(setFriendRequestCount(sync.friendRequestCount));
-      })
-      .catch(() => {});
-  }, [dispatch]);
-
   const fetchFriendRequests = useCallback(async () => {
-    return window.electron
-      .getFriendRequests()
+    return window.electron.hydraApi
+      .get<FriendRequest[]>("/profile/friend-requests")
       .then((friendRequests) => {
-        syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
       })
       .catch(() => {});
-  }, [dispatch, syncFriendRequests]);
-
-  const showFriendsModal = useCallback(
-    (initialTab: UserFriendModalTab, userId: string) => {
-      dispatch(setFriendsModalVisible({ initialTab, userId }));
-      fetchFriendRequests();
-    },
-    [dispatch, fetchFriendRequests]
-  );
-
-  const hideFriendsModal = useCallback(() => {
-    dispatch(setFriendsModalHidden());
   }, [dispatch]);
 
   const sendFriendRequest = useCallback(
     async (userId: string) => {
-      return window.electron
-        .sendFriendRequest(userId)
+      return window.electron.hydraApi
+        .post("/profile/friend-requests", {
+          data: { friendCode: userId },
+        })
         .then(() => fetchFriendRequests());
     },
     [fetchFriendRequests]
@@ -125,23 +94,35 @@ export function useUserDetails() {
 
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
-      return window.electron
-        .updateFriendRequest(userId, action)
+      if (action === "CANCEL") {
+        return window.electron.hydraApi
+          .delete(`/profile/friend-requests/${userId}`)
+          .then(() => fetchFriendRequests());
+      }
+
+      return window.electron.hydraApi
+        .patch(`/profile/friend-requests/${userId}`, {
+          data: {
+            requestState: action,
+          },
+        })
         .then(() => fetchFriendRequests());
     },
     [fetchFriendRequests]
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.undoFriendship(userId);
+    window.electron.hydraApi.delete(`/profile/friend-requests/${userId}`);
 
-  const blockUser = (userId: string) => window.electron.blockUser(userId);
+  const blockUser = (userId: string) =>
+    window.electron.hydraApi.post(`/users/${userId}/block`);
 
-  const unblockUser = (userId: string) => window.electron.unblockUser(userId);
+  const unblockUser = (userId: string) =>
+    window.electron.hydraApi.post(`/users/${userId}/unblock`);
 
   const hasActiveSubscription = useMemo(() => {
-    const expiresAt = userDetails?.subscription?.expiresAt;
-    return expiresAt && (isFuture(expiresAt) || isToday(expiresAt));
+    const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
+    return expiresAt > new Date();
   }, [userDetails]);
 
   return {
@@ -149,12 +130,7 @@ export function useUserDetails() {
     profileBackground,
     friendRequests,
     friendRequestCount,
-    friendRequetsModalTab,
-    isFriendsModalVisible,
-    friendModalUserId,
     hasActiveSubscription,
-    showFriendsModal,
-    hideFriendsModal,
     fetchUserDetails,
     signOut,
     clearUserDetails,
@@ -162,7 +138,6 @@ export function useUserDetails() {
     patchUser,
     sendFriendRequest,
     fetchFriendRequests,
-    syncFriendRequests,
     updateFriendRequestState,
     blockUser,
     unblockUser,

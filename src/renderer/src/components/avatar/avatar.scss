@@ -10,6 +10,7 @@
   cursor: pointer;
   color: globals.$muted-color;
   position: relative;
+  overflow: hidden;
 
   &__image {
     height: 100%;

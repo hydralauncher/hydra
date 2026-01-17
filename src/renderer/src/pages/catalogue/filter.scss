@@ -1,0 +1,71 @@
+@use "../../scss/globals.scss";
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  color: globals.$body-color;
+  background-color: globals.$dark-background-color;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: solid 1px globals.$border-color;
+  font-size: 12px;
+
+  &__orb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+
+  &__remove-button {
+    color: globals.$body-color;
+    margin-left: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+}
+
+.filter-section {
+  &__header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__orb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  &__count {
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  &__clear-button {
+    font-size: 12px;
+    margin-bottom: 12px;
+    display: block;
+    color: globals.$body-color;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  &__search {
+    margin-bottom: 16px;
+  }
+
+  &__item {
+    height: 28px;
+    max-height: 28px;
+  }
+}

@@ -20,7 +20,7 @@ const s3 = new S3Client({
 
 const dist = path.resolve(__dirname, "..", "dist");
 
-const extensionsToUpload = [".deb", ".exe", ".pacman"];
+const extensionsToUpload = [".deb", ".exe", ".AppImage"];
 
 fs.readdir(dist, async (err, files) => {
   if (err) throw err;
@@ -49,14 +49,14 @@ fs.readdir(dist, async (err, files) => {
       })
   );
 
-  if (uploads.length > 0) {
+  for (const upload of uploads) {
     await fetch(process.env.BUILD_WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        uploads,
+        upload,
         branchName: process.env.BRANCH_NAME,
         version: packageJson.version,
         githubActor: process.env.GITHUB_ACTOR,

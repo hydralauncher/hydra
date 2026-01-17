@@ -1,0 +1,67 @@
+@use "../../scss/globals.scss";
+
+.settings-account {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    margin-top: globals.$spacing-unit;
+  }
+
+  &__subscription-info {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__subscription-button {
+    place-self: flex-start;
+  }
+
+  &__blocked-users {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__blocked-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+  }
+
+  &__user-info {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: center;
+  }
+
+  &__user-avatar {
+    filter: grayscale(100%);
+  }
+
+  &__unblock-button {
+    color: globals.$danger-color;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+}

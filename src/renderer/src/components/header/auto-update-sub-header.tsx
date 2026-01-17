@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { SyncIcon } from "@primer/octicons-react";
 import { Link } from "../link/link";
-import * as styles from "./header.css";
+import "./auto-update-header.scss";
 import type { AppUpdaterEvent } from "@types";
 
 export const releasesPageUrl =
@@ -45,9 +45,15 @@ export function AutoUpdateSubHeader() {
 
   if (!isAutoInstallAvailable) {
     return (
-      <header className={styles.subheader}>
-        <Link to={releasesPageUrl} className={styles.newVersionLink}>
-          <SyncIcon className={styles.newVersionIcon} size={12} />
+      <header className="auto-update-sub-header">
+        <Link
+          to={releasesPageUrl}
+          className="auto-update-sub-header__new-version-link"
+        >
+          <SyncIcon
+            className="auto-update-sub-header__new-version-icon"
+            size={12}
+          />
           {t("version_available_download", { version: newVersion })}
         </Link>
       </header>
@@ -56,13 +62,16 @@ export function AutoUpdateSubHeader() {
 
   if (isReadyToInstall) {
     return (
-      <header className={styles.subheader}>
+      <header className="auto-update-sub-header">
         <button
           type="button"
-          className={styles.newVersionButton}
+          className="auto-update-sub-header__new-version-button"
           onClick={handleClickInstallUpdate}
         >
-          <SyncIcon className={styles.newVersionIcon} size={12} />
+          <SyncIcon
+            className="auto-update-sub-header__new-version-icon"
+            size={12}
+          />
           {t("version_available_install", { version: newVersion })}
         </button>
       </header>

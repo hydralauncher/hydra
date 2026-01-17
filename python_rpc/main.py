@@ -28,14 +28,14 @@ if start_download_payload:
         torrent_downloader = TorrentDownloader(torrent_session)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'], "")
+            torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
         except Exception as e:
             print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
         downloads[initial_download['game_id']] = http_downloader
         try:
-            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'))
+            http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('out'))
         except Exception as e:
             print("Error starting http download", e)
 
@@ -45,7 +45,7 @@ if start_seeding_payload:
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[seed['game_id']] = torrent_downloader
         try:
-            torrent_downloader.start_download(seed['url'], seed['save_path'], "")
+            torrent_downloader.start_download(seed['url'], seed['save_path'])
         except Exception as e:
             print("Error starting seeding", e)
 
@@ -62,11 +62,14 @@ def status():
         return auth_error
 
     downloader = downloads.get(downloading_game_id)
-    if downloader:
-        status = downloads.get(downloading_game_id).get_download_status()
-        return jsonify(status), 200
-    else:
+    if not downloader:
         return jsonify(None)
+
+    status = downloader.get_download_status()
+    if not status:
+        return jsonify(None)
+
+    return jsonify(status), 200
 
 @app.route("/seed-status", methods=["GET"])
 def seed_status():
@@ -81,10 +84,10 @@ def seed_status():
             continue
         
         response = downloader.get_download_status()
-        if response is None:
+        if not response:
             continue
         
-        if response.get('status') == 5:
+        if response.get('status') == 5:  # Torrent seeding check
             seed_status.append({
                 'gameId': game_id,
                 **response,
@@ -94,15 +97,20 @@ def seed_status():
 
 @app.route("/healthcheck", methods=["GET"])
 def healthcheck():
-    return "", 200
+    return "ok", 200
 
 @app.route("/process-list", methods=["GET"])
 def process_list():
     auth_error = validate_rpc_password()
     if auth_error:
         return auth_error
+    
+    iter_list  = ['exe', 'pid', 'name']
+    if sys.platform != 'win32':
+        iter_list.append('cwd')
+        iter_list.append('environ')
 
-    process_list = [proc.info for proc in psutil.process_iter(['exe', 'pid', 'name'])]
+    process_list = [proc.info for proc in psutil.process_iter(iter_list)]
     return jsonify(process_list), 200
 
 @app.route("/profile-image", methods=["POST"])
@@ -114,8 +122,11 @@ def profile_image():
     data = request.get_json()
     image_path = data.get('image_path')
 
+    # use webp as default value for target_extension
+    target_extension = data.get('target_extension') or 'webp'
+
     try:
-        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path)
+        processed_image_path, mime_type = ProfileImageProcessor.process_image(image_path, target_extension)
         return jsonify({'imagePath': processed_image_path, 'mimeType': mime_type}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -140,18 +151,18 @@ def action():
 
         if url.startswith('magnet'):
             if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
-                existing_downloader.start_download(url, data['save_path'], "")
+                existing_downloader.start_download(url, data['save_path'])
             else:
                 torrent_downloader = TorrentDownloader(torrent_session)
                 downloads[game_id] = torrent_downloader
-                torrent_downloader.start_download(url, data['save_path'], "")
+                torrent_downloader.start_download(url, data['save_path'])
         else:
             if existing_downloader and isinstance(existing_downloader, HttpDownloader):
-                existing_downloader.start_download(url, data['save_path'], data.get('header'))
+                existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
             else:
                 http_downloader = HttpDownloader()
                 downloads[game_id] = http_downloader
-                http_downloader.start_download(url, data['save_path'], data.get('header'))
+                http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
         
         downloading_game_id = game_id
 
@@ -159,6 +170,8 @@ def action():
         downloader = downloads.get(game_id)
         if downloader:
             downloader.pause_download()
+        
+        if downloading_game_id == game_id:
             downloading_game_id = -1
     elif action == 'cancel':
         downloader = downloads.get(game_id)
@@ -167,7 +180,7 @@ def action():
     elif action == 'resume_seeding':
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
         downloads[game_id] = torrent_downloader
-        torrent_downloader.start_download(data['url'], data['save_path'], "")
+        torrent_downloader.start_download(data['url'], data['save_path'])
     elif action == 'pause_seeding':
         downloader = downloads.get(game_id)
         if downloader:
@@ -180,4 +193,3 @@ def action():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(http_port))
-    

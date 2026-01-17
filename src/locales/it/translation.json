@@ -1,7 +1,6 @@
 {
   "language_name": "Italiano",
   "home": {
-    "featured": "In primo piano",
     "surprise_me": "Sorprendimi",
     "no_results": "Nessun risultato trovato"
   },
@@ -14,7 +13,9 @@
     "paused": "{{title}} (In pausa)",
     "downloading": "{{title}} ({{percentage}} - Download…)",
     "filter": "Filtra libreria",
-    "home": "Home"
+    "home": "Home",
+    "favorites": "Preferiti",
+    "playable_button_title": "Mostra solo i giochi che puoi giocare ora"
   },
   "header": {
     "search": "Cerca",
@@ -29,10 +30,7 @@
     "downloading_metadata": "Scaricamento metadati di {{title}}…",
     "downloading": "Download di {{title}}… ({{percentage}} completato) - Conclusione {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Pagina successiva",
-    "previous_page": "Pagina precedente"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Apri opzioni di download",
     "download_options_zero": "Nessuna opzione di download",
@@ -118,7 +116,13 @@
     "general": "Generale",
     "behavior": "Comportamento",
     "enable_real_debrid": "Abilita Real Debrid",
-    "real_debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
+    "cancel_button_confirmation_delete_all_sources": "NO",
+    "confirm_button_confirmation_delete_all_sources": "Sì, cancella tutto",
+    "description_confirmation_delete_all_sources": "Eliminerai tutte le fonti di download",
+    "title_confirmation_delete_all_sources": "Elimina tutte le fonti di download",
+    "removed_download_sources": "Fonti di download rimosse",
+    "button_delete_all_sources": "Rimuovi tutte le fonti di download",
+    "debrid_api_token_hint": "Puoi trovare la tua chiave API <0>here</0>",
     "save_changes": "Salva modifiche"
   },
   "notifications": {

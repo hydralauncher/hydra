@@ -1,14 +1,14 @@
 import { shell } from "electron";
-import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
+import { gamesSublevel, levelKeys } from "@main/level";
+import { GameShop } from "@types";
 
 const openGameExecutablePath = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  const game = await gameRepository.findOne({
-    where: { id: gameId, isDeleted: false },
-  });
+  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
   if (!game || !game.executablePath) return;
 

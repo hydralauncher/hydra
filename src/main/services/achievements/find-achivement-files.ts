@@ -1,27 +1,28 @@
 import path from "node:path";
 import fs from "node:fs";
-import { app } from "electron";
-import type { AchievementFile } from "@types";
+import type { Game, AchievementFile, UserPreferences } from "@types";
 import { Cracker } from "@shared";
-import { Game } from "@main/entity";
 import { achievementsLogger } from "../logger";
+import { SystemPath } from "../system-path";
+import { getSteamLocation, getSteamUsersIds } from "../steam";
+import { db, levelKeys } from "@main/level";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("appData");
+    return SystemPath.getPath("appData");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "AppData", "Roaming");
 };
 
 const getDocumentsPath = () => {
   if (process.platform === "win32") {
-    return app.getPath("documents");
+    return SystemPath.getPath("documents");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "Documents");
 };
@@ -39,7 +40,7 @@ const getLocalAppDataPath = () => {
     return path.join(appData, "..", "Local");
   }
 
-  const user = app.getPath("home").split("/").pop();
+  const user = SystemPath.getPath("home").split("/").pop();
 
   return path.join("drive_c", "users", user || "", "AppData", "Local");
 };
@@ -254,7 +255,7 @@ export const findAchievementFiles = (game: Game) => {
 
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
-      for (const objectId of getAlternativeObjectIds(game.objectID)) {
+      for (const objectId of getAlternativeObjectIds(game.objectId)) {
         const filePath = path.join(
           game.winePrefixPath ?? "",
           folderPath,
@@ -268,6 +269,55 @@ export const findAchievementFiles = (game: Game) => {
           });
         }
       }
+    }
+  }
+
+  const achievementFileInsideDirectory =
+    findAchievementFileInExecutableDirectory(game);
+
+  return achievementFiles.concat(achievementFileInsideDirectory);
+};
+
+const steamUserIds = await getSteamUsersIds();
+const steamPath = await getSteamLocation().catch(() => null);
+
+export const findAchievementFileInSteamPath = async (game: Game) => {
+  if (!steamUserIds.length) {
+    return [];
+  }
+
+  if (!steamPath) {
+    return [];
+  }
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+
+  if (!userPreferences?.enableSteamAchievements) {
+    return [];
+  }
+
+  const achievementFiles: AchievementFile[] = [];
+
+  for (const steamUserId of steamUserIds) {
+    const gameAchievementPath = path.join(
+      steamPath,
+      "userdata",
+      steamUserId.toString(),
+      "config",
+      "librarycache",
+      `${game.objectId}.json`
+    );
+
+    if (fs.existsSync(gameAchievementPath)) {
+      achievementFiles.push({
+        type: Cracker.Steam,
+        filePath: gameAchievementPath,
+      });
     }
   }
 
@@ -304,7 +354,7 @@ export const findAchievementFileInExecutableDirectory = (
         "achievements.ini"
       ),
     },
-  ];
+  ].filter((file) => fs.existsSync(file.filePath)) as AchievementFile[];
 };
 
 const mapFileLocationWithObjectId = (

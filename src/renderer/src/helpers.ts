@@ -1,6 +1,9 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
+import { v4 as uuidv4 } from "uuid";
+import { THEME_WEB_STORE_URL } from "./constants";
+import { levelDBService } from "./services/leveldb.service";
 
 export const formatDownloadProgress = (
   progress?: number,
@@ -53,3 +56,114 @@ export const buildGameAchievementPath = (
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
+
+export const injectCustomCss = (
+  css: string,
+  target: HTMLElement = document.head
+) => {
+  try {
+    target.querySelector("#custom-css")?.remove();
+
+    if (css.startsWith(THEME_WEB_STORE_URL)) {
+      const link = document.createElement("link");
+      link.id = "custom-css";
+      link.rel = "stylesheet";
+      link.href = css;
+      target.appendChild(link);
+    } else {
+      const style = document.createElement("style");
+      style.id = "custom-css";
+      style.textContent = `
+        ${css}
+      `;
+      target.appendChild(style);
+    }
+  } catch (error) {
+    console.error("failed to inject custom css:", error);
+  }
+};
+
+export const removeCustomCss = (target: HTMLElement = document.head) => {
+  target.querySelector("#custom-css")?.remove();
+};
+
+export const generateRandomGradient = (): string => {
+  // Use a single consistent gradient with softer colors for custom games as placeholder
+  const color1 = "#2c3e50"; // Dark blue-gray
+  const color2 = "#34495e"; // Darker slate
+
+  // Create SVG data URL that works in img tags
+  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${color1};stop-opacity:1" />
+        <stop offset="100%" style="stop-color:${color2};stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#grad)" />
+  </svg>`;
+
+  // Return as data URL that works in img tags
+  return `data:image/svg+xml;base64,${btoa(svgContent)}`;
+};
+
+export const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(num);
+};
+
+/**
+ * Generates a UUID v4
+ * @returns A random UUID string
+ */
+export const generateUUID = (): string => {
+  return uuidv4();
+};
+
+export const getAchievementSoundUrl = async (): Promise<string> => {
+  const defaultSound = (await import("@renderer/assets/audio/achievement.wav"))
+    .default;
+
+  try {
+    const allThemes = (await levelDBService.values("themes")) as {
+      id: string;
+      isActive?: boolean;
+      hasCustomSound?: boolean;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
+
+    if (activeTheme?.hasCustomSound) {
+      const soundDataUrl = await window.electron.getThemeSoundDataUrl(
+        activeTheme.id
+      );
+      if (soundDataUrl) {
+        return soundDataUrl;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get theme sound", error);
+  }
+
+  return defaultSound;
+};
+
+export const getAchievementSoundVolume = async (): Promise<number> => {
+  try {
+    const prefs = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as { achievementSoundVolume?: number } | null;
+    return prefs?.achievementSoundVolume ?? 0.15;
+  } catch (error) {
+    console.error("Failed to get sound volume", error);
+    return 0.15;
+  }
+};
+
+export const getGameKey = (shop: GameShop, objectId: string): string => {
+  return `${shop}:${objectId}`;
+};

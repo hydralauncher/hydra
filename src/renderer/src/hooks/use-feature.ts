@@ -1,20 +1,35 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
+  TorBox = "TORBOX",
+  Nimbus = "NIMBUS",
+  NimbusPreview = "NIMBUS_PREVIEW",
 }
 
 export function useFeature() {
+  const [features, setFeatures] = useState<string[] | null>(null);
+
   useEffect(() => {
-    window.electron.getFeatures().then((features) => {
-      localStorage.setItem("features", JSON.stringify(features || []));
-    });
+    window.electron.hydraApi
+      .get<string[]>("/features", { needsAuth: false })
+      .then((features) => {
+        localStorage.setItem("features", JSON.stringify(features || []));
+        setFeatures(features || []);
+      });
   }, []);
 
-  const isFeatureEnabled = (feature: Feature) => {
-    const features = JSON.parse(localStorage.getItem("features") || "[]");
-    return features.includes(feature);
-  };
+  const isFeatureEnabled = useCallback(
+    (feature: Feature) => {
+      if (!features) {
+        const features = JSON.parse(localStorage.getItem("features") ?? "[]");
+        return features.includes(feature);
+      }
+
+      return features.includes(feature);
+    },
+    [features]
+  );
 
   return {
     isFeatureEnabled,

@@ -1,0 +1,24 @@
+@use "../../scss/globals.scss";
+
+.settings-behavior {
+  &__checkbox-container {
+    opacity: globals.$disabled-opacity;
+    cursor: not-allowed;
+
+    &--enabled {
+      opacity: 1;
+      cursor: pointer;
+    }
+
+    &--with-tooltip {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+      align-items: center;
+    }
+
+    &--tooltip {
+      cursor: pointer;
+    }
+  }
+}

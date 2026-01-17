@@ -13,13 +13,12 @@ import {
 } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 
-import { SPACING_UNIT } from "@renderer/theme.css";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 import * as yup from "yup";
 
-import * as styles from "./edit-profile-modal.css";
 import { userProfileContext } from "@renderer/context";
+import "./edit-profile-modal.scss";
 
 interface FormValues {
   profileImageUrl?: string;
@@ -80,20 +79,9 @@ export function EditProfileModal(
     <Modal {...props} title={t("edit_profile")} clickOutsideToClose={false}>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          width: "350px",
-        }}
+        className="edit-profile-modal__form"
       >
-        <div
-          style={{
-            gap: `${SPACING_UNIT * 3}px`,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        <div className="edit-profile-modal__content">
           <Controller
             control={control}
             name="profileImageUrl"
@@ -140,7 +128,7 @@ export function EditProfileModal(
               return (
                 <button
                   type="button"
-                  className={styles.profileAvatarEditContainer}
+                  className="edit-profile-modal__avatar-container"
                   onClick={handleChangeProfileAvatar}
                 >
                   <Avatar
@@ -149,7 +137,7 @@ export function EditProfileModal(
                     alt={userDetails?.displayName}
                   />
 
-                  <div className={styles.profileAvatarEditOverlay}>
+                  <div className="edit-profile-modal__avatar-overlay">
                     <DeviceCameraIcon size={38} />
                   </div>
                 </button>
@@ -167,7 +155,7 @@ export function EditProfileModal(
           />
         </div>
 
-        <small style={{ marginTop: `${SPACING_UNIT * 2}px` }}>
+        <small className="edit-profile-modal__hint">
           <Trans i18nKey="privacy_hint" ns="user_profile">
             <Link to="/settings" />
           </Trans>
@@ -175,7 +163,7 @@ export function EditProfileModal(
 
         <Button
           disabled={isSubmitting}
-          style={{ alignSelf: "end", marginTop: `${SPACING_UNIT * 3}px` }}
+          className="edit-profile-modal__submit"
           type="submit"
         >
           {isSubmitting ? t("saving") : t("save")}

@@ -1,18 +1,21 @@
-import { SPACING_UNIT, vars } from "@renderer/theme.css";
-
-import * as styles from "./profile-hero.css";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
   CheckCircleFillIcon,
+  CopyIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { Avatar, Button, Link } from "@renderer/components";
+import {
+  Avatar,
+  Button,
+  FullscreenMediaModal,
+  Link,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
@@ -22,22 +25,24 @@ import {
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
+import "./profile-hero.scss";
 
 type FriendAction =
   | FriendRequestAction
   | ("BLOCK" | "UNDO_FRIENDSHIP" | "SEND");
 
-const backgroundImageLayer =
-  "linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%))";
-
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -127,7 +132,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <PencilIcon />
             {t("edit_profile")}
@@ -152,7 +157,7 @@ export function ProfileHero() {
             theme="outline"
             onClick={() => handleFriendAction(userProfile.id, "SEND")}
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <PersonAddIcon />
             {t("add_friend")}
@@ -187,7 +192,7 @@ export function ProfileHero() {
               handleFriendAction(userProfile.id, "UNDO_FRIENDSHIP")
             }
             disabled={isPerformingAction}
-            style={{ borderColor: vars.color.body }}
+            className="profile-hero__button--outline"
           >
             <XCircleFillIcon />
             {t("undo_friendship")}
@@ -204,7 +209,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.BId, "CANCEL")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          className="profile-hero__button--outline"
         >
           <XCircleFillIcon /> {t("cancel_request")}
         </Button>
@@ -219,7 +224,7 @@ export function ProfileHero() {
             handleFriendAction(userProfile.relation!.AId, "ACCEPTED")
           }
           disabled={isPerformingAction}
-          style={{ borderColor: vars.color.body }}
+          className="profile-hero__button--outline"
         >
           <CheckCircleFillIcon /> {t("accept_request")}
         </Button>
@@ -244,17 +249,40 @@ export function ProfileHero() {
   ]);
 
   const handleAvatarClick = useCallback(() => {
-    if (isMe) {
+    if (userProfile?.profileImageUrl) {
+      setShowFullscreenAvatar(true);
+    } else if (isMe) {
       setShowEditProfileModal(true);
     }
-  }, [isMe]);
+  }, [isMe, userProfile?.profileImageUrl]);
+
+  const copyFriendCode = useCallback(() => {
+    if (userProfile?.id) {
+      navigator.clipboard.writeText(userProfile.id);
+      setIsCopied(true);
+
+      const startTime = performance.now();
+      const duration = 1200; // 1.2 seconds
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        if (elapsed < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsCopied(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [userProfile]);
 
   const currentGame = useMemo(() => {
     if (isMe) {
       if (gameRunning)
         return {
           ...gameRunning,
-          objectId: gameRunning.objectID,
+          objectId: gameRunning.objectId,
           sessionDurationInSeconds: gameRunning.sessionDurationInMillis / 1000,
         };
 
@@ -265,48 +293,41 @@ export function ProfileHero() {
 
   return (
     <>
-      {/* <ConfirmationModal
-        visible
-        title={t("sign_out_modal_title")}
-        descriptionText={t("sign_out_modal_text")}
-        confirmButtonLabel={t("sign_out")}
-        cancelButtonLabel={t("cancel")}
-      /> */}
-
       <EditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
       />
 
+      <FullscreenMediaModal
+        visible={showFullscreenAvatar}
+        onClose={() => setShowFullscreenAvatar(false)}
+        src={userProfile?.profileImageUrl}
+        alt={userProfile?.displayName}
+      />
+
       <section
-        className={styles.profileContentBox}
-        style={{ background: heroBackground }}
+        className="profile-hero__content-box"
+        style={{ background: !backgroundImage ? heroBackground : undefined }}
       >
         {backgroundImage && (
           <img
             src={backgroundImage}
             alt=""
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
+            className="profile-hero__background-image"
           />
         )}
 
         <div
-          style={{
-            background: backgroundImage ? backgroundImageLayer : "transparent",
-            width: "100%",
-            height: "100%",
-            zIndex: 1,
-          }}
+          className={`profile-hero__background-overlay ${
+            !backgroundImage
+              ? "profile-hero__background-overlay--transparent"
+              : ""
+          }`}
         >
-          <div className={styles.userInformation}>
+          <div className="profile-hero__user-information">
             <button
               type="button"
-              className={styles.profileAvatarButton}
+              className="profile-hero__avatar-button"
               onClick={handleAvatarClick}
             >
               <Avatar
@@ -316,18 +337,47 @@ export function ProfileHero() {
               />
             </button>
 
-            <div className={styles.profileInformation}>
+            <div className="profile-hero__information">
               {userProfile ? (
-                <h2 className={styles.profileDisplayName}>
-                  {userProfile?.displayName}
-                </h2>
+                <div className="profile-hero__display-name-container">
+                  <h2 className="profile-hero__display-name">
+                    {userProfile?.displayName}
+                  </h2>
+
+                  <motion.button
+                    type="button"
+                    className="profile-hero__copy-button"
+                    onClick={copyFriendCode}
+                    title={t("copy_friend_code")}
+                    onMouseEnter={() => setIsCopyButtonHovered(true)}
+                    onMouseLeave={() => setIsCopyButtonHovered(false)}
+                    initial={{ width: 28 }}
+                    animate={{
+                      width: isCopyButtonHovered || isCopied ? 105 : 28,
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <motion.span
+                      className="profile-hero__friend-code"
+                      initial={{ opacity: 0, marginRight: 0 }}
+                      animate={{
+                        opacity: isCopyButtonHovered || isCopied ? 1 : 0,
+                        marginRight: isCopyButtonHovered || isCopied ? 8 : 0,
+                      }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
+                      {isCopied ? t("copied") : userProfile?.id}
+                    </motion.span>
+                    <CopyIcon size={16} />
+                  </motion.button>
+                </div>
               ) : (
                 <Skeleton width={150} height={28} />
               )}
 
               {currentGame && (
-                <div className={styles.currentGameWrapper}>
-                  <div className={styles.currentGameDetails}>
+                <div className="profile-hero__current-game-wrapper">
+                  <div className="profile-hero__current-game-details">
                     <Link
                       to={buildGameDetailsPath({
                         ...currentGame,
@@ -358,21 +408,14 @@ export function ProfileHero() {
         </div>
 
         <div
-          className={styles.heroPanel}
+          className={`profile-hero__hero-panel ${
+            !backgroundImage ? "profile-hero__hero-panel--transparent" : ""
+          }`}
           style={{
-            background: backgroundImage ? backgroundImageLayer : heroBackground,
+            background: !backgroundImage ? heroBackground : undefined,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              gap: `${SPACING_UNIT}px`,
-              justifyContent: "flex-end",
-              flex: 1,
-            }}
-          >
-            {profileActions}
-          </div>
+          <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>
     </>

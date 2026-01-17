@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import * as styles from "./hero.css";
 import { useEffect, useState } from "react";
 import type { TrendingGame } from "@types";
 import { useTranslation } from "react-i18next";
 import Skeleton from "react-loading-skeleton";
+import "./hero.scss";
 
 export function Hero() {
   const [featuredGameDetails, setFeaturedGameDetails] = useState<
@@ -18,10 +18,18 @@ export function Hero() {
   useEffect(() => {
     setIsLoading(true);
 
-    window.electron
-      .getTrendingGames()
+    const language = i18n.language.split("-")[0];
+
+    window.electron.hydraApi
+      .get<TrendingGame[]>("/catalogue/featured", {
+        params: { language },
+        needsAuth: false,
+      })
       .then((result) => {
-        setFeaturedGameDetails(result);
+        setFeaturedGameDetails(result.slice(0, 1));
+      })
+      .catch(() => {
+        setFeaturedGameDetails([]);
       })
       .finally(() => {
         setIsLoading(false);
@@ -29,34 +37,33 @@ export function Hero() {
   }, [i18n.language]);
 
   if (isLoading) {
-    return <Skeleton className={styles.hero} />;
+    return <Skeleton className="hero" />;
   }
 
   if (featuredGameDetails?.length) {
-    return featuredGameDetails.map((game, index) => (
+    return featuredGameDetails.map((game) => (
       <button
         type="button"
         onClick={() => navigate(game.uri)}
-        className={styles.hero}
-        key={index}
+        className="hero"
+        key={game.uri}
       >
-        <div className={styles.backdrop}>
+        <div className="hero__backdrop">
           <img
-            src={game.background}
-            alt={game.description}
-            className={styles.heroMedia}
+            src={game.libraryHeroImageUrl ?? undefined}
+            alt={game.description ?? ""}
+            className="hero__media"
           />
 
-          <div className={styles.content}>
-            {game.logo && (
-              <img
-                src={game.logo}
-                width="250px"
-                alt={game.description}
-                loading="eager"
-              />
-            )}
-            <p className={styles.description}>{game.description}</p>
+          <div className="hero__content">
+            <img
+              src={game.logoImageUrl ?? undefined}
+              width="250px"
+              alt={game.description ?? ""}
+              loading="eager"
+              className="hero__logo"
+            />
+            <p className="hero__description">{game.description}</p>
           </div>
         </div>
       </button>

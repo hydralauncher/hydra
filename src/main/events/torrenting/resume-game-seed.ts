@@ -1,29 +1,25 @@
+import { downloadsSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import { gameRepository } from "../../repository";
 import { DownloadManager } from "@main/services";
-import { Downloader } from "@shared";
+import type { GameShop } from "@types";
 
 const resumeGameSeed = async (
   _event: Electron.IpcMainInvokeEvent,
-  gameId: number
+  shop: GameShop,
+  objectId: string
 ) => {
-  const game = await gameRepository.findOne({
-    where: {
-      id: gameId,
-      isDeleted: false,
-      downloader: Downloader.Torrent,
-      progress: 1,
-    },
-  });
+  const downloadKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(downloadKey);
 
-  if (!game) return;
+  if (!download) return;
 
-  await gameRepository.update(gameId, {
+  await downloadsSublevel.put(downloadKey, {
+    ...download,
     status: "seeding",
     shouldSeed: true,
   });
 
-  await DownloadManager.resumeSeeding(game);
+  await DownloadManager.resumeSeeding(download);
 };
 
 registerEvent("resumeGameSeed", resumeGameSeed);

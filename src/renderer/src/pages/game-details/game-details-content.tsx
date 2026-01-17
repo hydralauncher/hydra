@@ -1,42 +1,77 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { average } from "color.js";
-import Color from "color";
+import { PencilIcon } from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
+import { EditGameModal } from "./modals";
+import { GameReviews } from "./game-reviews";
+import { GameLogo } from "./game-logo";
 
-import * as styles from "./game-details.css";
-import { useTranslation } from "react-i18next";
+import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
-import { steamUrlBuilder } from "@shared";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails } from "@renderer/hooks";
+import { useUserDetails, useLibrary } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import "./game-details.scss";
+import "./hero.scss";
 
-const HERO_ANIMATION_THRESHOLD = 25;
+const processMediaElements = (document: Document) => {
+  const $images = Array.from(document.querySelectorAll("img"));
+  $images.forEach(($image) => {
+    $image.loading = "lazy";
+    $image.removeAttribute("width");
+    $image.removeAttribute("height");
+    $image.removeAttribute("style");
+    $image.style.maxWidth = "100%";
+    $image.style.width = "auto";
+    $image.style.height = "auto";
+    $image.style.boxSizing = "border-box";
+  });
+
+  // Handle videos the same way
+  const $videos = Array.from(document.querySelectorAll("video"));
+  $videos.forEach(($video) => {
+    $video.removeAttribute("width");
+    $video.removeAttribute("height");
+    $video.removeAttribute("style");
+    $video.style.maxWidth = "100%";
+    $video.style.width = "auto";
+    $video.style.height = "auto";
+    $video.style.boxSizing = "border-box";
+  });
+};
+
+const getImageWithCustomPriority = (
+  customUrl: string | null | undefined,
+  originalUrl: string | null | undefined,
+  fallbackUrl?: string | null | undefined
+) => {
+  return customUrl || originalUrl || fallbackUrl || "";
+};
 
 export function GameDetailsContent() {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-
   const { t } = useTranslation("game_details");
+  const [searchParams] = useSearchParams();
+  const reviewsRef = useRef<HTMLDivElement>(null);
 
   const {
     objectId,
     shopDetails,
     game,
-    gameColor,
-    setGameColor,
     hasNSFWContentBlocked,
+    updateGame,
+    shop,
   } = useContext(gameDetailsContext);
 
   const { showHydraCloudModal } = useSubscription();
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { updateLibrary, library } = useLibrary();
 
   const { setShowCloudSyncModal, getGameArtifacts } =
     useContext(cloudSyncContext);
@@ -49,59 +84,38 @@ export function GameDetailsContent() {
         "text/html"
       );
 
-      const $images = Array.from(document.querySelectorAll("img"));
-      $images.forEach(($image) => {
-        $image.loading = "lazy";
-      });
+      processMediaElements(document);
 
       return document.body.outerHTML;
     }
 
+    if (game?.shop === "custom") {
+      return "";
+    }
+
     return t("no_shop_details");
-  }, [shopDetails, t]);
+  }, [shopDetails, t, game?.shop]);
 
-  const [backdropOpactiy, setBackdropOpacity] = useState(1);
+  const [backdropOpacity, setBackdropOpacity] = useState(1);
+  const [showEditGameModal, setShowEditGameModal] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
-  const handleHeroLoad = async () => {
-    const output = await average(steamUrlBuilder.libraryHero(objectId!), {
-      amount: 1,
-      format: "hex",
-    });
-
-    const backgroundColor = output
-      ? (new Color(output).darken(0.7).toString() as string)
-      : "";
-
-    setGameColor(backgroundColor);
-  };
+  // Check if the current game is in the user's library
+  const isGameInLibrary = useMemo(() => {
+    if (!library || !shop || !objectId) return false;
+    return library.some(
+      (libItem) => libItem.shop === shop && libItem.objectId === objectId
+    );
+  }, [library, shop, objectId]);
 
   useEffect(() => {
     setBackdropOpacity(1);
   }, [objectId]);
 
-  const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
-    const heroHeight = heroRef.current?.clientHeight ?? styles.HERO_HEIGHT;
-
-    const scrollY = (event.target as HTMLDivElement).scrollTop;
-    const opacity = Math.max(
-      0,
-      1 - scrollY / (heroHeight - HERO_ANIMATION_THRESHOLD)
-    );
-
-    if (scrollY >= heroHeight && !isHeaderStuck) {
-      setIsHeaderStuck(true);
-    }
-
-    if (scrollY <= heroHeight && isHeaderStuck) {
-      setIsHeaderStuck(false);
-    }
-
-    setBackdropOpacity(opacity);
-  };
-
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
-      window.electron.openAuthWindow();
+      window.electron.openAuthWindow(AuthPage.SignIn);
       return;
     }
 
@@ -113,75 +127,96 @@ export function GameDetailsContent() {
     setShowCloudSyncModal(true);
   };
 
+  const handleEditGameClick = () => {
+    setShowEditGameModal(true);
+  };
+
+  const handleGameUpdated = () => {
+    updateGame();
+    updateLibrary();
+  };
+
   useEffect(() => {
     getGameArtifacts();
   }, [getGameArtifacts]);
 
-  return (
-    <div className={styles.wrapper({ blurredContent: hasNSFWContentBlocked })}>
-      <img
-        src={steamUrlBuilder.libraryHero(objectId!)}
-        className={styles.heroImage}
-        alt={game?.title}
-        onLoad={handleHeroLoad}
-      />
+  // Scroll to reviews section if reviews=true in URL
+  useEffect(() => {
+    const shouldScrollToReviews = searchParams.get("reviews") === "true";
+    if (shouldScrollToReviews && reviewsRef.current) {
+      setTimeout(() => {
+        reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  }, [searchParams, objectId]);
 
-      <section
-        ref={containerRef}
-        onScroll={onScroll}
-        className={styles.container}
-      >
-        <div ref={heroRef} className={styles.hero}>
-          <div
-            style={{
-              backgroundColor: gameColor,
-              flex: 1,
-              opacity: Math.min(1, 1 - backdropOpactiy),
-            }}
+  const isCustomGame = game?.shop === "custom";
+
+  const heroImage = isCustomGame
+    ? game?.libraryHeroImageUrl || game?.iconUrl || ""
+    : getImageWithCustomPriority(
+        game?.customHeroImageUrl,
+        shopDetails?.assets?.libraryHeroImageUrl
+      );
+
+  return (
+    <div
+      className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
+    >
+      <section className="game-details__container">
+        <div className="game-details__hero">
+          <img
+            src={heroImage}
+            className="game-details__hero-image"
+            alt={game?.title}
           />
 
           <div
-            className={styles.heroLogoBackdrop}
-            style={{ opacity: backdropOpactiy }}
+            className="game-details__hero-logo-backdrop"
+            style={{ opacity: backdropOpacity }}
           >
-            <div className={styles.heroContent}>
-              <img
-                src={steamUrlBuilder.logo(objectId!)}
-                className={styles.gameLogo}
-                alt={game?.title}
-              />
+            <div className="game-details__hero-content">
+              <GameLogo game={game} shopDetails={shopDetails} />
 
-              <button
-                type="button"
-                className={styles.cloudSyncButton}
-                onClick={handleCloudSaveButtonClick}
-              >
-                <div
-                  style={{
-                    width: 16 + 4,
-                    height: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                  }}
-                >
-                  <img
-                    src={cloudIconAnimated}
-                    alt="Cloud icon"
-                    style={{ width: 26, position: "absolute", top: -3 }}
-                  />
-                </div>
-                {t("cloud_save")}
-              </button>
+              <div className="game-details__hero-buttons game-details__hero-buttons--right">
+                {game && (
+                  <button
+                    type="button"
+                    className="game-details__edit-custom-game-button"
+                    onClick={handleEditGameClick}
+                    title={t("edit_game_modal_button")}
+                  >
+                    <PencilIcon size={16} />
+                  </button>
+                )}
+
+                {game?.shop !== "custom" && (
+                  <button
+                    type="button"
+                    className="game-details__cloud-sync-button"
+                    onClick={handleCloudSaveButtonClick}
+                  >
+                    <div className="game-details__cloud-icon-container">
+                      <img
+                        src={cloudIconAnimated}
+                        alt="Cloud icon"
+                        className="game-details__cloud-icon"
+                      />
+                    </div>
+                    {t("cloud_save")}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="game-details__hero-panel">
+              <HeroPanel />
             </div>
           </div>
         </div>
 
-        <HeroPanel isHeaderStuck={isHeaderStuck} />
-
-        <div className={styles.descriptionContainer}>
-          <div className={styles.descriptionContent}>
+        <div className="game-details__description-container">
+          <div className="game-details__description-content">
             <DescriptionHeader />
             <GallerySlider />
 
@@ -189,13 +224,51 @@ export function GameDetailsContent() {
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
-              className={styles.description}
+              className={`game-details__description ${
+                isDescriptionExpanded
+                  ? "game-details__description--expanded"
+                  : "game-details__description--collapsed"
+              }`}
             />
+
+            {aboutTheGame && aboutTheGame.length > 500 && (
+              <button
+                type="button"
+                className="game-details__description-toggle"
+                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              >
+                {isDescriptionExpanded ? t("show_less") : t("show_more")}
+              </button>
+            )}
+
+            {shop !== "custom" && shop && objectId && (
+              <div ref={reviewsRef}>
+                <GameReviews
+                  shop={shop}
+                  objectId={objectId}
+                  game={game}
+                  userDetailsId={userDetails?.id}
+                  isGameInLibrary={isGameInLibrary}
+                  hasUserReviewed={hasUserReviewed}
+                  onUserReviewedChange={setHasUserReviewed}
+                />
+              </div>
+            )}
           </div>
 
-          <Sidebar />
+          {shop !== "custom" && <Sidebar />}
         </div>
       </section>
+
+      {game && (
+        <EditGameModal
+          visible={showEditGameModal}
+          onClose={() => setShowEditGameModal(false)}
+          game={game}
+          shopDetails={shopDetails}
+          onGameUpdated={handleGameUpdated}
+        />
+      )}
     </div>
   );
 }

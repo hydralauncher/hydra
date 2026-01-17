@@ -4,11 +4,15 @@ import updater from "electron-updater";
 
 const { autoUpdater } = updater;
 
-const restartAndInstallUpdate = async (_event: Electron.IpcMainInvokeEvent) => {
+export const restartAndInstallUpdate = () => {
   autoUpdater.removeAllListeners();
   if (app.isPackaged) {
     autoUpdater.quitAndInstall(false);
   }
 };
 
-registerEvent("restartAndInstallUpdate", restartAndInstallUpdate);
+const restartAndInstallUpdateEvent = async (
+  _event: Electron.IpcMainInvokeEvent
+) => restartAndInstallUpdate();
+
+registerEvent("restartAndInstallUpdate", restartAndInstallUpdateEvent);

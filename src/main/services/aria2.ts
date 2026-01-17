@@ -1,16 +1,18 @@
 import path from "node:path";
 import cp from "node:child_process";
 import { app } from "electron";
-
-export const startAria2 = () => {};
+import { logger } from "./logger";
 
 export class Aria2 {
   private static process: cp.ChildProcess | null = null;
 
   public static spawn() {
-    const binaryPath = app.isPackaged
-      ? path.join(process.resourcesPath, "aria2", "aria2c")
-      : path.join(__dirname, "..", "..", "aria2", "aria2c");
+    const binaryPath =
+      process.platform === "darwin"
+        ? "aria2c"
+        : app.isPackaged
+          ? path.join(process.resourcesPath, "aria2c")
+          : path.join(__dirname, "..", "..", "binaries", "aria2c");
 
     this.process = cp.spawn(
       binaryPath,
@@ -25,6 +27,9 @@ export class Aria2 {
   }
 
   public static kill() {
-    this.process?.kill();
+    if (this.process) {
+      logger.log("Killing aria2 process");
+      this.process.kill();
+    }
   }
 }

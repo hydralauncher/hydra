@@ -1,19 +1,23 @@
-import { gameRepository } from "@main/repository";
 import { registerEvent } from "../register-event";
+import { gamesSublevel, levelKeys } from "@main/level";
+import { GameShop } from "@types";
 
 const updateLaunchOptions = async (
   _event: Electron.IpcMainInvokeEvent,
-  id: number,
+  shop: GameShop,
+  objectId: string,
   launchOptions: string | null
 ) => {
-  return gameRepository.update(
-    {
-      id,
-    },
-    {
+  const gameKey = levelKeys.game(shop, objectId);
+
+  const game = await gamesSublevel.get(gameKey);
+
+  if (game) {
+    await gamesSublevel.put(gameKey, {
+      ...game,
       launchOptions: launchOptions?.trim() != "" ? launchOptions : null,
-    }
-  );
+    });
+  }
 };
 
 registerEvent("updateLaunchOptions", updateLaunchOptions);

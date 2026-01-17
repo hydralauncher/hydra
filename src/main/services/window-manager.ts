@@ -6,53 +6,46 @@ import {
   Tray,
   app,
   nativeImage,
+  screen,
   shell,
 } from "electron";
 import { is } from "@electron-toolkit/utils";
-import i18next, { t } from "i18next";
+import { t } from "i18next";
 import path from "node:path";
 import icon from "@resources/icon.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { gameRepository, userPreferencesRepository } from "@main/repository";
-import { IsNull, Not } from "typeorm";
 import { HydraApi } from "./hydra-api";
 import UserAgent from "user-agents";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import { orderBy, slice } from "lodash-es";
+import type {
+  AchievementCustomNotificationPosition,
+  ScreenState,
+  UserPreferences,
+} from "@types";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import { isStaging } from "@main/constants";
+import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
+  public static notificationWindow: Electron.BrowserWindow | null = null;
 
-  private static loadMainWindowURL(hash = "") {
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.mainWindow?.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`
-      );
-    } else {
-      this.mainWindow?.loadFile(
-        path.join(__dirname, "../renderer/index.html"),
-        {
-          hash,
-        }
-      );
-    }
-  }
+  private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
-  public static createMainWindow() {
-    if (this.mainWindow) return;
-
-    this.mainWindow = new BrowserWindow({
+  private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
+    {
       width: 1200,
-      height: 720,
+      height: 860,
       minWidth: 1024,
-      minHeight: 540,
+      minHeight: 860,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
-      ...(process.platform === "linux" ? { icon } : {}),
+      icon,
       trafficLightPosition: { x: 16, y: 16 },
       titleBarOverlay: {
         symbolColor: "#DADBE1",
-        color: "#151515",
+        color: "#00000000",
         height: 34,
       },
       webPreferences: {
@@ -60,7 +53,86 @@ export class WindowManager {
         sandbox: false,
       },
       show: false,
+    };
+
+  private static formatVersionNumber(version: string) {
+    return version.replaceAll(".", "-");
+  }
+
+  private static async loadWindowURL(window: BrowserWindow, hash: string = "") {
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`);
+    } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
+      // Try to load from remote URL in production
+      try {
+        await window.loadURL(
+          `https://release-v${this.formatVersionNumber(app.getVersion())}.${import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN}#/${hash}`
+        );
+      } catch (error) {
+        // Fall back to local file if remote URL fails
+        logger.error(
+          "Failed to load from MAIN_VITE_LAUNCHER_SUBDOMAIN, falling back to local file:",
+          error
+        );
+        window.loadFile(path.join(__dirname, "../renderer/index.html"), {
+          hash,
+        });
+      }
+    } else {
+      window.loadFile(path.join(__dirname, "../renderer/index.html"), {
+        hash,
+      });
+    }
+  }
+
+  private static async loadMainWindowURL(hash: string = "") {
+    if (this.mainWindow) {
+      await this.loadWindowURL(this.mainWindow, hash);
+    }
+  }
+
+  private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
+    await db.put(levelKeys.screenState, configScreenWhenClosed, {
+      valueEncoding: "json",
     });
+  }
+
+  private static async loadScreenConfig() {
+    const data = await db.get<string, ScreenState | undefined>(
+      levelKeys.screenState,
+      {
+        valueEncoding: "json",
+      }
+    );
+    return data ?? { isMaximized: false, height: 860, width: 1200 };
+  }
+
+  private static updateInitialConfig(
+    newConfig: Partial<Electron.BrowserWindowConstructorOptions>
+  ) {
+    this.initialConfigInitializationMainWindow = {
+      ...this.initialConfigInitializationMainWindow,
+      ...newConfig,
+    };
+  }
+
+  public static async createMainWindow() {
+    if (this.mainWindow) return;
+
+    const { isMaximized = false, ...configWithoutMaximized } =
+      await this.loadScreenConfig();
+
+    this.updateInitialConfig(configWithoutMaximized);
+
+    this.mainWindow = new BrowserWindow(
+      this.initialConfigInitializationMainWindow
+    );
+
+    if (isMaximized) {
+      this.mainWindow.maximize();
+    }
 
     this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
@@ -69,6 +141,16 @@ export class WindowManager {
           details.url.includes("chatwoot")
         ) {
           return callback(details);
+        }
+
+        if (details.url.includes("workwonders")) {
+          return callback({
+            ...details,
+            requestHeaders: {
+              Origin: "https://workwonders.app",
+              ...details.requestHeaders,
+            },
+          });
         }
 
         const userAgent = new UserAgent();
@@ -87,7 +169,8 @@ export class WindowManager {
         if (
           details.webContentsId !== this.mainWindow?.webContents.id ||
           details.url.includes("featurebase") ||
-          details.url.includes("chatwoot")
+          details.url.includes("chatwoot") ||
+          details.url.includes("workwonders")
         ) {
           return callback(details);
         }
@@ -125,24 +208,52 @@ export class WindowManager {
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged) WindowManager.mainWindow?.webContents.openDevTools();
+      if (!app.isPackaged || isStaging)
+        WindowManager.mainWindow?.webContents.openDevTools();
       WindowManager.mainWindow?.show();
     });
 
     this.mainWindow.on("close", async () => {
-      const userPreferences = await userPreferencesRepository.findOne({
-        where: { id: 1 },
-      });
+      const mainWindow = this.mainWindow;
+      this.mainWindow = null;
+
+      const userPreferences = await db.get<string, UserPreferences>(
+        levelKeys.userPreferences,
+        {
+          valueEncoding: "json",
+        }
+      );
+
+      if (mainWindow) {
+        mainWindow.setProgressBar(-1);
+
+        const lastBounds = mainWindow.getBounds();
+        const isMaximized = mainWindow.isMaximized() ?? false;
+        const screenConfig = isMaximized
+          ? {
+              x: undefined,
+              y: undefined,
+              height: this.initialConfigInitializationMainWindow.height ?? 860,
+              width: this.initialConfigInitializationMainWindow.width ?? 1200,
+              isMaximized: true,
+            }
+          : { ...lastBounds, isMaximized };
+
+        await this.saveScreenConfig(screenConfig);
+      }
 
       if (userPreferences?.preferQuitInsteadOfHiding) {
         app.quit();
       }
-      WindowManager.mainWindow?.setProgressBar(-1);
-      WindowManager.mainWindow = null;
+    });
+
+    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+      shell.openExternal(handler.url);
+      return { action: "deny" };
     });
   }
 
-  public static openAuthWindow() {
+  public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     if (this.mainWindow) {
       const authWindow = new BrowserWindow({
         width: 600,
@@ -164,12 +275,8 @@ export class WindowManager {
 
       if (!app.isPackaged) authWindow.webContents.openDevTools();
 
-      const searchParams = new URLSearchParams({
-        lng: i18next.language,
-      });
-
       authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}/?${searchParams.toString()}`
+        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
       );
 
       authWindow.once("ready-to-show", () => {
@@ -181,7 +288,230 @@ export class WindowManager {
           authWindow.close();
 
           HydraApi.handleExternalAuth(url);
+          return;
         }
+
+        if (url.startsWith("hydralauncher://update-account")) {
+          authWindow.close();
+
+          WindowManager.mainWindow?.webContents.send("on-account-updated");
+        }
+      });
+    }
+  }
+
+  private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
+  private static readonly NOTIFICATION_WINDOW_HEIGHT = 140;
+
+  private static async getNotificationWindowPosition(
+    position: AchievementCustomNotificationPosition | undefined
+  ) {
+    const display = screen.getPrimaryDisplay();
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
+
+    if (position === "bottom-left") {
+      return {
+        x: displayX,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "bottom-center") {
+      return {
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "bottom-right") {
+      return {
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-left") {
+      return {
+        x: displayX,
+        y: displayY,
+      };
+    }
+
+    if (position === "top-center") {
+      return {
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY,
+      };
+    }
+
+    if (position === "top-right") {
+      return {
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY,
+      };
+    }
+
+    return {
+      x: displayX,
+      y: displayY,
+    };
+  }
+
+  public static async createNotificationWindow() {
+    if (this.notificationWindow) return;
+
+    const userPreferences = await db.get<string, UserPreferences | undefined>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    if (
+      userPreferences?.achievementNotificationsEnabled === false ||
+      userPreferences?.achievementCustomNotificationsEnabled === false
+    ) {
+      return;
+    }
+
+    const { x, y } = await this.getNotificationWindowPosition(
+      userPreferences?.achievementCustomNotificationPosition
+    );
+
+    this.notificationWindow = new BrowserWindow({
+      transparent: true,
+      maximizable: false,
+      autoHideMenuBar: true,
+      minimizable: false,
+      backgroundColor: "#00000000",
+      focusable: false,
+      skipTaskbar: true,
+      frame: false,
+      width: this.NOTIFICATION_WINDOW_WIDTH,
+      height: this.NOTIFICATION_WINDOW_HEIGHT,
+      x,
+      y,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+    this.notificationWindow.setIgnoreMouseEvents(true);
+
+    this.notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.loadWindowURL(this.notificationWindow, "achievement-notification");
+
+    if (!app.isPackaged || isStaging) {
+      this.notificationWindow.webContents.openDevTools();
+    }
+  }
+
+  public static async showAchievementTestNotification() {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    const language = userPreferences.language ?? "en";
+
+    this.notificationWindow?.webContents.send(
+      "on-achievement-unlocked",
+      userPreferences.achievementCustomNotificationPosition ?? "top-left",
+      [
+        generateAchievementCustomNotificationTest(t, language),
+        generateAchievementCustomNotificationTest(t, language, {
+          isRare: true,
+          isHidden: true,
+        }),
+        generateAchievementCustomNotificationTest(t, language, {
+          isPlatinum: true,
+        }),
+      ]
+    );
+  }
+
+  public static async closeNotificationWindow() {
+    if (this.notificationWindow) {
+      this.notificationWindow.close();
+      this.notificationWindow = null;
+    }
+  }
+
+  public static openEditorWindow(themeId: string) {
+    if (this.mainWindow) {
+      const existingWindow = this.editorWindows.get(themeId);
+      if (existingWindow) {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return;
+      }
+
+      const editorWindow = new BrowserWindow({
+        width: 720,
+        height: 720,
+        minWidth: 600,
+        minHeight: 540,
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        icon,
+        trafficLightPosition: { x: 16, y: 16 },
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#151515",
+          height: 34,
+        },
+        webPreferences: {
+          preload: path.join(__dirname, "../preload/index.mjs"),
+          sandbox: false,
+        },
+        show: false,
+      });
+
+      this.editorWindows.set(themeId, editorWindow);
+
+      editorWindow.removeMenu();
+
+      this.loadWindowURL(editorWindow, `theme-editor?themeId=${themeId}`);
+
+      editorWindow.once("ready-to-show", () => {
+        editorWindow.show();
+        this.mainWindow?.webContents.openDevTools();
+        if (!app.isPackaged || isStaging) {
+          editorWindow.webContents.openDevTools();
+        }
+      });
+
+      editorWindow.webContents.on("before-input-event", (_event, input) => {
+        if (input.key === "F12") {
+          this.mainWindow?.webContents.toggleDevTools();
+        }
+      });
+
+      editorWindow.on("close", () => {
+        this.mainWindow?.webContents.closeDevTools();
+        this.editorWindows.delete(themeId);
+      });
+    }
+  }
+
+  public static closeEditorWindow(themeId?: string) {
+    if (themeId) {
+      const editorWindow = this.editorWindows.get(themeId);
+      if (editorWindow) {
+        editorWindow.close();
+      }
+    } else {
+      this.editorWindows.forEach((editorWindow) => {
+        editorWindow.close();
       });
     }
   }
@@ -207,21 +537,23 @@ export class WindowManager {
     }
 
     const updateSystemTray = async () => {
-      const games = await gameRepository.find({
-        where: {
-          isDeleted: false,
-          executablePath: Not(IsNull()),
-          lastTimePlayed: Not(IsNull()),
-        },
-        take: 5,
-        order: {
-          lastTimePlayed: "DESC",
-        },
-      });
+      const games = await gamesSublevel
+        .values()
+        .all()
+        .then((games) => {
+          const filteredGames = games.filter(
+            (game) =>
+              !game.isDeleted && game.executablePath && game.lastTimePlayed
+          );
+
+          const sortedGames = orderBy(filteredGames, "lastTimePlayed", "desc");
+
+          return slice(sortedGames, 0, 6);
+        });
 
       const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
         games.map(({ title, executablePath }) => ({
-          label: title.length > 15 ? `${title.slice(0, 15)}…` : title,
+          label: title.length > 18 ? `${title.slice(0, 18)}…` : title,
           type: "normal",
           click: async () => {
             if (!executablePath) return;
@@ -262,7 +594,10 @@ export class WindowManager {
         },
       ]);
 
-      tray.setContextMenu(contextMenu);
+      if (process.platform === "linux") {
+        tray.setContextMenu(contextMenu);
+      }
+
       return contextMenu;
     };
 
@@ -271,12 +606,24 @@ export class WindowManager {
       tray.popUpContextMenu(contextMenu);
     };
 
-    tray.setToolTip("Hydra");
+    tray.setToolTip("Hydra Launcher");
 
-    if (process.platform !== "darwin") {
+    if (process.platform === "win32") {
       await updateSystemTray();
 
       tray.addListener("double-click", () => {
+        if (this.mainWindow) {
+          this.mainWindow.show();
+        } else {
+          this.createMainWindow();
+        }
+      });
+
+      tray.addListener("right-click", showContextMenu);
+    } else if (process.platform === "linux") {
+      await updateSystemTray();
+
+      tray.addListener("click", () => {
         if (this.mainWindow) {
           this.mainWindow.show();
         } else {

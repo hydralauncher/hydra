@@ -6,9 +6,7 @@ import {
   externalizeDepsPlugin,
 } from "electron-vite";
 import react from "@vitejs/plugin-react";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import svgr from "vite-plugin-svgr";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 export default defineConfig(({ mode }) => {
   loadEnv(mode);
@@ -17,9 +15,6 @@ export default defineConfig(({ mode }) => {
     main: {
       build: {
         sourcemap: true,
-        rollupOptions: {
-          external: ["better-sqlite3"],
-        },
       },
       resolve: {
         alias: {
@@ -38,6 +33,13 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: true,
       },
+      css: {
+        preprocessorOptions: {
+          scss: {
+            api: "modern",
+          },
+        },
+      },
       resolve: {
         alias: {
           "@renderer": resolve("src/renderer/src"),
@@ -45,16 +47,7 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [
-        svgr(),
-        react(),
-        vanillaExtractPlugin(),
-        sentryVitePlugin({
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-          org: "hydra-launcher",
-          project: "hydra-renderer",
-        }),
-      ],
+      plugins: [svgr(), react()],
     },
   };
 });

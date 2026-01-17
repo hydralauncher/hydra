@@ -1,7 +1,6 @@
 {
   "language_name": "Polski",
   "home": {
-    "featured": "Wyróżnione",
     "surprise_me": "Zaskocz mnie",
     "no_results": "Nie znaleziono wyników"
   },
@@ -13,8 +12,10 @@
     "downloading_metadata": "{{title}} (Pobieranie metadata…)",
     "paused": "{{title}} (Zatrzymano)",
     "downloading": "{{title}} ({{percentage}} - Pobieranie…)",
-    "filter": "Filtruj biblioteke",
-    "home": "Główna"
+    "filter": "Filtruj bibliotekę",
+    "home": "Główna",
+    "favorites": "Ulubione",
+    "playable_button_title": "Pokaż tylko gry, w które możesz grać teraz"
   },
   "header": {
     "search": "Szukaj",
@@ -29,10 +30,7 @@
     "downloading_metadata": "Pobieranie {{title}} metadata…",
     "downloading": "Pobieranie {{title}}… (ukończone w {{percentage}}) - Podsumowanie {{eta}} - {{speed}}"
   },
-  "catalogue": {
-    "next_page": "Następna strona",
-    "previous_page": "Poprzednia strona"
-  },
+  "catalogue": {},
   "game_details": {
     "open_download_options": "Otwórz opcje pobierania",
     "download_options_zero": "Brak opcji pobierania",
@@ -118,8 +116,13 @@
     "general": "Ogólne",
     "behavior": "Zachowania",
     "language": "Język",
+    "cancel_button_confirmation_delete_all_sources": "NIE",
+    "confirm_button_confirmation_delete_all_sources": "Tak, usuń wszystko",
+    "description_confirmation_delete_all_sources": "Usuniesz wszystkie źródła pobierania",
+    "title_confirmation_delete_all_sources": "Usuń wszystkie źródła pobierania",
+    "button_delete_all_sources": "Usuń wszystkie źródła pobierania",
     "enable_real_debrid": "Włącz Real-Debrid",
-    "real_debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>",
+    "debrid_api_token_hint": "Możesz uzyskać swój klucz API <0>tutaj</0>",
     "save_changes": "Zapisz zmiany"
   },
   "notifications": {

@@ -1,91 +1,174 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useCallback, useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRightIcon, ChevronLeftIcon } from "@primer/octicons-react";
-
-import * as styles from "./gallery-slider.css";
+import {
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  PlayIcon,
+} from "@primer/octicons-react";
+import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
+import { useAppSelector } from "@renderer/hooks";
+import { VideoPlayer } from "./video-player";
+import "./gallery-slider.scss";
 
 export function GallerySlider() {
   const { shopDetails } = useContext(gameDetailsContext);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const mediaContainerRef = useRef<HTMLDivElement>(null);
-
   const { t } = useTranslation("game_details");
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const autoplayEnabled = userPreferences?.autoplayGameTrailers !== false;
 
   const hasScreenshots = shopDetails && shopDetails.screenshots?.length;
-  const hasMovies = shopDetails && shopDetails.movies?.length;
 
-  const mediaCount = useMemo(() => {
-    if (!shopDetails) return 0;
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-    if (shopDetails.screenshots && shopDetails.movies) {
-      return shopDetails.screenshots.length + shopDetails.movies.length;
-    } else if (shopDetails.movies) {
-      return shopDetails.movies.length;
-    } else if (shopDetails.screenshots) {
-      return shopDetails.screenshots.length;
-    }
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
 
-    return 0;
-  }, [shopDetails]);
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
-  const [mediaIndex, setMediaIndex] = useState(0);
-  const [showArrows, setShowArrows] = useState(false);
+  const scrollTo = useCallback(
+    (index: number) => {
+      if (emblaApi) emblaApi.scrollTo(index);
+    },
+    [emblaApi]
+  );
 
-  const showNextImage = () => {
-    setMediaIndex((index: number) => {
-      if (index === mediaCount - 1) return 0;
+  const scrollToPreview = useCallback(
+    (index: number, event: React.MouseEvent<HTMLButtonElement>) => {
+      scrollTo(index);
 
-      return index + 1;
-    });
-  };
+      const button = event.currentTarget;
+      const previewContainer = button.parentElement;
 
-  const showPrevImage = () => {
-    setMediaIndex((index: number) => {
-      if (index === 0) return mediaCount - 1;
+      if (previewContainer) {
+        const containerRect = previewContainer.getBoundingClientRect();
+        const buttonRect = button.getBoundingClientRect();
 
-      return index - 1;
-    });
-  };
+        const isOffScreenLeft = buttonRect.left < containerRect.left;
+        const isOffScreenRight = buttonRect.right > containerRect.right;
+
+        if (isOffScreenLeft || isOffScreenRight) {
+          button.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+        }
+      }
+    },
+    [scrollTo]
+  );
 
   useEffect(() => {
-    setMediaIndex(0);
-  }, [shopDetails]);
+    if (!emblaApi) return;
 
-  useEffect(() => {
-    if (hasMovies && mediaContainerRef.current) {
-      mediaContainerRef.current.childNodes.forEach((node, index) => {
-        if (node instanceof HTMLVideoElement) {
-          if (index !== mediaIndex) {
-            node.pause();
+    let isInitialLoad = true;
+
+    const onSelect = () => {
+      const newIndex = emblaApi.selectedScrollSnap();
+      setSelectedIndex(newIndex);
+
+      if (!isInitialLoad) {
+        const videos = document.querySelectorAll(".gallery-slider__media");
+        videos.forEach((video) => {
+          if (video instanceof HTMLVideoElement) {
+            video.pause();
           }
+        });
+      }
+
+      isInitialLoad = false;
+    };
+
+    emblaApi.on("select", onSelect);
+    onSelect();
+
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
+
+  const mediaItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      type: "video" | "image";
+      src?: string;
+      poster?: string;
+      videoSrc?: string;
+      videoType?: string;
+      alt: string;
+    }> = [];
+
+    if (shopDetails?.movies) {
+      shopDetails.movies.forEach((video, index) => {
+        let videoSrc: string | undefined;
+        let videoType: string | undefined;
+
+        if (video.hls_h264) {
+          videoSrc = video.hls_h264;
+          videoType = "application/x-mpegURL";
+        } else if (video.dash_h264) {
+          videoSrc = video.dash_h264;
+          videoType = "application/dash+xml";
+        } else if (video.dash_av1) {
+          videoSrc = video.dash_av1;
+          videoType = "application/dash+xml";
+        } else if (video.mp4?.max) {
+          videoSrc = video.mp4.max;
+          videoType = "video/mp4";
+        } else if (video.webm?.max) {
+          videoSrc = video.webm.max;
+          videoType = "video/webm";
+        }
+
+        if (videoSrc) {
+          items.push({
+            id: String(video.id),
+            type: "video",
+            poster: video.thumbnail,
+            videoSrc: videoSrc.startsWith("http://")
+              ? videoSrc.replace("http://", "https://")
+              : videoSrc,
+            videoType,
+            alt: video.name || t("video", { number: String(index + 1) }),
+          });
         }
       });
     }
-  }, [hasMovies, mediaContainerRef, mediaIndex]);
 
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const totalWidth = container.scrollWidth - container.clientWidth;
-      const itemWidth = totalWidth / (mediaCount - 1);
-      const scrollLeft = mediaIndex * itemWidth;
-      container.scrollLeft = scrollLeft;
+    if (shopDetails?.screenshots) {
+      shopDetails.screenshots.forEach((image, index) => {
+        items.push({
+          id: String(image.id),
+          type: "image",
+          src: image.path_full,
+          alt: t("screenshot", { number: String(index + 1) }),
+        });
+      });
     }
-  }, [shopDetails, mediaIndex, mediaCount]);
+
+    return items;
+  }, [shopDetails, t]);
 
   const previews = useMemo(() => {
     const screenshotPreviews =
       shopDetails?.screenshots?.map(({ id, path_thumbnail }) => ({
         id,
         thumbnail: path_thumbnail,
+        type: "image" as const,
       })) ?? [];
 
     if (shopDetails?.movies) {
       const moviePreviews = shopDetails.movies.map(({ id, thumbnail }) => ({
         id,
         thumbnail,
+        type: "video" as const,
       }));
 
       return [...moviePreviews, ...screenshotPreviews];
@@ -94,92 +177,87 @@ export function GallerySlider() {
     return screenshotPreviews;
   }, [shopDetails]);
 
+  if (!hasScreenshots) {
+    return null;
+  }
+
   return (
-    <>
-      {hasScreenshots && (
-        <div className={styles.gallerySliderContainer}>
-          <div
-            onMouseEnter={() => setShowArrows(true)}
-            onMouseLeave={() => setShowArrows(false)}
-            className={styles.gallerySliderAnimationContainer}
-            ref={mediaContainerRef}
-          >
-            {shopDetails.movies &&
-              shopDetails.movies.map((video) => (
-                <video
-                  key={video.id}
-                  controls
-                  className={styles.gallerySliderMedia}
-                  poster={video.thumbnail}
-                  style={{ translate: `${-100 * mediaIndex}%` }}
+    <div className="gallery-slider__container">
+      <div className="gallery-slider__viewport" ref={emblaRef}>
+        <div className="gallery-slider__container-inner">
+          {mediaItems.map((item) => (
+            <div key={item.id} className="gallery-slider__slide">
+              {item.type === "video" ? (
+                <VideoPlayer
+                  videoSrc={item.videoSrc}
+                  videoType={item.videoType}
+                  poster={item.poster}
+                  autoplay={autoplayEnabled}
                   loop
                   muted
+                  controls
+                  className="gallery-slider__media"
                   tabIndex={-1}
-                >
-                  <source src={video.mp4.max.replace("http", "https")} />
-                </video>
-              ))}
-
-            {hasScreenshots &&
-              shopDetails.screenshots?.map((image, i) => (
+                />
+              ) : (
                 <img
-                  key={image.id}
-                  className={styles.gallerySliderMedia}
-                  src={image.path_full}
-                  style={{ translate: `${-100 * mediaIndex}%` }}
-                  alt={t("screenshot", { number: i + 1 })}
+                  className="gallery-slider__media"
+                  src={item.src}
+                  alt={item.alt}
                   loading="lazy"
                 />
-              ))}
-
-            <button
-              onClick={showPrevImage}
-              type="button"
-              className={styles.gallerySliderButton({
-                visible: showArrows,
-                direction: "left",
-              })}
-              aria-label={t("previous_screenshot")}
-              tabIndex={0}
-            >
-              <ChevronLeftIcon size={36} />
-            </button>
-
-            <button
-              onClick={showNextImage}
-              type="button"
-              className={styles.gallerySliderButton({
-                visible: showArrows,
-                direction: "right",
-              })}
-              aria-label={t("next_screenshot")}
-              tabIndex={0}
-            >
-              <ChevronRightIcon size={36} />
-            </button>
-          </div>
-
-          <div className={styles.gallerySliderPreview} ref={scrollContainerRef}>
-            {previews.map((media, i) => (
-              <button
-                key={media.id}
-                type="button"
-                className={styles.mediaPreviewButton({
-                  active: mediaIndex === i,
-                })}
-                onClick={() => setMediaIndex(i)}
-                aria-label={t("open_screenshot", { number: i + 1 })}
-              >
-                <img
-                  src={media.thumbnail}
-                  className={styles.mediaPreview}
-                  alt={t("screenshot", { number: i + 1 })}
-                />
-              </button>
-            ))}
-          </div>
+              )}
+            </div>
+          ))}
         </div>
-      )}
-    </>
+
+        <button
+          onClick={scrollPrev}
+          type="button"
+          className="gallery-slider__button gallery-slider__button--left"
+          aria-label={t("previous_screenshot")}
+          tabIndex={0}
+        >
+          <ChevronLeftIcon size={36} />
+        </button>
+
+        <button
+          onClick={scrollNext}
+          type="button"
+          className="gallery-slider__button gallery-slider__button--right"
+          aria-label={t("next_screenshot")}
+          tabIndex={0}
+        >
+          <ChevronRightIcon size={36} />
+        </button>
+      </div>
+
+      <div className="gallery-slider__preview">
+        {previews.map((media, i) => (
+          <button
+            key={media.id}
+            type="button"
+            className={`gallery-slider__preview-button ${
+              selectedIndex === i
+                ? "gallery-slider__preview-button--active"
+                : ""
+            }`}
+            onClick={(e) => scrollToPreview(i, e)}
+            aria-label={t("open_screenshot", { number: String(i + 1) })}
+          >
+            <img
+              src={media.thumbnail}
+              className="gallery-slider__preview-image"
+              alt={t("screenshot", { number: String(i + 1) })}
+            />
+            {media.type === "video" && (
+              <div className="gallery-slider__play-overlay">
+                <PlayIcon size={20} />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -3,7 +3,6 @@ productName: Hydra
 directories:
   buildResources: build
 extraResources:
-  - aria2
   - ludusavi
   - hydra-python-rpc
   - seeds
@@ -20,6 +19,10 @@ asarUnpack:
   - resources/**
 win:
   executableName: Hydra
+  extraResources:
+    - from: binaries/aria2c.exe
+    - from: binaries/7z.exe
+    - from: binaries/7z.dll
   target:
     - nsis
     - portable
@@ -35,6 +38,8 @@ portable:
   artifactName: ${name}-${version}-portable.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
+  extraResources:
+    - from: binaries/7zz
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -44,11 +49,13 @@ mac:
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
+  extraResources:
+    - from: binaries/7zzs
+    - from: binaries/aria2c
   target:
     - AppImage
     - snap
     - deb
-    - pacman
     - rpm
   maintainer: electronjs.org
   category: Game

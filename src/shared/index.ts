@@ -1,7 +1,25 @@
+import {
+  ptBR,
+  enUS,
+  es,
+  fr,
+  pl,
+  hu,
+  tr,
+  ru,
+  it,
+  be,
+  zhCN,
+  da,
+} from "date-fns/locale";
+
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
+import { format } from "date-fns";
+import { AchievementNotificationInfo } from "@types";
 
 export * from "./constants";
+export * from "./html-sanitizer";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
@@ -33,13 +51,19 @@ export const formatBytes = (bytes: number): string => {
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
 
+export const formatBytesToMbps = (bytesPerSecond: number): string => {
+  const bitsPerSecond = bytesPerSecond * 8;
+  const mbps = bitsPerSecond / (1024 * 1024);
+  return `${Math.trunc(mbps * 10) / 10} Mbps`;
+};
+
 export const pipe =
   <T>(...fns: ((arg: T) => any)[]) =>
   (arg: T) =>
     fns.reduce((prev, fn) => fn(prev), arg);
 
 export const removeReleaseYearFromName = (name: string) =>
-  name.replace(/\([0-9]{4}\)/g, "");
+  name.replace(/\(\d{4}\)/g, "");
 
 export const removeSymbolsFromName = (name: string) =>
   name.replace(/[^A-Za-z 0-9]/g, "");
@@ -86,13 +110,36 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
-  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
+  if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
+  if (uri.startsWith("https://www.mediafire.com"))
+    return [Downloader.Mediafire];
+  if (
+    uri.startsWith("https://buzzheavier.com") ||
+    uri.startsWith("https://bzzhr.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
+    return [Downloader.Buzzheavier];
+  }
+  if (uri.startsWith("https://fuckingfast.co")) {
+    return [Downloader.FuckingFast];
+  }
+  if (uri.startsWith("https://vikingfile.com")) {
+    return [Downloader.VikingFile];
+  }
+  if (uri.startsWith("https://www.rootz.so")) {
+    return [Downloader.Rootz];
+  }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];
 
   if (uri.startsWith("magnet:")) {
-    return [Downloader.Torrent, Downloader.RealDebrid];
+    return [
+      Downloader.Torrent,
+      Downloader.Hydra,
+      Downloader.TorBox,
+      Downloader.RealDebrid,
+    ];
   }
 
   return [];
@@ -109,15 +156,48 @@ export const getDownloadersForUris = (uris: string[]) => {
   return Array.from(downloadersSet);
 };
 
-export const steamUrlBuilder = {
-  library: (objectId: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/header.jpg`,
-  libraryHero: (objectId: string) =>
-    `https://steamcdn-a.akamaihd.net/steam/apps/${objectId}/library_hero.jpg`,
-  logo: (objectId: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/logo.png`,
-  cover: (objectId: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steam/apps/${objectId}/library_600x900.jpg`,
-  icon: (objectId: string, clientIcon: string) =>
-    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${objectId}/${clientIcon}.ico`,
+export const getDateLocale = (language: string) => {
+  if (language.startsWith("pt")) return ptBR;
+  if (language.startsWith("es")) return es;
+  if (language.startsWith("fr")) return fr;
+  if (language.startsWith("hu")) return hu;
+  if (language.startsWith("pl")) return pl;
+  if (language.startsWith("tr")) return tr;
+  if (language.startsWith("ru")) return ru;
+  if (language.startsWith("it")) return it;
+  if (language.startsWith("be")) return be;
+  if (language.startsWith("zh")) return zhCN;
+  if (language.startsWith("da")) return da;
+
+  return enUS;
+};
+
+export const formatDate = (
+  date: number | Date | string,
+  language: string
+): string => {
+  if (isNaN(new Date(date).getDate())) return "N/A";
+  return format(date, language == "en" ? "MM-dd-yyyy" : "dd/MM/yyyy");
+};
+
+export const generateAchievementCustomNotificationTest = (
+  t: any,
+  language?: string,
+  options: { isHidden?: boolean; isRare?: boolean; isPlatinum?: boolean } = {}
+): AchievementNotificationInfo => {
+  return {
+    title: t("test_achievement_notification_title", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    description: t("test_achievement_notification_description", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+    points: 2440,
+    isHidden: options.isHidden ?? false,
+    isRare: options.isRare ?? false,
+    isPlatinum: options.isPlatinum ?? false,
+  };
 };

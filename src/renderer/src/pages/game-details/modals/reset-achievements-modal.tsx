@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal } from "@renderer/components";
-import * as styles from "./remove-from-library-modal.css";
 import type { Game } from "@types";
+import "./reset-achievements-modal.scss";
+
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
   game: Game;
@@ -34,13 +35,13 @@ export function ResetAchievementsModal({
         game: game.title,
       })}
     >
-      <div className={styles.deleteActionsButtonsCtn}>
-        <Button onClick={handleResetAchievements} theme="outline">
-          {t("reset_achievements")}
+      <div className="reset-achievements-modal__actions">
+        <Button onClick={onClose} theme="outline">
+          {t("cancel")}
         </Button>
 
-        <Button onClick={onClose} theme="primary">
-          {t("cancel")}
+        <Button onClick={handleResetAchievements} theme="primary">
+          {t("reset_achievements")}
         </Button>
       </div>
     </Modal>

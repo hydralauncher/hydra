@@ -36,16 +36,13 @@ export class GofileApi {
   }
 
   public static async getDownloadLink(id: string) {
-    const searchParams = new URLSearchParams({
-      wt: WT,
-    });
-
     const response = await axios.get<{
       status: string;
       data: GofileContentsResponse;
-    }>(`https://api.gofile.io/contents/${id}?${searchParams.toString()}`, {
+    }>(`https://api.gofile.io/contents/${id}`, {
       headers: {
         Authorization: `Bearer ${this.token}`,
+        "X-Website-Token": WT,
       },
     });
 
@@ -59,5 +56,13 @@ export class GofileApi {
     }
 
     throw new Error("Failed to get download link");
+  }
+
+  public static async checkDownloadUrl(url: string) {
+    return axios.head(url, {
+      headers: {
+        Cookie: `accountToken=${this.token}`,
+      },
+    });
   }
 }

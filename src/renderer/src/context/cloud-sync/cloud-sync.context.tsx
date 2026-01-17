@@ -30,9 +30,14 @@ export interface CloudSyncContext {
   setShowCloudSyncFilesModal: React.Dispatch<React.SetStateAction<boolean>>;
   getGameBackupPreview: () => Promise<void>;
   getGameArtifacts: () => Promise<void>;
+  toggleArtifactFreeze: (
+    gameArtifactId: string,
+    freeze: boolean
+  ) => Promise<void>;
   restoringBackup: boolean;
   uploadingBackup: boolean;
   loadingPreview: boolean;
+  freezingArtifact: boolean;
 }
 
 export const cloudSyncContext = createContext<CloudSyncContext>({
@@ -47,10 +52,12 @@ export const cloudSyncContext = createContext<CloudSyncContext>({
   showCloudSyncFilesModal: false,
   setShowCloudSyncFilesModal: () => {},
   getGameBackupPreview: async () => {},
+  toggleArtifactFreeze: async () => {},
   getGameArtifacts: async () => {},
   restoringBackup: false,
   uploadingBackup: false,
   loadingPreview: false,
+  freezingArtifact: false,
 });
 
 const { Provider } = cloudSyncContext;
@@ -78,8 +85,9 @@ export function CloudSyncContextProvider({
   const [uploadingBackup, setUploadingBackup] = useState(false);
   const [showCloudSyncFilesModal, setShowCloudSyncFilesModal] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [freezingArtifact, setFreezingArtifact] = useState(false);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const downloadGameArtifact = useCallback(
     async (gameArtifactId: string) => {
@@ -90,7 +98,23 @@ export function CloudSyncContextProvider({
   );
 
   const getGameArtifacts = useCallback(async () => {
-    const results = await window.electron.getGameArtifacts(objectId, shop);
+    if (shop === "custom") {
+      setArtifacts([]);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      objectId,
+      shop,
+    });
+
+    const results = await window.electron.hydraApi
+      .get<GameArtifact[]>(`/profile/games/artifacts?${params.toString()}`, {
+        needsSubscription: true,
+      })
+      .catch(() => {
+        return [];
+      });
     setArtifacts(results);
   }, [objectId, shop]);
 
@@ -114,9 +138,34 @@ export function CloudSyncContextProvider({
   const uploadSaveGame = useCallback(
     async (downloadOptionTitle: string | null) => {
       setUploadingBackup(true);
-      window.electron.uploadSaveGame(objectId, shop, downloadOptionTitle);
+      window.electron
+        .uploadSaveGame(objectId, shop, downloadOptionTitle)
+        .catch((err) => {
+          setUploadingBackup(false);
+          logger.error("Failed to upload save game", { objectId, shop, err });
+          showErrorToast(t("backup_failed"));
+        });
     },
-    [objectId, shop]
+    [objectId, shop, t, showErrorToast]
+  );
+
+  const toggleArtifactFreeze = useCallback(
+    async (gameArtifactId: string, freeze: boolean) => {
+      setFreezingArtifact(true);
+      try {
+        const endpoint = freeze ? "freeze" : "unfreeze";
+        await window.electron.hydraApi.put(
+          `/profile/games/artifacts/${gameArtifactId}/${endpoint}`
+        );
+        getGameArtifacts();
+      } catch (err) {
+        logger.error("Failed to toggle artifact freeze", objectId, shop, err);
+        throw err;
+      } finally {
+        setFreezingArtifact(false);
+      }
+    },
+    [objectId, shop, getGameArtifacts]
   );
 
   useEffect(() => {
@@ -155,10 +204,12 @@ export function CloudSyncContextProvider({
 
   const deleteGameArtifact = useCallback(
     async (gameArtifactId: string) => {
-      return window.electron.deleteGameArtifact(gameArtifactId).then(() => {
-        getGameBackupPreview();
-        getGameArtifacts();
-      });
+      return window.electron.hydraApi
+        .delete<{ ok: boolean }>(`/profile/games/artifacts/${gameArtifactId}`)
+        .then(() => {
+          getGameBackupPreview();
+          getGameArtifacts();
+        });
     },
     [getGameBackupPreview, getGameArtifacts]
   );
@@ -192,6 +243,7 @@ export function CloudSyncContextProvider({
         uploadingBackup,
         showCloudSyncFilesModal,
         loadingPreview,
+        freezingArtifact,
         setShowCloudSyncModal,
         uploadSaveGame,
         downloadGameArtifact,
@@ -199,6 +251,7 @@ export function CloudSyncContextProvider({
         setShowCloudSyncFilesModal,
         getGameBackupPreview,
         getGameArtifacts,
+        toggleArtifactFreeze,
       }}
     >
       {children}
