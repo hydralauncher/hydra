@@ -31,7 +31,7 @@ export function ScanGamesModal({
   scanResult,
   onStartScan,
   onClearResult,
-}: ScanGamesModalProps) {
+}: Readonly<ScanGamesModalProps>) {
   const { t } = useTranslation("header");
 
   const handleClose = () => {
