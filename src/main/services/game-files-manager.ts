@@ -175,9 +175,13 @@ export class GameFilesManager {
         return;
       }
 
+      if (!download.folderName) {
+        return;
+      }
+
       const gameFolderPath = path.join(
         download.downloadPath,
-        download.folderName!
+        download.folderName
       );
 
       if (!fs.existsSync(gameFolderPath)) {
