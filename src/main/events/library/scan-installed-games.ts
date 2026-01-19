@@ -1,15 +1,15 @@
 import path from "node:path";
 import fs from "node:fs";
 import { registerEvent } from "../register-event";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { gamesSublevel } from "@main/level";
 import { GameExecutables, logger, WindowManager } from "@main/services";
 
 const SCAN_DIRECTORIES = [
-  "C:\\Games",
-  "D:\\Games",
-  "C:\\Program Files (x86)\\Steam\\steamapps\\common",
-  "C:\\Program Files\\Steam\\steamapps\\common",
-  "C:\\Program Files (x86)\\DODI-Repacks",
+  String.raw`C:\Games`,
+  String.raw`D:\Games`,
+  String.raw`C:\Program Files (x86)\Steam\steamapps\common`,
+  String.raw`C:\Program Files\Steam\steamapps\common`,
+  String.raw`C:\Program Files (x86)\DODI-Repacks`,
 ];
 
 interface FoundGame {
@@ -111,7 +111,7 @@ async function findExecutableInFolder(
 
       if (executableNames.has(fileName)) {
         const parentPath =
-          "parentPath" in entry ? (entry.parentPath as string) : folderPath;
+          "parentPath" in entry ? entry.parentPath : folderPath;
 
         return path.join(parentPath, entry.name);
       }
