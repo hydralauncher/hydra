@@ -211,6 +211,10 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
+    scanInstalledGames: () => Promise<{
+      foundGames: { title: string; executablePath: string }[];
+      total: number;
+    }>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
