@@ -330,7 +330,8 @@ export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
   | "DOWNLOAD_COMPLETE"
   | "UPDATE_AVAILABLE"
-  | "ACHIEVEMENT_UNLOCKED";
+  | "ACHIEVEMENT_UNLOCKED"
+  | "SCAN_GAMES_COMPLETE";
 
 export interface Notification {
   id: string;
