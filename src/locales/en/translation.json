@@ -629,7 +629,11 @@
     "game_extracted": "{{title}} extracted successfully",
     "friend_started_playing_game": "{{displayName}} started playing a game",
     "test_achievement_notification_title": "This is a test notification",
-    "test_achievement_notification_description": "Pretty cool, huh?"
+    "test_achievement_notification_description": "Pretty cool, huh?",
+    "scan_games_complete_title": "Scanning for games finished successfully",
+    "scan_games_complete_description": "Found {{count}} games without executable path set",
+    "scan_games_no_results_title": "Scanning for games finished",
+    "scan_games_no_results_description": "No installed games were found"
   },
   "system_tray": {
     "open": "Open Hydra",

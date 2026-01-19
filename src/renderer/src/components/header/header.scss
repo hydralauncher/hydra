@@ -61,22 +61,25 @@
     cursor: pointer;
     transition: all ease 0.2s;
     padding: globals.$spacing-unit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       color: #dadbe1;
     }
 
-    &--scanning {
+    &--scanning svg {
       animation: spin 2s linear infinite;
     }
   }
 
   @keyframes spin {
     from {
-      transform: rotate(-0deg);
+      transform: rotate(0deg);
     }
     to {
-      transform: rotate(-360deg);
+      transform: rotate(360deg);
     }
   }
 

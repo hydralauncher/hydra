@@ -1,8 +1,14 @@
 import path from "node:path";
 import fs from "node:fs";
+import { t } from "i18next";
 import { registerEvent } from "../register-event";
 import { gamesSublevel } from "@main/level";
-import { GameExecutables, logger, WindowManager } from "@main/services";
+import {
+  GameExecutables,
+  LocalNotificationManager,
+  logger,
+  WindowManager,
+} from "@main/services";
 
 const SCAN_DIRECTORIES = [
   String.raw`C:\Games`,
@@ -88,9 +94,32 @@ const scanInstalledGames = async (
 
   WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
 
+  const total = games.filter((g) => !g.game.executablePath).length;
+
+  const hasFoundGames = foundGames.length > 0;
+
+  await LocalNotificationManager.createNotification(
+    "SCAN_GAMES_COMPLETE",
+    t(
+      hasFoundGames
+        ? "scan_games_complete_title"
+        : "scan_games_no_results_title",
+      { ns: "notifications" }
+    ),
+    t(
+      hasFoundGames
+        ? "scan_games_complete_description"
+        : "scan_games_no_results_description",
+      { ns: "notifications", count: foundGames.length }
+    ),
+    {
+      url: "/library?openScanModal=true",
+    }
+  );
+
   return {
     foundGames,
-    total: games.filter((g) => !g.game.executablePath).length,
+    total,
   };
 };
 

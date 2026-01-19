@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
   SearchIcon,
@@ -40,6 +40,7 @@ export function Header() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
@@ -267,6 +268,14 @@ export function Header() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [isDropdownVisible]);
+
+  useEffect(() => {
+    if (searchParams.get("openScanModal") === "true") {
+      setShowScanModal(true);
+      searchParams.delete("openScanModal");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <>
