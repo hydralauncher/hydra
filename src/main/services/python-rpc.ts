@@ -156,10 +156,10 @@ export class PythonRPC {
         if (!resolved) {
           resolved = true;
           cleanup();
-          if (code !== 0) {
-            reject(new Error(`Python RPC process exited with code ${code}`));
-          } else {
+          if (code === 0) {
             resolve(null);
+          } else {
+            reject(new Error(`Python RPC process exited with code ${code}`));
           }
         }
       });
