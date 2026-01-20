@@ -110,10 +110,25 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
-  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
+  if (
+    uri.startsWith("https://buzzheavier.com") ||
+    uri.startsWith("https://bzzhr.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
+    return [Downloader.Buzzheavier];
+  }
+  if (uri.startsWith("https://fuckingfast.co")) {
+    return [Downloader.FuckingFast];
+  }
+  if (uri.startsWith("https://vikingfile.com")) {
+    return [Downloader.VikingFile];
+  }
+  if (uri.startsWith("https://www.rootz.so")) {
+    return [Downloader.Rootz];
+  }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];

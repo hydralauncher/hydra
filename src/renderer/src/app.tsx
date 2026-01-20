@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWondersSdk } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -19,11 +19,13 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setExtractionProgress,
+  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 
 import {
   injectCustomCss,
@@ -52,13 +54,10 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const workwondersRef = useRef<WorkWondersSdk | null>(null);
+
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -79,6 +78,10 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast } = useToast();
+
+  const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
+    useState(false);
+  const [archivePaths, setArchivePaths] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -115,7 +118,33 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
-  useEffect(() => {
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      workwondersRef.current = new WorkWondersSdk();
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      await workwondersRef.current.initChangelogWidget();
+      workwondersRef.current.initChangelogWidgetMini();
+
+      if (token) {
+        workwondersRef.current.initFeedbackWidget();
+      }
+    },
+    [workwondersRef]
+  );
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -142,6 +171,26 @@ export function App() {
         document.head.appendChild($script);
       });
   }, [fetchUserDetails, updateUserDetails, dispatch]);
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
+
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
@@ -186,15 +235,28 @@ export function App() {
         updateLibrary();
       }),
       globalThis.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onExtractionProgress((shop, objectId, progress) => {
+        dispatch(setExtractionProgress({ shop, objectId, progress }));
+      }),
+      window.electron.onExtractionComplete(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+      }),
+      window.electron.onArchiveDeletionPrompt((paths) => {
+        setArchivePaths(paths);
+        setShowArchiveDeletionModal(true);
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    workwondersRef.current?.notifyUrlChange();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -303,14 +365,11 @@ export function App() {
         feature={hydraCloudFeature}
       />
 
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
+      <ArchiveDeletionModal
+        visible={showArchiveDeletionModal}
+        archivePaths={archivePaths}
+        onClose={() => setShowArchiveDeletionModal(false)}
+      />
 
       <main>
         <Sidebar />

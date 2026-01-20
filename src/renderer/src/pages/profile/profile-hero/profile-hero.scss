@@ -27,9 +27,33 @@
     }
   }
 
-  &__badges {
+  &__copy-button {
     display: flex;
-    gap: calc(globals.$spacing-unit / 2);
+    align-items: center;
+    justify-content: flex-end;
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    background-color: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    padding: calc(globals.$spacing-unit / 1.5);
+    border-radius: 6px;
+    transition: background-color ease 0.2s;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
+
+    &:hover {
+      opacity: 1;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__friend-code {
+    font-size: 0.875rem;
+    font-family: monospace;
+    white-space: nowrap;
   }
 
   &__badge-item {

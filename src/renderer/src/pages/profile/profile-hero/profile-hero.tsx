@@ -3,13 +3,19 @@ import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
   CheckCircleFillIcon,
+  CopyIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { Avatar, Button, Link } from "@renderer/components";
+import {
+  Avatar,
+  Button,
+  FullscreenMediaModal,
+  Link,
+} from "@renderer/components";
 import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
@@ -19,12 +25,12 @@ import {
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
-import { Tooltip } from "react-tooltip";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -33,16 +39,13 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
-  const {
-    isMe,
-    badges,
-    getUserProfile,
-    userProfile,
-    heroBackground,
-    backgroundImage,
-  } = useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -246,10 +249,33 @@ export function ProfileHero() {
   ]);
 
   const handleAvatarClick = useCallback(() => {
-    if (isMe) {
+    if (userProfile?.profileImageUrl) {
+      setShowFullscreenAvatar(true);
+    } else if (isMe) {
       setShowEditProfileModal(true);
     }
-  }, [isMe]);
+  }, [isMe, userProfile?.profileImageUrl]);
+
+  const copyFriendCode = useCallback(() => {
+    if (userProfile?.id) {
+      navigator.clipboard.writeText(userProfile.id);
+      setIsCopied(true);
+
+      const startTime = performance.now();
+      const duration = 1200; // 1.2 seconds
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        if (elapsed < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsCopied(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [userProfile]);
 
   const currentGame = useMemo(() => {
     if (isMe) {
@@ -270,6 +296,13 @@ export function ProfileHero() {
       <EditProfileModal
         visible={showEditProfileModal}
         onClose={() => setShowEditProfileModal(false)}
+      />
+
+      <FullscreenMediaModal
+        visible={showFullscreenAvatar}
+        onClose={() => setShowFullscreenAvatar(false)}
+        src={userProfile?.profileImageUrl}
+        alt={userProfile?.displayName}
       />
 
       <section

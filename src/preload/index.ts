@@ -15,6 +15,7 @@ import type {
   GameAchievement,
   Theme,
   FriendRequestSync,
+  NotificationSync,
   ShortcutLocation,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
@@ -205,6 +206,8 @@ contextBridge.exposeInMainWorld("electron", {
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
+  getGameInstallerActionType: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
@@ -267,6 +270,29 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-extraction-complete", listener);
     return () => ipcRenderer.removeListener("on-extraction-complete", listener);
   },
+  onExtractionProgress: (
+    cb: (shop: GameShop, objectId: string, progress: number) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string,
+      progress: number
+    ) => cb(shop, objectId, progress);
+    ipcRenderer.on("on-extraction-progress", listener);
+    return () => ipcRenderer.removeListener("on-extraction-progress", listener);
+  },
+  onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      archivePaths: string[]
+    ) => cb(archivePaths);
+    ipcRenderer.on("on-archive-deletion-prompt", listener);
+    return () =>
+      ipcRenderer.removeListener("on-archive-deletion-prompt", listener);
+  },
+  deleteArchive: (filePath: string) =>
+    ipcRenderer.invoke("deleteArchive", filePath),
 
   /* Hardware */
   getDiskFreeSpace: (path: string) =>
@@ -474,7 +500,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("updateProfile", updateProfile),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
-  syncFriendRequests: () => ipcRenderer.invoke("syncFriendRequests"),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -483,6 +508,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-sync-friend-requests", listener);
     return () =>
       ipcRenderer.removeListener("on-sync-friend-requests", listener);
+  },
+  onSyncNotificationCount: (cb: (notification: NotificationSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      notification: NotificationSync
+    ) => cb(notification);
+    ipcRenderer.on("on-sync-notification-count", listener);
+    return () =>
+      ipcRenderer.removeListener("on-sync-notification-count", listener);
   },
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
@@ -527,6 +561,26 @@ contextBridge.exposeInMainWorld("electron", {
   /* Notifications */
   publishNewRepacksNotification: (newRepacksCount: number) =>
     ipcRenderer.invoke("publishNewRepacksNotification", newRepacksCount),
+  getLocalNotifications: () => ipcRenderer.invoke("getLocalNotifications"),
+  getLocalNotificationsCount: () =>
+    ipcRenderer.invoke("getLocalNotificationsCount"),
+  markLocalNotificationRead: (id: string) =>
+    ipcRenderer.invoke("markLocalNotificationRead", id),
+  markAllLocalNotificationsRead: () =>
+    ipcRenderer.invoke("markAllLocalNotificationsRead"),
+  deleteLocalNotification: (id: string) =>
+    ipcRenderer.invoke("deleteLocalNotification", id),
+  clearAllLocalNotifications: () =>
+    ipcRenderer.invoke("clearAllLocalNotifications"),
+  onLocalNotificationCreated: (cb: (notification: unknown) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      notification: unknown
+    ) => cb(notification);
+    ipcRenderer.on("on-local-notification-created", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-notification-created", listener);
+  },
   onAchievementUnlocked: (
     cb: (
       position?: AchievementCustomNotificationPosition,

@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.7.5",
+  "version": "3.8.1",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -40,6 +40,7 @@
     "@primer/octicons-react": "^19.9.0",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@reduxjs/toolkit": "^2.2.3",
+    "@sentry/react": "^10.33.0",
     "@tiptap/extension-bold": "^3.6.2",
     "@tiptap/extension-italic": "^3.6.2",
     "@tiptap/extension-link": "^3.6.2",
@@ -70,6 +71,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.544.0",
+    "node-7z": "^3.0.0",
     "parse-torrent": "^11.0.18",
     "rc-virtual-list": "^3.18.3",
     "react-dnd": "^16.0.1",
@@ -90,6 +92,7 @@
     "user-agents": "^1.1.387",
     "uuid": "^13.0.0",
     "winreg": "^1.2.5",
+    "workwonders-sdk": "0.0.10",
     "ws": "^8.18.1",
     "yaml": "^2.6.1",
     "yup": "^1.5.0"

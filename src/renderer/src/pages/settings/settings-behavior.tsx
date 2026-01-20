@@ -31,6 +31,7 @@ export function SettingsBehavior() {
     hideToTrayOnGameStart: false,
     showSidebarLibrary: true,
     showSidebarFavorites: true,
+    enableNewDownloadOptionsBadges: true,
   });
 
   const { t } = useTranslation("settings");
@@ -57,6 +58,8 @@ export function SettingsBehavior() {
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
         showSidebarLibrary: userPreferences.showSidebarLibrary ?? true,
         showSidebarFavorites: userPreferences.showSidebarFavorites ?? true,
+        enableNewDownloadOptionsBadges:
+          userPreferences.enableNewDownloadOptionsBadges ?? true,
       });
     }
   }, [userPreferences]);
@@ -229,6 +232,17 @@ export function SettingsBehavior() {
           <QuestionIcon size={12} />
         </small>
       </div>
+
+      <CheckboxField
+        label={t("enable_new_download_options_badges")}
+        checked={form.enableNewDownloadOptionsBadges}
+        onChange={() =>
+          handleChange({
+            enableNewDownloadOptionsBadges:
+              !form.enableNewDownloadOptionsBadges,
+          })
+        }
+      />
     </>
   );
 }

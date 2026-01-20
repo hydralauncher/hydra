@@ -20,6 +20,8 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
+  featurebaseJwt: string;
+  workwondersJwt: string;
 }
 
 export interface User {
@@ -80,6 +82,7 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   automaticallyExtract: boolean;
+  extractionProgress: number;
 }
 
 export interface GameAchievement {
@@ -126,6 +129,8 @@ export interface UserPreferences {
   hideToTrayOnGameStart?: boolean;
   showSidebarLibrary?: boolean;
   showSidebarFavorites?: boolean;
+  enableNewDownloadOptionsBadges?: boolean;
+  useNativeHttpDownloader?: boolean;
 }
 
 export interface ScreenState {

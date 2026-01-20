@@ -82,6 +82,7 @@ export function Header() {
     if (location.pathname.startsWith("/game")) return headerTitle;
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
+    if (location.pathname.startsWith("/notifications")) return headerTitle;
     if (location.pathname.startsWith("/library"))
       return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");
@@ -224,21 +225,6 @@ export function Header() {
   };
 
   useEffect(() => {
-    const prevPath = sessionStorage.getItem("prevPath");
-    const currentPath = location.pathname;
-
-    if (
-      prevPath?.startsWith("/catalogue") &&
-      !currentPath.startsWith("/catalogue") &&
-      catalogueSearchValue
-    ) {
-      dispatch(setFilters({ title: "" }));
-    }
-
-    sessionStorage.setItem("prevPath", currentPath);
-  }, [location.pathname, catalogueSearchValue, dispatch]);
-
-  useEffect(() => {
     if (!isDropdownVisible) return;
 
     const handleResize = () => {
@@ -323,7 +309,8 @@ export function Header() {
       <SearchDropdown
         visible={
           isDropdownVisible &&
-          (historyItems.length > 0 ||
+          (searchValue.trim().length > 0 ||
+            historyItems.length > 0 ||
             suggestions.length > 0 ||
             isLoadingSuggestions)
         }
