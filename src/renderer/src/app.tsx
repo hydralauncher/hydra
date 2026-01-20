@@ -155,27 +155,12 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          globalThis.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
-
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
     const userPreferences = await window.electron.getUserPreferences();
     const userDetails = await fetchUserDetails().catch(() => null);
 
     if (userDetails) {
       updateUserDetails(userDetails);
+      globalThis.electron.syncFriendRequests();
     }
 
     setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
