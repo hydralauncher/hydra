@@ -1,9 +1,35 @@
 from flask import Flask, request, jsonify
-import sys, json, urllib.parse, psutil
+import sys, json, urllib.parse, psutil, socket
 from torrent_downloader import TorrentDownloader
 from http_downloader import HttpDownloader
 from profile_image_processor import ProfileImageProcessor
 import libtorrent as lt
+
+RPC_PORT_MIN = 8080
+RPC_PORT_MAX = 9000
+
+def find_available_port(preferred_port, start=RPC_PORT_MIN, end=RPC_PORT_MAX):
+    """Find an available port, trying the preferred port first."""
+    # Try preferred port first
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('0.0.0.0', preferred_port))
+            return preferred_port
+    except OSError:
+        pass
+    
+    # Try ports in range
+    for port in range(start, end + 1):
+        if port == preferred_port:
+            continue
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('0.0.0.0', port))
+                return port
+        except OSError:
+            continue
+    
+    raise RuntimeError(f"No available ports in range {start}-{end}")
 
 app = Flask(__name__)
 
@@ -192,4 +218,7 @@ def action():
     return "", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(http_port))
+    actual_port = find_available_port(int(http_port))
+    # Print port for Node.js to capture - must be flushed immediately
+    print(f"RPC_PORT:{actual_port}", flush=True)
+    app.run(host="0.0.0.0", port=actual_port)
