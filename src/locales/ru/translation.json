@@ -603,7 +603,7 @@
     "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
     "theme_variant": "Вариант темы",
     "show_sidebar_library": "Показывать вертикальную библиотеку в боковом меню",
-    "show_sidebar_favorites": "Показывать раздел «Избранное» в боковом меню"
+    "show_sidebar_favorites": "Показывать раздел «Избранное» в боковом меню",
     "downloads": "Загрузки",
     "use_native_http_downloader": "Использовать встроенный HTTP-загрузчик (экспериментально)",
     "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки"
