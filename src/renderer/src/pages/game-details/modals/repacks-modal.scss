@@ -40,15 +40,18 @@
     gap: calc(globals.$spacing-unit * 1);
     color: globals.$body-color;
     padding: calc(globals.$spacing-unit * 2);
+    padding-right: calc(globals.$spacing-unit * 4);
+    position: relative;
   }
 
   &__availability-orb {
-    display: inline-block;
+    position: absolute;
+    top: calc(globals.$spacing-unit * 1.5);
+    right: calc(globals.$spacing-unit * 1.5);
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-left: calc(globals.$spacing-unit * 1);
-    vertical-align: middle;
+    flex-shrink: 0;
 
     &--online {
       background-color: #22c55e;
@@ -70,10 +73,9 @@
   &__repack-title {
     color: globals.$muted-color;
     word-break: break-word;
-  }
-
-  &__repack-title-text {
-    word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
   }
 
   &__repack-info {
@@ -87,9 +89,8 @@
     border-radius: 6px;
     font-size: 9px;
     text-align: center;
+    flex-shrink: 0;
     border: 1px solid rgba(34, 197, 94, 0.5);
-    margin-left: calc(globals.$spacing-unit * 1);
-    vertical-align: middle;
   }
 
   &__no-results {
