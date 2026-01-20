@@ -388,16 +388,15 @@ export function RepacksModal({
                   onClick={() => handleRepackClick(repack)}
                   className="repacks-modal__repack-button"
                 >
+                  <span
+                    className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
+                    data-tooltip-id={tooltipId}
+                    data-tooltip-content={t(`source_${availabilityStatus}`)}
+                  />
+                  <Tooltip id={tooltipId} />
+
                   <p className="repacks-modal__repack-title">
-                    <span className="repacks-modal__repack-title-text">
-                      {repack.title}
-                    </span>
-                    <span
-                      className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
-                      data-tooltip-id={tooltipId}
-                      data-tooltip-content={t(`source_${availabilityStatus}`)}
-                    />
-                    <Tooltip id={tooltipId} />
+                    {repack.title}
                     {userPreferences?.enableNewDownloadOptionsBadges !==
                       false &&
                       isNewRepack(repack) && (
