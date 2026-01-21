@@ -1,8 +1,9 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, BrowserWindow, net, protocol, shell } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
+import { spawn } from "node:child_process";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import {
   logger,
@@ -13,7 +14,10 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
-import { db, levelKeys } from "./level";
+import { db, gamesSublevel, levelKeys } from "./level";
+import { GameShop } from "@types";
+import { parseExecutablePath } from "./events/helpers/parse-executable-path";
+import { parseLaunchOptions } from "./events/helpers/parse-launch-options";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -146,17 +150,60 @@ app.whenReady().then(async () => {
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
+
+  const deepLinkArg = process.argv.find((arg) =>
+    arg.startsWith("hydralauncher://")
+  );
+  if (deepLinkArg) {
+    handleDeepLinkPath(deepLinkArg);
+  }
 });
 
 app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
+const handleRunGame = async (shop: GameShop, objectId: string) => {
+  const gameKey = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(gameKey);
+
+  if (!game?.executablePath) {
+    logger.error("Game not found or no executable path", { shop, objectId });
+    return;
+  }
+
+  const parsedPath = parseExecutablePath(game.executablePath);
+  const parsedParams = parseLaunchOptions(game.launchOptions);
+
+  await gamesSublevel.put(gameKey, {
+    ...game,
+    executablePath: parsedPath,
+  });
+
+  if (parsedParams.length === 0) {
+    shell.openPath(parsedPath);
+    return;
+  }
+
+  spawn(parsedPath, parsedParams, { shell: false, detached: true });
+};
+
 const handleDeepLinkPath = (uri?: string) => {
   if (!uri) return;
 
   try {
     const url = new URL(uri);
+
+    if (url.host === "run") {
+      const shop = url.searchParams.get("shop") as GameShop | null;
+      const objectId = url.searchParams.get("objectId");
+
+      if (shop && objectId) {
+        handleRunGame(shop, objectId);
+      }
+
+      return;
+    }
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
