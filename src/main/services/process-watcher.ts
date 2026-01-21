@@ -69,7 +69,7 @@ const getGameExecutables = async () => {
   return gameExecutables;
 };
 
-const gameExecutables = await getGameExecutables();
+export const gameExecutables = await getGameExecutables();
 
 const findGamePathByProcess = async (
   processMap: Map<string, Set<string>>,

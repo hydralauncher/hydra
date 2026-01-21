@@ -1,7 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeftIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeftIcon,
+  SearchIcon,
+  SyncIcon,
+  XIcon,
+} from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 
 import {
   useAppDispatch,
@@ -12,6 +18,7 @@ import {
 
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
+import { ScanGamesModal } from "./scan-games-modal";
 import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
@@ -29,9 +36,11 @@ const pathTitle: Record<string, string> = {
 export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const scanButtonTooltipId = useId();
 
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { headerTitle, draggingDisabled } = useAppSelector(
     (state) => state.window
@@ -61,6 +70,12 @@ export function Header() {
     x: 0,
     y: 0,
   });
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<{
+    foundGames: { title: string; executablePath: string }[];
+    total: number;
+  } | null>(null);
 
   const { t } = useTranslation("header");
 
@@ -224,6 +239,25 @@ export function Header() {
     setActiveIndex(-1);
   };
 
+  const handleStartScan = async () => {
+    if (isScanning) return;
+
+    setIsScanning(true);
+    setScanResult(null);
+    setShowScanModal(false);
+
+    try {
+      const result = await window.electron.scanInstalledGames();
+      setScanResult(result);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleClearScanResult = () => {
+    setScanResult(null);
+  };
+
   useEffect(() => {
     if (!isDropdownVisible) return;
 
@@ -234,6 +268,14 @@ export function Header() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [isDropdownVisible]);
+
+  useEffect(() => {
+    if (searchParams.get("openScanModal") === "true") {
+      setShowScanModal(true);
+      searchParams.delete("openScanModal");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <>
@@ -265,6 +307,21 @@ export function Header() {
         </section>
 
         <section className="header__section">
+          {isOnLibraryPage && window.electron.platform === "win32" && (
+            <button
+              type="button"
+              className={cn("header__action-button", {
+                "header__action-button--scanning": isScanning,
+              })}
+              onClick={() => setShowScanModal(true)}
+              data-tooltip-id={scanButtonTooltipId}
+              data-tooltip-content={t("scan_games_tooltip")}
+              data-tooltip-place="bottom"
+            >
+              <SyncIcon size={16} />
+            </button>
+          )}
+
           <div
             ref={searchContainerRef}
             className={cn("header__search", {
@@ -304,6 +361,11 @@ export function Header() {
           </div>
         </section>
       </header>
+
+      {isOnLibraryPage && window.electron.platform === "win32" && (
+        <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
+      )}
+
       <AutoUpdateSubHeader />
 
       <SearchDropdown
@@ -326,6 +388,15 @@ export function Header() {
         activeIndex={activeIndex}
         currentQuery={searchValue}
         searchContainerRef={searchContainerRef}
+      />
+
+      <ScanGamesModal
+        visible={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        isScanning={isScanning}
+        scanResult={scanResult}
+        onStartScan={handleStartScan}
+        onClearResult={handleClearScanResult}
       />
     </>
   );
