@@ -24,6 +24,7 @@ import "./remove-game-from-favorites";
 import "./remove-game-from-library";
 import "./remove-game";
 import "./reset-game-achievements";
+import "./scan-installed-games";
 import "./select-game-wine-prefix";
 import "./toggle-automatic-cloud-sync";
 import "./toggle-game-pin";
