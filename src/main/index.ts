@@ -15,7 +15,7 @@ import {
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
-import { GameShop } from "@types";
+import { GameShop, UserPreferences } from "@types";
 import { parseExecutablePath } from "./events/helpers/parse-executable-path";
 import { parseLaunchOptions } from "./events/helpers/parse-launch-options";
 import { loadState } from "./main";
@@ -144,16 +144,19 @@ app.whenReady().then(async () => {
 
   if (language) i18n.changeLanguage(language);
 
-  if (!process.argv.includes("--hidden")) {
+  // Check if starting from a "run" deep link - don't show main window in that case
+  const deepLinkArg = process.argv.find((arg) =>
+    arg.startsWith("hydralauncher://")
+  );
+  const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
+
+  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow();
   }
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
 
-  const deepLinkArg = process.argv.find((arg) =>
-    arg.startsWith("hydralauncher://")
-  );
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);
   }
@@ -170,6 +173,19 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   if (!game?.executablePath) {
     logger.error("Game not found or no executable path", { shop, objectId });
     return;
+  }
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    { valueEncoding: "json" }
+  );
+
+  // Always show the launcher window
+  await WindowManager.createGameLauncherWindow(shop, objectId);
+
+  // Only open main window if setting is disabled
+  if (!userPreferences?.hideToTrayOnGameStart) {
+    WindowManager.createMainWindow();
   }
 
   const parsedPath = parseExecutablePath(game.executablePath);
@@ -237,17 +253,23 @@ const handleDeepLinkPath = (uri?: string) => {
 };
 
 app.on("second-instance", (_event, commandLine) => {
-  // Someone tried to run a second instance, we should focus our window.
-  if (WindowManager.mainWindow) {
-    if (WindowManager.mainWindow.isMinimized())
-      WindowManager.mainWindow.restore();
+  const deepLink = commandLine.pop();
 
-    WindowManager.mainWindow.focus();
-  } else {
-    WindowManager.createMainWindow();
+  // Check if this is a "run" deep link - don't show main window in that case
+  const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
+
+  if (!isRunDeepLink) {
+    if (WindowManager.mainWindow) {
+      if (WindowManager.mainWindow.isMinimized())
+        WindowManager.mainWindow.restore();
+
+      WindowManager.mainWindow.focus();
+    } else {
+      WindowManager.createMainWindow();
+    }
   }
 
-  handleDeepLinkPath(commandLine.pop());
+  handleDeepLinkPath(deepLink);
 });
 
 app.on("open-url", (_event, url) => {
