@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { BellIcon } from "@primer/octicons-react";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
@@ -9,8 +9,6 @@ import { AuthPage } from "@shared";
 import { logger } from "@renderer/logger";
 import type { NotificationCountResponse } from "@types";
 import "./sidebar-profile.scss";
-
-const NOTIFICATION_POLL_INTERVAL_MS = 5 * 60 * 1000;
 
 export function SidebarProfile() {
   const navigate = useNavigate();
@@ -23,12 +21,7 @@ export function SidebarProfile() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const apiNotificationCountRef = useRef(0);
-  const userDetailsRef = useRef(userDetails);
-
-  // Keep userDetailsRef in sync
-  useEffect(() => {
-    userDetailsRef.current = userDetails;
-  }, [userDetails]);
+  const hasFetchedInitialCount = useRef(false);
 
   const fetchLocalNotificationCount = useCallback(async () => {
     try {
@@ -39,49 +32,36 @@ export function SidebarProfile() {
     }
   }, []);
 
-  const fetchFullNotificationCount = useCallback(async () => {
+  const fetchApiNotificationCount = useCallback(async () => {
     try {
-      const localCount = await window.electron.getLocalNotificationsCount();
-
-      if (userDetailsRef.current) {
-        try {
-          const response =
-            await window.electron.hydraApi.get<NotificationCountResponse>(
-              "/profile/notifications/count",
-              { needsAuth: true }
-            );
-          apiNotificationCountRef.current = response.count;
-        } catch {
-          // Ignore API errors
-        }
-      } else {
-        apiNotificationCountRef.current = 0;
-      }
-
-      setNotificationCount(localCount + apiNotificationCountRef.current);
-    } catch (error) {
-      logger.error("Failed to fetch notification count", error);
+      const response =
+        await window.electron.hydraApi.get<NotificationCountResponse>(
+          "/profile/notifications/count",
+          { needsAuth: true }
+        );
+      apiNotificationCountRef.current = response.count;
+    } catch {
+      // Ignore API errors
     }
-  }, []);
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
 
+  // Initial fetch on mount (only once)
   useEffect(() => {
-    fetchFullNotificationCount();
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
 
-    const interval = setInterval(
-      fetchFullNotificationCount,
-      NOTIFICATION_POLL_INTERVAL_MS
-    );
-    return () => clearInterval(interval);
-  }, [fetchFullNotificationCount]);
-
+  // Fetch API count when user logs in (only if not already fetched)
   useEffect(() => {
-    if (userDetails) {
-      fetchFullNotificationCount();
-    } else {
+    if (userDetails && !hasFetchedInitialCount.current) {
+      hasFetchedInitialCount.current = true;
+      fetchApiNotificationCount();
+    } else if (!userDetails) {
+      hasFetchedInitialCount.current = false;
       apiNotificationCountRef.current = 0;
       fetchLocalNotificationCount();
     }
-  }, [userDetails, fetchFullNotificationCount, fetchLocalNotificationCount]);
+  }, [userDetails, fetchApiNotificationCount, fetchLocalNotificationCount]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onLocalNotificationCreated(() => {
