@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { BellIcon } from "@primer/octicons-react";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
@@ -20,51 +20,60 @@ export function SidebarProfile() {
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
   const [notificationCount, setNotificationCount] = useState(0);
+  const apiNotificationCountRef = useRef(0);
+  const hasFetchedInitialCount = useRef(false);
 
-  const fetchNotificationCount = useCallback(async () => {
+  const fetchLocalNotificationCount = useCallback(async () => {
     try {
-      // Always fetch local notification count
       const localCount = await window.electron.getLocalNotificationsCount();
-
-      // Fetch API notification count only if logged in
-      let apiCount = 0;
-      if (userDetails) {
-        try {
-          const response =
-            await window.electron.hydraApi.get<NotificationCountResponse>(
-              "/profile/notifications/count",
-              { needsAuth: true }
-            );
-          apiCount = response.count;
-        } catch {
-          // Ignore API errors
-        }
-      }
-
-      setNotificationCount(localCount + apiCount);
+      setNotificationCount(localCount + apiNotificationCountRef.current);
     } catch (error) {
-      logger.error("Failed to fetch notification count", error);
+      logger.error("Failed to fetch local notification count", error);
     }
-  }, [userDetails]);
+  }, []);
 
+  const fetchApiNotificationCount = useCallback(async () => {
+    try {
+      const response =
+        await window.electron.hydraApi.get<NotificationCountResponse>(
+          "/profile/notifications/count",
+          { needsAuth: true }
+        );
+      apiNotificationCountRef.current = response.count;
+    } catch {
+      // Ignore API errors
+    }
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
+
+  // Initial fetch on mount (only once)
   useEffect(() => {
-    fetchNotificationCount();
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
 
-    const interval = setInterval(fetchNotificationCount, 60000);
-    return () => clearInterval(interval);
-  }, [fetchNotificationCount]);
+  // Fetch API count when user logs in (only if not already fetched)
+  useEffect(() => {
+    if (userDetails && !hasFetchedInitialCount.current) {
+      hasFetchedInitialCount.current = true;
+      fetchApiNotificationCount();
+    } else if (!userDetails) {
+      hasFetchedInitialCount.current = false;
+      apiNotificationCountRef.current = 0;
+      fetchLocalNotificationCount();
+    }
+  }, [userDetails, fetchApiNotificationCount, fetchLocalNotificationCount]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onLocalNotificationCreated(() => {
-      fetchNotificationCount();
+      fetchLocalNotificationCount();
     });
 
     return () => unsubscribe();
-  }, [fetchNotificationCount]);
+  }, [fetchLocalNotificationCount]);
 
   useEffect(() => {
     const handleNotificationsChange = () => {
-      fetchNotificationCount();
+      fetchLocalNotificationCount();
     };
 
     window.addEventListener("notificationsChanged", handleNotificationsChange);
@@ -74,15 +83,18 @@ export function SidebarProfile() {
         handleNotificationsChange
       );
     };
-  }, [fetchNotificationCount]);
+  }, [fetchLocalNotificationCount]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onSyncNotificationCount(() => {
-      fetchNotificationCount();
-    });
+    const unsubscribe = window.electron.onSyncNotificationCount(
+      (notification) => {
+        apiNotificationCountRef.current = notification.notificationCount;
+        fetchLocalNotificationCount();
+      }
+    );
 
     return () => unsubscribe();
-  }, [fetchNotificationCount]);
+  }, [fetchLocalNotificationCount]);
 
   const handleProfileClick = () => {
     if (userDetails === null) {
