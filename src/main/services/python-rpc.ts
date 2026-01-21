@@ -1,5 +1,6 @@
 import axios from "axios";
 import http from "node:http";
+import getPort, { portNumbers } from "get-port";
 
 import cp from "node:child_process";
 import fs from "node:fs";
@@ -27,19 +28,17 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-python-rpc.exe",
 };
 
-const RPC_PORT_PREFIX = "RPC_PORT:";
-const PORT_DISCOVERY_TIMEOUT_MS = 30000;
+const RPC_PORT_RANGE_START = 8080;
+const RPC_PORT_RANGE_END = 9000;
+const DEFAULT_RPC_PORT = 8084;
 const HEALTH_CHECK_INTERVAL_MS = 100;
 const HEALTH_CHECK_TIMEOUT_MS = 10000;
 
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
-  public static readonly DEFAULT_RPC_PORT = "8084";
-
-  private static currentPort: string = this.DEFAULT_RPC_PORT;
 
   public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${this.DEFAULT_RPC_PORT}`,
+    baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
     httpAgent: new http.Agent({
       family: 4, // Force IPv4
     }),
@@ -70,22 +69,6 @@ export class PythonRPC {
     return newPassword;
   }
 
-  private static updateBaseURL(port: string) {
-    this.currentPort = port;
-    this.rpc.defaults.baseURL = `http://localhost:${port}`;
-    pythonRpcLogger.log(`RPC baseURL updated to port ${port}`);
-  }
-
-  private static parsePortFromStdout(data: string): string | null {
-    const lines = data.split("\n");
-    for (const line of lines) {
-      if (line.startsWith(RPC_PORT_PREFIX)) {
-        return line.slice(RPC_PORT_PREFIX.length).trim();
-      }
-    }
-    return null;
-  }
-
   private static async waitForHealthCheck(): Promise<void> {
     const startTime = Date.now();
 
@@ -107,80 +90,29 @@ export class PythonRPC {
     throw new Error("RPC health check timed out");
   }
 
-  private static waitForPort(
-    childProcess: cp.ChildProcess
-  ): Promise<string | null> {
-    return new Promise((resolve, reject) => {
-      let resolved = false;
-      let stdoutBuffer = "";
-
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          reject(
-            new Error(
-              `Port discovery timed out after ${PORT_DISCOVERY_TIMEOUT_MS}ms`
-            )
-          );
-        }
-      }, PORT_DISCOVERY_TIMEOUT_MS);
-
-      const cleanup = () => {
-        clearTimeout(timeout);
-      };
-
-      if (childProcess.stdout) {
-        childProcess.stdout.setEncoding("utf-8");
-        childProcess.stdout.on("data", (data: string) => {
-          stdoutBuffer += data;
-          pythonRpcLogger.log(data);
-
-          const port = this.parsePortFromStdout(stdoutBuffer);
-          if (port && !resolved) {
-            resolved = true;
-            cleanup();
-            resolve(port);
-          }
-        });
-      }
-
-      childProcess.on("error", (err) => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          reject(err);
-        }
-      });
-
-      childProcess.on("exit", (code) => {
-        if (!resolved) {
-          resolved = true;
-          cleanup();
-          if (code === 0) {
-            resolve(null);
-          } else {
-            reject(new Error(`Python RPC process exited with code ${code}`));
-          }
-        }
-      });
-    });
-  }
-
   public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
     const rpcPassword = await this.getRPCPassword();
 
+    const port = await getPort({
+      port: [
+        DEFAULT_RPC_PORT,
+        ...portNumbers(RPC_PORT_RANGE_START, RPC_PORT_RANGE_END),
+      ],
+    });
+
+    this.rpc.defaults.baseURL = `http://localhost:${port}`;
+    pythonRpcLogger.log(`Using RPC port: ${port}`);
+
     const commonArgs = [
       this.BITTORRENT_PORT,
-      this.DEFAULT_RPC_PORT,
+      String(port),
       rpcPassword,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
     ];
-
-    let childProcess: cp.ChildProcess;
 
     if (app.isPackaged) {
       const binaryName = binaryNameByPlatform[process.platform]!;
@@ -200,10 +132,13 @@ export class PythonRPC {
         return;
       }
 
-      childProcess = cp.spawn(binaryPath, commonArgs, {
+      const childProcess = cp.spawn(binaryPath, commonArgs, {
         windowsHide: true,
-        stdio: ["inherit", "pipe", "pipe"],
+        stdio: ["inherit", "inherit"],
       });
+
+      this.logStderr(childProcess.stderr);
+      this.pythonProcess = childProcess;
     } else {
       const scriptPath = path.join(
         __dirname,
@@ -213,41 +148,25 @@ export class PythonRPC {
         "main.py"
       );
 
-      childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
-        stdio: ["inherit", "pipe", "pipe"],
+      const childProcess = cp.spawn("python", [scriptPath, ...commonArgs], {
+        stdio: ["inherit", "inherit"],
       });
+
+      this.logStderr(childProcess.stderr);
+      this.pythonProcess = childProcess;
     }
 
-    this.logStderr(childProcess.stderr);
-    this.pythonProcess = childProcess;
+    this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
 
     try {
-      const port = await this.waitForPort(childProcess);
-
-      if (port) {
-        this.updateBaseURL(port);
-      } else {
-        pythonRpcLogger.log(
-          `No port received, using default port ${this.DEFAULT_RPC_PORT}`
-        );
-        this.updateBaseURL(this.DEFAULT_RPC_PORT);
-      }
-
-      this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
-
       await this.waitForHealthCheck();
-
-      pythonRpcLogger.log(
-        `Python RPC started successfully on port ${this.currentPort}`
-      );
+      pythonRpcLogger.log(`Python RPC started successfully on port ${port}`);
     } catch (err) {
       pythonRpcLogger.log(`Failed to start Python RPC: ${err}`);
-
       dialog.showErrorBox(
         "RPC Error",
-        `Failed to start download service. ${err instanceof Error ? err.message : String(err)}\n\nPlease ensure no other application is using ports 8080-9000 and try restarting Hydra.`
+        `Failed to start download service.\n\nThe service did not respond in time. Please try restarting Hydra.`
       );
-
       this.kill();
       throw err;
     }
