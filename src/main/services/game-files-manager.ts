@@ -8,6 +8,7 @@ import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { GameExecutables } from "./game-executables";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -163,6 +164,100 @@ export class GameFilesManager {
     if (publishNotification && game) {
       publishExtractionCompleteNotification(game);
     }
+
+    await this.searchAndBindExecutable();
+  }
+
+  async searchAndBindExecutable(): Promise<void> {
+    try {
+      const [download, game] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        gamesSublevel.get(this.gameKey),
+      ]);
+
+      if (!download || !game || game.executablePath) {
+        return;
+      }
+
+      const executableNames = GameExecutables.getExecutablesForGame(
+        this.objectId
+      );
+
+      if (!executableNames || executableNames.length === 0) {
+        return;
+      }
+
+      if (!download.folderName) {
+        return;
+      }
+
+      const gameFolderPath = path.join(
+        download.downloadPath,
+        download.folderName
+      );
+
+      if (!fs.existsSync(gameFolderPath)) {
+        return;
+      }
+
+      const foundExePath = await this.findExecutableInFolder(
+        gameFolderPath,
+        executableNames
+      );
+
+      if (foundExePath) {
+        logger.info(
+          `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
+        );
+
+        await gamesSublevel.put(this.gameKey, {
+          ...game,
+          executablePath: foundExePath,
+        });
+
+        WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
+      }
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error searching for executable: ${this.objectId}`,
+        err
+      );
+    }
+  }
+
+  private async findExecutableInFolder(
+    folderPath: string,
+    executableNames: string[]
+  ): Promise<string | null> {
+    const normalizedNames = new Set(
+      executableNames.map((name) => name.toLowerCase())
+    );
+
+    try {
+      const entries = await fs.promises.readdir(folderPath, {
+        withFileTypes: true,
+        recursive: true,
+      });
+
+      for (const entry of entries) {
+        if (!entry.isFile()) continue;
+
+        const fileName = entry.name.toLowerCase();
+
+        if (normalizedNames.has(fileName)) {
+          const parentPath =
+            "parentPath" in entry
+              ? entry.parentPath
+              : (entry as unknown as { path?: string }).path || folderPath;
+
+          return path.join(parentPath, entry.name);
+        }
+      }
+    } catch {
+      // Silently fail if folder cannot be read
+    }
+
+    return null;
   }
 
   async extractDownloadedFile() {
