@@ -1,10 +1,11 @@
 import { registerEvent } from "../register-event";
 import { shell } from "electron";
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
 import { parseExecutablePath } from "../helpers/parse-executable-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import { parseLaunchOptions } from "../helpers/parse-launch-options";
+import { WindowManager } from "@main/services";
 
 const openGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -27,6 +28,9 @@ const openGame = async (
     executablePath: parsedPath,
     launchOptions,
   });
+
+  // Always show the launcher window when launching a game
+  WindowManager.createGameLauncherWindow(shop, objectId);
 
   if (parsedParams.length === 0) {
     shell.openPath(parsedPath);

@@ -819,6 +819,16 @@
     "learn_more": "Learn More",
     "debrid_description": "Download up to 4x faster with Nimbus"
   },
+  "game_launcher": {
+    "launching": "Launching...",
+    "launching_base": "Launching",
+    "open_hydra": "Open Hydra",
+    "playtime": "Playtime",
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m"
+  },
   "notifications_page": {
     "title": "Notifications",
     "mark_all_as_read": "Mark all as read",
