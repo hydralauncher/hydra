@@ -58,6 +58,8 @@ export function LocalNotificationItem({
         return <SyncIcon size={24} />;
       case "ACHIEVEMENT_UNLOCKED":
         return <TrophyIcon size={24} />;
+      case "SCAN_GAMES_COMPLETE":
+        return <SyncIcon size={24} />;
       default:
         return <DownloadIcon size={24} />;
     }

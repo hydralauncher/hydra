@@ -362,6 +362,11 @@ export class DownloadManager {
 
     if (download.automaticallyExtract) {
       this.handleExtraction(download, game);
+    } else {
+      // For downloads without extraction (e.g., torrents with ready-to-play files),
+      // search for executable in the download folder
+      const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
+      gameFilesManager.searchAndBindExecutable();
     }
 
     await this.processNextQueuedDownload();

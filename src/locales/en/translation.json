@@ -108,7 +108,17 @@
     "search_results": "Search results",
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
-    "version_available_download": "Version {{version}} available. Click here to download."
+    "version_available_download": "Version {{version}} available. Click here to download.",
+    "scan_games_tooltip": "Scan PC for installed games",
+    "scan_games_title": "Scan PC for installed games",
+    "scan_games_description": "This will scan your disks for known game executables. This may take several minutes.",
+    "scan_games_start": "Start Scan",
+    "scan_games_cancel": "Cancel",
+    "scan_games_result": "Found {{found}} of {{total}} games without executable path",
+    "scan_games_no_results": "We couldn't find any installed games.",
+    "scan_games_in_progress": "Scanning your disks for installed games...",
+    "scan_games_close": "Close",
+    "scan_games_scan_again": "Scan Again"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
@@ -619,7 +629,11 @@
     "game_extracted": "{{title}} extracted successfully",
     "friend_started_playing_game": "{{displayName}} started playing a game",
     "test_achievement_notification_title": "This is a test notification",
-    "test_achievement_notification_description": "Pretty cool, huh?"
+    "test_achievement_notification_description": "Pretty cool, huh?",
+    "scan_games_complete_title": "Scanning for games finished successfully",
+    "scan_games_complete_description": "Found {{count}} games without executable path set",
+    "scan_games_no_results_title": "Scanning for games finished",
+    "scan_games_no_results_description": "No installed games were found"
   },
   "system_tray": {
     "open": "Open Hydra",
