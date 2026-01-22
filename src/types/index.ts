@@ -49,6 +49,7 @@ export interface ShopAssets {
   logoPosition: string | null;
   coverImageUrl: string | null;
   downloadSources: string[];
+  shortUrl?: string | null;
 }
 
 export type ShopDetails = SteamAppDetails & {

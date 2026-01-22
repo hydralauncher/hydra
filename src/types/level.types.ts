@@ -127,6 +127,8 @@ export interface UserPreferences {
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  showSidebarLibrary?: boolean;
+  showSidebarFavorites?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
 }

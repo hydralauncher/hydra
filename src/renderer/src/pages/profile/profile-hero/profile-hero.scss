@@ -56,6 +56,12 @@
     white-space: nowrap;
   }
 
+  &__badge-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   &__user-information {
     display: flex;
     padding: calc(globals.$spacing-unit * 7) calc(globals.$spacing-unit * 3);

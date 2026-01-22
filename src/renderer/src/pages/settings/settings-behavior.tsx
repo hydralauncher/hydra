@@ -29,6 +29,8 @@ export function SettingsBehavior() {
     enableSteamAchievements: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
+    showSidebarLibrary: true,
+    showSidebarFavorites: true,
     enableNewDownloadOptionsBadges: true,
   });
 
@@ -54,6 +56,8 @@ export function SettingsBehavior() {
           userPreferences.enableSteamAchievements ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        showSidebarLibrary: userPreferences.showSidebarLibrary ?? true,
+        showSidebarFavorites: userPreferences.showSidebarFavorites ?? true,
         enableNewDownloadOptionsBadges:
           userPreferences.enableNewDownloadOptionsBadges ?? true,
       });
@@ -171,6 +175,22 @@ export function SettingsBehavior() {
             showHiddenAchievementsDescription:
               !form.showHiddenAchievementsDescription,
           })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_sidebar_favorites")}
+        checked={form.showSidebarFavorites}
+        onChange={() =>
+          handleChange({ showSidebarFavorites: !form.showSidebarFavorites })
+        }
+      />
+
+      <CheckboxField
+        label={t("show_sidebar_library")}
+        checked={form.showSidebarLibrary}
+        onChange={() =>
+          handleChange({ showSidebarLibrary: !form.showSidebarLibrary })
         }
       />
 

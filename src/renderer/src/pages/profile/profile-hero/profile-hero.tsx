@@ -344,32 +344,32 @@ export function ProfileHero() {
                     {userProfile?.displayName}
                   </h2>
 
-                  <motion.button
-                    type="button"
-                    className="profile-hero__copy-button"
-                    onClick={copyFriendCode}
-                    title={t("copy_friend_code")}
-                    onMouseEnter={() => setIsCopyButtonHovered(true)}
-                    onMouseLeave={() => setIsCopyButtonHovered(false)}
-                    initial={{ width: 28 }}
-                    animate={{
-                      width: isCopyButtonHovered || isCopied ? 105 : 28,
-                    }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                  >
-                    <motion.span
-                      className="profile-hero__friend-code"
-                      initial={{ opacity: 0, marginRight: 0 }}
-                      animate={{
-                        opacity: isCopyButtonHovered || isCopied ? 1 : 0,
-                        marginRight: isCopyButtonHovered || isCopied ? 8 : 0,
-                      }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                    >
-                      {isCopied ? t("copied") : userProfile?.id}
-                    </motion.span>
-                    <CopyIcon size={16} />
-                  </motion.button>
+                  <div className="profile-hero__badges">
+                    {userProfile.badges.map((badgeName) => {
+                      const badge = badges.find((b) => b.name === badgeName);
+
+                      if (!badge) return null;
+
+                      return (
+                        <span
+                          className="profile-hero__badge-item"
+                          key={badge.name}
+                        >
+                          <img
+                            src={badge.badge.url}
+                            alt={badge.name}
+                            width={24}
+                            height={24}
+                            data-tooltip-place="top"
+                            data-tooltip-content={badge.description}
+                            data-tooltip-id="badge-name"
+                          />
+                        </span>
+                      );
+                    })}
+
+                    <Tooltip id="badge-name" />
+                  </div>
                 </div>
               ) : (
                 <Skeleton width={150} height={28} />

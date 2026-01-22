@@ -164,6 +164,79 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
   }
 };
 
+export const parseThemeVariantBlocks = (
+  code: string
+): { name: string; content: string }[] => {
+  const blocks: { name: string; content: string }[] = [];
+  const codeStr = code || "";
+  let i = 0;
+  const seen = new Set<string>();
+  while (i < codeStr.length) {
+    if (codeStr[i] === ":") {
+      let p = i - 1;
+      while (p >= 0 && codeStr[p] !== "\n") {
+        if (!/\s/.test(codeStr[p])) break;
+        p--;
+      }
+      const isLineStart = p < 0 || codeStr[p] === "\n";
+      if (!isLineStart) {
+        i++;
+        continue;
+      }
+      let j = i + 1;
+      while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+      const start = j;
+      while (j < codeStr.length && /[a-zA-Z0-9_-]/.test(codeStr[j])) j++;
+      const name = codeStr.slice(start, j).toLowerCase();
+      while (j < codeStr.length && /\s/.test(codeStr[j])) j++;
+      if (codeStr[j] !== "{") {
+        i++;
+        continue;
+      }
+      let k = j + 1;
+      let depth = 1;
+      while (k < codeStr.length && depth > 0) {
+        const ch = codeStr[k];
+        if (ch === "{") depth++;
+        else if (ch === "}") depth--;
+        k++;
+      }
+      const content = codeStr.slice(j + 1, k - 1);
+      const isVendor =
+        name.startsWith("-") ||
+        name.includes("webkit") ||
+        name.includes("moz") ||
+        name.includes("ms");
+      const hasVars = parseCssVarsFromBlock(content).length > 0;
+      if (!isVendor && hasVars && !seen.has(name)) {
+        blocks.push({ name, content });
+        seen.add(name);
+      }
+      i = k;
+    } else {
+      i++;
+    }
+  }
+  return blocks;
+};
+
+export const parseCssVarsFromBlock = (
+  content: string
+): { key: string; value: string }[] => {
+  const vars: { key: string; value: string }[] = [];
+  const pieces = (content || "").split(";");
+  for (const piece of pieces) {
+    const idx = piece.indexOf(":");
+    if (idx === -1) continue;
+    const left = piece.slice(0, idx).trim();
+    const right = piece.slice(idx + 1).trim();
+    if (left.startsWith("--") && right) {
+      vars.push({ key: left, value: right });
+    }
+  }
+  return vars;
+};
+
 export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
 };
