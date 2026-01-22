@@ -188,6 +188,8 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
     WindowManager.createMainWindow();
   }
 
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   const parsedPath = parseExecutablePath(game.executablePath);
   const parsedParams = parseLaunchOptions(game.launchOptions);
 
