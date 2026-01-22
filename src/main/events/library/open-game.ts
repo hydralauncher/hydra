@@ -30,7 +30,9 @@ const openGame = async (
   });
 
   // Always show the launcher window when launching a game
-  WindowManager.createGameLauncherWindow(shop, objectId);
+  await WindowManager.createGameLauncherWindow(shop, objectId);
+
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   if (parsedParams.length === 0) {
     shell.openPath(parsedPath);

@@ -52,7 +52,6 @@ export default function GameLauncher() {
     }
   }, [shop, objectId]);
 
-  // Fallback auto-close timer - game detection will usually close it sooner
   useEffect(() => {
     if (!windowShown) return;
 
@@ -91,19 +90,16 @@ export default function GameLauncher() {
     }
   }, []);
 
-  // Extract color as soon as we have the image URL
   useEffect(() => {
     if (coverImage && !colorExtracted) {
       extractAccentColor(coverImage);
     }
   }, [coverImage, colorExtracted, extractAccentColor]);
 
-  // Only show content when both image is loaded and color is extracted successfully
   const isReady = imageLoaded && colorExtracted && !colorError;
   const hasFailed =
     imageError || colorError || (!coverImage && gameAssets !== null);
 
-  // Show or close window based on loading state
   useEffect(() => {
     if (windowShown) return;
 
