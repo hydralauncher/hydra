@@ -1,5 +1,6 @@
 import axios from "axios";
 import http from "node:http";
+import getPort, { portNumbers } from "get-port";
 
 import cp from "node:child_process";
 import fs from "node:fs";
@@ -27,11 +28,17 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-python-rpc.exe",
 };
 
+const RPC_PORT_RANGE_START = 8080;
+const RPC_PORT_RANGE_END = 9000;
+const DEFAULT_RPC_PORT = 8084;
+const HEALTH_CHECK_INTERVAL_MS = 100;
+const HEALTH_CHECK_TIMEOUT_MS = 10000;
+
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
-  public static readonly RPC_PORT = "8084";
+
   public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${this.RPC_PORT}`,
+    baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
     httpAgent: new http.Agent({
       family: 4, // Force IPv4
     }),
@@ -62,15 +69,46 @@ export class PythonRPC {
     return newPassword;
   }
 
+  private static async waitForHealthCheck(): Promise<void> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < HEALTH_CHECK_TIMEOUT_MS) {
+      try {
+        const response = await this.rpc.get("/healthcheck", { timeout: 1000 });
+        if (response.status === 200) {
+          pythonRpcLogger.log("RPC health check passed");
+          return;
+        }
+      } catch {
+        // Server not ready yet, continue polling
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS)
+      );
+    }
+
+    throw new Error("RPC health check timed out");
+  }
+
   public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
     const rpcPassword = await this.getRPCPassword();
 
+    const port = await getPort({
+      port: [
+        DEFAULT_RPC_PORT,
+        ...portNumbers(RPC_PORT_RANGE_START, RPC_PORT_RANGE_END),
+      ],
+    });
+
+    this.rpc.defaults.baseURL = `http://localhost:${port}`;
+    pythonRpcLogger.log(`Using RPC port: ${port}`);
+
     const commonArgs = [
       this.BITTORRENT_PORT,
-      this.RPC_PORT,
+      String(port),
       rpcPassword,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
@@ -91,6 +129,7 @@ export class PythonRPC {
         );
 
         app.quit();
+        return;
       }
 
       const childProcess = cp.spawn(binaryPath, commonArgs, {
@@ -99,7 +138,6 @@ export class PythonRPC {
       });
 
       this.logStderr(childProcess.stderr);
-
       this.pythonProcess = childProcess;
     } else {
       const scriptPath = path.join(
@@ -115,11 +153,23 @@ export class PythonRPC {
       });
 
       this.logStderr(childProcess.stderr);
-
       this.pythonProcess = childProcess;
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
+
+    try {
+      await this.waitForHealthCheck();
+      pythonRpcLogger.log(`Python RPC started successfully on port ${port}`);
+    } catch (err) {
+      pythonRpcLogger.log(`Failed to start Python RPC: ${err}`);
+      dialog.showErrorBox(
+        "RPC Error",
+        `Failed to start download service.\n\nThe service did not respond in time. Please try restarting Hydra.`
+      );
+      this.kill();
+      throw err;
+    }
   }
 
   public static kill() {
