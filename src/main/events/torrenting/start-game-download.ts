@@ -3,13 +3,8 @@ import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { parseBytes } from "@shared";
-import {
-  downloadsSublevel,
-  gamesShopAssetsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "@main/level";
-import { handleDownloadError } from "@main/helpers";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { handleDownloadError, prepareGameEntry } from "@main/helpers";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -39,30 +34,7 @@ const startGameDownload = async (
     }
   }
 
-  const game = await gamesSublevel.get(gameKey);
-  const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
-
-  await downloadsSublevel.del(gameKey);
-
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
-    });
-  } else {
-    await gamesSublevel.put(gameKey, {
-      title,
-      iconUrl: gameAssets?.iconUrl ?? null,
-      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
-      logoImageUrl: gameAssets?.logoImageUrl ?? null,
-      objectId,
-      shop,
-      remoteId: null,
-      playTimeInMilliseconds: 0,
-      lastTimePlayed: null,
-      isDeleted: false,
-    });
-  }
+  await prepareGameEntry({ gameKey, title, objectId, shop });
 
   await DownloadManager.cancelDownload(gameKey);
 

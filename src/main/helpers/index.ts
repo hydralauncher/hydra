@@ -95,3 +95,4 @@ export const getThemeSoundPath = (
 
 export * from "./reg-parser";
 export * from "./download-error-handler";
+export * from "./download-game-helper";
