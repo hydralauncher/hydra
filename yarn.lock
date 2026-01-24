@@ -5587,6 +5587,11 @@ get-nonce@^1.0.0:
   resolved "https://registry.yarnpkg.com/get-nonce/-/get-nonce-1.0.1.tgz#fdf3f0278073820d2ce9426c18f07481b1e0cdf3"
   integrity sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q==
 
+get-port@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/get-port/-/get-port-7.1.0.tgz#d5a500ebfc7aa705294ec2b83cc38c5d0e364fec"
+  integrity sha512-QB9NKEeDg3xxVwCCwJQ9+xycaz6pBB6iQ76wiWMl1927n0Kir6alPiP+yuiICLLU4jpMe08dXfpebuQppFA2zw==
+
 get-proto@^1.0.0, get-proto@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/get-proto/-/get-proto-1.0.1.tgz#150b3f2743869ef3e851ec0c49d15b1d14d00ee1"
@@ -6459,10 +6464,10 @@ keyv@^4.0.0, keyv@^4.5.3:
   dependencies:
     json-buffer "3.0.1"
 
-ky@^1.11.0:
-  version "1.14.1"
-  resolved "https://registry.yarnpkg.com/ky/-/ky-1.14.1.tgz#16f20b3bf3939abcc04e2a9613f47360fe5f64c9"
-  integrity sha512-hYje4L9JCmpEQBtudo+v52X5X8tgWXUYyPcxKSuxQNboqufecl9VMWjGiucAFH060AwPXHZuH+WB2rrqfkmafw==
+ky@^1.14.2:
+  version "1.14.2"
+  resolved "https://registry.yarnpkg.com/ky/-/ky-1.14.2.tgz#385d6d05d2825502e68898ace125124e6fe7357d"
+  integrity sha512-q3RBbsO5A5zrPhB6CaCS8ZUv+NWCXv6JJT4Em0i264G9W0fdPB8YRfnnEi7Dm7X7omAkBIPojzYJ2D1oHTHqug==
 
 language-subtag-registry@^0.3.20:
   version "0.3.23"
@@ -9233,12 +9238,12 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.0.10.tgz#377167370a39c905c5228f8972c37c19004b7b21"
-  integrity sha512-bnswhlLRz1TCiqGV8l+VEOBej7u1SAkzLMEv6A60Sp0+S4j4pnmSve92KeOts/GYtUeNDuNM7fLPwZwMKY3sAg==
+workwonders-sdk@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.0.14.tgz#a14333a8fe2c9f2d671ebb6e76b0cb80250800a4"
+  integrity sha512-52pjvY6xry4Zn3iM9Vtwkv07+0XAXBUZ8IVA9+Czf9kskYcDRdepjJW5p8f44T3HV12kBnUUXrx4oX9JAoRmZA==
   dependencies:
-    ky "^1.11.0"
+    ky "^1.14.2"
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
   version "7.0.0"
