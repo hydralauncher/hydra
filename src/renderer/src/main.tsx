@@ -23,6 +23,7 @@ import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import * as Sentry from "@sentry/react";
 import { levelDBService } from "./services/leveldb.service";
+import { GamepadProvider } from "./context/gamepad";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
@@ -79,27 +80,30 @@ i18n
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <HashRouter>
-        <Routes>
-          <Route element={<App />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/catalogue" element={<Catalogue />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/downloads" element={<Downloads />} />
-            <Route path="/game/:shop/:objectId" element={<GameDetails />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/achievements" element={<Achievements />} />
-            <Route path="/notifications" element={<Notifications />} />
-          </Route>
+      <GamepadProvider>
+        <HashRouter>
+          <Routes>
+            <Route element={<App />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/catalogue" element={<Catalogue />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/downloads" element={<Downloads />} />
+              <Route path="/game/:shop/:objectId" element={<GameDetails />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/achievements" element={<Achievements />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Route>
 
-          <Route path="/theme-editor" element={<ThemeEditor />} />
-          <Route
-            path="/achievement-notification"
-            element={<AchievementNotification />}
-          />
-        </Routes>
-      </HashRouter>
+            <Route path="/theme-editor" element={<ThemeEditor />} />
+            <Route
+              path="/achievement-notification"
+              element={<AchievementNotification />}
+            />
+          </Routes>
+        </HashRouter>
+      </GamepadProvider>
     </Provider>
   </React.StrictMode>
 );
+

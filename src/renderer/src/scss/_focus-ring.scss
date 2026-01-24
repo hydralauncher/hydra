@@ -1,0 +1,48 @@
+/**
+ * Focus ring styles for gamepad navigation.
+ * Instant, high-contrast focus for console-like feel.
+ */
+
+@use "./globals.scss" as globals;
+
+/* Controller mode - snappy, high-visibility focus */
+body.controller-mode {
+
+  /* Focus on buttons and links - instant, no transitions */
+  button:focus,
+  a:focus,
+  [role="button"]:focus {
+    outline: 3px solid globals.$brand-teal !important;
+    outline-offset: 2px !important;
+    z-index: 100;
+    transition: none !important;
+    /* Instant - no delays */
+  }
+
+  /* Subtle focus for inputs */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid rgba(globals.$brand-teal, 0.4) !important;
+    outline-offset: 1px !important;
+  }
+
+  /* Exclude problematic elements */
+  [disabled]:focus,
+  [aria-hidden="true"]:focus,
+  .sidebar__handle:focus {
+    outline: none !important;
+  }
+}
+
+/* Normal mode - keyboard focus-visible only */
+body:not(.controller-mode) {
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: 2px solid rgba(globals.$brand-teal, 0.5);
+    outline-offset: 2px;
+  }
+}

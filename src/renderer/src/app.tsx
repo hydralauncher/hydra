@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
+import { ControllerIndicator } from "@renderer/components/controller-indicator";
 import { WorkWondersSdk } from "workwonders-sdk";
 import {
   useAppDispatch,
@@ -348,6 +349,7 @@ export function App() {
       </main>
 
       <BottomPanel />
+      <ControllerIndicator />
     </>
   );
 }
