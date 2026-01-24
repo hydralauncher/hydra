@@ -112,6 +112,7 @@ export default function GameDetails() {
                   downloadPath,
                   uri: selectRepackUri(repack, downloader),
                   automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
                 })
               : await startDownload({
                   objectId: objectId!,
@@ -121,6 +122,7 @@ export default function GameDetails() {
                   downloadPath,
                   uri: selectRepackUri(repack, downloader),
                   automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
                 });
 
             if (response.ok) {
