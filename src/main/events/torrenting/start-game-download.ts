@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
-import { Downloader, DownloadError } from "@shared";
+import { Downloader, DownloadError, parseBytes } from "@shared";
 import {
   downloadsSublevel,
   gamesShopAssetsSublevel,
@@ -23,6 +23,7 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    fileSize,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
@@ -75,7 +76,7 @@ const startGameDownload = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
+    fileSize: parseBytes(fileSize ?? null),
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,

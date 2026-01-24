@@ -499,18 +499,20 @@ export class DownloadManager {
   }
 
   static async cancelDownload(downloadKey = this.downloadingGameId) {
-    if (this.usingJsDownloader && this.jsDownloader) {
-      logger.log("[DownloadManager] Cancelling JS download");
-      this.jsDownloader.cancelDownload();
-      this.jsDownloader = null;
-      this.usingJsDownloader = false;
-    } else if (!this.isPreparingDownload) {
-      await PythonRPC.rpc
-        .post("/action", { action: "cancel", game_id: downloadKey })
-        .catch((err) => logger.error("Failed to cancel game download", err));
-    }
+    const isActiveDownload = downloadKey === this.downloadingGameId;
 
-    if (downloadKey === this.downloadingGameId) {
+    if (isActiveDownload) {
+      if (this.usingJsDownloader && this.jsDownloader) {
+        logger.log("[DownloadManager] Cancelling JS download");
+        this.jsDownloader.cancelDownload();
+        this.jsDownloader = null;
+        this.usingJsDownloader = false;
+      } else if (!this.isPreparingDownload) {
+        await PythonRPC.rpc
+          .post("/action", { action: "cancel", game_id: downloadKey })
+          .catch((err) => logger.error("Failed to cancel game download", err));
+      }
+
       WindowManager.mainWindow?.setProgressBar(-1);
       WindowManager.mainWindow?.webContents.send("on-download-progress", null);
       this.downloadingGameId = null;
@@ -929,6 +931,20 @@ export class DownloadManager {
       }
       default:
         return undefined;
+    }
+  }
+
+  static async validateDownloadUrl(download: Download): Promise<void> {
+    const useJsDownloader = await this.shouldUseJsDownloader();
+    const isHttp = this.isHttpDownloader(download.downloader);
+
+    if (useJsDownloader && isHttp) {
+      const options = await this.getJsDownloadOptions(download);
+      if (!options) {
+        throw new Error("Failed to validate download URL");
+      }
+    } else if (isHttp) {
+      await this.getDownloadPayload(download);
     }
   }
 

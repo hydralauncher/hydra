@@ -69,10 +69,16 @@ export function useDownload() {
   };
 
   const cancelDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.cancelGameDownload(shop, objectId);
-    dispatch(clearDownload());
-    updateLibrary();
+    const gameId = `${shop}:${objectId}`;
+    const isActiveDownload = lastPacket?.gameId === gameId;
 
+    await window.electron.cancelGameDownload(shop, objectId);
+
+    if (isActiveDownload) {
+      dispatch(clearDownload());
+    }
+
+    updateLibrary();
     removeGameInstaller(shop, objectId);
   };
 
