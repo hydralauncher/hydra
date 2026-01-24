@@ -12,11 +12,17 @@ import {
   DownloadIcon,
   SyncIcon,
   CheckCircleFillIcon,
+  PlusIcon,
 } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
-import { useAppSelector, useFeature, useToast } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDownload,
+  useFeature,
+  useToast,
+} from "@renderer/hooks";
 import { motion } from "framer-motion";
 import { Tooltip } from "react-tooltip";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
@@ -29,7 +35,8 @@ export interface DownloadSettingsModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string,
-    automaticallyExtract: boolean
+    automaticallyExtract: boolean,
+    addToQueueOnly?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -46,7 +53,10 @@ export function DownloadSettingsModal({
     (state) => state.userPreferences.value
   );
 
+  const { lastPacket } = useDownload();
   const { showErrorToast } = useToast();
+
+  const hasActiveDownload = lastPacket !== null;
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<number | null>(null);
   const [selectedPath, setSelectedPath] = useState("");
@@ -220,7 +230,8 @@ export function DownloadSettingsModal({
           repack,
           selectedDownloader!,
           selectedPath,
-          automaticExtractionEnabled
+          automaticExtractionEnabled,
+          hasActiveDownload
         );
 
         if (response.ok) {
@@ -455,6 +466,11 @@ export function DownloadSettingsModal({
             <>
               <SyncIcon className="download-settings-modal__loading-spinner" />
               {t("loading")}
+            </>
+          ) : hasActiveDownload ? (
+            <>
+              <PlusIcon />
+              {t("add_to_queue")}
             </>
           ) : (
             <>

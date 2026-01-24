@@ -26,6 +26,8 @@ import {
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   ClockIcon,
   ColumnsIcon,
   DownloadIcon,
@@ -39,6 +41,44 @@ import {
 } from "@primer/octicons-react";
 import { MoreVertical, Folder } from "lucide-react";
 import { average } from "color.js";
+
+function hexToRgb(hex: string): [number, number, number] {
+  let h = hex.replace("#", "");
+  if (h.length === 3) {
+    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  }
+  const r = parseInt(h.substring(0, 2), 16) || 0;
+  const g = parseInt(h.substring(2, 4), 16) || 0;
+  const b = parseInt(h.substring(4, 6), 16) || 0;
+  return [r, g, b];
+}
+
+function isTooCloseRGB(a: string, b: string, threshold: number): boolean {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  const distance = Math.sqrt(
+    Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2)
+  );
+  return distance < threshold;
+}
+
+const CHART_BACKGROUND_COLOR = "#1a1a1a";
+const COLOR_DISTANCE_THRESHOLD = 28;
+const FALLBACK_CHART_COLOR = "#fff";
+
+function pickChartColor(dominant?: string): string {
+  if (!dominant || typeof dominant !== "string" || !dominant.startsWith("#")) {
+    return FALLBACK_CHART_COLOR;
+  }
+
+  if (
+    isTooCloseRGB(dominant, CHART_BACKGROUND_COLOR, COLOR_DISTANCE_THRESHOLD)
+  ) {
+    return FALLBACK_CHART_COLOR;
+  }
+
+  return dominant;
+}
 
 interface AnimatedPercentageProps {
   value: number;
@@ -442,6 +482,7 @@ export interface DownloadGroupProps {
   openDeleteGameModal: (shop: GameShop, objectId: string) => void;
   openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
+  queuedGameIds?: string[];
 }
 
 export function DownloadGroup({
@@ -450,6 +491,7 @@ export function DownloadGroup({
   openDeleteGameModal,
   openGameInstaller,
   seedingStatus,
+  queuedGameIds = [],
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
   const { t: tGameDetails } = useTranslation("game_details");
@@ -690,6 +732,18 @@ export function DownloadGroup({
     setGameToCancelObjectId(null);
   }, []);
 
+  const handleMoveInQueue = useCallback(
+    async (shop: GameShop, objectId: string, direction: "up" | "down") => {
+      await window.electron.updateDownloadQueuePosition(
+        shop,
+        objectId,
+        direction
+      );
+      updateLibrary();
+    },
+    [updateLibrary]
+  );
+
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const download = lastPacket?.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
@@ -765,7 +819,12 @@ export function DownloadGroup({
       (download?.downloader === Downloader.TorBox &&
         !userPreferences?.torBoxApiToken);
 
-    return [
+    const queueIndex = queuedGameIds.indexOf(game.id);
+    const isFirstInQueue = queueIndex === 0;
+    const isLastInQueue = queueIndex === queuedGameIds.length - 1;
+    const isInQueue = queueIndex !== -1;
+
+    const actions = [
       {
         label: t("resume"),
         disabled: isResumeDisabled,
@@ -775,6 +834,22 @@ export function DownloadGroup({
         icon: <PlayIcon />,
       },
       {
+        label: t("move_up"),
+        show: isInQueue && !isFirstInQueue,
+        onClick: () => {
+          handleMoveInQueue(game.shop, game.objectId, "up");
+        },
+        icon: <ArrowUpIcon />,
+      },
+      {
+        label: t("move_down"),
+        show: isInQueue && !isLastInQueue,
+        onClick: () => {
+          handleMoveInQueue(game.shop, game.objectId, "down");
+        },
+        icon: <ArrowDownIcon />,
+      },
+      {
         label: t("cancel"),
         onClick: () => {
           handleCancelClick(game.shop, game.objectId);
@@ -782,6 +857,8 @@ export function DownloadGroup({
         icon: <XCircleIcon />,
       },
     ];
+
+    return actions.filter((action) => action.show !== false);
   };
 
   const downloadInfo = useMemo(
@@ -863,7 +940,7 @@ export function DownloadGroup({
       currentProgress = lastPacket.progress;
     }
 
-    const dominantColor = dominantColors[game.id] || "#fff";
+    const dominantColor = pickChartColor(dominantColors[game.id]);
 
     return (
       <>
