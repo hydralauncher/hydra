@@ -38,6 +38,14 @@ export function useDownload() {
     return response;
   };
 
+  const addGameToQueue = async (payload: StartGameDownloadPayload) => {
+    const response = await window.electron.addGameToQueue(payload);
+
+    if (response.ok) updateLibrary();
+
+    return response;
+  };
+
   const pauseDownload = async (shop: GameShop, objectId: string) => {
     await window.electron.pauseGameDownload(shop, objectId);
     await updateLibrary();
@@ -113,6 +121,7 @@ export function useDownload() {
     lastPacket,
     eta: calculateETA(),
     startDownload,
+    addGameToQueue,
     pauseDownload,
     resumeDownload,
     cancelDownload,
