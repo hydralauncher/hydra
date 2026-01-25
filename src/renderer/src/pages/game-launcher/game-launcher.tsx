@@ -25,6 +25,7 @@ export default function GameLauncher() {
   const [colorExtracted, setColorExtracted] = useState(false);
   const [colorError, setColorError] = useState(false);
   const [windowShown, setWindowShown] = useState(false);
+  const [isMainWindowOpen, setIsMainWindowOpen] = useState(false);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -50,6 +51,10 @@ export default function GameLauncher() {
         setGameAssets(assets);
       });
     }
+
+    window.electron.isMainWindowOpen().then((isOpen) => {
+      setIsMainWindowOpen(isOpen);
+    });
   }, [shop, objectId]);
 
   useEffect(() => {
@@ -128,6 +133,13 @@ export default function GameLauncher() {
 
   return (
     <div className="game-launcher" style={backgroundStyle}>
+      {coverImage && (
+        <div
+          className="game-launcher__background"
+          style={{ backgroundImage: `url(${coverImage})` }}
+        />
+      )}
+      <div className="game-launcher__overlay" />
       <div className="game-launcher__glow" style={glowStyle} />
 
       <div className="game-launcher__logo-badge">
@@ -166,13 +178,15 @@ export default function GameLauncher() {
               <span className="game-launcher__dots" />
             </p>
 
-            <button
-              type="button"
-              className="game-launcher__button"
-              onClick={handleOpenHydra}
-            >
-              {t("open_hydra")}
-            </button>
+            {!isMainWindowOpen && (
+              <button
+                type="button"
+                className="game-launcher__button"
+                onClick={handleOpenHydra}
+              >
+                {t("open_hydra")}
+              </button>
+            )}
           </div>
 
           {(playTime > 0 || achievementCount > 0) && (

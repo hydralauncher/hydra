@@ -12,6 +12,36 @@
   position: relative;
   overflow: hidden;
 
+  &__background {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(20px);
+    transform: scale(1.1);
+    z-index: 0;
+  }
+
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0.85) 50%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
   &__glow {
     position: absolute;
     top: 0;
@@ -24,14 +54,14 @@
       transparent 50%
     );
     pointer-events: none;
-    z-index: 0;
+    z-index: 2;
   }
 
   &__logo-badge {
     position: absolute;
     top: calc(globals.$spacing-unit * 2);
     right: calc(globals.$spacing-unit * 2);
-    z-index: 3;
+    z-index: 10;
 
     svg {
       width: 28px;
@@ -48,7 +78,7 @@
     -webkit-app-region: no-drag;
     min-height: 0;
     position: relative;
-    z-index: 1;
+    z-index: 5;
   }
 
   &__cover {
@@ -85,7 +115,7 @@
     flex-direction: column;
     justify-content: center;
     flex: 1;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: calc(globals.$spacing-unit);
   }
 
   &__title {
@@ -167,7 +197,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: calc(globals.$spacing-unit);
+    margin-top: calc(globals.$spacing-unit * 2);
 
     &:hover {
       background-color: #dadbe1;

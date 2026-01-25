@@ -679,6 +679,7 @@ contextBridge.exposeInMainWorld("electron", {
   showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),
   closeGameLauncherWindow: () => ipcRenderer.invoke("closeGameLauncherWindow"),
   openMainWindow: () => ipcRenderer.invoke("openMainWindow"),
+  isMainWindowOpen: () => ipcRenderer.invoke("isMainWindowOpen"),
 
   /* LevelDB Generic CRUD */
   leveldb: {
