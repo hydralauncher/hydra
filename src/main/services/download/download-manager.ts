@@ -21,7 +21,7 @@ import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { sortBy } from "lodash-es";
+import { orderBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
@@ -323,7 +323,8 @@ export class DownloadManager {
 
     this.sendProgressUpdate(progress, status, game);
 
-    if (progress === 1) {
+    const isComplete = progress === 1 || download.status === "complete";
+    if (isComplete) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
   }
@@ -422,10 +423,10 @@ export class DownloadManager {
       .values()
       .all()
       .then((games) =>
-        sortBy(
+        orderBy(
           games.filter((game) => game.status === "paused" && game.queued),
-          "timestamp",
-          "DESC"
+          ["timestamp"],
+          ["desc"]
         )
       );
 
