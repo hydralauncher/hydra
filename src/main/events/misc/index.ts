@@ -7,6 +7,7 @@ import "./get-hydra-decky-plugin-info";
 import "./hydra-api-call";
 import "./install-common-redist";
 import "./install-hydra-decky-plugin";
+import "./is-main-window-open";
 import "./open-checkout";
 import "./open-external";
 import "./open-main-window";
