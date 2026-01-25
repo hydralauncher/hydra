@@ -466,6 +466,7 @@ declare global {
     showGameLauncherWindow: () => Promise<void>;
     closeGameLauncherWindow: () => Promise<void>;
     openMainWindow: () => Promise<void>;
+    isMainWindowOpen: () => Promise<boolean>;
 
     /* Download Options */
     onNewDownloadOptions: (
