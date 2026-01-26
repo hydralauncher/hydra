@@ -9238,10 +9238,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.0.14:
-  version "0.0.14"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.0.14.tgz#a14333a8fe2c9f2d671ebb6e76b0cb80250800a4"
-  integrity sha512-52pjvY6xry4Zn3iM9Vtwkv07+0XAXBUZ8IVA9+Czf9kskYcDRdepjJW5p8f44T3HV12kBnUUXrx4oX9JAoRmZA==
+workwonders-sdk@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.1.1.tgz#7ac0eb3d9ef0a5a8cc5ca4e6f5e387e29875faa9"
+  integrity sha512-PEsl33QCeiBlYed/MmnX1unnd4Kn7vzVIza00HQ/5Zsan89nqnwWx9vqgJnNipXkkmIWl8oDL9bGRNjtL4XZ4Q==
   dependencies:
     ky "^1.14.2"
 

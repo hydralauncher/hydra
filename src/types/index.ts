@@ -118,6 +118,7 @@ export interface StartGameDownloadPayload {
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
+  fileSize?: string | null;
 }
 
 export interface UserFriend {
