@@ -3,9 +3,10 @@ import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { parseBytes } from "@shared";
 import { handleDownloadError, prepareGameEntry } from "@main/helpers";
 
-const startGameDownload = async (
+const addGameToQueue = async (
   _event: Electron.IpcMainInvokeEvent,
   payload: StartGameDownloadPayload
 ) => {
@@ -17,36 +18,22 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    fileSize,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
 
-  await DownloadManager.pauseDownload();
-
-  for await (const [key, value] of downloadsSublevel.iterator()) {
-    if (value.status === "active" && value.progress !== 1) {
-      await downloadsSublevel.put(key, {
-        ...value,
-        status: "paused",
-      });
-    }
-  }
-
-  await prepareGameEntry({ gameKey, title, objectId, shop });
-
-  await DownloadManager.cancelDownload(gameKey);
-
   const download: Download = {
     shop,
     objectId,
-    status: "active",
+    status: "paused",
     progress: 0,
     bytesDownloaded: 0,
     downloadPath,
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
+    fileSize: parseBytes(fileSize ?? null),
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
@@ -56,9 +43,16 @@ const startGameDownload = async (
   };
 
   try {
-    await DownloadManager.startDownload(download).then(() => {
-      return downloadsSublevel.put(gameKey, download);
-    });
+    await DownloadManager.validateDownloadUrl(download);
+  } catch (err: unknown) {
+    logger.error("Failed to validate download URL for queue", err);
+    return handleDownloadError(err, downloader);
+  }
+
+  await prepareGameEntry({ gameKey, title, objectId, shop });
+
+  try {
+    await downloadsSublevel.put(gameKey, download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
@@ -71,9 +65,14 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    logger.error("Failed to start download", err);
-    return handleDownloadError(err, downloader);
+    logger.error("Failed to add game to queue", err);
+
+    if (err instanceof Error) {
+      return { ok: false, error: err.message };
+    }
+
+    return { ok: false };
   }
 };
 
-registerEvent("startGameDownload", startGameDownload);
+registerEvent("addGameToQueue", addGameToQueue);
