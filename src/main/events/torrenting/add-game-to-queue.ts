@@ -56,12 +56,17 @@ const addGameToQueue = async (
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
-    await Promise.all([
-      createGame(updatedGame).catch(() => {}),
+    const promises: Promise<unknown>[] = [
       HydraApi.post(`/games/${shop}/${objectId}/download`, null, {
         needsAuth: false,
       }).catch(() => {}),
-    ]);
+    ];
+
+    if (updatedGame) {
+      promises.push(createGame(updatedGame).catch(() => {}));
+    }
+
+    await Promise.all(promises);
 
     return { ok: true };
   } catch (err: unknown) {
