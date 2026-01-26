@@ -470,6 +470,12 @@ declare global {
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
 
+    /* Game Launcher Window */
+    showGameLauncherWindow: () => Promise<void>;
+    closeGameLauncherWindow: () => Promise<void>;
+    openMainWindow: () => Promise<void>;
+    isMainWindowOpen: () => Promise<boolean>;
+
     /* Download Options */
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void

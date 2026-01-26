@@ -204,6 +204,9 @@ function onOpenGame(game: Game) {
     lastSyncTick: now,
   });
 
+  // Close the launcher window when game starts
+  WindowManager.closeGameLauncherWindow();
+
   // Hide Hydra to tray on game startup if enabled
   db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
     valueEncoding: "json",

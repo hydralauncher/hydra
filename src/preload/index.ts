@@ -688,6 +688,12 @@ contextBridge.exposeInMainWorld("electron", {
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
 
+  /* Game Launcher Window */
+  showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),
+  closeGameLauncherWindow: () => ipcRenderer.invoke("closeGameLauncherWindow"),
+  openMainWindow: () => ipcRenderer.invoke("openMainWindow"),
+  isMainWindowOpen: () => ipcRenderer.invoke("isMainWindowOpen"),
+
   /* LevelDB Generic CRUD */
   leveldb: {
     get: (
