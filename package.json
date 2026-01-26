@@ -74,6 +74,7 @@
     "lucide-react": "^0.544.0",
     "node-7z": "^3.0.0",
     "parse-torrent": "^11.0.18",
+    "png-to-ico": "^3.0.1",
     "rc-virtual-list": "^3.18.3",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",

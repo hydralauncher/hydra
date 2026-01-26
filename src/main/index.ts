@@ -1,9 +1,8 @@
-import { app, BrowserWindow, net, protocol, shell } from "electron";
+import { app, BrowserWindow, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
 import url from "node:url";
-import { spawn } from "node:child_process";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import {
   logger,
@@ -16,8 +15,7 @@ import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
-import { parseExecutablePath } from "./events/helpers/parse-executable-path";
-import { parseLaunchOptions } from "./events/helpers/parse-launch-options";
+import { launchGame } from "./helpers";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -180,30 +178,17 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
     { valueEncoding: "json" }
   );
 
-  // Always show the launcher window
-  await WindowManager.createGameLauncherWindow(shop, objectId);
-
   // Only open main window if setting is disabled
   if (!userPreferences?.hideToTrayOnGameStart) {
     WindowManager.createMainWindow();
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  const parsedPath = parseExecutablePath(game.executablePath);
-  const parsedParams = parseLaunchOptions(game.launchOptions);
-
-  await gamesSublevel.put(gameKey, {
-    ...game,
-    executablePath: parsedPath,
+  await launchGame({
+    shop,
+    objectId,
+    executablePath: game.executablePath,
+    launchOptions: game.launchOptions,
   });
-
-  if (parsedParams.length === 0) {
-    shell.openPath(parsedPath);
-    return;
-  }
-
-  spawn(parsedPath, parsedParams, { shell: false, detached: true });
 };
 
 const handleDeepLinkPath = (uri?: string) => {
