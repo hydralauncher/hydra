@@ -4,6 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { app } from "electron";
 import axios from "axios";
+import pngToIco from "png-to-ico";
 import { removeSymbolsFromName } from "@shared";
 import { GameShop, ShortcutLocation } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -17,25 +18,29 @@ const downloadIcon = async (
   objectId: string,
   iconUrl?: string | null
 ): Promise<string | null> => {
-  const iconPath = path.join(ASSETS_PATH, `${shop}-${objectId}`, "icon.ico");
+  if (!iconUrl) {
+    return null;
+  }
+
+  const iconDir = path.join(ASSETS_PATH, `${shop}-${objectId}`);
+  const iconPath = path.join(iconDir, "icon.ico");
 
   try {
     if (fs.existsSync(iconPath)) {
       return iconPath;
     }
 
-    if (!iconUrl) {
-      return null;
-    }
-
-    fs.mkdirSync(path.dirname(iconPath), { recursive: true });
+    fs.mkdirSync(iconDir, { recursive: true });
 
     const response = await axios.get(iconUrl, { responseType: "arraybuffer" });
-    fs.writeFileSync(iconPath, response.data);
+    const imageBuffer = Buffer.from(response.data);
+
+    const icoBuffer = await pngToIco(imageBuffer);
+    fs.writeFileSync(iconPath, icoBuffer);
 
     return iconPath;
   } catch (error) {
-    logger.error("Failed to download game icon", error);
+    logger.error("Failed to download/convert game icon", error);
     return null;
   }
 };
