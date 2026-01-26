@@ -1,5 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -93,9 +100,9 @@ export function Header() {
       }
     };
 
-    window.addEventListener("hydra:focus-search", handleFocusSearch);
+    globalThis.addEventListener("hydra:focus-search", handleFocusSearch);
     return () =>
-      window.removeEventListener("hydra:focus-search", handleFocusSearch);
+      globalThis.removeEventListener("hydra:focus-search", handleFocusSearch);
   }, [isControllerMode]);
 
   const handleInputClick = () => {
@@ -131,39 +138,6 @@ export function Header() {
   }, [location.pathname, headerTitle, t]);
 
   const totalItems = historyItems.length + suggestions.length;
-
-  // Handle gamepad navigation within the search dropdown
-  useEffect(() => {
-    if (!isControllerMode || !isDropdownVisible) return;
-
-    const unsubscribe = subscribe((event) => {
-      if (event.type !== "buttonpress") return;
-
-      const { button } = event;
-      const GamepadButton = {
-        DPadUp: 12,
-        DPadDown: 13,
-        A: 0,
-      };
-
-      if (button === GamepadButton.DPadUp) {
-        setActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
-      } else if (button === GamepadButton.DPadDown) {
-        setActiveIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
-      } else if (button === GamepadButton.A) {
-        if (activeIndex >= 0 && activeIndex < totalItems) {
-          if (activeIndex < historyItems.length) {
-            handleSelectHistory(historyItems[activeIndex].query);
-          } else {
-            const suggestionIndex = activeIndex - historyItems.length;
-            handleSelectSuggestion(suggestions[suggestionIndex]);
-          }
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [isControllerMode, isDropdownVisible, activeIndex, totalItems, historyItems, suggestions, subscribe]);
 
   const updateDropdownPosition = () => {
     if (searchContainerRef.current) {
@@ -206,48 +180,106 @@ export function Header() {
     navigate(-1);
   };
 
-  const handleSearch = (value: string) => {
-    if (isOnLibraryPage) {
-      dispatch(setLibrarySearchQuery(value.slice(0, 255)));
-    } else {
-      dispatch(setFilters({ title: value.slice(0, 255) }));
-    }
-    setActiveIndex(-1);
-  };
+  const handleSearch = useCallback(
+    (value: string) => {
+      if (isOnLibraryPage) {
+        dispatch(setLibrarySearchQuery(value.slice(0, 255)));
+      } else {
+        dispatch(setFilters({ title: value.slice(0, 255) }));
+      }
+      setActiveIndex(-1);
+    },
+    [isOnLibraryPage, dispatch]
+  );
 
-  const executeSearch = (query: string) => {
-    const context = isOnLibraryPage ? "library" : "catalogue";
-    if (query.trim()) {
-      addToHistory(query, context);
-    }
-    handleSearch(query);
+  const executeSearch = useCallback(
+    (query: string) => {
+      const context = isOnLibraryPage ? "library" : "catalogue";
+      if (query.trim()) {
+        addToHistory(query, context);
+      }
+      handleSearch(query);
 
-    if (!isOnLibraryPage && !location.pathname.startsWith("/catalogue")) {
-      navigate("/catalogue");
-    }
+      if (!isOnLibraryPage && !location.pathname.startsWith("/catalogue")) {
+        navigate("/catalogue");
+      }
 
-    setIsDropdownVisible(false);
-    // In controller mode, keep focus on search input so user can navigate to results
-    if (!isControllerMode) {
-      inputRef.current?.blur();
-    }
-  };
+      setIsDropdownVisible(false);
+      // In controller mode, keep focus on search input so user can navigate to results
+      if (!isControllerMode) {
+        inputRef.current?.blur();
+      }
+    },
+    [
+      addToHistory,
+      handleSearch,
+      isOnLibraryPage,
+      isControllerMode,
+      location.pathname,
+      navigate,
+    ]
+  );
 
-  const handleSelectHistory = (query: string) => {
-    executeSearch(query);
-  };
+  const handleSelectHistory = useCallback(
+    (query: string) => {
+      executeSearch(query);
+    },
+    [executeSearch]
+  );
 
-  const handleSelectSuggestion = (suggestion: {
-    title: string;
-    objectId: string;
-    shop: GameShop;
-  }) => {
-    setIsDropdownVisible(false);
-    if (!isControllerMode) {
-      inputRef.current?.blur();
-    }
-    navigate(buildGameDetailsPath(suggestion));
-  };
+  const handleSelectSuggestion = useCallback(
+    (suggestion: { title: string; objectId: string; shop: GameShop }) => {
+      setIsDropdownVisible(false);
+      if (!isControllerMode) {
+        inputRef.current?.blur();
+      }
+      navigate(buildGameDetailsPath(suggestion));
+    },
+    [isControllerMode, navigate]
+  );
+
+  // Handle gamepad navigation within the search dropdown
+  useEffect(() => {
+    if (!isControllerMode || !isDropdownVisible) return;
+
+    const unsubscribe = subscribe((event) => {
+      if (event.type !== "buttonpress") return;
+
+      const { button } = event;
+      const GamepadButton = {
+        DPadUp: 12,
+        DPadDown: 13,
+        A: 0,
+      };
+
+      if (button === GamepadButton.DPadUp) {
+        setActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
+      } else if (button === GamepadButton.DPadDown) {
+        setActiveIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
+      } else if (button === GamepadButton.A) {
+        if (activeIndex >= 0 && activeIndex < totalItems) {
+          if (activeIndex < historyItems.length) {
+            handleSelectHistory(historyItems[activeIndex].query);
+          } else {
+            const suggestionIndex = activeIndex - historyItems.length;
+            handleSelectSuggestion(suggestions[suggestionIndex]);
+          }
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [
+    isControllerMode,
+    isDropdownVisible,
+    activeIndex,
+    totalItems,
+    historyItems,
+    suggestions,
+    handleSelectHistory,
+    handleSelectSuggestion,
+    subscribe,
+  ]);
 
   const handleClearSearch = () => {
     if (isOnLibraryPage) {

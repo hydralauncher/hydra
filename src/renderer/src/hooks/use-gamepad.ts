@@ -120,7 +120,7 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
   useEffect(() => {
     logger.info("[Gamepad] Hook initialized, polling enabled:", enabled);
     logger.debug("[Gamepad] Available gamepads:", navigator.getGamepads());
-  }, []);
+  }, [enabled]);
 
   const [gamepads, setGamepads] = useState<GamepadState[]>([]);
   const subscribersRef = useRef<Set<(event: GamepadInputEvent) => void>>(
@@ -154,52 +154,36 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
     []
   );
 
-  const pollGamepads = useCallback(() => {
-    const rawGamepads = navigator.getGamepads();
-    const connectedGamepads: GamepadState[] = [];
-
-    for (const gamepad of rawGamepads) {
-      if (!gamepad) continue;
-
-      const normalized = normalizeGamepad(gamepad);
-      connectedGamepads.push(normalized);
-
-      // Get or initialize previous button state for this gamepad
+  const processButtons = useCallback(
+    (gamepad: Gamepad, normalized: GamepadState) => {
       if (!prevButtonStatesRef.current.has(gamepad.index)) {
         prevButtonStatesRef.current.set(gamepad.index, new Map());
       }
       const prevButtons = prevButtonStatesRef.current.get(gamepad.index)!;
 
-      // Check for button press/release events
       for (const [buttonIndex, buttonState] of Object.entries(
         normalized.buttons
       )) {
-        const button = parseInt(buttonIndex) as GamepadButton;
+        const button = Number.parseInt(buttonIndex) as GamepadButton;
         const wasPressed = prevButtons.get(button) ?? false;
         const isPressed = buttonState?.pressed ?? false;
 
         if (isPressed && !wasPressed) {
-          // Button just pressed
           onButtonPress?.(button, gamepad.index);
-          emit({
-            type: "buttonpress",
-            button,
-            gamepadIndex: gamepad.index,
-          });
+          emit({ type: "buttonpress", button, gamepadIndex: gamepad.index });
         } else if (!isPressed && wasPressed) {
-          // Button just released
           onButtonRelease?.(button, gamepad.index);
-          emit({
-            type: "buttonrelease",
-            button,
-            gamepadIndex: gamepad.index,
-          });
+          emit({ type: "buttonrelease", button, gamepadIndex: gamepad.index });
         }
 
         prevButtons.set(button, isPressed);
       }
+    },
+    [onButtonPress, onButtonRelease, emit]
+  );
 
-      // Handle stick-to-navigation conversion
+  const processStickNavigation = useCallback(
+    (gamepad: Gamepad, normalized: GamepadState) => {
       const stick = normalized.axes.leftStick;
       const now = Date.now();
 
@@ -208,13 +192,9 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
       }
       const prevStick = prevStickNavRef.current.get(gamepad.index)!;
 
-      // Check if enough time has passed for repeat navigation
-      const canNavigate = now - prevStick.lastNav > NAV_REPEAT_DELAY;
-
-      if (canNavigate) {
+      if (now - prevStick.lastNav > NAV_REPEAT_DELAY) {
         let navigated = false;
 
-        // Horizontal navigation
         if (
           stick.x > STICK_NAV_THRESHOLD &&
           prevStick.x <= STICK_NAV_THRESHOLD
@@ -229,7 +209,6 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
           navigated = true;
         }
 
-        // Vertical navigation
         if (
           stick.y > STICK_NAV_THRESHOLD &&
           prevStick.y <= STICK_NAV_THRESHOLD
@@ -244,31 +223,36 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
           navigated = true;
         }
 
-        if (navigated) {
-          prevStick.lastNav = now;
-        }
+        if (navigated) prevStick.lastNav = now;
       }
 
       prevStick.x = stick.x;
       prevStick.y = stick.y;
+    },
+    [onNavigate]
+  );
 
-      // Emit Left Stick axis events for components that need raw stick input (e.g. virtual keyboard)
-      if (Math.abs(stick.x) > STICK_DEADZONE || Math.abs(stick.y) > STICK_DEADZONE) {
+  const processAxisMoves = useCallback(
+    (gamepad: Gamepad, normalized: GamepadState) => {
+      const { leftStick, rightStick } = normalized.axes;
+
+      if (
+        Math.abs(leftStick.x) > STICK_DEADZONE ||
+        Math.abs(leftStick.y) > STICK_DEADZONE
+      ) {
         onAxisMove?.(
           "leftStick",
-          { x: stick.x, y: stick.y },
+          { x: leftStick.x, y: leftStick.y },
           gamepad.index
         );
         emit({
           type: "axismove",
           axis: "leftStick",
-          value: { x: stick.x, y: stick.y },
+          value: { x: leftStick.x, y: leftStick.y },
           gamepadIndex: gamepad.index,
         });
       }
 
-      // Handle Right Stick (Scroll)
-      const rightStick = normalized.axes.rightStick;
       if (Math.abs(rightStick.y) > STICK_DEADZONE) {
         onAxisMove?.(
           "rightStick",
@@ -282,10 +266,27 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
           gamepadIndex: gamepad.index,
         });
       }
+    },
+    [onAxisMove, emit]
+  );
+
+  const pollGamepads = useCallback(() => {
+    const rawGamepads = navigator.getGamepads();
+    const connectedGamepads: GamepadState[] = [];
+
+    for (const gamepad of rawGamepads) {
+      if (!gamepad) continue;
+
+      const normalized = normalizeGamepad(gamepad);
+      connectedGamepads.push(normalized);
+
+      processButtons(gamepad, normalized);
+      processStickNavigation(gamepad, normalized);
+      processAxisMoves(gamepad, normalized);
     }
 
     setGamepads(connectedGamepads);
-  }, [onButtonPress, onButtonRelease, onNavigate, emit]);
+  }, [processButtons, processStickNavigation, processAxisMoves]);
 
   // Set up polling loop
   useEffect(() => {
@@ -323,15 +324,15 @@ export function useGamepad(options: UseGamepadOptions = {}): UseGamepadReturn {
       pollGamepads();
     };
 
-    window.addEventListener("gamepadconnected", handleConnected);
-    window.addEventListener("gamepaddisconnected", handleDisconnected);
+    globalThis.addEventListener("gamepadconnected", handleConnected);
+    globalThis.addEventListener("gamepaddisconnected", handleDisconnected);
 
     // Initial poll to catch already-connected gamepads
     pollGamepads();
 
     return () => {
-      window.removeEventListener("gamepadconnected", handleConnected);
-      window.removeEventListener("gamepaddisconnected", handleDisconnected);
+      globalThis.removeEventListener("gamepadconnected", handleConnected);
+      globalThis.removeEventListener("gamepaddisconnected", handleDisconnected);
     };
   }, [pollGamepads]);
 

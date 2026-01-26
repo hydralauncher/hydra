@@ -40,25 +40,29 @@ export function ControllerIndicator() {
     else setPreviewType(null);
   };
 
+  const previewLabel = previewType === "ps" ? "PS" : "Xbox";
+  const displayText = previewType
+    ? `[Preview: ${previewLabel}]`
+    : controllerName;
+
   return (
     <div className="controller-indicator">
-      <div
+      <button
+        type="button"
         className="controller-indicator__left"
         onClick={handleIconClick}
-        style={{ cursor: "pointer" }}
         title="Click to preview controller icons"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") handleIconClick();
+        }}
       >
         {isPlayStation ? (
           <PsIcon className="controller-indicator__icon" />
         ) : (
           <XboxIcon className="controller-indicator__icon" />
         )}
-        <span className="controller-indicator__text">
-          {previewType
-            ? `[Preview: ${previewType === "ps" ? "PS" : "Xbox"}]`
-            : controllerName}
-        </span>
-      </div>
+        <span className="controller-indicator__text">{displayText}</span>
+      </button>
 
       <div className="controller-indicator__legend">
         <div className="legend-item">
@@ -77,7 +81,9 @@ export function ControllerIndicator() {
         </div>
         <div className="legend-item">
           <span className="legend-btn">Y</span>
-          <span className="legend-label">{t("controller.search", "Search")}</span>
+          <span className="legend-label">
+            {t("controller.search", "Search")}
+          </span>
         </div>
       </div>
     </div>

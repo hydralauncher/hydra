@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useMemo,
   type ReactNode,
 } from "react";
 import { useGamepad } from "../../hooks/use-gamepad";
@@ -18,9 +19,9 @@ import { logger } from "@renderer/logger";
 const GamepadContext = createContext<GamepadContextValue | null>(null);
 
 export interface GamepadProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
   /** Custom button mapping configuration */
-  mapping?: ControllerMapping;
+  readonly mapping?: ControllerMapping;
 }
 
 /**
@@ -69,9 +70,37 @@ export function GamepadProvider({
       }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    globalThis.addEventListener("mousemove", handleMouseMove);
+    return () => globalThis.removeEventListener("mousemove", handleMouseMove);
   }, [isControllerMode]);
+
+  const handleMappedAction = useCallback(
+    (button: GamepadButton) => {
+      if (button === mapping.confirm) {
+        const focused = document.activeElement as HTMLElement;
+        if (focused && focused !== document.body) {
+          focused.click();
+        }
+      } else if (button === mapping.cancel) {
+        const modal = document.querySelector("[data-hydra-dialog]");
+        if (modal) {
+          const closeButton = modal.querySelector(
+            '[data-close-button], button[aria-label="Close"]'
+          ) as HTMLElement;
+          if (closeButton) {
+            closeButton.click();
+          }
+        } else {
+          globalThis.history.back();
+        }
+      } else if (button === mapping.prevSection) {
+        navigateSection("prev");
+      } else if (button === mapping.nextSection) {
+        navigateSection("next");
+      }
+    },
+    [mapping]
+  );
 
   const handleButtonPress = useCallback(
     (button: GamepadButton) => {
@@ -80,67 +109,39 @@ export function GamepadProvider({
         GamepadButton[button] || button
       );
 
-      // Any button press activates controller mode
       if (!isControllerMode) {
         logger.info("[Gamepad] Activating controller mode");
         setIsControllerMode(true);
       }
 
-      // Handle mapped actions
-      if (button === mapping.confirm) {
-        // Simulate click on focused element
-        const focused = document.activeElement as HTMLElement;
-        if (focused && focused !== document.body) {
-          focused.click();
-        }
-      } else if (button === mapping.cancel) {
-        // Simulate browser back / close modal
-        const modal = document.querySelector("[data-hydra-dialog]");
-        if (modal) {
-          // Find and click close button in modal
-          const closeButton = modal.querySelector(
-            '[data-close-button], button[aria-label="Close"]'
-          ) as HTMLElement;
-          if (closeButton) {
-            closeButton.click();
-          }
-        } else {
-          // Navigate back
-          window.history.back();
-        }
-      } else if (button === mapping.prevSection) {
-        navigateSection("prev");
-      } else if (button === mapping.nextSection) {
-        navigateSection("next");
-      }
-
-      // Global shortcuts
-      // Y button -> Search
       if (button === GamepadButton.Y) {
-        window.dispatchEvent(new CustomEvent("hydra:focus-search"));
+        globalThis.dispatchEvent(new CustomEvent("hydra:focus-search"));
         return;
       }
 
-      // Blocking navigation if Virtual Keyboard is open or Search Dropdown is visible
-      if (
+      handleMappedAction(button);
+
+      const isInputOverlayOpen =
         document.querySelector(".virtual-keyboard-overlay") ||
-        document.querySelector(".search-dropdown")
-      ) {
-        return;
-      }
+        document.querySelector(".search-dropdown");
 
-      // Handle D-pad as navigation
-      if (button === GamepadButton.DPadUp) {
-        navigateDirection("up");
-      } else if (button === GamepadButton.DPadDown) {
-        navigateDirection("down");
-      } else if (button === GamepadButton.DPadLeft) {
-        navigateDirection("left");
-      } else if (button === GamepadButton.DPadRight) {
-        navigateDirection("right");
+      if (isInputOverlayOpen) return;
+
+      const directionMap: Partial<
+        Record<GamepadButton, "up" | "down" | "left" | "right">
+      > = {
+        [GamepadButton.DPadUp]: "up",
+        [GamepadButton.DPadDown]: "down",
+        [GamepadButton.DPadLeft]: "left",
+        [GamepadButton.DPadRight]: "right",
+      };
+
+      const direction = directionMap[button];
+      if (direction) {
+        navigateDirection(direction);
       }
     },
-    [isControllerMode, mapping]
+    [isControllerMode, handleMappedAction]
   );
 
   const handleNavigate = useCallback(
@@ -191,13 +192,16 @@ export function GamepadProvider({
     setIsControllerMode(enabled);
   }, []);
 
-  const contextValue: GamepadContextValue = {
-    gamepads,
-    activeGamepad,
-    isControllerMode,
-    setControllerMode,
-    subscribe,
-  };
+  const contextValue = useMemo<GamepadContextValue>(
+    () => ({
+      gamepads,
+      activeGamepad,
+      isControllerMode,
+      setControllerMode,
+      subscribe,
+    }),
+    [gamepads, activeGamepad, isControllerMode, setControllerMode, subscribe]
+  );
 
   return (
     <GamepadContext.Provider value={contextValue}>
@@ -280,7 +284,7 @@ function navigateDirection(direction: "up" | "down" | "left" | "right") {
     // Weight the distance calculation to prefer elements aligned in the primary axis
     // e.g. when moving Up/Down, penalize horizontal deviation heavily
     let dist = 0;
-    const ORTHOGONAL_PENALTY = 4.0; // Preference strength
+    const ORTHOGONAL_PENALTY = 4; // Preference strength
 
     if (direction === "up" || direction === "down") {
       dist = Math.sqrt(dx * dx * ORTHOGONAL_PENALTY + dy * dy);
@@ -408,7 +412,7 @@ function getFocusableElements(): HTMLElement[] {
     root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
   ).filter((el) => {
     // Filter out hidden elements
-    const style = window.getComputedStyle(el);
+    const style = globalThis.getComputedStyle(el);
     const rect = el.getBoundingClientRect();
     return (
       style.display !== "none" &&
