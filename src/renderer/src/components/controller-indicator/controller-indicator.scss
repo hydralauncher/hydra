@@ -1,43 +1,84 @@
 @use "../../scss/globals.scss" as globals;
 
 .controller-indicator {
-    position: fixed;
-    bottom: 70px;
-    right: 16px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(globals.$dark-background-color, 0.95);
+  border-top: 1px solid rgba(globals.$brand-teal, 0.3);
+  font-size: 13px;
+  color: globals.$body-color;
+  z-index: 9999;
+  /* Top of everything */
+  pointer-events: none;
+  animation: slideIn 0.3s ease-out;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+
+  &__left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: rgba(globals.$dark-background-color, 0.95);
-    border: 1px solid globals.$brand-teal;
-    border-radius: 8px;
+    gap: 12px;
+  }
+
+  &__icon {
+    width: 20px;
+    height: 20px;
+    color: globals.$brand-teal;
+  }
+
+  &__text {
+    color: globals.$muted-color;
+    font-weight: 600;
+  }
+
+  &__legend {
+    display: flex;
+    gap: 24px;
+  }
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .legend-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    min-width: 24px;
+    padding: 0 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    font-weight: 700;
     font-size: 12px;
     color: globals.$body-color;
-    z-index: globals.$toast-z-index;
-    pointer-events: none;
-    animation: slideIn 0.3s ease-out;
-    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 
-    &__icon {
-        width: 18px;
-        height: 18px;
-        fill: globals.$brand-teal;
-    }
-
-    &__text {
-        color: globals.$muted-color;
-        font-weight: 500;
-    }
+  .legend-label {
+    color: globals.$muted-color;
+    font-weight: 500;
+  }
 }
 
 @keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

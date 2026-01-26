@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGamepadContext } from "../../context/gamepad";
+import { PsIcon, XboxIcon } from "../icons/controller-icons";
 import "./controller-indicator.scss";
 
 /**
@@ -6,22 +9,77 @@ import "./controller-indicator.scss";
  * Displays in the corner of the screen with the current controller name.
  */
 export function ControllerIndicator() {
-    const { isControllerMode, activeGamepad } = useGamepadContext();
+  const { isControllerMode, activeGamepad } = useGamepadContext();
+  const { t } = useTranslation();
 
-    if (!isControllerMode) {
-        return null;
-    }
+  // Preview state for cycling icons
+  const [previewType, setPreviewType] = useState<string | null>(null);
 
-    const controllerName = activeGamepad?.id?.split("(")[0]?.trim() || "Controller";
+  if (!isControllerMode) {
+    return null;
+  }
 
-    return (
-        <div className="controller-indicator">
-            <svg viewBox="0 0 24 24" className="controller-indicator__icon">
-                <path d="M7.97 16L5 19c-.36.36-.36.94 0 1.3.36.38.94.38 1.3 0L9.26 17h5.48l2.96 3.3c.36.36.94.36 1.3 0 .36-.36.36-.94 0-1.3L16.03 16C18.12 16 20 14.21 20 12V8c0-2.21-1.79-4-4-4H8C5.79 4 4 5.79 4 8v4c0 2.21 1.91 4 3.97 4zM8 6h8c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2z" />
-                <circle cx="9" cy="10" r="1.5" />
-                <circle cx="15" cy="10" r="1.5" />
-            </svg>
-            <span className="controller-indicator__text">{controllerName}</span>
+  const controllerName =
+    activeGamepad?.id?.split("(")[0]?.trim() || "Controller";
+
+  const rawId = (activeGamepad?.id || "").toLowerCase();
+
+  // Determine icon type: preview override -> explicit detection -> default
+  const isPlayStation =
+    previewType === "ps" ||
+    (previewType === null &&
+      (rawId.includes("sony") ||
+        rawId.includes("dual") ||
+        rawId.includes("ps4") ||
+        rawId.includes("ps5")));
+
+  const handleIconClick = () => {
+    // Cycle: Auto -> Xbox -> PS -> Auto
+    if (previewType === null) setPreviewType("xbox");
+    else if (previewType === "xbox") setPreviewType("ps");
+    else setPreviewType(null);
+  };
+
+  return (
+    <div className="controller-indicator">
+      <div
+        className="controller-indicator__left"
+        onClick={handleIconClick}
+        style={{ cursor: "pointer" }}
+        title="Click to preview controller icons"
+      >
+        {isPlayStation ? (
+          <PsIcon className="controller-indicator__icon" />
+        ) : (
+          <XboxIcon className="controller-indicator__icon" />
+        )}
+        <span className="controller-indicator__text">
+          {previewType
+            ? `[Preview: ${previewType === "ps" ? "PS" : "Xbox"}]`
+            : controllerName}
+        </span>
+      </div>
+
+      <div className="controller-indicator__legend">
+        <div className="legend-item">
+          <span className="legend-btn">A</span>
+          <span className="legend-label">
+            {t("controller.select", "Select")}
+          </span>
         </div>
-    );
+        <div className="legend-item">
+          <span className="legend-btn">B</span>
+          <span className="legend-label">{t("controller.back", "Back")}</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-btn">LB / RB</span>
+          <span className="legend-label">{t("controller.tab", "Tab")}</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-btn">Y</span>
+          <span className="legend-label">{t("controller.search", "Search")}</span>
+        </div>
+      </div>
+    </div>
+  );
 }

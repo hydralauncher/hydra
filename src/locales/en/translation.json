@@ -199,7 +199,6 @@
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
     "downloader_not_available": "Not available",
-    "recommended": "Recommended",
     "go_to_settings": "Go to Settings",
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
@@ -857,5 +856,10 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "controller": {
+    "select": "Select",
+    "back": "Back",
+    "tab": "Tab"
   }
 }
