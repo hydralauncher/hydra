@@ -38,7 +38,6 @@ const openGameInstaller = async (
   );
 
   if (!fs.existsSync(gamePath)) {
-    await downloadsSublevel.del(downloadKey);
     return true;
   }
 
