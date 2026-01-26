@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
 import { ControllerIndicator } from "@renderer/components/controller-indicator";
-import { WorkWondersSdk } from "workwonders-sdk";
+import { WorkWonders } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -53,7 +53,7 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const workwondersRef = useRef<WorkWondersSdk | null>(null);
+  const workwondersRef = useRef<WorkWonders | null>(null);
 
   const {
     hasActiveSubscription,
@@ -126,18 +126,18 @@ export function App() {
       const parsedLocale =
         possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
 
-      workwondersRef.current = new WorkWondersSdk();
+      workwondersRef.current = new WorkWonders();
       await workwondersRef.current.init({
         organization: "hydra",
         token,
         locale: parsedLocale,
       });
 
-      await workwondersRef.current.initChangelogWidget();
-      workwondersRef.current.initChangelogWidgetMini();
+      await workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidgetMini();
 
       if (token) {
-        workwondersRef.current.initFeedbackWidget();
+        workwondersRef.current.feedback.initFeedbackWidget();
       }
     },
     [workwondersRef]
