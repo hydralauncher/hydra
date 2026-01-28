@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import type { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
@@ -10,7 +10,6 @@ import { logger } from "./logger";
 import { GameExecutables } from "./game-executables";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
-import { removeSymbolsFromName } from "@shared";
 import { SystemPath } from "./system-path";
 
 const PROGRESS_THROTTLE_MS = 1000;
