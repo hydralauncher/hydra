@@ -2,12 +2,15 @@ import path from "node:path";
 import fs from "node:fs";
 import type { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
 import { GameExecutables } from "./game-executables";
+import createDesktopShortcut from "create-desktop-shortcuts";
+import { app } from "electron";
+import { SystemPath } from "./system-path";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -204,10 +207,46 @@ export class GameFilesManager {
         });
 
         WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
+
+        await this.createDesktopShortcutForGame(game.title, foundExePath);
       }
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
+        err
+      );
+    }
+  }
+
+  private async createDesktopShortcutForGame(
+    gameTitle: string,
+    executablePath: string
+  ): Promise<void> {
+    try {
+      const windowVbsPath = app.isPackaged
+        ? path.join(process.resourcesPath, "windows.vbs")
+        : undefined;
+
+      const options = {
+        filePath: executablePath,
+        name: removeSymbolsFromName(gameTitle),
+        outputPath: SystemPath.getPath("desktop"),
+      };
+
+      const success = createDesktopShortcut({
+        windows: { ...options, VBScriptPath: windowVbsPath },
+        linux: options,
+        osx: options,
+      });
+
+      if (success) {
+        logger.info(
+          `[GameFilesManager] Created desktop shortcut for ${this.objectId}`
+        );
+      }
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error creating desktop shortcut: ${this.objectId}`,
         err
       );
     }
