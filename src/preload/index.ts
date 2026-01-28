@@ -259,6 +259,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("createSteamShortcut", shop, objectId),
+  addGameVRFlag: (shop: GameShop, objectId: string, enable: boolean) => {
+    return ipcRenderer.invoke("addGameVRFlag", shop, objectId, enable);
+  },
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
