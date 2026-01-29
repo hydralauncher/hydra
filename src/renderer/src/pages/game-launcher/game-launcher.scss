@@ -136,6 +136,27 @@
     margin: 0;
     display: flex;
     align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: globals.$muted-color;
+    border-right-color: globals.$muted-color;
+    border-radius: 50%;
+    animation: spinner-rotate 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spinner-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   &__dots {

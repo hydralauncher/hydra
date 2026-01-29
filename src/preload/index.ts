@@ -505,6 +505,18 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("common-redist-progress", listener);
     return () => ipcRenderer.removeListener("common-redist-progress", listener);
   },
+  onPreflightProgress: (
+    cb: (value: { status: string; detail: string | null }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: { status: string; detail: string | null }
+    ) => cb(value);
+    ipcRenderer.on("preflight-progress", listener);
+    return () => ipcRenderer.removeListener("preflight-progress", listener);
+  },
+  resetCommonRedistPreflight: () =>
+    ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 

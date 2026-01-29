@@ -10,6 +10,14 @@ import { average } from "color.js";
 import type { Game, GameShop, ShopAssets } from "@types";
 import "./game-launcher.scss";
 
+type PreflightStatus =
+  | "idle"
+  | "checking"
+  | "downloading"
+  | "installing"
+  | "complete"
+  | "error";
+
 export default function GameLauncher() {
   const { t } = useTranslation("game_launcher");
   const [searchParams] = useSearchParams();
@@ -26,6 +34,10 @@ export default function GameLauncher() {
   const [colorError, setColorError] = useState(false);
   const [windowShown, setWindowShown] = useState(false);
   const [isMainWindowOpen, setIsMainWindowOpen] = useState(false);
+  const [preflightStatus, setPreflightStatus] =
+    useState<PreflightStatus>("idle");
+  const [preflightDetail, setPreflightDetail] = useState<string | null>(null);
+  const [preflightStarted, setPreflightStarted] = useState(false);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -58,14 +70,52 @@ export default function GameLauncher() {
   }, [shop, objectId]);
 
   useEffect(() => {
-    if (!windowShown) return;
+    if (!window.electron.onPreflightProgress) {
+      return;
+    }
+
+    const unsubscribe = window.electron.onPreflightProgress(
+      ({ status, detail }) => {
+        setPreflightStarted(true);
+        setPreflightStatus(status as PreflightStatus);
+        setPreflightDetail(detail);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Auto-close timer - only starts after preflight completes
+  // Preflight is "done" when: it completed/errored, OR it never started (non-Windows or no preflight needed)
+  const isPreflightDone =
+    preflightStatus === "complete" || preflightStatus === "error";
+
+  // If preflight hasn't started after 3 seconds, assume it's not running (e.g., non-Windows)
+  const [preflightTimeout, setPreflightTimeout] = useState(false);
+
+  useEffect(() => {
+    if (preflightStarted) return;
+
+    const timer = setTimeout(() => {
+      setPreflightTimeout(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [preflightStarted]);
+
+  const canAutoClose =
+    isPreflightDone || (!preflightStarted && preflightTimeout);
+
+  useEffect(() => {
+    // Don't start timer until window is shown AND preflight is done
+    if (!windowShown || !canAutoClose) return;
 
     const timer = setTimeout(() => {
       window.electron.closeGameLauncherWindow();
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [windowShown]);
+  }, [windowShown, canAutoClose]);
 
   const handleOpenHydra = () => {
     window.electron.openMainWindow();
@@ -94,6 +144,29 @@ export default function GameLauncher() {
       setColorExtracted(true);
     }
   }, []);
+
+  const getStatusMessage = useCallback(() => {
+    switch (preflightStatus) {
+      case "checking":
+        return t("preflight_checking");
+      case "downloading":
+        return t("preflight_downloading");
+      case "installing":
+        return preflightDetail
+          ? t("preflight_installing_detail", { detail: preflightDetail })
+          : t("preflight_installing");
+      case "complete":
+      case "error":
+      case "idle":
+      default:
+        return t("launching_base");
+    }
+  }, [preflightStatus, preflightDetail, t]);
+
+  const isPreflightRunning =
+    preflightStatus === "checking" ||
+    preflightStatus === "downloading" ||
+    preflightStatus === "installing";
 
   useEffect(() => {
     if (coverImage && !colorExtracted) {
@@ -174,7 +247,10 @@ export default function GameLauncher() {
             <h1 className="game-launcher__title">{gameTitle}</h1>
 
             <p className="game-launcher__status">
-              {t("launching_base")}
+              {isPreflightRunning && (
+                <span className="game-launcher__spinner" />
+              )}
+              {getStatusMessage()}
               <span className="game-launcher__dots" />
             </p>
 

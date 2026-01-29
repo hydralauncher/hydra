@@ -11,6 +11,7 @@ import "./is-main-window-open";
 import "./open-checkout";
 import "./open-external";
 import "./open-main-window";
+import "./reset-common-redist-preflight";
 import "./save-temp-file";
 import "./show-item-in-folder";
 import "./show-open-dialog";

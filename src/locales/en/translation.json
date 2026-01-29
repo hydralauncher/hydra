@@ -833,7 +833,11 @@
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "amount_hours_short": "{{amount}}h",
-    "amount_minutes_short": "{{amount}}m"
+    "amount_minutes_short": "{{amount}}m",
+    "preflight_checking": "Checking dependencies",
+    "preflight_downloading": "Downloading dependencies",
+    "preflight_installing": "Installing dependencies",
+    "preflight_installing_detail": "{{detail}}"
   },
   "notifications_page": {
     "title": "Notifications",
