@@ -2,7 +2,8 @@ import { shell } from "electron";
 import { spawn } from "node:child_process";
 import { GameShop } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { WindowManager } from "@main/services";
+import { WindowManager, logger } from "@main/services";
+import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { parseLaunchOptions } from "../events/helpers/parse-launch-options";
 
@@ -35,6 +36,24 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
   }
 
   await WindowManager.createGameLauncherWindow(shop, objectId);
+
+  // Run preflight check for common redistributables (Windows only)
+  // Wrapped in try/catch to ensure game launch is never blocked
+  if (process.platform === "win32") {
+    try {
+      logger.log("Starting preflight check for game launch", {
+        shop,
+        objectId,
+      });
+      const preflightPassed = await CommonRedistManager.runPreflight();
+      logger.log("Preflight check result", { passed: preflightPassed });
+    } catch (error) {
+      logger.error(
+        "Preflight check failed with error, continuing with launch",
+        error
+      );
+    }
+  }
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
