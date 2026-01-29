@@ -142,7 +142,10 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://fuckingfast.co")) {
     return [Downloader.FuckingFast];
   }
-  if (uri.startsWith("https://vikingfile.com")) {
+  if (
+    uri.startsWith("https://vikingfile.com") ||
+    uri.startsWith("https://vik1ngfile.site")
+  ) {
     return [Downloader.VikingFile];
   }
   if (uri.startsWith("https://www.rootz.so")) {
