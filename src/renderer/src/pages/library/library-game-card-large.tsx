@@ -1,6 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { formatBytes } from "@renderer/utils";
+import { formatBytes } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
