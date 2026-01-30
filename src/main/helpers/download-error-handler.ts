@@ -1,48 +1,63 @@
 import { AxiosError } from "axios";
 import { Downloader, DownloadError } from "@shared";
 
+type DownloadErrorResult = { ok: false; error?: string };
+
+const handleAxiosError = (
+  err: AxiosError,
+  downloader: Downloader
+): DownloadErrorResult | null => {
+  if (err.response?.status === 429 && downloader === Downloader.Gofile) {
+    return { ok: false, error: DownloadError.GofileQuotaExceeded };
+  }
+
+  if (err.response?.status === 403 && downloader === Downloader.RealDebrid) {
+    return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
+  }
+
+  if (downloader === Downloader.TorBox) {
+    const data = err.response?.data as { detail?: string } | undefined;
+    return { ok: false, error: data?.detail };
+  }
+
+  return null;
+};
+
+const HOST_NAMES: Partial<Record<Downloader, string>> = {
+  [Downloader.Buzzheavier]: "Buzzheavier",
+  [Downloader.FuckingFast]: "FuckingFast",
+};
+
+const handleHostSpecificError = (
+  message: string,
+  downloader: Downloader
+): DownloadErrorResult | null => {
+  const hostName = HOST_NAMES[downloader];
+  if (!hostName) return null;
+
+  if (message.includes("Rate limit")) {
+    return { ok: false, error: `${hostName}: Rate limit exceeded` };
+  }
+
+  if (message.includes("not found") || message.includes("deleted")) {
+    return { ok: false, error: `${hostName}: File not found` };
+  }
+
+  return null;
+};
+
 export const handleDownloadError = (
   err: unknown,
   downloader: Downloader
-): { ok: false; error?: string } => {
+): DownloadErrorResult => {
   if (err instanceof AxiosError) {
-    if (err.response?.status === 429 && downloader === Downloader.Gofile) {
-      return { ok: false, error: DownloadError.GofileQuotaExceeded };
-    }
-
-    if (err.response?.status === 403 && downloader === Downloader.RealDebrid) {
-      return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
-    }
-
-    if (downloader === Downloader.TorBox) {
-      return { ok: false, error: err.response?.data?.detail };
-    }
+    const result = handleAxiosError(err, downloader);
+    if (result) return result;
   }
 
   if (err instanceof Error) {
-    if (downloader === Downloader.Buzzheavier) {
-      if (err.message.includes("Rate limit")) {
-        return { ok: false, error: "Buzzheavier: Rate limit exceeded" };
-      }
-      if (
-        err.message.includes("not found") ||
-        err.message.includes("deleted")
-      ) {
-        return { ok: false, error: "Buzzheavier: File not found" };
-      }
-    }
-
-    if (downloader === Downloader.FuckingFast) {
-      if (err.message.includes("Rate limit")) {
-        return { ok: false, error: "FuckingFast: Rate limit exceeded" };
-      }
-      if (
-        err.message.includes("not found") ||
-        err.message.includes("deleted")
-      ) {
-        return { ok: false, error: "FuckingFast: File not found" };
-      }
-    }
+    const hostResult = handleHostSpecificError(err.message, downloader);
+    if (hostResult) return hostResult;
 
     return { ok: false, error: err.message };
   }
