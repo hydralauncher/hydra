@@ -200,7 +200,6 @@
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
     "downloader_not_available": "Not available",
-    "recommended": "Recommended",
     "go_to_settings": "Go to Settings",
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
@@ -794,7 +793,10 @@
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "all_games": "All Games",
     "recently_played": "Recently Played",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "disk_usage": "Disk usage",
+    "disk_usage_tooltip": "Installed size on disk",
+    "installer_size_tooltip": "Installer size"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

@@ -5,15 +5,15 @@ import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { logger } from "@main/services";
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string
 ): Promise<void> => {
-  const downloadKey = levelKeys.game(shop, objectId);
-  const download = await downloadsSublevel.get(downloadKey);
+  const gameKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(gameKey);
 
   if (!download) return;
 
@@ -52,7 +52,16 @@ const deleteGameFolder = async (
     await deleteFile(metaPath);
   }
 
-  await downloadsSublevel.del(downloadKey);
+  await downloadsSublevel.del(gameKey);
+
+  // Clear installer size from game record
+  const game = await gamesSublevel.get(gameKey);
+  if (game) {
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      installerSizeInBytes: null,
+    });
+  }
 };
 
 registerEvent("deleteGameFolder", deleteGameFolder);
