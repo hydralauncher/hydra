@@ -51,6 +51,25 @@ export const formatBytes = (bytes: number): string => {
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
 
+export const parseBytes = (sizeString: string | null): number | null => {
+  if (!sizeString) return null;
+
+  const regex = /^([\d.,]+)\s*([A-Za-z]+)$/;
+  const match = regex.exec(sizeString.trim());
+  if (!match) return null;
+
+  const value = Number.parseFloat(match[1].replaceAll(",", "."));
+  const unit = match[2].toUpperCase();
+
+  if (Number.isNaN(value)) return null;
+
+  const unitIndex = FORMAT.indexOf(unit);
+  if (unitIndex === -1) return null;
+
+  const byteKBase = 1024;
+  return Math.round(value * Math.pow(byteKBase, unitIndex));
+};
+
 export const formatBytesToMbps = (bytesPerSecond: number): string => {
   const bitsPerSecond = bytesPerSecond * 8;
   const mbps = bitsPerSecond / (1024 * 1024);

@@ -118,6 +118,7 @@ export interface StartGameDownloadPayload {
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
+  fileSize?: string | null;
 }
 
 export interface UserFriend {
@@ -330,7 +331,8 @@ export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
   | "DOWNLOAD_COMPLETE"
   | "UPDATE_AVAILABLE"
-  | "ACHIEVEMENT_UNLOCKED";
+  | "ACHIEVEMENT_UNLOCKED"
+  | "SCAN_GAMES_COMPLETE";
 
 export interface Notification {
   id: string;
