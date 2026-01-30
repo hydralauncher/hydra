@@ -862,5 +862,10 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "controller": {
+    "select": "Select",
+    "back": "Back",
+    "tab": "Tab"
   }
 }

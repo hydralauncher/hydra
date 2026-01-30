@@ -1,5 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -19,6 +26,8 @@ import {
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { ScanGamesModal } from "./scan-games-modal";
+import { VirtualKeyboard } from "../virtual-keyboard/virtual-keyboard";
+import { useGamepadContext } from "../../context/gamepad";
 import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
@@ -63,6 +72,9 @@ export function Header() {
 
   const dispatch = useAppDispatch();
 
+  const { isControllerMode, subscribe } = useGamepadContext();
+  const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
+
   const [isFocused, setIsFocused] = useState(false);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -78,6 +90,26 @@ export function Header() {
   } | null>(null);
 
   const { t } = useTranslation("header");
+
+  // Listen for global search focus event
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      focusInput();
+      if (isControllerMode) {
+        setIsVirtualKeyboardOpen(true);
+      }
+    };
+
+    globalThis.addEventListener("hydra:focus-search", handleFocusSearch);
+    return () =>
+      globalThis.removeEventListener("hydra:focus-search", handleFocusSearch);
+  }, [isControllerMode]);
+
+  const handleInputClick = () => {
+    if (isControllerMode) {
+      setIsVirtualKeyboardOpen(true);
+    }
+  };
 
   const { addToHistory, removeFromHistory, clearHistory, getRecentHistory } =
     useSearchHistory();
@@ -148,43 +180,106 @@ export function Header() {
     navigate(-1);
   };
 
-  const handleSearch = (value: string) => {
-    if (isOnLibraryPage) {
-      dispatch(setLibrarySearchQuery(value.slice(0, 255)));
-    } else {
-      dispatch(setFilters({ title: value.slice(0, 255) }));
-    }
-    setActiveIndex(-1);
-  };
+  const handleSearch = useCallback(
+    (value: string) => {
+      if (isOnLibraryPage) {
+        dispatch(setLibrarySearchQuery(value.slice(0, 255)));
+      } else {
+        dispatch(setFilters({ title: value.slice(0, 255) }));
+      }
+      setActiveIndex(-1);
+    },
+    [isOnLibraryPage, dispatch]
+  );
 
-  const executeSearch = (query: string) => {
-    const context = isOnLibraryPage ? "library" : "catalogue";
-    if (query.trim()) {
-      addToHistory(query, context);
-    }
-    handleSearch(query);
+  const executeSearch = useCallback(
+    (query: string) => {
+      const context = isOnLibraryPage ? "library" : "catalogue";
+      if (query.trim()) {
+        addToHistory(query, context);
+      }
+      handleSearch(query);
 
-    if (!isOnLibraryPage && !location.pathname.startsWith("/catalogue")) {
-      navigate("/catalogue");
-    }
+      if (!isOnLibraryPage && !location.pathname.startsWith("/catalogue")) {
+        navigate("/catalogue");
+      }
 
-    setIsDropdownVisible(false);
-    inputRef.current?.blur();
-  };
+      setIsDropdownVisible(false);
+      // In controller mode, keep focus on search input so user can navigate to results
+      if (!isControllerMode) {
+        inputRef.current?.blur();
+      }
+    },
+    [
+      addToHistory,
+      handleSearch,
+      isOnLibraryPage,
+      isControllerMode,
+      location.pathname,
+      navigate,
+    ]
+  );
 
-  const handleSelectHistory = (query: string) => {
-    executeSearch(query);
-  };
+  const handleSelectHistory = useCallback(
+    (query: string) => {
+      executeSearch(query);
+    },
+    [executeSearch]
+  );
 
-  const handleSelectSuggestion = (suggestion: {
-    title: string;
-    objectId: string;
-    shop: GameShop;
-  }) => {
-    setIsDropdownVisible(false);
-    inputRef.current?.blur();
-    navigate(buildGameDetailsPath(suggestion));
-  };
+  const handleSelectSuggestion = useCallback(
+    (suggestion: { title: string; objectId: string; shop: GameShop }) => {
+      setIsDropdownVisible(false);
+      if (!isControllerMode) {
+        inputRef.current?.blur();
+      }
+      navigate(buildGameDetailsPath(suggestion));
+    },
+    [isControllerMode, navigate]
+  );
+
+  // Handle gamepad navigation within the search dropdown
+  useEffect(() => {
+    if (!isControllerMode || !isDropdownVisible) return;
+
+    const unsubscribe = subscribe((event) => {
+      if (event.type !== "buttonpress") return;
+
+      const { button } = event;
+      const GamepadButton = {
+        DPadUp: 12,
+        DPadDown: 13,
+        A: 0,
+      };
+
+      if (button === GamepadButton.DPadUp) {
+        setActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
+      } else if (button === GamepadButton.DPadDown) {
+        setActiveIndex((prev) => (prev < totalItems - 1 ? prev + 1 : prev));
+      } else if (button === GamepadButton.A) {
+        if (activeIndex >= 0 && activeIndex < totalItems) {
+          if (activeIndex < historyItems.length) {
+            handleSelectHistory(historyItems[activeIndex].query);
+          } else {
+            const suggestionIndex = activeIndex - historyItems.length;
+            handleSelectSuggestion(suggestions[suggestionIndex]);
+          }
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [
+    isControllerMode,
+    isDropdownVisible,
+    activeIndex,
+    totalItems,
+    historyItems,
+    suggestions,
+    handleSelectHistory,
+    handleSelectSuggestion,
+    subscribe,
+  ]);
 
   const handleClearSearch = () => {
     if (isOnLibraryPage) {
@@ -344,9 +439,11 @@ export function Header() {
               value={searchValue}
               className="header__search-input"
               onChange={(event) => handleSearch(event.target.value)}
+              onClick={handleInputClick}
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
+              readOnly={isControllerMode} // Prevent physical keyboard on mobile/controller mode if desired, or keep editable
             />
 
             {searchValue && (
@@ -397,6 +494,20 @@ export function Header() {
         scanResult={scanResult}
         onStartScan={handleStartScan}
         onClearResult={handleClearScanResult}
+      />
+
+      <VirtualKeyboard
+        visible={isVirtualKeyboardOpen}
+        value={searchValue}
+        onChange={(val) => handleSearch(val)}
+        onClose={() => {
+          setIsVirtualKeyboardOpen(false);
+          inputRef.current?.focus();
+        }}
+        onEnter={() => {
+          setIsVirtualKeyboardOpen(false);
+          executeSearch(searchValue);
+        }}
       />
     </>
   );
