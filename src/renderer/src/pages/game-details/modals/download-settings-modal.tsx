@@ -221,6 +221,33 @@ export function DownloadSettingsModal({
     }
   };
 
+  const getButtonContent = () => {
+    if (downloadStarting) {
+      return (
+        <>
+          <SyncIcon className="download-settings-modal__loading-spinner" />
+          {t("loading")}
+        </>
+      );
+    }
+
+    if (hasActiveDownload) {
+      return (
+        <>
+          <PlusIcon />
+          {t("add_to_queue")}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <DownloadIcon />
+        {t("download_now")}
+      </>
+    );
+  };
+
   const handleStartClick = async () => {
     if (repack) {
       setDownloadStarting(true);
@@ -462,22 +489,7 @@ export function DownloadSettingsModal({
             )
           }
         >
-          {downloadStarting ? (
-            <>
-              <SyncIcon className="download-settings-modal__loading-spinner" />
-              {t("loading")}
-            </>
-          ) : hasActiveDownload ? (
-            <>
-              <PlusIcon />
-              {t("add_to_queue")}
-            </>
-          ) : (
-            <>
-              <DownloadIcon />
-              {t("download_now")}
-            </>
-          )}
+          {getButtonContent()}
         </Button>
       </div>
 
