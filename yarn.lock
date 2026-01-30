@@ -6465,9 +6465,9 @@ keyv@^4.0.0, keyv@^4.5.3:
     json-buffer "3.0.1"
 
 ky@^1.14.2:
-  version "1.14.2"
-  resolved "https://registry.yarnpkg.com/ky/-/ky-1.14.2.tgz#385d6d05d2825502e68898ace125124e6fe7357d"
-  integrity sha512-q3RBbsO5A5zrPhB6CaCS8ZUv+NWCXv6JJT4Em0i264G9W0fdPB8YRfnnEi7Dm7X7omAkBIPojzYJ2D1oHTHqug==
+  version "1.14.3"
+  resolved "https://registry.yarnpkg.com/ky/-/ky-1.14.3.tgz#d7fcc6ac93d1588accee72cc44dcc6cf84c0bdaa"
+  integrity sha512-9zy9lkjac+TR1c2tG+mkNSVlyOpInnWdSMiue4F+kq8TwJSgv6o8jhLRg8Ho6SnZ9wOYUq/yozts9qQCfk7bIw==
 
 language-subtag-registry@^0.3.20:
   version "0.3.23"
@@ -9238,10 +9238,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.1.1.tgz#7ac0eb3d9ef0a5a8cc5ca4e6f5e387e29875faa9"
-  integrity sha512-PEsl33QCeiBlYed/MmnX1unnd4Kn7vzVIza00HQ/5Zsan89nqnwWx9vqgJnNipXkkmIWl8oDL9bGRNjtL4XZ4Q==
+workwonders-sdk@0.1.3:
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.1.3.tgz#0fcf4797870ad6c469eaad452e4feb785001e719"
+  integrity sha512-QJ+YSsUh0MzsUDD2SGSsplpZgsgKFRBHeBHjupW2z+/yhEWewQbob060pQJeaB+zMpbBOako9NW0GykTqCFSvg==
   dependencies:
     ky "^1.14.2"
 
