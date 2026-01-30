@@ -226,6 +226,16 @@ export function GameDetailsContextProvider({
   }, [game?.id, isGameRunning, updateGame]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+      updateGame();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [updateGame]);
+
+  useEffect(() => {
     const handler = (ev: Event) => {
       try {
         const detail = (ev as CustomEvent).detail || {};
