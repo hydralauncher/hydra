@@ -37,7 +37,7 @@ export default function GameDetails() {
   const fromRandomizer = searchParams.get("fromRandomizer");
   const gameTitle = searchParams.get("title");
 
-  const { startDownload } = useDownload();
+  const { startDownload, addGameToQueue } = useDownload();
 
   const { t } = useTranslation("game_details");
 
@@ -100,17 +100,30 @@ export default function GameDetails() {
             repack: GameRepack,
             downloader: Downloader,
             downloadPath: string,
-            automaticallyExtract: boolean
+            automaticallyExtract: boolean,
+            addToQueueOnly = false
           ) => {
-            const response = await startDownload({
-              objectId: objectId!,
-              title: gameTitle,
-              downloader,
-              shop,
-              downloadPath,
-              uri: selectRepackUri(repack, downloader),
-              automaticallyExtract: automaticallyExtract,
-            });
+            const response = addToQueueOnly
+              ? await addGameToQueue({
+                  objectId: objectId!,
+                  title: gameTitle,
+                  downloader,
+                  shop,
+                  downloadPath,
+                  uri: selectRepackUri(repack, downloader),
+                  automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
+                })
+              : await startDownload({
+                  objectId: objectId!,
+                  title: gameTitle,
+                  downloader,
+                  shop,
+                  downloadPath,
+                  uri: selectRepackUri(repack, downloader),
+                  automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
+                });
 
             if (response.ok) {
               await updateGame();

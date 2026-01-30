@@ -185,6 +185,7 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
+    "add_to_queue": "Add to queue",
     "loading": "Loading...",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
@@ -446,7 +447,9 @@
     "yes": "Yes",
     "no": "No",
     "network": "NETWORK",
-    "peak": "PEAK"
+    "peak": "PEAK",
+    "move_up": "Move up",
+    "move_down": "Move down"
   },
   "settings": {
     "downloads_path": "Downloads path",
