@@ -13,7 +13,7 @@ const updateDownloadQueuePosition = async (
 
   const download = await downloadsSublevel.get(gameKey);
 
-  if (!download || !download.queued || download.status !== "paused") {
+  if (!download?.queued || download.status !== "paused") {
     return false;
   }
 
