@@ -150,6 +150,11 @@ const createSteamShortcut = async (
       await writeSteamShortcuts(steamUserId, steamShortcuts);
     }
 
+    await gamesSublevel.put(gameKey, {
+      ...game,
+      steamShortcutAppId: newShortcut.appid,
+    });
+
     if (process.platform === "linux" && !game.winePrefixPath) {
       const steamWinePrefixes = path.join(
         SystemPath.getPath("home"),
