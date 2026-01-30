@@ -320,10 +320,17 @@ export class JsHttpDownloader {
       return null;
     }
 
+    let progress = 0;
+    if (this.status === "complete") {
+      progress = 1;
+    } else if (this.fileSize > 0) {
+      progress = this.bytesDownloaded / this.fileSize;
+    }
+
     return {
       folderName: this.folderName,
       fileSize: this.fileSize,
-      progress: this.fileSize > 0 ? this.bytesDownloaded / this.fileSize : 0,
+      progress,
       downloadSpeed: this.downloadSpeed,
       numPeers: 0,
       numSeeds: 0,
