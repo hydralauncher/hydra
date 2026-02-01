@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
 import type { Game, LibraryGame, ShortcutLocation } from "@types";
@@ -54,6 +54,7 @@ export function GameOptionsModal({
     game.automaticCloudSync ?? false
   );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
 
   const {
     removeGameInstaller,
@@ -74,6 +75,19 @@ export function GameOptionsModal({
 
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
+
+  useEffect(() => {
+    if (
+      visible &&
+      game.shop !== "custom" &&
+      window.electron.platform === "win32"
+    ) {
+      window.electron
+        .getGameSaveFolder(game.shop, game.objectId)
+        .then(setSaveFolderPath)
+        .catch(() => setSaveFolderPath(null));
+    }
+  }, [visible, game.shop, game.objectId]);
 
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
@@ -174,6 +188,16 @@ export function GameOptionsModal({
 
   const handleOpenGameExecutablePath = async () => {
     await window.electron.openGameExecutablePath(game.shop, game.objectId);
+  };
+
+  const handleOpenSaveFolder = async () => {
+    if (saveFolderPath) {
+      await window.electron.openGameSaveFolder(
+        game.shop,
+        game.objectId,
+        saveFolderPath
+      );
+    }
   };
 
   const handleClearExecutablePath = async () => {
@@ -368,6 +392,17 @@ export function GameOptionsModal({
                   >
                     {t("open_folder")}
                   </Button>
+                  {game.shop !== "custom" &&
+                    window.electron.platform === "win32" &&
+                    saveFolderPath && (
+                      <Button
+                        type="button"
+                        theme="outline"
+                        onClick={handleOpenSaveFolder}
+                      >
+                        {t("open_save_folder")}
+                      </Button>
+                    )}
                   <Button
                     onClick={() => handleCreateShortcut("desktop")}
                     theme="outline"
