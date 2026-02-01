@@ -181,6 +181,15 @@ declare global {
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
+    getGameSaveFolder: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
+    openGameSaveFolder: (
+      shop: GameShop,
+      objectId: string,
+      saveFolderPath: string
+    ) => Promise<boolean>;
     openGame: (
       shop: GameShop,
       objectId: string,
