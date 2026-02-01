@@ -14,15 +14,19 @@ import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 
+const isValidHttpUrl = (url: string | null | undefined): url is string => {
+  return !!url && (url.startsWith("http://") || url.startsWith("https://"));
+};
+
+const isIcoUrl = (url: string): boolean => {
+  return url.toLowerCase().endsWith(".ico");
+};
+
 const downloadIcon = async (
   shop: GameShop,
   objectId: string,
-  iconUrl?: string | null
+  iconUrls: (string | null | undefined)[]
 ): Promise<string | null> => {
-  if (!iconUrl) {
-    return null;
-  }
-
   const iconDir = path.join(ASSETS_PATH, `${shop}-${objectId}`);
   const iconPath = path.join(iconDir, "icon.ico");
 
@@ -30,22 +34,51 @@ const downloadIcon = async (
     if (fs.existsSync(iconPath)) {
       return iconPath;
     }
+  } catch {
+    // Ignore fs errors
+  }
 
-    fs.mkdirSync(iconDir, { recursive: true });
+  const validUrls = iconUrls.filter(isValidHttpUrl);
 
-    const response = await axios.get(iconUrl, { responseType: "arraybuffer" });
-    const imageBuffer = Buffer.from(response.data);
-
-    // Convert any image format to PNG using sharp, then to ICO
-    const pngBuffer = await sharp(imageBuffer).png().toBuffer();
-    const icoBuffer = await pngToIco(pngBuffer);
-    fs.writeFileSync(iconPath, icoBuffer);
-
-    return iconPath;
-  } catch (error) {
-    logger.error("Failed to download/convert game icon", error);
+  if (validUrls.length === 0) {
+    logger.warn("No valid icon URLs found for game shortcut");
     return null;
   }
+
+  fs.mkdirSync(iconDir, { recursive: true });
+
+  for (const iconUrl of validUrls) {
+    try {
+      logger.log(`Trying to download icon from: ${iconUrl}`);
+      const response = await axios.get(iconUrl, {
+        responseType: "arraybuffer",
+      });
+      const imageBuffer = Buffer.from(response.data);
+
+      // If source is already ICO, use it directly
+      if (isIcoUrl(iconUrl)) {
+        fs.writeFileSync(iconPath, imageBuffer);
+        logger.log(`Copied ICO directly to: ${iconPath}`);
+        return iconPath;
+      }
+
+      // Convert to square PNG (256x256 is standard for ICO), then to ICO
+      const pngBuffer = await sharp(imageBuffer)
+        .resize(256, 256, { fit: "cover" })
+        .png()
+        .toBuffer();
+      const icoBuffer = await pngToIco(pngBuffer);
+      fs.writeFileSync(iconPath, icoBuffer);
+
+      logger.log(`Successfully created icon at: ${iconPath}`);
+      return iconPath;
+    } catch (error) {
+      logger.warn(`Failed to convert icon from ${iconUrl}:`, error);
+    }
+  }
+
+  logger.error("Failed to download/convert game icon from any source");
+  return null;
 };
 
 const createUrlShortcut = (
@@ -54,11 +87,19 @@ const createUrlShortcut = (
   iconPath?: string | null
 ): boolean => {
   try {
+    // Delete existing shortcut first so icon updates properly
+    if (fs.existsSync(shortcutPath)) {
+      fs.unlinkSync(shortcutPath);
+    }
+
     let content = `[InternetShortcut]\nURL=${url}\n`;
 
     if (iconPath) {
       content += `IconFile=${iconPath}\nIconIndex=0\n`;
     }
+
+    logger.log(`Creating shortcut at: ${shortcutPath}`);
+    logger.log(`Shortcut content:\n${content}`);
 
     fs.writeFileSync(shortcutPath, content);
     return true;
@@ -89,7 +130,11 @@ const createGameShortcut = async (
       : windowsStartMenuPath;
 
   const assets = shop === "custom" ? null : await getGameAssets(objectId, shop);
-  const iconPath = await downloadIcon(shop, objectId, assets?.iconUrl);
+  const iconPath = await downloadIcon(shop, objectId, [
+    assets?.iconUrl,
+    game.iconUrl,
+    assets?.coverImageUrl,
+  ]);
 
   if (process.platform === "win32") {
     const shortcutPath = path.join(outputPath, `${shortcutName}.url`);
