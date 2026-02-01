@@ -2,11 +2,11 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeftIcon,
-  SearchIcon,
-  SyncIcon,
-  XIcon,
-} from "@primer/octicons-react";
+  ArrowLeft,
+  SearchNormal1,
+  Refresh,
+  CloseSquare,
+} from "iconsax-reactjs";
 import { Tooltip } from "react-tooltip";
 
 import {
@@ -294,7 +294,7 @@ export function Header() {
             onClick={handleBackButtonClick}
             disabled={location.key === "default"}
           >
-            <ArrowLeftIcon />
+            <ArrowLeft size={16} variant="Linear" />
           </button>
 
           <h3
@@ -318,7 +318,7 @@ export function Header() {
               data-tooltip-content={t("scan_games_tooltip")}
               data-tooltip-place="bottom"
             >
-              <SyncIcon size={16} />
+              <Refresh size={16} variant="Linear" />
             </button>
           )}
 
@@ -333,7 +333,7 @@ export function Header() {
               className="header__action-button"
               onClick={focusInput}
             >
-              <SearchIcon />
+              <SearchNormal1 size={16} variant="Linear" />
             </button>
 
             <input
@@ -355,7 +355,7 @@ export function Header() {
                 onClick={handleClearSearch}
                 className="header__action-button"
               >
-                <XIcon />
+                <CloseSquare size={16} variant="Linear" />
               </button>
             )}
           </div>

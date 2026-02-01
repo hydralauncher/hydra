@@ -1,4 +1,4 @@
-import { PersonIcon } from "@primer/octicons-react";
+import { Profile } from "iconsax-reactjs";
 import cn from "classnames";
 
 import "./avatar.scss";
@@ -28,7 +28,7 @@ export function Avatar({ size, alt, src, className, ...props }: AvatarProps) {
           {...props}
         />
       ) : (
-        <PersonIcon size={size * 0.7} />
+        <Profile size={size * 0.7} />
       )}
     </div>
   );

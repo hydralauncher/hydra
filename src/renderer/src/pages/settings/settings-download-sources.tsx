@@ -9,12 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { DownloadSource } from "@types";
-import {
-  NoEntryIcon,
-  PlusCircleIcon,
-  SyncIcon,
-  TrashIcon,
-} from "@primer/octicons-react";
+import { Forbidden, AddCircle, Refresh, Trash } from "iconsax-reactjs";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useToast } from "@renderer/hooks";
 import { DownloadSourceStatus } from "@shared";
@@ -214,7 +209,7 @@ export function SettingsDownloadSources() {
           }
           onClick={syncDownloadSources}
         >
-          <SyncIcon />
+          <Refresh size={20} variant="Linear" />
           {t("sync_download_sources")}
         </Button>
 
@@ -229,7 +224,7 @@ export function SettingsDownloadSources() {
               !downloadSources.length
             }
           >
-            <TrashIcon />
+            <Trash size={20} variant="Linear" />
             {t("button_delete_all_sources")}
           </Button>
 
@@ -239,7 +234,7 @@ export function SettingsDownloadSources() {
             onClick={() => setShowAddDownloadSourceModal(true)}
             disabled={isSyncingDownloadSources || isRemovingDownloadSource}
           >
-            <PlusCircleIcon />
+            <AddCircle size={20} variant="Linear" />
             {t("add_download_source")}
           </Button>
         </div>
@@ -262,7 +257,11 @@ export function SettingsDownloadSources() {
                 <div style={{ display: "flex" }}>
                   <Badge>
                     {isPendingOrMatching && (
-                      <SyncIcon className="settings-download-sources__spinner" />
+                      <Refresh
+                        size={20}
+                        variant="Linear"
+                        className="settings-download-sources__spinner"
+                      />
                     )}
                     {statusTitle[downloadSource.status]}
                   </Badge>
@@ -301,7 +300,7 @@ export function SettingsDownloadSources() {
                     onClick={() => handleRemoveSource(downloadSource)}
                     disabled={isRemovingDownloadSource}
                   >
-                    <NoEntryIcon />
+                    <Forbidden size={20} variant="Linear" />
                     {t("remove_download_source")}
                   </Button>
                 }

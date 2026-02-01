@@ -1,4 +1,4 @@
-import { LockIcon } from "@primer/octicons-react";
+import { Lock } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import "./locked-profile.scss";
 
@@ -8,7 +8,7 @@ export function LockedProfile() {
   return (
     <div className="locked-profile__container">
       <div className="locked-profile__lock-icon">
-        <LockIcon size={24} />
+        <Lock size={24} variant="Outline" />
       </div>
 
       <h2>{t("locked_profile")}</h2>

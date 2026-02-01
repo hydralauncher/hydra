@@ -1,17 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import {
-  PlayIcon,
-  DownloadIcon,
-  HeartIcon,
-  HeartFillIcon,
-  GearIcon,
-  PencilIcon,
-  FileDirectoryIcon,
-  LinkIcon,
-  TrashIcon,
-  XIcon,
-} from "@primer/octicons-react";
+  PlayCircle,
+  Import,
+  Heart,
+  Setting2,
+  PathTool,
+  Folder,
+  Link21,
+  Trash,
+  CloseSquare,
+} from "iconsax-reactjs";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { LibraryGame } from "@types";
 import {
@@ -61,11 +60,11 @@ export function GameContextMenu({
       id: "play",
       label: isGameRunning ? t("close") : canPlay ? t("play") : t("download"),
       icon: isGameRunning ? (
-        <XIcon size={16} />
+        <CloseSquare size={16} />
       ) : canPlay ? (
-        <PlayIcon size={16} />
+        <PlayCircle size={16} />
       ) : (
-        <DownloadIcon size={16} />
+        <Import size={16} />
       ),
       onClick: () => {
         if (isGameRunning) {
@@ -82,9 +81,9 @@ export function GameContextMenu({
       id: "favorite",
       label: game.favorite ? t("remove_from_favorites") : t("add_to_favorites"),
       icon: game.favorite ? (
-        <HeartFillIcon size={16} />
+        <Heart size={16} variant="Bold" />
       ) : (
-        <HeartIcon size={16} />
+        <Heart size={16} />
       ),
       onClick: () => {
         void handleToggleFavorite();
@@ -96,13 +95,13 @@ export function GameContextMenu({
           {
             id: "shortcuts",
             label: t("create_shortcut_simple"),
-            icon: <LinkIcon size={16} />,
+            icon: <Link21 size={16} />,
             disabled: isDeleting,
             submenu: [
               {
                 id: "desktop-shortcut",
                 label: t("create_shortcut"),
-                icon: <LinkIcon size={16} />,
+                icon: <Link21 size={16} />,
                 onClick: () => handleCreateShortcut("desktop"),
                 disabled: isDeleting,
               },
@@ -118,7 +117,7 @@ export function GameContextMenu({
                     {
                       id: "start-menu-shortcut",
                       label: t("create_start_menu_shortcut"),
-                      icon: <LinkIcon size={16} />,
+                      icon: <Link21 size={16} />,
                       onClick: () => handleCreateShortcut("start_menu"),
                       disabled: isDeleting,
                     },
@@ -132,7 +131,7 @@ export function GameContextMenu({
     {
       id: "manage",
       label: t("options"),
-      icon: <GearIcon size={16} />,
+      icon: <Setting2 size={16} />,
       disabled: isDeleting,
       submenu: [
         ...(game.executablePath
@@ -140,7 +139,7 @@ export function GameContextMenu({
               {
                 id: "open-folder",
                 label: t("open_folder"),
-                icon: <FileDirectoryIcon size={16} />,
+                icon: <Folder size={16} />,
                 onClick: handleOpenFolder,
                 disabled: isDeleting,
               },
@@ -151,7 +150,7 @@ export function GameContextMenu({
               {
                 id: "download-options",
                 label: t("open_download_options"),
-                icon: <PlayIcon size={16} />,
+                icon: <PlayCircle size={16} />,
                 onClick: handleOpenDownloadOptions,
                 disabled: isDeleting || isGameDownloading || !hasRepacks,
               },
@@ -162,7 +161,7 @@ export function GameContextMenu({
               {
                 id: "download-location",
                 label: t("open_download_location"),
-                icon: <FileDirectoryIcon size={16} />,
+                icon: <Folder size={16} />,
                 onClick: handleOpenDownloadLocation,
                 disabled: isDeleting,
               },
@@ -172,7 +171,7 @@ export function GameContextMenu({
         {
           id: "remove-library",
           label: t("remove_from_library"),
-          icon: <XIcon size={16} />,
+          icon: <CloseSquare size={16} />,
           onClick: () => setShowConfirmRemoveLibrary(true),
           disabled: isDeleting,
           danger: true,
@@ -182,7 +181,7 @@ export function GameContextMenu({
               {
                 id: "remove-files",
                 label: t("remove_files"),
-                icon: <TrashIcon size={16} />,
+                icon: <Trash size={16} />,
                 onClick: () => setShowConfirmRemoveFiles(true),
                 disabled: isDeleting || isGameDownloading,
                 danger: true,
@@ -195,7 +194,7 @@ export function GameContextMenu({
       id: "properties",
       label: t("properties"),
       separator: true,
-      icon: <PencilIcon size={16} />,
+      icon: <PathTool size={16} />,
       onClick: () => handleOpenGameOptions(),
       disabled: isDeleting,
     },

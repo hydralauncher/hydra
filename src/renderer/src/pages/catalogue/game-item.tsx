@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
 import { CatalogueSearchResult } from "@types";
-import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
+import { InfoCircle, Add, TickCircle } from "iconsax-reactjs";
 import cn from "classnames";
 
 export interface GameItemProps {
@@ -91,7 +91,7 @@ export function GameItem({ game }: GameItemProps) {
 
     return (
       <div className="game-item__cover-placeholder">
-        <QuestionIcon size={28} />
+        <InfoCircle size={28} variant="Linear" />
       </div>
     );
   }, [game.libraryImageUrl, game.title]);
@@ -129,7 +129,11 @@ export function GameItem({ game }: GameItemProps) {
         }}
         title={added ? t("already_in_library") : t("add_to_library")}
       >
-        {added ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
+        {added ? (
+          <TickCircle size={16} variant="Linear" />
+        ) : (
+          <Add size={16} variant="Linear" />
+        )}
       </div>
     </button>
   );

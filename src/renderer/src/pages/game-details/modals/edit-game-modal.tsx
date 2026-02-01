@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ImageIcon, XIcon } from "@primer/octicons-react";
+import { Image, CloseSquare } from "iconsax-reactjs";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
@@ -585,7 +585,7 @@ export function EditGameModal({
                 onClick={() => handleSelectAsset(assetType)}
                 disabled={isUpdating}
               >
-                <ImageIcon />
+                <Image size={20} variant="Linear" />
                 {t("edit_game_modal_browse")}
               </Button>
               {game &&
@@ -598,7 +598,7 @@ export function EditGameModal({
                     disabled={isUpdating}
                     title={`Remove ${assetType}`}
                   >
-                    <XIcon />
+                    <CloseSquare variant="Linear" />
                   </Button>
                 )}
             </div>
@@ -650,7 +650,7 @@ export function EditGameModal({
             onClick={() => handleSelectAsset(assetType)}
           >
             <div className="edit-game-modal__drop-zone-content">
-              <ImageIcon />
+              <Image size={20} variant="Linear" />
               <span>{t(`edit_game_modal_drop_${assetType}_image_here`)}</span>
             </div>
           </button>
@@ -684,7 +684,7 @@ export function EditGameModal({
                   disabled={isUpdating}
                   title="Restore default title"
                 >
-                  <XIcon />
+                  <CloseSquare variant="Linear" />
                 </Button>
               )
             }

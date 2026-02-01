@@ -1,4 +1,4 @@
-import { AlertIcon } from "@primer/octicons-react";
+import { Warning2 } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import "./theme-placeholder.scss";
 import { AddThemeModal } from "../modals/add-theme-modal";
@@ -26,7 +26,7 @@ export const ThemePlaceholder = ({ onListUpdated }: ThemePlaceholderProps) => {
         onClick={() => setAddThemeModalVisible(true)}
       >
         <div className="theme-placeholder__icon">
-          <AlertIcon />
+          <Warning2 variant="Linear" />
         </div>
 
         <p className="theme-placeholder__text">{t("no_themes")}</p>

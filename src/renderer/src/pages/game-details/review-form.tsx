@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star1 } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { EditorContent, Editor } from "@tiptap/react";
 import { Button } from "@renderer/components";
@@ -118,12 +118,12 @@ export function ReviewForm({
                   onClick={() => onScoreChange(starValue)}
                   title={getRatingText(starValue, t)}
                 >
-                  <Star
+                  <Star1
                     size={18}
-                    fill={
+                    variant={
                       reviewScore && starValue <= reviewScore
-                        ? "currentColor"
-                        : "none"
+                        ? "Bold"
+                        : "Linear"
                     }
                   />
                 </button>

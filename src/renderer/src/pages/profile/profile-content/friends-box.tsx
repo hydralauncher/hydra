@@ -2,7 +2,7 @@ import { userProfileContext } from "@renderer/context";
 import { useUserDetails } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PlusIcon } from "@primer/octicons-react";
+import { Add } from "iconsax-reactjs";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar, Link } from "@renderer/components";
 import { AllFriendsModal } from "./all-friends-modal";
@@ -136,7 +136,7 @@ export function FriendsBoxAddButton() {
         className="friends-box__add-friend-button"
         onClick={() => setShowAddFriendModal(true)}
       >
-        <PlusIcon size={16} />
+        <Add size={16} variant="Linear" />
         {t("add_friends")}
       </button>
       <AddFriendModal

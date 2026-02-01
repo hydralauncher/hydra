@@ -9,13 +9,7 @@ import { Button, Link, StarRating } from "@renderer/components";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
-import {
-  CloudOfflineIcon,
-  DownloadIcon,
-  LockIcon,
-  PeopleIcon,
-  StarIcon,
-} from "@primer/octicons-react";
+import { CloudCross, Import, Lock, Profile2User, Star1 } from "iconsax-reactjs";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
@@ -101,7 +95,7 @@ export function Sidebar() {
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">
-            <LockIcon size={36} />
+            <Lock size={36} variant="Outline" />
             <h3>{t("sign_in_to_see_achievements")}</h3>
           </div>
           <ul className="list achievements-placeholder__blur">
@@ -142,7 +136,7 @@ export function Sidebar() {
                 className="subscription-required-button"
                 onClick={() => showHydraCloudModal("achievements")}
               >
-                <CloudOfflineIcon size={16} />
+                <CloudCross size={16} />
                 <span>{t("achievements_not_sync")}</span>
               </button>
             )}
@@ -194,7 +188,7 @@ export function Sidebar() {
           <div className="stats__section">
             <div className="stats__category">
               <p className="stats__category-title">
-                <DownloadIcon size={18} />
+                <Import size={18} />
                 {t("download_count")}
               </p>
               <p>{numberFormatter.format(stats?.downloadCount)}</p>
@@ -202,7 +196,7 @@ export function Sidebar() {
 
             <div className="stats__category">
               <p className="stats__category-title">
-                <PeopleIcon size={18} />
+                <Profile2User size={18} />
                 {t("player_count")}
               </p>
               <p>{numberFormatter.format(stats?.playerCount)}</p>
@@ -210,7 +204,7 @@ export function Sidebar() {
 
             <div className="stats__category">
               <p className="stats__category-title">
-                <StarIcon size={18} />
+                <Star1 size={18} />
                 {t("rating_count")}
               </p>
               <StarRating

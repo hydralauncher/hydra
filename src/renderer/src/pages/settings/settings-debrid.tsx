@@ -3,7 +3,7 @@ import { useFeature, useAppSelector } from "@renderer/hooks";
 import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRightIcon, CheckCircleFillIcon } from "@primer/octicons-react";
+import { ArrowRight2, TickCircle } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import "./settings-debrid.scss";
 
@@ -102,13 +102,14 @@ export function SettingsDebrid() {
               variants={chevronVariants}
               animate={collapseState.realDebrid ? "collapsed" : "expanded"}
             >
-              <ChevronRightIcon size={16} />
+              <ArrowRight2 size={16} variant="Linear" />
             </motion.div>
           </button>
           <h3 className="settings-debrid__section-title">Real-Debrid</h3>
           {userPreferences?.realDebridApiToken && (
-            <CheckCircleFillIcon
+            <TickCircle
               size={16}
+              variant="Bold"
               className="settings-debrid__check-icon"
             />
           )}
@@ -147,15 +148,12 @@ export function SettingsDebrid() {
                 variants={chevronVariants}
                 animate={collapseState.torbox ? "collapsed" : "expanded"}
               >
-                <ChevronRightIcon size={16} />
+                <ArrowRight2 size={16} variant="Linear" />
               </motion.div>
             </button>
             <h3 className="settings-debrid__section-title">TorBox</h3>
             {userPreferences?.torBoxApiToken && (
-              <CheckCircleFillIcon
-                size={16}
-                className="settings-debrid__check-icon"
-              />
+              <TickCircle size={16} variant="Bold" />
             )}
           </div>
 

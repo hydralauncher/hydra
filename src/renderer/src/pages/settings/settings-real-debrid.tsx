@@ -7,7 +7,7 @@ import "./settings-real-debrid.scss";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { settingsContext } from "@renderer/context";
-import { LinkExternalIcon } from "@primer/octicons-react";
+import { ExportSquare } from "iconsax-reactjs";
 
 const realDebridReferralId = import.meta.env
   .RENDERER_VITE_REAL_DEBRID_REFERRAL_ID;
@@ -109,7 +109,7 @@ export function SettingsRealDebrid() {
           to={REAL_DEBRID_URL}
           className="settings-real-debrid__create-account"
         >
-          <LinkExternalIcon />
+          <ExportSquare size={16} variant="Linear" />
           {t("create_real_debrid_account")}
         </Link>
       </div>

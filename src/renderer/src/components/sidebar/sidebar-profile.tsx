@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BellIcon } from "@primer/octicons-react";
+import { Notification } from "iconsax-reactjs";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -119,7 +119,7 @@ export function SidebarProfile() {
           </small>
         )}
 
-        <BellIcon size={16} />
+        <Notification size={16} />
       </button>
     );
   }, [t, notificationCount, navigate]);

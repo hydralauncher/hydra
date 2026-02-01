@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { EmojiSad } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
 import { GameContextMenu } from "@renderer/components";
@@ -162,7 +162,7 @@ export default function Library() {
       {!hasGames && (
         <div className="library__no-games">
           <div className="library__telescope-icon">
-            <TelescopeIcon size={24} />
+            <EmojiSad size={24} />
           </div>
           <h2>{t("no_games_title")}</h2>
           <p>{t("no_games_description")}</p>

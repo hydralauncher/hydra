@@ -3,7 +3,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { CopyIcon } from "@primer/octicons-react";
+import { Copy } from "iconsax-reactjs";
 import "./add-friend-modal.scss";
 
 interface AddFriendModalProps {
@@ -111,7 +111,7 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
               className="add-friend-modal__copy-icon-button"
               title={t("copy_friend_code")}
             >
-              <CopyIcon size={16} />
+              <Copy size={16} variant="Linear" />
             </button>
           </div>
         )}

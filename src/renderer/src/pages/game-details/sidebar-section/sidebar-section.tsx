@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from "@primer/octicons-react";
+import { ArrowDown2 } from "iconsax-reactjs";
 import { useEffect, useRef, useState } from "react";
 import "./sidebar-section.scss";
 
@@ -27,7 +27,7 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="sidebar-section__button"
       >
-        <ChevronDownIcon
+        <ArrowDown2
           className={`sidebar-section__chevron ${
             isOpen ? "sidebar-section__chevron--open" : ""
           }`}

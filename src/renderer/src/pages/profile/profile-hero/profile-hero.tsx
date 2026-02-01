@@ -1,14 +1,14 @@
 import { useCallback, useContext, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
-  BlockedIcon,
-  CheckCircleFillIcon,
-  CopyIcon,
-  PencilIcon,
-  PersonAddIcon,
-  SignOutIcon,
-  XCircleFillIcon,
-} from "@primer/octicons-react";
+  Forbidden,
+  TickCircle,
+  Copy,
+  PathTool,
+  ProfileAdd,
+  Logout,
+  CloseCircle,
+} from "iconsax-reactjs";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import {
   Avatar,
@@ -134,7 +134,7 @@ export function ProfileHero() {
             disabled={isPerformingAction}
             className="profile-hero__button--outline"
           >
-            <PencilIcon />
+            <PathTool size={20} variant="Linear" />
             {t("edit_profile")}
           </Button>
 
@@ -143,7 +143,7 @@ export function ProfileHero() {
             onClick={handleSignOut}
             disabled={isPerformingAction}
           >
-            <SignOutIcon />
+            <Logout size={20} variant="Linear" />
             {t("sign_out")}
           </Button>
         </>
@@ -159,7 +159,7 @@ export function ProfileHero() {
             disabled={isPerformingAction}
             className="profile-hero__button--outline"
           >
-            <PersonAddIcon />
+            <ProfileAdd size={20} variant="Linear" />
             {t("add_friend")}
           </Button>
 
@@ -168,7 +168,7 @@ export function ProfileHero() {
             onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
             disabled={isPerformingAction}
           >
-            <BlockedIcon />
+            <Forbidden size={20} variant="Linear" />
             {t("block_user")}
           </Button>
         </>
@@ -183,7 +183,7 @@ export function ProfileHero() {
             onClick={() => handleFriendAction(userProfile.id, "BLOCK")}
             disabled={isPerformingAction}
           >
-            <BlockedIcon />
+            <Forbidden size={20} variant="Linear" />
             {t("block_user")}
           </Button>
           <Button
@@ -194,7 +194,7 @@ export function ProfileHero() {
             disabled={isPerformingAction}
             className="profile-hero__button--outline"
           >
-            <XCircleFillIcon />
+            <CloseCircle size={16} variant="Bold" />
             {t("undo_friendship")}
           </Button>
         </>
@@ -211,7 +211,7 @@ export function ProfileHero() {
           disabled={isPerformingAction}
           className="profile-hero__button--outline"
         >
-          <XCircleFillIcon /> {t("cancel_request")}
+          <CloseCircle variant="Bold" /> {t("cancel_request")}
         </Button>
       );
     }
@@ -226,7 +226,7 @@ export function ProfileHero() {
           disabled={isPerformingAction}
           className="profile-hero__button--outline"
         >
-          <CheckCircleFillIcon /> {t("accept_request")}
+          <TickCircle variant="Bold" /> {t("accept_request")}
         </Button>
         <Button
           theme="danger"
@@ -235,7 +235,7 @@ export function ProfileHero() {
           }
           disabled={isPerformingAction}
         >
-          <XCircleFillIcon /> {t("ignore_request")}
+          <CloseCircle variant="Bold" /> {t("ignore_request")}
         </Button>
       </>
     );
@@ -368,7 +368,7 @@ export function ProfileHero() {
                     >
                       {isCopied ? t("copied") : userProfile?.id}
                     </motion.span>
-                    <CopyIcon size={16} />
+                    <Copy size={16} variant="Linear" />
                   </motion.button>
                 </div>
               ) : (

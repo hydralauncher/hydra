@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AlertIcon,
-  CheckCircleFillIcon,
-  XCircleFillIcon,
-  XIcon,
-} from "@primer/octicons-react";
+  Warning2,
+  TickCircle,
+  CloseCircle,
+  CloseSquare,
+} from "iconsax-reactjs";
 
 import "./toast.scss";
 import cn from "classnames";
@@ -97,15 +97,15 @@ export function Toast({
             }}
           >
             {type === "success" && (
-              <CheckCircleFillIcon className="toast__icon--success" />
+              <TickCircle className="toast__icon--success" variant="Bold" />
             )}
 
             {type === "error" && (
-              <XCircleFillIcon className="toast__icon--error" />
+              <CloseCircle className="toast__icon--error" variant="Bold" />
             )}
 
             {type === "warning" && (
-              <AlertIcon className="toast__icon--warning" />
+              <Warning2 className="toast__icon--warning" />
             )}
 
             <span style={{ fontWeight: "bold", flex: 1 }}>{title}</span>
@@ -116,7 +116,7 @@ export function Toast({
               onClick={startAnimateClosing}
               aria-label="Close toast"
             >
-              <XIcon />
+              <CloseSquare />
             </button>
           </div>
 

@@ -1,4 +1,4 @@
-import { XIcon } from "@primer/octicons-react";
+import { CloseSquare } from "iconsax-reactjs";
 import "./filter.scss";
 
 interface FilterItemProps {
@@ -17,7 +17,7 @@ export function FilterItem({ filter, orbColor, onRemove }: FilterItemProps) {
         onClick={onRemove}
         className="filter-item__remove-button"
       >
-        <XIcon size={13} />
+        <CloseSquare size={13} variant="Linear" />
       </button>
     </div>
   );

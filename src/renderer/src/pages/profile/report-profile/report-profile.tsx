@@ -1,4 +1,4 @@
-import { ReportIcon } from "@primer/octicons-react";
+import { Warning2 } from "iconsax-reactjs";
 
 import { Button, Modal, SelectField, TextField } from "@renderer/components";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -119,7 +119,7 @@ export function ReportProfile() {
         onClick={() => setShowReportProfileModal(true)}
         disabled={isSubmitting}
       >
-        <ReportIcon size={13} />
+        <Warning2 size={13} variant="Linear" />
         {t("report_profile")}
       </button>
     </>

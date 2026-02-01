@@ -1,10 +1,5 @@
 import { useCallback, useMemo } from "react";
-import {
-  XIcon,
-  PersonIcon,
-  ClockIcon,
-  StarFillIcon,
-} from "@primer/octicons-react";
+import { CloseSquare, Profile, Clock, Star1 } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
@@ -166,9 +161,9 @@ export function NotificationItem({
       return <img src={notification.pictureUrl} alt="" />;
     }
     if (isReview) {
-      return <StarFillIcon size={24} />;
+      return <Star1 size={24} variant="Bold" />;
     }
-    return <PersonIcon size={24} />;
+    return <Profile size={24} variant="Linear" />;
   };
 
   return (
@@ -196,7 +191,7 @@ export function NotificationItem({
           {content.description}
         </span>
         <span className="notification-item__time">
-          <ClockIcon size={12} />
+          <Clock size={12} variant="Linear" />
           {formatDistance(new Date(notification.createdAt), new Date())}
         </span>
       </div>
@@ -220,7 +215,7 @@ export function NotificationItem({
           onClick={handleDismiss}
           title={t("dismiss")}
         >
-          <XIcon size={16} />
+          <CloseSquare size={16} variant="Linear" />
         </button>
       )}
     </button>

@@ -1,5 +1,4 @@
-import { TrashIcon, UploadIcon } from "@primer/octicons-react";
-import { MoreVertical } from "lucide-react";
+import { Trash, Export, More } from "iconsax-reactjs";
 import { Button, ConfirmationModal } from "@renderer/components";
 import { createPortal } from "react-dom";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -134,7 +133,7 @@ export function UploadBackgroundImageButton() {
           onClick={handleReplaceBanner}
           disabled={isUploadingBackgroundImage}
         >
-          <UploadIcon />
+          <Export variant="Linear" />
           {isUploadingBackgroundImage
             ? t("uploading_banner")
             : t("upload_banner")}
@@ -173,7 +172,7 @@ export function UploadBackgroundImageButton() {
         onClick={handleReplaceBanner}
         disabled={isUploadingBackgroundImage}
       >
-        <UploadIcon size={16} />
+        <Export size={16} variant="Linear" />
         {t("replace_banner")}
       </button>
       <button
@@ -182,7 +181,7 @@ export function UploadBackgroundImageButton() {
         onClick={handleRemoveBannerClick}
         disabled={isUploadingBackgroundImage}
       >
-        <TrashIcon size={16} />
+        <Trash size={16} variant="Linear" />
         {t("remove_banner")}
       </button>
     </div>
@@ -198,7 +197,7 @@ export function UploadBackgroundImageButton() {
           disabled={isUploadingBackgroundImage}
         >
           {t("change_banner")}
-          <MoreVertical size={16} />
+          <More size={16} variant="Linear" />
         </Button>
       </div>
       {createPortal(menuContent, document.body)}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { XIcon } from "@primer/octicons-react";
+import { CloseSquare } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 
 import "./fullscreen-media-modal.scss";
@@ -71,7 +71,7 @@ export function FullscreenMediaModal({
           className="fullscreen-media-modal__close-button"
           aria-label={t("close")}
         >
-          <XIcon size={24} />
+          <CloseSquare size={24} />
         </button>
 
         <div

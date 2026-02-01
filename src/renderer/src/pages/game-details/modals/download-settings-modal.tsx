@@ -8,12 +8,7 @@ import {
   Modal,
   TextField,
 } from "@renderer/components";
-import {
-  DownloadIcon,
-  SyncIcon,
-  CheckCircleFillIcon,
-  PlusIcon,
-} from "@primer/octicons-react";
+import { Import, Refresh, TickCircle, Add } from "iconsax-reactjs";
 import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
 import type { GameRepack } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
@@ -225,7 +220,10 @@ export function DownloadSettingsModal({
     if (downloadStarting) {
       return (
         <>
-          <SyncIcon className="download-settings-modal__loading-spinner" />
+          <Refresh
+            variant="Linear"
+            className="download-settings-modal__loading-spinner"
+          />
           {t("loading")}
         </>
       );
@@ -234,7 +232,7 @@ export function DownloadSettingsModal({
     if (hasActiveDownload) {
       return (
         <>
-          <PlusIcon />
+          <Add variant="Linear" />
           {t("add_to_queue")}
         </>
       );
@@ -242,7 +240,7 @@ export function DownloadSettingsModal({
 
     return (
       <>
-        <DownloadIcon />
+        <Import variant="Linear" />
         {t("download_now")}
       </>
     );
@@ -365,8 +363,9 @@ export function DownloadSettingsModal({
                           damping: 20,
                         }}
                       >
-                        <CheckCircleFillIcon
+                        <TickCircle
                           size={16}
+                          variant="Bold"
                           className="download-settings-modal__check-icon"
                         />
                       </motion.div>

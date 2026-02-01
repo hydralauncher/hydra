@@ -5,8 +5,7 @@ import { useFormat, useUserDetails } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
-import { Award } from "lucide-react";
+import { Clock, Cup, Award } from "iconsax-reactjs";
 import { WrappedFullscreenModal } from "./wrapped-tab";
 import "./user-stats-box.scss";
 
@@ -63,8 +62,8 @@ export function UserStatsBox() {
             {userStats.unlockedAchievementSum !== undefined ? (
               <div className="user-stats__stats-row">
                 <p className="user-stats__list-description">
-                  <TrophyIcon /> {userStats.unlockedAchievementSum}{" "}
-                  {t("achievements")}
+                  <Cup size={16} variant="Linear" />{" "}
+                  {userStats.unlockedAchievementSum} {t("achievements")}
                 </p>
               </div>
             ) : (
@@ -117,7 +116,7 @@ export function UserStatsBox() {
           <h3 className="user-stats__list-title">{t("total_play_time")}</h3>
           <div className="user-stats__stats-row">
             <p className="user-stats__list-description">
-              <ClockIcon />
+              <Clock size={16} variant="Linear" />
               {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
             </p>
             <p title={t("ranking_updated_weekly")}>
@@ -133,8 +132,8 @@ export function UserStatsBox() {
             <h3 className="user-stats__list-title">{t("karma")}</h3>
             <div className="user-stats__stats-row">
               <p className="user-stats__list-description">
-                <Award size={20} /> {numberFormatter.format(karma)}{" "}
-                {t("karma_count")}
+                <Award size={16} variant="Linear" />{" "}
+                {numberFormatter.format(karma)} {t("karma_count")}
               </p>
             </div>
           </li>

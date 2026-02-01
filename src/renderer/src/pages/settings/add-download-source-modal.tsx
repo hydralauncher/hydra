@@ -8,7 +8,7 @@ import { logger } from "@renderer/logger";
 
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { SyncIcon } from "@primer/octicons-react";
+import { Refresh } from "iconsax-reactjs";
 import "./add-download-source-modal.scss";
 
 interface AddDownloadSourceModalProps {
@@ -115,7 +115,10 @@ export function AddDownloadSourceModal({
 
             <Button type="submit" disabled={isSubmitting || isLoading}>
               {isLoading && (
-                <SyncIcon className="add-download-source-modal__spinner" />
+                <Refresh
+                  variant="Linear"
+                  className="add-download-source-modal__spinner"
+                />
               )}
               {isLoading ? t("adding") : t("add_download_source")}
             </Button>

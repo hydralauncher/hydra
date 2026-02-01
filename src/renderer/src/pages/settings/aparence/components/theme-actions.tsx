@@ -1,4 +1,4 @@
-import { GlobeIcon, TrashIcon, PlusIcon } from "@primer/octicons-react";
+import { Global, Trash, Add } from "iconsax-reactjs";
 import { Button } from "@renderer/components/button/button";
 import { useTranslation } from "react-i18next";
 import { AddThemeModal, DeleteAllThemesModal } from "../index";
@@ -44,7 +44,7 @@ export const ThemeActions = ({
               window.open(THEME_WEB_STORE_URL, "_blank");
             }}
           >
-            <GlobeIcon />
+            <Global size={20} variant="Linear" />
             {t("web_store")}
           </Button>
 
@@ -54,7 +54,7 @@ export const ThemeActions = ({
             onClick={() => setDeleteAllThemesModalVisible(true)}
             disabled={themesCount < 1}
           >
-            <TrashIcon />
+            <Trash size={20} variant="Linear" />
             {t("clear_themes")}
           </Button>
         </div>
@@ -65,7 +65,7 @@ export const ThemeActions = ({
             className="settings-appearance__button"
             onClick={() => setAddThemeModalVisible(true)}
           >
-            <PlusIcon />
+            <Add size={20} variant="Linear" />
             {t("create_theme")}
           </Button>
         </div>

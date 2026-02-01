@@ -1,11 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import {
-  PlusCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "@primer/octicons-react";
+import { AddCircle, ArrowDown2, ArrowUp2 } from "iconsax-reactjs";
 import { Tooltip } from "react-tooltip";
 
 import {
@@ -314,7 +310,7 @@ export function RepacksModal({
                 className="repacks-modal__filter-toggle"
               >
                 {t("filter_by_source")}
-                {isFilterDrawerOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                {isFilterDrawerOpen ? <ArrowUp2 /> : <ArrowDown2 />}
               </Button>
             )}
           </div>
@@ -369,7 +365,7 @@ export function RepacksModal({
                       navigate("/settings?tab=2");
                     }}
                   >
-                    <PlusCircleIcon />
+                    <AddCircle />
                     {t("add_download_source", { ns: "settings" })}
                   </Button>
                 </div>

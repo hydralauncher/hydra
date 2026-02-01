@@ -7,7 +7,7 @@ import "./settings-torbox.scss";
 import { useAppSelector, useToast } from "@renderer/hooks";
 
 import { settingsContext } from "@renderer/context";
-import { LinkExternalIcon } from "@primer/octicons-react";
+import { ExportSquare } from "iconsax-reactjs";
 
 const torBoxReferralCode = import.meta.env.RENDERER_VITE_TORBOX_REFERRAL_CODE;
 
@@ -97,7 +97,7 @@ export function SettingsTorBox() {
           {t("torbox_description")}
         </p>
         <Link to={TORBOX_URL} className="settings-torbox__create-account">
-          <LinkExternalIcon />
+          <ExportSquare size={16} variant="Linear" />
           {t("create_torbox_account")}
         </Link>
       </div>

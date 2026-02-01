@@ -2,7 +2,7 @@ import { useContext, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 
-import { DeviceCameraIcon } from "@primer/octicons-react";
+import { Camera } from "iconsax-reactjs";
 import {
   Avatar,
   Button,
@@ -138,7 +138,7 @@ export function EditProfileModal(
                   />
 
                   <div className="edit-profile-modal__avatar-overlay">
-                    <DeviceCameraIcon size={38} />
+                    <Camera size={38} variant="Bold" />
                   </div>
                 </button>
               );

@@ -1,6 +1,6 @@
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckIcon, XIcon } from "@primer/octicons-react";
+import { TickCircle, CloseSquare } from "iconsax-reactjs";
 import { gameDetailsContext } from "@renderer/context/game-details/game-details.context";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./game-language-section.scss";
@@ -51,16 +51,22 @@ export function GameLanguageSection() {
                 {lang.language}
               </div>
               <div className="game-language-section__cell game-language-section__cell--center">
-                <CheckIcon size={14} className="game-language-section__check" />
+                <TickCircle
+                  size={16}
+                  className="game-language-section__check"
+                />
               </div>
               <div className="game-language-section__cell game-language-section__cell--center">
                 {lang.hasAudio ? (
-                  <CheckIcon
-                    size={14}
+                  <TickCircle
+                    size={16}
                     className="game-language-section__check"
                   />
                 ) : (
-                  <XIcon size={14} className="game-language-section__cross" />
+                  <CloseSquare
+                    size={16}
+                    className="game-language-section__cross"
+                  />
                 )}
               </div>
             </div>

@@ -1,12 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { memo, useState } from "react";
-import {
-  ClockIcon,
-  AlertFillIcon,
-  TrophyIcon,
-  ImageIcon,
-} from "@primer/octicons-react";
+import { Clock, Warning2, Cup, Image } from "iconsax-reactjs";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -48,12 +43,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         <div className="library-game-card__top-section">
           <div className="library-game-card__playtime">
             {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
+              <Warning2
+                size={14}
                 className="library-game-card__manual-playtime"
+                variant="Bold"
               />
             ) : (
-              <ClockIcon size={11} />
+              <Clock size={14} />
             )}
             <span className="library-game-card__playtime-long">
               {formatPlayTime(game.playTimeInMilliseconds)}
@@ -68,8 +64,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           <div className="library-game-card__achievements">
             <div className="library-game-card__achievement-header">
               <div className="library-game-card__achievements-gap">
-                <TrophyIcon
-                  size={13}
+                <Cup
+                  size={16}
                   className="library-game-card__achievement-trophy"
                 />
                 <span className="library-game-card__achievement-count">
@@ -100,7 +96,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
       {imageError || !coverImage ? (
         <div className="library-game-card__cover-placeholder">
-          <ImageIcon size={48} />
+          <Image size={48} />
         </div>
       ) : (
         <img

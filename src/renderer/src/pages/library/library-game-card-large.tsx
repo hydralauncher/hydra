@@ -1,13 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { formatBytes } from "@shared";
-import {
-  ClockIcon,
-  AlertFillIcon,
-  TrophyIcon,
-  DatabaseIcon,
-  FileZipIcon,
-} from "@primer/octicons-react";
+import { Clock, Warning2, Cup, Driver, Box } from "iconsax-reactjs";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./library-game-card-large.scss";
@@ -47,7 +41,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       type: "installer" | "installed";
       bytes: number;
       formatted: string;
-      icon: typeof FileZipIcon;
+      icon: typeof Box;
       tooltipKey: string;
     }[] = [];
 
@@ -56,7 +50,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         type: "installer",
         bytes: game.installerSizeInBytes,
         formatted: formatBytes(game.installerSizeInBytes),
-        icon: FileZipIcon,
+        icon: Box,
         tooltipKey: "installer_size_tooltip",
       });
     }
@@ -66,7 +60,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         type: "installed",
         bytes: game.installedSizeInBytes,
         formatted: formatBytes(game.installedSizeInBytes),
-        icon: DatabaseIcon,
+        icon: Driver,
         tooltipKey: "disk_usage_tooltip",
       });
     }
@@ -169,12 +163,13 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
           <div className="library-game-card-large__playtime">
             {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
+              <Warning2
+                size={16}
                 className="library-game-card-large__manual-playtime"
+                variant="Bold"
               />
             ) : (
-              <ClockIcon size={11} />
+              <Clock size={16} />
             )}
             <span className="library-game-card-large__playtime-text">
               {formatPlayTime(game.playTimeInMilliseconds)}
@@ -200,8 +195,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
             <div className="library-game-card-large__achievements">
               <div className="library-game-card-large__achievement-header">
                 <div className="library-game-card-large__achievements-gap">
-                  <TrophyIcon
-                    size={14}
+                  <Cup
+                    size={16}
                     className="library-game-card-large__achievement-trophy"
                   />
                   <span className="library-game-card-large__achievement-count">

@@ -26,20 +26,20 @@ import {
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  ClockIcon,
-  ColumnsIcon,
-  DownloadIcon,
-  FileDirectoryIcon,
-  LinkIcon,
-  PlayIcon,
-  TrashIcon,
-  UnlinkIcon,
-  XCircleIcon,
-  GraphIcon,
-} from "@primer/octicons-react";
-import { MoreVertical, Folder } from "lucide-react";
+  ArrowDown2,
+  ArrowUp2,
+  Clock,
+  PauseCircle,
+  Import,
+  Folder,
+  Link21,
+  PlayCircle,
+  Trash,
+  Link1,
+  CloseCircle,
+  Graph,
+  More,
+} from "iconsax-reactjs";
 import { average } from "color.js";
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -336,7 +336,7 @@ function HeroDownloadView({
                 )}
                 {!isGameExtracting && !lastPacket?.isCheckingFiles && (
                   <span className="download-group__progress-size">
-                    <DownloadIcon size={14} />
+                    <Import size={14} variant="Linear" />
                     {isGameDownloading && lastPacket
                       ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
                       : `0 B / ${finalDownloadSize}`}
@@ -351,7 +351,7 @@ function HeroDownloadView({
                       lastPacket?.timeRemaining &&
                       lastPacket.timeRemaining > 0 && (
                         <>
-                          <ClockIcon size={14} />
+                          <Clock size={14} variant="Linear" />
                           {calculateETA()}
                         </>
                       )}
@@ -378,7 +378,7 @@ function HeroDownloadView({
                     onClick={() => pauseDownload(game.shop, game.objectId)}
                     className="download-group__glass-btn"
                   >
-                    <ColumnsIcon size={14} />
+                    <PauseCircle size={14} variant="Linear" />
                     {t("pause")}
                   </button>
                 ) : (
@@ -387,7 +387,7 @@ function HeroDownloadView({
                     onClick={() => resumeDownload(game.shop, game.objectId)}
                     className="download-group__glass-btn"
                   >
-                    <PlayIcon size={14} />
+                    <PlayCircle size={14} variant="Linear" />
                     {t("resume")}
                   </button>
                 )}
@@ -396,7 +396,7 @@ function HeroDownloadView({
                   onClick={() => onCancelClick(game.shop, game.objectId)}
                   className="download-group__glass-btn"
                 >
-                  <XCircleIcon size={14} />
+                  <CloseCircle size={14} variant="Linear" />
                   {t("cancel")}
                 </button>
               </div>
@@ -408,7 +408,7 @@ function HeroDownloadView({
           <div className="download-group__stats-column">
             <div className="download-group__stat-item">
               <span style={{ color: dominantColor, display: "flex" }}>
-                <DownloadIcon size={16} />
+                <Import size={16} variant="Linear" />
               </span>
               <div className="download-group__stat-content">
                 <span className="download-group__stat-label">
@@ -422,7 +422,7 @@ function HeroDownloadView({
 
             <div className="download-group__stat-item">
               <span style={{ color: dominantColor, display: "flex" }}>
-                <GraphIcon size={16} />
+                <Graph size={16} variant="Linear" />
               </span>
               <div className="download-group__stat-content">
                 <span className="download-group__stat-label">{t("peak")}:</span>
@@ -755,7 +755,7 @@ export function DownloadGroup({
         {
           label: t("extract"),
           disabled: game.download.extracting,
-          icon: <FileDirectoryIcon />,
+          icon: <Folder variant="Linear" />,
           onClick: () => {
             extractGameDownload(game.shop, game.objectId);
           },
@@ -763,7 +763,7 @@ export function DownloadGroup({
         {
           label: t("stop_seeding"),
           disabled: deleting,
-          icon: <UnlinkIcon />,
+          icon: <Link1 variant="Linear" />,
           show:
             isGameSeeding(game) &&
             game.download?.downloader === Downloader.Torrent,
@@ -774,7 +774,7 @@ export function DownloadGroup({
         {
           label: t("resume_seeding"),
           disabled: deleting,
-          icon: <LinkIcon />,
+          icon: <Link21 variant="Linear" />,
           show:
             !isGameSeeding(game) &&
             game.download?.downloader === Downloader.Torrent,
@@ -785,7 +785,7 @@ export function DownloadGroup({
         {
           label: t("delete"),
           disabled: deleting,
-          icon: <TrashIcon />,
+          icon: <Trash variant="Linear" />,
           onClick: () => {
             openDeleteGameModal(game.shop, game.objectId);
           },
@@ -801,14 +801,14 @@ export function DownloadGroup({
           onClick: () => {
             pauseDownload(game.shop, game.objectId);
           },
-          icon: <ColumnsIcon />,
+          icon: <PauseCircle variant="Linear" />,
         },
         {
           label: t("cancel"),
           onClick: () => {
             handleCancelClick(game.shop, game.objectId);
           },
-          icon: <XCircleIcon />,
+          icon: <CloseCircle variant="Linear" />,
         },
       ];
     }
@@ -831,7 +831,7 @@ export function DownloadGroup({
         onClick: () => {
           resumeDownload(game.shop, game.objectId);
         },
-        icon: <PlayIcon />,
+        icon: <PlayCircle variant="Linear" />,
       },
       {
         label: t("move_up"),
@@ -839,7 +839,7 @@ export function DownloadGroup({
         onClick: () => {
           handleMoveInQueue(game.shop, game.objectId, "up");
         },
-        icon: <ArrowUpIcon />,
+        icon: <ArrowUp2 variant="Linear" />,
       },
       {
         label: t("move_down"),
@@ -847,14 +847,14 @@ export function DownloadGroup({
         onClick: () => {
           handleMoveInQueue(game.shop, game.objectId, "down");
         },
-        icon: <ArrowDownIcon />,
+        icon: <ArrowDown2 variant="Linear" />,
       },
       {
         label: t("cancel"),
         onClick: () => {
           handleCancelClick(game.shop, game.objectId);
         },
-        icon: <XCircleIcon />,
+        icon: <CloseCircle variant="Linear" />,
       },
     ];
 
@@ -1032,7 +1032,7 @@ export function DownloadGroup({
                         </span>
                       ) : (
                         <span className="download-group__simple-size">
-                          <DownloadIcon size={14} />
+                          <Import size={14} variant="Linear" />
                           {size}
                         </span>
                       )}
@@ -1080,12 +1080,12 @@ export function DownloadGroup({
                         >
                           {isInstall ? (
                             <>
-                              <DownloadIcon size={16} />
+                              <Import size={16} variant="Linear" />
                               {t("install")}
                             </>
                           ) : (
                             <>
-                              <Folder size={16} />
+                              <Folder size={16} variant="Linear" />
                               {tGameDetails("open_folder")}
                             </>
                           )}
@@ -1099,7 +1099,7 @@ export function DownloadGroup({
                       className="download-group__simple-menu-btn"
                       tooltip={t("resume")}
                     >
-                      <DownloadIcon size={16} />
+                      <Import size={16} variant="Linear" />
                     </Button>
                   )}
                   <DropdownMenu align="end" items={getGameActions(game)}>
@@ -1107,7 +1107,7 @@ export function DownloadGroup({
                       theme="outline"
                       className="download-group__simple-menu-btn"
                     >
-                      <MoreVertical size={16} />
+                      <More size={16} variant="Linear" />
                     </Button>
                   </DropdownMenu>
                 </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NoteIcon } from "@primer/octicons-react";
+import { Note } from "iconsax-reactjs";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useTranslation } from "react-i18next";
@@ -487,7 +487,7 @@ export function GameReviews({
       {!reviewsLoading && reviews.length === 0 && (
         <div className="game-details__reviews-empty">
           <div className="game-details__reviews-empty-icon">
-            <NoteIcon size={48} />
+            <Note size={48} />
           </div>
           <h4 className="game-details__reviews-empty-title">
             {t("no_reviews_yet")}
