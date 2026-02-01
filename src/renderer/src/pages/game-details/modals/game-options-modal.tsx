@@ -55,6 +55,7 @@ export function GameOptionsModal({
   );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
+  const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
 
   const {
     removeGameInstaller,
@@ -82,10 +83,13 @@ export function GameOptionsModal({
       game.shop !== "custom" &&
       window.electron.platform === "win32"
     ) {
+      setLoadingSaveFolder(true);
+      setSaveFolderPath(null);
       window.electron
         .getGameSaveFolder(game.shop, game.objectId)
         .then(setSaveFolderPath)
-        .catch(() => setSaveFolderPath(null));
+        .catch(() => setSaveFolderPath(null))
+        .finally(() => setLoadingSaveFolder(false));
     }
   }, [visible, game.shop, game.objectId]);
 
@@ -393,40 +397,18 @@ export function GameOptionsModal({
                     {t("open_folder")}
                   </Button>
                   {game.shop !== "custom" &&
-                    window.electron.platform === "win32" &&
-                    saveFolderPath && (
+                    window.electron.platform === "win32" && (
                       <Button
                         type="button"
                         theme="outline"
                         onClick={handleOpenSaveFolder}
+                        disabled={loadingSaveFolder || !saveFolderPath}
                       >
-                        {t("open_save_folder")}
+                        {loadingSaveFolder
+                          ? t("searching_save_folder")
+                          : t("open_save_folder")}
                       </Button>
                     )}
-                  <Button
-                    onClick={() => handleCreateShortcut("desktop")}
-                    theme="outline"
-                  >
-                    {t("create_shortcut")}
-                  </Button>
-                  {game.shop !== "custom" && (
-                    <Button
-                      onClick={handleCreateSteamShortcut}
-                      theme="outline"
-                      disabled={creatingSteamShortcut}
-                    >
-                      <SteamLogo />
-                      {t("create_steam_shortcut")}
-                    </Button>
-                  )}
-                  {shouldShowCreateStartMenuShortcut && (
-                    <Button
-                      onClick={() => handleCreateShortcut("start_menu")}
-                      theme="outline"
-                    >
-                      {t("create_start_menu_shortcut")}
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
@@ -446,6 +428,44 @@ export function GameOptionsModal({
               disabled={!hasActiveSubscription || !game.executablePath}
               onChange={handleToggleAutomaticCloudSync}
             />
+          )}
+
+          {game.executablePath && (
+            <div className="game-options-modal__section">
+              <div className="game-options-modal__header">
+                <h2>{t("shortcuts_section_title")}</h2>
+                <h4 className="game-options-modal__header-description">
+                  {t("shortcuts_section_description")}
+                </h4>
+              </div>
+
+              <div className="game-options-modal__row">
+                <Button
+                  onClick={() => handleCreateShortcut("desktop")}
+                  theme="outline"
+                >
+                  {t("create_shortcut")}
+                </Button>
+                {game.shop !== "custom" && (
+                  <Button
+                    onClick={handleCreateSteamShortcut}
+                    theme="outline"
+                    disabled={creatingSteamShortcut}
+                  >
+                    <SteamLogo />
+                    {t("create_steam_shortcut")}
+                  </Button>
+                )}
+                {shouldShowCreateStartMenuShortcut && (
+                  <Button
+                    onClick={() => handleCreateShortcut("start_menu")}
+                    theme="outline"
+                  >
+                    {t("create_start_menu_shortcut")}
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
 
           {shouldShowWinePrefixConfiguration && (
