@@ -27,6 +27,7 @@ import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
+import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
@@ -360,6 +361,24 @@ export class DownloadManager {
       gameId,
       userPreferences?.seedAfterDownloadComplete
     );
+
+    // Calculate installer size in background
+    if (download.folderName) {
+      const installerPath = path.join(
+        download.downloadPath,
+        download.folderName
+      );
+
+      getDirectorySize(installerPath).then(async (installerSizeInBytes) => {
+        const currentGame = await gamesSublevel.get(gameId);
+        if (!currentGame) return;
+
+        await gamesSublevel.put(gameId, {
+          ...currentGame,
+          installerSizeInBytes,
+        });
+      });
+    }
 
     if (download.automaticallyExtract) {
       this.handleExtraction(download, game);

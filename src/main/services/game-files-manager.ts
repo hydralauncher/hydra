@@ -7,6 +7,7 @@ import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
+import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { GameExecutables } from "./game-executables";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
@@ -145,6 +146,17 @@ export class GameFilesManager {
       extracting: false,
       extractionProgress: 0,
     });
+
+    // Calculate and store the installed size
+    if (game && download.folderName) {
+      const gamePath = path.join(download.downloadPath, download.folderName);
+      const installedSizeInBytes = await getDirectorySize(gamePath);
+
+      await gamesSublevel.put(this.gameKey, {
+        ...game,
+        installedSizeInBytes,
+      });
+    }
 
     WindowManager.mainWindow?.webContents.send(
       "on-extraction-complete",
