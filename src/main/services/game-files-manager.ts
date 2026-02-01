@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs";
-import type { GameShop } from "@types";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import type { GameShop, UserPreferences } from "@types";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
@@ -12,6 +12,7 @@ import { GameExecutables } from "./game-executables";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
 import { SystemPath } from "./system-path";
+import { windowsStartMenuPath } from "@main/constants";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -239,22 +240,56 @@ export class GameFilesManager {
         ? path.join(process.resourcesPath, "windows.vbs")
         : undefined;
 
-      const options = {
+      const shortcutName = removeSymbolsFromName(gameTitle);
+
+      const desktopOptions = {
         filePath: executablePath,
-        name: removeSymbolsFromName(gameTitle),
+        name: shortcutName,
         outputPath: SystemPath.getPath("desktop"),
+        icon: executablePath,
       };
 
-      const success = createDesktopShortcut({
-        windows: { ...options, VBScriptPath: windowVbsPath },
-        linux: options,
-        osx: options,
+      const desktopSuccess = createDesktopShortcut({
+        windows: { ...desktopOptions, VBScriptPath: windowVbsPath },
+        linux: desktopOptions,
+        osx: desktopOptions,
       });
 
-      if (success) {
+      if (desktopSuccess) {
         logger.info(
           `[GameFilesManager] Created desktop shortcut for ${this.objectId}`
         );
+      }
+
+      if (process.platform === "win32") {
+        const userPreferences = await db.get<string, UserPreferences | null>(
+          levelKeys.userPreferences,
+          { valueEncoding: "json" }
+        );
+
+        const shouldCreateStartMenuShortcut =
+          userPreferences?.createStartMenuShortcut ?? true;
+
+        if (shouldCreateStartMenuShortcut) {
+          const startMenuOptions = {
+            filePath: executablePath,
+            name: shortcutName,
+            outputPath: windowsStartMenuPath,
+            icon: executablePath,
+          };
+
+          const startMenuSuccess = createDesktopShortcut({
+            windows: { ...startMenuOptions, VBScriptPath: windowVbsPath },
+            linux: startMenuOptions,
+            osx: startMenuOptions,
+          });
+
+          if (startMenuSuccess) {
+            logger.info(
+              `[GameFilesManager] Created Start Menu shortcut for ${this.objectId}`
+            );
+          }
+        }
       }
     } catch (err) {
       logger.error(

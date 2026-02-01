@@ -30,6 +30,7 @@ export function SettingsBehavior() {
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
     enableNewDownloadOptionsBadges: true,
+    createStartMenuShortcut: true,
   });
 
   const { t } = useTranslation("settings");
@@ -56,6 +57,8 @@ export function SettingsBehavior() {
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
         enableNewDownloadOptionsBadges:
           userPreferences.enableNewDownloadOptionsBadges ?? true,
+        createStartMenuShortcut:
+          userPreferences.createStartMenuShortcut ?? true,
       });
     }
   }, [userPreferences]);
@@ -223,6 +226,18 @@ export function SettingsBehavior() {
           })
         }
       />
+
+      {window.electron.platform === "win32" && (
+        <CheckboxField
+          label={t("create_start_menu_shortcut_on_download")}
+          checked={form.createStartMenuShortcut}
+          onChange={() =>
+            handleChange({
+              createStartMenuShortcut: !form.createStartMenuShortcut,
+            })
+          }
+        />
+      )}
     </>
   );
 }
