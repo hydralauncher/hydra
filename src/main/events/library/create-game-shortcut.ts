@@ -13,6 +13,15 @@ import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 
+const PNG_SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
+
+const isPng = (buffer: Buffer): boolean => {
+  if (buffer.length < 8) return false;
+  return buffer.subarray(0, 8).equals(PNG_SIGNATURE);
+};
+
 const downloadIcon = async (
   shop: GameShop,
   objectId: string,
@@ -34,6 +43,13 @@ const downloadIcon = async (
 
     const response = await axios.get(iconUrl, { responseType: "arraybuffer" });
     const imageBuffer = Buffer.from(response.data);
+
+    if (!isPng(imageBuffer)) {
+      logger.warn(
+        `Icon URL is not PNG format, skipping conversion: ${iconUrl}`
+      );
+      return null;
+    }
 
     const icoBuffer = await pngToIco(imageBuffer);
     fs.writeFileSync(iconPath, icoBuffer);
