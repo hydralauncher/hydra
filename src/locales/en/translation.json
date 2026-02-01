@@ -204,6 +204,7 @@
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
     "open_folder": "Open folder",
+    "open_save_folder": "Open save folder",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
     "create_shortcut_simple": "Create shortcut",

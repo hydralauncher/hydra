@@ -225,6 +225,13 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameExecutablePath", shop, objectId),
+  getGameSaveFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameSaveFolder", shop, objectId),
+  openGameSaveFolder: (
+    shop: GameShop,
+    objectId: string,
+    saveFolderPath: string
+  ) => ipcRenderer.invoke("openGameSaveFolder", shop, objectId, saveFolderPath),
   openGame: (
     shop: GameShop,
     objectId: string,
