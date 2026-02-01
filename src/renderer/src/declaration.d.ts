@@ -181,6 +181,15 @@ declare global {
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
+    getGameSaveFolder: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
+    openGameSaveFolder: (
+      shop: GameShop,
+      objectId: string,
+      saveFolderPath: string
+    ) => Promise<boolean>;
     openGame: (
       shop: GameShop,
       objectId: string,
@@ -365,6 +374,10 @@ declare global {
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
+    onPreflightProgress: (
+      cb: (value: { status: string; detail: string | null }) => void
+    ) => () => Electron.IpcRenderer;
+    resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
@@ -469,6 +482,12 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Game Launcher Window */
+    showGameLauncherWindow: () => Promise<void>;
+    closeGameLauncherWindow: () => Promise<void>;
+    openMainWindow: () => Promise<void>;
+    isMainWindowOpen: () => Promise<boolean>;
 
     /* Download Options */
     onNewDownloadOptions: (

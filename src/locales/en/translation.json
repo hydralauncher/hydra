@@ -200,11 +200,13 @@
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
     "downloader_not_available": "Not available",
-    "recommended": "Recommended",
     "go_to_settings": "Go to Settings",
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
     "open_folder": "Open folder",
+    "open_save_folder": "Open save folder",
+    "searching_save_folder": "Searching save folder...",
+    "no_save_folder_found": "No save folder found",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
     "create_shortcut_simple": "Create shortcut",
@@ -216,6 +218,8 @@
     "properties": "Properties",
     "executable_section_title": "Executable",
     "executable_section_description": "Path of the file that will be executed when \"Play\" is clicked",
+    "shortcuts_section_title": "Shortcuts",
+    "shortcuts_section_description": "Create shortcuts to quickly launch this game",
     "downloads_section_title": "Downloads",
     "downloads_section_description": "Check out updates or other versions of this game",
     "danger_zone_section_title": "Danger zone",
@@ -617,7 +621,8 @@
     "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
     "downloads": "Downloads",
     "use_native_http_downloader": "Use native HTTP downloader (experimental)",
-    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress"
+    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress",
+    "create_start_menu_shortcut_on_download": "Create Start Menu shortcut when game finishes downloading"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -794,7 +799,10 @@
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "all_games": "All Games",
     "recently_played": "Recently Played",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "disk_usage": "Disk usage",
+    "disk_usage_tooltip": "Installed size on disk",
+    "installer_size_tooltip": "Installer size"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
@@ -824,6 +832,20 @@
     "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
     "learn_more": "Learn More",
     "debrid_description": "Download up to 4x faster with Nimbus"
+  },
+  "game_launcher": {
+    "launching": "Launching...",
+    "launching_base": "Launching",
+    "open_hydra": "Open Hydra",
+    "playtime": "Playtime",
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "preflight_checking": "Checking dependencies",
+    "preflight_downloading": "Downloading dependencies",
+    "preflight_installing": "Installing dependencies",
+    "preflight_installing_detail": "{{detail}}"
   },
   "notifications_page": {
     "title": "Notifications",
