@@ -9447,10 +9447,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.1.3.tgz#0fcf4797870ad6c469eaad452e4feb785001e719"
-  integrity sha512-QJ+YSsUh0MzsUDD2SGSsplpZgsgKFRBHeBHjupW2z+/yhEWewQbob060pQJeaB+zMpbBOako9NW0GykTqCFSvg==
+workwonders-sdk@0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.1.4.tgz#20e2eb32801dda9761267d91262b8555f5d0ad48"
+  integrity sha512-1d8SC0ZDydE2BDRtLphVcVAFaHHeiYs3bYYIhkhiamOZeFoNvazHJCAUdiiM7qZ2sZK+f7DM/UZPnyg7vPds8g==
   dependencies:
     ky "^1.14.2"
 
