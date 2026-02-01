@@ -120,12 +120,13 @@ export function App() {
     async (token?: string, locale?: string) => {
       if (workwondersRef.current) return;
 
+      workwondersRef.current = new WorkWonders();
+
       const possibleLocales = ["en", "pt", "ru"];
 
       const parsedLocale =
         possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
 
-      workwondersRef.current = new WorkWonders();
       await workwondersRef.current.init({
         organization: "hydra",
         token,
