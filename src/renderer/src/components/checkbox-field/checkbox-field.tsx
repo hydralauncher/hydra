@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { CheckIcon } from "@primer/octicons-react";
+import { TickCircle } from "iconsax-reactjs";
 import "./checkbox-field.scss";
 
 export interface CheckboxFieldProps
@@ -24,7 +24,7 @@ export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
           className="checkbox-field__input"
           {...props}
         />
-        {props.checked && <CheckIcon />}
+        {props.checked && <TickCircle />}
       </div>
       <label htmlFor={id} className="checkbox-field__label">
         {label}

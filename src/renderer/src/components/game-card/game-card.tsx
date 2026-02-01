@@ -1,4 +1,4 @@
-import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import { Import, Profile2User } from "iconsax-reactjs";
 import type { GameStats, ShopAssets } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -83,13 +83,13 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
           <div className="game-card__specifics">
             <div className="game-card__specifics-item">
-              <DownloadIcon />
+              <Import size={16} variant="Linear" />
               <span>
                 {stats ? numberFormatter.format(stats.downloadCount) : "…"}
               </span>
             </div>
             <div className="game-card__specifics-item">
-              <PeopleIcon />
+              <Profile2User size={16} variant="Linear" />
               <span>
                 {stats ? numberFormatter.format(stats.playerCount) : "…"}
               </span>

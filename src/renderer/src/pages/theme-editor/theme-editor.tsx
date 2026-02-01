@@ -4,12 +4,7 @@ import Editor from "@monaco-editor/react";
 import { AchievementCustomNotificationPosition, Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
 import { Button, SelectField, TextField } from "@renderer/components";
-import {
-  CheckIcon,
-  UploadIcon,
-  TrashIcon,
-  PlayIcon,
-} from "@primer/octicons-react";
+import { TickCircle, Export, Trash, PlayCircle } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
@@ -290,7 +285,7 @@ export default function ThemeEditor() {
               disabled
               rightContent={
                 <Button theme="outline" onClick={handleSelectSound}>
-                  <UploadIcon />
+                  <Export size={20} variant="Linear" />
                   {t("select")}
                 </Button>
               }
@@ -299,11 +294,11 @@ export default function ThemeEditor() {
             {theme?.hasCustomSound && (
               <div className="theme-editor__sound-actions-row">
                 <Button theme="outline" onClick={handleRemoveSound}>
-                  <TrashIcon />
+                  <Trash size={20} variant="Linear" />
                   {t("remove")}
                 </Button>
                 <Button theme="outline" onClick={handlePreviewSound}>
-                  <PlayIcon />
+                  <PlayCircle size={20} variant="Linear" />
                   {t("preview")}
                 </Button>
               </div>
@@ -328,7 +323,7 @@ export default function ThemeEditor() {
 
         <div className="theme-editor__footer-actions">
           <Button onClick={handleSave}>
-            <CheckIcon />
+            <TickCircle size={20} variant="Linear" />
             {t("editor_tab_save")}
           </Button>
         </div>

@@ -2,7 +2,7 @@ import { useDate } from "@renderer/hooks";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
 import "./achievements.scss";
-import { EyeClosedIcon } from "@primer/octicons-react";
+import { EyeSlash } from "iconsax-reactjs";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 
@@ -35,7 +35,7 @@ export function AchievementList({
                   className="achievements__item-hidden-icon"
                   title={t("hidden_achievement_tooltip")}
                 >
-                  <EyeClosedIcon size={12} />
+                  <EyeSlash size={12} variant="Linear" />
                 </span>
               )}
               {achievement.displayName}

@@ -5,7 +5,7 @@ import { CheckboxField } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
+import { InfoCircle } from "iconsax-reactjs";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -209,7 +209,7 @@ export function SettingsBehavior() {
           className="settings-behavior__checkbox-container--tooltip"
           data-open-article="steam-achievements"
         >
-          <QuestionIcon size={12} />
+          <InfoCircle size={16} variant="Linear" />
         </small>
       </div>
 

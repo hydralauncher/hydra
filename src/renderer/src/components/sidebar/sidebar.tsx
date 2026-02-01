@@ -22,11 +22,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
-import {
-  CommentDiscussionIcon,
-  PlayIcon,
-  PlusIcon,
-} from "@primer/octicons-react";
+import { Messages3, PlayCircle, Add } from "iconsax-reactjs";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
@@ -370,7 +366,7 @@ export function Sidebar() {
                   data-tooltip-content={t("add_custom_game_tooltip")}
                   data-tooltip-place="top"
                 >
-                  <PlusIcon size={16} />
+                  <Add size={16} />
                 </button>
                 <button
                   type="button"
@@ -382,7 +378,7 @@ export function Sidebar() {
                   data-tooltip-content={t("show_playable_only_tooltip")}
                   data-tooltip-place="top"
                 >
-                  <PlayIcon size={16} />
+                  <PlayCircle size={16} />
                 </button>
               </div>
             </div>
@@ -419,7 +415,7 @@ export function Sidebar() {
             data-open-support-chat
           >
             <div className="sidebar__help-button-icon">
-              <CommentDiscussionIcon size={14} />
+              <Messages3 size={14} />
             </div>
             <span>{t("need_help")}</span>
           </button>

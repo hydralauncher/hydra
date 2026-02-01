@@ -1,35 +1,29 @@
-import {
-  AppsIcon,
-  DownloadIcon,
-  GearIcon,
-  HomeIcon,
-  BookIcon,
-} from "@primer/octicons-react";
+import { Category, Import, Setting2, Home2, Book } from "iconsax-reactjs";
 
 export const routes = [
   {
     path: "/",
     nameKey: "home",
-    render: () => <HomeIcon />,
+    render: () => <Home2 size={16} />,
   },
   {
     path: "/catalogue",
     nameKey: "catalogue",
-    render: () => <AppsIcon />,
+    render: () => <Category size={16} />,
   },
   {
     path: "/library",
     nameKey: "library",
-    render: () => <BookIcon />,
+    render: () => <Book size={16} />,
   },
   {
     path: "/downloads",
     nameKey: "downloads",
-    render: () => <DownloadIcon />,
+    render: () => <Import size={16} />,
   },
   {
     path: "/settings",
     nameKey: "settings",
-    render: () => <GearIcon />,
+    render: () => <Setting2 size={16} />,
   },
 ];

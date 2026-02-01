@@ -3,7 +3,7 @@ import { Link } from "@renderer/components";
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { ClockIcon } from "@primer/octicons-react";
+import { Clock } from "iconsax-reactjs";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -60,7 +60,7 @@ export function RecentGamesBox() {
                 <span className="recent-games__game-title">{game.title}</span>
 
                 <div className="recent-games__game-description">
-                  <ClockIcon />
+                  <Clock size={16} variant="Linear" />
                   <small>{formatPlayTime(game)}</small>
                 </div>
               </div>

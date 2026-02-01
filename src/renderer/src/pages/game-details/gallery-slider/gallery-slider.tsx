@@ -1,10 +1,6 @@
 import { useContext, useCallback, useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ChevronRightIcon,
-  ChevronLeftIcon,
-  PlayIcon,
-} from "@primer/octicons-react";
+import { ArrowRight2, ArrowLeft2, PlayCircle } from "iconsax-reactjs";
 import useEmblaCarousel from "embla-carousel-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
@@ -218,7 +214,7 @@ export function GallerySlider() {
           aria-label={t("previous_screenshot")}
           tabIndex={0}
         >
-          <ChevronLeftIcon size={36} />
+          <ArrowLeft2 size={36} />
         </button>
 
         <button
@@ -228,7 +224,7 @@ export function GallerySlider() {
           aria-label={t("next_screenshot")}
           tabIndex={0}
         >
-          <ChevronRightIcon size={36} />
+          <ArrowRight2 size={36} />
         </button>
       </div>
 
@@ -252,7 +248,7 @@ export function GallerySlider() {
             />
             {media.type === "video" && (
               <div className="gallery-slider__play-overlay">
-                <PlayIcon size={20} />
+                <PlayCircle size={20} />
               </div>
             )}
           </button>

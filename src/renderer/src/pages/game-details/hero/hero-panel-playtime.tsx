@@ -10,7 +10,7 @@ import {
 import { Link } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { AlertFillIcon } from "@primer/octicons-react";
+import { Warning2 } from "iconsax-reactjs";
 import { Tooltip } from "react-tooltip";
 import "./hero-panel-playtime.scss";
 
@@ -123,9 +123,10 @@ export function HeroPanelPlaytime() {
         }
       >
         {game.hasManuallyUpdatedPlaytime && (
-          <AlertFillIcon
+          <Warning2
             size={16}
             className="hero-panel-playtime__manual-warning"
+            variant="Bold"
           />
         )}
         {t("play_time", {

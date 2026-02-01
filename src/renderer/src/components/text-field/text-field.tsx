@@ -1,5 +1,5 @@
 import React, { useId, useState } from "react";
-import { EyeClosedIcon, EyeIcon } from "@primer/octicons-react";
+import { EyeSlash, Eye } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import "./text-field.scss";
@@ -95,11 +95,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
                 onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 aria-label={t("toggle_password_visibility")}
               >
-                {isPasswordVisible ? (
-                  <EyeClosedIcon size={16} />
-                ) : (
-                  <EyeIcon size={16} />
-                )}
+                {isPasswordVisible ? <EyeSlash size={16} /> : <Eye size={16} />}
               </button>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { EmojiSad } from "iconsax-reactjs";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
@@ -65,7 +65,7 @@ export function LibraryTab({
       {!hasAnyGames && (
         <div className="profile-content__no-games">
           <div className="profile-content__telescope-icon">
-            <TelescopeIcon size={24} />
+            <EmojiSad size={24} variant="Linear" />
           </div>
           <h2>{t("no_recent_activity_title")}</h2>
           {isMe && <p>{t("no_recent_activity_description")}</p>}

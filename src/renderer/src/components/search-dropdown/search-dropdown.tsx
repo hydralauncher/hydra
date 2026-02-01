@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClockIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import { Clock, SearchNormal1, CloseSquare } from "iconsax-reactjs";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { SearchHistoryEntry } from "@renderer/hooks/use-search-history";
@@ -145,7 +145,7 @@ export function SearchDropdown({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onSelectHistory(item.query)}
                 >
-                  <ClockIcon size={16} className="search-dropdown__item-icon" />
+                  <Clock size={16} className="search-dropdown__item-icon" />
                   <span className="search-dropdown__item-text">
                     {item.query}
                   </span>
@@ -160,7 +160,7 @@ export function SearchDropdown({
                   }}
                   title={t("remove_from_history")}
                 >
-                  <XIcon size={12} />
+                  <CloseSquare size={12} />
                 </button>
               </li>
             ))}
@@ -194,7 +194,7 @@ export function SearchDropdown({
                       className="search-dropdown__item-icon search-dropdown__item-icon--image"
                     />
                   ) : (
-                    <SearchIcon
+                    <SearchNormal1
                       size={16}
                       className="search-dropdown__item-icon"
                     />

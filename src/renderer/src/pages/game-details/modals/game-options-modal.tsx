@@ -8,7 +8,7 @@ import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
-import { FileDirectoryIcon, FileIcon } from "@primer/octicons-react";
+import { Folder, Document } from "iconsax-reactjs";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
@@ -344,7 +344,7 @@ export function GameOptionsModal({
                       theme="outline"
                       onClick={handleChangeExecutableLocation}
                     >
-                      <FileIcon />
+                      <Document size={20} variant="Linear" />
                       {t("select_executable")}
                     </Button>
                     {game.executablePath && (
@@ -434,7 +434,7 @@ export function GameOptionsModal({
                       theme="outline"
                       onClick={handleChangeWinePrefixPath}
                     >
-                      <FileDirectoryIcon />
+                      <Folder variant="Linear" />
                       {t("select_executable")}
                     </Button>
                     {game.winePrefixPath && (

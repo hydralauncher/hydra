@@ -1,5 +1,11 @@
-import { TrashIcon, ClockIcon } from "@primer/octicons-react";
-import { ThumbsUp, ThumbsDown, Star, Languages } from "lucide-react";
+import {
+  Trash,
+  Clock,
+  Like1,
+  Dislike,
+  Star1,
+  LanguageSquare,
+} from "iconsax-reactjs";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -161,7 +167,7 @@ export function ReviewItem({
               className="game-details__review-score-stars"
               title={getRatingText(review.score, t)}
             >
-              <Star
+              <Star1
                 size={12}
                 className="game-details__review-star game-details__review-star--filled"
               />
@@ -173,7 +179,7 @@ export function ReviewItem({
               review.playTimeInSeconds && review.playTimeInSeconds > 0
             ) && (
               <div className="game-details__review-playtime">
-                <ClockIcon size={12} />
+                <Clock size={12} />
                 <span>
                   {t("review_played_for")}{" "}
                   {formatPlayTime(review.playTimeInSeconds || 0)}
@@ -196,7 +202,7 @@ export function ReviewItem({
               className="game-details__review-translation-toggle"
               onClick={() => setShowOriginal(!showOriginal)}
             >
-              <Languages size={13} />
+              <LanguageSquare size={13} />
               {showOriginal
                 ? t("hide_original")
                 : t("show_original_translated_from", {
@@ -237,7 +243,7 @@ export function ReviewItem({
                 : {}
             }
           >
-            <ThumbsUp size={16} />
+            <Like1 size={16} />
             <AnimatePresence mode="wait">
               <motion.span
                 key={review.upvotes || 0}
@@ -285,7 +291,7 @@ export function ReviewItem({
                 : {}
             }
           >
-            <ThumbsDown size={16} />
+            <Dislike size={16} />
             <AnimatePresence mode="wait">
               <motion.span
                 key={review.downvotes || 0}
@@ -323,7 +329,7 @@ export function ReviewItem({
             onClick={() => onDelete(review.id)}
             title={t("delete_review")}
           >
-            <TrashIcon size={16} />
+            <Trash size={16} />
             <span>{t("remove_review")}</span>
           </button>
         )}

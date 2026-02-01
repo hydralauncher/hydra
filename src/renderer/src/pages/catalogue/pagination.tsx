@@ -1,5 +1,5 @@
 import { Button } from "@renderer/components/button/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
+import { ArrowLeft2, ArrowRight2 } from "iconsax-reactjs";
 import { useFormat } from "@renderer/hooks/use-format";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
@@ -150,8 +150,8 @@ export function Pagination({
           className="pagination__button"
         >
           <span className="pagination__double-chevron">
-            <ChevronLeftIcon />
-            <ChevronLeftIcon />
+            <ArrowLeft2 variant="Linear" />
+            <ArrowLeft2 variant="Linear" />
           </span>
         </Button>
       )}
@@ -162,7 +162,7 @@ export function Pagination({
         className="pagination__button"
         disabled={page === 1}
       >
-        <ChevronLeftIcon />
+        <ArrowLeft2 variant="Linear" />
       </Button>
 
       {isLastThree && startPage > 1 && (
@@ -231,7 +231,7 @@ export function Pagination({
         className="pagination__button"
         disabled={page === totalPages}
       >
-        <ChevronRightIcon />
+        <ArrowRight2 variant="Linear" />
       </Button>
 
       {endPage < totalPages && (
@@ -241,8 +241,8 @@ export function Pagination({
           className="pagination__button"
         >
           <span className="pagination__double-chevron">
-            <ChevronRightIcon />
-            <ChevronRightIcon />
+            <ArrowRight2 variant="Linear" />
+            <ArrowRight2 variant="Linear" />
           </span>
         </Button>
       )}

@@ -4,17 +4,16 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import "./cloud-sync-modal.scss";
 import { formatBytes } from "@shared";
 import {
-  ClockIcon,
-  DeviceDesktopIcon,
-  HistoryIcon,
-  InfoIcon,
-  PencilIcon,
-  PinIcon,
-  PinSlashIcon,
-  SyncIcon,
-  TrashIcon,
-  UploadIcon,
-} from "@primer/octicons-react";
+  Clock,
+  Monitor,
+  InfoCircle,
+  PathTool,
+  PenAdd,
+  PenClose,
+  Refresh,
+  Trash,
+  Export,
+} from "iconsax-reactjs";
 import { useAppSelector, useDate, useToast } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { AxiosProgressEvent } from "axios";
@@ -117,7 +116,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (uploadingBackup) {
       return (
         <span className="cloud-sync-modal__backup-state-label">
-          <SyncIcon className="cloud-sync-modal__sync-icon" />
+          <Refresh className="cloud-sync-modal__sync-icon" />
           {t("uploading_backup")}
         </span>
       );
@@ -125,7 +124,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (restoringBackup) {
       return (
         <span className="cloud-sync-modal__backup-state-label">
-          <SyncIcon className="cloud-sync-modal__sync-icon" />
+          <Refresh className="cloud-sync-modal__sync-icon" />
           {t("restoring_backup", {
             progress: formatDownloadProgress(
               backupDownloadProgress?.progress ?? 0
@@ -137,7 +136,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
     if (loadingPreview) {
       return (
         <span className="cloud-sync-modal__backup-state-label">
-          <SyncIcon className="cloud-sync-modal__sync-icon" />
+          <Refresh className="cloud-sync-modal__sync-icon" />
           {t("loading_save_preview")}
         </span>
       );
@@ -210,9 +209,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
             }
           >
             {uploadingBackup ? (
-              <SyncIcon className="cloud-sync-modal__sync-icon" />
+              <Refresh className="cloud-sync-modal__sync-icon" />
             ) : (
-              <UploadIcon />
+              <Export />
             )}
             {t("create_backup")}
           </Button>
@@ -250,7 +249,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                             t("backup_from", {
                               date: formatDate(artifact.createdAt),
                             })}
-                          <PencilIcon />
+                          <PathTool />
                         </button>
                         <small>
                           {formatBytes(artifact.artifactLengthInBytes)}
@@ -258,18 +257,18 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                       </div>
 
                       <span className="cloud-sync-modal__artifact-meta">
-                        <DeviceDesktopIcon size={14} />
+                        <Monitor size={14} />
                         {artifact.hostname}
                       </span>
 
                       <span className="cloud-sync-modal__artifact-meta">
-                        <InfoIcon size={14} />
+                        <InfoCircle size={14} />
                         {artifact.downloadOptionTitle ??
                           t("no_download_option_info")}
                       </span>
 
                       <span className="cloud-sync-modal__artifact-meta">
-                        <ClockIcon size={14} />
+                        <Clock size={14} />
                         {formatDateTime(artifact.createdAt)}
                       </span>
                     </div>
@@ -291,7 +290,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                         }
                         disabled={disableActions}
                       >
-                        {artifact.isFrozen ? <PinSlashIcon /> : <PinIcon />}
+                        {artifact.isFrozen ? <PenClose /> : <PenAdd />}
                       </Button>
                       <Button
                         type="button"
@@ -300,9 +299,9 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                         theme="outline"
                       >
                         {restoringBackup ? (
-                          <SyncIcon className="cloud-sync-modal__sync-icon" />
+                          <Refresh className="cloud-sync-modal__sync-icon" />
                         ) : (
-                          <HistoryIcon />
+                          <Clock />
                         )}
                         {t("install_backup")}
                       </Button>
@@ -313,7 +312,7 @@ export function CloudSyncModal({ visible, onClose }: CloudSyncModalProps) {
                         theme="outline"
                         tooltip={t("delete_backup")}
                       >
-                        <TrashIcon />
+                        <Trash />
                       </Button>
                     </div>
                   </motion.li>

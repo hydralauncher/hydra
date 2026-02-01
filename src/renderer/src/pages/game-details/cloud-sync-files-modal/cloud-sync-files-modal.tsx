@@ -2,7 +2,7 @@ import { Button, Modal, ModalProps, TextField } from "@renderer/components";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { CheckCircleFillIcon, FileDirectoryIcon } from "@primer/octicons-react";
+import { TickCircle, Folder } from "iconsax-reactjs";
 
 import "./cloud-sync-files-modal.scss";
 import { formatBytes } from "@shared";
@@ -113,7 +113,7 @@ export function CloudSyncFilesModal({
               onClick={() => handleFileMappingMethodClick(mappingMethod)}
             >
               {selectedFileMappingMethod === mappingMethod && (
-                <CheckCircleFillIcon />
+                <TickCircle variant="Bold" />
               )}
               {t(`mapping_method_${mappingMethod.toLowerCase()}`)}
             </Button>
@@ -137,7 +137,7 @@ export function CloudSyncFilesModal({
                 theme="outline"
                 onClick={handleAddCustomPathClick}
               >
-                <FileDirectoryIcon />
+                <Folder />
                 {t("select_executable")}
               </Button>
             }

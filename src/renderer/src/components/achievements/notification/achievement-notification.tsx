@@ -4,7 +4,7 @@ import {
 } from "@types";
 import cn from "classnames";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { EyeClosedIcon } from "@primer/octicons-react";
+import { EyeSlash } from "iconsax-reactjs";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
 import "./achievement-notification.scss";
 
@@ -52,7 +52,7 @@ export function AchievementNotificationItem({
               <p className="achievement-notification__title">
                 {achievement.isHidden && (
                   <span className="achievement-notification__hidden-icon">
-                    <EyeClosedIcon size={16} />
+                    <EyeSlash size={16} />
                   </span>
                 )}
                 {achievement.title}

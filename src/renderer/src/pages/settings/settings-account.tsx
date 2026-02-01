@@ -3,12 +3,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import { useCallback, useContext, useEffect, useState } from "react";
-import {
-  CloudIcon,
-  KeyIcon,
-  MailIcon,
-  XCircleFillIcon,
-} from "@primer/octicons-react";
+import { Cloud, Key, Sms, CloseCircle } from "iconsax-reactjs";
 import { settingsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
 import "./settings-account.scss";
@@ -184,7 +179,7 @@ export function SettingsAccount() {
             theme="outline"
             onClick={() => window.electron.openAuthWindow(AuthPage.UpdateEmail)}
           >
-            <MailIcon />
+            <Sms size={20} variant="Linear" />
             {t("update_email")}
           </Button>
 
@@ -194,7 +189,7 @@ export function SettingsAccount() {
               window.electron.openAuthWindow(AuthPage.UpdatePassword)
             }
           >
-            <KeyIcon />
+            <Key size={20} variant="Linear" />
             {t("update_password")}
           </Button>
         </div>
@@ -211,7 +206,7 @@ export function SettingsAccount() {
           theme="outline"
           onClick={() => window.electron.openCheckout()}
         >
-          <CloudIcon />
+          <Cloud size={20} variant="Linear" />
           {getHydraCloudSectionContent().callToAction}
         </Button>
       </section>
@@ -240,7 +235,7 @@ export function SettingsAccount() {
                     onClick={() => handleUnblockClick(user.id)}
                     disabled={isUnblocking}
                   >
-                    <XCircleFillIcon />
+                    <CloseCircle size={16} variant="Bold" />
                   </button>
                 </li>
               );

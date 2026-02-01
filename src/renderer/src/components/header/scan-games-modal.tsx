@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { SyncIcon } from "@primer/octicons-react";
+import { Refresh } from "iconsax-reactjs";
 
 import { Button, Modal } from "@renderer/components";
 
@@ -63,7 +63,7 @@ export function ScanGamesModal({
 
         {isScanning && !scanResult && (
           <div className="scan-games-modal__scanning">
-            <SyncIcon size={24} className="scan-games-modal__spinner" />
+            <Refresh size={24} className="scan-games-modal__spinner" />
             <p className="scan-games-modal__scanning-text">
               {t("scan_games_in_progress")}
             </p>

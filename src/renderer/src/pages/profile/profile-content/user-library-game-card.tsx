@@ -9,14 +9,7 @@ import {
   formatDownloadProgress,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
-import {
-  ClockIcon,
-  TrophyIcon,
-  AlertFillIcon,
-  PinIcon,
-  PinSlashIcon,
-  ImageIcon,
-} from "@primer/octicons-react";
+import { Clock, Cup, Warning2, PenAdd, PenClose, Image } from "iconsax-reactjs";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
@@ -154,9 +147,9 @@ export function UserLibraryGameCard({
                   disabled={isPinning}
                 >
                   {game.isPinned ? (
-                    <PinSlashIcon size={12} />
+                    <PenClose size={16} variant="Linear" />
                   ) : (
-                    <PinIcon size={12} />
+                    <PenAdd size={16} variant="Linear" />
                   )}
                 </button>
               </div>
@@ -172,12 +165,13 @@ export function UserLibraryGameCard({
               data-tooltip-id={game.objectId}
             >
               {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
+                <Warning2
+                  size={16}
+                  variant="Bold"
                   className="user-library-game__manual-playtime"
                 />
               ) : (
-                <ClockIcon size={11} />
+                <Clock size={12} variant="Linear" />
               )}
               <span className="user-library-game__playtime-long">
                 {formatPlayTime(game.playTimeInSeconds)}
@@ -198,7 +192,7 @@ export function UserLibraryGameCard({
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        <TrophyIcon size={13} />
+                        <Cup size={16} variant="Linear" />
                         <span>
                           {game.unlockedAchievementCount} /{" "}
                           {game.achievementCount}
@@ -241,7 +235,7 @@ export function UserLibraryGameCard({
 
           {imageError || !game.coverImageUrl ? (
             <div className="user-library-game__cover-placeholder">
-              <ImageIcon size={48} />
+              <Image size={48} variant="Linear" />
             </div>
           ) : (
             <img

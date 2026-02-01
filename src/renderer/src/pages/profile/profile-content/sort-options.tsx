@@ -1,4 +1,4 @@
-import { TrophyIcon, ClockIcon, HistoryIcon } from "@primer/octicons-react";
+import { Cup, Clock } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import "./sort-options.scss";
 
@@ -20,7 +20,7 @@ export function SortOptions({ sortBy, onSortChange }: SortOptionsProps) {
           className={`sort-options__option ${sortBy === "achievementCount" ? "active" : ""}`}
           onClick={() => onSortChange("achievementCount")}
         >
-          <TrophyIcon size={16} />
+          <Cup size={16} variant="Linear" />
           <span>{t("achievements_earned")}</span>
         </button>
         <span className="sort-options__separator">|</span>
@@ -28,7 +28,7 @@ export function SortOptions({ sortBy, onSortChange }: SortOptionsProps) {
           className={`sort-options__option ${sortBy === "playedRecently" ? "active" : ""}`}
           onClick={() => onSortChange("playedRecently")}
         >
-          <HistoryIcon size={16} />
+          <Clock size={16} variant="Linear" />
           <span>{t("played_recently")}</span>
         </button>
         <span className="sort-options__separator">|</span>
@@ -36,7 +36,7 @@ export function SortOptions({ sortBy, onSortChange }: SortOptionsProps) {
           className={`sort-options__option ${sortBy === "playtime" ? "active" : ""}`}
           onClick={() => onSortChange("playtime")}
         >
-          <ClockIcon size={16} />
+          <Clock size={16} variant="Linear" />
           <span>{t("playtime")}</span>
         </button>
       </div>

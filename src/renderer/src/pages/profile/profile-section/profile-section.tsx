@@ -1,4 +1,4 @@
-import { ChevronDownIcon } from "@primer/octicons-react";
+import { ArrowDown2 } from "iconsax-reactjs";
 import { useEffect, useRef, useState } from "react";
 import "./profile-section.scss";
 
@@ -37,7 +37,9 @@ export function ProfileSection({
           onClick={() => setIsOpen(!isOpen)}
           className="profile-section__button"
         >
-          <ChevronDownIcon
+          <ArrowDown2
+            size={20}
+            variant="Linear"
             className={`profile-section__chevron ${
               isOpen ? "profile-section__chevron--open" : ""
             }`}

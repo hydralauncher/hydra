@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { XIcon } from "@primer/octicons-react";
+import { CloseSquare } from "iconsax-reactjs";
 
 import "./modal.scss";
 
@@ -131,7 +131,7 @@ export function Modal({
             className="modal__close-button"
             aria-label={t("close")}
           >
-            <XIcon className="modal__close-button-icon" size={24} />
+            <CloseSquare className="modal__close-button-icon" size={24} />
           </button>
         </div>
         <div className="modal__content">{children}</div>

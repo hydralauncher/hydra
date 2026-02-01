@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { FileDirectoryIcon } from "@primer/octicons-react";
+import { Folder } from "iconsax-reactjs";
 
 import { Modal, TextField, Button } from "@renderer/components";
 import { useLibrary, useToast } from "@renderer/hooks";
@@ -136,7 +136,7 @@ export function SidebarAddingCustomGameModal({
                 onClick={handleSelectExecutable}
                 disabled={isAdding}
               >
-                <FileDirectoryIcon />
+                <Folder />
                 {t("custom_game_modal_browse")}
               </Button>
             }

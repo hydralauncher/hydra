@@ -1,4 +1,4 @@
-import { AppsIcon, RowsIcon, SquareIcon } from "@primer/octicons-react";
+import { Category, RowVertical, Stop } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import "./view-options.scss";
 
@@ -23,21 +23,21 @@ export function ViewOptions({
           onClick={() => onViewModeChange("compact")}
           title={t("compact_view")}
         >
-          <SquareIcon size={16} />
+          <Stop size={16} />
         </button>
         <button
           className={`library-view-options__option ${viewMode === "grid" ? "active" : ""}`}
           onClick={() => onViewModeChange("grid")}
           title={t("grid_view")}
         >
-          <AppsIcon size={16} />
+          <Category size={16} />
         </button>
         <button
           className={`library-view-options__option ${viewMode === "large" ? "active" : ""}`}
           onClick={() => onViewModeChange("large")}
           title={t("large_view")}
         >
-          <RowsIcon size={16} />
+          <RowVertical size={16} />
         </button>
       </div>
     </div>

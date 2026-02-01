@@ -1,13 +1,12 @@
 import {
-  DownloadIcon,
-  GearIcon,
-  HeartFillIcon,
-  HeartIcon,
-  PinIcon,
-  PinSlashIcon,
-  PlayIcon,
-  PlusCircleIcon,
-} from "@primer/octicons-react";
+  Import,
+  Setting2,
+  Heart,
+  PenAdd,
+  PenClose,
+  PlayCircle,
+  AddCircle,
+} from "iconsax-reactjs";
 import { Button } from "@renderer/components";
 import {
   useDownload,
@@ -195,7 +194,7 @@ export function HeroPanelActions() {
       onClick={addGameToLibrary}
       className="hero-panel-actions__action"
     >
-      <PlusCircleIcon />
+      <AddCircle size={20} variant="Linear" />
       {t("add_to_library")}
     </Button>
   );
@@ -233,7 +232,7 @@ export function HeroPanelActions() {
           disabled={deleting || isGameRunning}
           className="hero-panel-actions__action"
         >
-          <PlayIcon />
+          <PlayCircle size={20} variant="Linear" />
           {t("play")}
         </Button>
       );
@@ -246,7 +245,7 @@ export function HeroPanelActions() {
         disabled={isGameDownloading}
         className={`hero-panel-actions__action ${repacks.length === 0 ? "hero-panel-actions__action--disabled" : ""}`}
       >
-        <DownloadIcon />
+        <Import size={20} variant="Linear" />
         {t("download")}
       </Button>
     );
@@ -272,7 +271,11 @@ export function HeroPanelActions() {
           disabled={deleting}
           className="hero-panel-actions__action"
         >
-          {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
+          {game.favorite ? (
+            <Heart size={20} variant="Bold" />
+          ) : (
+            <Heart size={20} />
+          )}
         </Button>
 
         {userDetails && game.shop !== "custom" && (
@@ -282,7 +285,11 @@ export function HeroPanelActions() {
             disabled={deleting}
             className="hero-panel-actions__action"
           >
-            {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+            {game.isPinned ? (
+              <PenClose size={20} variant="Linear" />
+            ) : (
+              <PenAdd size={20} variant="Linear" />
+            )}
           </Button>
         )}
 
@@ -292,7 +299,7 @@ export function HeroPanelActions() {
           disabled={deleting}
           className="hero-panel-actions__action"
         >
-          <GearIcon />
+          <Setting2 size={20} variant="Linear" />
           {t("options")}
         </Button>
       </div>

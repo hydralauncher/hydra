@@ -9,7 +9,7 @@ import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 import { orderBy } from "lodash-es";
-import { ArrowDownIcon } from "@primer/octicons-react";
+import { ArrowDown2 } from "iconsax-reactjs";
 
 export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
@@ -162,7 +162,7 @@ export default function Downloads() {
       ) : (
         <div className="downloads__no-downloads">
           <div className="downloads__arrow-icon">
-            <ArrowDownIcon size={24} />
+            <ArrowDown2 size={24} variant="Linear" />
           </div>
           <h2>{t("no_downloads_title")}</h2>
           <p>{t("no_downloads_description")}</p>

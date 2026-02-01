@@ -6,7 +6,7 @@ import {
   buildGameDetailsPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
-import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
+import { Lock, Profile, Cup } from "iconsax-reactjs";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
 import { Link } from "@renderer/components";
@@ -52,7 +52,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
             alt={user.displayName}
           />
         ) : (
-          <PersonIcon size={24} />
+          <Profile size={24} variant="Linear" />
         )}
       </div>
     );
@@ -62,7 +62,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
     return (
       <div className="achievements-content__comparison">
         <div className="achievements-content__comparison__container">
-          <LockIcon size={24} />
+          <Lock size={24} variant="Outline" />
           <h3>
             <button
               className="achievements-content__comparison__container__subscription-required-button"
@@ -87,7 +87,7 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         <h1>{user.displayName}</h1>
         <div className="achievements-content__user-summary__container__stats">
           <div className="achievements-content__user-summary__container__stats__trophy-count">
-            <TrophyIcon size={13} />
+            <Cup size={13} variant="Linear" />
             <span>
               {user.unlockedAchievementCount} / {user.totalAchievementCount}
             </span>
@@ -152,7 +152,7 @@ export function AchievementsContent({
             alt={user.displayName}
           />
         ) : (
-          <PersonIcon size={24} />
+          <Profile size={24} variant="Linear" />
         )}
       </div>
     );

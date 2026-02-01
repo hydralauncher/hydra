@@ -1,12 +1,5 @@
 import { useCallback } from "react";
-import {
-  XIcon,
-  DownloadIcon,
-  PackageIcon,
-  SyncIcon,
-  TrophyIcon,
-  ClockIcon,
-} from "@primer/octicons-react";
+import { CloseSquare, Import, Box, Refresh, Cup, Clock } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useDate } from "@renderer/hooks";
@@ -51,17 +44,17 @@ export function LocalNotificationItem({
   const getIcon = () => {
     switch (notification.type) {
       case "DOWNLOAD_COMPLETE":
-        return <DownloadIcon size={24} />;
+        return <Import size={24} variant="Linear" />;
       case "EXTRACTION_COMPLETE":
-        return <PackageIcon size={24} />;
+        return <Box size={24} variant="Linear" />;
       case "UPDATE_AVAILABLE":
-        return <SyncIcon size={24} />;
+        return <Refresh size={24} variant="Linear" />;
       case "ACHIEVEMENT_UNLOCKED":
-        return <TrophyIcon size={24} />;
+        return <Cup size={24} variant="Linear" />;
       case "SCAN_GAMES_COMPLETE":
-        return <SyncIcon size={24} />;
+        return <Refresh size={24} variant="Linear" />;
       default:
-        return <DownloadIcon size={24} />;
+        return <Import size={24} variant="Linear" />;
     }
   };
 
@@ -87,7 +80,7 @@ export function LocalNotificationItem({
           {notification.description}
         </span>
         <span className="notification-item__time">
-          <ClockIcon size={12} />
+          <Clock size={12} variant="Linear" />
           {formatDistance(new Date(notification.createdAt), new Date())}
         </span>
       </div>
@@ -98,7 +91,7 @@ export function LocalNotificationItem({
         onClick={handleDismiss}
         title={t("dismiss")}
       >
-        <XIcon size={16} />
+        <CloseSquare size={16} variant="Linear" />
       </button>
     </button>
   );

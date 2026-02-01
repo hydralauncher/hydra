@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
 import { useState, useEffect } from "react";
-import { AlertIcon } from "@primer/octicons-react";
+import { Warning2 } from "iconsax-reactjs";
 import "./change-game-playtime-modal.scss";
 
 export interface ChangeGamePlaytimeModalProps {
@@ -120,7 +120,7 @@ export function ChangeGamePlaytimeModal({
       <div className="change-game-playtime-modal__content">
         {!game.hasManuallyUpdatedPlaytime && (
           <div className="change-game-playtime-modal__warning">
-            <AlertIcon size={16} />
+            <Warning2 size={16} variant="Linear" />
             <span>{t("manual_playtime_warning")}</span>
           </div>
         )}

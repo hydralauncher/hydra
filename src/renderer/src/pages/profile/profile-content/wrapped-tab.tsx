@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { XIcon } from "@primer/octicons-react";
+import { CloseSquare } from "iconsax-reactjs";
 import "./wrapped-tab.scss";
 
 interface WrappedFullscreenModalProps {
@@ -69,7 +69,7 @@ export function WrappedFullscreenModal({
           onClick={onClose}
           aria-label="Close wrapped"
         >
-          <XIcon size={24} />
+          <CloseSquare size={24} variant="Linear" />
         </button>
 
         <div

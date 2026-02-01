@@ -1,7 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ClockIcon } from "@primer/octicons-react";
-import { Star, ThumbsUp, ThumbsDown, TrashIcon, Languages } from "lucide-react";
+import {
+  Clock,
+  Star1,
+  Like1,
+  Dislike,
+  Trash,
+  LanguageSquare,
+} from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { GameShop } from "@types";
@@ -124,8 +130,9 @@ export function ProfileReviewItem({
               className="user-reviews__review-score-stars"
               title={getRatingText(review.score, tGameDetails)}
             >
-              <Star
+              <Star1
                 size={12}
+                variant="Linear"
                 className="user-reviews__review-star user-reviews__review-star--filled"
               />
               <span className="user-reviews__review-score-text">
@@ -136,7 +143,7 @@ export function ProfileReviewItem({
               review.playTimeInSeconds && review.playTimeInSeconds > 0
             ) && (
               <div className="user-reviews__review-playtime">
-                <ClockIcon size={12} />
+                <Clock size={12} variant="Linear" />
                 <span>
                   {tGameDetails("review_played_for")}{" "}
                   {formatPlayTime(review.playTimeInSeconds || 0)}
@@ -160,7 +167,7 @@ export function ProfileReviewItem({
               className="user-reviews__review-translation-toggle"
               onClick={() => setShowOriginal(!showOriginal)}
             >
-              <Languages size={13} />
+              <LanguageSquare size={13} variant="Linear" />
               {showOriginal
                 ? tGameDetails("hide_original")
                 : tGameDetails("show_original_translated_from", {
@@ -196,7 +203,7 @@ export function ProfileReviewItem({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <ThumbsUp size={14} />
+            <Like1 size={16} variant="Linear" />
             <AnimatePresence mode="wait">
               <motion.span
                 key={review.upvotes}
@@ -221,7 +228,7 @@ export function ProfileReviewItem({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <ThumbsDown size={14} />
+            <Dislike size={14} variant="Linear" />
             <AnimatePresence mode="wait">
               <motion.span
                 key={review.downvotes}
@@ -242,7 +249,7 @@ export function ProfileReviewItem({
             onClick={() => onDelete(review.id)}
             title={t("delete_review")}
           >
-            <TrashIcon size={14} />
+            <Trash size={14} variant="Linear" />
             <span>{t("delete_review")}</span>
           </button>
         )}

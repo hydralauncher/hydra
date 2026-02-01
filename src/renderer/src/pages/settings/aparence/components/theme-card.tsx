@@ -1,4 +1,4 @@
-import { PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { PathTool, Trash } from "iconsax-reactjs";
 import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components/button/button";
 import type { Theme } from "@types";
@@ -120,7 +120,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
               title={t("edit_theme")}
               theme="outline"
             >
-              <PencilIcon />
+              <PathTool size={20} variant="Linear" />
             </Button>
 
             <Button
@@ -128,7 +128,7 @@ export const ThemeCard = ({ theme, onListUpdated }: ThemeCardProps) => {
               title={t("delete_theme")}
               theme="outline"
             >
-              <TrashIcon />
+              <Trash size={20} variant="Linear" />
             </Button>
           </div>
         </div>
