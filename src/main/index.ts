@@ -240,7 +240,9 @@ const handleDeepLinkPath = (uri?: string) => {
 };
 
 app.on("second-instance", (_event, commandLine) => {
-  const deepLink = commandLine.pop();
+  const deepLink = commandLine.find((arg) =>
+    arg.startsWith("hydralauncher://")
+  );
 
   // Check if this is a "run" deep link - don't show main window in that case
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");

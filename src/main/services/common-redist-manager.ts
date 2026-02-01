@@ -30,7 +30,7 @@ export class CommonRedistManager {
 
   private static readonly system32Path = process.env.SystemRoot
     ? path.join(process.env.SystemRoot, "System32")
-    : path.join("C:", "Windows", "System32");
+    : "C:\\Windows\\System32";
 
   private static readonly systemChecks: RedistCheck[] = [
     {
@@ -74,7 +74,7 @@ export class CommonRedistManager {
       check: () => {
         // Check for .NET 4.x runtime
         const dotNetPath = path.join(
-          process.env.SystemRoot || path.join("C:", "Windows"),
+          process.env.SystemRoot || "C:\\Windows",
           "Microsoft.NET",
           "Framework",
           "v4.0.30319",
@@ -87,7 +87,7 @@ export class CommonRedistManager {
       name: "XNA Framework 4.0",
       check: () => {
         // XNA Framework installs to GAC - check for the assembly folder
-        const windowsDir = process.env.SystemRoot || path.join("C:", "Windows");
+        const windowsDir = process.env.SystemRoot || "C:\\Windows";
         const xnaGacPath = path.join(
           windowsDir,
           "Microsoft.NET",
@@ -289,6 +289,14 @@ export class CommonRedistManager {
   public static async runPreflight(): Promise<boolean> {
     logger.log("Running common redistributables preflight check");
 
+    // Short-circuit if preflight already passed
+    const alreadyPassed = await this.hasPreflightPassed();
+    if (alreadyPassed) {
+      logger.log("Preflight already passed, skipping checks");
+      this.sendPreflightProgress("complete", null);
+      return true;
+    }
+
     // Send initial status to game launcher
     this.sendPreflightProgress("checking", null);
 
@@ -314,6 +322,7 @@ export class CommonRedistManager {
 
     if (systemCheck.allInstalled) {
       logger.log("All redistributables are installed on the system");
+      await this.markPreflightPassed();
       this.sendPreflightProgress("complete", null);
       return true;
     }
@@ -331,6 +340,7 @@ export class CommonRedistManager {
       const success = await this.installCommonRedistForPreflight();
 
       if (success) {
+        await this.markPreflightPassed();
         this.sendPreflightProgress("complete", null);
         logger.log("Preflight completed successfully");
         return true;
