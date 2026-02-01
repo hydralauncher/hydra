@@ -29,7 +29,8 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "prepare": "husky",
-    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
+    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto",
+    "export-missing-translations": "node ./src/scripts/generate-missing-translations.js"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
