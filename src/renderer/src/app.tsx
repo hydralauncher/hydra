@@ -235,8 +235,11 @@ export function App() {
   }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
-    workwondersRef.current?.notifyUrlChange();
+    const asyncScrollAndNotify = async () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      await workwondersRef.current?.notifyUrlChange?.();
+    };
+    asyncScrollAndNotify();
   }, [location.pathname, location.search]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, CheckboxField, Modal, TextField } from "@renderer/components";
 import type { Game, LibraryGame, ShortcutLocation } from "@types";
@@ -54,6 +54,8 @@ export function GameOptionsModal({
     game.automaticCloudSync ?? false
   );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
+  const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
 
   const {
     removeGameInstaller,
@@ -74,6 +76,22 @@ export function GameOptionsModal({
 
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
+
+  useEffect(() => {
+    if (
+      visible &&
+      game.shop !== "custom" &&
+      window.electron.platform === "win32"
+    ) {
+      setLoadingSaveFolder(true);
+      setSaveFolderPath(null);
+      window.electron
+        .getGameSaveFolder(game.shop, game.objectId)
+        .then(setSaveFolderPath)
+        .catch(() => setSaveFolderPath(null))
+        .finally(() => setLoadingSaveFolder(false));
+    }
+  }, [visible, game.shop, game.objectId]);
 
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
@@ -174,6 +192,16 @@ export function GameOptionsModal({
 
   const handleOpenGameExecutablePath = async () => {
     await window.electron.openGameExecutablePath(game.shop, game.objectId);
+  };
+
+  const handleOpenSaveFolder = async () => {
+    if (saveFolderPath) {
+      await window.electron.openGameSaveFolder(
+        game.shop,
+        game.objectId,
+        saveFolderPath
+      );
+    }
   };
 
   const handleClearExecutablePath = async () => {
@@ -359,8 +387,8 @@ export function GameOptionsModal({
                 }
               />
 
-              {game.executablePath && (
-                <div className="game-options-modal__executable-field-buttons">
+              <div className="game-options-modal__executable-field-buttons">
+                {game.executablePath && (
                   <Button
                     type="button"
                     theme="outline"
@@ -368,32 +396,23 @@ export function GameOptionsModal({
                   >
                     {t("open_folder")}
                   </Button>
-                  <Button
-                    onClick={() => handleCreateShortcut("desktop")}
-                    theme="outline"
-                  >
-                    {t("create_shortcut")}
-                  </Button>
-                  {game.shop !== "custom" && (
+                )}
+                {game.shop !== "custom" &&
+                  window.electron.platform === "win32" && (
                     <Button
-                      onClick={handleCreateSteamShortcut}
+                      type="button"
                       theme="outline"
-                      disabled={creatingSteamShortcut}
+                      onClick={handleOpenSaveFolder}
+                      disabled={loadingSaveFolder || !saveFolderPath}
                     >
-                      <SteamLogo />
-                      {t("create_steam_shortcut")}
+                      {loadingSaveFolder
+                        ? t("searching_save_folder")
+                        : saveFolderPath
+                          ? t("open_save_folder")
+                          : t("no_save_folder_found")}
                     </Button>
                   )}
-                  {shouldShowCreateStartMenuShortcut && (
-                    <Button
-                      onClick={() => handleCreateShortcut("start_menu")}
-                      theme="outline"
-                    >
-                      {t("create_start_menu_shortcut")}
-                    </Button>
-                  )}
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -411,6 +430,44 @@ export function GameOptionsModal({
               disabled={!hasActiveSubscription || !game.executablePath}
               onChange={handleToggleAutomaticCloudSync}
             />
+          )}
+
+          {game.executablePath && (
+            <div className="game-options-modal__section">
+              <div className="game-options-modal__header">
+                <h2>{t("shortcuts_section_title")}</h2>
+                <h4 className="game-options-modal__header-description">
+                  {t("shortcuts_section_description")}
+                </h4>
+              </div>
+
+              <div className="game-options-modal__row">
+                <Button
+                  onClick={() => handleCreateShortcut("desktop")}
+                  theme="outline"
+                >
+                  {t("create_shortcut")}
+                </Button>
+                {game.shop !== "custom" && (
+                  <Button
+                    onClick={handleCreateSteamShortcut}
+                    theme="outline"
+                    disabled={creatingSteamShortcut}
+                  >
+                    <SteamLogo />
+                    {t("create_steam_shortcut")}
+                  </Button>
+                )}
+                {shouldShowCreateStartMenuShortcut && (
+                  <Button
+                    onClick={() => handleCreateShortcut("start_menu")}
+                    theme="outline"
+                  >
+                    {t("create_start_menu_shortcut")}
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
 
           {shouldShowWinePrefixConfiguration && (
