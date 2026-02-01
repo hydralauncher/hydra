@@ -387,8 +387,8 @@ export function GameOptionsModal({
                 }
               />
 
-              {game.executablePath && (
-                <div className="game-options-modal__executable-field-buttons">
+              <div className="game-options-modal__executable-field-buttons">
+                {game.executablePath && (
                   <Button
                     type="button"
                     theme="outline"
@@ -396,21 +396,23 @@ export function GameOptionsModal({
                   >
                     {t("open_folder")}
                   </Button>
-                  {game.shop !== "custom" &&
-                    window.electron.platform === "win32" && (
-                      <Button
-                        type="button"
-                        theme="outline"
-                        onClick={handleOpenSaveFolder}
-                        disabled={loadingSaveFolder || !saveFolderPath}
-                      >
-                        {loadingSaveFolder
-                          ? t("searching_save_folder")
-                          : t("open_save_folder")}
-                      </Button>
-                    )}
-                </div>
-              )}
+                )}
+                {game.shop !== "custom" &&
+                  window.electron.platform === "win32" && (
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleOpenSaveFolder}
+                      disabled={loadingSaveFolder || !saveFolderPath}
+                    >
+                      {loadingSaveFolder
+                        ? t("searching_save_folder")
+                        : saveFolderPath
+                          ? t("open_save_folder")
+                          : t("no_save_folder_found")}
+                    </Button>
+                  )}
+              </div>
             </div>
           </div>
 
