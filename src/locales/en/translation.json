@@ -616,7 +616,8 @@
     "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
     "downloads": "Downloads",
     "use_native_http_downloader": "Use native HTTP downloader (experimental)",
-    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress"
+    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress",
+    "create_start_menu_shortcut_on_download": "Create Start Menu shortcut when game finishes downloading"
   },
   "notifications": {
     "download_complete": "Download complete",
