@@ -131,6 +131,7 @@ export interface UserPreferences {
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
+  createStartMenuShortcut?: boolean;
 }
 
 export interface ScreenState {
