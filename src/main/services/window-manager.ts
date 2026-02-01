@@ -30,6 +30,7 @@ import { logger } from "./logger";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
+  public static gameLauncherWindow: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -513,6 +514,84 @@ export class WindowManager {
       this.editorWindows.forEach((editorWindow) => {
         editorWindow.close();
       });
+    }
+  }
+
+  private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;
+  private static readonly GAME_LAUNCHER_WINDOW_HEIGHT = 320;
+
+  public static async createGameLauncherWindow(shop: string, objectId: string) {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+
+    const display = screen.getPrimaryDisplay();
+    const { width: displayWidth, height: displayHeight } = display.bounds;
+
+    const x = Math.round((displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2);
+    const y = Math.round(
+      (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
+    );
+
+    this.gameLauncherWindow = new BrowserWindow({
+      width: this.GAME_LAUNCHER_WINDOW_WIDTH,
+      height: this.GAME_LAUNCHER_WINDOW_HEIGHT,
+      x,
+      y,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      fullscreenable: false,
+      frame: false,
+      backgroundColor: "#1c1c1c",
+      icon,
+      skipTaskbar: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+
+    this.gameLauncherWindow.removeMenu();
+
+    this.loadWindowURL(
+      this.gameLauncherWindow,
+      `game-launcher?shop=${shop}&objectId=${objectId}`
+    );
+
+    this.gameLauncherWindow.on("closed", () => {
+      this.gameLauncherWindow = null;
+    });
+
+    if (!app.isPackaged || isStaging) {
+      this.gameLauncherWindow.webContents.openDevTools();
+    }
+  }
+
+  public static showGameLauncherWindow() {
+    if (this.gameLauncherWindow && !this.gameLauncherWindow.isDestroyed()) {
+      this.gameLauncherWindow.show();
+    }
+  }
+
+  public static closeGameLauncherWindow() {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+  }
+
+  public static openMainWindow() {
+    if (this.mainWindow) {
+      this.mainWindow.show();
+      if (this.mainWindow.isMinimized()) {
+        this.mainWindow.restore();
+      }
+      this.mainWindow.focus();
+    } else {
+      this.createMainWindow();
     }
   }
 

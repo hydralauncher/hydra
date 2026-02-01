@@ -34,6 +34,7 @@ import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
+import GameLauncher from "./pages/game-launcher/game-launcher";
 
 console.log = logger.log;
 
@@ -98,6 +99,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             path="/achievement-notification"
             element={<AchievementNotification />}
           />
+          <Route path="/game-launcher" element={<GameLauncher />} />
         </Routes>
       </HashRouter>
     </Provider>
