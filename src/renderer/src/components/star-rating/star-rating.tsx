@@ -6,7 +6,7 @@ export interface StarRatingProps {
   size?: number;
 }
 
-export function StarRating({ rating, size = 12 }: Readonly<StarRatingProps>) {
+export function StarRating({ rating = 12 }: Readonly<StarRatingProps>) {
   if (rating === null || rating === undefined) {
     return (
       <div className="star-rating star-rating--single">
