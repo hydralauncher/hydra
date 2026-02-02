@@ -3,5 +3,5 @@ export const parseLaunchOptions = (params?: string | null): string[] => {
     return [];
   }
 
-  return params.split(" ");
+  return params.split(/\s+(?=(?:[^"]*"[^"]*")*[^"]*$)/);
 };
