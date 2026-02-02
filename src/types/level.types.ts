@@ -66,6 +66,7 @@ export interface Game {
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
+  launchInVR?: boolean;
 }
 
 export interface Download {
