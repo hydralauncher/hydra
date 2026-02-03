@@ -79,6 +79,7 @@ app.whenReady().then(async () => {
 
     // Simple string parsing approach - more secure than regex
     if (
+      gradientCss &&
       gradientCss.startsWith("linear-gradient(") &&
       gradientCss.endsWith(")")
     ) {
