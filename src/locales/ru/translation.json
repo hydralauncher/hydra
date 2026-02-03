@@ -108,7 +108,17 @@
     "search_results": "Результаты поиска",
     "settings": "Настройки",
     "version_available_install": "Доступна версия {{version}}. Нажмите здесь для установки.",
-    "version_available_download": "Доступна версия {{version}}. Нажмите здесь для загрузки."
+    "version_available_download": "Доступна версия {{version}}. Нажмите здесь для загрузки.",
+    "scan_games_tooltip": "Сканировать ПК на наличие установленных игр",
+    "scan_games_title": "Сканировать ПК на наличие установленных игр",
+    "scan_games_description": "Это просканирует ваши диски на наличие известных исполняемых файлов игр. Это может занять несколько минут.",
+    "scan_games_start": "Начать сканирование",
+    "scan_games_cancel": "Отмена",
+    "scan_games_result": "Найдено {{found}} из {{total}} игр без пути к исполняемому файлу",
+    "scan_games_no_results": "Не удалось найти ни одной установленной игры.",
+    "scan_games_in_progress": "Сканирование дисков на наличие установленных игр...",
+    "scan_games_close": "Закрыть",
+    "scan_games_scan_again": "Сканировать снова"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Нет активных загрузок",
@@ -175,6 +185,7 @@
     "repacks_modal_description": "Выберите репак для загрузки",
     "select_folder_hint": "Чтобы изменить папку загрузок по умолчанию, откройте <0>Настройки</0>",
     "download_now": "Загрузить сейчас",
+    "add_to_queue": "Добавить в очередь",
     "loading": "Загрузка...",
     "no_shop_details": "Не удалось получить описание",
     "download_options": "Источники",
@@ -433,7 +444,9 @@
     "yes": "Да",
     "no": "Нет",
     "network": "СЕТЬ",
-    "peak": "ПИК"
+    "peak": "ПИК",
+    "move_up": "Переместить вверх",
+    "move_down": "Переместить вниз"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -600,7 +613,8 @@
     "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
     "downloads": "Загрузки",
     "use_native_http_downloader": "Использовать встроенный HTTP-загрузчик (экспериментально)",
-    "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки"
+    "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки",
+    "create_start_menu_shortcut_on_download": "Создать ярлык в меню «Пуск» при завершении загрузки игры"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -618,7 +632,11 @@
     "game_extracted": "{{title}} успешно распакован",
     "friend_started_playing_game": "{{displayName}} начал играть в игру",
     "test_achievement_notification_title": "Это тестовое уведомление",
-    "test_achievement_notification_description": "Довольно круто, да?"
+    "test_achievement_notification_description": "Довольно круто, да?",
+    "scan_games_complete_title": "Сканирование игр завершено успешно",
+    "scan_games_complete_description": "Найдено {{count}} игр без установленного пути к исполняемому файлу",
+    "scan_games_no_results_title": "Сканирование игр завершено",
+    "scan_games_no_results_description": "Установленные игры не найдены"
   },
   "system_tray": {
     "open": "Открыть Hydra",
@@ -773,7 +791,10 @@
     "manual_playtime_tooltip": "Время игры было обновлено вручную",
     "all_games": "Все игры",
     "recently_played": "Недавно сыгранные",
-    "favorites": "Избранное"
+    "favorites": "Избранное",
+    "disk_usage": "Использование диска",
+    "disk_usage_tooltip": "Установленный размер на диске",
+    "installer_size_tooltip": "Размер установщика"
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
@@ -839,5 +860,19 @@
     "failed_to_dismiss": "Не удалось отклонить уведомление",
     "friend_request_accepted": "Запрос в друзья принят",
     "friend_request_refused": "Запрос в друзья отклонен"
+  },
+  "game_launcher": {
+    "launching": "Запуск...",
+    "launching_base": "Запуск",
+    "open_hydra": "Открыть Hydra",
+    "playtime": "Время игры",
+    "amount_hours": "{{amount}} часов",
+    "amount_minutes": "{{amount}} минут",
+    "amount_hours_short": "{{amount}}ч",
+    "amount_minutes_short": "{{amount}}м",
+    "preflight_checking": "Проверка зависимостей",
+    "preflight_downloading": "Загрузка зависимостей",
+    "preflight_installing": "Установка зависимостей",
+    "preflight_installing_detail": "{{detail}}"
   }
 }
