@@ -79,7 +79,6 @@ app.whenReady().then(async () => {
 
     // Simple string parsing approach - more secure than regex
     if (
-      gradientCss &&
       gradientCss.startsWith("linear-gradient(") &&
       gradientCss.endsWith(")")
     ) {
@@ -142,13 +141,14 @@ app.whenReady().then(async () => {
     .catch(() => "en");
 
   if (language) i18n.changeLanguage(language);
+
   // Check if starting from a "run" deep link - don't show main window in that case
-  const deepLinkArg = process.argv?.find((arg) =>
-    arg?.startsWith("hydralauncher://")
+  const deepLinkArg = process.argv.find((arg) =>
+    arg.startsWith("hydralauncher://")
   );
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
-  if (!process.argv?.includes("--hidden") && !isRunDeepLink) {
+  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow();
   }
 
