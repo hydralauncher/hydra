@@ -6,20 +6,22 @@
 
 ::-webkit-scrollbar {
   width: 9px;
-  background-color: globals.$dark-background-color;
+  background-color: globals.$background-color;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: globals.$surface-variant;
+  border-radius: globals.$border-radius-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
+  background-color: globals.$outline-variant;
+  border-radius: globals.$border-radius-full;
+  border: 2px solid globals.$surface-variant;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: globals.$outline;
 }
 
 html,
@@ -32,12 +34,12 @@ main {
 body {
   overflow: hidden;
   user-select: none;
-  font-family:
-    Noto Sans,
-    sans-serif;
+  font-family: globals.$font-family;
   font-size: globals.$body-font-size;
-  color: globals.$body-color;
+  color: globals.$on-surface;
   margin: 0;
+  background-color: globals.$background-color;
+  letter-spacing: globals.$letter-spacing-tracking-normal;
 }
 
 button {
@@ -45,6 +47,13 @@ button {
   background-color: transparent;
   border: none;
   font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: globals.$disabled-opacity;
+  cursor: not-allowed;
 }
 
 h1,
@@ -57,8 +66,24 @@ p {
   margin: 0;
 }
 
+h1 {
+  font-size: globals.$headline-large;
+  font-weight: 500;
+  letter-spacing: globals.$letter-spacing-tracking-normal;
+}
+
+h2 {
+  font-size: globals.$headline-medium;
+  font-weight: 500;
+}
+
+h3 {
+  font-size: globals.$headline-small;
+  font-weight: 500;
+}
+
 p {
-  line-height: 20px;
+  line-height: globals.$line-height-normal;
 }
 
 #root,
@@ -82,6 +107,10 @@ input::-webkit-inner-spin-button {
 
 label {
   font-size: globals.$body-font-size;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
 }
 
 img {
@@ -91,6 +120,19 @@ img {
 progress[value] {
   -webkit-appearance: none;
   appearance: none;
+  background-color: globals.$surface-variant;
+  border-radius: globals.$border-radius-full;
+  overflow: hidden;
+}
+
+progress[value]::-webkit-progress-bar {
+  background-color: globals.$surface-variant;
+  border-radius: globals.$border-radius-full;
+}
+
+progress[value]::-webkit-progress-value {
+  background: linear-gradient(90deg, globals.$primary, globals.$secondary);
+  border-radius: globals.$border-radius-full;
 }
 
 .container {
@@ -109,11 +151,7 @@ progress[value] {
     flex-direction: column;
     position: relative;
     height: 100%;
-    background: linear-gradient(
-      0deg,
-      globals.$dark-background-color 50%,
-      globals.$background-color 100%
-    );
+    background: globals.$background-color;
   }
 }
 
@@ -122,16 +160,18 @@ progress[value] {
   width: 100%;
   height: 35px;
   min-height: 35px;
-  background-color: globals.$dark-background-color;
+  background-color: globals.$surface;
   align-items: center;
   padding: 0 calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
   z-index: 4;
   border-bottom: 1px solid globals.$border-color;
+  box-shadow: globals.$shadow-1;
 
   &__cloud-text {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+    background: linear-gradient(270deg, globals.$primary 50%, globals.$tertiary 100%);
     background-clip: text;
     color: transparent;
+    font-weight: 600;
   }
 }
