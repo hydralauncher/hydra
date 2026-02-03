@@ -1,15 +1,45 @@
-$background-color: #121212;
-$dark-background-color: #0d0d0d;
+// Material You - Primary Colors
+$primary: #6750a4;
+$on-primary: #ffffff;
+$primary-container: #eaddff;
+$on-primary-container: #21005e;
 
+// Material You - Secondary Colors
+$secondary: #625b71;
+$on-secondary: #ffffff;
+$secondary-container: #e8def8;
+$on-secondary-container: #1e192b;
+
+// Material You - Tertiary Colors
+$tertiary: #7d5260;
+$on-tertiary: #ffffff;
+$tertiary-container: #ffd8e4;
+$on-tertiary-container: #31111d;
+
+// Material You - Background & Surface
+$background-color: #1c1b1f;
+$dark-background-color: #121115;
+$surface: #1c1b1f;
+$on-surface: #e6e1e6;
+$surface-variant: #49454e;
+$on-surface-variant: #cac7cd;
+
+// Material You - Legacy Colors (for transition)
 $muted-color: #f0f1f7;
-$body-color: #d0d1d7;
+$body-color: #e6e1e6;
 
-$border-color: rgba(255, 255, 255, 0.08);
-$success-color: #1c9749;
-$danger-color: #801d1e;
-$error-color: #e11d48;
-$warning-color: #ffc107;
+// Material You - Outline & Border
+$border-color: rgba(202, 199, 205, 0.12);
+$outline: #79747e;
+$outline-variant: #cac7cd;
 
+// Status Colors
+$success-color: #4caf50;
+$danger-color: #cf6679;
+$error-color: #f2b8b5;
+$warning-color: #ffd23f;
+
+// Brand Colors (kept for compatibility)
 $brand-teal: #16b195;
 $brand-blue: #3e62c0;
 
