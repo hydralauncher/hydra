@@ -108,7 +108,17 @@
     "search_results": "Resultados de búsqueda",
     "settings": "Ajustes",
     "version_available_install": "Versión {{version}} disponible. Presiona acá para reiniciar e instalar.",
-    "version_available_download": "Versión {{version}} disponible. Presiona acá para descargar."
+    "version_available_download": "Versión {{version}} disponible. Presiona acá para descargar.",
+    "scan_games_tooltip": "Escanear PC en busca de juegos instalados",
+    "scan_games_title": "Escanear PC en busca de juegos instalados",
+    "scan_games_description": "Esto escaneará tus discos en busca de ejecutables de juegos conocidos. Esto puede tomar varios minutos.",
+    "scan_games_start": "Iniciar Escaneo",
+    "scan_games_cancel": "Cancelar",
+    "scan_games_result": "Encontrados {{found}} de {{total}} juegos sin ruta ejecutable",
+    "scan_games_no_results": "No pudimos encontrar ningún juego instalado.",
+    "scan_games_in_progress": "Escaneando tus discos en busca de juegos instalados...",
+    "scan_games_close": "Cerrar",
+    "scan_games_scan_again": "Escanear Nuevamente"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
@@ -175,6 +185,7 @@
     "repacks_modal_description": "Elegí el repack que querés descargar",
     "select_folder_hint": "Si querés cambiar la carpeta por defecto, andá a <0>Ajustes</0>",
     "download_now": "Descargar ahora",
+    "add_to_queue": "Añadir a la cola",
     "loading": "Cargando...",
     "no_shop_details": "No se pudieron obtener detalles de la tienda.",
     "download_options": "Opciones de descarga",
@@ -434,7 +445,9 @@
     "yes": "Sí",
     "no": "No",
     "network": "RED",
-    "peak": "PICO"
+    "peak": "PICO",
+    "move_up": "Mover hacia arriba",
+    "move_down": "Mover hacia abajo"
   },
   "settings": {
     "downloads_path": "Ruta de descarga",
@@ -588,7 +601,10 @@
     "hide_to_tray_on_game_start": "Ocultar Hydra en la bandeja al iniciar un juego",
     "downloads": "Descargas",
     "use_native_http_downloader": "Usar descargador HTTP nativo (experimental)",
-    "cannot_change_downloader_while_downloading": "No se puede cambiar esta configuración mientras una descarga está en progreso"
+    "cannot_change_downloader_while_downloading": "No se puede cambiar esta configuración mientras una descarga está en progreso",
+    "create_start_menu_shortcut_on_download": "Crear atajo en el Menú de Inicio cuando el juego termine de descargar",
+    "change_achievement_sound": "Cambiar sonido de logro",
+    "preview_sound": "Vista previa del sonido"
   },
   "notifications": {
     "download_complete": "Descarga completada",
@@ -606,7 +622,11 @@
     "game_extracted": "{{title}} extraído exitosamente",
     "friend_started_playing_game": "{{displayName}} empezó a jugar un juego",
     "test_achievement_notification_title": "Esto es una notificación de prueba",
-    "test_achievement_notification_description": "Piola, ¿verdad?"
+    "test_achievement_notification_description": "Piola, ¿verdad?",
+    "scan_games_complete_title": "Escaneo de juegos finalizado exitosamente",
+    "scan_games_complete_description": "Encontrados {{count}} juegos sin ruta ejecutable definida",
+    "scan_games_no_results_title": "Escaneo de juegos finalizado",
+    "scan_games_no_results_description": "No se encontraron juegos instalados"
   },
   "system_tray": {
     "open": "Abrir Hydra",
@@ -791,7 +811,10 @@
     "manual_playtime_tooltip": "Este tiempo de juego ha sido modificado manualmente",
     "all_games": "Todos los Juegos",
     "recently_played": "Jugados Recientemente",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "disk_usage": "Uso de disco",
+    "disk_usage_tooltip": "Tamaño instalado en el disco",
+    "installer_size_tooltip": "Tamaño del instalador"
   },
   "notifications_page": {
     "title": "Notificaciones",
@@ -828,5 +851,19 @@
     "failed_to_dismiss": "Error al descartar la notificación",
     "friend_request_accepted": "Solicitud de amistad aceptada",
     "friend_request_refused": "Solicitud de amistad rechazada"
+  },
+  "game_launcher": {
+    "launching": "Iniciando...",
+    "launching_base": "Iniciando",
+    "open_hydra": "Abrir Hydra",
+    "playtime": "Tiempo de juego",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "preflight_checking": "Comprobando dependencias",
+    "preflight_downloading": "Descargando dependencias",
+    "preflight_installing": "Instalando dependencias",
+    "preflight_installing_detail": "{{detail}}"
   }
 }
