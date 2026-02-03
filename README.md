@@ -1,40 +1,49 @@
 <div align="center">
 
-[<img src="https://raw.githubusercontent.com/hydralauncher/hydra/refs/heads/main/resources/icon.png" width="144"/>](https://help.hydralauncher.gg)
+  <!-- Замени ссылку ниже на свой логотип, когда он будет готов. Пока стоит эмодзи -->
+  <span style="font-size: 80px;">🐙</span>
+  <!-- <img src="./public/icon.png" width="144"/> -->
 
-  <h1 align="center">Hydra Launcher</h1>
+  <h1 align="center">Kraken Launcher</h1>
 
   <p align="center">
-    <strong>Hydra Launcher is an open-source gaming platform created to be the single tool that you need in order to manage your gaming library. Hydra is written in Node.js (Electron, React, Typescript) and Python.</strong>
+    <strong>The Beast from the Depths.</strong><br>
+    Kraken is an enhanced fork of Hydra Launcher — an open-source gaming platform designed to manage your gaming library with more power and freedom. Written in Node.js (Electron, React, Typescript) and Python.
   </p>
 
-[![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
-[![release](https://img.shields.io/github/package-json/v/hydralauncher/hydra)](https://github.com/hydralauncher/hydra/releases)
-[![chocolatey](https://img.shields.io/chocolatey/v/hydralauncher.svg)](https://community.chocolatey.org/packages/hydralauncher)
+<!-- Замени ТВОЙ_ЮЗЕРНЕЙМ на свой ник -->
+[![build](https://img.shields.io/github/actions/workflow/status/ТВОЙ_ЮЗЕРНЕЙМ/kraken/build.yml)](https://github.com/ТВОЙ_ЮЗЕРНЕЙМ/kraken/actions)
+[![release](https://img.shields.io/github/package-json/v/ТВОЙ_ЮЗЕРНЕЙМ/kraken)](https://github.com/ТВОЙ_ЮЗЕРНЕЙМ/kraken/releases)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![Hydra Launcher Home Page](./docs/screenshot.png)
+<!-- Скриншот пока можно оставить старый или сделать свой -->
+![Kraken Launcher Preview](./docs/screenshot.png)
 
 </div>
 
-## Features
+## 🌊 Why Kraken? (Enhanced Features)
+
+Kraken builds upon the Hydra foundation but dives deeper:
+
+- 🐙 **Enhanced UI:** Cleaner interface, dark abyss theme, and better performance.
+- ⏳ **HowLongToBeat:** Integrated game length stats directly in the game card.
+- 💾 **Save Manager:** (Planned) Auto-backup for your game saves.
+- 🛡️ **Privacy & Safety:** Improved connection handling and kill-switch options.
+- 🛠️ **Custom Sources:** Easier management of third-party JSON sources.
+
+## Core Features
 
 - Add games that you own to your library
-- Have a nice profile that shows what you are playing to your friends
-- Save your game progress in the cloud with Hydra Cloud
+- Manage your downloads with a built-in BitTorrent client
 - Unlock achievements
 - Navigate through a rich catalogue with a powerful suggestion algorithm
 - Discover new games that you haven't played before
 
-## Build from source and contributing
+## 🛠️ Build from source
 
-Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
+If you want to contribute or build Kraken yourself:
 
-## Contributors
-
-<a href="https://github.com/hydralauncher/hydra/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=hydralauncher/hydra" />
-</a>
-
-## License
-
-Hydra is licensed under the [MIT License](LICENSE).
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/ТВОЙ_ЮЗЕРНЕЙМ/kraken.git
+   cd kraken
