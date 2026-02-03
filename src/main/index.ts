@@ -63,13 +63,13 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
 
   protocol.handle("local", (request) => {
-    const filePath = request.url.slice("local:".length);
+    const filePath = request?.url?.slice("local:".length) || "";
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
   protocol.handle("gradient", (request) => {
     const gradientCss = decodeURIComponent(
-      request.url.slice("gradient:".length)
+      request?.url?.slice("gradient:".length) || ""
     );
 
     // Parse gradient CSS safely without regex to prevent ReDoS
@@ -241,8 +241,8 @@ const handleDeepLinkPath = (uri?: string) => {
 };
 
 app.on("second-instance", (_event, commandLine) => {
-  const deepLink = commandLine.find((arg) =>
-    arg.startsWith("hydralauncher://")
+  const deepLink = commandLine?.find((arg) =>
+    arg?.startsWith("hydralauncher://")
   );
 
   // Check if this is a "run" deep link - don't show main window in that case
