@@ -1,0 +1,426 @@
+@use "./globals.scss" as g;
+
+// Material You Button Mixins
+@mixin button-filled {
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 3);
+  background-color: g.$primary;
+  color: g.$on-primary;
+  border-radius: g.$border-radius-full;
+  font-size: g.$label-large;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  box-shadow: g.$shadow-1;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: g.$shadow-2;
+    background-color: darken(g.$primary, 5%);
+  }
+
+  &:active {
+    box-shadow: g.$shadow-1;
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-outlined {
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 3);
+  background-color: transparent;
+  color: g.$primary;
+  border: 1px solid g.$outline;
+  border-radius: g.$border-radius-full;
+  font-size: g.$label-large;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(g.$primary, 0.08);
+  }
+
+  &:active {
+    background-color: rgba(g.$primary, 0.12);
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-text {
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 3);
+  background-color: transparent;
+  color: g.$primary;
+  border: none;
+  border-radius: g.$border-radius-full;
+  font-size: g.$label-large;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(g.$primary, 0.08);
+  }
+
+  &:active {
+    background-color: rgba(g.$primary, 0.12);
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+// Material You Card Mixin
+@mixin card {
+  background-color: g.$surface;
+  border-radius: g.$border-radius-md;
+  padding: calc(g.$spacing-unit * 2);
+  box-shadow: g.$shadow-1;
+  border: 1px solid g.$outline-variant;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: g.$shadow-2;
+  }
+}
+
+// Material You Elevated Card Mixin
+@mixin card-elevated {
+  background-color: g.$surface;
+  border-radius: g.$border-radius-md;
+  padding: calc(g.$spacing-unit * 2);
+  box-shadow: g.$shadow-2;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: g.$shadow-3;
+  }
+}
+
+// Material You Filled Input Mixin
+@mixin input-filled {
+  width: 100%;
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 2);
+  background-color: rgba(g.$on-surface, 0.04);
+  border: 1px solid transparent;
+  border-radius: g.$border-radius-xs;
+  color: g.$on-surface;
+  font-size: g.$body-font-size;
+  font-family: g.$font-family;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: g.$on-surface-variant;
+  }
+
+  &:hover {
+    background-color: rgba(g.$on-surface, 0.08);
+  }
+
+  &:focus {
+    outline: none;
+    background-color: g.$surface;
+    border-color: g.$primary;
+    box-shadow: inset 0 0 0 2px rgba(g.$primary, 0.2);
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+// Material You Outlined Input Mixin
+@mixin input-outlined {
+  width: 100%;
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 2);
+  background-color: transparent;
+  border: 1px solid g.$outline;
+  border-radius: g.$border-radius-xs;
+  color: g.$on-surface;
+  font-size: g.$body-font-size;
+  font-family: g.$font-family;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: g.$on-surface-variant;
+  }
+
+  &:hover {
+    border-color: g.$on-surface;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: g.$primary;
+    box-shadow: inset 0 0 0 1px rgba(g.$primary, 0.3);
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+// Material You Badge/Chip Mixin
+@mixin chip {
+  display: inline-flex;
+  align-items: center;
+  gap: g.$spacing-unit;
+  padding: calc(g.$spacing-unit * 0.75) calc(g.$spacing-unit * 1.5);
+  background-color: g.$secondary-container;
+  color: g.$on-secondary-container;
+  border-radius: g.$border-radius-full;
+  font-size: g.$label-medium;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    box-shadow: g.$shadow-1;
+  }
+
+  &:active {
+    box-shadow: g.$shadow-2;
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+// Material You Modal/Dialog Mixin
+@mixin modal {
+  background-color: g.$surface;
+  border-radius: g.$border-radius-lg;
+  padding: calc(g.$spacing-unit * 3);
+  box-shadow: g.$shadow-5;
+  border: none;
+  max-width: 90vw;
+  animation: modal-enter 0.2s ease;
+
+  @keyframes modal-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+// Material You Dropdown Mixin
+@mixin dropdown {
+  position: absolute;
+  background-color: g.$surface;
+  border-radius: g.$border-radius-md;
+  box-shadow: g.$shadow-3;
+  border: 1px solid g.$outline-variant;
+  min-width: 200px;
+  z-index: 100;
+  animation: dropdown-enter 0.15s ease;
+
+  @keyframes dropdown-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// Material You List Item Mixin
+@mixin list-item {
+  padding: calc(g.$spacing-unit * 1.5) calc(g.$spacing-unit * 2);
+  color: g.$on-surface;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: g.$body-font-size;
+
+  &:hover {
+    background-color: rgba(g.$primary, 0.08);
+  }
+
+  &:active {
+    background-color: rgba(g.$primary, 0.12);
+  }
+
+  &.selected {
+    background-color: rgba(g.$primary, 0.12);
+    color: g.$primary;
+  }
+
+  &:disabled {
+    opacity: g.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+// Material You Progress Bar Mixin
+@mixin progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: g.$surface-variant;
+  border-radius: g.$border-radius-full;
+  overflow: hidden;
+
+  &__fill {
+    height: 100%;
+    background: linear-gradient(90deg, g.$primary, g.$secondary);
+    border-radius: g.$border-radius-full;
+    transition: width 0.3s ease;
+  }
+}
+
+// Material You Divider Mixin
+@mixin divider {
+  height: 1px;
+  background-color: g.$outline-variant;
+  border: none;
+  margin: 0;
+}
+
+// Material You Text Styles
+@mixin text-headline-large {
+  font-size: g.$headline-large;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-headline-medium {
+  font-size: g.$headline-medium;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-headline-small {
+  font-size: g.$headline-small;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-title-large {
+  font-size: g.$title-large;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-title-medium {
+  font-size: g.$title-medium;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-title-small {
+  font-size: g.$title-small;
+  font-weight: 500;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-body-large {
+  font-size: g.$body-large;
+  font-weight: 400;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-body-medium {
+  font-size: g.$body-font-size;
+  font-weight: 400;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-body-small {
+  font-size: g.$body-small;
+  font-weight: 400;
+  line-height: g.$line-height-normal;
+  letter-spacing: g.$letter-spacing-tracking-normal;
+}
+
+@mixin text-label-large {
+  font-size: g.$label-large;
+  font-weight: 500;
+  line-height: g.$line-height-compact;
+  letter-spacing: g.$letter-spacing-tracking-wide;
+  text-transform: uppercase;
+}
+
+@mixin text-label-medium {
+  font-size: g.$label-medium;
+  font-weight: 500;
+  line-height: g.$line-height-compact;
+  letter-spacing: g.$letter-spacing-tracking-wide;
+}
+
+@mixin text-label-small {
+  font-size: g.$label-small;
+  font-weight: 500;
+  line-height: g.$line-height-compact;
+  letter-spacing: g.$letter-spacing-tracking-wide;
+}
+
+// Elevation Mixin
+@mixin elevation($level: 1) {
+  @if $level == 0 {
+    box-shadow: g.$shadow-none;
+  } @else if $level == 1 {
+    box-shadow: g.$shadow-1;
+  } @else if $level == 2 {
+    box-shadow: g.$shadow-2;
+  } @else if $level == 3 {
+    box-shadow: g.$shadow-3;
+  } @else if $level == 4 {
+    box-shadow: g.$shadow-4;
+  } @else if $level == 5 {
+    box-shadow: g.$shadow-5;
+  }
+}
+
+// Responsive utilities
+@mixin responsive-text($mobile: 14px, $tablet: 16px, $desktop: 18px) {
+  font-size: $mobile;
+
+  @media (min-width: 768px) {
+    font-size: $tablet;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: $desktop;
+  }
+}
+
+// Focus state for accessibility
+@mixin focus-visible {
+  outline: 2px solid g.$primary;
+  outline-offset: 2px;
+
+  &:focus-visible {
+    outline: 2px solid g.$primary;
+    outline-offset: 2px;
+  }
+}
