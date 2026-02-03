@@ -108,7 +108,17 @@
     "search_results": "Resultados da busca",
     "settings": "Ajustes",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
-    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download."
+    "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download.",
+    "scan_games_tooltip": "Escanear PC por jogos instalados",
+    "scan_games_title": "Escanear PC por jogos instalados",
+    "scan_games_description": "Isso irá escanear seus discos por executáveis de jogos conhecidos. Isso pode levar vários minutos.",
+    "scan_games_start": "Iniciar Escaneamento",
+    "scan_games_cancel": "Cancelar",
+    "scan_games_result": "Encontrados {{found}} de {{total}} jogos sem caminho executável",
+    "scan_games_no_results": "Não conseguimos encontrar nenhum jogo instalado.",
+    "scan_games_in_progress": "Escaneando seus discos por jogos instalados...",
+    "scan_games_close": "Fechar",
+    "scan_games_scan_again": "Escanear Novamente"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -317,6 +327,15 @@
     "edit_game_modal_button": "Alterar detalhes do jogo",
     "game_added_to_pinned": "Jogo adicionado aos fixados",
     "game_removed_from_pinned": "Jogo removido dos fixados",
+    "add_to_queue": "Adicionar à fila",
+    "no_save_folder_found": "Nenhuma pasta de salvamento encontrada",
+    "open_save_folder": "Abrir pasta de salvamento",
+    "searching_save_folder": "Procurando pasta de salvamento...",
+    "shortcuts_section_title": "Atalhos",
+    "shortcuts_section_description": "Criar atalhos para iniciar este jogo rapidamente",
+    "source_offline": "Fonte está offline",
+    "source_online": "Fonte está online",
+    "source_partial": "Alguns links estão offline",
     "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
     "manual_playtime_warning": "As suas horas de jogo serão marcadas como atualizadas manualmente. Esta ação não pode ser desfeita.",
     "missing_wine_prefix": "Um prefixo Wine é necessário para criar um backup no Linux",
@@ -423,7 +442,9 @@
     "yes": "Sim",
     "no": "Não",
     "network": "REDE",
-    "peak": "PICO"
+    "peak": "PICO",
+    "move_up": "Mover para cima",
+    "move_down": "Mover para baixo"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -590,7 +611,8 @@
     "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo",
     "downloads": "Downloads",
     "use_native_http_downloader": "Usar downloader HTTP nativo (experimental)",
-    "cannot_change_downloader_while_downloading": "Não é possível alterar esta configuração enquanto um download estiver em andamento"
+    "cannot_change_downloader_while_downloading": "Não é possível alterar esta configuração enquanto um download estiver em andamento",
+    "create_start_menu_shortcut_on_download": "Criar atalho no Menu Iniciar quando o jogo terminar de baixar"
   },
   "notifications": {
     "download_complete": "Download concluído",
@@ -600,6 +622,8 @@
     "repack_count_other": "{{count}} novos repacks",
     "new_update_available": "Versão {{version}} disponível",
     "restart_to_install_update": "Reinicie o Hydra para instalar a nova versão",
+    "notification_achievement_unlocked_title": "Conquista desbloqueada para {{game}}",
+    "notification_achievement_unlocked_body": "{{achievement}} e outras {{count}} foram desbloqueadas",
     "new_friend_request_title": "Novo pedido de amizade",
     "new_friend_request_description": "{{displayName}} te enviou um pedido de amizade",
     "extraction_complete": "Extração concluída",
@@ -607,8 +631,10 @@
     "friend_started_playing_game": "{{displayName}} começou a jogar",
     "test_achievement_notification_title": "Esta é uma notificação de teste",
     "test_achievement_notification_description": "Bem legal, né?",
-    "notification_achievement_unlocked_title": "Conquista desbloqueada para {{game}}",
-    "notification_achievement_unlocked_body": "{{achievement}} e outras {{count}} foram desbloqueadas"
+    "scan_games_complete_title": "Escaneamento de jogos finalizado com sucesso",
+    "scan_games_complete_description": "Encontrados {{count}} jogos sem caminho executável definido",
+    "scan_games_no_results_title": "Escaneamento de jogos finalizado",
+    "scan_games_no_results_description": "Nenhum jogo instalado foi encontrado"
   },
   "system_tray": {
     "open": "Abrir Hydra",
@@ -811,7 +837,10 @@
     "manual_playtime_tooltip": "Este tempo de jogo foi atualizado manualmente",
     "all_games": "Todos os Jogos",
     "recently_played": "Jogados Recentemente",
-    "favorites": "Favoritos"
+    "favorites": "Favoritos",
+    "disk_usage": "Uso de disco",
+    "disk_usage_tooltip": "Tamanho instalado no disco",
+    "installer_size_tooltip": "Tamanho do instalador"
   },
   "notifications_page": {
     "title": "Notificações",
@@ -848,5 +877,19 @@
     "failed_to_dismiss": "Falha ao descartar notificação",
     "friend_request_accepted": "Solicitação de amizade aceita",
     "friend_request_refused": "Solicitação de amizade recusada"
+  },
+  "game_launcher": {
+    "launching": "Iniciando...",
+    "launching_base": "Iniciando",
+    "open_hydra": "Abrir Hydra",
+    "playtime": "Tempo de jogo",
+    "amount_hours": "{{amount}} horas",
+    "amount_minutes": "{{amount}} minutos",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "preflight_checking": "Verificando dependências",
+    "preflight_downloading": "Baixando dependências",
+    "preflight_installing": "Instalando dependências",
+    "preflight_installing_detail": "{{detail}}"
   }
 }
