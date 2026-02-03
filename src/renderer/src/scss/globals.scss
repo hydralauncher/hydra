@@ -43,18 +43,68 @@ $warning-color: #ffd23f;
 $brand-teal: #16b195;
 $brand-blue: #3e62c0;
 
+// Material You - Typography System
+$font-family: 'Roboto', sans-serif;
+$font-family-code: 'Roboto Mono', monospace;
+
+// Font sizes (Material You scale)
+$headline-large: 28px;
+$headline-medium: 24px;
+$headline-small: 20px;
+
+$title-large: 18px;
+$title-medium: 14px;
+$title-small: 12px;
+
+$body-large: 16px;
+$body-font-size: 14px;
+$body-small: 12px;
+
+$label-large: 14px;
+$label-medium: 12px;
+$label-small: 11px;
+
+$small-font-size: 12px;
+
+// Letter spacing
+$letter-spacing-tracking-tight: -0.25px;
+$letter-spacing-tracking-normal: 0px;
+$letter-spacing-tracking-wide: 0.1px;
+
+// Line heights
+$line-height-compact: 1.2;
+$line-height-normal: 1.5;
+$line-height-loose: 1.75;
+
+// Opacity values
 $disabled-opacity: 0.5;
 $active-opacity: 0.7;
 
+// Spacing
 $spacing-unit: 8px;
 
+// Z-index layers
 $toast-z-index: 150;
 $bottom-panel-z-index: 3;
 $title-bar-z-index: 4;
 $backdrop-z-index: 4;
 $modal-z-index: 5;
 
-$body-font-size: 14px;
-$small-font-size: 12px;
+// Elevation/Shadow (Material You)
+$shadow-none: none;
+$shadow-1: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px rgba(0, 0, 0, 0.15);
+$shadow-2: 0px 3px 6px rgba(0, 0, 0, 0.3), 0px 3px 6px rgba(0, 0, 0, 0.15);
+$shadow-3: 0px 6px 10px rgba(0, 0, 0, 0.3), 0px 3px 5px rgba(0, 0, 0, 0.15);
+$shadow-4: 0px 8px 12px rgba(0, 0, 0, 0.3), 0px 5px 6px rgba(0, 0, 0, 0.15);
+$shadow-5: 0px 12px 16px rgba(0, 0, 0, 0.3), 0px 5px 6px rgba(0, 0, 0, 0.15);
+
+// Border radius (Material You)
+$border-radius-none: 0;
+$border-radius-xs: 4px;
+$border-radius-sm: 8px;
+$border-radius-md: 12px;
+$border-radius-lg: 16px;
+$border-radius-xl: 20px;
+$border-radius-full: 28px;
 
 $app-container: app-container;
