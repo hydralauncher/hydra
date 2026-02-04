@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import http from "node:http";
 import getPort, { portNumbers } from "get-port";
 
@@ -30,19 +30,21 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 
 const RPC_PORT_RANGE_START = 8080;
 const RPC_PORT_RANGE_END = 9000;
-const DEFAULT_RPC_PORT = 8084;
+const PREFERRED_RPC_PORT = 8084;
 const HEALTH_CHECK_INTERVAL_MS = 100;
 const HEALTH_CHECK_TIMEOUT_MS = 10000;
 
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
 
-  public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
-    httpAgent: new http.Agent({
-      family: 4, // Force IPv4
-    }),
-  });
+  private static _rpc: AxiosInstance | null = null;
+
+  public static get rpc(): AxiosInstance {
+    if (!this._rpc) {
+      throw new Error("PythonRPC not initialized. Call spawn() first.");
+    }
+    return this._rpc;
+  }
 
   private static pythonProcess: cp.ChildProcess | null = null;
 
@@ -98,12 +100,18 @@ export class PythonRPC {
 
     const port = await getPort({
       port: [
-        DEFAULT_RPC_PORT,
+        PREFERRED_RPC_PORT,
         ...portNumbers(RPC_PORT_RANGE_START, RPC_PORT_RANGE_END),
       ],
     });
 
-    this.rpc.defaults.baseURL = `http://localhost:${port}`;
+    this._rpc = axios.create({
+      baseURL: `http://localhost:${port}`,
+      httpAgent: new http.Agent({
+        family: 4, // Force IPv4
+      }),
+    });
+
     pythonRpcLogger.log(`Using RPC port: ${port}`);
 
     const commonArgs = [
@@ -156,7 +164,7 @@ export class PythonRPC {
       this.pythonProcess = childProcess;
     }
 
-    this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
+    this._rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
 
     try {
       await this.waitForHealthCheck();
