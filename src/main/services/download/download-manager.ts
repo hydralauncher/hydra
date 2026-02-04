@@ -149,7 +149,7 @@ export class DownloadManager {
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
-    PythonRPC.spawn(
+    await PythonRPC.spawn(
       download?.status === "active"
         ? await this.getDownloadPayload(download).catch((err) => {
             logger.error("Error getting download payload", err);
