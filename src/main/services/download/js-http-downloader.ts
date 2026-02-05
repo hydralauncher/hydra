@@ -72,13 +72,15 @@ export class JsHttpDownloader {
 
     this.currentOptions = options;
     this.isPaused = false;
+    this.retryCount = 0;
+    this.isStallRetry = false;
     await this.startDownloadWithRetry();
   }
 
   private async startDownloadWithRetry(): Promise<void> {
     if (!this.currentOptions) return;
 
-    while (this.retryCount <= MAX_RETRY_ATTEMPTS && !this.isPaused) {
+    while (!this.isPaused) {
       this.abortController = new AbortController();
       this.status = "active";
       this.isDownloading = true;
@@ -104,7 +106,6 @@ export class JsHttpDownloader {
           savePath,
           usedFallback
         );
-        // Download completed successfully
         break;
       } catch (err) {
         const shouldRetry = await this.handleDownloadErrorWithRetry(
@@ -113,7 +114,6 @@ export class JsHttpDownloader {
         if (!shouldRetry) {
           break;
         }
-        // Loop continues for retry
       } finally {
         this.stopStallDetection();
         this.cleanupResources();
@@ -177,14 +177,9 @@ export class JsHttpDownloader {
     return false;
   }
 
-  /**
-   * Handles download errors and determines whether to retry.
-   * @returns true if should retry, false otherwise
-   */
   private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
     const wasStallRetry = this.isStallRetry;
 
-    // User-initiated pause/abort (but not stall retry)
     if (this.isPaused && !wasStallRetry) {
       logger.log("[JsHttpDownloader] Download paused by user");
       this.status = "paused";
@@ -299,8 +294,6 @@ export class JsHttpDownloader {
       signal: this.abortController?.signal,
     });
 
-    // Handle 416 Range Not Satisfiable - existing file is larger than server file
-    // This happens when downloading same game from different source
     if (response.status === 416 && startByte > 0) {
       logger.log(
         "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
@@ -311,7 +304,6 @@ export class JsHttpDownloader {
       this.bytesDownloaded = 0;
       this.resetSpeedTracking();
 
-      // Retry without Range header
       const headersWithoutRange = { ...requestHeaders };
       delete headersWithoutRange["Range"];
 
@@ -331,7 +323,6 @@ export class JsHttpDownloader {
 
     this.parseFileSize(response, startByte);
 
-    // If we used "download" fallback, try to get filename from Content-Disposition
     let actualFilePath = filePath;
     if (usedFallback && startByte === 0) {
       const headerFilename = this.parseContentDisposition(response);
@@ -364,8 +355,6 @@ export class JsHttpDownloader {
     const header = response.headers.get("content-disposition");
     if (!header) return undefined;
 
-    // Try to extract filename from Content-Disposition header
-    // Formats: attachment; filename="file.zip" or attachment; filename=file.zip
     const filenameMatch = /filename\*?=['"]?(?:UTF-8'')?([^"';\n]+)['"]?/i.exec(
       header
     );
@@ -412,7 +401,6 @@ export class JsHttpDownloader {
   }
 
   private handleDownloadError(err: Error): void {
-    // Handle abort/cancellation errors - these are expected when user pauses/cancels
     if (
       err.name === "AbortError" ||
       (err as NodeJS.ErrnoException).code === "ERR_STREAM_PREMATURE_CLOSE"
