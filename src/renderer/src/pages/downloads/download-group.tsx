@@ -256,7 +256,7 @@ interface HeroDownloadViewProps {
   lastPacket: ReturnType<typeof useDownload>["lastPacket"];
   speedHistory: number[];
   formatSpeed: (speed: number) => string;
-  calculateETA: () => string;
+  calculateETA: () => string | null;
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
   onCancelClick: (shop: GameShop, objectId: string) => void;
@@ -282,10 +282,26 @@ function HeroDownloadView({
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
+  const { t: tGameDetails } = useTranslation("game_details");
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
   }, [navigate, game]);
+
+  const etaText = calculateETA();
+  const hasEta =
+    isGameDownloading &&
+    !isGameExtracting &&
+    !lastPacket?.isCheckingFiles &&
+    !!etaText &&
+    etaText.trim() !== "" &&
+    etaText !== "0";
+  const shouldShowEtaPlaceholder =
+    isGameDownloading &&
+    !isGameExtracting &&
+    !lastPacket?.isCheckingFiles &&
+    !hasEta;
+  const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
 
   return (
     <div className="download-group download-group--hero">
@@ -347,14 +363,12 @@ function HeroDownloadView({
               <div className="download-group__progress-info-row">
                 {!lastPacket?.isCheckingFiles && !isGameExtracting && (
                   <span className="download-group__progress-time">
-                    {isGameDownloading &&
-                      lastPacket?.timeRemaining &&
-                      lastPacket.timeRemaining > 0 && (
-                        <>
-                          <ClockIcon size={14} />
-                          {calculateETA()}
-                        </>
-                      )}
+                    {shouldShowEta && (
+                      <>
+                        <ClockIcon size={14} />
+                        {hasEta ? etaText : tGameDetails("calculating_eta")}
+                      </>
+                    )}
                   </span>
                 )}
                 <span className="download-group__progress-percentage">
@@ -690,10 +704,10 @@ export function DownloadGroup({
   const calculateETA = () => {
     if (
       !lastPacket ||
-      lastPacket.timeRemaining < 0 ||
+      lastPacket.timeRemaining <= 0 ||
       !Number.isFinite(lastPacket.timeRemaining)
     ) {
-      return "";
+      return null;
     }
 
     return formatDistance(
