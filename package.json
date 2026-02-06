@@ -89,6 +89,7 @@
     "sharp": "^0.34.5",
     "sound-play": "^1.1.0",
     "steam-shortcut-editor": "https://github.com/hydralauncher/steam-shortcut-editor",
+    "string-argv": "^0.3.2",
     "sudo-prompt": "^9.2.1",
     "tar": "^7.5.4",
     "tough-cookie": "^5.1.1",
