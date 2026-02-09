@@ -22,6 +22,26 @@ export interface JsHttpDownloaderOptions {
   headers?: Record<string, string>;
 }
 
+const MAX_RETRY_ATTEMPTS = 10;
+const INITIAL_RETRY_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 15000;
+const STALL_TIMEOUT_MS = 8000;
+const STALL_CHECK_INTERVAL_MS = 2000;
+
+const RETRYABLE_ERROR_CODES = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "ENOTFOUND",
+  "ENETUNREACH",
+  "EHOSTUNREACH",
+  "EPIPE",
+  "EAI_AGAIN",
+  "ECONNABORTED",
+  "ESOCKETTIMEDOUT",
+  "ERR_STREAM_PREMATURE_CLOSE",
+]);
+
 export class JsHttpDownloader {
   private abortController: AbortController | null = null;
   private writeStream: fs.WriteStream | null = null;
@@ -36,6 +56,12 @@ export class JsHttpDownloader {
   private bytesAtLastSpeedUpdate = 0;
   private isDownloading = false;
 
+  private retryCount = 0;
+  private lastDataReceivedAt = Date.now();
+  private stallCheckInterval: NodeJS.Timeout | null = null;
+  private isPaused = false;
+  private isStallRetry = false;
+
   async startDownload(options: JsHttpDownloaderOptions): Promise<void> {
     if (this.isDownloading) {
       logger.log(
@@ -45,33 +71,154 @@ export class JsHttpDownloader {
     }
 
     this.currentOptions = options;
-    this.abortController = new AbortController();
-    this.status = "active";
-    this.isDownloading = true;
+    this.isPaused = false;
+    this.retryCount = 0;
+    this.isStallRetry = false;
+    await this.startDownloadWithRetry();
+  }
 
-    const { url, savePath, filename, headers = {} } = options;
-    const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
-      savePath,
-      filename,
-      url
-    );
-    const requestHeaders = this.buildRequestHeaders(headers, startByte);
+  private async startDownloadWithRetry(): Promise<void> {
+    if (!this.currentOptions) return;
 
-    try {
-      await this.executeDownload(
-        url,
-        requestHeaders,
-        filePath,
-        startByte,
+    while (!this.isPaused) {
+      this.abortController = new AbortController();
+      this.status = "active";
+      this.isDownloading = true;
+      this.isStallRetry = false;
+      this.lastDataReceivedAt = Date.now();
+
+      const { url, savePath, filename, headers = {} } = this.currentOptions;
+      const { filePath, startByte, usedFallback } = this.prepareDownloadPath(
         savePath,
-        usedFallback
+        filename,
+        url
       );
-    } catch (err) {
-      this.handleDownloadError(err as Error);
-    } finally {
-      this.isDownloading = false;
-      this.cleanup();
+      const requestHeaders = this.buildRequestHeaders(headers, startByte);
+
+      this.startStallDetection();
+
+      try {
+        await this.executeDownload(
+          url,
+          requestHeaders,
+          filePath,
+          startByte,
+          savePath,
+          usedFallback
+        );
+        break;
+      } catch (err) {
+        const shouldRetry = await this.handleDownloadErrorWithRetry(
+          err as Error
+        );
+        if (!shouldRetry) {
+          break;
+        }
+      } finally {
+        this.stopStallDetection();
+        this.cleanupResources();
+      }
     }
+
+    this.isDownloading = false;
+  }
+
+  private startStallDetection(): void {
+    this.stopStallDetection();
+    this.stallCheckInterval = setInterval(() => {
+      if (this.status !== "active" || this.isPaused || this.isStallRetry) {
+        return;
+      }
+
+      const timeSinceLastData = Date.now() - this.lastDataReceivedAt;
+      if (timeSinceLastData > STALL_TIMEOUT_MS) {
+        logger.log(
+          `[JsHttpDownloader] Download stalled (no data for ${Math.round(timeSinceLastData / 1000)}s), triggering retry`
+        );
+        this.triggerRetry();
+      }
+    }, STALL_CHECK_INTERVAL_MS);
+  }
+
+  private stopStallDetection(): void {
+    if (this.stallCheckInterval) {
+      clearInterval(this.stallCheckInterval);
+      this.stallCheckInterval = null;
+    }
+  }
+
+  private triggerRetry(): void {
+    this.isStallRetry = true;
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+  }
+
+  private isRetryableError(err: Error): boolean {
+    const nodeError = err as NodeJS.ErrnoException;
+    if (nodeError.code && RETRYABLE_ERROR_CODES.has(nodeError.code)) {
+      return true;
+    }
+
+    const message = err.message.toLowerCase();
+    if (
+      message.includes("network") ||
+      message.includes("socket") ||
+      message.includes("connection") ||
+      message.includes("timeout") ||
+      message.includes("aborted") ||
+      message.includes("econnreset") ||
+      message.includes("etimedout") ||
+      message.includes("fetch failed")
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async handleDownloadErrorWithRetry(err: Error): Promise<boolean> {
+    const wasStallRetry = this.isStallRetry;
+
+    if (this.isPaused && !wasStallRetry) {
+      logger.log("[JsHttpDownloader] Download paused by user");
+      this.status = "paused";
+      return false;
+    }
+
+    const isAbortError = err.name === "AbortError";
+    const isRetryable = wasStallRetry || this.isRetryableError(err);
+    const canRetry = this.retryCount < MAX_RETRY_ATTEMPTS;
+
+    if (isRetryable && canRetry && !this.isPaused) {
+      this.retryCount++;
+      const delay = Math.min(
+        INITIAL_RETRY_DELAY_MS * Math.pow(2, this.retryCount - 1),
+        MAX_RETRY_DELAY_MS
+      );
+
+      const reason = wasStallRetry ? "stall detected" : err.message;
+      logger.log(
+        `[JsHttpDownloader] Retryable error (${reason}). ` +
+          `Retry ${this.retryCount}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`
+      );
+
+      await this.sleep(delay);
+      return !this.isPaused;
+    }
+
+    if (isAbortError && !wasStallRetry) {
+      logger.log("[JsHttpDownloader] Download aborted");
+      this.status = "paused";
+    } else {
+      this.handleDownloadError(err);
+    }
+
+    return false;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private prepareDownloadPath(
@@ -147,8 +294,6 @@ export class JsHttpDownloader {
       signal: this.abortController?.signal,
     });
 
-    // Handle 416 Range Not Satisfiable - existing file is larger than server file
-    // This happens when downloading same game from different source
     if (response.status === 416 && startByte > 0) {
       logger.log(
         "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
@@ -159,7 +304,6 @@ export class JsHttpDownloader {
       this.bytesDownloaded = 0;
       this.resetSpeedTracking();
 
-      // Retry without Range header
       const headersWithoutRange = { ...requestHeaders };
       delete headersWithoutRange["Range"];
 
@@ -179,7 +323,6 @@ export class JsHttpDownloader {
 
     this.parseFileSize(response, startByte);
 
-    // If we used "download" fallback, try to get filename from Content-Disposition
     let actualFilePath = filePath;
     if (usedFallback && startByte === 0) {
       const headerFilename = this.parseContentDisposition(response);
@@ -203,6 +346,7 @@ export class JsHttpDownloader {
     await pipeline(readableStream, this.writeStream);
 
     this.status = "complete";
+    this.retryCount = 0;
     this.downloadSpeed = 0;
     logger.log("[JsHttpDownloader] Download complete");
   }
@@ -211,8 +355,6 @@ export class JsHttpDownloader {
     const header = response.headers.get("content-disposition");
     if (!header) return undefined;
 
-    // Try to extract filename from Content-Disposition header
-    // Formats: attachment; filename="file.zip" or attachment; filename=file.zip
     const filenameMatch = /filename\*?=['"]?(?:UTF-8'')?([^"';\n]+)['"]?/i.exec(
       header
     );
@@ -231,6 +373,7 @@ export class JsHttpDownloader {
   ): Readable {
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
+      this.lastDataReceivedAt = Date.now();
       this.updateSpeed();
     };
 
@@ -258,7 +401,6 @@ export class JsHttpDownloader {
   }
 
   private handleDownloadError(err: Error): void {
-    // Handle abort/cancellation errors - these are expected when user pauses/cancels
     if (
       err.name === "AbortError" ||
       (err as NodeJS.ErrnoException).code === "ERR_STREAM_PREMATURE_CLOSE"
@@ -277,25 +419,33 @@ export class JsHttpDownloader {
       throw new Error("No download options available for resume");
     }
     this.isDownloading = false;
-    await this.startDownload(this.currentOptions);
+    this.isPaused = false;
+    this.retryCount = 0;
+    this.isStallRetry = false;
+    await this.startDownloadWithRetry();
   }
 
   pauseDownload(): void {
+    logger.log("[JsHttpDownloader] Pausing download");
+    this.isPaused = true;
+    this.stopStallDetection();
     if (this.abortController) {
-      logger.log("[JsHttpDownloader] Pausing download");
       this.abortController.abort();
-      this.status = "paused";
-      this.downloadSpeed = 0;
     }
+    this.status = "paused";
+    this.downloadSpeed = 0;
   }
 
   cancelDownload(deleteFile = true): void {
+    logger.log("[JsHttpDownloader] Cancelling download");
+    this.isPaused = true;
+    this.stopStallDetection();
+
     if (this.abortController) {
-      logger.log("[JsHttpDownloader] Cancelling download");
       this.abortController.abort();
     }
 
-    this.cleanup();
+    this.cleanupResources();
 
     if (deleteFile && this.currentOptions && this.status !== "complete") {
       const filePath = path.join(this.currentOptions.savePath, this.folderName);
@@ -367,7 +517,7 @@ export class JsHttpDownloader {
     return undefined;
   }
 
-  private cleanup(): void {
+  private cleanupResources(): void {
     if (this.writeStream) {
       this.writeStream.close();
       this.writeStream = null;
@@ -383,5 +533,8 @@ export class JsHttpDownloader {
     this.status = "paused";
     this.folderName = "";
     this.isDownloading = false;
+    this.retryCount = 0;
+    this.isPaused = false;
+    this.isStallRetry = false;
   }
 }
