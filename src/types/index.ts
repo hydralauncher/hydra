@@ -38,6 +38,12 @@ export interface DownloadSource {
   createdAt: string;
 }
 
+export interface ProtonVersion {
+  name: string;
+  path: string;
+  source?: "steam" | "compatibility_tools" | "unknown";
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
