@@ -31,7 +31,6 @@ export default function GameLauncher() {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [accentColor, setAccentColor] = useState<string | null>(null);
   const [colorExtracted, setColorExtracted] = useState(false);
-  const [colorError, setColorError] = useState(false);
   const [windowShown, setWindowShown] = useState(false);
   const [isMainWindowOpen, setIsMainWindowOpen] = useState(false);
   const [preflightStatus, setPreflightStatus] =
@@ -139,7 +138,6 @@ export default function GameLauncher() {
       setAccentColor(colorString);
     } catch (error) {
       logger.error("Failed to extract accent color:", error);
-      setColorError(true);
     } finally {
       setColorExtracted(true);
     }
@@ -174,9 +172,8 @@ export default function GameLauncher() {
     }
   }, [coverImage, colorExtracted, extractAccentColor]);
 
-  const isReady = imageLoaded && colorExtracted && !colorError;
-  const hasFailed =
-    imageError || colorError || (!coverImage && gameAssets !== null);
+  const isReady = imageLoaded && colorExtracted;
+  const hasFailed = imageError || (!coverImage && gameAssets !== null);
 
   useEffect(() => {
     if (windowShown) return;

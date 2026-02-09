@@ -1,8 +1,9 @@
 import { shell } from "electron";
 import { spawn } from "node:child_process";
+import path from "node:path";
 import { GameShop } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { WindowManager, logger } from "@main/services";
+import { WindowManager, logger, Umu } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { parseLaunchOptions } from "../events/helpers/parse-launch-options";
@@ -13,6 +14,52 @@ export interface LaunchGameOptions {
   executablePath: string;
   launchOptions?: string | null;
 }
+
+const isWindowsExecutable = (executablePath: string) =>
+  path.extname(executablePath).toLowerCase() === ".exe";
+
+const launchNatively = (executablePath: string, launchParameters: string[]) => {
+  if (launchParameters.length === 0) {
+    shell.openPath(executablePath);
+    return;
+  }
+
+  const processRef = spawn(executablePath, launchParameters, {
+    shell: false,
+    detached: true,
+    stdio: "ignore",
+  });
+
+  processRef.unref();
+};
+
+const launchWithWine = async (
+  executablePath: string,
+  launchParameters: string[],
+  winePrefixPath?: string | null
+): Promise<boolean> => {
+  return await new Promise<boolean>((resolve) => {
+    const processRef = spawn("wine", [executablePath, ...launchParameters], {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      env: {
+        ...process.env,
+        ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
+      },
+    });
+
+    processRef.once("spawn", () => {
+      processRef.unref();
+      resolve(true);
+    });
+
+    processRef.once("error", (error) => {
+      logger.error("Failed to launch game with Wine", error);
+      resolve(false);
+    });
+  });
+};
 
 /**
  * Shows the launcher window and launches the game executable
@@ -57,10 +104,35 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
 
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  if (parsedParams.length === 0) {
-    shell.openPath(parsedPath);
+  if (process.platform === "linux") {
+    const isWindowsBinary = isWindowsExecutable(parsedPath);
+
+    if (isWindowsBinary) {
+      try {
+        await Umu.launchExecutable(parsedPath, parsedParams, {
+          winePrefixPath: game?.winePrefixPath,
+          protonPath: game?.protonPath,
+          gameId: options.shop === "steam" ? options.objectId : null,
+        });
+        return;
+      } catch (error) {
+        logger.error("Failed to launch game with umu-run, falling back", error);
+      }
+
+      const launchedWithWine = await launchWithWine(
+        parsedPath,
+        parsedParams,
+        game?.winePrefixPath
+      );
+
+      if (launchedWithWine) {
+        return;
+      }
+    }
+
+    launchNatively(parsedPath, parsedParams);
     return;
   }
 
-  spawn(parsedPath, parsedParams, { shell: false, detached: true });
+  launchNatively(parsedPath, parsedParams);
 };

@@ -7,7 +7,6 @@ import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
-import { EditGameModal } from "./modals";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
 
@@ -16,7 +15,6 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -64,17 +62,15 @@ export function GameDetailsContent() {
     shopDetails,
     game,
     hasNSFWContentBlocked,
-    updateGame,
     shop,
+    setShowGameOptionsModal,
+    setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
 
-  const { showHydraCloudModal } = useSubscription();
-
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { updateLibrary, library } = useLibrary();
+  const { library } = useLibrary();
 
-  const { setShowCloudSyncModal, getGameArtifacts } =
-    useContext(cloudSyncContext);
+  const { getGameArtifacts } = useContext(cloudSyncContext);
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -97,7 +93,6 @@ export function GameDetailsContent() {
   }, [shopDetails, t, game?.shop]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
-  const [showEditGameModal, setShowEditGameModal] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
@@ -120,20 +115,18 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      showHydraCloudModal("backup");
+      setGameOptionsInitialCategory("hydra_cloud");
+      setShowGameOptionsModal(true);
       return;
     }
 
-    setShowCloudSyncModal(true);
+    setGameOptionsInitialCategory("hydra_cloud");
+    setShowGameOptionsModal(true);
   };
 
   const handleEditGameClick = () => {
-    setShowEditGameModal(true);
-  };
-
-  const handleGameUpdated = () => {
-    updateGame();
-    updateLibrary();
+    setGameOptionsInitialCategory("assets");
+    setShowGameOptionsModal(true);
   };
 
   useEffect(() => {
@@ -259,16 +252,6 @@ export function GameDetailsContent() {
           {shop !== "custom" && <Sidebar />}
         </div>
       </section>
-
-      {game && (
-        <EditGameModal
-          visible={showEditGameModal}
-          onClose={() => setShowEditGameModal(false)}
-          game={game}
-          shopDetails={shopDetails}
-          onGameUpdated={handleGameUpdated}
-        />
-      )}
     </div>
   );
 }

@@ -54,6 +54,7 @@ export interface Game {
   remoteId: string | null;
   isDeleted: boolean;
   winePrefixPath?: string | null;
+  protonPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
   favorite?: boolean;
