@@ -1,8 +1,7 @@
 import { spawn } from "node:child_process";
-import path from "node:path";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { logger, SystemPath } from "@main/services";
+import { logger, Wine } from "@main/services";
 import type { GameShop } from "@types";
 
 const openGameWinetricks = async (
@@ -19,14 +18,11 @@ const openGameWinetricks = async (
 
   if (!game) return false;
 
-  const defaultPrefixPath = path.join(
-    SystemPath.getPath("home"),
-    "Games",
-    "umu",
-    "umu-default"
-  );
+  const winePrefixPath = Wine.getEffectivePrefixPath(game.winePrefixPath);
 
-  const winePrefixPath = game.winePrefixPath || defaultPrefixPath;
+  if (!winePrefixPath) {
+    return false;
+  }
 
   try {
     await new Promise<void>((resolve, reject) => {

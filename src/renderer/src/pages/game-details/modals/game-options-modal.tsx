@@ -1,6 +1,13 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Button, Modal, TextField } from "@renderer/components";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import {
+  Button,
+  CheckboxField,
+  Link,
+  Modal,
+  ProtonPathPicker,
+  TextField,
+} from "@renderer/components";
 import type {
   Game,
   LibraryGame,
@@ -21,14 +28,15 @@ import {
   FileIcon,
   GearIcon,
   ImageIcon,
+  LinkExternalIcon,
 } from "@primer/octicons-react";
 import { Wrench } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 import { GameAssetsSettings } from "./game-assets-settings";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getGameKey } from "@renderer/helpers";
-import { Tooltip } from "react-tooltip";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
 import { CloudSyncPanel } from "../cloud-sync/cloud-sync-panel";
@@ -56,8 +64,8 @@ export function GameOptionsModal({
   onNavigateHome,
   initialCategory,
 }: Readonly<GameOptionsModalProps>) {
+  const MANGOHUD_SITE_URL = "https://mangohud.com";
   const { t } = useTranslation("game_details");
-  const protonTooltipId = useId();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -87,8 +95,16 @@ export function GameOptionsModal({
   const [selectedProtonPath, setSelectedProtonPath] = useState(
     game.protonPath ?? ""
   );
+  const [autoRunMangohud, setAutoRunMangohud] = useState(
+    game.autoRunMangohud ?? false
+  );
+  const [mangohudAvailable, setMangohudAvailable] = useState(false);
+  const [winetricksAvailable, setWinetricksAvailable] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<GameSettingsCategoryId>("general");
+  const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
+    string | null
+  >(null);
 
   const {
     removeGameInstaller,
@@ -131,12 +147,49 @@ export function GameOptionsModal({
   }, [game.protonPath]);
 
   useEffect(() => {
+    setAutoRunMangohud(game.autoRunMangohud ?? false);
+  }, [game.autoRunMangohud]);
+
+  useEffect(() => {
     if (!visible || window.electron.platform !== "linux") return;
 
     window.electron
       .getInstalledProtonVersions()
       .then(setProtonVersions)
       .catch(() => setProtonVersions([]));
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || window.electron.platform !== "linux") return;
+
+    window.electron
+      .getDefaultWinePrefixSelectionPath()
+      .then((defaultPath) => setDefaultWinePrefixPath(defaultPath))
+      .catch(() => setDefaultWinePrefixPath(null));
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || window.electron.platform !== "linux") {
+      setMangohudAvailable(false);
+      return;
+    }
+
+    window.electron
+      .isMangohudAvailable()
+      .then(setMangohudAvailable)
+      .catch(() => setMangohudAvailable(false));
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || window.electron.platform !== "linux") {
+      setWinetricksAvailable(false);
+      return;
+    }
+
+    window.electron
+      .isWinetricksAvailable()
+      .then(setWinetricksAvailable)
+      .catch(() => setWinetricksAvailable(false));
   }, [visible]);
 
   const debounceUpdateLaunchOptions = useRef(
@@ -262,7 +315,7 @@ export function GameOptionsModal({
 
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
-      defaultPath: defaultPath ?? game?.winePrefixPath ?? "",
+      defaultPath: game?.winePrefixPath ?? defaultPath ?? "",
     });
 
     if (filePaths && filePaths.length > 0) {
@@ -300,15 +353,13 @@ export function GameOptionsModal({
     }
   };
 
-  const handleChangeProtonPath = (
+  const handleToggleMangohud = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const value = event.target.value;
-    setSelectedProtonPath(value);
-
-    void window.electron
-      .selectGameProtonPath(game.shop, game.objectId, value || null)
-      .then(() => updateGame());
+    const enabled = event.target.checked;
+    setAutoRunMangohud(enabled);
+    await window.electron.toggleGameMangohud(game.shop, game.objectId, enabled);
+    updateGame();
   };
 
   const handleChangeLaunchOptions = async (event) => {
@@ -335,6 +386,7 @@ export function GameOptionsModal({
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
+  const displayedWinePrefixPath = game.winePrefixPath ?? defaultWinePrefixPath;
 
   const categories = useMemo(
     () => [
@@ -382,22 +434,9 @@ export function GameOptionsModal({
     }
   }, [initialCategory, visible]);
 
-  const getProtonSourceDescription = (
-    source: ProtonVersion["source"],
-    versionPath: string
-  ) => {
-    if (
-      source === "compatibility_tools" ||
-      versionPath.includes("compatibilitytools.d")
-    ) {
-      return t("proton_source_compatibility_tools");
-    }
-
-    return t("proton_source_steam");
-  };
-
   const shouldShowCreateStartMenuShortcut =
     window.electron.platform === "win32";
+  const showWinetricksUnavailableTooltip = !winetricksAvailable;
 
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
@@ -612,7 +651,20 @@ export function GameOptionsModal({
                   <div className="game-options-modal__header">
                     <h2>{t("launch_options")}</h2>
                     <h4 className="game-options-modal__header-description">
-                      {t("launch_options_description")}
+                      {shouldShowWinePrefixConfiguration ? (
+                        <Trans
+                          i18nKey="launch_options_description_linux"
+                          ns="game_details"
+                          defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
+                          components={{
+                            code: (
+                              <code className="game-options-modal__inline-code" />
+                            ),
+                          }}
+                        />
+                      ) : (
+                        t("launch_options_description")
+                      )}
                     </h4>
                   </div>
 
@@ -674,7 +726,7 @@ export function GameOptionsModal({
                     </div>
 
                     <TextField
-                      value={game.winePrefixPath || ""}
+                      value={displayedWinePrefixPath || ""}
                       readOnly
                       theme="dark"
                       disabled
@@ -702,13 +754,70 @@ export function GameOptionsModal({
                     />
 
                     <div className="game-options-modal__row">
-                      <Button
-                        type="button"
-                        theme="outline"
-                        onClick={handleOpenWinetricks}
+                      <span
+                        className="game-options-modal__tool-button-wrapper"
+                        data-tooltip-id="winetricks-unavailable-tooltip"
+                        data-tooltip-content={
+                          showWinetricksUnavailableTooltip
+                            ? t("winetricks_not_available_tooltip")
+                            : undefined
+                        }
                       >
-                        {t("open_winetricks")}
-                      </Button>
+                        <Button
+                          type="button"
+                          theme="outline"
+                          onClick={handleOpenWinetricks}
+                          disabled={!winetricksAvailable}
+                        >
+                          {t("open_winetricks")}
+                        </Button>
+                      </span>
+
+                      {showWinetricksUnavailableTooltip && (
+                        <Tooltip id="winetricks-unavailable-tooltip" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="game-options-modal__section">
+                    <div className="game-options-modal__header">
+                      <h2>{t("additional_options")}</h2>
+                    </div>
+
+                    <div className="game-options-modal__mangohud-toggle">
+                      {!mangohudAvailable && (
+                        <span
+                          className="game-options-modal__mangohud-help"
+                          data-tooltip-id="mangohud-unavailable-tooltip"
+                          data-tooltip-content={t(
+                            "mangohud_not_available_tooltip"
+                          )}
+                        >
+                          (?)
+                        </span>
+                      )}
+
+                      <CheckboxField
+                        label={
+                          <span className="game-options-modal__mangohud-label">
+                            <span>{t("run_with_mangohud_prefix")}</span>
+                            <Link
+                              to={MANGOHUD_SITE_URL}
+                              className="game-options-modal__mangohud-link"
+                            >
+                              MangoHud
+                              <LinkExternalIcon />
+                            </Link>
+                          </span>
+                        }
+                        checked={autoRunMangohud}
+                        disabled={!mangohudAvailable}
+                        onChange={handleToggleMangohud}
+                      />
+
+                      {!mangohudAvailable && (
+                        <Tooltip id="mangohud-unavailable-tooltip" />
+                      )}
                     </div>
                   </div>
 
@@ -720,77 +829,27 @@ export function GameOptionsModal({
                       </h4>
                     </div>
 
-                    <div className="game-options-modal__proton-radio-group">
-                      <label
-                        className={`game-options-modal__proton-option ${
-                          selectedProtonPath === ""
-                            ? "game-options-modal__proton-option--selected"
-                            : ""
-                        }`}
-                        aria-label={t("proton_version_auto")}
-                      >
-                        <input
-                          type="radio"
-                          className="game-options-modal__proton-radio-input"
-                          name={`proton-version-${game.objectId}`}
-                          value=""
-                          checked={selectedProtonPath === ""}
-                          onChange={handleChangeProtonPath}
-                        />
-                        <span className="game-options-modal__proton-radio-control">
-                          <span className="game-options-modal__proton-radio-dot" />
-                        </span>
-                        <span className="game-options-modal__proton-option-main">
-                          <span
-                            className="game-options-modal__proton-option-label"
-                            data-tooltip-id={protonTooltipId}
-                            data-tooltip-content={t(
-                              "proton_source_umu_default"
-                            )}
-                          >
-                            {t("proton_version_auto")}
-                          </span>
-                        </span>
-                      </label>
-
-                      {protonVersions.map((version) => (
-                        <label
-                          key={version.path}
-                          className={`game-options-modal__proton-option ${
-                            selectedProtonPath === version.path
-                              ? "game-options-modal__proton-option--selected"
-                              : ""
-                          }`}
-                          aria-label={version.name}
-                        >
-                          <input
-                            type="radio"
-                            className="game-options-modal__proton-radio-input"
-                            name={`proton-version-${game.objectId}`}
-                            value={version.path}
-                            checked={selectedProtonPath === version.path}
-                            onChange={handleChangeProtonPath}
-                          />
-                          <span className="game-options-modal__proton-radio-control">
-                            <span className="game-options-modal__proton-radio-dot" />
-                          </span>
-                          <span className="game-options-modal__proton-option-main">
-                            <span
-                              className="game-options-modal__proton-option-label"
-                              data-tooltip-id={protonTooltipId}
-                              data-tooltip-content={getProtonSourceDescription(
-                                version.source,
-                                version.path
-                              )}
-                            >
-                              {version.name}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-
-                      <Tooltip id={protonTooltipId} />
-                    </div>
+                    <ProtonPathPicker
+                      versions={protonVersions}
+                      selectedPath={selectedProtonPath}
+                      onChange={(value) => {
+                        setSelectedProtonPath(value);
+                        void window.electron
+                          .selectGameProtonPath(
+                            game.shop,
+                            game.objectId,
+                            value || null
+                          )
+                          .then(() => updateGame());
+                      }}
+                      radioName={`proton-version-${game.objectId}`}
+                      autoLabel={t("proton_version_auto")}
+                      autoSourceDescription={t("proton_source_umu_default")}
+                      steamSourceDescription={t("proton_source_steam")}
+                      compatibilityToolsSourceDescription={t(
+                        "proton_source_compatibility_tools"
+                      )}
+                    />
                   </div>
                 </>
               )}

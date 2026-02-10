@@ -135,6 +135,14 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       automaticCloudSync
     ),
+  toggleGameMangohud: (
+    shop: GameShop,
+    objectId: string,
+    autoRunMangohud: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameMangohud", shop, objectId, autoRunMangohud),
+  isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
+  isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
   addCustomGameToLibrary: (

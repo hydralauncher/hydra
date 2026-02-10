@@ -6,7 +6,9 @@ import { is } from "@electron-toolkit/utils";
 import { SystemPath } from "./system-path";
 import { logsPath } from "@main/constants";
 import { logger } from "./logger";
+import { Wine } from "./wine";
 import type { ProtonVersion } from "@types";
+import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
 
 const isValidProtonDirectory = (directoryPath: string) => {
   const protonFilePath = path.join(directoryPath, "proton");
@@ -117,6 +119,12 @@ export class Umu {
       "steam",
       "compatibilitytools.d"
     );
+    const systemCompatibilityToolsPath = path.join(
+      "/usr",
+      "share",
+      "steam",
+      "compatibilitytools.d"
+    );
 
     const versions: ProtonVersion[] = [];
 
@@ -146,9 +154,18 @@ export class Umu {
       }
     }
 
-    if (fs.existsSync(compatibilityToolsPath)) {
+    const compatibilityToolPaths = [
+      compatibilityToolsPath,
+      systemCompatibilityToolsPath,
+    ];
+
+    for (const compatibilityToolPath of compatibilityToolPaths) {
+      if (!fs.existsSync(compatibilityToolPath)) {
+        continue;
+      }
+
       const compatibilityToolEntries = await fs.promises.readdir(
-        compatibilityToolsPath,
+        compatibilityToolPath,
         {
           withFileTypes: true,
         }
@@ -159,7 +176,7 @@ export class Umu {
           continue;
         }
 
-        const candidatePath = path.join(compatibilityToolsPath, entry.name);
+        const candidatePath = path.join(compatibilityToolPath, entry.name);
 
         if (!isValidProtonDirectory(candidatePath)) {
           continue;
@@ -193,6 +210,8 @@ export class Umu {
       winePrefixPath?: string | null;
       protonPath?: string | null;
       gameId?: string | null;
+      launchOptions?: string | null;
+      useMangohud?: boolean;
     }
   ): Promise<void> {
     const umuLogPath = getUmuLogPath();
@@ -202,6 +221,13 @@ export class Umu {
     const executableArgs = pythonPath
       ? [umuBinaryPath, executablePath, ...launchParameters]
       : [executablePath, ...launchParameters];
+    const resolvedLaunchCommand = resolveLaunchCommand({
+      baseCommand: executableToSpawn,
+      baseArgs: executableArgs,
+      launchOptions: options?.launchOptions,
+      wrapperCommand: options?.useMangohud ? "mangohud" : null,
+    });
+    const winePrefixPath = Wine.getEffectivePrefixPath(options?.winePrefixPath);
 
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
@@ -209,21 +235,20 @@ export class Umu {
     const launchEnv = {
       PROTON_LOG: "1",
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-      ...(options?.winePrefixPath
-        ? { WINEPREFIX: options.winePrefixPath }
-        : {}),
+      ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
+      ...resolvedLaunchCommand.env,
     };
 
     const envCommandPart = Object.entries(launchEnv)
       .map(([key, value]) => `${key}=${shellQuote(value)}`)
       .join(" ");
-    const argsCommandPart = [executablePath, ...launchParameters]
+    const argsCommandPart = resolvedLaunchCommand.args
       .map(shellQuote)
       .join(" ");
-    const launchCommand = pythonPath
-      ? `${envCommandPart} ${shellQuote(pythonPath)} ${shellQuote(umuBinaryPath)} ${argsCommandPart}`
-      : `${envCommandPart} ${shellQuote(umuBinaryPath)} ${argsCommandPart}`;
+    const launchCommand = `${envCommandPart} ${shellQuote(resolvedLaunchCommand.command)}${
+      argsCommandPart ? ` ${argsCommandPart}` : ""
+    }`;
 
     const launchHeader =
       `\n[${new Date().toISOString()}] Launching with umu-run\n` +
@@ -245,17 +270,21 @@ export class Umu {
         ? null
         : fs.openSync(umuLogPath, "a");
 
-      const child = spawn(executableToSpawn, executableArgs, {
-        detached: true,
-        stdio: shouldPipeToTerminal
-          ? "inherit"
-          : ["ignore", logFileDescriptor, logFileDescriptor],
-        shell: false,
-        env: {
-          ...process.env,
-          ...launchEnv,
-        },
-      });
+      const child = spawn(
+        resolvedLaunchCommand.command,
+        resolvedLaunchCommand.args,
+        {
+          detached: true,
+          stdio: shouldPipeToTerminal
+            ? "inherit"
+            : ["ignore", logFileDescriptor, logFileDescriptor],
+          shell: false,
+          env: {
+            ...process.env,
+            ...launchEnv,
+          },
+        }
+      );
 
       child.once("spawn", () => {
         child.unref();
@@ -271,7 +300,7 @@ export class Umu {
         }
         fs.appendFileSync(
           umuLogPath,
-          `[${new Date().toISOString()}] Failed to spawn umu-run (${executableToSpawn}): ${String(error)}\n`
+          `[${new Date().toISOString()}] Failed to spawn umu-run (${resolvedLaunchCommand.command}): ${String(error)}\n`
         );
         reject(error);
       });

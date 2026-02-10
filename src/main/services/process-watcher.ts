@@ -7,6 +7,7 @@ import { ProcessPayload } from "./download/types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
+import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { MAIN_LOOP_INTERVAL } from "@main/constants";
@@ -309,11 +310,11 @@ function onTickGame(game: Game) {
 }
 
 const onCloseGame = (game: Game) => {
+  const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
-  const gamePlaytime = gamesPlaytime.get(
-    levelKeys.game(game.shop, game.objectId)
-  )!;
-  gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
+  const gamePlaytime = gamesPlaytime.get(gameKey)!;
+  gamesPlaytime.delete(gameKey);
+  PowerSaveBlockerManager.markGameClosed(gameKey);
 
   const delta = now - gamePlaytime.lastTick;
 
@@ -323,7 +324,7 @@ const onCloseGame = (game: Game) => {
     lastTimePlayed: new Date(),
   };
 
-  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
+  gamesSublevel.put(gameKey, updatedGame);
 
   if (game.shop === "custom") return;
 
@@ -344,13 +345,13 @@ const onCloseGame = (game: Game) => {
 
     return trackGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       .then(() => {
-        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+        return gamesSublevel.put(gameKey, {
           ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
       .catch(() => {
-        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+        return gamesSublevel.put(gameKey, {
           ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });

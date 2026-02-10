@@ -1,7 +1,26 @@
 import fs from "node:fs";
 import path from "node:path";
+import { SystemPath } from "./system-path";
 
 export class Wine {
+  public static getDefaultPrefixPath(): string | null {
+    if (process.platform !== "linux") {
+      return null;
+    }
+
+    return path.join(SystemPath.getPath("userData"), "wine-prefix");
+  }
+
+  public static getEffectivePrefixPath(
+    winePrefixPath?: string | null
+  ): string | null {
+    if (winePrefixPath) {
+      return winePrefixPath;
+    }
+
+    return this.getDefaultPrefixPath();
+  }
+
   public static validatePrefix(winePrefixPath: string) {
     const requiredFiles = [
       { name: "system.reg", type: "file" },

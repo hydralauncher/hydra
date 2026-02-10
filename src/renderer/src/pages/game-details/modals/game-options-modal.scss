@@ -95,6 +95,10 @@
     flex-wrap: wrap;
   }
 
+  &__tool-button-wrapper {
+    display: inline-flex;
+  }
+
   &__executable-field {
     display: flex;
     flex-direction: column;
@@ -131,73 +135,33 @@
     }
   }
 
-  &__proton-radio-group {
+  &__inline-code {
+    font-family: monospace;
+    user-select: text;
+  }
+
+  &__mangohud-toggle {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__proton-option {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit / 2) 0;
-    cursor: pointer;
-
-    &--selected .game-options-modal__proton-radio-control {
-      border-color: var(--color-primary);
-      background: var(--color-primary);
-    }
-
-    &--selected .game-options-modal__proton-radio-dot {
-      opacity: 1;
-      transform: scale(1);
-      background: #fff;
-    }
+  &__mangohud-help {
+    color: globals.$muted-color;
+    cursor: help;
+    user-select: none;
   }
 
-  &__proton-radio-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  &__proton-radio-control {
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    border-radius: 999px;
-    border: solid 1px globals.$border-color;
-    background: globals.$dark-background-color;
+  &__mangohud-label {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    transition: all ease 0.2s;
+    gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__proton-radio-dot {
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-primary);
-    opacity: 0;
-    transform: scale(0);
-    transition:
-      transform 0.15s ease,
-      opacity 0.15s ease;
-  }
-
-  &__proton-option-main {
+  &__mangohud-link {
     display: inline-flex;
     align-items: center;
-    min-width: 0;
-  }
-
-  &__proton-option-label {
-    line-height: 1.2;
-    text-decoration: underline dotted;
-    text-underline-offset: 2px;
+    gap: calc(globals.$spacing-unit / 3);
   }
 
   &__downloads {
