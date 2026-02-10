@@ -512,6 +512,7 @@
     "user_unblocked": "Has desbloqueado a este usuario",
     "enable_achievement_notifications": "Cuando desbloqueás un logro",
     "launch_minimized": "Iniciar Hydra minimizado",
+    "launch_hydra_in_library_page": "Iniciar Hydra en la página de Biblioteca",
     "disable_nsfw_alert": "Deshabilitar alerta de NSFW",
     "seed_after_download_complete": "Sembrar después de completar una descarga",
     "show_hidden_achievement_description": "Mostrar logros ocultos antes de desbloquearlos",
