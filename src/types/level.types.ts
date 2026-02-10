@@ -111,6 +111,7 @@ export interface UserPreferences {
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
+  launchToLibraryPage?: boolean;
   disableNsfwAlert?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;

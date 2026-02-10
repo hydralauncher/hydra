@@ -205,7 +205,15 @@ export class WindowManager {
       }
     );
 
-    this.loadMainWindowURL();
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
+    const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
+
+    this.loadMainWindowURL(initialHash);
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
