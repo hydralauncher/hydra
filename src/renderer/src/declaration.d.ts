@@ -96,6 +96,13 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    toggleGameMangohud: (
+      shop: GameShop,
+      objectId: string,
+      autoRunMangohud: boolean
+    ) => Promise<void>;
+    isMangohudAvailable: () => Promise<boolean>;
+    isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,

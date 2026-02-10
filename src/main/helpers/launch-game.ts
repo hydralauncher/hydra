@@ -1,12 +1,19 @@
 import { shell } from "electron";
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { GameShop } from "@types";
-import { gamesSublevel, levelKeys } from "@main/level";
-import { WindowManager, logger, Umu } from "@main/services";
+import { GameShop, type UserPreferences } from "@types";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import {
+  WindowManager,
+  logger,
+  Umu,
+  PowerSaveBlockerManager,
+  Wine,
+} from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
-import { parseLaunchOptions } from "../events/helpers/parse-launch-options";
+import { isMangohudAvailable } from "./is-mangohud-available";
+import { resolveLaunchCommand } from "./resolve-launch-command";
 
 export interface LaunchGameOptions {
   shop: GameShop;
@@ -18,36 +25,71 @@ export interface LaunchGameOptions {
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
 
-const launchNatively = (executablePath: string, launchParameters: string[]) => {
-  if (launchParameters.length === 0) {
+const launchNatively = (
+  executablePath: string,
+  launchOptions?: string | null,
+  useMangohud = false
+) => {
+  const resolvedLaunchCommand = resolveLaunchCommand({
+    baseCommand: executablePath,
+    launchOptions,
+    wrapperCommand: useMangohud ? "mangohud" : null,
+  });
+
+  if (
+    resolvedLaunchCommand.command === executablePath &&
+    resolvedLaunchCommand.args.length === 0 &&
+    Object.keys(resolvedLaunchCommand.env).length === 0
+  ) {
     shell.openPath(executablePath);
     return;
   }
 
-  const processRef = spawn(executablePath, launchParameters, {
-    shell: false,
-    detached: true,
-    stdio: "ignore",
-  });
+  const processRef = spawn(
+    resolvedLaunchCommand.command,
+    resolvedLaunchCommand.args,
+    {
+      shell: false,
+      detached: true,
+      stdio: "ignore",
+      env: {
+        ...process.env,
+        ...resolvedLaunchCommand.env,
+      },
+    }
+  );
 
   processRef.unref();
 };
 
 const launchWithWine = async (
   executablePath: string,
-  launchParameters: string[],
-  winePrefixPath?: string | null
+  launchOptions?: string | null,
+  winePrefixPath?: string | null,
+  useMangohud = false
 ): Promise<boolean> => {
+  const resolvedLaunchCommand = resolveLaunchCommand({
+    baseCommand: "wine",
+    baseArgs: [executablePath],
+    launchOptions,
+    wrapperCommand: useMangohud ? "mangohud" : null,
+  });
+
   return await new Promise<boolean>((resolve) => {
-    const processRef = spawn("wine", [executablePath, ...launchParameters], {
-      shell: false,
-      detached: true,
-      stdio: "ignore",
-      env: {
-        ...process.env,
-        ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
-      },
-    });
+    const processRef = spawn(
+      resolvedLaunchCommand.command,
+      resolvedLaunchCommand.args,
+      {
+        shell: false,
+        detached: true,
+        stdio: "ignore",
+        env: {
+          ...process.env,
+          ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
+          ...resolvedLaunchCommand.env,
+        },
+      }
+    );
 
     processRef.once("spawn", () => {
       processRef.unref();
@@ -61,6 +103,28 @@ const launchWithWine = async (
   });
 };
 
+const resolveProtonPathForLaunch = async (
+  gameProtonPath?: string | null
+): Promise<string | null> => {
+  if (gameProtonPath && Umu.isValidProtonPath(gameProtonPath)) {
+    return gameProtonPath;
+  }
+
+  const userPreferences = await db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
+
+  const defaultProtonPath = userPreferences?.defaultProtonPath;
+
+  if (defaultProtonPath && Umu.isValidProtonPath(defaultProtonPath)) {
+    return defaultProtonPath;
+  }
+
+  return null;
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -69,10 +133,10 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
   const { shop, objectId, executablePath, launchOptions } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
-  const parsedParams = parseLaunchOptions(launchOptions);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
+  const useMangohud = Boolean(game?.autoRunMangohud) && isMangohudAvailable();
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -108,12 +172,18 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
     const isWindowsBinary = isWindowsExecutable(parsedPath);
 
     if (isWindowsBinary) {
+      const winePrefixPath = Wine.getEffectivePrefixPath(game?.winePrefixPath);
+      const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
+
       try {
-        await Umu.launchExecutable(parsedPath, parsedParams, {
-          winePrefixPath: game?.winePrefixPath,
-          protonPath: game?.protonPath,
+        await Umu.launchExecutable(parsedPath, [], {
+          winePrefixPath,
+          protonPath,
           gameId: options.shop === "steam" ? options.objectId : null,
+          launchOptions,
+          useMangohud,
         });
+        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
         return;
       } catch (error) {
         logger.error("Failed to launch game with umu-run, falling back", error);
@@ -121,18 +191,20 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
 
       const launchedWithWine = await launchWithWine(
         parsedPath,
-        parsedParams,
-        game?.winePrefixPath
+        launchOptions,
+        winePrefixPath,
+        useMangohud
       );
 
       if (launchedWithWine) {
+        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
         return;
       }
     }
 
-    launchNatively(parsedPath, parsedParams);
+    launchNatively(parsedPath, launchOptions, useMangohud);
     return;
   }
 
-  launchNatively(parsedPath, parsedParams);
+  launchNatively(parsedPath, launchOptions, useMangohud);
 };
