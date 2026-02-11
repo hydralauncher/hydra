@@ -138,7 +138,10 @@ export function useGameActions(game: LibraryGame) {
         showErrorToast(t("create_shortcut_error"));
       }
     } catch (error) {
-      showErrorToast(t("create_shortcut_error"));
+      showErrorToast(
+        t("create_shortcut_error"),
+        error instanceof Error ? error.message : undefined
+      );
       logger.error("Failed to create shortcut", error);
     }
   };
