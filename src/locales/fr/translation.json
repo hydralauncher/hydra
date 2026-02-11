@@ -403,7 +403,11 @@
     "searching_save_folder": "Recherche du dossier de sauvegarde...",
     "no_save_folder_found": "Aucun dossier de sauvegarde trouvé",
     "shortcuts_section_title": "Raccourcis",
-    "shortcuts_section_description": "Créer des raccourcis pour lancer rapidement ce jeu"
+    "shortcuts_section_description": "Créer des raccourcis pour lancer rapidement ce jeu",
+    "vr_flag": "Jeu VR (Dans Steam : mettre à jour le flag VR ou supprimer/recréer le raccourci)",
+    "vr_flag_enabled": "Jeu flaggé comme VR",
+    "vr_flag_disabled": "Jeu dé-flaggé VR",
+    "vr_flag_error": "Erreur lors de la mise à jour du flag VR"
   },
   "activation": {
     "title": "Activer Hydra",
