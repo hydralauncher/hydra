@@ -50,8 +50,11 @@ export default function Downloads() {
   }, [updateLibrary]);
 
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
-    window.electron.openGameInstaller(shop, objectId).then((isBinaryInPath) => {
-      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
+    window.electron.openGameInstaller(shop, objectId).then((wasOpened) => {
+      if (!wasOpened) {
+        setShowBinaryNotFoundModal(true);
+      }
+
       updateLibrary();
     });
 

@@ -35,6 +35,10 @@ export class DownloadManager {
   private static usingJsDownloader = false;
   private static isPreparingDownload = false;
 
+  public static hasActiveDownload() {
+    return this.downloadingGameId !== null;
+  }
+
   private static extractFilename(
     url: string,
     originalUrl?: string

@@ -33,6 +33,7 @@ import type {
   DiskUsage,
   DownloadSource,
   LocalNotification,
+  ProtonVersion,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -95,6 +96,13 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    toggleGameMangohud: (
+      shop: GameShop,
+      objectId: string,
+      autoRunMangohud: boolean
+    ) => Promise<void>;
+    isMangohudAvailable: () => Promise<boolean>;
+    isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
@@ -171,6 +179,12 @@ declare global {
       objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
+    selectGameProtonPath: (
+      shop: GameShop,
+      objectId: string,
+      protonPath: string | null
+    ) => Promise<void>;
+    getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
@@ -180,6 +194,7 @@ declare global {
       objectId: string
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
+    openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (
       shop: GameShop,
