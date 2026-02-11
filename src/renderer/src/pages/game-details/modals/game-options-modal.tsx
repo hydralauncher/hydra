@@ -167,18 +167,25 @@ export function GameOptionsModal({
   };
 
   const handleCreateShortcut = async (location: ShortcutLocation) => {
-    window.electron
-      .createGameShortcut(game.shop, game.objectId, location)
-      .then((success) => {
-        if (success) {
-          showSuccessToast(t("create_shortcut_success"));
-        } else {
-          showErrorToast(t("create_shortcut_error"));
-        }
-      })
-      .catch(() => {
+    try {
+      const success = await window.electron.createGameShortcut(
+        game.shop,
+        game.objectId,
+        location
+      );
+
+      if (success) {
+        showSuccessToast(t("create_shortcut_success"));
+      } else {
         showErrorToast(t("create_shortcut_error"));
-      });
+      }
+    } catch (error: unknown) {
+      logger.error("Failed to create shortcut", error);
+      showErrorToast(
+        t("create_shortcut_error"),
+        error instanceof Error ? error.message : undefined
+      );
+    }
   };
 
   const handleOpenDownloadFolder = async () => {
