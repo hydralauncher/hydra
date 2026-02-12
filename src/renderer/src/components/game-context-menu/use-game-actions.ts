@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { LibraryGame, ShortcutLocation } from "@types";
+import { LibraryGame } from "@types";
 import { useDownload, useLibrary, useToast } from "@renderer/hooks";
 import { useNavigate, useLocation } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -21,6 +21,7 @@ export function useGameActions(game: LibraryGame) {
   } = useDownload();
 
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
 
   const canPlay = Boolean(game.executablePath);
@@ -28,9 +29,6 @@ export function useGameActions(game: LibraryGame) {
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
   const hasRepacks = true;
-  const shouldShowCreateStartMenuShortcut =
-    window.electron.platform === "win32";
-
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
@@ -124,22 +122,36 @@ export function useGameActions(game: LibraryGame) {
     }
   };
 
-  const handleCreateShortcut = async (location: ShortcutLocation) => {
+  const handleCreateShortcut = async () => {
     try {
-      const success = await window.electron.createGameShortcut(
-        game.shop,
-        game.objectId,
-        location
-      );
+      setCreatingShortcut(true);
 
-      if (success) {
-        showSuccessToast(t("create_shortcut_success"));
-      } else {
-        showErrorToast(t("create_shortcut_error"));
+      const locations =
+        window.electron.platform === "win32"
+          ? (["desktop", "start_menu"] as const)
+          : (["desktop"] as const);
+
+      for (const location of locations) {
+        const success = await window.electron.createGameShortcut(
+          game.shop,
+          game.objectId,
+          location
+        );
+
+        if (!success) {
+          throw new Error(t("create_shortcut_error"));
+        }
       }
+
+      showSuccessToast(t("create_shortcut_success"));
     } catch (error) {
-      showErrorToast(t("create_shortcut_error"));
+      showErrorToast(
+        t("create_shortcut_error"),
+        error instanceof Error ? error.message : undefined
+      );
       logger.error("Failed to create shortcut", error);
+    } finally {
+      setCreatingShortcut(false);
     }
   };
 
@@ -265,7 +277,7 @@ export function useGameActions(game: LibraryGame) {
     isGameDownloading,
     isGameRunning,
     hasRepacks,
-    shouldShowCreateStartMenuShortcut,
+    creatingShortcut,
     creatingSteamShortcut,
     handlePlayGame,
     handleCloseGame,

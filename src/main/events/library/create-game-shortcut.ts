@@ -10,7 +10,7 @@ import { removeSymbolsFromName } from "@shared";
 import { GameShop, ShortcutLocation } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { SystemPath } from "@main/services/system-path";
-import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
+import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 
@@ -87,6 +87,8 @@ const createUrlShortcut = (
   iconPath?: string | null
 ): boolean => {
   try {
+    fs.mkdirSync(path.dirname(shortcutPath), { recursive: true });
+
     // Delete existing shortcut first so icon updates properly
     if (fs.existsSync(shortcutPath)) {
       fs.unlinkSync(shortcutPath);
@@ -109,6 +111,62 @@ const createUrlShortcut = (
   }
 };
 
+const deleteIfExists = (filePath: string) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (error) {
+    logger.warn(`Failed to delete existing shortcut: ${filePath}`, error);
+  }
+};
+
+const getWindowsOutputPath = (location: ShortcutLocation) => {
+  return location === "desktop"
+    ? SystemPath.getPath("desktop")
+    : path.join(
+        SystemPath.getPath("appData"),
+        "Microsoft",
+        "Windows",
+        "Start Menu",
+        "Programs"
+      );
+};
+
+const createWindowsShortcut = (
+  shortcutName: string,
+  outputPath: string,
+  deepLink: string,
+  iconPath?: string | null
+) => {
+  const windowVbsPath = app.isPackaged
+    ? path.join(process.resourcesPath, "windows.vbs")
+    : undefined;
+
+  const linkPath = path.join(outputPath, `${shortcutName}.lnk`);
+  const urlPath = path.join(outputPath, `${shortcutName}.url`);
+
+  deleteIfExists(linkPath);
+  deleteIfExists(urlPath);
+
+  const nativeShortcutCreated = createDesktopShortcut({
+    windows: {
+      filePath: process.execPath,
+      arguments: deepLink,
+      name: shortcutName,
+      outputPath,
+      icon: iconPath ?? process.execPath,
+      VBScriptPath: windowVbsPath,
+    },
+  });
+
+  if (nativeShortcutCreated) {
+    return true;
+  }
+
+  return createUrlShortcut(urlPath, deepLink, iconPath ?? process.execPath);
+};
+
 const createGameShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -119,15 +177,26 @@ const createGameShortcut = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (!game) {
-    return false;
+    throw new Error("Could not find this game in your library.");
   }
 
-  const shortcutName = removeSymbolsFromName(game.title);
+  if (location === "start_menu" && process.platform !== "win32") {
+    throw new Error("Start Menu shortcuts are only available on Windows.");
+  }
+
+  const shortcutName =
+    removeSymbolsFromName(game.title).trim() || game.objectId;
   const deepLink = `hydralauncher://run?shop=${shop}&objectId=${objectId}`;
   const outputPath =
-    location === "desktop"
-      ? SystemPath.getPath("desktop")
-      : windowsStartMenuPath;
+    process.platform === "win32"
+      ? getWindowsOutputPath(location)
+      : SystemPath.getPath("desktop");
+
+  if (!outputPath) {
+    throw new Error("Could not resolve the shortcut output folder.");
+  }
+
+  fs.mkdirSync(outputPath, { recursive: true });
 
   const assets = shop === "custom" ? null : await getGameAssets(objectId, shop);
   const iconPath = await downloadIcon(shop, objectId, [
@@ -137,8 +206,21 @@ const createGameShortcut = async (
   ]);
 
   if (process.platform === "win32") {
-    const shortcutPath = path.join(outputPath, `${shortcutName}.url`);
-    return createUrlShortcut(shortcutPath, deepLink, iconPath);
+    const success = createWindowsShortcut(
+      shortcutName,
+      outputPath,
+      deepLink,
+      iconPath
+    );
+
+    if (!success) {
+      const locationName = location === "desktop" ? "desktop" : "Start Menu";
+      throw new Error(
+        `Failed to create ${locationName} shortcut in ${outputPath}.`
+      );
+    }
+
+    return true;
   }
 
   const windowVbsPath = app.isPackaged
@@ -153,11 +235,17 @@ const createGameShortcut = async (
     icon: iconPath ?? undefined,
   };
 
-  return createDesktopShortcut({
+  const success = createDesktopShortcut({
     windows: { ...options, VBScriptPath: windowVbsPath },
     linux: options,
     osx: options,
   });
+
+  if (!success) {
+    throw new Error("Failed to create desktop shortcut.");
+  }
+
+  return true;
 };
 
 registerEvent("createGameShortcut", createGameShortcut);

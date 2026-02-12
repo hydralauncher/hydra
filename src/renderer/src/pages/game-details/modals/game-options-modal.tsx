@@ -53,6 +53,7 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
@@ -166,19 +167,37 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateShortcut = async (location: ShortcutLocation) => {
-    window.electron
-      .createGameShortcut(game.shop, game.objectId, location)
-      .then((success) => {
-        if (success) {
-          showSuccessToast(t("create_shortcut_success"));
-        } else {
-          showErrorToast(t("create_shortcut_error"));
+  const handleCreateShortcut = async () => {
+    try {
+      setCreatingShortcut(true);
+
+      const locations: ShortcutLocation[] =
+        window.electron.platform === "win32"
+          ? ["desktop", "start_menu"]
+          : ["desktop"];
+
+      for (const location of locations) {
+        const success = await window.electron.createGameShortcut(
+          game.shop,
+          game.objectId,
+          location
+        );
+
+        if (!success) {
+          throw new Error(t("create_shortcut_error"));
         }
-      })
-      .catch(() => {
-        showErrorToast(t("create_shortcut_error"));
-      });
+      }
+
+      showSuccessToast(t("create_shortcut_success"));
+    } catch (error: unknown) {
+      logger.error("Failed to create shortcut", error);
+      showErrorToast(
+        t("create_shortcut_error"),
+        error instanceof Error ? error.message : undefined
+      );
+    } finally {
+      setCreatingShortcut(false);
+    }
   };
 
   const handleOpenDownloadFolder = async () => {
@@ -265,9 +284,6 @@ export function GameOptionsModal({
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
-
-  const shouldShowCreateStartMenuShortcut =
-    window.electron.platform === "win32";
 
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
@@ -443,10 +459,11 @@ export function GameOptionsModal({
 
               <div className="game-options-modal__row">
                 <Button
-                  onClick={() => handleCreateShortcut("desktop")}
+                  onClick={handleCreateShortcut}
                   theme="outline"
+                  disabled={creatingShortcut}
                 >
-                  {t("create_shortcut")}
+                  {t("create_shortcut_simple")}
                 </Button>
                 {game.shop !== "custom" && (
                   <Button
@@ -456,14 +473,6 @@ export function GameOptionsModal({
                   >
                     <SteamLogo />
                     {t("create_steam_shortcut")}
-                  </Button>
-                )}
-                {shouldShowCreateStartMenuShortcut && (
-                  <Button
-                    onClick={() => handleCreateShortcut("start_menu")}
-                    theme="outline"
-                  >
-                    {t("create_start_menu_shortcut")}
                   </Button>
                 )}
               </div>

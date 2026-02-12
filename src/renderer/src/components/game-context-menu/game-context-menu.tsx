@@ -42,7 +42,8 @@ export function GameContextMenu({
     isGameDownloading,
     isGameRunning,
     hasRepacks,
-    shouldShowCreateStartMenuShortcut,
+    creatingShortcut,
+    creatingSteamShortcut,
     handlePlayGame,
     handleCloseGame,
     handleToggleFavorite,
@@ -101,29 +102,18 @@ export function GameContextMenu({
             submenu: [
               {
                 id: "desktop-shortcut",
-                label: t("create_shortcut"),
+                label: t("create_shortcut_simple"),
                 icon: <LinkIcon size={16} />,
-                onClick: () => handleCreateShortcut("desktop"),
-                disabled: isDeleting,
+                onClick: handleCreateShortcut,
+                disabled: isDeleting || creatingShortcut,
               },
               {
                 id: "steam-shortcut",
                 label: t("create_steam_shortcut"),
                 icon: <SteamLogo style={{ width: 16, height: 16 }} />,
                 onClick: handleCreateSteamShortcut,
-                disabled: isDeleting,
+                disabled: isDeleting || creatingSteamShortcut,
               },
-              ...(shouldShowCreateStartMenuShortcut
-                ? [
-                    {
-                      id: "start-menu-shortcut",
-                      label: t("create_start_menu_shortcut"),
-                      icon: <LinkIcon size={16} />,
-                      onClick: () => handleCreateShortcut("start_menu"),
-                      disabled: isDeleting,
-                    },
-                  ]
-                : []),
             ],
           },
         ]
