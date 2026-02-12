@@ -518,6 +518,7 @@
     "enable_achievement_notifications": "Quando uma conquista é desbloqueada",
     "hydra_cloud": "Hydra Cloud",
     "launch_minimized": "Iniciar o Hydra minimizado",
+    "launch_hydra_in_library_page": "Iniciar o Hydra na página da Biblioteca",
     "disable_nsfw_alert": "Desativar alerta de conteúdo inapropriado",
     "seed_after_download_complete": "Semear após a conclusão do download",
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de desbloqueá-las",
