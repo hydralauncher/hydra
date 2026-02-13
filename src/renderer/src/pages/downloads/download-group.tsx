@@ -830,6 +830,10 @@ export function DownloadGroup({
     const isResumeDisabled =
       (download?.downloader === Downloader.RealDebrid &&
         !userPreferences?.realDebridApiToken) ||
+      (download?.downloader === Downloader.Premiumize &&
+        !userPreferences?.premiumizeApiToken) ||
+      (download?.downloader === Downloader.AllDebrid &&
+        !userPreferences?.allDebridApiToken) ||
       (download?.downloader === Downloader.TorBox &&
         !userPreferences?.torBoxApiToken);
 
