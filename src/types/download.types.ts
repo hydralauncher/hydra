@@ -169,6 +169,22 @@ export interface RealDebridUser {
   expiration: string;
 }
 
+/* Premiumize */
+export interface PremiumizeUser {
+  customer_id: string;
+  premium_until: number;
+  space_used: number;
+  limit_used: number;
+}
+
+/* AllDebrid */
+export interface AllDebridUser {
+  username: string;
+  email: string;
+  isPremium: boolean;
+  premiumUntil: number;
+}
+
 /* Torrent */
 export interface SeedingStatus {
   gameId: string;

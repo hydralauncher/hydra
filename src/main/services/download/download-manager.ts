@@ -25,6 +25,8 @@ import { orderBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
+import { PremiumizeClient } from "./premiumize";
+import { AllDebridClient } from "./all-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
@@ -580,6 +582,10 @@ export class DownloadManager {
         return this.getMediafireDownloadOptions(download, resumingFilename);
       case Downloader.RealDebrid:
         return this.getRealDebridDownloadOptions(download, resumingFilename);
+      case Downloader.Premiumize:
+        return this.getPremiumizeDownloadOptions(download, resumingFilename);
+      case Downloader.AllDebrid:
+        return this.getAllDebridDownloadOptions(download, resumingFilename);
       case Downloader.TorBox:
         return this.getTorBoxDownloadOptions(download, resumingFilename);
       case Downloader.Hydra:
@@ -712,6 +718,42 @@ export class DownloadManager {
   ) {
     const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getPremiumizeDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
+    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getAllDebridDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await AllDebridClient.getDownloadUrl(download.uri);
+    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnAllDebrid);
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -893,6 +935,30 @@ export class DownloadManager {
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.Premiumize: {
+        const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.AllDebrid: {
+        const downloadUrl = await AllDebridClient.getDownloadUrl(download.uri);
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnAllDebrid);
 
         return {
           action: "start",
