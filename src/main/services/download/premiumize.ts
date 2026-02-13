@@ -249,18 +249,6 @@ export class PremiumizeClient {
   }
 
   /**
-   * POST /transfer/delete — remove a transfer.
-   */
-  private static async deleteTransfer(id: string): Promise<void> {
-    logger.log(`[Premiumize] POST /transfer/delete id=${id}`);
-    const response = await this.instance.post<PremiumizeBaseResponse>(
-      "/transfer/delete",
-      this.getSearchParams({ id })
-    );
-    this.ensureSuccess(response.data);
-  }
-
-  /**
    * POST /transfer/clearfinished — clean up finished transfers.
    */
   static async clearFinishedTransfers(): Promise<void> {
@@ -291,18 +279,6 @@ export class PremiumizeClient {
     );
     this.ensureSuccess(response.data);
     return response.data.content ?? [];
-  }
-
-  /**
-   * POST /folder/delete — delete a folder.
-   */
-  private static async deleteFolder(id: string): Promise<void> {
-    logger.log(`[Premiumize] POST /folder/delete id=${id}`);
-    const response = await this.instance.post<PremiumizeBaseResponse>(
-      "/folder/delete",
-      this.getSearchParams({ id })
-    );
-    this.ensureSuccess(response.data);
   }
 
   /* ---------------------------------------------------------------- */
