@@ -143,6 +143,19 @@ export class DownloadManager {
     return userPreferences?.useNativeHttpDownloader ?? true;
   }
 
+  private static async shouldUseJsDownloaderForDownload(download: Download) {
+    const isNativeEnabled = await this.shouldUseJsDownloader();
+    if (!isNativeEnabled) return false;
+
+    // Premiumize can resolve one source URI into multiple files.
+    // Route it through RPC which supports URL arrays.
+    if (download.downloader === Downloader.Premiumize) {
+      return false;
+    }
+
+    return true;
+  }
+
   private static isHttpDownloader(downloader: Downloader): boolean {
     return downloader !== Downloader.Torrent;
   }
@@ -945,13 +958,17 @@ export class DownloadManager {
         };
       }
       case Downloader.Premiumize: {
-        const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
+        const downloadUrls = await PremiumizeClient.getDownloadUrls(
+          download.uri
+        );
+        if (downloadUrls.length === 0) {
+          throw new Error(DownloadError.NotCachedOnPremiumize);
+        }
 
         return {
           action: "start",
           game_id: downloadId,
-          url: downloadUrl,
+          url: downloadUrls.length === 1 ? downloadUrls[0] : downloadUrls,
           save_path: download.downloadPath,
           allow_multiple_connections: true,
         };
@@ -1021,7 +1038,8 @@ export class DownloadManager {
   }
 
   static async validateDownloadUrl(download: Download): Promise<void> {
-    const useJsDownloader = await this.shouldUseJsDownloader();
+    const useJsDownloader =
+      await this.shouldUseJsDownloaderForDownload(download);
     const isHttp = this.isHttpDownloader(download.downloader);
 
     if (useJsDownloader && isHttp) {
@@ -1035,7 +1053,8 @@ export class DownloadManager {
   }
 
   static async startDownload(download: Download) {
-    const useJsDownloader = await this.shouldUseJsDownloader();
+    const useJsDownloader =
+      await this.shouldUseJsDownloaderForDownload(download);
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 

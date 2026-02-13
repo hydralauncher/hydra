@@ -5,6 +5,8 @@ import { logger } from "@main/services";
 
 interface PremiumizeDirectDl {
   link: string;
+  path?: string;
+  size?: number;
 }
 
 interface PremiumizeResponse<T> {
@@ -99,13 +101,80 @@ export class PremiumizeClient {
     return response.data.content ?? [];
   }
 
-  static async getDownloadUrl(uri: string) {
+  static async getDownloadLinks(uri: string) {
     const links = await this.directDownload(uri);
-    const [firstLink] = links ?? [];
+    return (links ?? []).filter((link) => Boolean(link.link));
+  }
 
-    if (!firstLink?.link) return null;
+  private static readonly lowPriorityExtensions = new Set([
+    ".txt",
+    ".nfo",
+    ".sfv",
+    ".md5",
+    ".url",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".webp",
+  ]);
 
-    return decodeURIComponent(firstLink.link);
+  private static readonly highPriorityExtensions = new Set([
+    ".rar",
+    ".7z",
+    ".zip",
+    ".iso",
+    ".exe",
+    ".msi",
+    ".bin",
+  ]);
+
+  private static getExtension(path: string) {
+    const match = /\.[^.\\/]+$/.exec(path.toLowerCase());
+    return match?.[0] ?? "";
+  }
+
+  private static getLinkPriority(link: PremiumizeDirectDl) {
+    const path = link.path?.toLowerCase() ?? "";
+    const extension = this.getExtension(path);
+
+    if (this.highPriorityExtensions.has(extension)) return 2;
+    if (this.lowPriorityExtensions.has(extension)) return 0;
+    return 1;
+  }
+
+  private static pickBestDownloadLink(links: PremiumizeDirectDl[]) {
+    if (links.length <= 1) return links[0] ?? null;
+
+    return links.slice().sort((a, b) => {
+      const priorityDiff = this.getLinkPriority(b) - this.getLinkPriority(a);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (b.size ?? 0) - (a.size ?? 0);
+    })[0];
+  }
+
+  static async getDownloadUrl(uri: string) {
+    const links = await this.getDownloadLinks(uri);
+    const selectedLink = this.pickBestDownloadLink(links);
+
+    if (!selectedLink?.link) return null;
+
+    logger.log(
+      `[Premiumize] Selected file for download (count=${links?.length ?? 0}): ${selectedLink.path ?? "unknown"}`
+    );
+
+    return decodeURIComponent(selectedLink.link);
+  }
+
+  static async getDownloadUrls(uri: string) {
+    const links = await this.getDownloadLinks(uri);
+    const urls = links.map((link) => decodeURIComponent(link.link));
+
+    logger.log(
+      `[Premiumize] Resolved ${urls.length} file link(s) for URI: ${uri}`
+    );
+
+    return urls;
   }
 
   static async isCached(uri: string) {
