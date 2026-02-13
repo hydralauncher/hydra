@@ -236,6 +236,11 @@ export class JsHttpDownloader {
       fs.mkdirSync(savePath, { recursive: true });
     }
 
+    const targetDir = path.dirname(filePath);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
     let startByte = 0;
     if (fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
@@ -294,6 +299,12 @@ export class JsHttpDownloader {
       signal: this.abortController?.signal,
     });
 
+    const contentType = response.headers.get("content-type") ?? "unknown";
+    const contentLength = response.headers.get("content-length") ?? "unknown";
+    logger.log(
+      `[JsHttpDownloader] Response status=${response.status} content-type=${contentType} content-length=${contentLength}`
+    );
+
     if (response.status === 416 && startByte > 0) {
       logger.log(
         "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
@@ -321,6 +332,16 @@ export class JsHttpDownloader {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    // Detect HTML error pages served with 200 status (e.g. expired CDN links)
+    if (
+      contentType.includes("text/html") ||
+      contentType.includes("application/xhtml")
+    ) {
+      throw new Error(
+        `Unexpected HTML response (content-type: ${contentType}). The download URL may have expired or is invalid.`
+      );
+    }
+
     this.parseFileSize(response, startByte);
 
     let actualFilePath = filePath;
@@ -329,6 +350,10 @@ export class JsHttpDownloader {
       if (headerFilename) {
         actualFilePath = path.join(savePath, headerFilename);
         this.folderName = headerFilename;
+        const targetDir = path.dirname(actualFilePath);
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
         logger.log(
           `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
         );
@@ -345,10 +370,32 @@ export class JsHttpDownloader {
     const readableStream = this.createReadableStream(response.body.getReader());
     await pipeline(readableStream, this.writeStream);
 
+    // Validate downloaded size: catch cases where the server returned a tiny
+    // error body (e.g. JSON error, plain-text "not found") with 200 status
+    if (this.bytesDownloaded < 1024 && startByte === 0) {
+      logger.error(
+        `[JsHttpDownloader] Download finished but only ${this.bytesDownloaded} bytes received — response is likely an error page`
+      );
+      this.status = "error";
+      // Clean up the bogus file
+      if (fs.existsSync(actualFilePath)) {
+        try {
+          fs.unlinkSync(actualFilePath);
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+      throw new Error(
+        `Download completed with only ${this.bytesDownloaded} bytes — the download URL likely returned an error instead of the file`
+      );
+    }
+
     this.status = "complete";
     this.retryCount = 0;
     this.downloadSpeed = 0;
-    logger.log("[JsHttpDownloader] Download complete");
+    logger.log(
+      `[JsHttpDownloader] Download complete (${this.bytesDownloaded} bytes)`
+    );
   }
 
   private parseContentDisposition(response: Response): string | undefined {
