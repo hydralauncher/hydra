@@ -39,8 +39,12 @@ export const completedGamesSlice = createSlice({
   },
 });
 
-export const { toggleCompleted, setCompleted, unsetCompleted, hydrateCompleted } =
-  completedGamesSlice.actions;
+export const {
+  toggleCompleted,
+  setCompleted,
+  unsetCompleted,
+  hydrateCompleted,
+} = completedGamesSlice.actions;
 
 // Selector to get all completed games
 export const selectCompletedGames = (state: RootState) =>

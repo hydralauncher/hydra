@@ -33,7 +33,9 @@ export function GameItem({ game }: GameItemProps) {
   // Completed games selector
   const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
   const gameId = resolveGameId(game);
-  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
+  const isCompleted = useAppSelector((state) =>
+    selectIsCompleted(state, gameId)
+  );
 
   useEffect(() => {
     const exists = library.some(

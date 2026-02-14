@@ -22,8 +22,14 @@ const loadCompletedGamesFromStorage = (): Record<string, boolean> => {
     const parsed = JSON.parse(stored);
 
     // Validate structure
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      console.warn("Invalid completed games data structure, resetting to empty");
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      console.warn(
+        "Invalid completed games data structure, resetting to empty"
+      );
       return {};
     }
 
@@ -62,18 +68,28 @@ if (Object.keys(initialCompletedGames).length > 0) {
 let saveTimeout: NodeJS.Timeout | null = null;
 const SAVE_DELAY_MS = 500;
 
-const saveCompletedGamesToStorage = (completedGames: Record<string, boolean>) => {
+const saveCompletedGamesToStorage = (
+  completedGames: Record<string, boolean>
+) => {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
 
   saveTimeout = setTimeout(() => {
     try {
-      localStorage.setItem("hydra:completedGames", JSON.stringify(completedGames));
+      localStorage.setItem(
+        "hydra:completedGames",
+        JSON.stringify(completedGames)
+      );
     } catch (error) {
       // Handle quota exceeded error
-      if (error instanceof DOMException && error.name === "QuotaExceededError") {
-        console.error("localStorage quota exceeded. Unable to save completed games.");
+      if (
+        error instanceof DOMException &&
+        error.name === "QuotaExceededError"
+      ) {
+        console.error(
+          "localStorage quota exceeded. Unable to save completed games."
+        );
       } else {
         console.error("Failed to save completed games to localStorage:", error);
       }

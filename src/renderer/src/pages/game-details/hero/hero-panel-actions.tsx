@@ -62,7 +62,9 @@ export function HeroPanelActions() {
   // Create memoized selector for this component instance
   const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
   const gameId = resolveGameId(game);
-  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
+  const isCompleted = useAppSelector((state) =>
+    selectIsCompleted(state, gameId)
+  );
 
   useEffect(() => {
     const onFavoriteToggled = () => {

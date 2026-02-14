@@ -171,7 +171,7 @@ export const getGameKey = (shop: GameShop, objectId: string): string => {
 /**
  * Resolves a consistent game ID from various game object types.
  * Priority: objectId → id → appId → slug
- * 
+ *
  * @param game - Game object from any source (CatalogueSearchResult, LibraryGame, etc.)
  * @returns Consistent game ID string, or empty string if no ID found
  */

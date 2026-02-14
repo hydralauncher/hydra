@@ -32,7 +32,9 @@ export function SidebarGameItem({
   // Completed games selector
   const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
   const gameId = resolveGameId(game);
-  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
+  const isCompleted = useAppSelector((state) =>
+    selectIsCompleted(state, gameId)
+  );
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();

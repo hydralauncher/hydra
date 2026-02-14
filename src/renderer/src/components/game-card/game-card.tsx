@@ -43,7 +43,9 @@ export function GameCard({ game, ...props }: GameCardProps) {
   // Completed games selector
   const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
   const gameId = resolveGameId(game);
-  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
+  const isCompleted = useAppSelector((state) =>
+    selectIsCompleted(state, gameId)
+  );
 
   return (
     <button
