@@ -204,7 +204,9 @@ export class AllDebridClient {
     try {
       const parsed = parseTorrent(uri);
       if (parsed.infoHash) return parsed.infoHash.toLowerCase();
-    } catch {}
+    } catch {
+      // parse-torrent may throw for malformed URIs
+    }
 
     const regex = /xt=urn:btih:([a-z0-9]+)/i;
     const directMatch = regex.exec(uri);
@@ -213,7 +215,9 @@ export class AllDebridClient {
     try {
       const decodedMatch = regex.exec(decodeURIComponent(uri));
       if (decodedMatch?.[1]) return decodedMatch[1].toLowerCase();
-    } catch {}
+    } catch {
+      // decodeURIComponent may throw for malformed URIs
+    }
 
     return null;
   }

@@ -233,8 +233,8 @@ export class DownloadManager {
       const download = await downloadsSublevel.get(downloadId);
       if (!download) return null;
 
-      let { progress, downloadSpeed, bytesDownloaded, fileSize, folderName } =
-        status;
+      let { progress, bytesDownloaded, fileSize, folderName } = status;
+      const { downloadSpeed } = status;
 
       if (
         this.allDebridBatch &&
