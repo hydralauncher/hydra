@@ -20,6 +20,8 @@ export interface DownloadProgress {
   progress: number;
   gameId: string;
   download: Download;
+  batchFilesTotal?: number;
+  batchFilesDownloaded?: number;
 }
 
 /* TorBox */

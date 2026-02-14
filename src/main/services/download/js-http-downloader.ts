@@ -82,6 +82,8 @@ export class JsHttpDownloader {
     if (!this.currentOptions) return;
 
     while (!this.isPaused) {
+      if (!this.currentOptions) return;
+
       this.abortController = new AbortController();
       this.status = "active";
       this.isDownloading = true;
@@ -558,7 +560,6 @@ export class JsHttpDownloader {
     this.folderName = "";
     this.isDownloading = false;
     this.retryCount = 0;
-    this.isPaused = false;
     this.isStallRetry = false;
   }
 }
