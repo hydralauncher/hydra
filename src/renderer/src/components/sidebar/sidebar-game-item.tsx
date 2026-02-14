@@ -3,9 +3,11 @@ import PlayLogo from "@renderer/assets/play-logo.svg?react";
 import { LibraryGame } from "@types";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { GameContextMenu } from "..";
 import { useAppSelector } from "@renderer/hooks";
+import { makeSelectIsCompleted } from "@renderer/features";
+import { resolveGameId } from "@renderer/helpers";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -26,6 +28,11 @@ export function SidebarGameItem({
     visible: boolean;
     position: { x: number; y: number };
   }>({ visible: false, position: { x: 0, y: 0 } });
+
+  // Completed games selector
+  const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
+  const gameId = resolveGameId(game);
+  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -62,6 +69,7 @@ export function SidebarGameItem({
           "sidebar__menu-item--active":
             location.pathname === `/game/${game.shop}/${game.objectId}`,
           "sidebar__menu-item--muted": game.download?.status === "removed",
+          "sidebar__menu-item--completed": isCompleted,
         })}
       >
         <button

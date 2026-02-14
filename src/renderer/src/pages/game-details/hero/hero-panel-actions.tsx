@@ -7,6 +7,7 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
+  CheckCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
@@ -15,9 +16,12 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import { useContext, useState } from "react";
+import { useContext, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
+import { useAppDispatch, useAppSelector } from "@renderer/hooks";
+import { toggleCompleted, makeSelectIsCompleted } from "@renderer/features";
+import { resolveGameId } from "@renderer/helpers";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -52,6 +56,13 @@ export function HeroPanelActions() {
   const { showSuccessToast } = useToast();
 
   const { t } = useTranslation("game_details");
+
+  const dispatch = useAppDispatch();
+
+  // Create memoized selector for this component instance
+  const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
+  const gameId = resolveGameId(game);
+  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
 
   useEffect(() => {
     const onFavoriteToggled = () => {
@@ -294,6 +305,27 @@ export function HeroPanelActions() {
         >
           <GearIcon />
           {t("options")}
+        </Button>
+
+        <Button
+          onClick={() => {
+            if (gameId) {
+              dispatch(toggleCompleted(gameId));
+            }
+          }}
+          theme="outline"
+          disabled={deleting}
+          className={`hero-panel-actions__action ${isCompleted ? "hero-panel-actions__action--completed" : ""}`}
+          title={isCompleted ? t("completed") : t("mark_as_completed")}
+        >
+          {isCompleted ? (
+            <CheckCircleIcon />
+          ) : (
+            <>
+              <CheckCircleIcon />
+              {t("mark_as_completed")}
+            </>
+          )}
         </Button>
       </div>
     );

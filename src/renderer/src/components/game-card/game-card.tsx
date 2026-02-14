@@ -1,4 +1,4 @@
-import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
+import { DownloadIcon, PeopleIcon, CheckIcon } from "@primer/octicons-react";
 import type { GameStats, ShopAssets } from "@types";
 
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -8,8 +8,10 @@ import "./game-card.scss";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../badge/badge";
 import { StarRating } from "../star-rating/star-rating";
-import { useCallback, useState } from "react";
-import { useFormat } from "@renderer/hooks";
+import { useCallback, useState, useMemo } from "react";
+import { useFormat, useAppSelector } from "@renderer/hooks";
+import { makeSelectIsCompleted } from "@renderer/features";
+import { resolveGameId } from "@renderer/helpers";
 
 export interface GameCardProps
   extends React.DetailedHTMLProps<
@@ -38,6 +40,11 @@ export function GameCard({ game, ...props }: GameCardProps) {
 
   const { numberFormatter } = useFormat();
 
+  // Completed games selector
+  const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
+  const gameId = resolveGameId(game);
+  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
+
   return (
     <button
       {...props}
@@ -52,6 +59,12 @@ export function GameCard({ game, ...props }: GameCardProps) {
           className="game-card__cover"
           loading="lazy"
         />
+
+        {isCompleted && (
+          <div className="game-completed-badge game-completed-badge--top-right">
+            <CheckIcon size={12} />
+          </div>
+        )}
 
         <div className="game-card__content">
           <div className="game-card__title-container">

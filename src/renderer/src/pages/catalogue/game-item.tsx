@@ -1,8 +1,9 @@
 import { Badge } from "@renderer/components";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, resolveGameId } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { makeSelectIsCompleted } from "@renderer/features";
 
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,11 @@ export function GameItem({ game }: GameItemProps) {
   const [added, setAdded] = useState(false);
 
   const { library, updateLibrary } = useLibrary();
+
+  // Completed games selector
+  const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
+  const gameId = resolveGameId(game);
+  const isCompleted = useAppSelector((state) => selectIsCompleted(state, gameId));
 
   useEffect(() => {
     const exists = library.some(
@@ -103,6 +109,13 @@ export function GameItem({ game }: GameItemProps) {
       onClick={() => navigate(buildGameDetailsPath(game))}
     >
       {libraryImage}
+
+      {isCompleted && (
+        <div className="game-completed-badge">
+          <CheckIcon size={12} />
+          {t("completed")}
+        </div>
+      )}
 
       <div className="game-item__details">
         <span>{game.title}</span>

@@ -167,3 +167,36 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
 export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
 };
+
+/**
+ * Resolves a consistent game ID from various game object types.
+ * Priority: objectId → id → appId → slug
+ * 
+ * @param game - Game object from any source (CatalogueSearchResult, LibraryGame, etc.)
+ * @returns Consistent game ID string, or empty string if no ID found
+ */
+export const resolveGameId = (game: any): string => {
+  if (!game) return "";
+
+  // Priority 1: objectId (most stable across different game sources)
+  if (game.objectId !== undefined && game.objectId !== null) {
+    return String(game.objectId);
+  }
+
+  // Priority 2: id (common in library games)
+  if (game.id !== undefined && game.id !== null) {
+    return String(game.id);
+  }
+
+  // Priority 3: appId (Steam games)
+  if (game.appId !== undefined && game.appId !== null) {
+    return String(game.appId);
+  }
+
+  // Priority 4: slug (fallback for catalogue items)
+  if (game.slug !== undefined && game.slug !== null) {
+    return String(game.slug);
+  }
+
+  return "";
+};
