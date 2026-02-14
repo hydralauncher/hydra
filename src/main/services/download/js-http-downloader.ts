@@ -74,6 +74,7 @@ export class JsHttpDownloader {
     this.isPaused = false;
     this.retryCount = 0;
     this.isStallRetry = false;
+    this.fileSize = 0;
     await this.startDownloadWithRetry();
   }
 
@@ -245,10 +246,10 @@ export class JsHttpDownloader {
     if (fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
       startByte = stats.size;
-      this.bytesDownloaded = startByte;
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
     }
 
+    this.bytesDownloaded = startByte;
     this.resetSpeedTracking();
     return { filePath, startByte, usedFallback };
   }
@@ -370,26 +371,6 @@ export class JsHttpDownloader {
     const readableStream = this.createReadableStream(response.body.getReader());
     await pipeline(readableStream, this.writeStream);
 
-    // Validate downloaded size: catch cases where the server returned a tiny
-    // error body (e.g. JSON error, plain-text "not found") with 200 status
-    if (this.bytesDownloaded < 1024 && startByte === 0) {
-      logger.error(
-        `[JsHttpDownloader] Download finished but only ${this.bytesDownloaded} bytes received — response is likely an error page`
-      );
-      this.status = "error";
-      // Clean up the bogus file
-      if (fs.existsSync(actualFilePath)) {
-        try {
-          fs.unlinkSync(actualFilePath);
-        } catch {
-          // ignore cleanup errors
-        }
-      }
-      throw new Error(
-        `Download completed with only ${this.bytesDownloaded} bytes — the download URL likely returned an error instead of the file`
-      );
-    }
-
     this.status = "complete";
     this.retryCount = 0;
     this.downloadSpeed = 0;
@@ -437,11 +418,7 @@ export class JsHttpDownloader {
             this.push(Buffer.from(value));
           })
           .catch((err: Error) => {
-            if (err.name === "AbortError") {
-              this.push(null);
-            } else {
-              this.destroy(err);
-            }
+            this.destroy(err);
           });
       },
     });
