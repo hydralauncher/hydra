@@ -238,6 +238,8 @@ export class DownloadManager {
 
       let { progress, bytesDownloaded, fileSize, folderName } = status;
       let downloadSpeed = status.downloadSpeed;
+      let batchFilesTotal: number | undefined;
+      let batchFilesDownloaded: number | undefined;
 
       if (
         this.allDebridBatch &&
@@ -248,11 +250,14 @@ export class DownloadManager {
           batch.currentIndex >= batch.entries.length &&
           status.status === "complete";
 
+        batchFilesTotal = batch.entries.length;
+
         if (batchDone) {
           this.allDebridBatch = null;
           progress = 1;
           bytesDownloaded = batch.completedBytes;
           fileSize = batch.totalBytes;
+          batchFilesDownloaded = batchFilesTotal;
         } else {
           if (status.status === "complete") {
             status.status = "active";
@@ -271,6 +276,7 @@ export class DownloadManager {
           fileSize = batch.totalBytes || fileSize;
           folderName =
             batch.entries[batch.currentIndex]?.filename ?? folderName;
+          batchFilesDownloaded = batch.currentIndex;
 
           // Compute batch-level speed so small files don't reset the reading
           const now = Date.now();
@@ -317,6 +323,8 @@ export class DownloadManager {
         progress,
         gameId: downloadId,
         download: updatedDownload,
+        batchFilesTotal,
+        batchFilesDownloaded,
       };
     } catch (err) {
       logger.error("[DownloadManager] Error getting JS download status:", err);

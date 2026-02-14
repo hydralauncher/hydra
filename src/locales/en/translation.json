@@ -124,7 +124,9 @@
     "no_downloads_in_progress": "No downloads in progress",
     "downloading_metadata": "Downloading {{title}} metadata…",
     "downloading": "Downloading {{title}}… ({{percentage}} complete) - Completion {{eta}} - {{speed}}",
+    "downloading_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Completion {{eta}} - {{speed}}",
     "calculating_eta": "Downloading {{title}}… ({{percentage}} complete) - Calculating remaining time…",
+    "calculating_eta_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Calculating remaining time…",
     "checking_files": "Checking {{title}} files… ({{percentage}} complete)",
     "extracting": "Extracting {{title}}… ({{percentage}} complete)",
     "installing_common_redist": "{{log}}…",
@@ -461,6 +463,7 @@
     "no": "No",
     "network": "NETWORK",
     "peak": "PEAK",
+    "files": "FILES",
     "move_up": "Move up",
     "move_down": "Move down"
   },
