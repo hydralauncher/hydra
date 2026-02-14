@@ -161,6 +161,8 @@ export const getDownloadersForUri = (uri: string) => {
       Downloader.Hydra,
       Downloader.TorBox,
       Downloader.RealDebrid,
+      Downloader.Premiumize,
+      Downloader.AllDebrid,
     ];
   }
 

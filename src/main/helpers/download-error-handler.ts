@@ -15,6 +15,36 @@ const handleAxiosError = (
     return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
   }
 
+  if (
+    (err.response?.status === 401 || err.response?.status === 403) &&
+    downloader === Downloader.Premiumize
+  ) {
+    return { ok: false, error: DownloadError.PremiumizeAccountNotAuthorized };
+  }
+
+  if (
+    (err.response?.status === 401 || err.response?.status === 403) &&
+    downloader === Downloader.AllDebrid
+  ) {
+    return { ok: false, error: DownloadError.AllDebridAccountNotAuthorized };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.Premiumize) {
+    return { ok: false, error: DownloadError.PremiumizeRateLimitExceeded };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.AllDebrid) {
+    return { ok: false, error: DownloadError.AllDebridRateLimitExceeded };
+  }
+
+  if (err.response?.status === 503 && downloader === Downloader.Premiumize) {
+    return { ok: false, error: DownloadError.PremiumizeUnavailable };
+  }
+
+  if (err.response?.status === 503 && downloader === Downloader.AllDebrid) {
+    return { ok: false, error: DownloadError.AllDebridUnavailable };
+  }
+
   if (downloader === Downloader.TorBox) {
     const data = err.response?.data as { detail?: string } | undefined;
     return { ok: false, error: data?.detail };
