@@ -46,6 +46,9 @@ interface AllDebridBatchState {
   currentIndex: number;
   completedBytes: number;
   totalBytes: number;
+  lastSpeedUpdate: number;
+  bytesAtLastSpeedUpdate: number;
+  batchSpeed: number;
 }
 
 export class DownloadManager {
@@ -234,7 +237,7 @@ export class DownloadManager {
       if (!download) return null;
 
       let { progress, bytesDownloaded, fileSize, folderName } = status;
-      const { downloadSpeed } = status;
+      let downloadSpeed = status.downloadSpeed;
 
       if (
         this.allDebridBatch &&
@@ -268,6 +271,17 @@ export class DownloadManager {
           fileSize = batch.totalBytes || fileSize;
           folderName =
             batch.entries[batch.currentIndex]?.filename ?? folderName;
+
+          // Compute batch-level speed so small files don't reset the reading
+          const now = Date.now();
+          const elapsed = (now - batch.lastSpeedUpdate) / 1000;
+          if (elapsed >= 1) {
+            const bytesDelta = bytesDownloaded - batch.bytesAtLastSpeedUpdate;
+            batch.batchSpeed = Math.max(0, bytesDelta / elapsed);
+            batch.lastSpeedUpdate = now;
+            batch.bytesAtLastSpeedUpdate = bytesDownloaded;
+          }
+          downloadSpeed = batch.batchSpeed;
         }
       }
 
@@ -1245,6 +1259,9 @@ export class DownloadManager {
             totalBytes: entries.every((item) => typeof item.size === "number")
               ? entries.reduce((acc, item) => acc + (item.size ?? 0), 0)
               : 0,
+            lastSpeedUpdate: Date.now(),
+            bytesAtLastSpeedUpdate: 0,
+            batchSpeed: 0,
           };
 
           this.jsDownloader = new JsHttpDownloader();
