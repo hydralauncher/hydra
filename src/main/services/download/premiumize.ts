@@ -111,7 +111,9 @@ export class PremiumizeClient {
     try {
       const parsed = parseTorrent(uri);
       if (parsed.infoHash) return parsed.infoHash;
-    } catch {}
+    } catch {
+      // parse-torrent may throw for malformed URIs
+    }
 
     const match = /xt=urn:btih:([a-z0-9]+)/i.exec(uri);
     const candidate = match?.[1];
