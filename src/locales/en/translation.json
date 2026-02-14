@@ -403,7 +403,9 @@
     "hide_original": "Hide original",
     "review_from_blocked_user": "Review from blocked user",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "mark_as_completed": "Mark as completed",
+    "completed": "Completed"
   },
   "activation": {
     "title": "Activate Hydra",

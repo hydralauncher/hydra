@@ -80,3 +80,20 @@
     flex-wrap: wrap;
   }
 }
+
+.game-completed-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: rgba(46, 125, 50, 0.12);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  border-radius: 4px;
+  color: #7ecf83;
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 1;
+}

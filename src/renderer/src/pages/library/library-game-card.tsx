@@ -1,12 +1,15 @@
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
-import { memo, useState } from "react";
+import { useGameCard, useAppSelector } from "@renderer/hooks";
+import { memo, useState, useMemo } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
   TrophyIcon,
   ImageIcon,
+  CheckIcon,
 } from "@primer/octicons-react";
+import { makeSelectIsCompleted } from "@renderer/features";
+import { resolveGameId } from "@renderer/helpers";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -33,6 +36,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const coverImage = game.coverImageUrl?.replaceAll("\\", "/") ?? "";
 
   const [imageError, setImageError] = useState(false);
+
+  // Completed games selector
+  const selectIsCompleted = useMemo(makeSelectIsCompleted, []);
+  const gameId = resolveGameId(game);
+  const isCompleted = useAppSelector((state) =>
+    selectIsCompleted(state, gameId)
+  );
 
   return (
     <button
@@ -62,6 +72,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               {formatPlayTime(game.playTimeInMilliseconds, true)}
             </span>
           </div>
+
+          {isCompleted && (
+            <div className="library-game-card__completed-badge">
+              <CheckIcon size={12} />
+            </div>
+          )}
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (

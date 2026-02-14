@@ -7,6 +7,16 @@
     &--disabled {
       opacity: 0.5;
     }
+
+    &--completed {
+      background-color: rgba(46, 125, 50, 0.12);
+      border-color: rgba(46, 125, 50, 0.25);
+      color: #7ecf83;
+
+      &:hover {
+        background-color: rgba(46, 125, 50, 0.18);
+      }
+    }
   }
 
   &__container {

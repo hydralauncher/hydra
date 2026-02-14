@@ -72,6 +72,42 @@
       }
     }
 
+    &--completed {
+      background-color: rgba(30, 60, 35, 0.15);
+
+      .sidebar__menu-item-button-label {
+        color: rgba(160, 160, 160, 0.7);
+      }
+
+      .sidebar__game-icon {
+        opacity: 0.6;
+      }
+
+      &:hover {
+        background-color: rgba(30, 60, 35, 0.25);
+
+        .sidebar__menu-item-button-label {
+          color: rgba(180, 180, 180, 0.85);
+        }
+
+        .sidebar__game-icon {
+          opacity: 0.8;
+        }
+      }
+
+      &.sidebar__menu-item--active {
+        background-color: rgba(46, 125, 50, 0.2);
+
+        .sidebar__menu-item-button-label {
+          color: rgba(200, 200, 200, 0.95);
+        }
+
+        .sidebar__game-icon {
+          opacity: 1;
+        }
+      }
+    }
+
     &--decky {
       background: linear-gradient(
         135deg,

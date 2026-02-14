@@ -100,7 +100,14 @@
   &:hover &__cover {
     transform: scale(1.05);
   }
+
   &:hover &__content {
     transform: translateY(0px);
   }
+}
+
+.game-completed-badge--top-right {
+  top: 8px;
+  right: 8px;
+  left: auto;
 }

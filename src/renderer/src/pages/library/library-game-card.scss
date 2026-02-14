@@ -241,6 +241,20 @@
     justify-content: center;
     z-index: 0;
   }
+
+  &__completed-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: rgba(46, 125, 50, 0.12);
+    border: 1px solid rgba(46, 125, 50, 0.25);
+    border-radius: 4px;
+    color: #7ecf83;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 }
 
 @keyframes pulse {
@@ -248,6 +262,7 @@
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
