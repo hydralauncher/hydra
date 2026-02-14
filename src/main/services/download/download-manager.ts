@@ -44,10 +44,8 @@ interface AllDebridBatchState {
   savePath: string;
   entries: AllDebridBatchEntry[];
   currentIndex: number;
-  lastCompletedIndex: number;
   completedBytes: number;
   totalBytes: number;
-  advancing: boolean;
 }
 
 export class DownloadManager {
@@ -243,73 +241,36 @@ export class DownloadManager {
         this.allDebridBatch.downloadId === downloadId
       ) {
         const batch = this.allDebridBatch;
-        const currentEntry = batch.entries[batch.currentIndex];
-        if (batch.advancing && status.status === "active") {
-          batch.advancing = false;
-        }
+        const batchDone =
+          batch.currentIndex >= batch.entries.length &&
+          status.status === "complete";
 
-        if (
-          status.status === "complete" &&
-          currentEntry &&
-          batch.lastCompletedIndex < batch.currentIndex &&
-          !batch.advancing
-        ) {
-          // Validate downloaded size against expected size from debrid API
-          const expectedSize = currentEntry.size ?? 0;
-          if (
-            expectedSize > 0 &&
-            status.bytesDownloaded < expectedSize * 0.95
-          ) {
-            logger.error(
-              `[DownloadManager] AllDebrid batch entry ${batch.currentIndex} size mismatch: ` +
-                `downloaded=${status.bytesDownloaded} expected=${expectedSize}. ` +
-                `The download URL may have returned an error page.`
-            );
-            this.usingJsDownloader = false;
-            this.jsDownloader?.cancelDownload();
-            this.jsDownloader = null;
-            this.allDebridBatch = null;
-            return null;
-          }
-
-          batch.advancing = true;
-          batch.completedBytes += Math.max(
-            currentEntry.size ?? 0,
-            status.bytesDownloaded
-          );
-          batch.lastCompletedIndex = batch.currentIndex;
-
-          if (batch.currentIndex < batch.entries.length - 1) {
-            batch.currentIndex += 1;
-            void this.startAllDebridBatchEntry();
-            folderName = this.sanitizeRelativePath(
-              batch.entries[batch.currentIndex].filename
-            );
-            progress = this.calculateAllDebridBatchProgress(batch, 0, 0, 0);
-            downloadSpeed = 0;
-            bytesDownloaded = batch.completedBytes;
-            fileSize = batch.totalBytes;
-            status.status = "active";
-          } else {
-            this.allDebridBatch = null;
-            progress = 1;
-            bytesDownloaded = batch.completedBytes;
-            fileSize = batch.totalBytes;
-          }
+        if (batchDone) {
+          this.allDebridBatch = null;
+          progress = 1;
+          bytesDownloaded = batch.completedBytes;
+          fileSize = batch.totalBytes;
         } else {
+          if (status.status === "complete") {
+            status.status = "active";
+          }
+
+          const currentBytes =
+            status.status === "active" ? status.bytesDownloaded : 0;
+
           progress = this.calculateAllDebridBatchProgress(
             batch,
             status.progress,
-            status.bytesDownloaded,
+            currentBytes,
             status.fileSize
           );
-          bytesDownloaded = batch.completedBytes + status.bytesDownloaded;
+          bytesDownloaded = batch.completedBytes + currentBytes;
           fileSize = batch.totalBytes || fileSize;
+          folderName =
+            batch.entries[batch.currentIndex]?.filename ?? folderName;
         }
       }
 
-      // Only update fileSize in database if we actually know it (> 0)
-      // Otherwise keep the existing value to avoid showing "0 B"
       const effectiveFileSize = fileSize > 0 ? fileSize : download.fileSize;
 
       const updatedDownload = {
@@ -483,8 +444,6 @@ export class DownloadManager {
     if (download.automaticallyExtract) {
       this.handleExtraction(download, game);
     } else {
-      // For downloads without extraction (e.g., torrents with ready-to-play files),
-      // search for executable in the download folder
       const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
       gameFilesManager.searchAndBindExecutable();
     }
@@ -736,46 +695,75 @@ export class DownloadManager {
     );
   }
 
-  private static async startAllDebridBatchEntry() {
-    if (!this.allDebridBatch || !this.jsDownloader) return;
+  private static async runAllDebridBatch() {
+    while (this.allDebridBatch && this.jsDownloader) {
+      const batch = this.allDebridBatch;
+      const downloader = this.jsDownloader;
+      const entry = batch.entries[batch.currentIndex];
+      if (!entry) break;
 
-    const batch = this.allDebridBatch;
-    const entry = batch.entries[batch.currentIndex];
-    if (!entry) return;
+      try {
+        let resolvedUrl = entry.url;
+        if (entry.isLocked) {
+          resolvedUrl = await AllDebridClient.unlockDownloadLink(entry.url);
+        }
 
-    try {
-      let resolvedUrl = entry.url;
-      if (entry.isLocked) {
-        resolvedUrl = await AllDebridClient.unlockDownloadLink(entry.url);
+        if (!this.allDebridBatch || !this.jsDownloader) break;
+
+        const options = {
+          url: resolvedUrl,
+          savePath: batch.savePath,
+          filename: this.sanitizeRelativePath(entry.filename),
+        };
+
+        await downloader.startDownload(options);
+
+        if (!this.allDebridBatch || !this.jsDownloader) break;
+
+        const dlStatus = downloader.getDownloadStatus();
+        if (
+          !dlStatus ||
+          dlStatus.status === "paused" ||
+          dlStatus.status === "error"
+        ) {
+          break;
+        }
+
+        const expectedSize = entry.size ?? 0;
+        if (
+          expectedSize > 0 &&
+          dlStatus.bytesDownloaded < expectedSize * 0.95
+        ) {
+          logger.error(
+            `[DownloadManager] AllDebrid batch entry ${batch.currentIndex} size mismatch: ` +
+              `downloaded=${dlStatus.bytesDownloaded} expected=${expectedSize}. ` +
+              `The download URL may have returned an error page.`
+          );
+          this.cleanupBatch();
+          return;
+        }
+
+        batch.completedBytes += Math.max(
+          entry.size ?? 0,
+          dlStatus.bytesDownloaded
+        );
+        batch.currentIndex += 1;
+      } catch (err) {
+        logger.error("[DownloadManager] AllDebrid batch entry error:", err);
+        this.cleanupBatch();
+        return;
       }
-
-      const options = {
-        url: resolvedUrl,
-        savePath: batch.savePath,
-        filename: this.sanitizeRelativePath(entry.filename),
-      };
-
-      this.jsDownloader.startDownload(options).catch((err) => {
-        logger.error("[DownloadManager] JS batch download error:", err);
-        this.usingJsDownloader = false;
-        this.jsDownloader = null;
-        this.allDebridBatch = null;
-        this.downloadingGameId = null;
-        this.isPreparingDownload = false;
-        WindowManager.mainWindow?.setProgressBar(-1);
-      });
-    } catch (err) {
-      logger.error(
-        "[DownloadManager] Failed to start AllDebrid batch entry:",
-        err
-      );
-      this.usingJsDownloader = false;
-      this.jsDownloader = null;
-      this.allDebridBatch = null;
-      this.downloadingGameId = null;
-      this.isPreparingDownload = false;
-      WindowManager.mainWindow?.setProgressBar(-1);
     }
+  }
+
+  private static cleanupBatch() {
+    this.usingJsDownloader = false;
+    this.jsDownloader?.cancelDownload();
+    this.jsDownloader = null;
+    this.allDebridBatch = null;
+    this.downloadingGameId = null;
+    this.isPreparingDownload = false;
+    WindowManager.mainWindow?.setProgressBar(-1);
   }
 
   private static async getGofileDownloadOptions(
@@ -1253,17 +1241,15 @@ export class DownloadManager {
               filename: this.sanitizeRelativePath(entry.filename),
             })),
             currentIndex: 0,
-            lastCompletedIndex: -1,
             completedBytes: 0,
             totalBytes: entries.every((item) => typeof item.size === "number")
               ? entries.reduce((acc, item) => acc + (item.size ?? 0), 0)
               : 0,
-            advancing: false,
           };
 
           this.jsDownloader = new JsHttpDownloader();
           this.isPreparingDownload = false;
-          void this.startAllDebridBatchEntry();
+          void this.runAllDebridBatch();
         } else {
           this.allDebridBatch = null;
           const options = await this.getJsDownloadOptions(download);
