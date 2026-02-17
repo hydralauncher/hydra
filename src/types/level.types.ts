@@ -64,6 +64,8 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  installedSizeInBytes?: number | null;
+  installerSizeInBytes?: number | null;
 }
 
 export interface Download {
@@ -128,6 +130,8 @@ export interface UserPreferences {
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
+  useNativeHttpDownloader?: boolean;
+  createStartMenuShortcut?: boolean;
 }
 
 export interface ScreenState {

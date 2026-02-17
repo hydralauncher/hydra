@@ -1,6 +1,6 @@
 import type { GameShop, LibraryGame, SeedingStatus } from "@types";
 
-import { Badge, Button } from "@renderer/components";
+import { Badge, Button, ConfirmationModal } from "@renderer/components";
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
@@ -26,19 +26,59 @@ import {
   DropdownMenuItem,
 } from "@renderer/components/dropdown-menu/dropdown-menu";
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   ClockIcon,
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
   LinkIcon,
   PlayIcon,
-  ThreeBarsIcon,
   TrashIcon,
   UnlinkIcon,
   XCircleIcon,
   GraphIcon,
 } from "@primer/octicons-react";
+import { MoreVertical, Folder } from "lucide-react";
 import { average } from "color.js";
+
+function hexToRgb(hex: string): [number, number, number] {
+  let h = hex.replace("#", "");
+  if (h.length === 3) {
+    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  }
+  const r = Number.parseInt(h.substring(0, 2), 16) || 0;
+  const g = Number.parseInt(h.substring(2, 4), 16) || 0;
+  const b = Number.parseInt(h.substring(4, 6), 16) || 0;
+  return [r, g, b];
+}
+
+function isTooCloseRGB(a: string, b: string, threshold: number): boolean {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  const distance = Math.sqrt(
+    Math.pow(r1 - r2, 2) + Math.pow(g1 - g2, 2) + Math.pow(b1 - b2, 2)
+  );
+  return distance < threshold;
+}
+
+const CHART_BACKGROUND_COLOR = "#1a1a1a";
+const COLOR_DISTANCE_THRESHOLD = 28;
+const FALLBACK_CHART_COLOR = "#fff";
+
+function pickChartColor(dominant?: string): string {
+  if (!dominant || typeof dominant !== "string" || !dominant.startsWith("#")) {
+    return FALLBACK_CHART_COLOR;
+  }
+
+  if (
+    isTooCloseRGB(dominant, CHART_BACKGROUND_COLOR, COLOR_DISTANCE_THRESHOLD)
+  ) {
+    return FALLBACK_CHART_COLOR;
+  }
+
+  return dominant;
+}
 
 interface AnimatedPercentageProps {
   value: number;
@@ -216,10 +256,10 @@ interface HeroDownloadViewProps {
   lastPacket: ReturnType<typeof useDownload>["lastPacket"];
   speedHistory: number[];
   formatSpeed: (speed: number) => string;
-  calculateETA: () => string;
+  calculateETA: () => string | null;
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
-  cancelDownload: (shop: GameShop, objectId: string) => void;
+  onCancelClick: (shop: GameShop, objectId: string) => void;
   t: (key: string) => string;
 }
 
@@ -238,14 +278,30 @@ function HeroDownloadView({
   calculateETA,
   pauseDownload,
   resumeDownload,
-  cancelDownload,
+  onCancelClick,
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
+  const { t: tGameDetails } = useTranslation("game_details");
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
   }, [navigate, game]);
+
+  const etaText = calculateETA();
+  const hasEta =
+    isGameDownloading &&
+    !isGameExtracting &&
+    !lastPacket?.isCheckingFiles &&
+    !!etaText &&
+    etaText.trim() !== "" &&
+    etaText !== "0";
+  const shouldShowEtaPlaceholder =
+    isGameDownloading &&
+    !isGameExtracting &&
+    !lastPacket?.isCheckingFiles &&
+    !hasEta;
+  const shouldShowEta = hasEta || shouldShowEtaPlaceholder;
 
   return (
     <div className="download-group download-group--hero">
@@ -307,14 +363,12 @@ function HeroDownloadView({
               <div className="download-group__progress-info-row">
                 {!lastPacket?.isCheckingFiles && !isGameExtracting && (
                   <span className="download-group__progress-time">
-                    {isGameDownloading &&
-                      lastPacket?.timeRemaining &&
-                      lastPacket.timeRemaining > 0 && (
-                        <>
-                          <ClockIcon size={14} />
-                          {calculateETA()}
-                        </>
-                      )}
+                    {shouldShowEta && (
+                      <>
+                        <ClockIcon size={14} />
+                        {hasEta ? etaText : tGameDetails("calculating_eta")}
+                      </>
+                    )}
                   </span>
                 )}
                 <span className="download-group__progress-percentage">
@@ -353,7 +407,7 @@ function HeroDownloadView({
                 )}
                 <button
                   type="button"
-                  onClick={() => cancelDownload(game.shop, game.objectId)}
+                  onClick={() => onCancelClick(game.shop, game.objectId)}
                   className="download-group__glass-btn"
                 >
                   <XCircleIcon size={14} />
@@ -442,6 +496,7 @@ export interface DownloadGroupProps {
   openDeleteGameModal: (shop: GameShop, objectId: string) => void;
   openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
+  queuedGameIds?: string[];
 }
 
 export function DownloadGroup({
@@ -450,8 +505,10 @@ export function DownloadGroup({
   openDeleteGameModal,
   openGameInstaller,
   seedingStatus,
+  queuedGameIds = [],
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
+  const { t: tGameDetails } = useTranslation("game_details");
   const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
@@ -522,6 +579,16 @@ export function DownloadGroup({
   );
   const [optimisticallyResumed, setOptimisticallyResumed] = useState<
     Record<string, boolean>
+  >({});
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [gameToCancelShop, setGameToCancelShop] = useState<GameShop | null>(
+    null
+  );
+  const [gameToCancelObjectId, setGameToCancelObjectId] = useState<
+    string | null
+  >(null);
+  const [gameActionTypes, setGameActionTypes] = useState<
+    Record<string, "install" | "open-folder">
   >({});
 
   const extractDominantColor = useCallback(
@@ -613,10 +680,17 @@ export function DownloadGroup({
     const download = game.download!;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
-    if (download.fileSize != null) return formatBytes(download.fileSize);
-
-    if (lastPacket?.download.fileSize && isGameDownloading)
+    // Check lastPacket first for most up-to-date size during active downloads
+    if (
+      isGameDownloading &&
+      lastPacket?.download.fileSize &&
+      lastPacket.download.fileSize > 0
+    )
       return formatBytes(lastPacket.download.fileSize);
+
+    // Then check the stored download size (must be > 0 to be valid)
+    if (download.fileSize != null && download.fileSize > 0)
+      return formatBytes(download.fileSize);
 
     return "N/A";
   };
@@ -630,10 +704,10 @@ export function DownloadGroup({
   const calculateETA = () => {
     if (
       !lastPacket ||
-      lastPacket.timeRemaining < 0 ||
+      lastPacket.timeRemaining <= 0 ||
       !Number.isFinite(lastPacket.timeRemaining)
     ) {
-      return "";
+      return null;
     }
 
     return formatDistance(
@@ -651,6 +725,39 @@ export function DownloadGroup({
     [updateLibrary]
   );
 
+  const handleCancelClick = useCallback((shop: GameShop, objectId: string) => {
+    setGameToCancelShop(shop);
+    setGameToCancelObjectId(objectId);
+    setCancelModalVisible(true);
+  }, []);
+
+  const handleConfirmCancel = useCallback(async () => {
+    if (gameToCancelShop && gameToCancelObjectId) {
+      await cancelDownload(gameToCancelShop, gameToCancelObjectId);
+    }
+    setCancelModalVisible(false);
+    setGameToCancelShop(null);
+    setGameToCancelObjectId(null);
+  }, [gameToCancelShop, gameToCancelObjectId, cancelDownload]);
+
+  const handleCancelModalClose = useCallback(() => {
+    setCancelModalVisible(false);
+    setGameToCancelShop(null);
+    setGameToCancelObjectId(null);
+  }, []);
+
+  const handleMoveInQueue = useCallback(
+    async (shop: GameShop, objectId: string, direction: "up" | "down") => {
+      await window.electron.updateDownloadQueuePosition(
+        shop,
+        objectId,
+        direction
+      );
+      updateLibrary();
+    },
+    [updateLibrary]
+  );
+
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const download = lastPacket?.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
@@ -659,14 +766,6 @@ export function DownloadGroup({
 
     if (game.download?.progress === 1) {
       const actions = [
-        {
-          label: t("install"),
-          disabled: deleting,
-          onClick: () => {
-            openGameInstaller(game.shop, game.objectId);
-          },
-          icon: <DownloadIcon />,
-        },
         {
           label: t("extract"),
           disabled: game.download.extracting,
@@ -721,7 +820,7 @@ export function DownloadGroup({
         {
           label: t("cancel"),
           onClick: () => {
-            cancelDownload(game.shop, game.objectId);
+            handleCancelClick(game.shop, game.objectId);
           },
           icon: <XCircleIcon />,
         },
@@ -734,7 +833,12 @@ export function DownloadGroup({
       (download?.downloader === Downloader.TorBox &&
         !userPreferences?.torBoxApiToken);
 
-    return [
+    const queueIndex = queuedGameIds.indexOf(game.id);
+    const isFirstInQueue = queueIndex === 0;
+    const isLastInQueue = queueIndex === queuedGameIds.length - 1;
+    const isInQueue = queueIndex !== -1;
+
+    const actions = [
       {
         label: t("resume"),
         disabled: isResumeDisabled,
@@ -744,13 +848,31 @@ export function DownloadGroup({
         icon: <PlayIcon />,
       },
       {
+        label: t("move_up"),
+        show: isInQueue && !isFirstInQueue,
+        onClick: () => {
+          handleMoveInQueue(game.shop, game.objectId, "up");
+        },
+        icon: <ArrowUpIcon />,
+      },
+      {
+        label: t("move_down"),
+        show: isInQueue && !isLastInQueue,
+        onClick: () => {
+          handleMoveInQueue(game.shop, game.objectId, "down");
+        },
+        icon: <ArrowDownIcon />,
+      },
+      {
         label: t("cancel"),
         onClick: () => {
-          cancelDownload(game.shop, game.objectId);
+          handleCancelClick(game.shop, game.objectId);
         },
         icon: <XCircleIcon />,
       },
     ];
+
+    return actions.filter((action) => action.show !== false);
   };
 
   const downloadInfo = useMemo(
@@ -769,6 +891,37 @@ export function DownloadGroup({
       seedingStatus,
     ]
   );
+
+  // Fetch action types for completed games
+  useEffect(() => {
+    const fetchActionTypes = async () => {
+      const completedGames = library.filter(
+        (game) => game.download?.progress === 1
+      );
+
+      const actionTypesPromises = completedGames.map(async (game) => {
+        try {
+          const actionType = await window.electron.getGameInstallerActionType(
+            game.shop,
+            game.objectId
+          );
+          return { gameId: game.id, actionType };
+        } catch {
+          return { gameId: game.id, actionType: "open-folder" as const };
+        }
+      });
+
+      const results = await Promise.all(actionTypesPromises);
+      const newActionTypes: Record<string, "install" | "open-folder"> = {};
+      results.forEach(({ gameId, actionType }) => {
+        newActionTypes[gameId] = actionType;
+      });
+
+      setGameActionTypes((prev) => ({ ...prev, ...newActionTypes }));
+    };
+
+    fetchActionTypes();
+  }, [library]);
 
   if (!library.length) return null;
 
@@ -801,139 +954,182 @@ export function DownloadGroup({
       currentProgress = lastPacket.progress;
     }
 
-    const dominantColor = dominantColors[game.id] || "#fff";
+    const dominantColor = pickChartColor(dominantColors[game.id]);
 
     return (
-      <HeroDownloadView
-        game={game}
-        isGameDownloading={isGameDownloading}
-        isGameExtracting={isGameExtracting}
-        downloadSpeed={downloadSpeed}
-        finalDownloadSize={finalDownloadSize}
-        peakSpeed={peakSpeed}
-        currentProgress={currentProgress}
-        dominantColor={dominantColor}
-        lastPacket={lastPacket}
-        speedHistory={gameSpeedHistory}
-        formatSpeed={formatSpeed}
-        calculateETA={calculateETA}
-        pauseDownload={pauseDownload}
-        resumeDownload={resumeDownload}
-        cancelDownload={cancelDownload}
-        t={t}
-      />
+      <>
+        <ConfirmationModal
+          visible={cancelModalVisible}
+          title={t("cancel_download")}
+          descriptionText={t("cancel_download_description")}
+          confirmButtonLabel={t("yes_cancel")}
+          cancelButtonLabel={t("keep_downloading")}
+          onConfirm={handleConfirmCancel}
+          onClose={handleCancelModalClose}
+        />
+        <HeroDownloadView
+          game={game}
+          isGameDownloading={isGameDownloading}
+          isGameExtracting={isGameExtracting}
+          downloadSpeed={downloadSpeed}
+          finalDownloadSize={finalDownloadSize}
+          peakSpeed={peakSpeed}
+          currentProgress={currentProgress}
+          dominantColor={dominantColor}
+          lastPacket={lastPacket}
+          speedHistory={gameSpeedHistory}
+          formatSpeed={formatSpeed}
+          calculateETA={calculateETA}
+          pauseDownload={pauseDownload}
+          resumeDownload={resumeDownload}
+          onCancelClick={handleCancelClick}
+          t={t}
+        />
+      </>
     );
   }
 
   return (
-    <div
-      className={`download-group ${isQueuedGroup ? "download-group--queued" : ""} ${isCompletedGroup ? "download-group--completed" : ""}`}
-    >
-      <div className="download-group__header">
-        <div className="download-group__header-title-group">
-          <h2>{title}</h2>
-          <h3 className="download-group__header-count">{library.length}</h3>
+    <>
+      <ConfirmationModal
+        visible={cancelModalVisible}
+        title={t("cancel_download")}
+        descriptionText={t("cancel_download_description")}
+        confirmButtonLabel={t("yes_cancel")}
+        cancelButtonLabel={t("keep_downloading")}
+        onConfirm={handleConfirmCancel}
+        onClose={handleCancelModalClose}
+      />
+      <div
+        className={`download-group ${isQueuedGroup ? "download-group--queued" : ""} ${isCompletedGroup ? "download-group--completed" : ""}`}
+      >
+        <div className="download-group__header">
+          <div className="download-group__header-title-group">
+            <h2>{title}</h2>
+            <h3 className="download-group__header-count">{library.length}</h3>
+          </div>
         </div>
-      </div>
 
-      <ul className="download-group__simple-list">
-        {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
-          return (
-            <li key={game.id} className="download-group__simple-card">
-              <button
-                type="button"
-                onClick={() => navigate(buildGameDetailsPath(game))}
-                className="download-group__simple-thumbnail"
-              >
-                <img src={game.libraryImageUrl || ""} alt={game.title} />
-              </button>
-
-              <div className="download-group__simple-info">
+        <ul className="download-group__simple-list">
+          {downloadInfo.map(({ game, size, progress, isSeeding: seeding }) => {
+            return (
+              <li key={game.id} className="download-group__simple-card">
                 <button
                   type="button"
                   onClick={() => navigate(buildGameDetailsPath(game))}
-                  className="download-group__simple-title-button"
+                  className="download-group__simple-thumbnail"
                 >
-                  <h3 className="download-group__simple-title">{game.title}</h3>
+                  <img src={game.libraryImageUrl || ""} alt={game.title} />
                 </button>
-                <div className="download-group__simple-meta">
-                  <div className="download-group__simple-meta-row">
-                    <Badge>
-                      {DOWNLOADER_NAME[Number(game.download!.downloader)]}
-                    </Badge>
-                  </div>
-                  <div className="download-group__simple-meta-row">
-                    {extraction?.visibleId === game.id ? (
-                      <span className="download-group__simple-extracting">
-                        {t("extracting")} (
-                        {Math.round(extraction.progress * 100)}%)
-                      </span>
-                    ) : (
-                      <span className="download-group__simple-size">
-                        <DownloadIcon size={14} />
-                        {size}
-                      </span>
-                    )}
-                    {game.download?.progress === 1 && seeding && (
-                      <span className="download-group__simple-seeding">
-                        {t("seeding")}
-                      </span>
-                    )}
+
+                <div className="download-group__simple-info">
+                  <button
+                    type="button"
+                    onClick={() => navigate(buildGameDetailsPath(game))}
+                    className="download-group__simple-title-button"
+                  >
+                    <h3 className="download-group__simple-title">
+                      {game.title}
+                    </h3>
+                  </button>
+                  <div className="download-group__simple-meta">
+                    <div className="download-group__simple-meta-row">
+                      <Badge>
+                        {DOWNLOADER_NAME[Number(game.download!.downloader)]}
+                      </Badge>
+                    </div>
+                    <div className="download-group__simple-meta-row">
+                      {extraction?.visibleId === game.id ? (
+                        <span className="download-group__simple-extracting">
+                          {t("extracting")} (
+                          {Math.round(extraction.progress * 100)}%)
+                        </span>
+                      ) : (
+                        <span className="download-group__simple-size">
+                          <DownloadIcon size={14} />
+                          {size}
+                        </span>
+                      )}
+                      {game.download?.progress === 1 && seeding && (
+                        <span className="download-group__simple-seeding">
+                          {t("seeding")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {isQueuedGroup && (
-                <div className="download-group__simple-progress">
-                  <span className="download-group__simple-progress-text">
-                    {formatDownloadProgress(progress)}
-                  </span>
-                  <div className="download-group__progress-bar download-group__progress-bar--small">
-                    <div
-                      className="download-group__progress-fill"
-                      style={{
-                        width: `${progress * 100}%`,
-                        backgroundColor: "#fff",
-                      }}
-                    />
+                {isQueuedGroup && (
+                  <div className="download-group__simple-progress">
+                    <span className="download-group__simple-progress-text">
+                      {formatDownloadProgress(progress)}
+                    </span>
+                    <div className="download-group__progress-bar download-group__progress-bar--small">
+                      <div
+                        className="download-group__progress-fill"
+                        style={{
+                          width: `${progress * 100}%`,
+                          backgroundColor: "#fff",
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="download-group__simple-actions">
-                {game.download?.progress === 1 && (
-                  <Button
-                    theme="primary"
-                    onClick={() => openGameInstaller(game.shop, game.objectId)}
-                    disabled={isGameDeleting(game.id)}
-                    className="download-group__simple-menu-btn"
-                  >
-                    <PlayIcon size={16} />
-                  </Button>
-                )}
-                {isQueuedGroup && game.download?.progress !== 1 && (
-                  <Button
-                    theme="primary"
-                    onClick={() => resumeDownload(game.shop, game.objectId)}
-                    className="download-group__simple-menu-btn"
-                    tooltip={t("resume")}
-                  >
-                    <DownloadIcon size={16} />
-                  </Button>
-                )}
-                <DropdownMenu align="end" items={getGameActions(game)}>
-                  <Button
-                    theme="outline"
-                    className="download-group__simple-menu-btn"
-                  >
-                    <ThreeBarsIcon />
-                  </Button>
-                </DropdownMenu>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+                <div className="download-group__simple-actions">
+                  {game.download?.progress === 1 &&
+                    (() => {
+                      const actionType =
+                        gameActionTypes[game.id] || "open-folder";
+                      const isInstall = actionType === "install";
+
+                      return (
+                        <Button
+                          theme="primary"
+                          onClick={() =>
+                            openGameInstaller(game.shop, game.objectId)
+                          }
+                          disabled={isGameDeleting(game.id)}
+                          className="download-group__simple-action-btn"
+                        >
+                          {isInstall ? (
+                            <>
+                              <DownloadIcon size={16} />
+                              {t("install")}
+                            </>
+                          ) : (
+                            <>
+                              <Folder size={16} />
+                              {tGameDetails("open_folder")}
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
+                  {isQueuedGroup && game.download?.progress !== 1 && (
+                    <Button
+                      theme="primary"
+                      onClick={() => resumeDownload(game.shop, game.objectId)}
+                      className="download-group__simple-menu-btn"
+                      tooltip={t("resume")}
+                    >
+                      <DownloadIcon size={16} />
+                    </Button>
+                  )}
+                  <DropdownMenu align="end" items={getGameActions(game)}>
+                    <Button
+                      theme="outline"
+                      className="download-group__simple-menu-btn"
+                    >
+                      <MoreVertical size={16} />
+                    </Button>
+                  </DropdownMenu>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-import { WorkWondersSdk } from "workwonders-sdk";
+import { WorkWonders } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -52,7 +52,7 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
-  const workwondersRef = useRef<WorkWondersSdk | null>(null);
+  const workwondersRef = useRef<WorkWonders | null>(null);
 
   const {
     hasActiveSubscription,
@@ -120,21 +120,25 @@ export function App() {
     async (token?: string, locale?: string) => {
       if (workwondersRef.current) return;
 
+      workwondersRef.current = new WorkWonders();
+
       const possibleLocales = ["en", "pt", "ru"];
 
       const parsedLocale =
         possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
 
-      workwondersRef.current = new WorkWondersSdk();
       await workwondersRef.current.init({
         organization: "hydra",
         token,
         locale: parsedLocale,
       });
 
-      await workwondersRef.current.initChangelogWidget();
-      workwondersRef.current.initChangelogWidgetMini();
-      workwondersRef.current.initFeedbackWidget();
+      await workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidgetMini();
+
+      if (token) {
+        workwondersRef.current.feedback.initFeedbackWidget();
+      }
     },
     [workwondersRef]
   );
@@ -232,8 +236,11 @@ export function App() {
   }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
-    workwondersRef.current?.notifyUrlChange();
+    const asyncScrollAndNotify = async () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      await workwondersRef.current?.notifyUrlChange?.();
+    };
+    asyncScrollAndNotify();
   }, [location.pathname, location.search]);
 
   useEffect(() => {

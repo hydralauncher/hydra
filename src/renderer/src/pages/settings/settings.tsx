@@ -11,7 +11,7 @@ import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import "./settings.scss";
-import { SettingsAppearance } from "./aparence/settings-appearance";
+import { SettingsAppearance } from "./appearance/settings-appearance";
 import { SettingsDebrid } from "./settings-debrid";
 
 export default function Settings() {

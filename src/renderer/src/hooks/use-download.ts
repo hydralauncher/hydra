@@ -38,6 +38,14 @@ export function useDownload() {
     return response;
   };
 
+  const addGameToQueue = async (payload: StartGameDownloadPayload) => {
+    const response = await window.electron.addGameToQueue(payload);
+
+    if (response.ok) updateLibrary();
+
+    return response;
+  };
+
   const pauseDownload = async (shop: GameShop, objectId: string) => {
     await window.electron.pauseGameDownload(shop, objectId);
     await updateLibrary();
@@ -61,10 +69,16 @@ export function useDownload() {
   };
 
   const cancelDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.cancelGameDownload(shop, objectId);
-    dispatch(clearDownload());
-    updateLibrary();
+    const gameId = `${shop}:${objectId}`;
+    const isActiveDownload = lastPacket?.gameId === gameId;
 
+    await window.electron.cancelGameDownload(shop, objectId);
+
+    if (isActiveDownload) {
+      dispatch(clearDownload());
+    }
+
+    updateLibrary();
     removeGameInstaller(shop, objectId);
   };
 
@@ -113,6 +127,7 @@ export function useDownload() {
     lastPacket,
     eta: calculateETA(),
     startDownload,
+    addGameToQueue,
     pauseDownload,
     resumeDownload,
     cancelDownload,

@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld("electron", {
   /* Torrenting */
   startGameDownload: (payload: StartGameDownloadPayload) =>
     ipcRenderer.invoke("startGameDownload", payload),
+  addGameToQueue: (payload: StartGameDownloadPayload) =>
+    ipcRenderer.invoke("addGameToQueue", payload),
   cancelGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameDownload", shop, objectId),
   pauseGameDownload: (shop: GameShop, objectId: string) =>
@@ -37,6 +39,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resumeGameSeed", shop, objectId),
+  updateDownloadQueuePosition: (
+    shop: GameShop,
+    objectId: string,
+    direction: "up" | "down"
+  ) =>
+    ipcRenderer.invoke(
+      "updateDownloadQueuePosition",
+      shop,
+      objectId,
+      direction
+    ),
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -206,10 +219,19 @@ contextBridge.exposeInMainWorld("electron", {
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
+  getGameInstallerActionType: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameExecutablePath", shop, objectId),
+  getGameSaveFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameSaveFolder", shop, objectId),
+  openGameSaveFolder: (
+    shop: GameShop,
+    objectId: string,
+    saveFolderPath: string
+  ) => ipcRenderer.invoke("openGameSaveFolder", shop, objectId, saveFolderPath),
   openGame: (
     shop: GameShop,
     objectId: string,
@@ -239,6 +261,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
+  scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (shop: GameShop, objectId: string) =>
@@ -489,6 +512,18 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("common-redist-progress", listener);
     return () => ipcRenderer.removeListener("common-redist-progress", listener);
   },
+  onPreflightProgress: (
+    cb: (value: { status: string; detail: string | null }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: { status: string; detail: string | null }
+    ) => cb(value);
+    ipcRenderer.on("preflight-progress", listener);
+    return () => ipcRenderer.removeListener("preflight-progress", listener);
+  },
+  resetCommonRedistPreflight: () =>
+    ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 
@@ -671,6 +706,12 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+
+  /* Game Launcher Window */
+  showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),
+  closeGameLauncherWindow: () => ipcRenderer.invoke("closeGameLauncherWindow"),
+  openMainWindow: () => ipcRenderer.invoke("openMainWindow"),
+  isMainWindowOpen: () => ipcRenderer.invoke("isMainWindowOpen"),
 
   /* LevelDB Generic CRUD */
   leveldb: {
