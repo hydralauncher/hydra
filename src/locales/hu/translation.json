@@ -202,7 +202,7 @@
     "downloader_not_available": "Nem elérhető",
     "go_to_settings": "Beállítások megnyitása",
     "select_executable": "Tallózás",
-    "no_executable_selected": "Nincs futtatható fájl tallózva",													   
+    "no_executable_selected": "Nincs futtatható fájl tallózva",
     "open_folder": "Mappa megnyitása",
     "open_save_folder": "Mentés mappa megnyitása",
     "searching_save_folder": "Mentés mappa keresése...",
@@ -389,7 +389,7 @@
     "no_repacks_found": "Nem található forrás ehhez a játékhoz",
     "source_online": "A forrás elérhető",
     "source_partial": "Néháy link nem elérhető",
-    "source_offline": "A forrás nem elérhető",							  
+    "source_offline": "A forrás nem elérhető",
     "delete_review": "Vélemény törlése",
     "remove_review": "Vélemény eltávolítása",
     "delete_review_modal_title": "Biztos vagy abban hogy törölni szeretnéd a véleményed?",
@@ -454,7 +454,7 @@
     "network": "HÁLÓZAT",
     "peak": "CSÚCS",
     "move_up": "Fel mozgatás",
-    "move_down": "Le mozgatás"						 					
+    "move_down": "Le mozgatás"
   },
   "settings": {
     "downloads_path": "Letöltési útvonalak",
@@ -721,7 +721,7 @@
     "blocked_users": "Letiltott felhasználók",
     "unblock": "Tiltás feloldása",
     "no_friends_added": "Nincs bejelölt barátod",
-    "no_friends_yet": "Még nem jelöltél be senkit sem",													  
+    "no_friends_yet": "Még nem jelöltél be senkit sem",
     "view_all": "Összes megtekintése",
     "load_more": "Több betöltése",
     "loading": "Töltés..",
