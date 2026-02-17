@@ -2,14 +2,8 @@ import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
-import { Downloader, DownloadError } from "@shared";
-import {
-  downloadsSublevel,
-  gamesShopAssetsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "@main/level";
-import { AxiosError } from "axios";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { handleDownloadError, prepareGameEntry } from "@main/helpers";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -38,30 +32,7 @@ const startGameDownload = async (
     }
   }
 
-  const game = await gamesSublevel.get(gameKey);
-  const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
-
-  await downloadsSublevel.del(gameKey);
-
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
-    });
-  } else {
-    await gamesSublevel.put(gameKey, {
-      title,
-      iconUrl: gameAssets?.iconUrl ?? null,
-      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
-      logoImageUrl: gameAssets?.logoImageUrl ?? null,
-      objectId,
-      shop,
-      remoteId: null,
-      playTimeInMilliseconds: 0,
-      lastTimePlayed: null,
-      isDeleted: false,
-    });
-  }
+  await prepareGameEntry({ gameKey, title, objectId, shop });
 
   await DownloadManager.cancelDownload(gameKey);
 
@@ -101,68 +72,7 @@ const startGameDownload = async (
     return { ok: true };
   } catch (err: unknown) {
     logger.error("Failed to start download", err);
-
-    if (err instanceof AxiosError) {
-      if (err.response?.status === 429 && downloader === Downloader.Gofile) {
-        return { ok: false, error: DownloadError.GofileQuotaExceeded };
-      }
-
-      if (
-        err.response?.status === 403 &&
-        downloader === Downloader.RealDebrid
-      ) {
-        return {
-          ok: false,
-          error: DownloadError.RealDebridAccountNotAuthorized,
-        };
-      }
-
-      if (downloader === Downloader.TorBox) {
-        return { ok: false, error: err.response?.data?.detail };
-      }
-    }
-
-    if (err instanceof Error) {
-      if (downloader === Downloader.Buzzheavier) {
-        if (err.message.includes("Rate limit")) {
-          return {
-            ok: false,
-            error: "Buzzheavier: Rate limit exceeded",
-          };
-        }
-        if (
-          err.message.includes("not found") ||
-          err.message.includes("deleted")
-        ) {
-          return {
-            ok: false,
-            error: "Buzzheavier: File not found",
-          };
-        }
-      }
-
-      if (downloader === Downloader.FuckingFast) {
-        if (err.message.includes("Rate limit")) {
-          return {
-            ok: false,
-            error: "FuckingFast: Rate limit exceeded",
-          };
-        }
-        if (
-          err.message.includes("not found") ||
-          err.message.includes("deleted")
-        ) {
-          return {
-            ok: false,
-            error: "FuckingFast: File not found",
-          };
-        }
-      }
-
-      return { ok: false, error: err.message };
-    }
-
-    return { ok: false };
+    return handleDownloadError(err, downloader);
   }
 };
 

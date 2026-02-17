@@ -47,11 +47,19 @@ declare global {
     startGameDownload: (
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
+    addGameToQueue: (
+      payload: StartGameDownloadPayload
+    ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
+    updateDownloadQueuePosition: (
+      shop: GameShop,
+      objectId: string,
+      direction: "up" | "down"
+    ) => Promise<boolean>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
@@ -167,8 +175,21 @@ declare global {
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getGameInstallerActionType: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
+    getGameSaveFolder: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
+    openGameSaveFolder: (
+      shop: GameShop,
+      objectId: string,
+      saveFolderPath: string
+    ) => Promise<boolean>;
     openGame: (
       shop: GameShop,
       objectId: string,
@@ -207,6 +228,10 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
+    scanInstalledGames: () => Promise<{
+      foundGames: { title: string; executablePath: string }[];
+      total: number;
+    }>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -349,6 +374,10 @@ declare global {
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
+    onPreflightProgress: (
+      cb: (value: { status: string; detail: string | null }) => void
+    ) => () => Electron.IpcRenderer;
+    resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
@@ -453,6 +482,12 @@ declare global {
     openEditorWindow: (themeId: string) => Promise<void>;
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
+
+    /* Game Launcher Window */
+    showGameLauncherWindow: () => Promise<void>;
+    closeGameLauncherWindow: () => Promise<void>;
+    openMainWindow: () => Promise<void>;
+    isMainWindowOpen: () => Promise<boolean>;
 
     /* Download Options */
     onNewDownloadOptions: (

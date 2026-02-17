@@ -89,7 +89,7 @@ export default function Downloads() {
     }, initialValue);
 
     const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
-      "desc",
+      "asc",
     ]);
 
     const complete = orderBy(result.complete, (game) =>
@@ -103,18 +103,26 @@ export default function Downloads() {
     };
   }, [library, lastPacket?.gameId, extraction?.visibleId]);
 
+  const queuedGameIds = useMemo(
+    () => libraryGroup.queued.map((game) => game.id),
+    [libraryGroup.queued]
+  );
+
   const downloadGroups = [
     {
       title: t("download_in_progress"),
       library: libraryGroup.downloading,
+      queuedGameIds: [] as string[],
     },
     {
       title: t("queued_downloads"),
       library: libraryGroup.queued,
+      queuedGameIds,
     },
     {
       title: t("downloads_completed"),
       library: libraryGroup.complete,
+      queuedGameIds: [] as string[],
     },
   ];
 
@@ -142,10 +150,11 @@ export default function Downloads() {
               <DownloadGroup
                 key={group.title}
                 title={group.title}
-                library={orderBy(group.library, ["updatedAt"], ["desc"])}
+                library={group.library}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}
+                queuedGameIds={group.queuedGameIds}
               />
             ))}
           </div>

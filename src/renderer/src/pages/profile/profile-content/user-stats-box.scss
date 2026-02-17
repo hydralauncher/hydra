@@ -29,6 +29,12 @@
       background-color: rgba(255, 255, 255, 0.15);
       text-decoration: none;
     }
+
+    &--wrapped {
+      &:hover {
+        background-color: transparent;
+      }
+    }
   }
 
   &__list-title {
@@ -69,5 +75,16 @@
     color: globals.$muted-color;
     font-size: 0.75rem;
     line-height: 1.4;
+  }
+
+  &__wrapped-link {
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: start;
+    color: globals.$body-color;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: underline;
   }
 }

@@ -54,6 +54,7 @@
     &-buttons {
       display: flex;
       gap: globals.$spacing-unit;
+      flex-wrap: wrap;
     }
   }
 

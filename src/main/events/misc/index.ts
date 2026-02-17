@@ -1,12 +1,17 @@
 import "./can-install-common-redist";
 import "./check-homebrew-folder-exists";
+import "./close-game-launcher-window";
 import "./delete-temp-file";
+import "./show-game-launcher-window";
 import "./get-hydra-decky-plugin-info";
 import "./hydra-api-call";
 import "./install-common-redist";
 import "./install-hydra-decky-plugin";
+import "./is-main-window-open";
 import "./open-checkout";
 import "./open-external";
+import "./open-main-window";
+import "./reset-common-redist-preflight";
 import "./save-temp-file";
 import "./show-item-in-folder";
 import "./show-open-dialog";

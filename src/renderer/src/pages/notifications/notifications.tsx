@@ -46,6 +46,7 @@ export default function Notifications() {
     hasMore: false,
     skip: 0,
   });
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const clearingTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   const fetchLocalNotifications = useCallback(async () => {
@@ -123,6 +124,7 @@ export default function Notifications() {
           : Promise.resolve(),
       ]);
       setIsLoading(false);
+      setIsInitialLoad(false);
     },
     [fetchLocalNotifications, fetchBadges, fetchApiNotifications, userDetails]
   );
@@ -473,7 +475,7 @@ export default function Notifications() {
   const shouldDisableActions = isClearing || hasNoNotifications;
 
   const renderContent = () => {
-    if (isLoading && hasNoNotifications) {
+    if (isInitialLoad && isLoading) {
       return (
         <div className="notifications__loading">
           <span>{t("loading")}</span>

@@ -108,7 +108,17 @@
     "search_results": "Search results",
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
-    "version_available_download": "Version {{version}} available. Click here to download."
+    "version_available_download": "Version {{version}} available. Click here to download.",
+    "scan_games_tooltip": "Scan PC for installed games",
+    "scan_games_title": "Scan PC for installed games",
+    "scan_games_description": "This will scan your disks for known game executables. This may take several minutes.",
+    "scan_games_start": "Start Scan",
+    "scan_games_cancel": "Cancel",
+    "scan_games_result": "Found {{found}} of {{total}} games without executable path",
+    "scan_games_no_results": "We couldn't find any installed games.",
+    "scan_games_in_progress": "Scanning your disks for installed games...",
+    "scan_games_close": "Close",
+    "scan_games_scan_again": "Scan Again"
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
@@ -175,6 +185,7 @@
     "repacks_modal_description": "Choose the repack you want to download",
     "select_folder_hint": "To change the default folder, go to the <0>Settings</0>",
     "download_now": "Download now",
+    "add_to_queue": "Add to queue",
     "loading": "Loading...",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
@@ -189,11 +200,13 @@
     "downloader_not_configured": "Available but not configured",
     "downloader_offline": "Link is offline",
     "downloader_not_available": "Not available",
-    "recommended": "Recommended",
     "go_to_settings": "Go to Settings",
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
     "open_folder": "Open folder",
+    "open_save_folder": "Open save folder",
+    "searching_save_folder": "Searching save folder...",
+    "no_save_folder_found": "No save folder found",
     "open_download_location": "See downloaded files",
     "create_shortcut": "Create desktop shortcut",
     "create_shortcut_simple": "Create shortcut",
@@ -205,6 +218,8 @@
     "properties": "Properties",
     "executable_section_title": "Executable",
     "executable_section_description": "Path of the file that will be executed when \"Play\" is clicked",
+    "shortcuts_section_title": "Shortcuts",
+    "shortcuts_section_description": "Create shortcuts to quickly launch this game",
     "downloads_section_title": "Downloads",
     "downloads_section_description": "Check out updates or other versions of this game",
     "danger_zone_section_title": "Danger zone",
@@ -372,6 +387,9 @@
     "audio": "Audio",
     "filter_by_source": "Filter by source",
     "no_repacks_found": "No sources found for this game",
+    "source_online": "Source is online",
+    "source_partial": "Some links are offline",
+    "source_offline": "Source is offline",
     "delete_review": "Delete review",
     "remove_review": "Remove Review",
     "delete_review_modal_title": "Are you sure you want to delete your review?",
@@ -404,6 +422,10 @@
     "completed": "Completed",
     "removed": "Not downloaded",
     "cancel": "Cancel",
+    "cancel_download": "Cancel download?",
+    "cancel_download_description": "Are you sure you want to cancel this download? All downloaded files will be deleted.",
+    "keep_downloading": "No, keep downloading",
+    "yes_cancel": "Yes, cancel",
     "filter": "Filter downloaded games",
     "remove": "Remove",
     "downloading_metadata": "Downloading metadata…",
@@ -430,7 +452,9 @@
     "yes": "Yes",
     "no": "No",
     "network": "NETWORK",
-    "peak": "PEAK"
+    "peak": "PEAK",
+    "move_up": "Move up",
+    "move_down": "Move down"
   },
   "settings": {
     "downloads_path": "Downloads path",
@@ -594,7 +618,11 @@
     "notification_preview": "Achievement Notification Preview",
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on game page",
-    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup"
+    "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
+    "downloads": "Downloads",
+    "use_native_http_downloader": "Use native HTTP downloader (experimental)",
+    "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress",
+    "create_start_menu_shortcut_on_download": "Create Start Menu shortcut when game finishes downloading"
   },
   "notifications": {
     "download_complete": "Download complete",
@@ -612,7 +640,11 @@
     "game_extracted": "{{title}} extracted successfully",
     "friend_started_playing_game": "{{displayName}} started playing a game",
     "test_achievement_notification_title": "This is a test notification",
-    "test_achievement_notification_description": "Pretty cool, huh?"
+    "test_achievement_notification_description": "Pretty cool, huh?",
+    "scan_games_complete_title": "Scanning for games finished successfully",
+    "scan_games_complete_description": "Found {{count}} games without executable path set",
+    "scan_games_no_results_title": "Scanning for games finished",
+    "scan_games_no_results_description": "No installed games were found"
   },
   "system_tray": {
     "open": "Open Hydra",
@@ -689,6 +721,7 @@
     "blocked_users": "Blocked users",
     "unblock": "Unblock",
     "no_friends_added": "You have no added friends",
+    "no_friends_yet": "You haven't added any friends yet",
     "view_all": "View all",
     "load_more": "Load more",
     "loading": "Loading",
@@ -716,8 +749,15 @@
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:",
     "copy_friend_code": "Copy friend code",
+    "copied": "Copied!",
     "upload_banner": "Upload banner",
     "uploading_banner": "Uploading banner…",
+    "change_banner": "Change banner",
+    "replace_banner": "Replace banner",
+    "remove_banner": "Remove banner",
+    "remove_banner_modal_title": "Remove banner?",
+    "remove_banner_confirmation": "Are you sure you want to remove your banner? You can always pick a new one when you want.",
+    "remove": "Remove",
     "background_image_updated": "Background image updated",
     "stats": "Stats",
     "achievements": "achievements",
@@ -738,9 +778,7 @@
     "user_reviews": "Reviews",
     "delete_review": "Delete Review",
     "loading_reviews": "Loading reviews...",
-    "wrapped_2025": "Wrapped 2025",
-    "view_my_wrapped_button": "View My Wrapped 2025",
-    "view_wrapped_button": "View {{displayName}}'s Wrapped 2025"
+    "wrapped_2025": "Wrapped 2025"
   },
   "library": {
     "library": "Library",
@@ -761,7 +799,10 @@
     "manual_playtime_tooltip": "This playtime has been manually updated",
     "all_games": "All Games",
     "recently_played": "Recently Played",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "disk_usage": "Disk usage",
+    "disk_usage_tooltip": "Installed size on disk",
+    "installer_size_tooltip": "Installer size"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",
@@ -791,6 +832,20 @@
     "hydra_cloud_feature_found": "You've just discovered a Hydra Cloud feature!",
     "learn_more": "Learn More",
     "debrid_description": "Download up to 4x faster with Nimbus"
+  },
+  "game_launcher": {
+    "launching": "Launching...",
+    "launching_base": "Launching",
+    "open_hydra": "Open Hydra",
+    "playtime": "Playtime",
+    "amount_hours": "{{amount}} hours",
+    "amount_minutes": "{{amount}} minutes",
+    "amount_hours_short": "{{amount}}h",
+    "amount_minutes_short": "{{amount}}m",
+    "preflight_checking": "Checking dependencies",
+    "preflight_downloading": "Downloading dependencies",
+    "preflight_installing": "Installing dependencies",
+    "preflight_installing_detail": "{{detail}}"
   },
   "notifications_page": {
     "title": "Notifications",

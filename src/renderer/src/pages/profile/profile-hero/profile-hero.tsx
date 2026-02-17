@@ -7,7 +7,6 @@ import {
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
-  TrophyIcon,
   XCircleFillIcon,
 } from "@primer/octicons-react";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -30,7 +29,6 @@ import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
-import { WrappedFullscreenModal } from "../profile-content/wrapped-tab";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import "./profile-hero.scss";
@@ -41,10 +39,10 @@ type FriendAction =
 
 export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
-  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
   const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
     useContext(userProfileContext);
@@ -261,9 +259,23 @@ export function ProfileHero() {
   const copyFriendCode = useCallback(() => {
     if (userProfile?.id) {
       navigator.clipboard.writeText(userProfile.id);
-      showSuccessToast(t("friend_code_copied"));
+      setIsCopied(true);
+
+      const startTime = performance.now();
+      const duration = 1200; // 1.2 seconds
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        if (elapsed < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsCopied(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
     }
-  }, [userProfile, showSuccessToast, t]);
+  }, [userProfile]);
 
   const currentGame = useMemo(() => {
     if (isMe) {
@@ -286,13 +298,6 @@ export function ProfileHero() {
         onClose={() => setShowEditProfileModal(false)}
       />
 
-      {userProfile && (
-        <WrappedFullscreenModal
-          userId={userProfile.id}
-          isOpen={showWrappedModal}
-          onClose={() => setShowWrappedModal(false)}
-        />
-      )}
       <FullscreenMediaModal
         visible={showFullscreenAvatar}
         onClose={() => setShowFullscreenAvatar(false)}
@@ -348,7 +353,7 @@ export function ProfileHero() {
                     onMouseLeave={() => setIsCopyButtonHovered(false)}
                     initial={{ width: 28 }}
                     animate={{
-                      width: isCopyButtonHovered ? 105 : 28,
+                      width: isCopyButtonHovered || isCopied ? 105 : 28,
                     }}
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                   >
@@ -356,12 +361,12 @@ export function ProfileHero() {
                       className="profile-hero__friend-code"
                       initial={{ opacity: 0, marginRight: 0 }}
                       animate={{
-                        opacity: isCopyButtonHovered ? 1 : 0,
-                        marginRight: isCopyButtonHovered ? 8 : 0,
+                        opacity: isCopyButtonHovered || isCopied ? 1 : 0,
+                        marginRight: isCopyButtonHovered || isCopied ? 8 : 0,
                       }}
                       transition={{ duration: 0.2, ease: "easeInOut" }}
                     >
-                      {userProfile?.id}
+                      {isCopied ? t("copied") : userProfile?.id}
                     </motion.span>
                     <CopyIcon size={16} />
                   </motion.button>
@@ -410,22 +415,6 @@ export function ProfileHero() {
             background: !backgroundImage ? heroBackground : undefined,
           }}
         >
-          {userProfile?.hasCompletedWrapped2025 && (
-            <div className="profile-hero__left-actions">
-              <Button
-                theme="outline"
-                onClick={() => setShowWrappedModal(true)}
-                className="profile-hero__button--wrapped"
-              >
-                <TrophyIcon />
-                {isMe
-                  ? t("view_my_wrapped_button")
-                  : t("view_wrapped_button", {
-                      displayName: userProfile.displayName,
-                    })}
-              </Button>
-            </div>
-          )}
           <div className="profile-hero__actions">{profileActions}</div>
         </div>
       </section>

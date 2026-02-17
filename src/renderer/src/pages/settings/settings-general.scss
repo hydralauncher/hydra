@@ -18,6 +18,13 @@
     align-self: flex-start;
   }
 
+  &__disabled-hint {
+    font-size: 13px;
+    color: globals.$muted-color;
+    margin-top: calc(globals.$spacing-unit * -1);
+    font-style: italic;
+  }
+
   &__volume-control {
     display: flex;
     flex-direction: column;

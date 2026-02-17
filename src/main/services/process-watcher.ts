@@ -69,7 +69,7 @@ const getGameExecutables = async () => {
   return gameExecutables;
 };
 
-const gameExecutables = await getGameExecutables();
+export const gameExecutables = await getGameExecutables();
 
 const findGamePathByProcess = async (
   processMap: Map<string, Set<string>>,
@@ -203,6 +203,9 @@ function onOpenGame(game: Game) {
     firstTick: now,
     lastSyncTick: now,
   });
+
+  // Close the launcher window when game starts
+  WindowManager.closeGameLauncherWindow();
 
   // Hide Hydra to tray on game startup if enabled
   db.get<string, UserPreferences | null>(levelKeys.userPreferences, {

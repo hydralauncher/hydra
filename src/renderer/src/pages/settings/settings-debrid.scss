@@ -14,10 +14,6 @@
   &__section {
     display: flex;
     flex-direction: column;
-
-    &:not(:last-child) {
-      margin-bottom: calc(globals.$spacing-unit * 2);
-    }
   }
 
   &__section-header {
