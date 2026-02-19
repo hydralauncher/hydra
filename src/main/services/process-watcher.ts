@@ -27,6 +27,13 @@ interface GameExecutables {
   [key: string]: ExecutableInfo[];
 }
 
+interface LinuxProcessInfo {
+  name: string;
+  cwd: string;
+  exe: string;
+  steamCompatDataPath: string | null;
+}
+
 const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 3 minutes
 let currentTick = 1;
 
@@ -121,6 +128,7 @@ const getSystemProcessMap = async () => {
 
   const processMap = new Map<string, Set<string>>();
   const winePrefixMap = new Map<string, string>();
+  const linuxProcesses: LinuxProcessInfo[] = [];
 
   processes.forEach((process) => {
     const key = process.name?.toLowerCase();
@@ -136,11 +144,60 @@ const getSystemProcessMap = async () => {
       winePrefixMap.set(value, STEAM_COMPAT_DATA_PATH);
     }
 
+    if (platform === "linux") {
+      linuxProcesses.push({
+        name: key,
+        cwd: (process.cwd ?? "").toLowerCase(),
+        exe: (process.exe ?? "").toLowerCase(),
+        steamCompatDataPath: STEAM_COMPAT_DATA_PATH?.toLowerCase() ?? null,
+      });
+    }
+
     const currentSet = processMap.get(key) ?? new Set();
     processMap.set(key, currentSet.add(value));
   });
 
-  return { processMap, winePrefixMap };
+  return { processMap, winePrefixMap, linuxProcesses };
+};
+
+const hasLinuxCompatibilityProcessMatch = (
+  game: Game,
+  executablePath: string,
+  linuxProcesses: LinuxProcessInfo[]
+) => {
+  if (path.extname(executablePath).toLowerCase() !== ".exe") {
+    return false;
+  }
+
+  const executableName = path.basename(executablePath).toLowerCase();
+  const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
+  const executableDirectory = path.dirname(executablePath).toLowerCase();
+  const expectedWinePrefix = game.winePrefixPath?.toLowerCase();
+
+  return linuxProcesses.some((process) => {
+    if (process.cwd !== executableDirectory) {
+      return false;
+    }
+
+    if (
+      expectedWinePrefix &&
+      process.steamCompatDataPath &&
+      process.steamCompatDataPath !== expectedWinePrefix
+    ) {
+      return false;
+    }
+
+    if (
+      process.name === executableName ||
+      process.name === executableNameWithoutExtension
+    ) {
+      return true;
+    }
+
+    const processRunsUnderWine = process.exe.includes("wine");
+
+    return processRunsUnderWine && process.name.length > 0;
+  });
 };
 
 export const watchProcesses = async () => {
@@ -153,9 +210,11 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const { processMap, winePrefixMap } = await getSystemProcessMap();
+  const { processMap, winePrefixMap, linuxProcesses } =
+    await getSystemProcessMap();
 
   for (const game of games) {
+    const gameKey = levelKeys.game(game.shop, game.objectId);
     const executablePath = game.executablePath;
     if (!executablePath) {
       if (gameExecutables[game.objectId]) {
@@ -169,15 +228,23 @@ export const watchProcesses = async () => {
       .slice(executablePath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
       .toLowerCase();
 
-    const hasProcess = processMap.get(executable)?.has(executablePath);
+    let hasProcess = processMap.get(executable)?.has(executablePath) ?? false;
+
+    if (!hasProcess && platform === "linux") {
+      hasProcess = hasLinuxCompatibilityProcessMatch(
+        game,
+        executablePath,
+        linuxProcesses
+      );
+    }
 
     if (hasProcess) {
-      if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
+      if (gamesPlaytime.has(gameKey)) {
         onTickGame(game);
       } else {
         onOpenGame(game);
       }
-    } else if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
+    } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
     }
   }

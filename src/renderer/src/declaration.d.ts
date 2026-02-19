@@ -101,6 +101,12 @@ declare global {
       objectId: string,
       autoRunMangohud: boolean
     ) => Promise<void>;
+    toggleGameGamemode: (
+      shop: GameShop,
+      objectId: string,
+      autoRunGamemode: boolean
+    ) => Promise<void>;
+    isGamemodeAvailable: () => Promise<boolean>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
@@ -185,6 +191,10 @@ declare global {
       protonPath: string | null
     ) => Promise<void>;
     getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
+    getGameLaunchProtonVersion: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
@@ -327,6 +337,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,

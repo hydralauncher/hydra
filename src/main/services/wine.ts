@@ -8,17 +8,46 @@ export class Wine {
       return null;
     }
 
+    return path.join(SystemPath.getPath("userData"), "wine-prefixes");
+  }
+
+  public static getLegacyDefaultPrefixPath(): string | null {
+    if (process.platform !== "linux") {
+      return null;
+    }
+
     return path.join(SystemPath.getPath("userData"), "wine-prefix");
   }
 
+  public static getDefaultPrefixPathForGame(objectId: string): string | null {
+    const defaultPrefixPath = this.getDefaultPrefixPath();
+
+    if (!defaultPrefixPath) {
+      return null;
+    }
+
+    return path.join(defaultPrefixPath, objectId);
+  }
+
   public static getEffectivePrefixPath(
-    winePrefixPath?: string | null
+    winePrefixPath?: string | null,
+    objectId?: string | null
   ): string | null {
     if (winePrefixPath) {
       return winePrefixPath;
     }
 
-    return this.getDefaultPrefixPath();
+    if (!objectId) {
+      const legacyPrefixPath = this.getLegacyDefaultPrefixPath();
+
+      if (legacyPrefixPath && fs.existsSync(legacyPrefixPath)) {
+        return legacyPrefixPath;
+      }
+
+      return null;
+    }
+
+    return this.getDefaultPrefixPathForGame(objectId);
   }
 
   public static validatePrefix(winePrefixPath: string) {

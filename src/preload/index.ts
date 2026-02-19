@@ -141,6 +141,13 @@ contextBridge.exposeInMainWorld("electron", {
     autoRunMangohud: boolean
   ) =>
     ipcRenderer.invoke("toggleGameMangohud", shop, objectId, autoRunMangohud),
+  toggleGameGamemode: (
+    shop: GameShop,
+    objectId: string,
+    autoRunGamemode: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
+  isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
@@ -231,6 +238,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getInstalledProtonVersions") as Promise<
       ProtonVersion[]
     >,
+  getGameLaunchProtonVersion: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
@@ -414,6 +423,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getImageDataUrl: (imageUrl: string) =>
+    ipcRenderer.invoke("getImageDataUrl", imageUrl),
   hydraApi: {
     get: (
       url: string,

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ImageIcon, ClockIcon, TrophyIcon } from "@primer/octicons-react";
+import {
+  ImageIcon,
+  ClockIcon,
+  TrophyIcon,
+  ToolsIcon,
+} from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { darkenColor } from "@renderer/helpers";
@@ -27,6 +32,8 @@ export default function GameLauncher() {
 
   const [game, setGame] = useState<Game | null>(null);
   const [gameAssets, setGameAssets] = useState<ShopAssets | null>(null);
+  const [coverImage, setCoverImage] = useState("");
+  const [imageResolved, setImageResolved] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [accentColor, setAccentColor] = useState<string | null>(null);
@@ -37,6 +44,7 @@ export default function GameLauncher() {
     useState<PreflightStatus>("idle");
   const [preflightDetail, setPreflightDetail] = useState<string | null>(null);
   const [preflightStarted, setPreflightStarted] = useState(false);
+  const [protonVersion, setProtonVersion] = useState<string | null>(null);
 
   const formatPlayTime = useCallback(
     (playTimeInMilliseconds = 0) => {
@@ -121,15 +129,19 @@ export default function GameLauncher() {
     window.electron.closeGameLauncherWindow();
   };
 
-  const coverImage =
-    gameAssets?.coverImageUrl?.replaceAll("\\", "/") ||
-    game?.iconUrl?.replaceAll("\\", "/") ||
-    game?.libraryHeroImageUrl?.replaceAll("\\", "/") ||
-    "";
+  const normalizedCoverImage =
+    gameAssets?.coverImageUrl?.replaceAll("\\", "/").trim() || "";
+  const fallbackSteamCoverImage =
+    !normalizedCoverImage && shop === "steam" && objectId
+      ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
+      : "";
+  const coverImageSource = normalizedCoverImage || fallbackSteamCoverImage;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game?.playTimeInMilliseconds ?? 0;
   const achievementCount = game?.achievementCount ?? 0;
   const unlockedAchievements = game?.unlockedAchievementCount ?? 0;
+  const isWindowsExecutable =
+    game?.executablePath?.toLowerCase().endsWith(".exe") ?? false;
 
   const extractAccentColor = useCallback(async (imageUrl: string) => {
     try {
@@ -167,27 +179,92 @@ export default function GameLauncher() {
     preflightStatus === "installing";
 
   useEffect(() => {
+    let cancelled = false;
+
+    setImageError(false);
+    setImageLoaded(false);
+    setColorExtracted(false);
+    setAccentColor(null);
+    setImageResolved(false);
+
+    if (!coverImageSource) {
+      setCoverImage("");
+      setColorExtracted(true);
+      setImageResolved(true);
+      return;
+    }
+
+    if (
+      !coverImageSource.startsWith("http://") &&
+      !coverImageSource.startsWith("https://")
+    ) {
+      setCoverImage(coverImageSource);
+      setImageResolved(true);
+      return;
+    }
+
+    window.electron.getImageDataUrl(coverImageSource).then((proxiedImage) => {
+      if (cancelled) return;
+
+      if (!proxiedImage) {
+        setImageError(true);
+        setCoverImage("");
+        setColorExtracted(true);
+      } else {
+        setCoverImage(proxiedImage);
+      }
+
+      setImageResolved(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coverImageSource]);
+
+  useEffect(() => {
     if (coverImage && !colorExtracted) {
       extractAccentColor(coverImage);
     }
   }, [coverImage, colorExtracted, extractAccentColor]);
 
-  const isReady = imageLoaded && colorExtracted;
-  const hasFailed = imageError || (!coverImage && gameAssets !== null);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (
+      window.electron.platform !== "linux" ||
+      !shop ||
+      !objectId ||
+      !isWindowsExecutable
+    ) {
+      setProtonVersion(null);
+      return;
+    }
+
+    window.electron
+      .getGameLaunchProtonVersion(shop, objectId)
+      .then((version) => {
+        if (cancelled) return;
+
+        setProtonVersion(version);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isWindowsExecutable, objectId, shop]);
+
+  const isReady =
+    imageResolved && (coverImage ? imageLoaded : true) && colorExtracted;
 
   useEffect(() => {
     if (windowShown) return;
-
-    if (hasFailed) {
-      window.electron.closeGameLauncherWindow();
-      return;
-    }
 
     if (isReady) {
       window.electron.showGameLauncherWindow();
       setWindowShown(true);
     }
-  }, [isReady, hasFailed, windowShown]);
+  }, [isReady, windowShown]);
 
   const backgroundStyle = accentColor
     ? {
@@ -275,6 +352,13 @@ export default function GameLauncher() {
                 <span className="game-launcher__stat">
                   <TrophyIcon size={14} />
                   {unlockedAchievements}/{achievementCount}
+                </span>
+              )}
+
+              {protonVersion && (
+                <span className="game-launcher__stat">
+                  <ToolsIcon size={14} />
+                  {protonVersion}
                 </span>
               )}
             </div>

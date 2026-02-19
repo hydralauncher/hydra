@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import { logger, Umu } from "@main/services";
 
@@ -29,20 +29,55 @@ const launchInstallerWithWine = async (filePath: string): Promise<boolean> => {
   });
 };
 
+const launchInstallerDirectly = async (filePath: string): Promise<boolean> => {
+  return await new Promise<boolean>((resolve) => {
+    const child = spawn(filePath, [], {
+      detached: true,
+      stdio: "ignore",
+      shell: false,
+    });
+
+    child.once("spawn", () => {
+      child.unref();
+      resolve(true);
+    });
+
+    child.once("error", (error) => {
+      logger.error("Failed to execute game installer directly", error);
+      resolve(false);
+    });
+  });
+};
+
 const openPathAndCheck = async (filePath: string): Promise<boolean> => {
   const openError = await shell.openPath(filePath);
   return openError.length === 0;
 };
 
-const executeGameInstaller = async (filePath: string) => {
+const executeGameInstaller = async (
+  filePath: string,
+  options?: {
+    gameId?: string;
+    winePrefixPath?: string | null;
+    protonPath?: string | null;
+  }
+) => {
   if (process.platform === "win32") {
-    shell.openPath(filePath);
-    return true;
+    const launchedDirectly = await launchInstallerDirectly(filePath);
+    if (launchedDirectly) {
+      return true;
+    }
+
+    return await openPathAndCheck(filePath);
   }
 
   if (process.platform === "linux") {
     try {
-      await Umu.launchExecutable(filePath);
+      await Umu.launchExecutable(filePath, [], {
+        gameId: options?.gameId,
+        winePrefixPath: options?.winePrefixPath,
+        protonPath: options?.protonPath,
+      });
       return true;
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
@@ -66,6 +101,7 @@ const openGameInstaller = async (
 ) => {
   const downloadKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(downloadKey);
+  const game = await gamesSublevel.get(downloadKey).catch(() => null);
 
   if (!download?.folderName) return true;
 
@@ -90,7 +126,11 @@ const openGameInstaller = async (
 
   const setupPath = path.join(gamePath, "setup.exe");
   if (fs.existsSync(setupPath)) {
-    return await executeGameInstaller(setupPath);
+    return await executeGameInstaller(setupPath, {
+      gameId: objectId,
+      winePrefixPath: game?.winePrefixPath,
+      protonPath: game?.protonPath,
+    });
   }
 
   const gamePathFileNames = fs.readdirSync(gamePath);
@@ -100,7 +140,12 @@ const openGameInstaller = async (
 
   if (gamePathExecutableFiles.length === 1) {
     return await executeGameInstaller(
-      path.join(gamePath, gamePathExecutableFiles[0])
+      path.join(gamePath, gamePathExecutableFiles[0]),
+      {
+        gameId: objectId,
+        winePrefixPath: game?.winePrefixPath,
+        protonPath: game?.protonPath,
+      }
     );
   }
 

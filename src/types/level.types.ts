@@ -57,7 +57,8 @@ export interface Game {
   protonPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
-  autoRunMangohud?: boolean;
+  autoRunMangohud?: boolean | null;
+  autoRunGamemode?: boolean | null;
   favorite?: boolean;
   isPinned?: boolean;
   achievementCount?: number;
@@ -135,6 +136,8 @@ export interface UserPreferences {
   useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
   defaultProtonPath?: string | null;
+  autoRunMangohud?: boolean;
+  autoRunGamemode?: boolean;
 }
 
 export interface ScreenState {

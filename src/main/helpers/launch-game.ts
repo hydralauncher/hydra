@@ -11,7 +11,10 @@ import {
   Wine,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
+import { ProcessPayload } from "@main/services/download/types";
+import { PythonRPC } from "@main/services/python-rpc";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
+import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 
@@ -28,12 +31,17 @@ const isWindowsExecutable = (executablePath: string) =>
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
-  useMangohud = false
+  useMangohud = false,
+  useGamemode = false
 ) => {
+  const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
     launchOptions,
-    wrapperCommand: useMangohud ? "mangohud" : null,
+    wrapperCommands: [
+      ...(useGamemode ? ["gamemoderun"] : []),
+      ...(useMangohud ? ["mangohud"] : []),
+    ],
   });
 
   if (
@@ -52,6 +60,7 @@ const launchNatively = (
       shell: false,
       detached: true,
       stdio: "ignore",
+      cwd: workingDirectory,
       env: {
         ...process.env,
         ...resolvedLaunchCommand.env,
@@ -65,14 +74,18 @@ const launchNatively = (
 const launchWithWine = async (
   executablePath: string,
   launchOptions?: string | null,
-  winePrefixPath?: string | null,
-  useMangohud = false
+  useMangohud = false,
+  useGamemode = false
 ): Promise<boolean> => {
+  const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: "wine",
     baseArgs: [executablePath],
     launchOptions,
-    wrapperCommand: useMangohud ? "mangohud" : null,
+    wrapperCommands: [
+      ...(useGamemode ? ["gamemoderun"] : []),
+      ...(useMangohud ? ["mangohud"] : []),
+    ],
   });
 
   return await new Promise<boolean>((resolve) => {
@@ -83,9 +96,9 @@ const launchWithWine = async (
         shell: false,
         detached: true,
         stdio: "ignore",
+        cwd: workingDirectory,
         env: {
           ...process.env,
-          ...(winePrefixPath ? { WINEPREFIX: winePrefixPath } : {}),
           ...resolvedLaunchCommand.env,
         },
       }
@@ -125,6 +138,52 @@ const resolveProtonPathForLaunch = async (
   return null;
 };
 
+const cleanupStaleCompatibilityProcesses = async (
+  objectId: string,
+  winePrefixPath: string | null
+) => {
+  if (process.platform !== "linux" || !winePrefixPath) return;
+
+  const defaultPrefixPath = Wine.getDefaultPrefixPathForGame(objectId);
+  if (defaultPrefixPath !== winePrefixPath) return;
+
+  const processes =
+    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
+    [];
+
+  const stalePids = processes
+    .filter((runningProcess) => {
+      const processPrefix = runningProcess.environ?.STEAM_COMPAT_DATA_PATH;
+      if (processPrefix !== winePrefixPath) return false;
+
+      const processExe = runningProcess.exe?.toLowerCase() ?? "";
+      const processName = runningProcess.name.toLowerCase();
+
+      return (
+        processExe.includes("wine") ||
+        processName.endsWith(".exe") ||
+        processName === "wineserver"
+      );
+    })
+    .map((runningProcess) => runningProcess.pid);
+
+  if (!stalePids.length) return;
+
+  logger.info("Killing stale compatibility processes before game launch", {
+    objectId,
+    winePrefixPath,
+    stalePids,
+  });
+
+  for (const pid of stalePids) {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // Ignore races and missing permissions.
+    }
+  }
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -136,7 +195,9 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
-  const useMangohud = Boolean(game?.autoRunMangohud) && isMangohudAvailable();
+
+  const useMangohud = game?.autoRunMangohud === true && isMangohudAvailable();
+  const useGamemode = game?.autoRunGamemode === true && isGamemodeAvailable();
 
   if (game) {
     await gamesSublevel.put(gameKey, {
@@ -172,15 +233,21 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
     const isWindowsBinary = isWindowsExecutable(parsedPath);
 
     if (isWindowsBinary) {
-      const winePrefixPath = Wine.getEffectivePrefixPath(game?.winePrefixPath);
       const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
+      const winePrefixPath = Wine.getEffectivePrefixPath(
+        game?.winePrefixPath,
+        objectId
+      );
+
+      await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
 
       try {
         await Umu.launchExecutable(parsedPath, [], {
           winePrefixPath,
           protonPath,
-          gameId: options.shop === "steam" ? options.objectId : null,
+          gameId: options.objectId,
           launchOptions,
+          useGamemode,
           useMangohud,
         });
         PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
@@ -192,8 +259,8 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
       const launchedWithWine = await launchWithWine(
         parsedPath,
         launchOptions,
-        winePrefixPath,
-        useMangohud
+        useMangohud,
+        useGamemode
       );
 
       if (launchedWithWine) {
@@ -202,9 +269,9 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
       }
     }
 
-    launchNatively(parsedPath, launchOptions, useMangohud);
+    launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
     return;
   }
 
-  launchNatively(parsedPath, launchOptions, useMangohud);
+  launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
 };

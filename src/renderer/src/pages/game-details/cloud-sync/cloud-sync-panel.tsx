@@ -19,6 +19,7 @@ import {
 import {
   useAppSelector,
   useDate,
+  useFormat,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -30,6 +31,7 @@ import { GameArtifact } from "@types";
 import { orderBy } from "lodash-es";
 import { MoreVertical } from "lucide-react";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
+import { Tooltip } from "react-tooltip";
 
 interface CloudSyncPanelProps {
   automaticCloudSync: boolean;
@@ -50,6 +52,7 @@ export function CloudSyncPanel({
   const { t } = useTranslation("game_details");
   const { t: tHydraCloud } = useTranslation("hydra_cloud");
   const { formatDate, formatDateTime } = useDate();
+  const { formatNumber } = useFormat();
   const { hasActiveSubscription } = useUserDetails();
 
   const {
@@ -264,95 +267,115 @@ export function CloudSyncPanel({
 
       <div className="cloud-sync-panel__backups-header">
         <h3>{t("backups")}</h3>
-        <small>
-          {artifacts.length} / {backupsPerGameLimit}
-        </small>
+        <span className="cloud-sync-panel__backups-count">
+          {formatNumber(artifacts.length)}
+        </span>
       </div>
 
       {artifacts.length > 0 ? (
         <ul className="cloud-sync-panel__artifacts">
-          {orderBy(artifacts, [(a) => !a.isFrozen], ["asc"]).map((artifact) => (
-            <li key={artifact.id} className="cloud-sync-panel__artifact">
-              <div className="cloud-sync-panel__artifact-info">
-                <div className="cloud-sync-panel__artifact-header">
-                  <button
-                    type="button"
-                    className="cloud-sync-panel__artifact-label"
-                    onClick={() => setArtifactToRename(artifact)}
-                  >
-                    {artifact.label ??
-                      t("backup_from", {
-                        date: formatDate(artifact.createdAt),
-                      })}
-                    <PencilIcon />
-                  </button>
-                  <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+          {orderBy(artifacts, [(a) => !a.isFrozen], ["asc"]).map((artifact) => {
+            const artifactName =
+              artifact.label ??
+              t("backup_from", {
+                date: formatDate(artifact.createdAt),
+              });
+
+            return (
+              <li key={artifact.id} className="cloud-sync-panel__artifact">
+                <div className="cloud-sync-panel__artifact-info">
+                  <div className="cloud-sync-panel__artifact-header">
+                    <button
+                      type="button"
+                      className="cloud-sync-panel__artifact-label"
+                      onClick={() => setArtifactToRename(artifact)}
+                      data-tooltip-id="cloud-sync-artifact-name-tooltip"
+                      data-tooltip-content={artifactName}
+                    >
+                      <span className="cloud-sync-panel__artifact-label-text">
+                        {artifactName}
+                      </span>
+                      <PencilIcon />
+                    </button>
+                    <small>{formatBytes(artifact.artifactLengthInBytes)}</small>
+                  </div>
+
+                  <span className="cloud-sync-panel__artifact-meta">
+                    <DeviceDesktopIcon size={14} />
+                    {artifact.hostname}
+                  </span>
+
+                  <span className="cloud-sync-panel__artifact-meta">
+                    <InfoIcon size={14} />
+                    {artifact.downloadOptionTitle ??
+                      t("no_download_option_info")}
+                  </span>
+
+                  <span className="cloud-sync-panel__artifact-meta">
+                    <ClockIcon size={14} />
+                    {formatDateTime(artifact.createdAt)}
+                  </span>
                 </div>
 
-                <span className="cloud-sync-panel__artifact-meta">
-                  <DeviceDesktopIcon size={14} />
-                  {artifact.hostname}
-                </span>
-
-                <span className="cloud-sync-panel__artifact-meta">
-                  <InfoIcon size={14} />
-                  {artifact.downloadOptionTitle ?? t("no_download_option_info")}
-                </span>
-
-                <span className="cloud-sync-panel__artifact-meta">
-                  <ClockIcon size={14} />
-                  {formatDateTime(artifact.createdAt)}
-                </span>
-              </div>
-
-              <div className="cloud-sync-panel__artifact-actions">
-                <Button
-                  type="button"
-                  onClick={() => handleBackupInstallClick(artifact.id)}
-                  disabled={disableActions}
-                  theme="outline"
-                >
-                  {restoringBackup ? (
-                    <SyncIcon className="cloud-sync-panel__sync-icon" />
-                  ) : (
-                    <HistoryIcon />
-                  )}
-                  {t("install_backup")}
-                </Button>
-                <DropdownMenu
-                  align="end"
-                  items={[
-                    {
-                      label: artifact.isFrozen
-                        ? t("unfreeze_backup")
-                        : t("freeze_backup"),
-                      icon: artifact.isFrozen ? <PinSlashIcon /> : <PinIcon />,
-                      onClick: () =>
-                        handleFreezeArtifactClick(
-                          artifact.id,
-                          !artifact.isFrozen
-                        ),
-                      disabled: disableActions,
-                    },
-                    {
-                      label: t("delete_backup"),
-                      icon: <TrashIcon />,
-                      onClick: () => handleDeleteArtifactClick(artifact.id),
-                      disabled: disableActions || artifact.isFrozen,
-                    },
-                  ]}
-                >
-                  <Button type="button" theme="outline" tooltip={t("options")}>
-                    <MoreVertical size={16} />
+                <div className="cloud-sync-panel__artifact-actions">
+                  <Button
+                    type="button"
+                    onClick={() => handleBackupInstallClick(artifact.id)}
+                    disabled={disableActions}
+                    theme="outline"
+                  >
+                    {restoringBackup ? (
+                      <SyncIcon className="cloud-sync-panel__sync-icon" />
+                    ) : (
+                      <HistoryIcon />
+                    )}
+                    {t("install_backup")}
                   </Button>
-                </DropdownMenu>
-              </div>
-            </li>
-          ))}
+                  <DropdownMenu
+                    align="end"
+                    items={[
+                      {
+                        label: artifact.isFrozen
+                          ? t("unfreeze_backup")
+                          : t("freeze_backup"),
+                        icon: artifact.isFrozen ? (
+                          <PinSlashIcon />
+                        ) : (
+                          <PinIcon />
+                        ),
+                        onClick: () =>
+                          handleFreezeArtifactClick(
+                            artifact.id,
+                            !artifact.isFrozen
+                          ),
+                        disabled: disableActions,
+                      },
+                      {
+                        label: t("delete_backup"),
+                        icon: <TrashIcon />,
+                        onClick: () => handleDeleteArtifactClick(artifact.id),
+                        disabled: disableActions || artifact.isFrozen,
+                      },
+                    ]}
+                  >
+                    <Button
+                      type="button"
+                      theme="outline"
+                      tooltip={t("options")}
+                    >
+                      <MoreVertical size={16} />
+                    </Button>
+                  </DropdownMenu>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p>{t("no_backups_created")}</p>
       )}
+
+      <Tooltip id="cloud-sync-artifact-name-tooltip" />
     </>
   );
 }

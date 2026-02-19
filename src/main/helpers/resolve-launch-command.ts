@@ -9,6 +9,7 @@ export interface ResolveLaunchCommandOptions {
   baseArgs?: string[];
   launchOptions?: string | null;
   wrapperCommand?: string | null;
+  wrapperCommands?: string[];
 }
 
 export interface ResolvedLaunchCommand {
@@ -49,7 +50,42 @@ export const resolveLaunchCommand = ({
   baseArgs = [],
   launchOptions,
   wrapperCommand,
+  wrapperCommands,
 }: ResolveLaunchCommandOptions): ResolvedLaunchCommand => {
+  let wrappers: string[];
+
+  if (wrapperCommands && wrapperCommands.length > 0) {
+    wrappers = wrapperCommands;
+  } else if (wrapperCommand) {
+    wrappers = [wrapperCommand];
+  } else {
+    wrappers = [];
+  }
+
+  wrappers = wrappers.filter(Boolean);
+
+  const applyWrappers = (
+    resolved: ResolvedLaunchCommand
+  ): ResolvedLaunchCommand => {
+    if (wrappers.length === 0) {
+      return resolved;
+    }
+
+    return wrappers.reduceRight<ResolvedLaunchCommand>((current, wrapper) => {
+      if (
+        path.basename(current.command).toLowerCase() === wrapper.toLowerCase()
+      ) {
+        return current;
+      }
+
+      return {
+        command: wrapper,
+        args: [current.command, ...current.args],
+        env: current.env,
+      };
+    }, resolved);
+  };
+
   const launchOptionTokens = parseLaunchOptions(launchOptions);
 
   if (launchOptionTokens.length === 0) {
@@ -59,15 +95,7 @@ export const resolveLaunchCommand = ({
       env: {},
     };
 
-    if (!wrapperCommand) {
-      return resolved;
-    }
-
-    return {
-      command: wrapperCommand,
-      args: [resolved.command, ...resolved.args],
-      env: resolved.env,
-    };
+    return applyWrappers(resolved);
   }
 
   if (!launchOptionTokens.includes(commandPlaceholder)) {
@@ -77,15 +105,7 @@ export const resolveLaunchCommand = ({
       env: {},
     };
 
-    if (!wrapperCommand) {
-      return resolved;
-    }
-
-    return {
-      command: wrapperCommand,
-      args: [resolved.command, ...resolved.args],
-      env: resolved.env,
-    };
+    return applyWrappers(resolved);
   }
 
   const expandedTokens = launchOptionTokens.flatMap((token) =>
@@ -101,15 +121,7 @@ export const resolveLaunchCommand = ({
       env,
     };
 
-    if (!wrapperCommand) {
-      return resolved;
-    }
-
-    return {
-      command: wrapperCommand,
-      args: [resolved.command, ...resolved.args],
-      env: resolved.env,
-    };
+    return applyWrappers(resolved);
   }
 
   const resolved = {
@@ -118,20 +130,5 @@ export const resolveLaunchCommand = ({
     env,
   };
 
-  if (!wrapperCommand) {
-    return resolved;
-  }
-
-  if (
-    path.basename(resolved.command).toLowerCase() ===
-    wrapperCommand.toLowerCase()
-  ) {
-    return resolved;
-  }
-
-  return {
-    command: wrapperCommand,
-    args: [resolved.command, ...resolved.args],
-    env: resolved.env,
-  };
+  return applyWrappers(resolved);
 };

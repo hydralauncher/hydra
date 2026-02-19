@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from "react";
 import { useFeature, useAppSelector } from "@renderer/hooks";
 import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
-import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRightIcon, CheckCircleFillIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./settings-debrid.scss";
@@ -11,50 +10,6 @@ interface CollapseState {
   torbox: boolean;
   realDebrid: boolean;
 }
-
-const sectionVariants = {
-  collapsed: {
-    opacity: 0,
-    y: -20,
-    height: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as const,
-      opacity: { duration: 0.1 },
-      y: { duration: 0.1 },
-      height: { duration: 0.2 },
-    },
-  },
-  expanded: {
-    opacity: 1,
-    y: 0,
-    height: "auto",
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as const,
-      opacity: { duration: 0.2, delay: 0.1 },
-      y: { duration: 0.3 },
-      height: { duration: 0.3 },
-    },
-  },
-} as const;
-
-const chevronVariants = {
-  collapsed: {
-    rotate: 0,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut" as const,
-    },
-  },
-  expanded: {
-    rotate: 90,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut" as const,
-    },
-  },
-} as const;
 
 export function SettingsDebrid() {
   const { t } = useTranslation("settings");
@@ -98,12 +53,15 @@ export function SettingsDebrid() {
                 : "Collapse Real-Debrid section"
             }
           >
-            <motion.div
-              variants={chevronVariants}
-              animate={collapseState.realDebrid ? "collapsed" : "expanded"}
+            <span
+              className={`settings-debrid__collapse-icon ${
+                collapseState.realDebrid
+                  ? ""
+                  : "settings-debrid__collapse-icon--expanded"
+              }`}
             >
               <ChevronRightIcon size={16} />
-            </motion.div>
+            </span>
           </button>
           <h3 className="settings-debrid__section-title">Real-Debrid</h3>
           {userPreferences?.realDebridApiToken && (
@@ -114,20 +72,7 @@ export function SettingsDebrid() {
           )}
         </div>
 
-        <AnimatePresence initial={true} mode="wait">
-          {!collapseState.realDebrid && (
-            <motion.div
-              key="realdebrid-content"
-              variants={sectionVariants}
-              initial="collapsed"
-              animate="expanded"
-              exit="collapsed"
-              layout
-            >
-              <SettingsRealDebrid />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!collapseState.realDebrid && <SettingsRealDebrid />}
       </div>
 
       {isTorBoxEnabled && (
@@ -143,12 +88,15 @@ export function SettingsDebrid() {
                   : "Collapse TorBox section"
               }
             >
-              <motion.div
-                variants={chevronVariants}
-                animate={collapseState.torbox ? "collapsed" : "expanded"}
+              <span
+                className={`settings-debrid__collapse-icon ${
+                  collapseState.torbox
+                    ? ""
+                    : "settings-debrid__collapse-icon--expanded"
+                }`}
               >
                 <ChevronRightIcon size={16} />
-              </motion.div>
+              </span>
             </button>
             <h3 className="settings-debrid__section-title">TorBox</h3>
             {userPreferences?.torBoxApiToken && (
@@ -159,20 +107,7 @@ export function SettingsDebrid() {
             )}
           </div>
 
-          <AnimatePresence initial={true} mode="wait">
-            {!collapseState.torbox && (
-              <motion.div
-                key="torbox-content"
-                variants={sectionVariants}
-                initial="collapsed"
-                animate="expanded"
-                exit="collapsed"
-                layout
-              >
-                <SettingsTorBox />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {!collapseState.torbox && <SettingsTorBox />}
         </div>
       )}
     </div>

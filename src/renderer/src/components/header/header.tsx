@@ -195,6 +195,12 @@ export function Header() {
     setActiveIndex(-1);
   };
 
+  const handleClearSearchMouseDown = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.preventDefault();
+  };
+
   const handleRemoveHistoryItem = (query: string) => {
     removeFromHistory(query);
   };
@@ -352,6 +358,7 @@ export function Header() {
             {searchValue && (
               <button
                 type="button"
+                onMouseDown={handleClearSearchMouseDown}
                 onClick={handleClearSearch}
                 className="header__action-button"
               >
