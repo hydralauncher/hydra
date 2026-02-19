@@ -12,8 +12,8 @@
     min-width: 210px;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.75);
     border-right: 1px solid globals.$border-color;
     background: globals.$dark-background-color;
   }
@@ -27,7 +27,8 @@
     background: transparent;
     color: globals.$muted-color;
     text-align: left;
-    padding: 9px globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.25)
+      calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     cursor: pointer;
     font-size: globals.$body-font-size;
@@ -56,9 +57,9 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 2.5);
     min-width: 0;
-    padding: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2.5);
   }
 
   &__panel-header {
@@ -70,7 +71,7 @@
   &__section {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__header {
@@ -143,25 +144,54 @@
   &__mangohud-toggle {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__mangohud-help {
-    color: globals.$muted-color;
-    cursor: help;
-    user-select: none;
+  &__gamemode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__mangohud-label {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &__gamemode-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
   }
 
   &__mangohud-link {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 3);
+  }
+
+  &__gamemode-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
+
+  &__auto-run-select {
+    min-width: 180px;
+    flex-shrink: 0;
   }
 
   &__downloads {

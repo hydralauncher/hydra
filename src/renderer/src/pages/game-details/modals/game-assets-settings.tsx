@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
 import { Button, TextField } from "@renderer/components";
@@ -86,7 +86,6 @@ export function GameAssetsSettings({
   const { t } = useTranslation("sidebar");
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const [gameName, setGameName] = useState(game.title || "");
   const [assetPaths, setAssetPaths] = useState<AssetPaths>(INITIAL_ASSET_PATHS);
   const [assetDisplayPaths, setAssetDisplayPaths] =
     useState<AssetPaths>(INITIAL_ASSET_PATHS);
@@ -97,6 +96,9 @@ export function GameAssetsSettings({
   );
   const [defaultUrls, setDefaultUrls] = useState<AssetUrls>(INITIAL_ASSET_URLS);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingUpdateMessage, setPendingUpdateMessage] = useState<
+    string | null
+  >(null);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
@@ -215,7 +217,6 @@ export function GameAssetsSettings({
   );
 
   useEffect(() => {
-    setGameName(game.title || "");
     setRemovedAssets(INITIAL_REMOVED_ASSETS);
     setAssetPaths(INITIAL_ASSET_PATHS);
     setAssetDisplayPaths(INITIAL_ASSET_PATHS);
@@ -290,9 +291,15 @@ export function GameAssetsSettings({
           copiedAssetUrl.replace("local:", ""),
           originalPath
         );
+        setPendingUpdateMessage(
+          `${capitalizeAssetType(assetType)} updated successfully!`
+        );
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         updateAssetPaths(assetType, originalPath, originalPath);
+        setPendingUpdateMessage(
+          `${capitalizeAssetType(assetType)} updated successfully!`
+        );
       }
     }
   };
@@ -301,23 +308,10 @@ export function GameAssetsSettings({
     setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
+    setPendingUpdateMessage(
+      `${capitalizeAssetType(assetType)} updated successfully!`
+    );
   };
-
-  const getOriginalTitle = (): string => {
-    return shopDetails?.assets?.title || game.title || "";
-  };
-
-  const handleRestoreDefaultTitle = () => {
-    const originalTitle = getOriginalTitle();
-    setGameName(originalTitle);
-  };
-
-  const isTitleChanged = useMemo((): boolean => {
-    if (isCustomGame(game)) return false;
-
-    const originalTitle = shopDetails?.assets?.title || game.title || "";
-    return gameName.trim() !== originalTitle.trim();
-  }, [game, gameName, isCustomGame, shopDetails]);
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
@@ -386,7 +380,7 @@ export function GameAssetsSettings({
         copiedAssetUrl.replace("local:", ""),
         filePath
       );
-      showSuccessToast(
+      setPendingUpdateMessage(
         `${capitalizeAssetType(assetType)} updated successfully!`
       );
 
@@ -475,7 +469,7 @@ export function GameAssetsSettings({
     return window.electron.updateCustomGame({
       shop: currentGame.shop,
       objectId: currentGame.objectId,
-      title: gameName.trim(),
+      title: game.title,
       iconUrl: iconUrl || undefined,
       logoImageUrl: logoImageUrl || undefined,
       libraryHeroImageUrl: libraryHeroImageUrl || undefined,
@@ -492,7 +486,7 @@ export function GameAssetsSettings({
     return window.electron.updateGameCustomAssets({
       shop: currentGame.shop,
       objectId: currentGame.objectId,
-      title: gameName.trim(),
+      title: game.title,
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
@@ -508,32 +502,43 @@ export function GameAssetsSettings({
     });
   };
 
-  const handleUpdateGame = async () => {
-    if (!gameName.trim()) {
-      showErrorToast(t("edit_game_modal_fill_required"));
-      return;
-    }
+  useEffect(() => {
+    if (!pendingUpdateMessage || isUpdating) return;
 
     setIsUpdating(true);
 
-    try {
-      await (isCustomGame(game)
-        ? updateCustomGame(game)
-        : updateNonCustomGame(game as LibraryGame));
+    const updateGameAssets = async () => {
+      try {
+        await (isCustomGame(game)
+          ? updateCustomGame(game)
+          : updateNonCustomGame(game as LibraryGame));
 
-      showSuccessToast(t("edit_game_modal_success"));
-      await onGameUpdated();
-    } catch (error) {
-      console.error("Failed to update game:", error);
-      showErrorToast(
-        error instanceof Error ? error.message : t("edit_game_modal_failed")
-      );
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+        showSuccessToast(pendingUpdateMessage || t("edit_game_modal_success"));
+        await onGameUpdated();
+      } catch (error) {
+        console.error("Failed to update game:", error);
+        showErrorToast(
+          error instanceof Error ? error.message : t("edit_game_modal_failed")
+        );
+      } finally {
+        setPendingUpdateMessage(null);
+        setIsUpdating(false);
+      }
+    };
 
-  const isFormValid = gameName.trim();
+    void updateGameAssets();
+  }, [
+    game,
+    isCustomGame,
+    isUpdating,
+    onGameUpdated,
+    pendingUpdateMessage,
+    showErrorToast,
+    showSuccessToast,
+    t,
+    updateCustomGame,
+    updateNonCustomGame,
+  ]);
 
   const getPreviewUrl = (assetType: AssetType): string | undefined => {
     const assetPath = assetPaths[assetType];
@@ -580,7 +585,7 @@ export function GameAssetsSettings({
                 <Button
                   type="button"
                   theme="outline"
-                  onClick={() => handleRestoreDefault(assetType)}
+                  onClick={() => void handleRestoreDefault(assetType)}
                   disabled={isUpdating}
                 >
                   <XIcon />
@@ -645,27 +650,6 @@ export function GameAssetsSettings({
 
   return (
     <div className="game-assets-settings">
-      <TextField
-        label={t("edit_game_modal_title")}
-        placeholder={t("edit_game_modal_enter_title")}
-        value={gameName}
-        onChange={(event) => setGameName(event.target.value)}
-        theme="dark"
-        disabled={isUpdating}
-        rightContent={
-          isTitleChanged && (
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleRestoreDefaultTitle}
-              disabled={isUpdating}
-            >
-              <XIcon />
-            </Button>
-          )
-        }
-      />
-
       <div className="game-assets-settings__asset-selector">
         <div className="game-assets-settings__asset-label">
           {t("edit_game_modal_assets")}
@@ -702,19 +686,6 @@ export function GameAssetsSettings({
       </div>
 
       {renderImageSection(selectedAssetType)}
-
-      <div className="game-assets-settings__actions">
-        <Button
-          type="button"
-          theme="primary"
-          onClick={handleUpdateGame}
-          disabled={!isFormValid || isUpdating}
-        >
-          {isUpdating
-            ? t("edit_game_modal_updating")
-            : t("edit_game_modal_update")}
-        </Button>
-      </div>
     </div>
   );
 }

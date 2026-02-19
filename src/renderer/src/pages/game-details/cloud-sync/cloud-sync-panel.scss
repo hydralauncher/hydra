@@ -14,20 +14,21 @@
   &__section-header {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: calc(globals.$spacing-unit / 2);
+    margin-bottom: calc(globals.$spacing-unit / 2);
   }
 
   &__header {
-    margin-bottom: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: globals.$spacing-unit;
     flex-wrap: wrap;
+    margin-bottom: calc(globals.$spacing-unit * 1.5);
   }
 
   &__automatic-sync {
-    margin: calc(globals.$spacing-unit * 2) 0;
+    margin-bottom: calc(globals.$spacing-unit * 1.5);
   }
 
   &__automatic-sync-label {
@@ -46,21 +47,35 @@
 
   &__title-container {
     display: flex;
-    gap: 4px;
+    gap: calc(globals.$spacing-unit / 2);
     flex-direction: column;
   }
 
   &__backups-header {
-    margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+    margin-bottom: globals.$spacing-unit;
+  }
+
+  &__backups-count {
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    min-width: 24px;
+    text-align: center;
   }
 
   &__artifact-label {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
     color: globals.$body-color;
     font-size: 16px;
     font-weight: 600;
@@ -69,6 +84,18 @@
     background-color: transparent;
     border: none;
     cursor: pointer;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__artifact-label-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   &__artifacts {
@@ -97,6 +124,8 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      min-width: 0;
+      flex: 1;
     }
 
     &-header {
@@ -104,6 +133,11 @@
       align-items: center;
       gap: 8px;
       margin-bottom: 4px;
+      min-width: 0;
+
+      small {
+        flex-shrink: 0;
+      }
     }
 
     &-meta {

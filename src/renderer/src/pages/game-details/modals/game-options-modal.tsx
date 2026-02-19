@@ -1,13 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
-import {
-  Button,
-  CheckboxField,
-  Link,
-  Modal,
-  ProtonPathPicker,
-  TextField,
-} from "@renderer/components";
+import { useTranslation } from "react-i18next";
+import { Modal } from "@renderer/components";
 import type {
   Game,
   LibraryGame,
@@ -16,7 +9,12 @@ import type {
 } from "@types";
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
-import { useDownload, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useDownload,
+  useLibrary,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -24,22 +22,23 @@ import {
   AlertIcon,
   CloudIcon,
   DownloadIcon,
-  FileDirectoryIcon,
-  FileIcon,
   GearIcon,
   ImageIcon,
-  LinkExternalIcon,
 } from "@primer/octicons-react";
 import { Wrench } from "lucide-react";
-import { Tooltip } from "react-tooltip";
 import { GameAssetsSettings } from "./game-assets-settings";
-import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { debounce } from "lodash-es";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getGameKey } from "@renderer/helpers";
 import "./game-options-modal.scss";
 import { logger } from "@renderer/logger";
-import { CloudSyncPanel } from "../cloud-sync/cloud-sync-panel";
+import { GameOptionsSidebar } from "./game-options-modal/sidebar";
+import { GeneralSettingsSection } from "./game-options-modal/general-section";
+import { CompatibilitySettingsSection } from "./game-options-modal/compatibility-section";
+import { DownloadsSettingsSection } from "./game-options-modal/downloads-section";
+import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
+import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
+import type { GameSettingsCategoryId } from "./game-options-modal/types";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -49,14 +48,6 @@ export interface GameOptionsModalProps {
   initialCategory?: GameSettingsCategoryId;
 }
 
-type GameSettingsCategoryId =
-  | "general"
-  | "assets"
-  | "hydra_cloud"
-  | "compatibility"
-  | "downloads"
-  | "danger_zone";
-
 export function GameOptionsModal({
   visible,
   game,
@@ -65,9 +56,11 @@ export function GameOptionsModal({
   initialCategory,
 }: Readonly<GameOptionsModalProps>) {
   const MANGOHUD_SITE_URL = "https://mangohud.com";
+  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();
+  const { updateLibrary } = useLibrary();
 
   const {
     updateGame,
@@ -80,6 +73,8 @@ export function GameOptionsModal({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
+  const [gameTitle, setGameTitle] = useState(game.title ?? "");
+  const [updatingGameTitle, setUpdatingGameTitle] = useState(false);
   const [launchOptions, setLaunchOptions] = useState(game.launchOptions ?? "");
   const [showResetAchievementsModal, setShowResetAchievementsModal] =
     useState(false);
@@ -95,9 +90,13 @@ export function GameOptionsModal({
   const [selectedProtonPath, setSelectedProtonPath] = useState(
     game.protonPath ?? ""
   );
-  const [autoRunMangohud, setAutoRunMangohud] = useState(
-    game.autoRunMangohud ?? false
+  const [autoRunMangohud, setAutoRunMangohud] = useState<boolean>(
+    game.autoRunMangohud === true
   );
+  const [autoRunGamemode, setAutoRunGamemode] = useState<boolean>(
+    game.autoRunGamemode === true
+  );
+  const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
   const [selectedCategory, setSelectedCategory] =
@@ -143,12 +142,20 @@ export function GameOptionsModal({
   }, [visible, game.shop, game.objectId]);
 
   useEffect(() => {
+    setGameTitle(game.title ?? "");
+  }, [game.title]);
+
+  useEffect(() => {
     setSelectedProtonPath(game.protonPath ?? "");
   }, [game.protonPath]);
 
   useEffect(() => {
-    setAutoRunMangohud(game.autoRunMangohud ?? false);
+    setAutoRunMangohud(game.autoRunMangohud === true);
   }, [game.autoRunMangohud]);
+
+  useEffect(() => {
+    setAutoRunGamemode(game.autoRunGamemode === true);
+  }, [game.autoRunGamemode]);
 
   useEffect(() => {
     if (!visible || window.electron.platform !== "linux") return;
@@ -160,12 +167,27 @@ export function GameOptionsModal({
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || window.electron.platform !== "linux") return;
+    if (!visible || window.electron.platform !== "linux") {
+      setDefaultWinePrefixPath(null);
+      return;
+    }
 
     window.electron
       .getDefaultWinePrefixSelectionPath()
       .then((defaultPath) => setDefaultWinePrefixPath(defaultPath))
       .catch(() => setDefaultWinePrefixPath(null));
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || window.electron.platform !== "linux") {
+      setGamemodeAvailable(false);
+      return;
+    }
+
+    window.electron
+      .isGamemodeAvailable()
+      .then(setGamemodeAvailable)
+      .catch(() => setGamemodeAvailable(false));
   }, [visible]);
 
   useEffect(() => {
@@ -353,20 +375,105 @@ export function GameOptionsModal({
     }
   };
 
-  const handleToggleMangohud = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const enabled = event.target.checked;
-    setAutoRunMangohud(enabled);
-    await window.electron.toggleGameMangohud(game.shop, game.objectId, enabled);
+  const handleChangeMangohudState = async (value: boolean) => {
+    setAutoRunMangohud(value);
+    await window.electron.toggleGameMangohud(game.shop, game.objectId, value);
     updateGame();
   };
 
-  const handleChangeLaunchOptions = async (event) => {
+  const handleChangeGamemodeState = async (value: boolean) => {
+    setAutoRunGamemode(value);
+    await window.electron.toggleGameGamemode(game.shop, game.objectId, value);
+    updateGame();
+  };
+
+  const applyProtonPathChange = async (protonPath: string) => {
+    try {
+      await window.electron.selectGameProtonPath(
+        game.shop,
+        game.objectId,
+        protonPath || null
+      );
+      await updateGame();
+    } catch {
+      setSelectedProtonPath(game.protonPath ?? "");
+      showErrorToast(t("proton_version_update_error"));
+    }
+  };
+
+  const handleChangeLaunchOptions = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const value = event.target.value;
 
     setLaunchOptions(value);
     debounceUpdateLaunchOptions(value);
+  };
+
+  const handleChangeGameTitle = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setGameTitle(event.target.value);
+  };
+
+  const handleBlurGameTitle = async () => {
+    if (updatingGameTitle) return;
+
+    const trimmedTitle = gameTitle.trim();
+    const currentTitle = (game.title ?? "").trim();
+
+    if (!trimmedTitle) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(t("edit_game_modal_fill_required"));
+      return;
+    }
+
+    if (trimmedTitle === currentTitle) {
+      setGameTitle(game.title ?? "");
+      return;
+    }
+
+    setUpdatingGameTitle(true);
+
+    try {
+      if (game.shop === "custom") {
+        await window.electron.updateCustomGame({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmedTitle,
+          iconUrl: game.iconUrl || undefined,
+          logoImageUrl: game.logoImageUrl || undefined,
+          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+        });
+      } else {
+        await window.electron.updateGameCustomAssets({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmedTitle,
+        });
+      }
+
+      await Promise.all([updateGame(), updateLibrary()]);
+      setGameTitle(trimmedTitle);
+    } catch (error) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(
+        error instanceof Error ? error.message : t("edit_game_modal_failed")
+      );
+    } finally {
+      setUpdatingGameTitle(false);
+    }
+  };
+
+  const handleChangeProtonVersion = (value: string) => {
+    setSelectedProtonPath(value);
+
+    const currentProtonPath = game.protonPath ?? "";
+    if (value === currentProtonPath) {
+      return;
+    }
+
+    void applyProtonPathChange(value);
   };
 
   const handleClearLaunchOptions = async () => {
@@ -386,7 +493,11 @@ export function GameOptionsModal({
 
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
-  const displayedWinePrefixPath = game.winePrefixPath ?? defaultWinePrefixPath;
+  const defaultHydraWinePrefixPath = defaultWinePrefixPath
+    ? `${defaultWinePrefixPath}/${game.objectId}`
+    : null;
+  const displayedWinePrefixPath =
+    game.winePrefixPath ?? defaultHydraWinePrefixPath;
 
   const categories = useMemo(
     () => [
@@ -436,8 +547,6 @@ export function GameOptionsModal({
 
   const shouldShowCreateStartMenuShortcut =
     window.electron.platform === "win32";
-  const showWinetricksUnavailableTooltip = !winetricksAvailable;
-
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
     try {
@@ -520,172 +629,39 @@ export function GameOptionsModal({
         noContentPadding
       >
         <div className="game-options-modal__container">
-          <aside className="game-options-modal__sidebar">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                className={`game-options-modal__sidebar-button ${
-                  selectedCategory === category.id
-                    ? "game-options-modal__sidebar-button--active"
-                    : ""
-                }`}
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                <span className="game-options-modal__sidebar-button-icon">
-                  {category.icon}
-                </span>
-                <span>{category.label}</span>
-              </button>
-            ))}
-          </aside>
+          <GameOptionsSidebar
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
 
           <div className="game-options-modal__panel">
             {selectedCategory === "general" && (
-              <>
-                <div className="game-options-modal__section">
-                  <div className="game-options-modal__header">
-                    <h2>{t("executable_section_title")}</h2>
-                    <h4 className="game-options-modal__header-description">
-                      {t("executable_section_description")}
-                    </h4>
-                  </div>
-
-                  <div className="game-options-modal__executable-field">
-                    <TextField
-                      value={game.executablePath || ""}
-                      readOnly
-                      theme="dark"
-                      disabled
-                      placeholder={t("no_executable_selected")}
-                      rightContent={
-                        <>
-                          <Button
-                            type="button"
-                            theme="outline"
-                            onClick={handleChangeExecutableLocation}
-                          >
-                            <FileIcon />
-                            {t("select_executable")}
-                          </Button>
-                          {game.executablePath && (
-                            <Button
-                              onClick={handleClearExecutablePath}
-                              theme="outline"
-                            >
-                              {t("clear")}
-                            </Button>
-                          )}
-                        </>
-                      }
-                    />
-
-                    <div className="game-options-modal__executable-field-buttons">
-                      {game.executablePath && (
-                        <Button
-                          type="button"
-                          theme="outline"
-                          onClick={handleOpenGameExecutablePath}
-                        >
-                          {t("open_folder")}
-                        </Button>
-                      )}
-                      {game.shop !== "custom" &&
-                        window.electron.platform === "win32" && (
-                          <Button
-                            type="button"
-                            theme="outline"
-                            onClick={handleOpenSaveFolder}
-                            disabled={loadingSaveFolder || !saveFolderPath}
-                          >
-                            {loadingSaveFolder
-                              ? t("searching_save_folder")
-                              : saveFolderPath
-                                ? t("open_save_folder")
-                                : t("no_save_folder_found")}
-                          </Button>
-                        )}
-                    </div>
-                  </div>
-                </div>
-
-                {game.executablePath && (
-                  <div className="game-options-modal__section">
-                    <div className="game-options-modal__header">
-                      <h2>{t("shortcuts_section_title")}</h2>
-                      <h4 className="game-options-modal__header-description">
-                        {t("shortcuts_section_description")}
-                      </h4>
-                    </div>
-
-                    <div className="game-options-modal__row">
-                      <Button
-                        onClick={() => handleCreateShortcut("desktop")}
-                        theme="outline"
-                      >
-                        {t("create_shortcut")}
-                      </Button>
-                      {game.shop !== "custom" && (
-                        <Button
-                          onClick={handleCreateSteamShortcut}
-                          theme="outline"
-                          disabled={creatingSteamShortcut}
-                        >
-                          <SteamLogo />
-                          {t("create_steam_shortcut")}
-                        </Button>
-                      )}
-                      {shouldShowCreateStartMenuShortcut && (
-                        <Button
-                          onClick={() => handleCreateShortcut("start_menu")}
-                          theme="outline"
-                        >
-                          {t("create_start_menu_shortcut")}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="game-options-modal__launch-options">
-                  <div className="game-options-modal__header">
-                    <h2>{t("launch_options")}</h2>
-                    <h4 className="game-options-modal__header-description">
-                      {shouldShowWinePrefixConfiguration ? (
-                        <Trans
-                          i18nKey="launch_options_description_linux"
-                          ns="game_details"
-                          defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
-                          components={{
-                            code: (
-                              <code className="game-options-modal__inline-code" />
-                            ),
-                          }}
-                        />
-                      ) : (
-                        t("launch_options_description")
-                      )}
-                    </h4>
-                  </div>
-
-                  <TextField
-                    value={launchOptions}
-                    theme="dark"
-                    placeholder={t("launch_options_placeholder")}
-                    onChange={handleChangeLaunchOptions}
-                    rightContent={
-                      game.launchOptions && (
-                        <Button
-                          onClick={handleClearLaunchOptions}
-                          theme="outline"
-                        >
-                          {t("clear")}
-                        </Button>
-                      )
-                    }
-                  />
-                </div>
-              </>
+              <GeneralSettingsSection
+                game={game}
+                gameTitle={gameTitle}
+                launchOptions={launchOptions}
+                updatingGameTitle={updatingGameTitle}
+                creatingSteamShortcut={creatingSteamShortcut}
+                shouldShowCreateStartMenuShortcut={
+                  shouldShowCreateStartMenuShortcut
+                }
+                shouldShowWinePrefixConfiguration={
+                  shouldShowWinePrefixConfiguration
+                }
+                loadingSaveFolder={loadingSaveFolder}
+                saveFolderPath={saveFolderPath}
+                onChangeExecutableLocation={handleChangeExecutableLocation}
+                onClearExecutablePath={handleClearExecutablePath}
+                onOpenGameExecutablePath={handleOpenGameExecutablePath}
+                onOpenSaveFolder={handleOpenSaveFolder}
+                onCreateShortcut={handleCreateShortcut}
+                onCreateSteamShortcut={handleCreateSteamShortcut}
+                onChangeGameTitle={handleChangeGameTitle}
+                onBlurGameTitle={handleBlurGameTitle}
+                onChangeLaunchOptions={handleChangeLaunchOptions}
+                onClearLaunchOptions={handleClearLaunchOptions}
+              />
             )}
 
             {selectedCategory === "assets" && (
@@ -696,258 +672,63 @@ export function GameOptionsModal({
               />
             )}
 
-            {selectedCategory === "hydra_cloud" &&
-              (game.shop !== "custom" ? (
-                <>
-                  <div className="game-options-modal__cloud-panel">
-                    <CloudSyncPanel
-                      automaticCloudSync={automaticCloudSync}
-                      onToggleAutomaticCloudSync={
-                        handleToggleAutomaticCloudSync
-                      }
-                    />
-                  </div>
-                </>
-              ) : (
-                <p className="game-options-modal__category-note">
-                  {t("settings_not_available_for_custom_games")}
-                </p>
-              ))}
+            {selectedCategory === "hydra_cloud" && (
+              <HydraCloudSettingsSection
+                game={game}
+                automaticCloudSync={automaticCloudSync}
+                onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
+              />
+            )}
 
             {selectedCategory === "compatibility" &&
               shouldShowWinePrefixConfiguration && (
-                <>
-                  <div className="game-options-modal__wine-prefix">
-                    <div className="game-options-modal__header">
-                      <h2>{t("wine_prefix")}</h2>
-                      <h4 className="game-options-modal__header-description">
-                        {t("wine_prefix_description")}
-                      </h4>
-                    </div>
-
-                    <TextField
-                      value={displayedWinePrefixPath || ""}
-                      readOnly
-                      theme="dark"
-                      disabled
-                      placeholder={t("no_directory_selected")}
-                      rightContent={
-                        <>
-                          <Button
-                            type="button"
-                            theme="outline"
-                            onClick={handleChangeWinePrefixPath}
-                          >
-                            <FileDirectoryIcon />
-                            {t("select_executable")}
-                          </Button>
-                          {game.winePrefixPath && (
-                            <Button
-                              onClick={handleClearWinePrefixPath}
-                              theme="outline"
-                            >
-                              {t("clear")}
-                            </Button>
-                          )}
-                        </>
-                      }
-                    />
-
-                    <div className="game-options-modal__row">
-                      <span
-                        className="game-options-modal__tool-button-wrapper"
-                        data-tooltip-id="winetricks-unavailable-tooltip"
-                        data-tooltip-content={
-                          showWinetricksUnavailableTooltip
-                            ? t("winetricks_not_available_tooltip")
-                            : undefined
-                        }
-                      >
-                        <Button
-                          type="button"
-                          theme="outline"
-                          onClick={handleOpenWinetricks}
-                          disabled={!winetricksAvailable}
-                        >
-                          {t("open_winetricks")}
-                        </Button>
-                      </span>
-
-                      {showWinetricksUnavailableTooltip && (
-                        <Tooltip id="winetricks-unavailable-tooltip" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="game-options-modal__section">
-                    <div className="game-options-modal__header">
-                      <h2>{t("additional_options")}</h2>
-                    </div>
-
-                    <div className="game-options-modal__mangohud-toggle">
-                      {!mangohudAvailable && (
-                        <span
-                          className="game-options-modal__mangohud-help"
-                          data-tooltip-id="mangohud-unavailable-tooltip"
-                          data-tooltip-content={t(
-                            "mangohud_not_available_tooltip"
-                          )}
-                        >
-                          (?)
-                        </span>
-                      )}
-
-                      <CheckboxField
-                        label={
-                          <span className="game-options-modal__mangohud-label">
-                            <span>{t("run_with_mangohud_prefix")}</span>
-                            <Link
-                              to={MANGOHUD_SITE_URL}
-                              className="game-options-modal__mangohud-link"
-                            >
-                              MangoHud
-                              <LinkExternalIcon />
-                            </Link>
-                          </span>
-                        }
-                        checked={autoRunMangohud}
-                        disabled={!mangohudAvailable}
-                        onChange={handleToggleMangohud}
-                      />
-
-                      {!mangohudAvailable && (
-                        <Tooltip id="mangohud-unavailable-tooltip" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="game-options-modal__section">
-                    <div className="game-options-modal__header">
-                      <h2>{t("proton_version")}</h2>
-                      <h4 className="game-options-modal__header-description">
-                        {t("proton_version_description")}
-                      </h4>
-                    </div>
-
-                    <ProtonPathPicker
-                      versions={protonVersions}
-                      selectedPath={selectedProtonPath}
-                      onChange={(value) => {
-                        setSelectedProtonPath(value);
-                        void window.electron
-                          .selectGameProtonPath(
-                            game.shop,
-                            game.objectId,
-                            value || null
-                          )
-                          .then(() => updateGame());
-                      }}
-                      radioName={`proton-version-${game.objectId}`}
-                      autoLabel={t("proton_version_auto")}
-                      autoSourceDescription={t("proton_source_umu_default")}
-                      steamSourceDescription={t("proton_source_steam")}
-                      compatibilityToolsSourceDescription={t(
-                        "proton_source_compatibility_tools"
-                      )}
-                    />
-                  </div>
-                </>
+                <CompatibilitySettingsSection
+                  game={game}
+                  displayedWinePrefixPath={displayedWinePrefixPath}
+                  protonVersions={protonVersions}
+                  selectedProtonPath={selectedProtonPath}
+                  autoRunGamemode={autoRunGamemode}
+                  autoRunMangohud={autoRunMangohud}
+                  gamemodeAvailable={gamemodeAvailable}
+                  mangohudAvailable={mangohudAvailable}
+                  winetricksAvailable={winetricksAvailable}
+                  gamemodeSiteUrl={GAMEMODE_SITE_URL}
+                  mangohudSiteUrl={MANGOHUD_SITE_URL}
+                  onChangeWinePrefixPath={handleChangeWinePrefixPath}
+                  onClearWinePrefixPath={handleClearWinePrefixPath}
+                  onOpenWinetricks={handleOpenWinetricks}
+                  onChangeGamemodeState={handleChangeGamemodeState}
+                  onChangeMangohudState={handleChangeMangohudState}
+                  onChangeProtonVersion={handleChangeProtonVersion}
+                />
               )}
 
-            {selectedCategory === "downloads" &&
-              (game.shop !== "custom" ? (
-                <div className="game-options-modal__downloads">
-                  <div className="game-options-modal__header">
-                    <h2>{t("downloads_section_title")}</h2>
-                    <h4 className="game-options-modal__header-description">
-                      {t("downloads_section_description")}
-                    </h4>
-                  </div>
-
-                  <div className="game-options-modal__row">
-                    <Button
-                      onClick={() => setShowRepacksModal(true)}
-                      theme="outline"
-                      disabled={
-                        deleting || isGameDownloading || !repacks.length
-                      }
-                    >
-                      {t("open_download_options")}
-                    </Button>
-                    {game.download?.downloadPath && (
-                      <Button
-                        onClick={handleOpenDownloadFolder}
-                        theme="outline"
-                        disabled={deleting}
-                      >
-                        {t("open_download_location")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="game-options-modal__category-note">
-                  {t("settings_not_available_for_custom_games")}
-                </p>
-              ))}
+            {selectedCategory === "downloads" && (
+              <DownloadsSettingsSection
+                game={game}
+                deleting={deleting}
+                isGameDownloading={isGameDownloading}
+                repacksLength={repacks.length}
+                onOpenRepacks={() => setShowRepacksModal(true)}
+                onOpenDownloadFolder={handleOpenDownloadFolder}
+              />
+            )}
 
             {selectedCategory === "danger_zone" && (
-              <div className="game-options-modal__danger-zone">
-                <div className="game-options-modal__header">
-                  <h2>{t("danger_zone_section_title")}</h2>
-                  <h4 className="game-options-modal__danger-zone-description">
-                    {t("danger_zone_section_description")}
-                  </h4>
-                </div>
-
-                <div className="game-options-modal__danger-zone-buttons">
-                  <Button
-                    onClick={() => setShowRemoveGameModal(true)}
-                    theme="danger"
-                    disabled={deleting}
-                  >
-                    {t("remove_from_library")}
-                  </Button>
-
-                  {game.shop !== "custom" && (
-                    <Button
-                      onClick={() => setShowResetAchievementsModal(true)}
-                      theme="danger"
-                      disabled={
-                        deleting ||
-                        isDeletingAchievements ||
-                        !hasAchievements ||
-                        !userDetails
-                      }
-                    >
-                      {t("reset_achievements")}
-                    </Button>
-                  )}
-
-                  <Button
-                    onClick={() => setShowChangePlaytimeModal(true)}
-                    theme="danger"
-                  >
-                    {t("update_game_playtime")}
-                  </Button>
-
-                  {game.shop !== "custom" && (
-                    <Button
-                      onClick={() => {
-                        setShowDeleteModal(true);
-                      }}
-                      theme="danger"
-                      disabled={
-                        isGameDownloading ||
-                        deleting ||
-                        !game.download?.downloadPath
-                      }
-                    >
-                      {t("remove_files")}
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <DangerZoneSection
+                game={game}
+                deleting={deleting}
+                isDeletingAchievements={isDeletingAchievements}
+                hasAchievements={hasAchievements}
+                isGameDownloading={isGameDownloading}
+                userDetails={userDetails}
+                onOpenRemoveFromLibrary={() => setShowRemoveGameModal(true)}
+                onOpenResetAchievements={() =>
+                  setShowResetAchievementsModal(true)
+                }
+                onOpenChangePlaytime={() => setShowChangePlaytimeModal(true)}
+                onOpenRemoveFiles={() => setShowDeleteModal(true)}
+              />
             )}
           </div>
         </div>

@@ -18,7 +18,10 @@ const openGameWinetricks = async (
 
   if (!game) return false;
 
-  const winePrefixPath = Wine.getEffectivePrefixPath(game.winePrefixPath);
+  const winePrefixPath = Wine.getEffectivePrefixPath(
+    game.winePrefixPath,
+    objectId
+  );
 
   if (!winePrefixPath) {
     return false;
