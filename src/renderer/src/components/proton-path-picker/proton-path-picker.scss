@@ -6,63 +6,11 @@
   gap: calc(globals.$spacing-unit / 2);
 
   &__option {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit / 2) 0;
-    cursor: pointer;
-
-    &--selected .proton-path-picker__radio-control {
-      border-color: var(--color-primary);
-      background: var(--color-primary);
-    }
-
-    &--selected .proton-path-picker__radio-dot {
-      opacity: 1;
-      transform: scale(1);
-      background: #fff;
-    }
-  }
-
-  &__radio-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  &__radio-control {
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    border-radius: 999px;
-    border: solid 1px globals.$border-color;
-    background: globals.$dark-background-color;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all ease 0.2s;
-  }
-
-  &__radio-dot {
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-primary);
-    opacity: 0;
-    transform: scale(0);
-    transition:
-      transform 0.15s ease,
-      opacity 0.15s ease;
-  }
-
-  &__option-main {
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
   }
 
   &__option-label {
+    min-width: 0;
     line-height: 1.2;
     text-decoration: underline dotted;
     text-underline-offset: 2px;

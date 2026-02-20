@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLibrary, useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
-import { TelescopeIcon } from "@primer/octicons-react";
+import { HeartIcon, TelescopeIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
 import { GameContextMenu } from "@renderer/components";
@@ -133,6 +133,9 @@ export default function Library() {
   }, [library]);
 
   const hasGames = library.length > 0;
+  const hasNoFilteredGames = sortedLibrary.length === 0;
+  const shouldShowFavoritesEmptyState =
+    hasGames && filterBy === "favorites" && hasNoFilteredGames;
 
   return (
     <section className="library__content">
@@ -169,7 +172,17 @@ export default function Library() {
         </div>
       )}
 
-      {hasGames && (
+      {shouldShowFavoritesEmptyState && (
+        <div className="library__empty">
+          <div className="library__icon-container">
+            <HeartIcon size={24} />
+          </div>
+          <h2>{t("empty_favorites_title")}</h2>
+          <p>{t("empty_favorites_description")}</p>
+        </div>
+      )}
+
+      {hasGames && !shouldShowFavoritesEmptyState && (
         <AnimatePresence mode="wait">
           {viewMode === "large" && (
             <motion.div

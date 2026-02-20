@@ -7,11 +7,19 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 
-  &__button {
+  &__header {
+    display: flex;
+    flex-direction: column;
     padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit / 2);
+    background-color: globals.$background-color;
+  }
+
+  &__button {
+    padding: 0;
     display: flex;
     align-items: center;
-    background-color: globals.$background-color;
+    background-color: transparent;
     color: globals.$muted-color;
     width: 100%;
     cursor: pointer;
@@ -26,6 +34,21 @@
 
     &:active {
       opacity: globals.$active-opacity;
+    }
+  }
+
+  &__subtitle {
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    width: fit-content;
+    transition: opacity ease 0.2s;
+
+    &:hover {
+      opacity: 0.85;
+      text-decoration: underline;
     }
   }
 

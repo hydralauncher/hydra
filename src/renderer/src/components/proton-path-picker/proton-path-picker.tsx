@@ -1,6 +1,7 @@
 import { useId } from "react";
 import type { ProtonVersion } from "@types";
 import { Tooltip } from "react-tooltip";
+import { RadioField } from "../radio-field/radio-field";
 import "./proton-path-picker.scss";
 
 export interface ProtonPathPickerProps {
@@ -44,58 +45,35 @@ export function ProtonPathPicker({
 
   return (
     <div className="proton-path-picker">
-      <label
-        className={`proton-path-picker__option ${
-          selectedPath === "" ? "proton-path-picker__option--selected" : ""
-        }`}
-        aria-label={autoLabel}
-      >
-        <input
-          type="radio"
-          className="proton-path-picker__radio-input"
-          name={radioName}
-          value=""
-          checked={selectedPath === ""}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <span className="proton-path-picker__radio-control">
-          <span className="proton-path-picker__radio-dot" />
-        </span>
-        <span className="proton-path-picker__option-main">
+      <RadioField
+        name={radioName}
+        value=""
+        checked={selectedPath === ""}
+        onChange={(event) => onChange(event.target.value)}
+        className="proton-path-picker__option"
+        labelClassName="proton-path-picker__option-label"
+        label={
           <span
-            className="proton-path-picker__option-label"
             data-tooltip-id={protonTooltipId}
             data-tooltip-content={autoSourceDescription}
           >
             {autoLabel}
           </span>
-        </span>
-      </label>
+        }
+        aria-label={autoLabel}
+      />
 
       {versions.map((version) => (
-        <label
+        <RadioField
           key={version.path}
-          className={`proton-path-picker__option ${
-            selectedPath === version.path
-              ? "proton-path-picker__option--selected"
-              : ""
-          }`}
-          aria-label={version.name}
-        >
-          <input
-            type="radio"
-            className="proton-path-picker__radio-input"
-            name={radioName}
-            value={version.path}
-            checked={selectedPath === version.path}
-            onChange={(event) => onChange(event.target.value)}
-          />
-          <span className="proton-path-picker__radio-control">
-            <span className="proton-path-picker__radio-dot" />
-          </span>
-          <span className="proton-path-picker__option-main">
+          name={radioName}
+          value={version.path}
+          checked={selectedPath === version.path}
+          onChange={(event) => onChange(event.target.value)}
+          className="proton-path-picker__option"
+          labelClassName="proton-path-picker__option-label"
+          label={
             <span
-              className="proton-path-picker__option-label"
               data-tooltip-id={protonTooltipId}
               data-tooltip-content={getProtonSourceDescription(
                 version.source,
@@ -106,8 +84,9 @@ export function ProtonPathPicker({
             >
               {version.name}
             </span>
-          </span>
-        </label>
+          }
+          aria-label={version.name}
+        />
       ))}
 
       <Tooltip id={protonTooltipId} />

@@ -130,6 +130,27 @@
     margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
+  &__empty {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__icon-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
   &__games-grid {
     list-style: none;
     margin: 0;

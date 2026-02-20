@@ -1,8 +1,8 @@
-import { Badge } from "@renderer/components";
+import { Badge } from "@renderer/components/badge/badge";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
-import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { lazy, Suspense, useMemo, useState, useEffect } from "react";
+import { Link } from "@renderer/components/link/link";
 
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
@@ -10,13 +10,16 @@ import { CatalogueSearchResult } from "@types";
 import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
+const ProtonDBBadge = lazy(async () => {
+  const mod = await import("./protondb-badge");
+  return { default: mod.ProtonDBBadge };
+});
+
 export interface GameItemProps {
   game: CatalogueSearchResult;
 }
 
 export function GameItem({ game }: GameItemProps) {
-  const navigate = useNavigate();
-
   const { i18n, t } = useTranslation("game_details");
 
   const language = i18n.language.split("-")[0];
@@ -28,6 +31,7 @@ export function GameItem({ game }: GameItemProps) {
   const [added, setAdded] = useState(false);
 
   const { library, updateLibrary } = useLibrary();
+  const isLinux = window.electron.platform === "linux";
 
   useEffect(() => {
     const exists = library.some(
@@ -37,10 +41,7 @@ export function GameItem({ game }: GameItemProps) {
     setAdded(exists);
   }, [library, game.shop, game.objectId]);
 
-  const addGameToLibrary = async (
-    event: React.MouseEvent | React.KeyboardEvent
-  ) => {
-    event.stopPropagation();
+  const addGameToLibrary = async () => {
     if (added || isAddingToLibrary) return;
 
     setIsAddingToLibrary(true);
@@ -84,6 +85,8 @@ export function GameItem({ game }: GameItemProps) {
           className="game-item__cover"
           src={game.libraryImageUrl}
           alt={game.title}
+          width={200}
+          height={103}
           loading="lazy"
         />
       );
@@ -96,41 +99,57 @@ export function GameItem({ game }: GameItemProps) {
     );
   }, [game.libraryImageUrl, game.title]);
 
+  const rawProtonValue =
+    game.tier ??
+    game.bestReportedTier ??
+    game.protondbSupportBadge ??
+    game.protondbSupportBadges?.[0] ??
+    null;
+  const protonBadgeValue = rawProtonValue?.toLowerCase().trim() ?? null;
+  const protonBadge =
+    protonBadgeValue &&
+    ["borked", "bronze", "silver", "gold", "platinum"].includes(
+      protonBadgeValue
+    )
+      ? protonBadgeValue
+      : null;
+
   return (
-    <button
-      type="button"
-      className="game-item"
-      onClick={() => navigate(buildGameDetailsPath(game))}
-    >
-      {libraryImage}
+    <article className="game-item">
+      <Link to={buildGameDetailsPath(game)} className="game-item__content-link">
+        <div className="game-item__cover-wrapper">
+          {libraryImage}
 
-      <div className="game-item__details">
-        <span>{game.title}</span>
-        <span className="game-item__genres">{genres.join(", ")}</span>
-
-        <div className="game-item__repackers">
-          {game.downloadSources.map((sourceName) => (
-            <Badge key={sourceName}>{sourceName}</Badge>
-          ))}
+          {isLinux && protonBadge && (
+            <Suspense fallback={null}>
+              <ProtonDBBadge badge={protonBadge} />
+            </Suspense>
+          )}
         </div>
-      </div>
-      <div
+
+        <div className="game-item__details">
+          <span>{game.title}</span>
+          <span className="game-item__genres">{genres.join(", ")}</span>
+
+          <div className="game-item__repackers">
+            {game.downloadSources.map((sourceName) => (
+              <Badge key={sourceName}>{sourceName}</Badge>
+            ))}
+          </div>
+        </div>
+      </Link>
+      <button
+        type="button"
         className={cn("game-item__plus-wrapper", {
           "game-item__plus-wrapper--added": added,
         })}
-        role="button"
-        tabIndex={0}
         onClick={addGameToLibrary}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            addGameToLibrary(e);
-          }
-        }}
         title={added ? t("already_in_library") : t("add_to_library")}
+        aria-label={added ? t("already_in_library") : t("add_to_library")}
+        disabled={added || isAddingToLibrary}
       >
         {added ? <CheckIcon size={16} /> : <PlusIcon size={16} />}
-      </div>
-    </button>
+      </button>
+    </article>
   );
 }
