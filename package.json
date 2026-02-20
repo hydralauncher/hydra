@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.8.2",
+  "version": "3.8.3",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -64,7 +64,6 @@
     "embla-carousel-react": "^8.6.0",
     "file-type": "^20.5.0",
     "framer-motion": "^12.15.0",
-    "get-port": "^7.1.0",
     "hls.js": "^1.5.12",
     "i18next": "^23.11.2",
     "i18next-browser-languagedetector": "^7.2.1",
@@ -89,6 +88,7 @@
     "sharp": "^0.34.5",
     "sound-play": "^1.1.0",
     "steam-shortcut-editor": "https://github.com/hydralauncher/steam-shortcut-editor",
+    "string-argv": "^0.3.2",
     "sudo-prompt": "^9.2.1",
     "tar": "^7.5.7",
     "tough-cookie": "^5.1.1",

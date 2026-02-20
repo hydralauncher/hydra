@@ -1,11 +1,11 @@
 import axios from "axios";
 import http from "node:http";
-import getPort, { portNumbers } from "get-port";
 
 import cp from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import net from "node:net";
+import path from "node:path";
 
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
@@ -31,12 +31,9 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
 const RPC_PORT_RANGE_START = 8080;
 const RPC_PORT_RANGE_END = 9000;
 const DEFAULT_RPC_PORT = 8084;
-const HEALTH_CHECK_INTERVAL_MS = 100;
-const HEALTH_CHECK_TIMEOUT_MS = 10000;
 
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
-
   public static readonly rpc = axios.create({
     baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
     httpAgent: new http.Agent({
@@ -69,25 +66,44 @@ export class PythonRPC {
     return newPassword;
   }
 
-  private static async waitForHealthCheck(): Promise<void> {
-    const startTime = Date.now();
+  private static async isPortAvailable(port: number) {
+    return new Promise<boolean>((resolve) => {
+      const server = net.createServer();
+      server.unref();
 
-    while (Date.now() - startTime < HEALTH_CHECK_TIMEOUT_MS) {
-      try {
-        const response = await this.rpc.get("/healthcheck", { timeout: 1000 });
-        if (response.status === 200) {
-          pythonRpcLogger.log("RPC health check passed");
-          return;
-        }
-      } catch {
-        // Server not ready yet, continue polling
-      }
-      await new Promise((resolve) =>
-        setTimeout(resolve, HEALTH_CHECK_INTERVAL_MS)
-      );
+      server.on("error", () => {
+        server.close(() => resolve(false));
+      });
+
+      server.listen(port, "127.0.0.1", () => {
+        server.close(() => resolve(true));
+      });
+    });
+  }
+
+  private static async findAvailablePort() {
+    const scannedPorts = new Set<number>();
+    const enqueuePort = (port: number) => {
+      if (port < RPC_PORT_RANGE_START || port > RPC_PORT_RANGE_END) return;
+      if (!scannedPorts.has(port)) scannedPorts.add(port);
+    };
+
+    enqueuePort(DEFAULT_RPC_PORT);
+    for (let port = RPC_PORT_RANGE_START; port <= RPC_PORT_RANGE_END; port++) {
+      enqueuePort(port);
     }
 
-    throw new Error("RPC health check timed out");
+    for (const port of scannedPorts) {
+      if (await this.isPortAvailable(port)) {
+        return port;
+      }
+    }
+
+    throw new Error("No available RPC port found");
+  }
+
+  private static updateRpcPort(port: number) {
+    this.rpc.defaults.baseURL = `http://localhost:${port}`;
   }
 
   public static async spawn(
@@ -96,14 +112,22 @@ export class PythonRPC {
   ) {
     const rpcPassword = await this.getRPCPassword();
 
-    const port = await getPort({
-      port: [
-        DEFAULT_RPC_PORT,
-        ...portNumbers(RPC_PORT_RANGE_START, RPC_PORT_RANGE_END),
-      ],
-    });
+    let port: number;
+    try {
+      port = await this.findAvailablePort();
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Unknown error while selecting RPC port";
+      dialog.showErrorBox(
+        "RPC Error",
+        `Failed to select an available port for the download service.\n\n${message}`
+      );
+      throw err;
+    }
 
-    this.rpc.defaults.baseURL = `http://localhost:${port}`;
+    this.updateRpcPort(port);
     pythonRpcLogger.log(`Using RPC port: ${port}`);
 
     const commonArgs = [
@@ -138,6 +162,7 @@ export class PythonRPC {
       });
 
       this.logStderr(childProcess.stderr);
+
       this.pythonProcess = childProcess;
     } else {
       const scriptPath = path.join(
@@ -153,23 +178,11 @@ export class PythonRPC {
       });
 
       this.logStderr(childProcess.stderr);
+
       this.pythonProcess = childProcess;
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
-
-    try {
-      await this.waitForHealthCheck();
-      pythonRpcLogger.log(`Python RPC started successfully on port ${port}`);
-    } catch (err) {
-      pythonRpcLogger.log(`Failed to start Python RPC: ${err}`);
-      dialog.showErrorBox(
-        "RPC Error",
-        `Failed to start download service.\n\nThe service did not respond in time. Please try restarting Hydra.`
-      );
-      this.kill();
-      throw err;
-    }
   }
 
   public static kill() {
