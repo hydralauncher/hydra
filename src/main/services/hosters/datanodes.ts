@@ -29,6 +29,7 @@ export class DatanodesApi {
       formData.append("method_free", "Free Download >>");
       formData.append("method_premium", "");
       formData.append("__dl", "1");
+      formData.append("g_captch__a", "1");
 
       const response: AxiosResponse = await this.session.post(
         "https://datanodes.to/download",
@@ -49,6 +50,8 @@ export class DatanodesApi {
           },
         }
       );
+
+      console.log(response.data);
 
       if (typeof response.data === "object" && response.data.url) {
         return decodeURIComponent(response.data.url);
