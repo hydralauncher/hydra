@@ -1,11 +1,14 @@
-import { useContext, useEffect, useState } from "react";
+import { lazy, Suspense, useContext, useEffect, useState } from "react";
 import type {
   HowLongToBeatCategory,
+  ProtonDBData,
   SteamAppDetails,
   UserAchievement,
 } from "@types";
 import { useTranslation } from "react-i18next";
-import { Button, Link, StarRating } from "@renderer/components";
+import { Button } from "@renderer/components/button/button";
+import { Link } from "@renderer/components/link/link";
+import { StarRating } from "@renderer/components/star-rating/star-rating";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
@@ -22,6 +25,46 @@ import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
+
+const ProtonDBSection = lazy(async () => {
+  const mod = await import("./protondb-section");
+  return { default: mod.ProtonDBSection };
+});
+
+const protonDBResponseCache = new Map<string, ProtonDBData | null>();
+const protonDBInFlightRequests = new Map<
+  string,
+  Promise<ProtonDBData | null>
+>();
+
+const getProtonDBData = (shop: string, objectId: string) => {
+  const cacheKey = `${shop}:${objectId}`;
+
+  if (protonDBResponseCache.has(cacheKey)) {
+    return Promise.resolve(protonDBResponseCache.get(cacheKey) ?? null);
+  }
+
+  const inFlightRequest = protonDBInFlightRequests.get(cacheKey);
+  if (inFlightRequest) {
+    return inFlightRequest;
+  }
+
+  const request = window.electron.hydraApi
+    .get<ProtonDBData | null>(`/games/${shop}/${objectId}/protondb`, {
+      needsAuth: false,
+    })
+    .then((protonData) => {
+      protonDBResponseCache.set(cacheKey, protonData);
+      return protonData;
+    })
+    .catch(() => null)
+    .finally(() => {
+      protonDBInFlightRequests.delete(cacheKey);
+    });
+
+  protonDBInFlightRequests.set(cacheKey, request);
+  return request;
+};
 
 const achievementsPlaceholder: UserAchievement[] = [
   {
@@ -58,10 +101,15 @@ const achievementsPlaceholder: UserAchievement[] = [
 ];
 
 export function Sidebar() {
+  const isLinux = window.electron.platform === "linux";
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
+  const [protonDB, setProtonDB] = useState<{
+    isLoading: boolean;
+    data: ProtonDBData | null;
+  }>({ isLoading: isLinux, data: null });
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const [activeRequirement, setActiveRequirement] =
@@ -96,8 +144,35 @@ export function Sidebar() {
     }
   }, [objectId, shop]);
 
+  useEffect(() => {
+    if (!isLinux || !objectId) {
+      setProtonDB({ isLoading: false, data: null });
+      return;
+    }
+
+    setProtonDB({ isLoading: true, data: null });
+
+    getProtonDBData(shop, objectId)
+      .then((protonData) => {
+        setProtonDB({ isLoading: false, data: protonData });
+      })
+      .catch(() => {
+        setProtonDB({ isLoading: false, data: null });
+      });
+  }, [isLinux, objectId, shop]);
+
   return (
     <aside className="content-sidebar">
+      {isLinux && (
+        <Suspense fallback={null}>
+          <ProtonDBSection
+            protonDBData={protonDB.data}
+            isLoading={protonDB.isLoading}
+            objectId={objectId ?? ""}
+          />
+        </Suspense>
+      )}
+
       {userDetails === null && (
         <SidebarSection title={t("achievements")}>
           <div className="achievements-placeholder">

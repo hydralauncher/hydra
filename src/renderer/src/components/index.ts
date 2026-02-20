@@ -8,6 +8,7 @@ export * from "./modal/modal";
 export * from "./sidebar/sidebar";
 export * from "./text-field/text-field";
 export * from "./checkbox-field/checkbox-field";
+export * from "./radio-field/radio-field";
 export * from "./link/link";
 export * from "./select-field/select-field";
 export * from "./toast/toast";

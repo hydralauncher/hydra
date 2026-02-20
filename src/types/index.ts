@@ -417,6 +417,24 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+  protondbSupportBadges: (
+    | "borked"
+    | "bronze"
+    | "silver"
+    | "gold"
+    | "platinum"
+  )[];
+  deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+}
+
+export interface ProtonDBData {
+  tier: string | null;
+  confidence: string | null;
+  score: number | null;
+  total: number | null;
+  trendingTier: string | null;
+  resolvedCategory: number | null;
+  deckCompatibility: "verified" | "playable" | "unsupported" | "unknown" | null;
 }
 
 export type CatalogueSearchResult = {
@@ -425,6 +443,12 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
+  tier?: string | null;
+  bestReportedTier?: string | null;
+  protondbSupportBadge?: string | null;
+  protondbSupportBadges?: string[];
+  deckCompatibility?: string | null;
+  deckCompatibilities?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
