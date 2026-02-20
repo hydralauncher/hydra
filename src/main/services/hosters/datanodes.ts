@@ -51,8 +51,6 @@ export class DatanodesApi {
         }
       );
 
-      console.log(response.data);
-
       if (typeof response.data === "object" && response.data.url) {
         return decodeURIComponent(response.data.url);
       }
