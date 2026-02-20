@@ -15,7 +15,9 @@ const resumeGameDownload = async (
 
   if (
     download &&
-    (download.status === "paused" || download.status === "active") &&
+    (download.status === "paused" ||
+      download.status === "active" ||
+      download.status === "error") &&
     download.progress !== 1
   ) {
     await DownloadManager.pauseDownload();

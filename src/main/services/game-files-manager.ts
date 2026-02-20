@@ -17,6 +17,7 @@ import { app } from "electron";
 import { SystemPath } from "./system-path";
 import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
+import { getPathType } from "./extraction-path";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -57,12 +58,18 @@ export class GameFilesManager {
     );
   }
 
-  private async clearExtractionState() {
+  private async setExtractionFailedState(error: unknown, targetPath?: string) {
+    logger.error(
+      `[GameFilesManager] Extraction failed for ${this.objectId}${targetPath ? ` at ${targetPath}` : ""}`,
+      error
+    );
+
     const download = await downloadsSublevel.get(this.gameKey);
     if (!download) return;
 
     await downloadsSublevel.put(this.gameKey, {
       ...download,
+      status: "error",
       extracting: false,
       extractionProgress: 0,
     });
@@ -78,9 +85,26 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
-  async extractFilesInDirectory(directoryPath: string) {
-    if (!fs.existsSync(directoryPath)) return;
-    const files = await fs.promises.readdir(directoryPath);
+  async extractFilesInDirectory(directoryPath: string): Promise<boolean> {
+    let pathType: Awaited<ReturnType<typeof getPathType>>;
+    try {
+      pathType = await getPathType(directoryPath);
+    } catch (error) {
+      await this.setExtractionFailedState(error, directoryPath);
+      return false;
+    }
+
+    if (pathType !== "directory") {
+      return true;
+    }
+
+    let files: string[];
+    try {
+      files = await fs.promises.readdir(directoryPath);
+    } catch (error) {
+      await this.setExtractionFailedState(error, directoryPath);
+      return false;
+    }
 
     const compressedFiles = files.filter((file) =>
       FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.endsWith(ext))
@@ -90,7 +114,7 @@ export class GameFilesManager {
       (file) => /part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file)
     );
 
-    if (filesToExtract.length === 0) return;
+    if (filesToExtract.length === 0) return true;
 
     await this.updateExtractionProgress(0, true);
 
@@ -118,11 +142,19 @@ export class GameFilesManager {
             completedFiles / totalFiles,
             true
           );
+        } else {
+          await this.setExtractionFailedState(
+            new Error(`7zip returned unsuccessful extraction for ${file}`),
+            path.join(directoryPath, file)
+          );
+          return false;
         }
       } catch (err) {
-        logger.error(`Failed to extract file: ${file}`, err);
-        await this.clearExtractionState();
-        return;
+        await this.setExtractionFailedState(
+          err,
+          path.join(directoryPath, file)
+        );
+        return false;
       }
     }
 
@@ -136,6 +168,8 @@ export class GameFilesManager {
         archivePaths
       );
     }
+
+    return true;
   }
 
   async setExtractionComplete(publishNotification = true) {
@@ -487,7 +521,12 @@ export class GameFilesManager {
       );
 
       if (result.success) {
-        await this.extractFilesInDirectory(extractionPath);
+        const extractedNestedArchives =
+          await this.extractFilesInDirectory(extractionPath);
+
+        if (!extractedNestedArchives) {
+          return false;
+        }
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
           WindowManager.mainWindow?.webContents.send(
@@ -502,10 +541,16 @@ export class GameFilesManager {
         });
 
         await this.setExtractionComplete();
+      } else {
+        await this.setExtractionFailedState(
+          new Error("7zip returned unsuccessful extraction"),
+          filePath
+        );
+        return false;
       }
     } catch (err) {
-      logger.error(`Failed to extract downloaded file: ${filePath}`, err);
-      await this.clearExtractionState();
+      await this.setExtractionFailedState(err, filePath);
+      return false;
     }
 
     return true;
