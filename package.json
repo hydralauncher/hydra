@@ -48,7 +48,7 @@
     "@tiptap/react": "^3.6.2",
     "@tiptap/starter-kit": "^3.6.2",
     "auto-launch": "^5.0.6",
-    "axios": "^1.12.2",
+    "axios": "^1.13.5",
     "axios-cookiejar-support": "^5.0.5",
     "check-disk-space": "^3.4.0",
     "classic-level": "^2.0.0",
