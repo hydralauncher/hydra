@@ -460,11 +460,17 @@ export class PremiumizeClient {
   ): Promise<boolean> {
     const created = await this.createTransfer(uri);
     if (created?.id) {
+      logger.log(
+        `[Premiumize] Transfer started in background (id=${created.id}). User should retry download later.`
+      );
       return true;
     }
 
     const hasExistingTransfer = await this.hasRunnableTransfer(uri);
     if (hasExistingTransfer) {
+      logger.log(
+        `[Premiumize] Existing transfer found. User should retry download later.`
+      );
       return true;
     }
 
@@ -514,9 +520,9 @@ export class PremiumizeClient {
     const match = /[?&]dn=([^&]+)/i.exec(uri);
     if (!match?.[1]) return null;
     try {
-      return decodeURIComponent(match[1]).replaceAll("+", " ");
+      return decodeURIComponent(match[1]).replace(/\+/g, " ");
     } catch {
-      return match[1].replaceAll("+", " ");
+      return match[1].replace(/\+/g, " ");
     }
   }
 

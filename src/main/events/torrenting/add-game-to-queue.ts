@@ -49,7 +49,12 @@ const addGameToQueue = async (
   try {
     await DownloadManager.validateDownloadUrl(download);
   } catch (err: unknown) {
-    if (!isKnownDownloadError(err)) {
+    if (isKnownDownloadError(err)) {
+      logger.warn(
+        "Failed to validate download URL for queue with expected download error",
+        err
+      );
+    } else {
       logger.error("Failed to validate download URL for queue", err);
     }
     return handleDownloadError(err, downloader);
