@@ -11,6 +11,8 @@ export enum Downloader {
   FuckingFast,
   VikingFile,
   Rootz,
+  Premiumize,
+  AllDebrid,
 }
 
 export enum DownloadSourceStatus {
@@ -64,6 +66,14 @@ export enum DownloadError {
   GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
   NotCachedOnHydra = "download_error_not_cached_on_hydra",
+  NotCachedOnPremiumize = "download_error_not_cached_on_premiumize",
+  NotCachedOnAllDebrid = "download_error_not_cached_on_alldebrid",
+  PremiumizeAccountNotAuthorized = "download_error_premiumize_account_not_authorized",
+  AllDebridAccountNotAuthorized = "download_error_alldebrid_account_not_authorized",
+  PremiumizeRateLimitExceeded = "download_error_premiumize_rate_limit_exceeded",
+  AllDebridRateLimitExceeded = "download_error_alldebrid_rate_limit_exceeded",
+  PremiumizeUnavailable = "download_error_premiumize_unavailable",
+  AllDebridUnavailable = "download_error_alldebrid_unavailable",
 }
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];

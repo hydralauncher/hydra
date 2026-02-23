@@ -15,6 +15,8 @@ export const DOWNLOADER_NAME = {
   [Downloader.Hydra]: "Nimbus",
   [Downloader.VikingFile]: "VikingFile",
   [Downloader.Rootz]: "Rootz",
+  [Downloader.Premiumize]: "Premiumize",
+  [Downloader.AllDebrid]: "AllDebrid",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;

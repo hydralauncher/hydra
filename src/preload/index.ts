@@ -107,6 +107,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+  authenticatePremiumize: (apiToken: string) =>
+    ipcRenderer.invoke("authenticatePremiumize", apiToken),
+  authenticateAllDebrid: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateAllDebrid", apiToken),
   authenticateTorBox: (apiToken: string) =>
     ipcRenderer.invoke("authenticateTorBox", apiToken),
 
