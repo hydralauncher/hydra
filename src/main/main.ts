@@ -8,6 +8,8 @@ import {
   CommonRedistManager,
   TorBoxClient,
   RealDebridClient,
+  PremiumizeClient,
+  AllDebridClient,
   Aria2,
   DownloadManager,
   HydraApi,
@@ -38,6 +40,14 @@ export const loadState = async () => {
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
+  }
+
+  if (userPreferences?.premiumizeApiToken) {
+    PremiumizeClient.authorize(userPreferences.premiumizeApiToken);
+  }
+
+  if (userPreferences?.allDebridApiToken) {
+    AllDebridClient.authorize(userPreferences.allDebridApiToken);
   }
 
   if (userPreferences?.torBoxApiToken) {

@@ -8,6 +8,8 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
+  PremiumizeUser,
+  AllDebridUser,
   UserProfile,
   FriendRequestAction,
   UpdateProfileRequest,
@@ -243,6 +245,8 @@ declare global {
     ) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
+    authenticateAllDebrid: (apiToken: string) => Promise<AllDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (

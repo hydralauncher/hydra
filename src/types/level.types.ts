@@ -110,6 +110,8 @@ export interface UserPreferences {
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
+  premiumizeApiToken?: string | null;
+  allDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;

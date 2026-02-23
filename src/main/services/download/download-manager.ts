@@ -19,21 +19,44 @@ import {
 import { calculateETA, getDirSize } from "./helpers";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
+import fs from "node:fs";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
+import { PremiumizeClient } from "./premiumize";
+import { AllDebridClient } from "./all-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+
+interface AllDebridBatchEntry {
+  url: string;
+  filename: string;
+  size?: number;
+  isLocked?: boolean;
+}
+
+interface AllDebridBatchState {
+  downloadId: string;
+  savePath: string;
+  entries: AllDebridBatchEntry[];
+  currentIndex: number;
+  completedBytes: number;
+  totalBytes: number;
+  lastSpeedUpdate: number;
+  bytesAtLastSpeedUpdate: number;
+  batchSpeed: number;
+}
 
 export class DownloadManager {
   private static downloadingGameId: string | null = null;
   private static jsDownloader: JsHttpDownloader | null = null;
   private static usingJsDownloader = false;
   private static isPreparingDownload = false;
+  private static allDebridBatch: AllDebridBatchState | null = null;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -75,6 +98,14 @@ export class DownloadManager {
 
   private static sanitizeFilename(filename: string): string {
     return filename.replaceAll(/[<>:"/\\|?*]/g, "_");
+  }
+
+  private static sanitizeRelativePath(pathValue: string): string {
+    return pathValue
+      .split(/[\\/]+/)
+      .map((segment) => this.sanitizeFilename(segment))
+      .filter(Boolean)
+      .join("/");
   }
 
   private static resolveFilename(
@@ -209,11 +240,61 @@ export class DownloadManager {
       const download = await downloadsSublevel.get(downloadId);
       if (!download) return null;
 
-      const { progress, downloadSpeed, bytesDownloaded, fileSize, folderName } =
-        status;
+      let { progress, bytesDownloaded, fileSize, folderName } = status;
+      let downloadSpeed = status.downloadSpeed;
+      let batchFilesTotal: number | undefined;
+      let batchFilesDownloaded: number | undefined;
 
-      // Only update fileSize in database if we actually know it (> 0)
-      // Otherwise keep the existing value to avoid showing "0 B"
+      if (
+        this.allDebridBatch &&
+        this.allDebridBatch.downloadId === downloadId
+      ) {
+        const batch = this.allDebridBatch;
+        const batchDone =
+          batch.currentIndex >= batch.entries.length &&
+          status.status === "complete";
+
+        batchFilesTotal = batch.entries.length;
+
+        if (batchDone) {
+          this.allDebridBatch = null;
+          progress = 1;
+          bytesDownloaded = batch.completedBytes;
+          fileSize = batch.totalBytes;
+          batchFilesDownloaded = batchFilesTotal;
+        } else {
+          if (status.status === "complete") {
+            status.status = "active";
+          }
+
+          const currentBytes =
+            status.status === "active" ? status.bytesDownloaded : 0;
+
+          progress = this.calculateAllDebridBatchProgress(
+            batch,
+            status.progress,
+            currentBytes,
+            status.fileSize
+          );
+          bytesDownloaded = batch.completedBytes + currentBytes;
+          fileSize = batch.totalBytes || fileSize;
+          folderName =
+            batch.entries[batch.currentIndex]?.filename ?? folderName;
+          batchFilesDownloaded = batch.currentIndex;
+
+          // Compute batch-level speed so small files don't reset the reading
+          const now = Date.now();
+          const elapsed = (now - batch.lastSpeedUpdate) / 1000;
+          if (elapsed >= 1) {
+            const bytesDelta = bytesDownloaded - batch.bytesAtLastSpeedUpdate;
+            batch.batchSpeed = Math.max(0, bytesDelta / elapsed);
+            batch.lastSpeedUpdate = now;
+            batch.bytesAtLastSpeedUpdate = bytesDownloaded;
+          }
+          downloadSpeed = batch.batchSpeed;
+        }
+      }
+
       const effectiveFileSize = fileSize > 0 ? fileSize : download.fileSize;
 
       const updatedDownload = {
@@ -246,6 +327,8 @@ export class DownloadManager {
         progress,
         gameId: downloadId,
         download: updatedDownload,
+        batchFilesTotal,
+        batchFilesDownloaded,
       };
     } catch (err) {
       logger.error("[DownloadManager] Error getting JS download status:", err);
@@ -387,8 +470,6 @@ export class DownloadManager {
     if (download.automaticallyExtract) {
       this.handleExtraction(download, game);
     } else {
-      // For downloads without extraction (e.g., torrents with ready-to-play files),
-      // search for executable in the download folder
       const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
       gameFilesManager.searchAndBindExecutable();
     }
@@ -425,19 +506,47 @@ export class DownloadManager {
 
   private static handleExtraction(download: Download, game: any) {
     const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
+    const extractionPath = download.folderName
+      ? path.join(download.downloadPath, download.folderName)
+      : null;
+
+    if (!extractionPath || !fs.existsSync(extractionPath)) {
+      gameFilesManager.setExtractionComplete();
+      return;
+    }
+
+    const extractionStats = fs.statSync(extractionPath);
 
     if (
+      extractionStats.isFile() &&
       FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-        download.folderName?.endsWith(ext)
+        download.folderName?.toLowerCase().endsWith(ext)
       )
     ) {
-      gameFilesManager.extractDownloadedFile();
-    } else if (download.folderName) {
+      gameFilesManager.extractDownloadedFile().catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to extract downloaded file",
+          error
+        );
+      });
+    } else if (extractionStats.isDirectory()) {
       gameFilesManager
-        .extractFilesInDirectory(
-          path.join(download.downloadPath, download.folderName)
-        )
-        .then(() => gameFilesManager.setExtractionComplete());
+        .extractFilesInDirectory(extractionPath)
+        .then((success) => {
+          if (success) {
+            return gameFilesManager.setExtractionComplete();
+          }
+
+          return undefined;
+        })
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to extract files in directory",
+            error
+          );
+        });
+    } else {
+      gameFilesManager.setExtractionComplete();
     }
   }
 
@@ -461,6 +570,7 @@ export class DownloadManager {
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
       this.jsDownloader = null;
+      this.allDebridBatch = null;
     }
   }
 
@@ -531,6 +641,7 @@ export class DownloadManager {
         this.jsDownloader.cancelDownload();
         this.jsDownloader = null;
         this.usingJsDownloader = false;
+        this.allDebridBatch = null;
       } else if (!this.isPreparingDownload) {
         await PythonRPC.rpc
           .post("/action", { action: "cancel", game_id: downloadKey })
@@ -542,6 +653,7 @@ export class DownloadManager {
       this.downloadingGameId = null;
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;
+      this.allDebridBatch = null;
     }
   }
 
@@ -584,6 +696,10 @@ export class DownloadManager {
         return this.getMediafireDownloadOptions(download, resumingFilename);
       case Downloader.RealDebrid:
         return this.getRealDebridDownloadOptions(download, resumingFilename);
+      case Downloader.Premiumize:
+        return this.getPremiumizeDownloadOptions(download, resumingFilename);
+      case Downloader.AllDebrid:
+        return this.getAllDebridDownloadOptions(download, resumingFilename);
       case Downloader.TorBox:
         return this.getTorBoxDownloadOptions(download, resumingFilename);
       case Downloader.Hydra:
@@ -595,6 +711,102 @@ export class DownloadManager {
       default:
         return null;
     }
+  }
+
+  private static calculateAllDebridBatchProgress(
+    batch: AllDebridBatchState,
+    currentFileProgress: number,
+    currentBytesDownloaded: number,
+    currentFileSize: number
+  ) {
+    if (batch.totalBytes > 0) {
+      const effectiveCurrentBytes =
+        currentFileSize > 0
+          ? currentFileSize * Math.max(0, Math.min(currentFileProgress, 1))
+          : currentBytesDownloaded;
+      return Math.min(
+        (batch.completedBytes + effectiveCurrentBytes) / batch.totalBytes,
+        1
+      );
+    }
+
+    const totalEntries = Math.max(batch.entries.length, 1);
+    return Math.min(
+      (batch.currentIndex + Math.max(0, Math.min(currentFileProgress, 1))) /
+        totalEntries,
+      1
+    );
+  }
+
+  private static async runAllDebridBatch() {
+    while (this.allDebridBatch && this.jsDownloader) {
+      const batch = this.allDebridBatch;
+      const downloader = this.jsDownloader;
+      const entry = batch.entries[batch.currentIndex];
+      if (!entry) break;
+
+      try {
+        let resolvedUrl = entry.url;
+        if (entry.isLocked) {
+          resolvedUrl = await AllDebridClient.unlockDownloadLink(entry.url);
+        }
+
+        if (!this.allDebridBatch || !this.jsDownloader) break;
+
+        const options = {
+          url: resolvedUrl,
+          savePath: batch.savePath,
+          filename: this.sanitizeRelativePath(entry.filename),
+        };
+
+        await downloader.startDownload(options);
+
+        if (!this.allDebridBatch || !this.jsDownloader) break;
+
+        const dlStatus = downloader.getDownloadStatus();
+        if (
+          !dlStatus ||
+          dlStatus.status === "paused" ||
+          dlStatus.status === "error"
+        ) {
+          break;
+        }
+
+        const expectedSize = entry.size ?? 0;
+        if (
+          expectedSize > 0 &&
+          dlStatus.bytesDownloaded < expectedSize * 0.95
+        ) {
+          logger.error(
+            `[DownloadManager] AllDebrid batch entry ${batch.currentIndex} size mismatch: ` +
+              `downloaded=${dlStatus.bytesDownloaded} expected=${expectedSize}. ` +
+              `The download URL may have returned an error page.`
+          );
+          this.cleanupBatch();
+          return;
+        }
+
+        batch.completedBytes += Math.max(
+          entry.size ?? 0,
+          dlStatus.bytesDownloaded
+        );
+        batch.currentIndex += 1;
+      } catch (err) {
+        logger.error("[DownloadManager] AllDebrid batch entry error:", err);
+        this.cleanupBatch();
+        return;
+      }
+    }
+  }
+
+  private static cleanupBatch() {
+    this.usingJsDownloader = false;
+    this.jsDownloader?.cancelDownload();
+    this.jsDownloader = null;
+    this.allDebridBatch = null;
+    this.downloadingGameId = null;
+    this.isPreparingDownload = false;
+    WindowManager.mainWindow?.setProgressBar(-1);
   }
 
   private static async getGofileDownloadOptions(
@@ -723,6 +935,42 @@ export class DownloadManager {
     );
     return this.buildDownloadOptions(
       downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getPremiumizeDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
+    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getAllDebridDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadInfo = await AllDebridClient.getDownloadInfo(download.uri);
+    if (!downloadInfo?.url) throw new Error(DownloadError.NotCachedOnAllDebrid);
+    const filename = resumingFilename
+      ? this.sanitizeRelativePath(resumingFilename)
+      : downloadInfo.filename
+        ? this.sanitizeRelativePath(downloadInfo.filename)
+        : this.resolveFilename(undefined, download.uri, downloadInfo.url);
+    return this.buildDownloadOptions(
+      downloadInfo.url,
       download.downloadPath,
       filename
     );
@@ -906,6 +1154,37 @@ export class DownloadManager {
           allow_multiple_connections: true,
         };
       }
+      case Downloader.Premiumize: {
+        const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
+        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.AllDebrid: {
+        const downloadInfo = await AllDebridClient.getDownloadInfo(
+          download.uri
+        );
+        if (!downloadInfo?.url)
+          throw new Error(DownloadError.NotCachedOnAllDebrid);
+
+        const filename = downloadInfo.filename
+          ? this.sanitizeRelativePath(downloadInfo.filename)
+          : undefined;
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadInfo.url,
+          save_path: download.downloadPath,
+          out: filename,
+          allow_multiple_connections: true,
+        };
+      }
       case Downloader.TorBox: {
         const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
         if (!url) return;
@@ -986,27 +1265,63 @@ export class DownloadManager {
       this.usingJsDownloader = true;
 
       try {
-        const options = await this.getJsDownloadOptions(download);
+        if (download.downloader === Downloader.AllDebrid) {
+          const entries = await AllDebridClient.getDownloadEntries(
+            download.uri
+          );
+          if (!entries?.length) {
+            this.isPreparingDownload = false;
+            this.usingJsDownloader = false;
+            this.downloadingGameId = null;
+            throw new Error(DownloadError.NotCachedOnAllDebrid);
+          }
 
-        if (!options) {
+          this.allDebridBatch = {
+            downloadId,
+            savePath: download.downloadPath,
+            entries: entries.map((entry) => ({
+              ...entry,
+              filename: this.sanitizeRelativePath(entry.filename),
+            })),
+            currentIndex: 0,
+            completedBytes: 0,
+            totalBytes: entries.every((item) => typeof item.size === "number")
+              ? entries.reduce((acc, item) => acc + (item.size ?? 0), 0)
+              : 0,
+            lastSpeedUpdate: Date.now(),
+            bytesAtLastSpeedUpdate: 0,
+            batchSpeed: 0,
+          };
+
+          this.jsDownloader = new JsHttpDownloader();
           this.isPreparingDownload = false;
-          this.usingJsDownloader = false;
-          this.downloadingGameId = null;
-          throw new Error("Failed to get download options for JS downloader");
+          void this.runAllDebridBatch();
+        } else {
+          this.allDebridBatch = null;
+          const options = await this.getJsDownloadOptions(download);
+
+          if (!options) {
+            this.isPreparingDownload = false;
+            this.usingJsDownloader = false;
+            this.downloadingGameId = null;
+            throw new Error("Failed to get download options for JS downloader");
+          }
+
+          this.jsDownloader = new JsHttpDownloader();
+          this.isPreparingDownload = false;
+
+          this.jsDownloader.startDownload(options).catch((err) => {
+            logger.error("[DownloadManager] JS download error:", err);
+            this.usingJsDownloader = false;
+            this.jsDownloader = null;
+            this.allDebridBatch = null;
+          });
         }
-
-        this.jsDownloader = new JsHttpDownloader();
-        this.isPreparingDownload = false;
-
-        this.jsDownloader.startDownload(options).catch((err) => {
-          logger.error("[DownloadManager] JS download error:", err);
-          this.usingJsDownloader = false;
-          this.jsDownloader = null;
-        });
       } catch (err) {
         this.isPreparingDownload = false;
         this.usingJsDownloader = false;
         this.downloadingGameId = null;
+        this.allDebridBatch = null;
         throw err;
       }
     } else {
@@ -1015,6 +1330,7 @@ export class DownloadManager {
       await PythonRPC.rpc.post("/action", payload);
       this.downloadingGameId = downloadId;
       this.usingJsDownloader = false;
+      this.allDebridBatch = null;
     }
   }
 }
