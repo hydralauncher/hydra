@@ -1,6 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -30,9 +30,47 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const coverImage = game.coverImageUrl?.replaceAll("\\", "/") ?? "";
+  const resolveImageSource = (imageUrl: string | null | undefined): string => {
+    if (!imageUrl) return "";
+
+    const trimmedImageUrl = imageUrl.trim();
+    if (!trimmedImageUrl) return "";
+
+    if (
+      trimmedImageUrl.startsWith("http://") ||
+      trimmedImageUrl.startsWith("https://") ||
+      trimmedImageUrl.startsWith("data:") ||
+      trimmedImageUrl.startsWith("blob:")
+    ) {
+      return trimmedImageUrl;
+    }
+
+    if (trimmedImageUrl.startsWith("local:")) {
+      const normalizedLocalPath = trimmedImageUrl
+        .slice("local:".length)
+        .replaceAll("\\", "/");
+      return `local:${normalizedLocalPath}`;
+    }
+
+    const normalizedPath = trimmedImageUrl.replaceAll("\\", "/");
+    if (/^[A-Za-z]:\//.test(normalizedPath) || normalizedPath.startsWith("/")) {
+      return `local:${normalizedPath}`;
+    }
+
+    return normalizedPath;
+  };
+
+  const coverImage = resolveImageSource(
+    game.customIconUrl ??
+      game.coverImageUrl ??
+      game.libraryImageUrl ??
+      game.iconUrl
+  );
 
   const [imageError, setImageError] = useState(false);
+  useEffect(() => {
+    setImageError(false);
+  }, [coverImage]);
 
   return (
     <button
