@@ -1,10 +1,18 @@
+import sys
+sys.setrecursionlimit(5000)
+
 from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
     "packages": ["libtorrent"],
     "build_exe": "hydra-python-rpc",
-    "include_msvcr": True
+    "include_msvcr": True,
+    "excludes": [
+        "matplotlib", "numpy", "scipy", "pandas", "tkinter",
+        "test", "unittest", "xmlrpc", "pydoc",
+        "docutils", "notebook", "ipykernel", "IPython",
+    ],
 }
 
 setup(
