@@ -14,6 +14,7 @@ export interface ModalProps {
   description?: string;
   onClose: () => void;
   large?: boolean;
+  noContentPadding?: boolean;
   children: React.ReactNode;
   clickOutsideToClose?: boolean;
 }
@@ -24,6 +25,7 @@ export function Modal({
   description,
   onClose,
   large,
+  noContentPadding,
   children,
   clickOutsideToClose = true,
 }: ModalProps) {
@@ -82,8 +84,17 @@ export function Modal({
 
   useEffect(() => {
     if (clickOutsideToClose) {
-      const onMouseDown = (e: MouseEvent) => {
+      const onPointerDown = (e: PointerEvent) => {
         if (!isTopMostModal()) return;
+        const target = e.target as Element | null;
+
+        const hasOpenDropdownMenu =
+          document.querySelector(".dropdown-menu__content") !== null;
+
+        if (hasOpenDropdownMenu && !modalContentRef.current?.contains(target)) {
+          return;
+        }
+
         if (modalContentRef.current) {
           const clickedWithinModal = modalContentRef.current.contains(
             e.target as Node
@@ -95,10 +106,10 @@ export function Modal({
         }
       };
 
-      window.addEventListener("mousedown", onMouseDown);
+      window.addEventListener("pointerdown", onPointerDown, true);
 
       return () => {
-        window.removeEventListener("mousedown", onMouseDown);
+        window.removeEventListener("pointerdown", onPointerDown, true);
       };
     }
 
@@ -134,7 +145,13 @@ export function Modal({
             <XIcon className="modal__close-button-icon" size={24} />
           </button>
         </div>
-        <div className="modal__content">{children}</div>
+        <div
+          className={cn("modal__content", {
+            "modal__content--no-padding": noContentPadding,
+          })}
+        >
+          {children}
+        </div>
       </div>
     </Backdrop>,
     document.body

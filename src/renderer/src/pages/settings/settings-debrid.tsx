@@ -4,7 +4,6 @@ import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsPremiumize } from "./settings-premiumize";
 import { SettingsAllDebrid } from "./settings-all-debrid";
-import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRightIcon, CheckCircleFillIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./settings-debrid.scss";
@@ -15,50 +14,6 @@ interface CollapseState {
   premiumize: boolean;
   allDebrid: boolean;
 }
-
-const sectionVariants = {
-  collapsed: {
-    opacity: 0,
-    y: -20,
-    height: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as const,
-      opacity: { duration: 0.1 },
-      y: { duration: 0.1 },
-      height: { duration: 0.2 },
-    },
-  },
-  expanded: {
-    opacity: 1,
-    y: 0,
-    height: "auto",
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as const,
-      opacity: { duration: 0.2, delay: 0.1 },
-      y: { duration: 0.3 },
-      height: { duration: 0.3 },
-    },
-  },
-} as const;
-
-const chevronVariants = {
-  collapsed: {
-    rotate: 0,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut" as const,
-    },
-  },
-  expanded: {
-    rotate: 90,
-    transition: {
-      duration: 0.2,
-      ease: "easeInOut" as const,
-    },
-  },
-} as const;
 
 export function SettingsDebrid() {
   const { t } = useTranslation("settings");
@@ -94,7 +49,11 @@ export function SettingsDebrid() {
     <div className="settings-debrid">
       <p className="settings-debrid__description">{t("debrid_description")}</p>
 
-      <div className="settings-debrid__section">
+      <div
+        className={`settings-debrid__section ${
+          collapseState.realDebrid ? "" : "settings-debrid__section--expanded"
+        }`}
+      >
         <div className="settings-debrid__section-header">
           <button
             type="button"
@@ -110,12 +69,15 @@ export function SettingsDebrid() {
                   })
             }
           >
-            <motion.div
-              variants={chevronVariants}
-              animate={collapseState.realDebrid ? "collapsed" : "expanded"}
+            <span
+              className={`settings-debrid__collapse-icon ${
+                collapseState.realDebrid
+                  ? ""
+                  : "settings-debrid__collapse-icon--expanded"
+              }`}
             >
               <ChevronRightIcon size={16} />
-            </motion.div>
+            </span>
           </button>
           <h3 className="settings-debrid__section-title">
             {t("debrid_provider_real_debrid")}
@@ -128,24 +90,15 @@ export function SettingsDebrid() {
           )}
         </div>
 
-        <AnimatePresence initial={true} mode="wait">
-          {!collapseState.realDebrid && (
-            <motion.div
-              key="realdebrid-content"
-              variants={sectionVariants}
-              initial="collapsed"
-              animate="expanded"
-              exit="collapsed"
-              layout
-            >
-              <SettingsRealDebrid />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!collapseState.realDebrid && <SettingsRealDebrid />}
       </div>
 
       {isPremiumizeEnabled && (
-        <div className="settings-debrid__section">
+        <div
+          className={`settings-debrid__section ${
+            collapseState.premiumize ? "" : "settings-debrid__section--expanded"
+          }`}
+        >
           <div className="settings-debrid__section-header">
             <button
               type="button"
@@ -161,12 +114,15 @@ export function SettingsDebrid() {
                     })
               }
             >
-              <motion.div
-                variants={chevronVariants}
-                animate={collapseState.premiumize ? "collapsed" : "expanded"}
+              <span
+                className={`settings-debrid__collapse-icon ${
+                  collapseState.premiumize
+                    ? ""
+                    : "settings-debrid__collapse-icon--expanded"
+                }`}
               >
                 <ChevronRightIcon size={16} />
-              </motion.div>
+              </span>
             </button>
             <h3 className="settings-debrid__section-title">
               {t("debrid_provider_premiumize")}
@@ -179,25 +135,16 @@ export function SettingsDebrid() {
             )}
           </div>
 
-          <AnimatePresence initial={true} mode="wait">
-            {!collapseState.premiumize && (
-              <motion.div
-                key="premiumize-content"
-                variants={sectionVariants}
-                initial="collapsed"
-                animate="expanded"
-                exit="collapsed"
-                layout
-              >
-                <SettingsPremiumize />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {!collapseState.premiumize && <SettingsPremiumize />}
         </div>
       )}
 
       {isAllDebridEnabled && (
-        <div className="settings-debrid__section">
+        <div
+          className={`settings-debrid__section ${
+            collapseState.allDebrid ? "" : "settings-debrid__section--expanded"
+          }`}
+        >
           <div className="settings-debrid__section-header">
             <button
               type="button"
@@ -213,12 +160,15 @@ export function SettingsDebrid() {
                     })
               }
             >
-              <motion.div
-                variants={chevronVariants}
-                animate={collapseState.allDebrid ? "collapsed" : "expanded"}
+              <span
+                className={`settings-debrid__collapse-icon ${
+                  collapseState.allDebrid
+                    ? ""
+                    : "settings-debrid__collapse-icon--expanded"
+                }`}
               >
                 <ChevronRightIcon size={16} />
-              </motion.div>
+              </span>
             </button>
             <h3 className="settings-debrid__section-title">
               {t("debrid_provider_alldebrid")}
@@ -231,25 +181,16 @@ export function SettingsDebrid() {
             )}
           </div>
 
-          <AnimatePresence initial={true} mode="wait">
-            {!collapseState.allDebrid && (
-              <motion.div
-                key="alldebrid-content"
-                variants={sectionVariants}
-                initial="collapsed"
-                animate="expanded"
-                exit="collapsed"
-                layout
-              >
-                <SettingsAllDebrid />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {!collapseState.allDebrid && <SettingsAllDebrid />}
         </div>
       )}
 
       {isTorBoxEnabled && (
-        <div className="settings-debrid__section">
+        <div
+          className={`settings-debrid__section ${
+            collapseState.torbox ? "" : "settings-debrid__section--expanded"
+          }`}
+        >
           <div className="settings-debrid__section-header">
             <button
               type="button"
@@ -265,12 +206,15 @@ export function SettingsDebrid() {
                     })
               }
             >
-              <motion.div
-                variants={chevronVariants}
-                animate={collapseState.torbox ? "collapsed" : "expanded"}
+              <span
+                className={`settings-debrid__collapse-icon ${
+                  collapseState.torbox
+                    ? ""
+                    : "settings-debrid__collapse-icon--expanded"
+                }`}
               >
                 <ChevronRightIcon size={16} />
-              </motion.div>
+              </span>
             </button>
             <h3 className="settings-debrid__section-title">
               {t("debrid_provider_torbox")}
@@ -283,20 +227,7 @@ export function SettingsDebrid() {
             )}
           </div>
 
-          <AnimatePresence initial={true} mode="wait">
-            {!collapseState.torbox && (
-              <motion.div
-                key="torbox-content"
-                variants={sectionVariants}
-                initial="collapsed"
-                animate="expanded"
-                exit="collapsed"
-                layout
-              >
-                <SettingsTorBox />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {!collapseState.torbox && <SettingsTorBox />}
         </div>
       )}
     </div>

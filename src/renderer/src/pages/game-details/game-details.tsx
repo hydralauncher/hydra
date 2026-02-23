@@ -22,7 +22,6 @@ import {
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
-import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import "./game-details.scss";
 import "./hero.scss";
@@ -90,11 +89,13 @@ export default function GameDetails() {
           shop,
           showRepacksModal,
           showGameOptionsModal,
+          gameOptionsInitialCategory,
           hasNSFWContentBlocked,
           setHasNSFWContentBlocked,
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
+          setGameOptionsInitialCategory,
         }) => {
           const handleStartDownload = async (
             repack: GameRepack,
@@ -129,6 +130,7 @@ export default function GameDetails() {
               await updateGame();
               setShowRepacksModal(false);
               setShowGameOptionsModal(false);
+              setGameOptionsInitialCategory("general");
             }
 
             return response;
@@ -142,18 +144,8 @@ export default function GameDetails() {
           return (
             <CloudSyncContextProvider objectId={objectId!} shop={shop}>
               <CloudSyncContextConsumer>
-                {({
-                  showCloudSyncModal,
-                  setShowCloudSyncModal,
-                  showCloudSyncFilesModal,
-                  setShowCloudSyncFilesModal,
-                }) => (
+                {({ showCloudSyncFilesModal, setShowCloudSyncFilesModal }) => (
                   <>
-                    <CloudSyncModal
-                      onClose={() => setShowCloudSyncModal(false)}
-                      visible={showCloudSyncModal}
-                    />
-
                     <CloudSyncFilesModal
                       onClose={() => setShowCloudSyncFilesModal(false)}
                       visible={showCloudSyncFilesModal}
@@ -190,7 +182,9 @@ export default function GameDetails() {
                     game={game}
                     onClose={() => {
                       setShowGameOptionsModal(false);
+                      setGameOptionsInitialCategory("general");
                     }}
+                    initialCategory={gameOptionsInitialCategory}
                     onNavigateHome={() => navigate("/")}
                   />
                 )}

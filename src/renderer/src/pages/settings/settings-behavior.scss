@@ -1,6 +1,24 @@
 @use "../../scss/globals.scss";
 
 .settings-behavior {
+  &__proton-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__proton-title {
+    margin: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+  }
+
+  &__proton-description {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+  }
+
   &__checkbox-container {
     opacity: globals.$disabled-opacity;
     cursor: not-allowed;

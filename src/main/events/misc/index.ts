@@ -4,6 +4,7 @@ import "./close-game-launcher-window";
 import "./delete-temp-file";
 import "./show-game-launcher-window";
 import "./get-hydra-decky-plugin-info";
+import "./get-image-data-url";
 import "./hydra-api-call";
 import "./install-common-redist";
 import "./install-hydra-decky-plugin";

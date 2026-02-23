@@ -22,7 +22,7 @@
   &__page-header {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+    gap: calc(globals.$spacing-unit * 3);
     width: 100%;
   }
 
@@ -46,9 +46,6 @@
     align-items: center;
     gap: calc(globals.$spacing-unit);
     flex: 1;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    margin-right: calc(globals.$spacing-unit * 2);
   }
 
   &__controls-right {
@@ -128,6 +125,76 @@
     align-items: center;
     justify-content: center;
     margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__empty {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__icon-container {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__collections {
+    display: flex;
+    gap: calc(globals.$spacing-unit);
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0;
+    scrollbar-width: thin;
+  }
+
+  &__collection-item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &--active {
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.95);
+    }
+  }
+
+  &__collection-count {
+    margin-left: auto;
+    background-color: #fff;
+    color: globals.$background-color;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    flex-shrink: 0;
   }
 
   &__games-grid {
