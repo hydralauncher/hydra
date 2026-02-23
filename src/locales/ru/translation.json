@@ -528,6 +528,7 @@
     "user_unblocked": "Пользователь разблокирован",
     "enable_achievement_notifications": "Когда достижение разблокировано",
     "launch_minimized": "Запускать Hydra в свернутом виде",
+    "launch_hydra_in_library_page": "Запускать Hydra на странице библиотеки",
     "disable_nsfw_alert": "Отключить предупреждение о непристойном контенте",
     "seed_after_download_complete": "Раздавать после завершения загрузки",
     "show_hidden_achievement_description": "Показывать описание скрытых достижений перед их получением",
