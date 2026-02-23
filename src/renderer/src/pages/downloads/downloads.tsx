@@ -81,8 +81,12 @@ export default function Downloads() {
       if (lastPacket?.gameId === next.id || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
-      /* Is either queued or paused */
-      if (next.download.queued || next.download?.status === "paused")
+      /* Is either queued, paused, or failed */
+      if (
+        next.download.queued ||
+        next.download?.status === "paused" ||
+        next.download?.status === "error"
+      )
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };
