@@ -142,7 +142,24 @@ export function DownloadSettingsModal({
     };
 
     return allDownloaders
-      .filter((downloader) => downloader !== Downloader.Hydra) // Temporarily comment out Nimbus
+      .filter((downloader) => {
+        if (downloader === Downloader.Hydra) return false; // Temporarily comment out Nimbus
+        if (
+          downloader === Downloader.Premiumize &&
+          !isFeatureEnabled(Feature.Premiumize)
+        ) {
+          return false;
+        }
+
+        if (
+          downloader === Downloader.AllDebrid &&
+          !isFeatureEnabled(Feature.AllDebrid)
+        ) {
+          return false;
+        }
+
+        return true;
+      })
       .map((downloader) => {
         const status = downloaderMap.get(downloader);
         const canHandle = status !== undefined;

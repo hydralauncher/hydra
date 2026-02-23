@@ -64,6 +64,8 @@ export function SettingsDebrid() {
   const { t } = useTranslation("settings");
   const { isFeatureEnabled, Feature } = useFeature();
   const isTorBoxEnabled = isFeatureEnabled(Feature.TorBox);
+  const isPremiumizeEnabled = isFeatureEnabled(Feature.Premiumize);
+  const isAllDebridEnabled = isFeatureEnabled(Feature.AllDebrid);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -142,105 +144,109 @@ export function SettingsDebrid() {
         </AnimatePresence>
       </div>
 
-      <div className="settings-debrid__section">
-        <div className="settings-debrid__section-header">
-          <button
-            type="button"
-            className="settings-debrid__collapse-button"
-            onClick={() => toggleSection("premiumize")}
-            aria-label={
-              collapseState.premiumize
-                ? t("expand_debrid_section", {
-                    provider: t("debrid_provider_premiumize"),
-                  })
-                : t("collapse_debrid_section", {
-                    provider: t("debrid_provider_premiumize"),
-                  })
-            }
-          >
-            <motion.div
-              variants={chevronVariants}
-              animate={collapseState.premiumize ? "collapsed" : "expanded"}
+      {isPremiumizeEnabled && (
+        <div className="settings-debrid__section">
+          <div className="settings-debrid__section-header">
+            <button
+              type="button"
+              className="settings-debrid__collapse-button"
+              onClick={() => toggleSection("premiumize")}
+              aria-label={
+                collapseState.premiumize
+                  ? t("expand_debrid_section", {
+                      provider: t("debrid_provider_premiumize"),
+                    })
+                  : t("collapse_debrid_section", {
+                      provider: t("debrid_provider_premiumize"),
+                    })
+              }
             >
-              <ChevronRightIcon size={16} />
-            </motion.div>
-          </button>
-          <h3 className="settings-debrid__section-title">
-            {t("debrid_provider_premiumize")}
-          </h3>
-          {userPreferences?.premiumizeApiToken && (
-            <CheckCircleFillIcon
-              size={16}
-              className="settings-debrid__check-icon"
-            />
-          )}
+              <motion.div
+                variants={chevronVariants}
+                animate={collapseState.premiumize ? "collapsed" : "expanded"}
+              >
+                <ChevronRightIcon size={16} />
+              </motion.div>
+            </button>
+            <h3 className="settings-debrid__section-title">
+              {t("debrid_provider_premiumize")}
+            </h3>
+            {userPreferences?.premiumizeApiToken && (
+              <CheckCircleFillIcon
+                size={16}
+                className="settings-debrid__check-icon"
+              />
+            )}
+          </div>
+
+          <AnimatePresence initial={true} mode="wait">
+            {!collapseState.premiumize && (
+              <motion.div
+                key="premiumize-content"
+                variants={sectionVariants}
+                initial="collapsed"
+                animate="expanded"
+                exit="collapsed"
+                layout
+              >
+                <SettingsPremiumize />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+      )}
 
-        <AnimatePresence initial={true} mode="wait">
-          {!collapseState.premiumize && (
-            <motion.div
-              key="premiumize-content"
-              variants={sectionVariants}
-              initial="collapsed"
-              animate="expanded"
-              exit="collapsed"
-              layout
+      {isAllDebridEnabled && (
+        <div className="settings-debrid__section">
+          <div className="settings-debrid__section-header">
+            <button
+              type="button"
+              className="settings-debrid__collapse-button"
+              onClick={() => toggleSection("allDebrid")}
+              aria-label={
+                collapseState.allDebrid
+                  ? t("expand_debrid_section", {
+                      provider: t("debrid_provider_alldebrid"),
+                    })
+                  : t("collapse_debrid_section", {
+                      provider: t("debrid_provider_alldebrid"),
+                    })
+              }
             >
-              <SettingsPremiumize />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              <motion.div
+                variants={chevronVariants}
+                animate={collapseState.allDebrid ? "collapsed" : "expanded"}
+              >
+                <ChevronRightIcon size={16} />
+              </motion.div>
+            </button>
+            <h3 className="settings-debrid__section-title">
+              {t("debrid_provider_alldebrid")}
+            </h3>
+            {userPreferences?.allDebridApiToken && (
+              <CheckCircleFillIcon
+                size={16}
+                className="settings-debrid__check-icon"
+              />
+            )}
+          </div>
 
-      <div className="settings-debrid__section">
-        <div className="settings-debrid__section-header">
-          <button
-            type="button"
-            className="settings-debrid__collapse-button"
-            onClick={() => toggleSection("allDebrid")}
-            aria-label={
-              collapseState.allDebrid
-                ? t("expand_debrid_section", {
-                    provider: t("debrid_provider_alldebrid"),
-                  })
-                : t("collapse_debrid_section", {
-                    provider: t("debrid_provider_alldebrid"),
-                  })
-            }
-          >
-            <motion.div
-              variants={chevronVariants}
-              animate={collapseState.allDebrid ? "collapsed" : "expanded"}
-            >
-              <ChevronRightIcon size={16} />
-            </motion.div>
-          </button>
-          <h3 className="settings-debrid__section-title">
-            {t("debrid_provider_alldebrid")}
-          </h3>
-          {userPreferences?.allDebridApiToken && (
-            <CheckCircleFillIcon
-              size={16}
-              className="settings-debrid__check-icon"
-            />
-          )}
+          <AnimatePresence initial={true} mode="wait">
+            {!collapseState.allDebrid && (
+              <motion.div
+                key="alldebrid-content"
+                variants={sectionVariants}
+                initial="collapsed"
+                animate="expanded"
+                exit="collapsed"
+                layout
+              >
+                <SettingsAllDebrid />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-
-        <AnimatePresence initial={true} mode="wait">
-          {!collapseState.allDebrid && (
-            <motion.div
-              key="alldebrid-content"
-              variants={sectionVariants}
-              initial="collapsed"
-              animate="expanded"
-              exit="collapsed"
-              layout
-            >
-              <SettingsAllDebrid />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      )}
 
       {isTorBoxEnabled && (
         <div className="settings-debrid__section">
