@@ -1,21 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, XIcon } from "@primer/octicons-react";
-
-import { Modal, TextField, Button } from "@renderer/components";
+import { Button, TextField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { generateRandomGradient } from "@renderer/helpers";
-import type { LibraryGame, Game, ShopDetailsWithAssets } from "@types";
+import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
-import "./edit-game-modal.scss";
-
-export interface EditGameModalProps {
-  visible: boolean;
-  onClose: () => void;
-  game: LibraryGame | Game | null;
-  shopDetails?: ShopDetailsWithAssets | null;
-  onGameUpdated: (updatedGame: LibraryGame | Game) => void;
-}
+import "./game-assets-settings.scss";
 
 type AssetType = "icon" | "logo" | "hero";
 
@@ -81,17 +72,20 @@ const INITIAL_ASSET_URLS: AssetUrls = {
   hero: null,
 };
 
-export function EditGameModal({
-  visible,
-  onClose,
+export interface GameAssetsSettingsProps {
+  game: LibraryGame;
+  shopDetails: ShopDetailsWithAssets | null;
+  onGameUpdated: () => Promise<void> | void;
+}
+
+export function GameAssetsSettings({
   game,
   shopDetails,
   onGameUpdated,
-}: Readonly<EditGameModalProps>) {
+}: Readonly<GameAssetsSettingsProps>) {
   const { t } = useTranslation("sidebar");
   const { showSuccessToast, showErrorToast } = useToast();
 
-  const [gameName, setGameName] = useState("");
   const [assetPaths, setAssetPaths] = useState<AssetPaths>(INITIAL_ASSET_PATHS);
   const [assetDisplayPaths, setAssetDisplayPaths] =
     useState<AssetPaths>(INITIAL_ASSET_PATHS);
@@ -102,88 +96,105 @@ export function EditGameModal({
   );
   const [defaultUrls, setDefaultUrls] = useState<AssetUrls>(INITIAL_ASSET_URLS);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingUpdateMessage, setPendingUpdateMessage] = useState<
+    string | null
+  >(null);
   const [selectedAssetType, setSelectedAssetType] = useState<AssetType>("icon");
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
-  const isCustomGame = (game: LibraryGame | Game): boolean => {
-    return game.shop === "custom";
-  };
+  const isCustomGame = useCallback(
+    (currentGame: LibraryGame | Game): boolean => {
+      return currentGame.shop === "custom";
+    },
+    []
+  );
 
-  const extractLocalPath = (url: string | null | undefined): string => {
-    return url?.startsWith("local:") ? url.replace("local:", "") : "";
-  };
+  const extractLocalPath = useCallback(
+    (url: string | null | undefined): string => {
+      return url?.startsWith("local:") ? url.replace("local:", "") : "";
+    },
+    []
+  );
 
   const capitalizeAssetType = (assetType: AssetType): string => {
     return assetType.charAt(0).toUpperCase() + assetType.slice(1);
   };
 
-  const setCustomGameAssets = useCallback((game: LibraryGame | Game) => {
-    const gameWithAssets = game as GameWithOriginalAssets;
-    const iconRemoved =
-      !game.iconUrl && Boolean(gameWithAssets.originalIconPath);
-    const logoRemoved =
-      !game.logoImageUrl && Boolean(gameWithAssets.originalLogoPath);
-    const heroRemoved =
-      !game.libraryHeroImageUrl && Boolean(gameWithAssets.originalHeroPath);
+  const setCustomGameAssets = useCallback(
+    (currentGame: LibraryGame | Game) => {
+      const gameWithAssets = currentGame as GameWithOriginalAssets;
+      const iconRemoved =
+        !currentGame.iconUrl && Boolean(gameWithAssets.originalIconPath);
+      const logoRemoved =
+        !currentGame.logoImageUrl && Boolean(gameWithAssets.originalLogoPath);
+      const heroRemoved =
+        !currentGame.libraryHeroImageUrl &&
+        Boolean(gameWithAssets.originalHeroPath);
 
-    setAssetPaths({
-      icon: extractLocalPath(game.iconUrl),
-      logo: extractLocalPath(game.logoImageUrl),
-      hero: extractLocalPath(game.libraryHeroImageUrl),
-    });
-    setAssetDisplayPaths({
-      icon: extractLocalPath(game.iconUrl),
-      logo: extractLocalPath(game.logoImageUrl),
-      hero: extractLocalPath(game.libraryHeroImageUrl),
-    });
-    setOriginalAssetPaths({
-      icon: gameWithAssets.originalIconPath || extractLocalPath(game.iconUrl),
-      logo:
-        gameWithAssets.originalLogoPath || extractLocalPath(game.logoImageUrl),
-      hero:
-        gameWithAssets.originalHeroPath ||
-        extractLocalPath(game.libraryHeroImageUrl),
-    });
+      setAssetPaths({
+        icon: extractLocalPath(currentGame.iconUrl),
+        logo: extractLocalPath(currentGame.logoImageUrl),
+        hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+      });
+      setAssetDisplayPaths({
+        icon: extractLocalPath(currentGame.iconUrl),
+        logo: extractLocalPath(currentGame.logoImageUrl),
+        hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+      });
+      setOriginalAssetPaths({
+        icon:
+          gameWithAssets.originalIconPath ||
+          extractLocalPath(currentGame.iconUrl),
+        logo:
+          gameWithAssets.originalLogoPath ||
+          extractLocalPath(currentGame.logoImageUrl),
+        hero:
+          gameWithAssets.originalHeroPath ||
+          extractLocalPath(currentGame.libraryHeroImageUrl),
+      });
 
-    setRemovedAssets({
-      icon: iconRemoved,
-      logo: logoRemoved,
-      hero: heroRemoved,
-    });
-  }, []);
+      setRemovedAssets({
+        icon: iconRemoved,
+        logo: logoRemoved,
+        hero: heroRemoved,
+      });
+    },
+    [extractLocalPath]
+  );
 
   const setNonCustomGameAssets = useCallback(
-    (game: LibraryGame) => {
-      const gameWithAssets = game as LibraryGameWithCustomOriginalAssets;
+    (currentGame: LibraryGame) => {
+      const gameWithAssets = currentGame as LibraryGameWithCustomOriginalAssets;
       const iconRemoved =
-        !game.customIconUrl && Boolean(gameWithAssets.customOriginalIconPath);
+        !currentGame.customIconUrl &&
+        Boolean(gameWithAssets.customOriginalIconPath);
       const logoRemoved =
-        !game.customLogoImageUrl &&
+        !currentGame.customLogoImageUrl &&
         Boolean(gameWithAssets.customOriginalLogoPath);
       const heroRemoved =
-        !game.customHeroImageUrl &&
+        !currentGame.customHeroImageUrl &&
         Boolean(gameWithAssets.customOriginalHeroPath);
 
       setAssetPaths({
-        icon: extractLocalPath(game.customIconUrl),
-        logo: extractLocalPath(game.customLogoImageUrl),
-        hero: extractLocalPath(game.customHeroImageUrl),
+        icon: extractLocalPath(currentGame.customIconUrl),
+        logo: extractLocalPath(currentGame.customLogoImageUrl),
+        hero: extractLocalPath(currentGame.customHeroImageUrl),
       });
       setAssetDisplayPaths({
-        icon: extractLocalPath(game.customIconUrl),
-        logo: extractLocalPath(game.customLogoImageUrl),
-        hero: extractLocalPath(game.customHeroImageUrl),
+        icon: extractLocalPath(currentGame.customIconUrl),
+        logo: extractLocalPath(currentGame.customLogoImageUrl),
+        hero: extractLocalPath(currentGame.customHeroImageUrl),
       });
       setOriginalAssetPaths({
         icon:
           gameWithAssets.customOriginalIconPath ||
-          extractLocalPath(game.customIconUrl),
+          extractLocalPath(currentGame.customIconUrl),
         logo:
           gameWithAssets.customOriginalLogoPath ||
-          extractLocalPath(game.customLogoImageUrl),
+          extractLocalPath(currentGame.customLogoImageUrl),
         hero:
           gameWithAssets.customOriginalHeroPath ||
-          extractLocalPath(game.customHeroImageUrl),
+          extractLocalPath(currentGame.customHeroImageUrl),
       });
 
       setRemovedAssets({
@@ -193,32 +204,31 @@ export function EditGameModal({
       });
 
       setDefaultUrls({
-        icon: shopDetails?.assets?.iconUrl || game.iconUrl || null,
-        logo: shopDetails?.assets?.logoImageUrl || game.logoImageUrl || null,
+        icon: shopDetails?.assets?.iconUrl || currentGame.iconUrl || null,
+        logo:
+          shopDetails?.assets?.logoImageUrl || currentGame.logoImageUrl || null,
         hero:
           shopDetails?.assets?.libraryHeroImageUrl ||
-          game.libraryHeroImageUrl ||
+          currentGame.libraryHeroImageUrl ||
           null,
       });
     },
-    [shopDetails]
+    [extractLocalPath, shopDetails]
   );
 
   useEffect(() => {
-    if (game && visible) {
-      setGameName(game.title || "");
+    setRemovedAssets(INITIAL_REMOVED_ASSETS);
+    setAssetPaths(INITIAL_ASSET_PATHS);
+    setAssetDisplayPaths(INITIAL_ASSET_PATHS);
+    setOriginalAssetPaths(INITIAL_ASSET_PATHS);
 
-      if (isCustomGame(game)) {
-        setCustomGameAssets(game);
-      } else {
-        setNonCustomGameAssets(game as LibraryGame);
-      }
+    if (isCustomGame(game)) {
+      setCustomGameAssets(game);
+      setDefaultUrls(INITIAL_ASSET_URLS);
+    } else {
+      setNonCustomGameAssets(game);
     }
-  }, [game, visible, shopDetails, setCustomGameAssets, setNonCustomGameAssets]);
-
-  const handleGameNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setGameName(event.target.value);
-  };
+  }, [game, isCustomGame, setCustomGameAssets, setNonCustomGameAssets]);
 
   const handleAssetTypeChange = (assetType: AssetType) => {
     setSelectedAssetType(assetType);
@@ -228,6 +238,7 @@ export function EditGameModal({
     if (removedAssets[assetType]) {
       return "";
     }
+
     return assetDisplayPaths[assetType] || originalAssetPaths[assetType];
   };
 
@@ -243,7 +254,7 @@ export function EditGameModal({
   };
 
   const getOriginalAssetUrl = (assetType: AssetType): string | null => {
-    if (!game || !isCustomGame(game)) return null;
+    if (!isCustomGame(game)) return null;
 
     switch (assetType) {
       case "icon":
@@ -280,9 +291,15 @@ export function EditGameModal({
           copiedAssetUrl.replace("local:", ""),
           originalPath
         );
+        setPendingUpdateMessage(
+          `${capitalizeAssetType(assetType)} updated successfully!`
+        );
       } catch (error) {
         console.error(`Failed to copy ${assetType} asset:`, error);
         updateAssetPaths(assetType, originalPath, originalPath);
+        setPendingUpdateMessage(
+          `${capitalizeAssetType(assetType)} updated successfully!`
+        );
       }
     }
   };
@@ -291,39 +308,26 @@ export function EditGameModal({
     setRemovedAssets((prev) => ({ ...prev, [assetType]: true }));
     setAssetPaths((prev) => ({ ...prev, [assetType]: "" }));
     setAssetDisplayPaths((prev) => ({ ...prev, [assetType]: "" }));
+    setPendingUpdateMessage(
+      `${capitalizeAssetType(assetType)} updated successfully!`
+    );
   };
 
-  const getOriginalTitle = (): string => {
-    if (!game) return "";
-    return shopDetails?.assets?.title || game.title || "";
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
   };
 
-  const handleRestoreDefaultTitle = () => {
-    const originalTitle = getOriginalTitle();
-    setGameName(originalTitle);
-  };
-
-  const isTitleChanged = useMemo((): boolean => {
-    if (!game || isCustomGame(game)) return false;
-    const originalTitle = shopDetails?.assets?.title || game.title || "";
-    return gameName.trim() !== originalTitle.trim();
-  }, [game, gameName, shopDetails]);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDragEnter = (e: React.DragEvent, target: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragEnter = (event: React.DragEvent, target: string) => {
+    event.preventDefault();
+    event.stopPropagation();
     setDragOverTarget(target);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
       setDragOverTarget(null);
     }
   };
@@ -376,7 +380,7 @@ export function EditGameModal({
         copiedAssetUrl.replace("local:", ""),
         filePath
       );
-      showSuccessToast(
+      setPendingUpdateMessage(
         `${capitalizeAssetType(assetType)} updated successfully!`
       );
 
@@ -395,39 +399,42 @@ export function EditGameModal({
     }
   };
 
-  const handleAssetDrop = async (e: React.DragEvent, assetType: AssetType) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleAssetDrop = async (
+    event: React.DragEvent,
+    assetType: AssetType
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
     setDragOverTarget(null);
 
     if (isUpdating) return;
 
-    const files = Array.from(e.dataTransfer.files);
+    const files = Array.from(event.dataTransfer.files);
     if (files.length > 0) {
       await processDroppedFile(files[0], assetType);
     }
   };
 
-  const prepareCustomGameAssets = (game: LibraryGame | Game) => {
+  const prepareCustomGameAssets = (currentGame: LibraryGame | Game) => {
     const iconUrl = removedAssets.icon
       ? null
       : assetPaths.icon
         ? `local:${assetPaths.icon}`
-        : game.iconUrl;
+        : currentGame.iconUrl;
 
     const logoImageUrl = removedAssets.logo
       ? null
       : assetPaths.logo
         ? `local:${assetPaths.logo}`
-        : game.logoImageUrl;
+        : currentGame.logoImageUrl;
 
     const libraryHeroImageUrl = removedAssets.hero
-      ? game.libraryHeroImageUrl?.startsWith("data:image/svg+xml")
-        ? game.libraryHeroImageUrl
+      ? currentGame.libraryHeroImageUrl?.startsWith("data:image/svg+xml")
+        ? currentGame.libraryHeroImageUrl
         : generateRandomGradient()
       : assetPaths.hero
         ? `local:${assetPaths.hero}`
-        : game.libraryHeroImageUrl;
+        : currentGame.libraryHeroImageUrl;
 
     return { iconUrl, logoImageUrl, libraryHeroImageUrl };
   };
@@ -455,14 +462,14 @@ export function EditGameModal({
     };
   };
 
-  const updateCustomGame = async (game: LibraryGame | Game) => {
+  const updateCustomGame = async (currentGame: LibraryGame | Game) => {
     const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
-      prepareCustomGameAssets(game);
+      prepareCustomGameAssets(currentGame);
 
     return window.electron.updateCustomGame({
-      shop: game.shop,
-      objectId: game.objectId,
-      title: gameName.trim(),
+      shop: currentGame.shop,
+      objectId: currentGame.objectId,
+      title: game.title,
       iconUrl: iconUrl || undefined,
       logoImageUrl: logoImageUrl || undefined,
       libraryHeroImageUrl: libraryHeroImageUrl || undefined,
@@ -472,14 +479,14 @@ export function EditGameModal({
     });
   };
 
-  const updateNonCustomGame = async (game: LibraryGame) => {
+  const updateNonCustomGame = async (currentGame: LibraryGame) => {
     const { customIconUrl, customLogoImageUrl, customHeroImageUrl } =
       prepareNonCustomGameAssets();
 
     return window.electron.updateGameCustomAssets({
-      shop: game.shop,
-      objectId: game.objectId,
-      title: gameName.trim(),
+      shop: currentGame.shop,
+      objectId: currentGame.objectId,
+      title: game.title,
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
@@ -495,67 +502,52 @@ export function EditGameModal({
     });
   };
 
-  const handleUpdateGame = async () => {
-    if (!game || !gameName.trim()) {
-      showErrorToast(t("edit_game_modal_fill_required"));
-      return;
-    }
+  useEffect(() => {
+    if (!pendingUpdateMessage || isUpdating) return;
 
     setIsUpdating(true);
 
-    try {
-      const updatedGame =
-        game && isCustomGame(game)
-          ? await updateCustomGame(game)
-          : await updateNonCustomGame(game as LibraryGame);
+    const updateGameAssets = async () => {
+      try {
+        await (isCustomGame(game)
+          ? updateCustomGame(game)
+          : updateNonCustomGame(game as LibraryGame));
 
-      showSuccessToast(t("edit_game_modal_success"));
-      onGameUpdated(updatedGame);
-      onClose();
-    } catch (error) {
-      console.error("Failed to update game:", error);
-      showErrorToast(
-        error instanceof Error ? error.message : t("edit_game_modal_failed")
-      );
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const resetFormToInitialState = useCallback(
-    (game: LibraryGame | Game) => {
-      setGameName(game.title || "");
-      setRemovedAssets(INITIAL_REMOVED_ASSETS);
-      setAssetPaths(INITIAL_ASSET_PATHS);
-      setAssetDisplayPaths(INITIAL_ASSET_PATHS);
-      setOriginalAssetPaths(INITIAL_ASSET_PATHS);
-
-      if (isCustomGame(game)) {
-        setCustomGameAssets(game);
-        setDefaultUrls(INITIAL_ASSET_URLS);
-      } else {
-        setNonCustomGameAssets(game as LibraryGame);
+        showSuccessToast(pendingUpdateMessage || t("edit_game_modal_success"));
+        await onGameUpdated();
+      } catch (error) {
+        console.error("Failed to update game:", error);
+        showErrorToast(
+          error instanceof Error ? error.message : t("edit_game_modal_failed")
+        );
+      } finally {
+        setPendingUpdateMessage(null);
+        setIsUpdating(false);
       }
-    },
-    [setCustomGameAssets, setNonCustomGameAssets]
-  );
+    };
 
-  const handleClose = () => {
-    if (!isUpdating && game) {
-      resetFormToInitialState(game);
-      onClose();
-    }
-  };
-
-  const isFormValid = gameName.trim();
+    void updateGameAssets();
+  }, [
+    game,
+    isCustomGame,
+    isUpdating,
+    onGameUpdated,
+    pendingUpdateMessage,
+    showErrorToast,
+    showSuccessToast,
+    t,
+    updateCustomGame,
+    updateNonCustomGame,
+  ]);
 
   const getPreviewUrl = (assetType: AssetType): string | undefined => {
     const assetPath = assetPaths[assetType];
     const defaultUrl = defaultUrls[assetType];
 
-    if (game && !isCustomGame(game)) {
+    if (!isCustomGame(game)) {
       return assetPath ? `local:${assetPath}` : defaultUrl || undefined;
     }
+
     return assetPath ? `local:${assetPath}` : undefined;
   };
 
@@ -563,7 +555,7 @@ export function EditGameModal({
     const assetPath = assetPaths[assetType];
     const assetDisplayPath = getAssetDisplayPath(assetType);
     const defaultUrl = defaultUrls[assetType];
-    const hasImage = assetPath || (game && !isCustomGame(game) && defaultUrl);
+    const hasImage = assetPath || (!isCustomGame(game) && defaultUrl);
     const isDragOver = dragOverTarget === assetType;
 
     const getTranslationKey = (suffix: string) =>
@@ -571,14 +563,14 @@ export function EditGameModal({
     const getResolutionKey = () => `edit_game_modal_${assetType}_resolution`;
 
     return (
-      <div className="edit-game-modal__image-section">
+      <div className="game-assets-settings__image-section">
         <TextField
           placeholder={t(`edit_game_modal_select_${assetType}`)}
           value={assetDisplayPath}
           readOnly
           theme="dark"
           rightContent={
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="game-assets-settings__input-actions">
               <Button
                 type="button"
                 theme="outline"
@@ -588,68 +580,65 @@ export function EditGameModal({
                 <ImageIcon />
                 {t("edit_game_modal_browse")}
               </Button>
-              {game &&
-                (assetPath ||
-                  (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
-                  <Button
-                    type="button"
-                    theme="outline"
-                    onClick={() => handleRestoreDefault(assetType)}
-                    disabled={isUpdating}
-                    title={`Remove ${assetType}`}
-                  >
-                    <XIcon />
-                  </Button>
-                )}
+              {(assetPath ||
+                (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={() => void handleRestoreDefault(assetType)}
+                  disabled={isUpdating}
+                >
+                  <XIcon />
+                </Button>
+              )}
             </div>
           }
         />
-        <div className="edit-game-modal__resolution-info">
+
+        <div className="game-assets-settings__resolution-info">
           {t(getResolutionKey())}
         </div>
 
-        {hasImage && (
+        {hasImage ? (
           <button
             type="button"
             aria-label={t(getTranslationKey("_drop_zone"))}
-            className={`edit-game-modal__image-preview ${
-              assetType === "icon" ? "edit-game-modal__icon-preview" : ""
-            } ${isDragOver ? "edit-game-modal__drop-zone--active" : ""}`}
+            className={`game-assets-settings__image-preview ${
+              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+            } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
             onDragOver={handleDragOver}
-            onDragEnter={(e) => handleDragEnter(e, assetType)}
+            onDragEnter={(event) => handleDragEnter(event, assetType)}
             onDragLeave={handleDragLeave}
-            onDrop={(e) => handleAssetDrop(e, assetType)}
+            onDrop={(event) => handleAssetDrop(event, assetType)}
             onClick={() => handleSelectAsset(assetType)}
           >
             <img
               src={getPreviewUrl(assetType)}
               alt={t(getTranslationKey("_preview"))}
-              className="edit-game-modal__preview-image"
+              className="game-assets-settings__preview-image"
             />
             {isDragOver && (
-              <div className="edit-game-modal__drop-overlay">
+              <div className="game-assets-settings__drop-overlay">
                 <span>{t(`edit_game_modal_drop_to_replace_${assetType}`)}</span>
               </div>
             )}
           </button>
-        )}
-
-        {!hasImage && (
+        ) : (
           <button
             type="button"
             aria-label={t(getTranslationKey("_drop_zone_empty"))}
-            className={`edit-game-modal__image-preview ${
-              assetType === "icon" ? "edit-game-modal__icon-preview" : ""
-            } edit-game-modal__drop-zone ${
-              isDragOver ? "edit-game-modal__drop-zone--active" : ""
+            className={`game-assets-settings__image-preview ${
+              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+            } game-assets-settings__drop-zone ${
+              isDragOver ? "game-assets-settings__drop-zone--active" : ""
             }`}
             onDragOver={handleDragOver}
-            onDragEnter={(e) => handleDragEnter(e, assetType)}
+            onDragEnter={(event) => handleDragEnter(event, assetType)}
             onDragLeave={handleDragLeave}
-            onDrop={(e) => handleAssetDrop(e, assetType)}
+            onDrop={(event) => handleAssetDrop(event, assetType)}
             onClick={() => handleSelectAsset(assetType)}
           >
-            <div className="edit-game-modal__drop-zone-content">
+            <div className="game-assets-settings__drop-zone-content">
               <ImageIcon />
               <span>{t(`edit_game_modal_drop_${assetType}_image_here`)}</span>
             </div>
@@ -660,92 +649,43 @@ export function EditGameModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      title={t("edit_game_modal")}
-      description={t("edit_game_modal_description")}
-      onClose={handleClose}
-    >
-      <div className="edit-game-modal__container">
-        <div className="edit-game-modal__form">
-          <TextField
-            label={t("edit_game_modal_title")}
-            placeholder={t("edit_game_modal_enter_title")}
-            value={gameName}
-            onChange={handleGameNameChange}
-            theme="dark"
-            disabled={isUpdating}
-            rightContent={
-              isTitleChanged && (
-                <Button
-                  type="button"
-                  theme="outline"
-                  onClick={handleRestoreDefaultTitle}
-                  disabled={isUpdating}
-                  title="Restore default title"
-                >
-                  <XIcon />
-                </Button>
-              )
-            }
-          />
-
-          <div className="edit-game-modal__asset-selector">
-            <div className="edit-game-modal__asset-label">
-              {t("edit_game_modal_assets")}
-            </div>
-            <div className="edit-game-modal__asset-tabs">
-              <Button
-                type="button"
-                theme={selectedAssetType === "icon" ? "primary" : "outline"}
-                onClick={() => handleAssetTypeChange("icon")}
-                disabled={isUpdating}
-              >
-                {t("edit_game_modal_icon")}
-              </Button>
-              <Button
-                type="button"
-                theme={selectedAssetType === "logo" ? "primary" : "outline"}
-                onClick={() => handleAssetTypeChange("logo")}
-                disabled={isUpdating}
-              >
-                {t("edit_game_modal_logo")}
-              </Button>
-              <Button
-                type="button"
-                theme={selectedAssetType === "hero" ? "primary" : "outline"}
-                onClick={() => handleAssetTypeChange("hero")}
-                disabled={isUpdating}
-              >
-                {t("edit_game_modal_hero")}
-              </Button>
-            </div>
-          </div>
-
-          {renderImageSection(selectedAssetType)}
+    <div className="game-assets-settings">
+      <div className="game-assets-settings__asset-selector">
+        <div className="game-assets-settings__asset-label">
+          {t("edit_game_modal_assets")}
         </div>
 
-        <div className="edit-game-modal__actions">
+        <div className="game-assets-settings__asset-tabs">
           <Button
             type="button"
-            theme="outline"
-            onClick={handleClose}
+            theme={selectedAssetType === "icon" ? "primary" : "outline"}
+            onClick={() => handleAssetTypeChange("icon")}
             disabled={isUpdating}
           >
-            {t("edit_game_modal_cancel")}
+            {t("edit_game_modal_icon")}
           </Button>
+
           <Button
             type="button"
-            theme="primary"
-            onClick={handleUpdateGame}
-            disabled={!isFormValid || isUpdating}
+            theme={selectedAssetType === "logo" ? "primary" : "outline"}
+            onClick={() => handleAssetTypeChange("logo")}
+            disabled={isUpdating}
           >
-            {isUpdating
-              ? t("edit_game_modal_updating")
-              : t("edit_game_modal_update")}
+            {t("edit_game_modal_logo")}
+          </Button>
+
+          <Button
+            type="button"
+            theme={selectedAssetType === "hero" ? "primary" : "outline"}
+            onClick={() => handleAssetTypeChange("hero")}
+            disabled={isUpdating}
+          >
+            {t("edit_game_modal_hero")}
           </Button>
         </div>
       </div>
-    </Modal>
+
+      {renderImageSection(selectedAssetType)}
+    </div>
   );
 }

@@ -37,6 +37,7 @@ export function HeroPanelActions() {
     objectId,
     gameTitle,
     setShowGameOptionsModal,
+    setGameOptionsInitialCategory,
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
@@ -287,7 +288,10 @@ export function HeroPanelActions() {
         )}
 
         <Button
-          onClick={() => setShowGameOptionsModal(true)}
+          onClick={() => {
+            setGameOptionsInitialCategory("general");
+            setShowGameOptionsModal(true);
+          }}
           theme="outline"
           disabled={deleting}
           className="hero-panel-actions__action"

@@ -311,7 +311,12 @@ export class AchievementWatcherManager {
       }
     );
 
-    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+    const shouldUseCustomNotification =
+      userPreferences.achievementCustomNotificationsEnabled !== false &&
+      process.platform !== "darwin" &&
+      !!WindowManager.notificationWindow;
+
+    if (shouldUseCustomNotification) {
       WindowManager.notificationWindow?.webContents.send(
         "on-combined-achievements-unlocked",
         totalNewGamesWithAchievements,

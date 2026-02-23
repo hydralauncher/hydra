@@ -103,6 +103,152 @@
   }
 }
 
+.protondb {
+  &__content {
+    padding: calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+  }
+
+  &__section {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1);
+    justify-content: space-between;
+
+    @media (min-width: 1024px) {
+      flex-direction: column;
+    }
+  }
+
+  &__category {
+    display: flex;
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit / 2);
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__category-title {
+    font-size: globals.$small-font-size;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+  }
+
+  &__steamdeck-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    background-color: currentcolor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    flex-shrink: 0;
+  }
+
+  &__proton-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    background-color: currentcolor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
+    flex-shrink: 0;
+  }
+
+  &__title-skeleton {
+    display: block;
+    width: 88px;
+    height: 14px;
+    border-radius: 4px;
+  }
+
+  &__value-skeleton {
+    display: block;
+    width: 64px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  &__link-skeleton {
+    display: block;
+    width: 142px;
+    height: 14px;
+    margin-top: calc(globals.$spacing-unit * 2);
+    border-radius: 4px;
+  }
+
+  &__view-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    width: fit-content;
+    margin-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__value {
+    font-size: globals.$body-font-size;
+    color: #fff;
+    font-weight: 400;
+    text-transform: capitalize;
+  }
+
+  &__tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0a0a0a;
+    background: rgb(180, 199, 220);
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    line-height: 1.25;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
+
+    &--platinum {
+      background: rgb(180, 199, 220);
+    }
+
+    &--gold {
+      background: rgb(207, 181, 59);
+    }
+
+    &--silver {
+      background: rgb(166, 166, 166);
+    }
+
+    &--bronze {
+      background: rgb(205, 127, 50);
+      color: #fff;
+    }
+
+    &--borked {
+      background: #d72626;
+      color: #fff;
+    }
+  }
+
+  &__logo {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    display: block;
+    opacity: 0.95;
+  }
+}
+
 .stats {
   &__section {
     display: flex;
