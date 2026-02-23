@@ -25,6 +25,7 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
+    launchToLibraryPage: false,
     disableNsfwAlert: false,
     enableAutoInstall: false,
     seedAfterDownloadComplete: false,
@@ -48,6 +49,7 @@ export function SettingsBehavior() {
           userPreferences.preferQuitInsteadOfHiding ?? false,
         runAtStartup: userPreferences.runAtStartup ?? false,
         startMinimized: userPreferences.startMinimized ?? false,
+        launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
         enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
@@ -159,6 +161,14 @@ export function SettingsBehavior() {
           />
         </div>
       )}
+
+      <CheckboxField
+        label={t("launch_hydra_in_library_page")}
+        checked={form.launchToLibraryPage}
+        onChange={() =>
+          handleChange({ launchToLibraryPage: !form.launchToLibraryPage })
+        }
+      />
 
       {window.electron.platform === "linux" && (
         <>
