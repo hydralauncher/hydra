@@ -10,7 +10,7 @@
   &__control {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   &__label {
@@ -45,9 +45,9 @@
   }
 
   &__option-label {
-    color: globals.$body-color;
+    color: rgba(255, 255, 255, 0.86);
     font-size: 12px;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.2;
   }
 }

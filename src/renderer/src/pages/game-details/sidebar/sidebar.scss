@@ -164,16 +164,27 @@
     flex-shrink: 0;
   }
 
-  &__row-skeleton {
+  &__title-skeleton {
     display: block;
-    height: 24px;
+    width: 88px;
+    height: 14px;
     border-radius: 4px;
   }
 
-  &__skeleton-list {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+  &__value-skeleton {
+    display: block;
+    width: 64px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  &__link-skeleton {
+    display: block;
+    width: 142px;
+    height: 14px;
+    margin-top: calc(globals.$spacing-unit * 2);
+    border-radius: 4px;
   }
 
   &__view-link {

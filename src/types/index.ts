@@ -91,6 +91,12 @@ export interface UserLibraryResponse {
   pinnedGames: UserGame[];
 }
 
+export interface GameCollection {
+  id: string;
+  name: string;
+  gamesCount: number;
+}
+
 export interface GameRunning {
   id: string;
   title: string;

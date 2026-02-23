@@ -31,7 +31,7 @@ export function GameItem({ game }: GameItemProps) {
   const [added, setAdded] = useState(false);
 
   const { library, updateLibrary } = useLibrary();
-  const isLinux = window.electron.platform === "linux";
+  const shouldShowProtonFeatures = window.electron.platform === "linux";
 
   useEffect(() => {
     const exists = library.some(
@@ -120,7 +120,7 @@ export function GameItem({ game }: GameItemProps) {
         <div className="game-item__cover-wrapper">
           {libraryImage}
 
-          {isLinux && protonBadge && (
+          {shouldShowProtonFeatures && protonBadge && (
             <Suspense fallback={null}>
               <ProtonDBBadge badge={protonBadge} />
             </Suspense>
