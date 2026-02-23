@@ -74,6 +74,7 @@ export class JsHttpDownloader {
     this.isPaused = false;
     this.retryCount = 0;
     this.isStallRetry = false;
+    this.fileSize = 0;
     await this.startDownloadWithRetry();
   }
 
@@ -81,6 +82,8 @@ export class JsHttpDownloader {
     if (!this.currentOptions) return;
 
     while (!this.isPaused) {
+      if (!this.currentOptions) return;
+
       this.abortController = new AbortController();
       this.status = "active";
       this.isDownloading = true;
@@ -236,14 +239,19 @@ export class JsHttpDownloader {
       fs.mkdirSync(savePath, { recursive: true });
     }
 
+    const targetDir = path.dirname(filePath);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
     let startByte = 0;
     if (fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
       startByte = stats.size;
-      this.bytesDownloaded = startByte;
       logger.log(`[JsHttpDownloader] Resuming download from byte ${startByte}`);
     }
 
+    this.bytesDownloaded = startByte;
     this.resetSpeedTracking();
     return { filePath, startByte, usedFallback };
   }
@@ -294,6 +302,12 @@ export class JsHttpDownloader {
       signal: this.abortController?.signal,
     });
 
+    const contentType = response.headers.get("content-type") ?? "unknown";
+    const contentLength = response.headers.get("content-length") ?? "unknown";
+    logger.log(
+      `[JsHttpDownloader] Response status=${response.status} content-type=${contentType} content-length=${contentLength}`
+    );
+
     if (response.status === 416 && startByte > 0) {
       logger.log(
         "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
@@ -321,6 +335,16 @@ export class JsHttpDownloader {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    // Detect HTML error pages served with 200 status (e.g. expired CDN links)
+    if (
+      contentType.includes("text/html") ||
+      contentType.includes("application/xhtml")
+    ) {
+      throw new Error(
+        `Unexpected HTML response (content-type: ${contentType}). The download URL may have expired or is invalid.`
+      );
+    }
+
     this.parseFileSize(response, startByte);
 
     let actualFilePath = filePath;
@@ -329,6 +353,10 @@ export class JsHttpDownloader {
       if (headerFilename) {
         actualFilePath = path.join(savePath, headerFilename);
         this.folderName = headerFilename;
+        const targetDir = path.dirname(actualFilePath);
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
         logger.log(
           `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
         );
@@ -348,7 +376,9 @@ export class JsHttpDownloader {
     this.status = "complete";
     this.retryCount = 0;
     this.downloadSpeed = 0;
-    logger.log("[JsHttpDownloader] Download complete");
+    logger.log(
+      `[JsHttpDownloader] Download complete (${this.bytesDownloaded} bytes)`
+    );
   }
 
   private parseContentDisposition(response: Response): string | undefined {
@@ -390,11 +420,7 @@ export class JsHttpDownloader {
             this.push(Buffer.from(value));
           })
           .catch((err: Error) => {
-            if (err.name === "AbortError") {
-              this.push(null);
-            } else {
-              this.destroy(err);
-            }
+            this.destroy(err);
           });
       },
     });
@@ -534,7 +560,6 @@ export class JsHttpDownloader {
     this.folderName = "";
     this.isDownloading = false;
     this.retryCount = 0;
-    this.isPaused = false;
     this.isStallRetry = false;
   }
 }

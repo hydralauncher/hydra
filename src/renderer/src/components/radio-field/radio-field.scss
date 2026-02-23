@@ -1,0 +1,77 @@
+@use "../../scss/globals.scss";
+
+.radio-field {
+  --radio-field-accent: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  cursor: pointer;
+  min-height: 24px;
+
+  &:has(input:disabled) {
+    cursor: not-allowed;
+    opacity: globals.$disabled-opacity;
+  }
+
+  &:has(.radio-field__input:focus-visible) {
+    outline: 2px solid
+      color-mix(in srgb, var(--radio-field-accent) 70%, #fff 30%);
+    outline-offset: 1px;
+    border-radius: 6px;
+  }
+
+  &--selected .radio-field__control {
+    border-color: var(--radio-field-accent);
+    background: var(--radio-field-accent);
+  }
+
+  &--selected .radio-field__dot {
+    opacity: 1;
+    transform: scale(1);
+    background: #fff;
+  }
+
+  &__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__control {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border-radius: 999px;
+    border: solid 1px globals.$border-color;
+    background: globals.$dark-background-color;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  &__dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--radio-field-accent);
+    opacity: 0;
+    transform: scale(0);
+    transition:
+      transform 0.15s ease,
+      opacity 0.15s ease;
+  }
+
+  &__left-slot {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__label {
+    line-height: 1.2;
+    min-width: 0;
+  }
+}

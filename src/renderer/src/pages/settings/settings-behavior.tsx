@@ -1,11 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField } from "@renderer/components";
+import { CheckboxField, ProtonPathPicker } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
 import { QuestionIcon } from "@primer/octicons-react";
+import type { ProtonVersion } from "@types";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -13,6 +14,10 @@ export function SettingsBehavior() {
   );
 
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
+  const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
+  const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
+    useState("");
 
   const { updateUserPreferences } = useContext(settingsContext);
 
@@ -35,6 +40,7 @@ export function SettingsBehavior() {
   });
 
   const { t } = useTranslation("settings");
+  const { t: tGameDetails } = useTranslation("game_details");
 
   useEffect(() => {
     if (userPreferences) {
@@ -62,8 +68,32 @@ export function SettingsBehavior() {
         createStartMenuShortcut:
           userPreferences.createStartMenuShortcut ?? true,
       });
+
+      setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     }
   }, [userPreferences]);
+
+  useEffect(() => {
+    if (window.electron.platform !== "linux") return;
+
+    window.electron
+      .getInstalledProtonVersions()
+      .then(setProtonVersions)
+      .catch(() => setProtonVersions([]))
+      .finally(() => setProtonVersionsLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!protonVersionsLoaded || !selectedDefaultProtonPath) return;
+
+    const hasSelectedVersion = protonVersions.some(
+      (version) => version.path === selectedDefaultProtonPath
+    );
+
+    if (!hasSelectedVersion) {
+      setSelectedDefaultProtonPath("");
+    }
+  }, [protonVersions, protonVersionsLoaded, selectedDefaultProtonPath]);
 
   useEffect(() => {
     window.electron.isPortableVersion().then((isPortableVersion) => {
@@ -141,13 +171,40 @@ export function SettingsBehavior() {
       />
 
       {window.electron.platform === "linux" && (
-        <CheckboxField
-          label={t("enable_auto_install")}
-          checked={form.enableAutoInstall}
-          onChange={() =>
-            handleChange({ enableAutoInstall: !form.enableAutoInstall })
-          }
-        />
+        <>
+          <CheckboxField
+            label={t("enable_auto_install")}
+            checked={form.enableAutoInstall}
+            onChange={() =>
+              handleChange({ enableAutoInstall: !form.enableAutoInstall })
+            }
+          />
+
+          <div className="settings-behavior__proton-section">
+            <h3 className="settings-behavior__proton-title">
+              {t("default_proton_version")}
+            </h3>
+            <p className="settings-behavior__proton-description">
+              {t("default_proton_version_description")}
+            </p>
+
+            <ProtonPathPicker
+              versions={protonVersions}
+              selectedPath={selectedDefaultProtonPath}
+              onChange={(value) => {
+                setSelectedDefaultProtonPath(value);
+                updateUserPreferences({ defaultProtonPath: value || null });
+              }}
+              radioName="default-proton-version"
+              autoLabel={tGameDetails("proton_version_auto")}
+              autoSourceDescription={tGameDetails("proton_source_umu_default")}
+              steamSourceDescription={tGameDetails("proton_source_steam")}
+              compatibilityToolsSourceDescription={tGameDetails(
+                "proton_source_compatibility_tools"
+              )}
+            />
+          </div>
+        </>
       )}
 
       <CheckboxField

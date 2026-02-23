@@ -4,6 +4,7 @@ import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 type ProfileGame = {
   id: string;
+  collectionId?: string | null;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
   hasManuallyUpdatedPlaytime: boolean;
@@ -41,6 +42,10 @@ export const mergeWithRemoteGames = async () => {
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
             isPinned: game.isPinned ?? localGame.isPinned,
+            collectionId:
+              game.collectionId === undefined
+                ? (localGame.collectionId ?? null)
+                : game.collectionId,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
           });
@@ -59,6 +64,7 @@ export const mergeWithRemoteGames = async () => {
             isDeleted: false,
             favorite: game.isFavorite ?? false,
             isPinned: game.isPinned ?? false,
+            collectionId: game.collectionId ?? null,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
           });

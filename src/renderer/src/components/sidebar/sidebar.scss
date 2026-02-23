@@ -128,6 +128,28 @@
     border: 1px solid rgba(34, 197, 94, 0.5);
   }
 
+  &__collection-icon {
+    min-width: 16px;
+    min-height: 16px;
+  }
+
+  &__collection-count {
+    margin-left: auto;
+    background-color: #fff;
+    color: globals.$background-color;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
   &__section-header {
     display: flex;
     justify-content: space-between;
@@ -137,6 +159,18 @@
   &__section-title {
     text-transform: uppercase;
     font-weight: bold;
+  }
+
+  &__menu-empty {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 9px 0;
+    text-align: left;
   }
 
   &__container {
@@ -226,5 +260,17 @@
     svg {
       display: block;
     }
+  }
+
+  &__collection-modal {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__collection-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(globals.$spacing-unit);
   }
 }

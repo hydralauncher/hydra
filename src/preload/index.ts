@@ -19,6 +19,7 @@ import type {
   ShortcutLocation,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  ProtonVersion,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -107,6 +108,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
     ipcRenderer.invoke("authenticateRealDebrid", apiToken),
+  authenticatePremiumize: (apiToken: string) =>
+    ipcRenderer.invoke("authenticatePremiumize", apiToken),
+  authenticateAllDebrid: (apiToken: string) =>
+    ipcRenderer.invoke("authenticateAllDebrid", apiToken),
   authenticateTorBox: (apiToken: string) =>
     ipcRenderer.invoke("authenticateTorBox", apiToken),
 
@@ -134,6 +139,21 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       automaticCloudSync
     ),
+  toggleGameMangohud: (
+    shop: GameShop,
+    objectId: string,
+    autoRunMangohud: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameMangohud", shop, objectId, autoRunMangohud),
+  toggleGameGamemode: (
+    shop: GameShop,
+    objectId: string,
+    autoRunGamemode: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
+  isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
+  isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
+  isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
     ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
   addCustomGameToLibrary: (
@@ -213,6 +233,17 @@ contextBridge.exposeInMainWorld("electron", {
     winePrefixPath: string | null
   ) =>
     ipcRenderer.invoke("selectGameWinePrefix", shop, objectId, winePrefixPath),
+  selectGameProtonPath: (
+    shop: GameShop,
+    objectId: string,
+    protonPath: string | null
+  ) => ipcRenderer.invoke("selectGameProtonPath", shop, objectId, protonPath),
+  getInstalledProtonVersions: () =>
+    ipcRenderer.invoke("getInstalledProtonVersions") as Promise<
+      ProtonVersion[]
+    >,
+  getGameLaunchProtonVersion: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
@@ -223,6 +254,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
+  openGameWinetricks: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("openGameWinetricks", shop, objectId),
   openGameExecutablePath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameExecutablePath", shop, objectId),
   getGameSaveFolder: (shop: GameShop, objectId: string) =>
@@ -394,6 +427,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
+  getImageDataUrl: (imageUrl: string) =>
+    ipcRenderer.invoke("getImageDataUrl", imageUrl),
   hydraApi: {
     get: (
       url: string,
