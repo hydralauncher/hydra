@@ -1,8 +1,4 @@
-import { Button } from "@renderer/components";
 import { useTranslation } from "react-i18next";
-import { SettingsGeneral } from "./settings-general";
-import { SettingsBehavior } from "./settings-behavior";
-import { SettingsDownloadSources } from "./settings-download-sources";
 import {
   SettingsContextConsumer,
   SettingsContextProvider,
@@ -11,57 +7,104 @@ import { SettingsAccount } from "./settings-account";
 import { useUserDetails } from "@renderer/hooks";
 import { useMemo } from "react";
 import "./settings.scss";
-import { SettingsAppearance } from "./appearance/settings-appearance";
-import { SettingsDebrid } from "./settings-debrid";
+import {
+  BellIcon,
+  CloudIcon,
+  DownloadIcon,
+  GearIcon,
+  PlayIcon,
+  ShieldCheckIcon,
+} from "@primer/octicons-react";
+import { Wrench } from "lucide-react";
+import { SettingsContextGeneral } from "./settings-context-general";
+import { SettingsContextDownloads } from "./settings-context-downloads";
+import { SettingsContextNotifications } from "./settings-context-notifications";
+import { SettingsContextContentGameplay } from "./settings-context-content-gameplay";
+import { SettingsContextIntegrations } from "./settings-context-integrations";
+import { SettingsContextCompatibility } from "./settings-context-compatibility";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
 
   const { userDetails } = useUserDetails();
 
-  const categories = useMemo(() => {
-    const categories = [
-      { tabLabel: t("general"), contentTitle: t("general") },
-      { tabLabel: t("behavior"), contentTitle: t("behavior") },
-      { tabLabel: t("download_sources"), contentTitle: t("download_sources") },
+  const categories = useMemo(
+    () => [
       {
-        tabLabel: t("appearance"),
-        contentTitle: t("appearance"),
+        id: "general" as const,
+        label: t("general"),
+        icon: <GearIcon size={16} />,
       },
-      { tabLabel: t("debrid"), contentTitle: t("debrid") },
-    ];
-
-    if (userDetails)
-      return [
-        ...categories,
-        { tabLabel: t("account"), contentTitle: t("account") },
-      ];
-    return categories;
-  }, [userDetails, t]);
+      {
+        id: "downloads" as const,
+        label: t("downloads"),
+        icon: <DownloadIcon size={16} />,
+      },
+      {
+        id: "notifications" as const,
+        label: t("notifications"),
+        icon: <BellIcon size={16} />,
+      },
+      {
+        id: "content_gameplay" as const,
+        label: "Content & gameplay",
+        icon: <PlayIcon size={16} />,
+      },
+      {
+        id: "integrations" as const,
+        label: "Integrations",
+        icon: <CloudIcon size={16} />,
+      },
+      {
+        id: "compatibility" as const,
+        label: "Compatibility",
+        icon: <Wrench size={16} />,
+      },
+      ...(userDetails
+        ? [
+            {
+              id: "account_privacy" as const,
+              label: `${t("account")} & ${t("privacy")}`,
+              icon: <ShieldCheckIcon size={16} />,
+            },
+          ]
+        : []),
+    ],
+    [t, userDetails]
+  );
 
   return (
     <SettingsContextProvider>
       <SettingsContextConsumer>
-        {({ currentCategoryIndex, setCurrentCategoryIndex, appearance }) => {
+        {({ currentCategoryId, setCurrentCategoryId, appearance }) => {
+          const currentCategory =
+            categories.find((category) => category.id === currentCategoryId) ??
+            categories[0];
+          const selectedCategoryId = currentCategory.id;
+
           const renderCategory = () => {
-            if (currentCategoryIndex === 0) {
-              return <SettingsGeneral />;
+            if (selectedCategoryId === "general") {
+              return <SettingsContextGeneral appearance={appearance} />;
             }
 
-            if (currentCategoryIndex === 1) {
-              return <SettingsBehavior />;
+            if (selectedCategoryId === "downloads") {
+              return <SettingsContextDownloads />;
             }
 
-            if (currentCategoryIndex === 2) {
-              return <SettingsDownloadSources />;
+            if (selectedCategoryId === "notifications") {
+              return <SettingsContextNotifications />;
             }
 
-            if (currentCategoryIndex === 3) {
-              return <SettingsAppearance appearance={appearance} />;
+            if (selectedCategoryId === "content_gameplay") {
+              return <SettingsContextContentGameplay />;
             }
 
-            if (currentCategoryIndex === 4) {
-              return <SettingsDebrid />;
+            if (selectedCategoryId === "integrations") {
+              return <SettingsContextIntegrations />;
+            }
+
+            if (selectedCategoryId === "compatibility") {
+              return <SettingsContextCompatibility />;
             }
 
             return <SettingsAccount />;
@@ -70,22 +113,30 @@ export default function Settings() {
           return (
             <section className="settings__container">
               <div className="settings__content">
-                <section className="settings__categories">
-                  {categories.map((category, index) => (
-                    <Button
-                      key={category.contentTitle}
-                      theme={
-                        currentCategoryIndex === index ? "primary" : "outline"
-                      }
-                      onClick={() => setCurrentCategoryIndex(index)}
+                <aside className="settings__sidebar">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={`settings__sidebar-button ${
+                        currentCategory.id === category.id
+                          ? "settings__sidebar-button--active"
+                          : ""
+                      }`}
+                      onClick={() => setCurrentCategoryId(category.id)}
                     >
-                      {category.tabLabel}
-                    </Button>
+                      <span className="settings__sidebar-button-icon">
+                        {category.icon}
+                      </span>
+                      <span>{category.label}</span>
+                    </button>
                   ))}
-                </section>
+                </aside>
 
-                <h2>{categories[currentCategoryIndex].contentTitle}</h2>
-                {renderCategory()}
+                <div className="settings__panel">
+                  <h2>{currentCategory.label}</h2>
+                  {renderCategory()}
+                </div>
               </div>
             </section>
           );

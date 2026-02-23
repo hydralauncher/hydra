@@ -35,6 +35,7 @@ import type {
   DiskUsage,
   DownloadSource,
   LocalNotification,
+  ProtonVersion,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -97,6 +98,19 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    toggleGameMangohud: (
+      shop: GameShop,
+      objectId: string,
+      autoRunMangohud: boolean
+    ) => Promise<void>;
+    toggleGameGamemode: (
+      shop: GameShop,
+      objectId: string,
+      autoRunGamemode: boolean
+    ) => Promise<void>;
+    isGamemodeAvailable: () => Promise<boolean>;
+    isMangohudAvailable: () => Promise<boolean>;
+    isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
@@ -173,6 +187,16 @@ declare global {
       objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
+    selectGameProtonPath: (
+      shop: GameShop,
+      objectId: string,
+      protonPath: string | null
+    ) => Promise<void>;
+    getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
+    getGameLaunchProtonVersion: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
@@ -182,6 +206,7 @@ declare global {
       objectId: string
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
+    openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (
       shop: GameShop,
@@ -316,6 +341,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,

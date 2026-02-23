@@ -58,6 +58,10 @@ export class DownloadManager {
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
 
+  public static hasActiveDownload() {
+    return this.downloadingGameId !== null;
+  }
+
   private static extractFilename(
     url: string,
     originalUrl?: string

@@ -6,6 +6,7 @@
     border: 1px solid globals.$border-color;
     border-radius: 6px;
     min-width: 200px;
+    z-index: calc(globals.$modal-z-index + 1);
     flex-direction: column;
     align-items: center;
     animation: dropdown-menu-fade-in 0.2s ease-out;

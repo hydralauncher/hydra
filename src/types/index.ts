@@ -38,6 +38,12 @@ export interface DownloadSource {
   createdAt: string;
 }
 
+export interface ProtonVersion {
+  name: string;
+  path: string;
+  source?: "steam" | "compatibility_tools" | "unknown";
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -83,6 +89,12 @@ export interface UserLibraryResponse {
   totalCount: number;
   library: UserGame[];
   pinnedGames: UserGame[];
+}
+
+export interface GameCollection {
+  id: string;
+  name: string;
+  gamesCount: number;
 }
 
 export interface GameRunning {
@@ -411,6 +423,24 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+  protondbSupportBadges: (
+    | "borked"
+    | "bronze"
+    | "silver"
+    | "gold"
+    | "platinum"
+  )[];
+  deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+}
+
+export interface ProtonDBData {
+  tier: string | null;
+  confidence: string | null;
+  score: number | null;
+  total: number | null;
+  trendingTier: string | null;
+  resolvedCategory: number | null;
+  deckCompatibility: "verified" | "playable" | "unsupported" | "unknown" | null;
 }
 
 export type CatalogueSearchResult = {
@@ -419,6 +449,12 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
+  tier?: string | null;
+  bestReportedTier?: string | null;
+  protondbSupportBadge?: string | null;
+  protondbSupportBadges?: string[];
+  deckCompatibility?: string | null;
+  deckCompatibilities?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
