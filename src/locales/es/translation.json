@@ -123,7 +123,7 @@
   "bottom_panel": {
     "no_downloads_in_progress": "Sin descargas en progreso",
     "downloading_metadata": "Descargando metadatos de {{title}}…",
-    "downloading": "Descargando {{title}}… ({{percentage}} completado) - Restante {{eta}} - {{speed}}",
+    "downloading": "Descargando {{title}}… ({{percentage}} completado) - Finalizando {{eta}} - {{speed}}",
     "calculating_eta": "Descargando {{title}}… ({{percentage}} completado) - Comprobando tiempo restante…",
     "checking_files": "Revisando archivos de {{title}}… ({{percentage}} completado)",
     "extracting": "Extrayendo {{title}}… ({{percentage}} completado)",
