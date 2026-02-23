@@ -4,6 +4,7 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
+  clearCollections,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
@@ -21,6 +22,7 @@ export function useUserDetails() {
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
+    dispatch(clearCollections());
 
     window.localStorage.removeItem("userDetails");
   }, [dispatch]);

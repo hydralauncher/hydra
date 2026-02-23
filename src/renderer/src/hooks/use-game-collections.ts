@@ -90,6 +90,16 @@ export function useGameCollections() {
 
   const createCollection = useCallback(
     async (name: string) => {
+      const normalizedName = name.trim().toLocaleLowerCase();
+      const alreadyExists = collections.some(
+        (collection) =>
+          collection.name.trim().toLocaleLowerCase() === normalizedName
+      );
+
+      if (alreadyExists) {
+        throw new Error("game/collection-name-already-in-use");
+      }
+
       const response = await window.electron.hydraApi.post<GameCollection>(
         "/profile/games/collections",
         {
@@ -102,7 +112,7 @@ export function useGameCollections() {
 
       return response;
     },
-    [dispatch]
+    [collections, dispatch]
   );
 
   return {

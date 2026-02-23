@@ -156,6 +156,26 @@
     align-items: center;
   }
 
+  &__section-toggle {
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  &__section-toggle-chevron {
+    transition: transform 0.15s ease;
+    transform: rotate(0deg);
+
+    &--expanded {
+      transform: rotate(90deg);
+    }
+  }
+
   &__section-title {
     text-transform: uppercase;
     font-weight: bold;

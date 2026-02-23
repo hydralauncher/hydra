@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$context-menu-danger-color: globals.$error-color;
+
 .context-menu {
   position: fixed;
   z-index: 1000;
@@ -50,14 +52,18 @@
     }
 
     &--danger {
-      color: globals.$danger-color;
+      color: $context-menu-danger-color;
 
       &:hover:not(.context-menu__item--disabled) {
-        background-color: rgba(128, 29, 30, 0.1);
+        background-color: rgba(225, 29, 72, 0.18);
+      }
+
+      &:active:not(.context-menu__item--disabled) {
+        background-color: rgba(225, 29, 72, 0.28);
       }
 
       .context-menu__item-icon {
-        color: globals.$danger-color;
+        color: $context-menu-danger-color;
       }
     }
 

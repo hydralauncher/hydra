@@ -67,6 +67,11 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    clearCollections: (state) => {
+      state.items = [];
+      state.isLoading = false;
+      state.hasLoaded = false;
+    },
   },
 });
 
@@ -75,4 +80,5 @@ export const {
   setCollectionsLoading,
   addCollection,
   applyCollectionAssignment,
+  clearCollections,
 } = collectionsSlice.actions;
