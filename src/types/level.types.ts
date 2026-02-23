@@ -52,10 +52,14 @@ export interface Game {
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
+  collectionId?: string | null;
   isDeleted: boolean;
   winePrefixPath?: string | null;
+  protonPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
+  autoRunMangohud?: boolean | null;
+  autoRunGamemode?: boolean | null;
   favorite?: boolean;
   isPinned?: boolean;
   achievementCount?: number;
@@ -107,6 +111,8 @@ export interface UserPreferences {
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
+  premiumizeApiToken?: string | null;
+  allDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
@@ -133,6 +139,9 @@ export interface UserPreferences {
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
+  defaultProtonPath?: string | null;
+  autoRunMangohud?: boolean;
+  autoRunGamemode?: boolean;
 }
 
 export interface ScreenState {

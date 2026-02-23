@@ -74,14 +74,15 @@ export function DownloadSettingsModal({
   const { isFeatureEnabled, Feature } = useFeature();
 
   const getDiskFreeSpace = async (path: string) => {
-    const result = await window.electron.getDiskFreeSpace(path);
+    const result = await globalThis.electron.getDiskFreeSpace(path);
     setDiskFreeSpace(result.free);
   };
 
   const checkFolderWritePermission = useCallback(
     async (path: string) => {
       if (isFeatureEnabled(Feature.CheckDownloadWritePermission)) {
-        const result = await window.electron.checkFolderWritePermission(path);
+        const result =
+          await globalThis.electron.checkFolderWritePermission(path);
         setHasWritePermission(result);
       } else {
         setHasWritePermission(true);
@@ -141,15 +142,36 @@ export function DownloadSettingsModal({
     };
 
     return allDownloaders
-      .filter((downloader) => downloader !== Downloader.Hydra) // Temporarily comment out Nimbus
+      .filter((downloader) => {
+        if (downloader === Downloader.Hydra) return false; // Temporarily comment out Nimbus
+        if (
+          downloader === Downloader.Premiumize &&
+          !isFeatureEnabled(Feature.Premiumize)
+        ) {
+          return false;
+        }
+
+        if (
+          downloader === Downloader.AllDebrid &&
+          !isFeatureEnabled(Feature.AllDebrid)
+        ) {
+          return false;
+        }
+
+        return true;
+      })
       .map((downloader) => {
         const status = downloaderMap.get(downloader);
         const canHandle = status !== undefined;
-        const isAvailable = status?.hasAvailable ?? false;
+        const hasAvailableUri = status?.hasAvailable ?? false;
 
         let isConfigured = true;
         if (downloader === Downloader.RealDebrid) {
           isConfigured = !!userPreferences?.realDebridApiToken;
+        } else if (downloader === Downloader.Premiumize) {
+          isConfigured = !!userPreferences?.premiumizeApiToken;
+        } else if (downloader === Downloader.AllDebrid) {
+          isConfigured = !!userPreferences?.allDebridApiToken;
         } else if (downloader === Downloader.TorBox) {
           isConfigured = !!userPreferences?.torBoxApiToken;
         }
@@ -158,11 +180,13 @@ export function DownloadSettingsModal({
         // }
 
         const isAvailableButNotConfigured =
-          isAvailable && !isConfigured && canHandle;
+          hasAvailableUri && !isConfigured && canHandle;
+
+        const isAvailable = hasAvailableUri && isConfigured;
 
         return {
           downloader,
-          isAvailable: isAvailable && isConfigured,
+          isAvailable,
           canHandle,
           isAvailableButNotConfigured,
         };
@@ -171,6 +195,8 @@ export function DownloadSettingsModal({
   }, [
     repack,
     userPreferences?.realDebridApiToken,
+    userPreferences?.premiumizeApiToken,
+    userPreferences?.allDebridApiToken,
     userPreferences?.torBoxApiToken,
     isFeatureEnabled,
     Feature,
@@ -182,6 +208,14 @@ export function DownloadSettingsModal({
 
       if (availableDownloaders.includes(Downloader.RealDebrid)) {
         return Downloader.RealDebrid;
+      }
+
+      if (availableDownloaders.includes(Downloader.Premiumize)) {
+        return Downloader.Premiumize;
+      }
+
+      if (availableDownloaders.includes(Downloader.AllDebrid)) {
+        return Downloader.AllDebrid;
       }
 
       if (availableDownloaders.includes(Downloader.TorBox)) {
@@ -197,7 +231,7 @@ export function DownloadSettingsModal({
     if (userPreferences?.downloadsPath) {
       setSelectedPath(userPreferences.downloadsPath);
     } else {
-      window.electron
+      globalThis.electron
         .getDefaultDownloadsPath()
         .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
     }
@@ -210,7 +244,7 @@ export function DownloadSettingsModal({
   }, [getDefaultDownloader, userPreferences?.downloadsPath, downloadOptions]);
 
   const handleChooseDownloadsPath = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
+    const { filePaths } = await globalThis.electron.showOpenDialog({
       defaultPath: selectedPath,
       properties: ["openDirectory"],
     });
@@ -406,7 +440,11 @@ export function DownloadSettingsModal({
                       disabled={isDisabled}
                       onClick={() => {
                         if (
-                          option.downloader === Downloader.RealDebrid &&
+                          [
+                            Downloader.RealDebrid,
+                            Downloader.Premiumize,
+                            Downloader.AllDebrid,
+                          ].includes(option.downloader) &&
                           option.isAvailableButNotConfigured
                         ) {
                           setShowRealDebridModal(true);

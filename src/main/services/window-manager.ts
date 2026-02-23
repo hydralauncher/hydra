@@ -374,6 +374,10 @@ export class WindowManager {
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
+    if (process.platform === "darwin") {
+      return;
+    }
+
     const userPreferences = await db.get<string, UserPreferences | undefined>(
       levelKeys.userPreferences,
       {
