@@ -10,6 +10,7 @@ import {
   WindowManager,
   Lock,
   Aria2,
+  PowerSaveBlockerManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -279,6 +280,7 @@ app.on("before-quit", async (e) => {
 
   if (!canAppBeClosed) {
     e.preventDefault();
+    PowerSaveBlockerManager.reset();
     /* Disconnects libtorrent */
     PythonRPC.kill();
     Aria2.kill();

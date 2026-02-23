@@ -23,11 +23,43 @@
     justify-content: center;
     align-items: center;
     position: relative;
-    transition: all ease 0.2s;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease;
     border: solid 1px globals.$border-color;
+    color: globals.$body-color;
 
     &:hover:not(:has(input:disabled)) {
       border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &.checked {
+      background-color: #ffffff;
+      border-color: #ffffff;
+      color: globals.$dark-background-color;
+    }
+
+    &:has(.checkbox-field__input:focus-visible) {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.65);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+
+    &.checked {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
