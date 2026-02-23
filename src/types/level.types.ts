@@ -52,6 +52,7 @@ export interface Game {
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
+  collectionId?: string | null;
   isDeleted: boolean;
   winePrefixPath?: string | null;
   protonPath?: string | null;

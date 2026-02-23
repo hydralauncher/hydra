@@ -82,6 +82,12 @@ export function ProtonCompatibilitySection({
                     value={option.value}
                     checked={protonValue === option.value}
                     onChange={() => onProtonChange(option.value)}
+                    onClick={(event) => {
+                      if (protonValue === option.value) {
+                        event.preventDefault();
+                        onProtonChange("");
+                      }
+                    }}
                     className="proton-compatibility-section__option-item"
                     labelClassName="proton-compatibility-section__option-label"
                     label={option.label}

@@ -83,7 +83,6 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
-  const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
@@ -290,8 +289,6 @@ export function GameOptionsModal({
 
   const handleCreateShortcut = async () => {
     try {
-      setCreatingShortcut(true);
-
       const locations: ShortcutLocation[] =
         window.electron.platform === "win32"
           ? ["desktop", "start_menu"]
@@ -316,8 +313,6 @@ export function GameOptionsModal({
         t("create_shortcut_error"),
         error instanceof Error ? error.message : undefined
       );
-    } finally {
-      setCreatingShortcut(false);
     }
   };
 

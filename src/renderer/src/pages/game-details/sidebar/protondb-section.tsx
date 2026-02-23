@@ -113,11 +113,18 @@ export function ProtonDBSection({
               </Link>
             </>
           ) : (
-            <div className="protondb__skeleton-list">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton key={index} className="protondb__row-skeleton" />
-              ))}
-            </div>
+            <>
+              <div className="protondb__section">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="protondb__category">
+                    <Skeleton className="protondb__title-skeleton" />
+                    <Skeleton className="protondb__value-skeleton" />
+                  </div>
+                ))}
+              </div>
+
+              <Skeleton className="protondb__link-skeleton" />
+            </>
           )}
         </div>
       </SidebarSection>

@@ -101,7 +101,7 @@ const achievementsPlaceholder: UserAchievement[] = [
 ];
 
 export function Sidebar() {
-  const isLinux = window.electron.platform === "linux";
+  const shouldShowProtonFeatures = window.electron.platform === "linux";
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
@@ -109,7 +109,7 @@ export function Sidebar() {
   const [protonDB, setProtonDB] = useState<{
     isLoading: boolean;
     data: ProtonDBData | null;
-  }>({ isLoading: isLinux, data: null });
+  }>({ isLoading: shouldShowProtonFeatures, data: null });
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const [activeRequirement, setActiveRequirement] =
@@ -145,7 +145,7 @@ export function Sidebar() {
   }, [objectId, shop]);
 
   useEffect(() => {
-    if (!isLinux || !objectId) {
+    if (!shouldShowProtonFeatures || !objectId) {
       setProtonDB({ isLoading: false, data: null });
       return;
     }
@@ -159,11 +159,11 @@ export function Sidebar() {
       .catch(() => {
         setProtonDB({ isLoading: false, data: null });
       });
-  }, [isLinux, objectId, shop]);
+  }, [shouldShowProtonFeatures, objectId, shop]);
 
   return (
     <aside className="content-sidebar">
-      {isLinux && (
+      {shouldShowProtonFeatures && (
         <Suspense fallback={null}>
           <ProtonDBSection
             protonDBData={protonDB.data}

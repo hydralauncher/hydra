@@ -57,7 +57,6 @@ const clearAllCategoryFilters = {
 const protonCompatibilityThresholds: CompatibilityThreshold<
   CatalogueSearchPayload["protondbSupportBadges"][number]
 >[] = [
-  { value: "any", labelKey: "compatibility_any", values: [] },
   {
     value: "silver_plus",
     labelKey: "protondb_silver_plus",
@@ -103,7 +102,7 @@ export default function Catalogue() {
   const dispatch = useAppDispatch();
 
   const { t, i18n } = useTranslation("catalogue");
-  const isLinux = window.electron.platform === "linux";
+  const shouldShowProtonFeatures = window.electron.platform === "linux";
 
   const debouncedSearch = useRef(
     debounce(
@@ -252,7 +251,9 @@ export default function Catalogue() {
         value: publisher,
       })),
 
-      ...(isLinux && protonThreshold && protonThreshold.values.length
+      ...(shouldShowProtonFeatures &&
+      protonThreshold &&
+      protonThreshold.values.length
         ? [
             {
               label: t(protonThreshold.labelKey),
@@ -264,7 +265,7 @@ export default function Catalogue() {
           ]
         : []),
 
-      ...(isLinux && deckCompatible
+      ...(shouldShowProtonFeatures && deckCompatible
         ? [
             {
               label: t("steam_deck_compatible"),
@@ -282,7 +283,7 @@ export default function Catalogue() {
     downloadSources,
     steamGenresMapping,
     language,
-    isLinux,
+    shouldShowProtonFeatures,
     t,
   ]);
 
@@ -344,15 +345,10 @@ export default function Catalogue() {
 
   const selectedFiltersCount = groupedFilters.length;
 
-  const protonThresholdIndex = Math.max(
-    protonCompatibilityThresholds.findIndex((threshold) =>
-      areSameValues(threshold.values, filters.protondbSupportBadges)
-    ),
-    0
-  );
-
   const protonThresholdValue =
-    protonCompatibilityThresholds[protonThresholdIndex];
+    protonCompatibilityThresholds.find((threshold) =>
+      areSameValues(threshold.values, filters.protondbSupportBadges)
+    )?.value ?? "";
   const isDeckCompatible = areSameValues(filters.deckCompatibility, [
     "playable",
     "verified",
@@ -437,7 +433,7 @@ export default function Catalogue() {
 
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
-            {isLinux && (
+            {shouldShowProtonFeatures && (
               <Suspense fallback={null}>
                 <ProtonCompatibilitySection
                   title={t("protondb")}
@@ -450,19 +446,20 @@ export default function Catalogue() {
                       color: threshold.color,
                     })
                   )}
-                  protonValue={protonThresholdValue.value}
+                  protonValue={protonThresholdValue}
                   deckChecked={isDeckCompatible}
                   deckLabel={t("steam_deck_compatible")}
                   color={filterCategoryColors.protondbSupportBadges}
                   onProtonChange={(value) => {
-                    const nextThreshold =
-                      protonCompatibilityThresholds.find(
-                        (threshold) => threshold.value === value
-                      ) ?? protonCompatibilityThresholds[0];
+                    const nextThreshold = protonCompatibilityThresholds.find(
+                      (threshold) => threshold.value === value
+                    );
 
                     dispatch(
                       setFilters({
-                        protondbSupportBadges: [...nextThreshold.values],
+                        protondbSupportBadges: nextThreshold
+                          ? [...nextThreshold.values]
+                          : [],
                       })
                     );
                   }}
