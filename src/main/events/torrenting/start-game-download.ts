@@ -75,8 +75,11 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    if (!isKnownDownloadError(err))
+    if (isKnownDownloadError(err)) {
+      logger.warn("Failed to start download with expected download error", err);
+    } else {
       logger.error("Failed to start download", err);
+    }
     return handleDownloadError(err, downloader);
   }
 };
