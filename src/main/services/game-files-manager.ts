@@ -15,7 +15,7 @@ import { GameExecutables } from "./game-executables";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
 import { SystemPath } from "./system-path";
-import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
+import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getPathType } from "./extraction-path";
 
@@ -360,6 +360,12 @@ export class GameFilesManager {
     iconPath?: string | null
   ): boolean {
     try {
+      fs.mkdirSync(path.dirname(shortcutPath), { recursive: true });
+
+      if (fs.existsSync(shortcutPath)) {
+        fs.unlinkSync(shortcutPath);
+      }
+
       let content = `[InternetShortcut]\nURL=${url}\n`;
 
       if (iconPath) {
@@ -377,19 +383,70 @@ export class GameFilesManager {
     }
   }
 
+  private deleteShortcutIfExists(shortcutPath: string) {
+    try {
+      if (fs.existsSync(shortcutPath)) {
+        fs.unlinkSync(shortcutPath);
+      }
+    } catch (error) {
+      logger.warn(
+        `[GameFilesManager] Failed to delete existing shortcut: ${shortcutPath}`,
+        error
+      );
+    }
+  }
+
+  private createWindowsShortcut(
+    shortcutName: string,
+    outputPath: string,
+    deepLink: string,
+    iconPath?: string | null
+  ): boolean {
+    fs.mkdirSync(outputPath, { recursive: true });
+
+    const linkPath = path.join(outputPath, `${shortcutName}.lnk`);
+    const urlPath = path.join(outputPath, `${shortcutName}.url`);
+
+    this.deleteShortcutIfExists(linkPath);
+    this.deleteShortcutIfExists(urlPath);
+
+    const windowVbsPath = app.isPackaged
+      ? path.join(process.resourcesPath, "windows.vbs")
+      : undefined;
+
+    const nativeShortcutCreated = createDesktopShortcut({
+      windows: {
+        filePath: process.execPath,
+        arguments: deepLink,
+        name: shortcutName,
+        outputPath,
+        icon: iconPath ?? process.execPath,
+        VBScriptPath: windowVbsPath,
+      },
+    });
+
+    if (nativeShortcutCreated) {
+      return true;
+    }
+
+    return this.createUrlShortcut(
+      urlPath,
+      deepLink,
+      iconPath ?? process.execPath
+    );
+  }
+
   private async createDesktopShortcutForGame(gameTitle: string): Promise<void> {
     try {
-      const shortcutName = removeSymbolsFromName(gameTitle);
+      const shortcutName =
+        removeSymbolsFromName(gameTitle).trim() || this.objectId;
       const deepLink = `hydralauncher://run?shop=${this.shop}&objectId=${this.objectId}`;
       const iconPath = await this.downloadGameIcon();
 
       if (process.platform === "win32") {
-        const desktopPath = path.join(
+        const desktopSuccess = this.createWindowsShortcut(
+          shortcutName,
           SystemPath.getPath("desktop"),
-          `${shortcutName}.url`
-        );
-        const desktopSuccess = this.createUrlShortcut(
-          desktopPath,
           deepLink,
           iconPath
         );
@@ -410,10 +467,15 @@ export class GameFilesManager {
 
         if (shouldCreateStartMenuShortcut) {
           const startMenuPath = path.join(
-            windowsStartMenuPath,
-            `${shortcutName}.url`
+            SystemPath.getPath("appData"),
+            "Microsoft",
+            "Windows",
+            "Start Menu",
+            "Programs"
           );
-          const startMenuSuccess = this.createUrlShortcut(
+
+          const startMenuSuccess = this.createWindowsShortcut(
+            shortcutName,
             startMenuPath,
             deepLink,
             iconPath
