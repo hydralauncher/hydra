@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import parseTorrent from "parse-torrent";
 import type { PremiumizeUser } from "@types";
+import { DownloadError } from "@shared";
 import { logger } from "@main/services";
 
 /* ------------------------------------------------------------------ */
@@ -330,7 +331,19 @@ export class PremiumizeClient {
 
     if (content.length > 1) return this.resolveMultiFileAsZip(uri);
 
-    if (uri.startsWith("magnet:") || uri.startsWith("http")) {
+    if (uri.startsWith("magnet:")) {
+      const startedTransfer = await this.startTransferInBackground(uri);
+      if (startedTransfer) {
+        throw new Error(DownloadError.PremiumizeTransferStarted);
+      }
+
+      logger.warn(
+        `[Premiumize] Magnet could not be resolved via direct download`
+      );
+      return null;
+    }
+
+    if (uri.startsWith("http")) {
       return this.resolveViaTransfer(uri);
     }
 
@@ -421,6 +434,43 @@ export class PremiumizeClient {
     }
   }
 
+  private static async hasRunnableTransfer(uri: string): Promise<boolean> {
+    try {
+      const infoHash = uri.startsWith("magnet:")
+        ? this.getMagnetInfoHash(uri)
+        : null;
+      const transfers = await this.listTransfers();
+      const match = transfers.find((t) => {
+        if (t.src === uri) return true;
+        if (infoHash && t.src?.toLowerCase().includes(infoHash)) return true;
+        return false;
+      });
+      if (!match) return false;
+
+      const status = match.status.toLowerCase();
+      return !["error", "banned", "timeout"].includes(status);
+    } catch (err) {
+      logger.warn(`[Premiumize] hasRunnableTransfer failed:`, err);
+      return false;
+    }
+  }
+
+  private static async startTransferInBackground(
+    uri: string
+  ): Promise<boolean> {
+    const created = await this.createTransfer(uri);
+    if (created?.id) {
+      return true;
+    }
+
+    const hasExistingTransfer = await this.hasRunnableTransfer(uri);
+    if (hasExistingTransfer) {
+      return true;
+    }
+
+    return false;
+  }
+
   private static async resolveFromRootFolder(
     uri: string
   ): Promise<string | null> {
@@ -464,9 +514,9 @@ export class PremiumizeClient {
     const match = /[?&]dn=([^&]+)/i.exec(uri);
     if (!match?.[1]) return null;
     try {
-      return decodeURIComponent(match[1]).replace(/\+/g, " ");
+      return decodeURIComponent(match[1]).replaceAll("+", " ");
     } catch {
-      return match[1].replace(/\+/g, " ");
+      return match[1].replaceAll("+", " ");
     }
   }
 
