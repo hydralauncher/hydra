@@ -336,6 +336,7 @@
     "download_error_premiumize_account_not_authorized": "Ваш аккаунт Premiumize не авторизован для новых загрузок. Пожалуйста, проверьте настройки аккаунта и попробуйте снова.",
     "download_error_alldebrid_account_not_authorized": "Ваш аккаунт AllDebrid не авторизован для новых загрузок. Пожалуйста, проверьте настройки аккаунта и попробуйте снова.",
     "download_error_not_cached_on_premiumize": "Эта загрузка недоступна на Premiumize.",
+    "download_error_premiumize_transfer_started": "Трансфер запущен в Premiumize, попробуйте снова через некоторое время.",
     "download_error_not_cached_on_alldebrid": "Эта загрузка недоступна на AllDebrid.",
     "download_error_premiumize_rate_limit_exceeded": "Превышен лимит запросов Premiumize. Пожалуйста, попробуйте позже.",
     "download_error_alldebrid_rate_limit_exceeded": "Превышен лимит запросов AllDebrid. Пожалуйста, попробуйте позже.",

@@ -67,6 +67,7 @@ export enum DownloadError {
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
   NotCachedOnHydra = "download_error_not_cached_on_hydra",
   NotCachedOnPremiumize = "download_error_not_cached_on_premiumize",
+  PremiumizeTransferStarted = "download_error_premiumize_transfer_started",
   NotCachedOnAllDebrid = "download_error_not_cached_on_alldebrid",
   PremiumizeAccountNotAuthorized = "download_error_premiumize_account_not_authorized",
   AllDebridAccountNotAuthorized = "download_error_alldebrid_account_not_authorized",

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import parseTorrent from "parse-torrent";
 import type { PremiumizeUser } from "@types";
+import { DownloadError } from "@shared";
 import { logger } from "@main/services";
 
 /* ------------------------------------------------------------------ */
@@ -330,7 +331,19 @@ export class PremiumizeClient {
 
     if (content.length > 1) return this.resolveMultiFileAsZip(uri);
 
-    if (uri.startsWith("magnet:") || uri.startsWith("http")) {
+    if (uri.startsWith("magnet:")) {
+      const startedTransfer = await this.startTransferInBackground(uri);
+      if (startedTransfer) {
+        throw new Error(DownloadError.PremiumizeTransferStarted);
+      }
+
+      logger.warn(
+        `[Premiumize] Magnet could not be resolved via direct download`
+      );
+      return null;
+    }
+
+    if (uri.startsWith("http")) {
       return this.resolveViaTransfer(uri);
     }
 
@@ -419,6 +432,49 @@ export class PremiumizeClient {
       logger.error(`[Premiumize] findExistingTransfer failed:`, err);
       return null;
     }
+  }
+
+  private static async hasRunnableTransfer(uri: string): Promise<boolean> {
+    try {
+      const infoHash = uri.startsWith("magnet:")
+        ? this.getMagnetInfoHash(uri)
+        : null;
+      const transfers = await this.listTransfers();
+      const match = transfers.find((t) => {
+        if (t.src === uri) return true;
+        if (infoHash && t.src?.toLowerCase().includes(infoHash)) return true;
+        return false;
+      });
+      if (!match) return false;
+
+      const status = match.status.toLowerCase();
+      return !["error", "banned", "timeout"].includes(status);
+    } catch (err) {
+      logger.warn(`[Premiumize] hasRunnableTransfer failed:`, err);
+      return false;
+    }
+  }
+
+  private static async startTransferInBackground(
+    uri: string
+  ): Promise<boolean> {
+    const created = await this.createTransfer(uri);
+    if (created?.id) {
+      logger.log(
+        `[Premiumize] Transfer started in background (id=${created.id}). User should retry download later.`
+      );
+      return true;
+    }
+
+    const hasExistingTransfer = await this.hasRunnableTransfer(uri);
+    if (hasExistingTransfer) {
+      logger.log(
+        `[Premiumize] Existing transfer found. User should retry download later.`
+      );
+      return true;
+    }
+
+    return false;
   }
 
   private static async resolveFromRootFolder(

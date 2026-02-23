@@ -282,6 +282,7 @@
     "download_error_premiumize_account_not_authorized": "Sua conta Premiumize não está autorizada para novos downloads. Por favor, verifique as configurações da conta e tente novamente.",
     "download_error_alldebrid_account_not_authorized": "Sua conta AllDebrid não está autorizada para novos downloads. Por favor, verifique as configurações da conta e tente novamente.",
     "download_error_not_cached_on_premiumize": "Este download não está disponível no Premiumize.",
+    "download_error_premiumize_transfer_started": "Transferência iniciada no Premiumize, tente novamente em instantes.",
     "download_error_not_cached_on_alldebrid": "Este download não está disponível no AllDebrid.",
     "download_error_premiumize_rate_limit_exceeded": "Limite de requisições do Premiumize excedido. Tente novamente mais tarde.",
     "download_error_alldebrid_rate_limit_exceeded": "Limite de requisições do AllDebrid excedido. Tente novamente mais tarde.",
