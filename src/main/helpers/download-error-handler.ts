@@ -2,6 +2,7 @@ import { AxiosError } from "axios";
 import { Downloader, DownloadError } from "@shared";
 
 type DownloadErrorResult = { ok: false; error?: string };
+const KNOWN_DOWNLOAD_ERRORS = new Set<string>(Object.values(DownloadError));
 
 const handleAxiosError = (
   err: AxiosError,
@@ -93,4 +94,8 @@ export const handleDownloadError = (
   }
 
   return { ok: false };
+};
+
+export const isKnownDownloadError = (err: unknown) => {
+  return err instanceof Error && KNOWN_DOWNLOAD_ERRORS.has(err.message);
 };
