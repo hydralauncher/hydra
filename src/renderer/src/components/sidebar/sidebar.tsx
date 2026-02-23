@@ -20,6 +20,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { AuthPage } from "@shared";
 
 import { routes } from "./routes";
 
@@ -34,6 +35,7 @@ import {
   CommentDiscussionIcon,
   PlayIcon,
   PlusIcon,
+  ChevronRightIcon,
   HeartIcon,
   FileDirectoryIcon,
   PencilIcon,
@@ -85,13 +87,15 @@ export function Sidebar() {
     return sortBy(library, (game) => game.title);
   }, [library]);
 
-  const { hasActiveSubscription } = useUserDetails();
+  const { hasActiveSubscription, userDetails } = useUserDetails();
 
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+  const [isCollectionsCollapsed, setIsCollectionsCollapsed] = useState(false);
+  const [isGamesCollapsed, setIsGamesCollapsed] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
@@ -126,6 +130,15 @@ export function Sidebar() {
 
   const handleAddGameButtonClick = () => {
     setShowAddGameModal(true);
+  };
+
+  const handleCreateCollectionButtonClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setShowCreateCollectionModal(true);
   };
 
   const handleCloseAddGameModal = () => {
@@ -195,9 +208,9 @@ export function Sidebar() {
   }, []);
 
   useEffect(() => {
-    if (hasLoadedCollections) return;
+    if (!userDetails || hasLoadedCollections) return;
     void loadCollections();
-  }, [hasLoadedCollections, loadCollections]);
+  }, [hasLoadedCollections, loadCollections, userDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onSyncFriendRequests((result) => {
@@ -580,13 +593,33 @@ export function Sidebar() {
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">
-                {t("collections")}
-              </small>
+              <button
+                type="button"
+                className="sidebar__section-toggle"
+                onClick={() =>
+                  setIsCollectionsCollapsed(!isCollectionsCollapsed)
+                }
+                aria-label={
+                  isCollectionsCollapsed
+                    ? t("expand_collections")
+                    : t("collapse_collections")
+                }
+              >
+                <ChevronRightIcon
+                  size={14}
+                  className={cn("sidebar__section-toggle-chevron", {
+                    "sidebar__section-toggle-chevron--expanded":
+                      !isCollectionsCollapsed,
+                  })}
+                />
+                <small className="sidebar__section-title">
+                  {t("collections")}
+                </small>
+              </button>
               <button
                 type="button"
                 className="sidebar__add-button"
-                onClick={() => setShowCreateCollectionModal(true)}
+                onClick={handleCreateCollectionButtonClick}
                 aria-label={t("create_collection")}
                 data-tooltip-id="create-collection-tooltip"
                 data-tooltip-content={t("create_collection_tooltip")}
@@ -596,59 +629,80 @@ export function Sidebar() {
               </button>
             </div>
 
-            <ul className="sidebar__menu">
-              {sidebarCollections.map((collection) => {
-                const isFavoritesCollection =
-                  collection.id === FAVORITES_COLLECTION_ID;
+            {!isCollectionsCollapsed && (
+              <ul className="sidebar__menu">
+                {sidebarCollections.map((collection) => {
+                  const isFavoritesCollection =
+                    collection.id === FAVORITES_COLLECTION_ID;
 
-                return (
-                  <li
-                    key={collection.id}
-                    className={cn("sidebar__menu-item", {
-                      "sidebar__menu-item--active":
-                        selectedCollectionId === collection.id,
-                    })}
-                  >
-                    <button
-                      type="button"
-                      className="sidebar__menu-item-button"
-                      onClick={() =>
-                        handleSidebarCollectionClick(collection.id)
-                      }
-                      onContextMenu={
-                        isFavoritesCollection
-                          ? undefined
-                          : (event) =>
-                              handleOpenCollectionContextMenu(event, collection)
-                      }
+                  return (
+                    <li
+                      key={collection.id}
+                      className={cn("sidebar__menu-item", {
+                        "sidebar__menu-item--active":
+                          selectedCollectionId === collection.id,
+                      })}
                     >
-                      {isFavoritesCollection ? (
-                        <HeartIcon
-                          className="sidebar__collection-icon"
-                          size={16}
-                        />
-                      ) : (
-                        <FileDirectoryIcon
-                          className="sidebar__collection-icon"
-                          size={16}
-                        />
-                      )}
-                      <span className="sidebar__menu-item-button-label">
-                        {collection.name}
-                      </span>
-                      <span className="sidebar__collection-count">
-                        {collection.gamesCount}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                      <button
+                        type="button"
+                        className="sidebar__menu-item-button"
+                        onClick={() =>
+                          handleSidebarCollectionClick(collection.id)
+                        }
+                        onContextMenu={
+                          isFavoritesCollection
+                            ? undefined
+                            : (event) =>
+                                handleOpenCollectionContextMenu(
+                                  event,
+                                  collection
+                                )
+                        }
+                      >
+                        {isFavoritesCollection ? (
+                          <HeartIcon
+                            className="sidebar__collection-icon"
+                            size={16}
+                          />
+                        ) : (
+                          <FileDirectoryIcon
+                            className="sidebar__collection-icon"
+                            size={16}
+                          />
+                        )}
+                        <span className="sidebar__menu-item-button-label">
+                          {collection.name}
+                        </span>
+                        <span className="sidebar__collection-count">
+                          {collection.gamesCount}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">{t("games")}</small>
+              <button
+                type="button"
+                className="sidebar__section-toggle"
+                onClick={() => setIsGamesCollapsed(!isGamesCollapsed)}
+                aria-label={
+                  isGamesCollapsed ? t("expand_games") : t("collapse_games")
+                }
+              >
+                <ChevronRightIcon
+                  size={14}
+                  className={cn("sidebar__section-toggle-chevron", {
+                    "sidebar__section-toggle-chevron--expanded":
+                      !isGamesCollapsed,
+                  })}
+                />
+                <small className="sidebar__section-title">{t("games")}</small>
+              </button>
               <div
                 style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
@@ -677,26 +731,29 @@ export function Sidebar() {
               </div>
             </div>
 
-            <TextField
-              ref={filterRef}
-              placeholder={t("filter")}
-              onChange={handleFilter}
-              theme="dark"
-            />
+            {!isGamesCollapsed && (
+              <>
+                <TextField
+                  ref={filterRef}
+                  placeholder={t("filter")}
+                  onChange={handleFilter}
+                  theme="dark"
+                />
 
-            <ul className="sidebar__menu">
-              {filteredLibrary
-                .filter((game) => !game.favorite)
-                .filter((game) => !showPlayableOnly || isGamePlayable(game))
-                .map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                  />
-                ))}
-            </ul>
+                <ul className="sidebar__menu">
+                  {filteredLibrary
+                    .filter((game) => !showPlayableOnly || isGamePlayable(game))
+                    .map((game) => (
+                      <SidebarGameItem
+                        key={game.id}
+                        game={game}
+                        handleSidebarGameClick={handleSidebarGameClick}
+                        getGameTitle={getGameTitle}
+                      />
+                    ))}
+                </ul>
+              </>
+            )}
           </section>
         </div>
       </div>

@@ -149,12 +149,19 @@
   }
 
   &__collections {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: calc(globals.$spacing-unit);
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 0;
-    scrollbar-width: thin;
+    overflow: hidden;
+
+    @container #{globals.$app-container} (min-width: 900px) {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    @container #{globals.$app-container} (min-width: 1300px) {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
   }
 
   &__collection-item {
@@ -167,7 +174,7 @@
     border-radius: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    white-space: nowrap;
+    min-width: 0;
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);
@@ -177,6 +184,12 @@
       border-color: rgba(255, 255, 255, 0.24);
       background: rgba(255, 255, 255, 0.12);
       color: rgba(255, 255, 255, 0.95);
+    }
+
+    span:first-of-type {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

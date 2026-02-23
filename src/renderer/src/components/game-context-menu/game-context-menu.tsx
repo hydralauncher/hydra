@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import { AuthPage } from "@shared";
 import {
   PlayIcon,
   DownloadIcon,
@@ -24,7 +25,7 @@ import {
   CreateCollectionModal,
   useGameActions,
 } from "..";
-import { useGameCollections, useToast } from "@renderer/hooks";
+import { useGameCollections, useToast, useUserDetails } from "@renderer/hooks";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: LibraryGame;
@@ -38,6 +39,7 @@ export function GameContextMenu({
 }: GameContextMenuProps) {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
+  const { userDetails } = useUserDetails();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
   const [showConfirmRemoveFiles, setShowConfirmRemoveFiles] = useState(false);
@@ -72,9 +74,9 @@ export function GameContextMenu({
   } = useGameActions(game);
 
   useEffect(() => {
-    if (!visible || game.shop === "custom") return;
+    if (!visible || game.shop === "custom" || !userDetails) return;
     void loadCollections();
-  }, [visible, game.shop, loadCollections]);
+  }, [visible, game.shop, loadCollections, userDetails]);
 
   const handleAssignGameCollection = async (collectionId: string | null) => {
     if (isAssigningCollection) return;
@@ -94,30 +96,56 @@ export function GameContextMenu({
   };
 
   const collectionSubmenu: ContextMenuItemData[] = [
-    ...collections.map((collection) => ({
-      id: `collection-${collection.id}`,
-      label: collection.name,
-      icon:
-        game.collectionId === collection.id ? (
-          <CheckIcon size={16} />
-        ) : undefined,
-      onClick: () => {
-        void handleAssignGameCollection(
-          game.collectionId === collection.id ? null : collection.id
-        );
-      },
-      disabled: isDeleting || isAssigningCollection,
-    })),
     {
-      id: "collection-create",
-      label: t("create_collection"),
-      icon: <PlusIcon size={16} />,
-      separator: collections.length > 0,
+      id: "favorite",
+      label: t("favorites", { ns: "sidebar" }),
+      icon: game.favorite ? (
+        <HeartFillIcon size={16} />
+      ) : (
+        <HeartIcon size={16} />
+      ),
       onClick: () => {
-        setShowCreateCollectionModal(true);
+        void handleToggleFavorite();
       },
       disabled: isDeleting || isAssigningCollection,
     },
+    ...(game.shop === "custom"
+      ? []
+      : collections.map((collection) => ({
+          id: `collection-${collection.id}`,
+          label: collection.name,
+          icon:
+            game.collectionId === collection.id ? (
+              <CheckIcon size={16} />
+            ) : (
+              <FileDirectoryIcon size={16} />
+            ),
+          onClick: () => {
+            void handleAssignGameCollection(
+              game.collectionId === collection.id ? null : collection.id
+            );
+          },
+          disabled: isDeleting || isAssigningCollection,
+        }))),
+    ...(game.shop === "custom"
+      ? []
+      : [
+          {
+            id: "collection-create",
+            label: t("create_collection"),
+            icon: <PlusIcon size={16} />,
+            separator: collections.length > 0,
+            onClick: () => {
+              if (!userDetails) {
+                window.electron.openAuthWindow(AuthPage.SignIn);
+                return;
+              }
+
+              setShowCreateCollectionModal(true);
+            },
+            disabled: isDeleting || isAssigningCollection,
+          },
+        ]),
   ];
 
   const items: ContextMenuItemData[] = [
@@ -143,35 +171,24 @@ export function GameContextMenu({
       disabled: isDeleting,
     },
     {
-      id: "favorite",
-      label: game.favorite ? t("remove_from_favorites") : t("add_to_favorites"),
-      icon: game.favorite ? (
-        <HeartFillIcon size={16} />
-      ) : (
-        <HeartIcon size={16} />
-      ),
-      onClick: () => {
-        void handleToggleFavorite();
-      },
-      disabled: isDeleting,
-    },
-    {
       id: "collection",
       label: t("collection"),
       icon: <FileDirectoryIcon size={16} />,
       onClick: () => {
+        if (game.shop === "custom") return;
         void loadCollections();
       },
-      disabled: isDeleting || game.shop === "custom" || isAssigningCollection,
-      submenu: isCollectionsLoading
-        ? [
-            {
-              id: "collection-loading",
-              label: t("loading"),
-              disabled: true,
-            },
-          ]
-        : collectionSubmenu,
+      disabled: isDeleting || isAssigningCollection,
+      submenu:
+        isCollectionsLoading && game.shop !== "custom"
+          ? [
+              {
+                id: "collection-loading",
+                label: t("loading"),
+                disabled: true,
+              },
+            ]
+          : collectionSubmenu,
     },
     ...(game.executablePath
       ? [

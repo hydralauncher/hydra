@@ -469,11 +469,6 @@ export default function Library() {
   const hasNoFilteredGames = sortedLibrary.length === 0;
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
-  const selectedCollection = useMemo(
-    () =>
-      collections.find((collection) => collection.id === selectedCollectionId),
-    [collections, selectedCollectionId]
-  );
   const shouldShowFavoritesEmptyState =
     hasGames && isFavoritesCollectionSelected && hasNoFilteredGames;
   const shouldShowCollectionEmptyState =
@@ -570,11 +565,7 @@ export default function Library() {
             <FileDirectoryIcon size={24} />
           </div>
           <h2>{t("empty_collection_title")}</h2>
-          <p>
-            {t("empty_collection_description", {
-              collectionName: selectedCollection?.name ?? "",
-            })}
-          </p>
+          <p>{t("empty_collection_description")}</p>
         </div>
       )}
 
