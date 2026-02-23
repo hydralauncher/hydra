@@ -30,14 +30,23 @@ const extractGameDownload = async (
   if (
     FILE_EXTENSIONS_TO_EXTRACT.some((ext) => download.folderName?.endsWith(ext))
   ) {
-    gameFilesManager.extractDownloadedFile();
+    gameFilesManager.extractDownloadedFile().catch(() => {
+      // Errors are handled and persisted by GameFilesManager
+    });
   } else {
     gameFilesManager
       .extractFilesInDirectory(
         path.join(download.downloadPath, download.folderName!)
       )
-      .then(() => {
-        gameFilesManager.setExtractionComplete(false);
+      .then((success) => {
+        if (success) {
+          gameFilesManager.setExtractionComplete(false).catch(() => {
+            // Extraction completion failures are already logged downstream
+          });
+        }
+      })
+      .catch(() => {
+        // Errors are handled and persisted by GameFilesManager
       });
   }
 
