@@ -519,11 +519,28 @@ export class DownloadManager {
         download.folderName?.toLowerCase().endsWith(ext)
       )
     ) {
-      gameFilesManager.extractDownloadedFile();
+      gameFilesManager.extractDownloadedFile().catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to extract downloaded file",
+          error
+        );
+      });
     } else if (extractionStats.isDirectory()) {
       gameFilesManager
         .extractFilesInDirectory(extractionPath)
-        .then(() => gameFilesManager.setExtractionComplete());
+        .then((success) => {
+          if (success) {
+            return gameFilesManager.setExtractionComplete();
+          }
+
+          return undefined;
+        })
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to extract files in directory",
+            error
+          );
+        });
     } else {
       gameFilesManager.setExtractionComplete();
     }
