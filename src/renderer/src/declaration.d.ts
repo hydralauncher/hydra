@@ -172,7 +172,7 @@ declare global {
     assignGameToCollection: (
       shop: GameShop,
       objectId: string,
-      collectionId: string | null
+      collectionIds: string[]
     ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,

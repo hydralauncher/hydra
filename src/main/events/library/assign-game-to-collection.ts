@@ -17,7 +17,7 @@ const assignGameToCollection = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  collectionId: string | null
+  collectionIds: string[]
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -30,7 +30,7 @@ const assignGameToCollection = async (
     if (shop !== "custom") {
       const syncCollection = () =>
         HydraApi.put(`/profile/games/${shop}/${objectId}/collection`, {
-          collectionId,
+          collectionIds,
         });
 
       try {
@@ -47,7 +47,7 @@ const assignGameToCollection = async (
 
     await gamesSublevel.put(gameKey, {
       ...game,
-      collectionId,
+      collectionIds,
     });
   } catch (error) {
     logger.error("Failed to assign game to collection", error);

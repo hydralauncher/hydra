@@ -42,12 +42,12 @@ export const librarySlice = createSlice({
     setLibrarySearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
     },
-    setGameCollectionId: (
+    setGameCollectionIds: (
       state,
       action: PayloadAction<{
         shop: LibraryGame["shop"];
         objectId: string;
-        collectionId: string | null;
+        collectionIds: string[];
       }>
     ) => {
       const game = state.value.find(
@@ -57,7 +57,7 @@ export const librarySlice = createSlice({
       );
 
       if (game) {
-        game.collectionId = action.payload.collectionId;
+        game.collectionIds = action.payload.collectionIds;
       }
     },
   },
@@ -68,5 +68,5 @@ export const {
   updateGameNewDownloadOptions,
   clearNewDownloadOptions,
   setLibrarySearchQuery,
-  setGameCollectionId,
+  setGameCollectionIds,
 } = librarySlice.actions;

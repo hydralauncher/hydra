@@ -48,6 +48,7 @@ export function SettingsContextGeneral({
     runAtStartup: false,
     startMinimized: false,
     hideToTrayOnGameStart: false,
+    enableAutoInstall: false,
   });
 
   useEffect(() => {
@@ -91,6 +92,7 @@ export function SettingsContextGeneral({
       runAtStartup: userPreferences.runAtStartup ?? false,
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+      enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
 
@@ -121,7 +123,7 @@ export function SettingsContextGeneral({
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>App basics</h3>
+        <h3>{t("app_basics")}</h3>
 
         <TextField
           label={t("downloads_path")}
@@ -148,7 +150,7 @@ export function SettingsContextGeneral({
       </div>
 
       <div className="settings-context-panel__group">
-        <h3>Startup behavior</h3>
+        <h3>{t("startup_behavior")}</h3>
 
         <CheckboxField
           label={t("quit_app_instead_hiding")}
@@ -200,6 +202,20 @@ export function SettingsContextGeneral({
           />
         )}
       </div>
+
+      {window.electron.platform === "linux" && (
+        <div className="settings-context-panel__group">
+          <h3>{t("behavior")}</h3>
+
+          <CheckboxField
+            label={t("enable_auto_install")}
+            checked={form.enableAutoInstall}
+            onChange={() =>
+              handleChange({ enableAutoInstall: !form.enableAutoInstall })
+            }
+          />
+        </div>
+      )}
 
       <div className="settings-context-panel__group">
         <h3>{t("appearance")}</h3>

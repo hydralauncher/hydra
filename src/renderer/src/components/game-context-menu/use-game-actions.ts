@@ -97,9 +97,9 @@ export function useGameActions(game: LibraryGame) {
     }
   };
 
-  const handleToggleFavorite = async () => {
+  const handleToggleFavorite = async (isFavorite = Boolean(game.favorite)) => {
     try {
-      if (game.favorite) {
+      if (isFavorite) {
         await window.electron.removeGameFromFavorites(game.shop, game.objectId);
         showSuccessToast(t("game_removed_from_favorites"));
       } else {
@@ -119,6 +119,7 @@ export function useGameActions(game: LibraryGame) {
     } catch (error) {
       showErrorToast(t("failed_update_favorites"));
       logger.error("Failed to toggle favorite", error);
+      throw error;
     }
   };
 
