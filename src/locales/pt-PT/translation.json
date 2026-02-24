@@ -630,7 +630,7 @@
     "downloads": "Transferências",
     "use_native_http_downloader": "Usar transferidor HTTP nativo (experimental)",
     "cannot_change_downloader_while_downloading": "Não é possível alterar esta definição enquanto uma transferência estiver em andamento",
-    "create_start_menu_shortcut_on_download": "Criar atalho no Menu Iniciar quando o jogo terminar de transferir",
+    "create_start_menu_shortcut_on_download": "Criar atalhos no Ambiente de Trabalho e no Menu Iniciar quando o jogo terminar de transferir",
     "debrid": "Debrid",
     "debrid_description": "Serviços Debrid são transferidores premium sem restrições que permitem transferir rapidamente ficheiros alojados em vários serviços de alojamento de ficheiros, limitados apenas pela velocidade de internet.",
     "create_real_debrid_account": "Clica aqui se ainda não tens uma conta do Real-Debrid",

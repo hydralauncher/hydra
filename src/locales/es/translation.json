@@ -626,7 +626,7 @@
     "downloads": "Descargas",
     "use_native_http_downloader": "Usar descargador HTTP nativo (experimental)",
     "cannot_change_downloader_while_downloading": "No se puede cambiar esta configuración mientras una descarga está en progreso",
-    "create_start_menu_shortcut_on_download": "Crear atajo en el Menú de Inicio cuando el juego termine de descargar",
+    "create_start_menu_shortcut_on_download": "Crear accesos directos en el Escritorio y en el Menú de Inicio cuando el juego termine de descargarse",
     "change_achievement_sound": "Cambiar sonido de logro",
     "preview_sound": "Vista previa del sonido"
   },
