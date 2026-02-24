@@ -333,6 +333,68 @@
   }
 }
 
+.controller-support {
+  padding: calc(globals.$spacing-unit * 2);
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+  color: globals.$muted-color;
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__icons {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2);
+    justify-content: center;
+    color: globals.$muted-color;
+  }
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    color: globals.$body-color;
+  }
+
+  &__badge {
+    align-self: flex-end;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
+    border-radius: 999px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: globals.$small-font-size;
+
+    &--full {
+      background: rgba(154, 205, 50, 0.15);
+      color: #9acd32;
+    }
+
+    &--partial {
+      background: rgba(255, 165, 0, 0.15);
+      color: #ffa500;
+    }
+
+    &--none {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &__description {
+    margin: 0;
+    text-align: center;
+    color: globals.$body-color;
+  }
+
+  &__source {
+    text-align: center;
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+}
+
 .achievements-placeholder {
   position: absolute;
   z-index: 1;

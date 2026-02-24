@@ -162,6 +162,53 @@ export function GameDetailsSkeleton() {
                 </ul>
               </div>
             </div>
+
+            <div className="sidebar-section">
+              <div
+                className="sidebar-section__button"
+                style={{ pointerEvents: "none" }}
+              >
+                <Skeleton height={16} width={16} />
+                <Skeleton height={16} width={140} />
+              </div>
+
+              <div className="sidebar-section__content">
+                <div className="controller-support">
+                  <div className="controller-support__skeleton">
+                    <div
+                      className="controller-support__icons"
+                      aria-hidden="true"
+                    >
+                      <Skeleton
+                        circle
+                        height={32}
+                        width={32}
+                        style={{ opacity: 0.9 }}
+                      />
+                      <Skeleton
+                        circle
+                        height={32}
+                        width={32}
+                        style={{ opacity: 0.8 }}
+                      />
+                    </div>
+                    <Skeleton height={20} width="60%" />
+                    <Skeleton height={16} width="85%" />
+                    <Skeleton height={16} width="70%" />
+                    <div className="controller-support__device-list">
+                      {Array.from({ length: 2 }).map((_, index) => (
+                        <div key={index}>
+                          <Skeleton
+                            height={42}
+                            style={{ borderRadius: "8px" }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </aside>
         </div>
       </section>
