@@ -730,7 +730,7 @@
     "downloads": "Загрузки",
     "use_native_http_downloader": "Использовать встроенный HTTP-загрузчик (экспериментально)",
     "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки",
-    "create_start_menu_shortcut_on_download": "Создать ярлык в меню «Пуск» при завершении загрузки игры",
+    "create_shortcuts_on_download": "Создавать ярлыки на рабочем столе и в меню «Пуск» после завершения загрузки игры",
     "default_proton_version": "Версия Proton по умолчанию",
     "default_proton_version_description": "Выберите версию Proton, которую использует автоматический режим, если для игры не задана отдельная настройка",
     "proton_version_auto": "Авто (глобальное значение по умолчанию или значение umu по умолчанию)",
