@@ -130,9 +130,7 @@ export class GameFilesManager {
     }
 
     const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-        file.toLowerCase().endsWith(ext)
-      )
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.toLowerCase().endsWith(ext))
     );
 
     const filesToExtract = compressedFiles.filter(

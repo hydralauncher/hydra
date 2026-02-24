@@ -420,7 +420,13 @@ export class JsHttpDownloader {
     if (!normalized) return undefined;
 
     const sanitize = (name: string) =>
-      path.basename(name).replaceAll(/[<>:"/\\|?*\u0000-\u001F]/g, "_").trim();
+      path
+        .basename(name)
+        .replaceAll(/[<>:"/\\|?*]/g, "_")
+        .split("")
+        .filter((char) => char.charCodeAt(0) >= 32)
+        .join("")
+        .trim();
 
     try {
       const decoded = decodeURIComponent(normalized);

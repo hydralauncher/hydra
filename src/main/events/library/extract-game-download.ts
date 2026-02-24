@@ -20,7 +20,9 @@ const extractGameDownload = async (
   if (!download || !game) {
     const gameFilesManager = new GameFilesManager(shop, objectId);
     await gameFilesManager.failExtraction(
-      new Error("Could not start extraction because download metadata is missing")
+      new Error(
+        "Could not start extraction because download metadata is missing"
+      )
     );
     return false;
   }
