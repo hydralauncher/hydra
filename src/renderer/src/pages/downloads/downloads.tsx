@@ -96,7 +96,7 @@ export default function Downloads() {
     }, initialValue);
 
     const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
-      "asc",
+      "desc",
     ]);
 
     const complete = orderBy(result.complete, (game) =>
