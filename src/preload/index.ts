@@ -20,6 +20,7 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ProtonVersion,
+  CreateSteamShortcutOptions,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -220,9 +221,9 @@ contextBridge.exposeInMainWorld("electron", {
   assignGameToCollection: (
     shop: GameShop,
     objectId: string,
-    collectionId: string | null
+    collectionIds: string[]
   ) =>
-    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionId),
+    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
@@ -303,8 +304,11 @@ contextBridge.exposeInMainWorld("electron", {
   scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
-  createSteamShortcut: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("createSteamShortcut", shop, objectId),
+  createSteamShortcut: (
+    shop: GameShop,
+    objectId: string,
+    options?: CreateSteamShortcutOptions
+  ) => ipcRenderer.invoke("createSteamShortcut", shop, objectId, options),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
