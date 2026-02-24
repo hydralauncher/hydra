@@ -58,6 +58,9 @@ export function RepacksModal({
     []
   );
   const [filterTerm, setFilterTerm] = useState("");
+  const [sizeSortOrder, setSizeSortOrder] = useState<"asc" | "desc" | null>(
+    null
+  );
 
   const [hashesInDebrid, setHashesInDebrid] = useState<Record<string, boolean>>(
     {}
@@ -90,6 +93,37 @@ export function RepacksModal({
     const match = magnet.match(hashRegex);
 
     return match ? match[1].toLowerCase() : null;
+  };
+
+  const getFileSizeInBytes = (fileSize: string | null) => {
+    if (!fileSize) return null;
+
+    const match = fileSize.trim().match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]+)$/);
+
+    if (!match) return null;
+
+    const value = Number(match[1].replace(",", "."));
+    const unit = match[2].toUpperCase();
+
+    if (!Number.isFinite(value)) return null;
+
+    const units: Record<string, number> = {
+      B: 0,
+      KB: 1,
+      MB: 2,
+      GB: 3,
+      TB: 4,
+      PB: 5,
+      EB: 6,
+      ZB: 7,
+      YB: 8,
+    };
+
+    const power = units[unit];
+
+    if (power == null) return null;
+
+    return value * 1024 ** power;
   };
 
   const { isFeatureEnabled, Feature } = useFeature();
@@ -222,8 +256,25 @@ export function RepacksModal({
       );
     });
 
-    setFilteredRepacks(bySource);
-  }, [sortedRepacks, filterTerm, selectedFingerprints, downloadSources]);
+    const bySize = sizeSortOrder
+      ? orderBy(
+          bySource,
+          [
+            (repack) => (getFileSizeInBytes(repack.fileSize) == null ? 1 : 0),
+            (repack) => getFileSizeInBytes(repack.fileSize) ?? 0,
+          ],
+          ["asc", sizeSortOrder]
+        )
+      : bySource;
+
+    setFilteredRepacks(bySize);
+  }, [
+    sortedRepacks,
+    filterTerm,
+    selectedFingerprints,
+    downloadSources,
+    sizeSortOrder,
+  ]);
 
   const handleRepackClick = (repack: GameRepack) => {
     setRepack(repack);
@@ -233,6 +284,10 @@ export function RepacksModal({
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     setFilterTerm(event.target.value);
+  };
+
+  const toggleSizeSortOrder = () => {
+    setSizeSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   };
 
   const toggleFingerprint = (fingerprint: string) => {
@@ -279,6 +334,7 @@ export function RepacksModal({
       setFilterTerm("");
       setSelectedFingerprints([]);
       setIsFilterDrawerOpen(false);
+      setSizeSortOrder(null);
     }
   }, [visible]);
 
@@ -306,6 +362,20 @@ export function RepacksModal({
               value={filterTerm}
               onChange={handleFilter}
             />
+            <Button
+              type="button"
+              theme="outline"
+              onClick={toggleSizeSortOrder}
+              className="repacks-modal__filter-toggle"
+            >
+              {sizeSortOrder === "asc"
+                ? t("sort_size_asc")
+                : sizeSortOrder === "desc"
+                  ? t("sort_size_desc")
+                  : t("sort_by_size")}
+              {sizeSortOrder === "asc" && <ChevronUpIcon />}
+              {sizeSortOrder === "desc" && <ChevronDownIcon />}
+            </Button>
             {downloadSources.length > 0 && (
               <Button
                 type="button"
