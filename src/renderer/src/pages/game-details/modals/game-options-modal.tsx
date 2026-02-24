@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
 import type {
+  CreateSteamShortcutOptions,
   Game,
   LibraryGame,
   ProtonVersion,
@@ -39,6 +40,7 @@ import { DownloadsSettingsSection } from "./game-options-modal/downloads-section
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
 import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
+import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -104,6 +106,7 @@ export function GameOptionsModal({
   const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
     string | null
   >(null);
+  const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
 
   const {
     removeGameInstaller,
@@ -268,10 +271,17 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateSteamShortcut = async () => {
+  const handleCreateSteamShortcut = async (
+    options?: CreateSteamShortcutOptions
+  ) => {
     try {
       setCreatingSteamShortcut(true);
-      await window.electron.createSteamShortcut(game.shop, game.objectId);
+
+      await window.electron.createSteamShortcut(
+        game.shop,
+        game.objectId,
+        options ?? {}
+      );
 
       showSuccessToast(
         t("create_shortcut_success"),
@@ -284,6 +294,7 @@ export function GameOptionsModal({
       showErrorToast(t("create_shortcut_error"));
     } finally {
       setCreatingSteamShortcut(false);
+      setShowSteamShortcutModal(false);
     }
   };
 
@@ -635,6 +646,13 @@ export function GameOptionsModal({
         game={game}
       />
 
+      <CreateSteamShortcutModal
+        visible={showSteamShortcutModal}
+        creating={creatingSteamShortcut}
+        onClose={() => setShowSteamShortcutModal(false)}
+        onConfirm={handleCreateSteamShortcut}
+      />
+
       <Modal
         visible={visible}
         title={game.title}
@@ -670,7 +688,7 @@ export function GameOptionsModal({
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
-                onCreateSteamShortcut={handleCreateSteamShortcut}
+                onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
                 onChangeGameTitle={handleChangeGameTitle}
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
