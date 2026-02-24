@@ -36,6 +36,7 @@ import type {
   DownloadSource,
   LocalNotification,
   ProtonVersion,
+  CreateSteamShortcutOptions,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -277,7 +278,11 @@ declare global {
     ) => () => Electron.IpcRenderer;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
-    createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    createSteamShortcut: (
+      shop: GameShop,
+      objectId: string,
+      options?: CreateSteamShortcutOptions
+    ) => Promise<void>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;

@@ -20,6 +20,7 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ProtonVersion,
+  CreateSteamShortcutOptions,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -303,8 +304,11 @@ contextBridge.exposeInMainWorld("electron", {
   scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
-  createSteamShortcut: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("createSteamShortcut", shop, objectId),
+  createSteamShortcut: (
+    shop: GameShop,
+    objectId: string,
+    options?: CreateSteamShortcutOptions
+  ) => ipcRenderer.invoke("createSteamShortcut", shop, objectId, options),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

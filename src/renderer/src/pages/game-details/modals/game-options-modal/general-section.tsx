@@ -20,7 +20,7 @@ interface GeneralSettingsSectionProps {
   onOpenGameExecutablePath: () => Promise<void>;
   onOpenSaveFolder: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
-  onCreateSteamShortcut: () => Promise<void>;
+  onCreateSteamShortcut: () => void;
   onChangeGameTitle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
