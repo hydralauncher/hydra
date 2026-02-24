@@ -62,12 +62,10 @@ export function useGameCollections() {
 
       const previousCollectionId = currentGame?.collectionId ?? null;
 
-      await window.electron.hydraApi.put(
-        `/profile/games/${game.shop}/${game.objectId}/collection`,
-        {
-          data: { collectionId },
-          needsAuth: true,
-        }
+      await window.electron.assignGameToCollection(
+        game.shop,
+        game.objectId,
+        collectionId
       );
 
       dispatch(

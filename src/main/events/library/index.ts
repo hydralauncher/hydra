@@ -1,6 +1,7 @@
 import "./add-custom-game-to-library";
 import "./add-game-to-favorites";
 import "./add-game-to-library";
+import "./assign-game-to-collection";
 import "./change-game-playtime";
 import "./cleanup-unused-assets";
 import "./clear-new-download-options";
