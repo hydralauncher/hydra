@@ -143,7 +143,7 @@ export class RealDebridClient {
     }
 
     const start = Date.now();
-    let polling = true;
+    const polling = true;
     while (polling) {
       if (torrentInfo.status === "downloaded") {
         const [link] = torrentInfo.links;
@@ -165,5 +165,6 @@ export class RealDebridClient {
       await new Promise((r) => setTimeout(r, pollIntervalMs));
       torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
     }
+    throw new Error("Real-Debrid: unreachable");
   }
 }
