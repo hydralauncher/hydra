@@ -30,15 +30,16 @@ import { logger } from "./logger";
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
+  public static gameLauncherWindow: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
       width: 1200,
-      height: 720,
+      height: 860,
       minWidth: 1024,
-      minHeight: 540,
+      minHeight: 860,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
       icon,
@@ -106,7 +107,7 @@ export class WindowManager {
         valueEncoding: "json",
       }
     );
-    return data ?? { isMaximized: false, height: 720, width: 1200 };
+    return data ?? { isMaximized: false, height: 860, width: 1200 };
   }
 
   private static updateInitialConfig(
@@ -143,6 +144,16 @@ export class WindowManager {
           return callback(details);
         }
 
+        if (details.url.includes("workwonders")) {
+          return callback({
+            ...details,
+            requestHeaders: {
+              Origin: "https://workwonders.app",
+              ...details.requestHeaders,
+            },
+          });
+        }
+
         const userAgent = new UserAgent();
 
         callback({
@@ -159,7 +170,8 @@ export class WindowManager {
         if (
           details.webContentsId !== this.mainWindow?.webContents.id ||
           details.url.includes("featurebase") ||
-          details.url.includes("chatwoot")
+          details.url.includes("chatwoot") ||
+          details.url.includes("workwonders")
         ) {
           return callback(details);
         }
@@ -193,7 +205,15 @@ export class WindowManager {
       }
     );
 
-    this.loadMainWindowURL();
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
+    const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
+
+    this.loadMainWindowURL(initialHash);
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
@@ -222,7 +242,7 @@ export class WindowManager {
           ? {
               x: undefined,
               y: undefined,
-              height: this.initialConfigInitializationMainWindow.height ?? 720,
+              height: this.initialConfigInitializationMainWindow.height ?? 860,
               width: this.initialConfigInitializationMainWindow.width ?? 1200,
               isMaximized: true,
             }
@@ -296,51 +316,67 @@ export class WindowManager {
     position: AchievementCustomNotificationPosition | undefined
   ) {
     const display = screen.getPrimaryDisplay();
-    const { width, height } = display.workAreaSize;
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
 
     if (position === "bottom-left") {
       return {
-        x: 0,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
       };
     }
 
     if (position === "bottom-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: height - this.NOTIFICATION_WINDOW_HEIGHT,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY + displayHeight - this.NOTIFICATION_WINDOW_HEIGHT,
+      };
+    }
+
+    if (position === "top-left") {
+      return {
+        x: displayX,
+        y: displayY,
       };
     }
 
     if (position === "top-center") {
       return {
-        x: (width - this.NOTIFICATION_WINDOW_WIDTH) / 2,
-        y: 0,
+        x: displayX + (displayWidth - this.NOTIFICATION_WINDOW_WIDTH) / 2,
+        y: displayY,
       };
     }
 
     if (position === "top-right") {
       return {
-        x: width - this.NOTIFICATION_WINDOW_WIDTH,
-        y: 0,
+        x: displayX + displayWidth - this.NOTIFICATION_WINDOW_WIDTH,
+        y: displayY,
       };
     }
 
     return {
-      x: 0,
-      y: 0,
+      x: displayX,
+      y: displayY,
     };
   }
 
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
+
+    if (process.platform === "darwin") {
+      return;
+    }
 
     const userPreferences = await db.get<string, UserPreferences | undefined>(
       levelKeys.userPreferences,
@@ -490,6 +526,84 @@ export class WindowManager {
       this.editorWindows.forEach((editorWindow) => {
         editorWindow.close();
       });
+    }
+  }
+
+  private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;
+  private static readonly GAME_LAUNCHER_WINDOW_HEIGHT = 320;
+
+  public static async createGameLauncherWindow(shop: string, objectId: string) {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+
+    const display = screen.getPrimaryDisplay();
+    const { width: displayWidth, height: displayHeight } = display.bounds;
+
+    const x = Math.round((displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2);
+    const y = Math.round(
+      (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
+    );
+
+    this.gameLauncherWindow = new BrowserWindow({
+      width: this.GAME_LAUNCHER_WINDOW_WIDTH,
+      height: this.GAME_LAUNCHER_WINDOW_HEIGHT,
+      x,
+      y,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      fullscreenable: false,
+      frame: false,
+      backgroundColor: "#1c1c1c",
+      icon,
+      skipTaskbar: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+
+    this.gameLauncherWindow.removeMenu();
+
+    this.loadWindowURL(
+      this.gameLauncherWindow,
+      `game-launcher?shop=${shop}&objectId=${objectId}`
+    );
+
+    this.gameLauncherWindow.on("closed", () => {
+      this.gameLauncherWindow = null;
+    });
+
+    if (!app.isPackaged || isStaging) {
+      this.gameLauncherWindow.webContents.openDevTools();
+    }
+  }
+
+  public static showGameLauncherWindow() {
+    if (this.gameLauncherWindow && !this.gameLauncherWindow.isDestroyed()) {
+      this.gameLauncherWindow.show();
+    }
+  }
+
+  public static closeGameLauncherWindow() {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+  }
+
+  public static openMainWindow() {
+    if (this.mainWindow) {
+      this.mainWindow.show();
+      if (this.mainWindow.isMinimized()) {
+        this.mainWindow.restore();
+      }
+      this.mainWindow.focus();
+    } else {
+      this.createMainWindow();
     }
   }
 

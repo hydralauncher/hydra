@@ -21,6 +21,8 @@ import resources from "@locales";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
+import * as Sentry from "@sentry/react";
+import { levelDBService } from "./services/leveldb.service";
 import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
@@ -29,9 +31,24 @@ import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
+import Library from "./pages/library/library";
+import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
+import GameLauncher from "./pages/game-launcher/game-launcher";
 
 console.log = logger.log;
+
+Sentry.init({
+  dsn: import.meta.env.RENDERER_VITE_SENTRY_DSN,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 0.5,
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 0,
+  release: "hydra-launcher@" + (await window.electron.getVersion()),
+});
 
 const isStaging = await window.electron.isStaging();
 addCookieInterceptor(isStaging);
@@ -47,7 +64,11 @@ i18n
     },
   })
   .then(async () => {
-    const userPreferences = await window.electron.getUserPreferences();
+    const userPreferences = (await levelDBService.get(
+      "userPreferences",
+      null,
+      "json"
+    )) as { language?: string } | null;
 
     if (userPreferences?.language) {
       i18n.changeLanguage(userPreferences.language);
@@ -64,11 +85,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route element={<App />}>
             <Route path="/" element={<Home />} />
             <Route path="/catalogue" element={<Catalogue />} />
+            <Route path="/library" element={<Library />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/game/:shop/:objectId" element={<GameDetails />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/achievements" element={<Achievements />} />
+            <Route path="/notifications" element={<Notifications />} />
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />
@@ -76,6 +99,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             path="/achievement-notification"
             element={<AchievementNotification />}
           />
+          <Route path="/game-launcher" element={<GameLauncher />} />
         </Routes>
       </HashRouter>
     </Provider>

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
-import achievementSound from "@renderer/assets/audio/achievement.wav";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWonders } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -10,6 +9,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
 
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -19,13 +19,22 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setExtractionProgress,
+  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 
-import { injectCustomCss, removeCustomCss } from "./helpers";
+import {
+  injectCustomCss,
+  removeCustomCss,
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+} from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
+import type { UserPreferences } from "@types";
 import "./app.scss";
 
 export interface AppProps {
@@ -36,17 +45,17 @@ export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
 
+  // Listen for new download options updates
+  useDownloadOptionsListener();
+
   const { t } = useTranslation("app");
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const workwondersRef = useRef<WorkWonders | null>(null);
+
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -68,12 +77,17 @@ export function App() {
 
   const { showSuccessToast } = useToast();
 
+  const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
+    useState(false);
+  const [archivePaths, setArchivePaths] = useState<string[]>([]);
+
   useEffect(() => {
-    Promise.all([window.electron.getUserPreferences(), updateLibrary()]).then(
-      ([preferences]) => {
-        dispatch(setUserPreferences(preferences));
-      }
-    );
+    Promise.all([
+      levelDBService.get("userPreferences", null, "json"),
+      updateLibrary(),
+    ]).then(([preferences]) => {
+      dispatch(setUserPreferences(preferences as UserPreferences | null));
+    });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
@@ -102,7 +116,34 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
-  useEffect(() => {
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      workwondersRef.current = new WorkWonders();
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      await workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidgetMini();
+
+      if (token) {
+        workwondersRef.current.feedback.initFeedbackWidget();
+      }
+    },
+    [workwondersRef]
+  );
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -113,28 +154,31 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          window.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -173,15 +217,30 @@ export function App() {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onExtractionProgress((shop, objectId, progress) => {
+        dispatch(setExtractionProgress({ shop, objectId, progress }));
+      }),
+      window.electron.onExtractionComplete(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+      }),
+      window.electron.onArchiveDeletionPrompt((paths) => {
+        setArchivePaths(paths);
+        setShowArchiveDeletionModal(true);
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
+    const asyncScrollAndNotify = async () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      await workwondersRef.current?.notifyUrlChange?.();
+    };
+    asyncScrollAndNotify();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -196,7 +255,11 @@ export function App() {
   }, [dispatch, draggingDisabled]);
 
   const loadAndApplyTheme = useCallback(async () => {
-    const activeTheme = await window.electron.getActiveCustomTheme();
+    const allThemes = (await levelDBService.values("themes")) as {
+      isActive?: boolean;
+      code?: string;
+    }[];
+    const activeTheme = allThemes.find((theme) => theme.isActive);
     if (activeTheme?.code) {
       injectCustomCss(activeTheme.code);
     } else {
@@ -216,9 +279,11 @@ export function App() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
-  const playAudio = useCallback(() => {
-    const audio = new Audio(achievementSound);
-    audio.volume = 0.2;
+  const playAudio = useCallback(async () => {
+    const soundUrl = await getAchievementSoundUrl();
+    const volume = await getAchievementSoundVolume();
+    const audio = new Audio(soundUrl);
+    audio.volume = volume;
     audio.play();
   }, []);
 
@@ -264,14 +329,11 @@ export function App() {
         feature={hydraCloudFeature}
       />
 
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
+      <ArchiveDeletionModal
+        visible={showArchiveDeletionModal}
+        archivePaths={archivePaths}
+        onClose={() => setShowArchiveDeletionModal(false)}
+      />
 
       <main>
         <Sidebar />
@@ -279,7 +341,11 @@ export function App() {
         <article className="container">
           <Header />
 
-          <section ref={contentRef} className="container__content">
+          <section
+            ref={contentRef}
+            id="scrollableDiv"
+            className="container__content"
+          >
             <Outlet />
           </section>
         </article>

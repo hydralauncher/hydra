@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { useDownload, useLibrary } from "@renderer/hooks";
+import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
@@ -13,6 +13,7 @@ import { ArrowDownIcon } from "@primer/octicons-react";
 
 export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
+  const extraction = useAppSelector((state) => state.download.extraction);
 
   const { t } = useTranslation("downloads");
 
@@ -39,16 +40,21 @@ export default function Downloads() {
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
 
-    const unsubscribe = window.electron.onExtractionComplete(() => {
+    const unsubscribeExtraction = window.electron.onExtractionComplete(() => {
       updateLibrary();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeExtraction();
+    };
   }, [updateLibrary]);
 
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
-    window.electron.openGameInstaller(shop, objectId).then((isBinaryInPath) => {
-      if (!isBinaryInPath) setShowBinaryNotFoundModal(true);
+    window.electron.openGameInstaller(shop, objectId).then((wasOpened) => {
+      if (!wasOpened) {
+        setShowBinaryNotFoundModal(true);
+      }
+
       updateLibrary();
     });
 
@@ -72,12 +78,18 @@ export default function Downloads() {
       /* Game has been manually added to the library */
       if (!next.download) return prev;
 
-      /* Is downloading */
-      if (lastPacket?.gameId === next.id || next.download.extracting)
+      /* Is downloading or extracting */
+      const isExtracting =
+        next.download.extracting || extraction?.visibleId === next.id;
+      if (lastPacket?.gameId === next.id || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
-      /* Is either queued or paused */
-      if (next.download.queued || next.download?.status === "paused")
+      /* Is either queued, paused, or failed */
+      if (
+        next.download.queued ||
+        next.download?.status === "paused" ||
+        next.download?.status === "error"
+      )
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };
@@ -96,20 +108,28 @@ export default function Downloads() {
       queued,
       complete,
     };
-  }, [library, lastPacket?.gameId]);
+  }, [library, lastPacket?.gameId, extraction?.visibleId]);
+
+  const queuedGameIds = useMemo(
+    () => libraryGroup.queued.map((game) => game.id),
+    [libraryGroup.queued]
+  );
 
   const downloadGroups = [
     {
       title: t("download_in_progress"),
       library: libraryGroup.downloading,
+      queuedGameIds: [] as string[],
     },
     {
       title: t("queued_downloads"),
       library: libraryGroup.queued,
+      queuedGameIds,
     },
     {
       title: t("downloads_completed"),
       library: libraryGroup.complete,
+      queuedGameIds: [] as string[],
     },
   ];
 
@@ -137,10 +157,11 @@ export default function Downloads() {
               <DownloadGroup
                 key={group.title}
                 title={group.title}
-                library={orderBy(group.library, ["updatedAt"], ["desc"])}
+                library={group.library}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}
+                queuedGameIds={group.queuedGameIds}
               />
             ))}
           </div>

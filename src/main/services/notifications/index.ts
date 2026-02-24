@@ -11,9 +11,18 @@ import { NotificationOptions, toXmlString } from "./xml";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
 import type { Game, UserPreferences, UserProfile } from "@types";
-import { db, levelKeys } from "@main/level";
+import { db, levelKeys, themesSublevel } from "@main/level";
 import { restartAndInstallUpdate } from "@main/events/autoupdater/restart-and-install-update";
 import { SystemPath } from "../system-path";
+import { getThemeSoundPath } from "@main/helpers";
+import { processProfileImage } from "@main/events/profile/process-profile-image";
+import { LocalNotificationManager } from "./local-notifications";
+
+const getStaticImage = async (path: string) => {
+  return processProfileImage(path, "jpg")
+    .then((response) => response.imagePath)
+    .catch(() => path);
+};
 
 async function downloadImage(url: string | null) {
   if (!url) return undefined;
@@ -30,14 +39,36 @@ async function downloadImage(url: string | null) {
   response.data.pipe(writer);
 
   return new Promise<string | undefined>((resolve) => {
-    writer.on("finish", () => {
-      resolve(outputPath);
+    writer.on("finish", async () => {
+      const staticImagePath = await getStaticImage(outputPath);
+      resolve(staticImagePath);
     });
     writer.on("error", () => {
       logger.error("Failed to download image", { url });
       resolve(undefined);
     });
   });
+}
+
+async function getAchievementSoundPath(): Promise<string> {
+  try {
+    const allThemes = await themesSublevel.values().all();
+    const activeTheme = allThemes.find((theme) => theme.isActive);
+
+    if (activeTheme?.hasCustomSound) {
+      const themeSoundPath = getThemeSoundPath(
+        activeTheme.id,
+        activeTheme.name
+      );
+      if (themeSoundPath) {
+        return themeSoundPath;
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to get theme sound path", error);
+  }
+
+  return achievementSoundPath;
 }
 
 export const publishDownloadCompleteNotification = async (game: Game) => {
@@ -48,37 +79,59 @@ export const publishDownloadCompleteNotification = async (game: Game) => {
     }
   );
 
+  const title = t("download_complete", { ns: "notifications" });
+  const body = t("game_ready_to_install", {
+    ns: "notifications",
+    title: game.title,
+  });
+
   if (userPreferences?.downloadNotificationsEnabled) {
     new Notification({
-      title: t("download_complete", {
-        ns: "notifications",
-      }),
-      body: t("game_ready_to_install", {
-        ns: "notifications",
-        title: game.title,
-      }),
+      title,
+      body,
       icon: await downloadImage(game.iconUrl),
     }).show();
   }
+
+  // Create local notification
+  await LocalNotificationManager.createNotification(
+    "DOWNLOAD_COMPLETE",
+    title,
+    body,
+    {
+      pictureUrl: game.iconUrl,
+      url: `/game/${game.shop}/${game.objectId}`,
+    }
+  );
 };
 
 export const publishNotificationUpdateReadyToInstall = async (
   version: string
 ) => {
+  const title = t("new_update_available", {
+    ns: "notifications",
+    version,
+  });
+  const body = t("restart_to_install_update", {
+    ns: "notifications",
+  });
+
   new Notification({
-    title: t("new_update_available", {
-      ns: "notifications",
-      version,
-    }),
-    body: t("restart_to_install_update", {
-      ns: "notifications",
-    }),
+    title,
+    body,
     icon: trayIcon,
   })
     .on("click", () => {
       restartAndInstallUpdate();
     })
     .show();
+
+  // Create local notification
+  await LocalNotificationManager.createNotification(
+    "UPDATE_AVAILABLE",
+    title,
+    body
+  );
 };
 
 export const publishNewFriendRequestNotification = async (
@@ -145,19 +198,33 @@ export const publishCombinedNewAchievementNotification = async (
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
   } else if (process.platform !== "linux") {
-    sound.play(achievementSoundPath);
+    const soundPath = await getAchievementSoundPath();
+    sound.play(soundPath);
   }
 };
 
 export const publishExtractionCompleteNotification = async (game: Game) => {
+  const title = t("extraction_complete", { ns: "notifications" });
+  const body = t("game_extracted", {
+    ns: "notifications",
+    title: game.title,
+  });
+
   new Notification({
-    title: t("extraction_complete", { ns: "notifications" }),
-    body: t("game_extracted", {
-      ns: "notifications",
-      title: game.title,
-    }),
+    title,
+    body,
     icon: trayIcon,
   }).show();
+
+  // Create local notification
+  await LocalNotificationManager.createNotification(
+    "EXTRACTION_COMPLETE",
+    title,
+    body,
+    {
+      url: `/game/${game.shop}/${game.objectId}`,
+    }
+  );
 };
 
 export const publishNewAchievementNotification = async (info: {
@@ -205,6 +272,7 @@ export const publishNewAchievementNotification = async (info: {
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
   } else if (process.platform !== "linux") {
-    sound.play(achievementSoundPath);
+    const soundPath = await getAchievementSoundPath();
+    sound.play(soundPath);
   }
 };

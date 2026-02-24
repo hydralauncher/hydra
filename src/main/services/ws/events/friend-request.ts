@@ -8,9 +8,11 @@ export const friendRequestEvent = async (payload: FriendRequest) => {
     friendRequestCount: payload.friendRequestCount,
   });
 
-  const user = await HydraApi.get(`/users/${payload.senderId}`);
+  if (payload.senderId) {
+    const user = await HydraApi.get(`/users/${payload.senderId}`);
 
-  if (user) {
-    publishNewFriendRequestNotification(user);
+    if (user) {
+      publishNewFriendRequestNotification(user);
+    }
   }
 };

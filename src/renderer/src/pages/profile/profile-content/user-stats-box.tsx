@@ -1,16 +1,20 @@
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
-import { useFormat } from "@renderer/hooks";
+import { useFormat, useUserDetails } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
+import { Award } from "lucide-react";
+import { WrappedFullscreenModal } from "./wrapped-tab";
 import "./user-stats-box.scss";
 
 export function UserStatsBox() {
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const { showHydraCloudModal } = useSubscription();
-  const { userStats, isMe } = useContext(userProfileContext);
+  const { userStats, isMe, userProfile } = useContext(userProfileContext);
+  const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
 
@@ -33,88 +37,117 @@ export function UserStatsBox() {
 
   if (!userStats) return null;
 
+  const karma = isMe ? userDetails?.karma : userProfile?.karma;
+  const hasKarma = karma !== undefined && karma !== null;
+
   return (
-    <div>
-      <div className="user-stats__section-header">
-        <h2>{t("stats")}</h2>
-      </div>
+    <div className="user-stats__box">
+      <ul className="user-stats__list">
+        {userProfile?.hasCompletedWrapped2025 && (
+          <li className="user-stats__list-item user-stats__list-item--wrapped">
+            <button
+              type="button"
+              onClick={() => setShowWrappedModal(true)}
+              className="user-stats__wrapped-link"
+            >
+              Wrapped 2025
+            </button>
+          </li>
+        )}
 
-      <div className="user-stats__box">
-        <ul className="user-stats__list">
-          {(isMe || userStats.unlockedAchievementSum !== undefined) && (
-            <li className="user-stats__list-item">
-              <h3 className="user-stats__list-title">
-                {t("achievements_unlocked")}
-              </h3>
-              {userStats.unlockedAchievementSum !== undefined ? (
-                <div className="user-stats__stats-row">
-                  <p className="user-stats__list-description">
-                    <TrophyIcon /> {userStats.unlockedAchievementSum}{" "}
-                    {t("achievements")}
-                  </p>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => showHydraCloudModal("achievements")}
-                  className="user-stats__link"
-                >
-                  <small style={{ color: "var(--color-warning)" }}>
-                    {t("show_achievements_on_profile")}
-                  </small>
-                </button>
-              )}
-            </li>
-          )}
-
-          {(isMe || userStats.achievementsPointsEarnedSum !== undefined) && (
-            <li className="user-stats__list-item">
-              <h3 className="user-stats__list-title">{t("earned_points")}</h3>
-              {userStats.achievementsPointsEarnedSum !== undefined ? (
-                <div className="user-stats__stats-row">
-                  <p className="user-stats__list-description">
-                    <HydraIcon width={20} height={20} />
-                    {numberFormatter.format(
-                      userStats.achievementsPointsEarnedSum.value
-                    )}
-                  </p>
-                  <p title={t("ranking_updated_weekly")}>
-                    {t("top_percentile", {
-                      percentile:
-                        userStats.achievementsPointsEarnedSum.topPercentile,
-                    })}
-                  </p>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => showHydraCloudModal("achievements-points")}
-                  className="user-stats__link"
-                >
-                  <small className="user-stats__link--warning">
-                    {t("show_points_on_profile")}
-                  </small>
-                </button>
-              )}
-            </li>
-          )}
-
+        {(isMe || userStats.unlockedAchievementSum !== undefined) && (
           <li className="user-stats__list-item">
-            <h3 className="user-stats__list-title">{t("total_play_time")}</h3>
+            <h3 className="user-stats__list-title">
+              {t("achievements_unlocked")}
+            </h3>
+            {userStats.unlockedAchievementSum !== undefined ? (
+              <div className="user-stats__stats-row">
+                <p className="user-stats__list-description">
+                  <TrophyIcon /> {userStats.unlockedAchievementSum}{" "}
+                  {t("achievements")}
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => showHydraCloudModal("achievements")}
+                className="user-stats__link"
+              >
+                <small style={{ color: "var(--color-warning)" }}>
+                  {t("show_achievements_on_profile")}
+                </small>
+              </button>
+            )}
+          </li>
+        )}
+
+        {(isMe || userStats.achievementsPointsEarnedSum !== undefined) && (
+          <li className="user-stats__list-item">
+            <h3 className="user-stats__list-title">{t("earned_points")}</h3>
+            {userStats.achievementsPointsEarnedSum !== undefined ? (
+              <div className="user-stats__stats-row">
+                <p className="user-stats__list-description">
+                  <HydraIcon width={20} height={20} />
+                  {numberFormatter.format(
+                    userStats.achievementsPointsEarnedSum.value
+                  )}
+                </p>
+                <p title={t("ranking_updated_weekly")}>
+                  {t("top_percentile", {
+                    percentile:
+                      userStats.achievementsPointsEarnedSum.topPercentile,
+                  })}
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => showHydraCloudModal("achievements-points")}
+                className="user-stats__link"
+              >
+                <small className="user-stats__link--warning">
+                  {t("show_points_on_profile")}
+                </small>
+              </button>
+            )}
+          </li>
+        )}
+
+        <li className="user-stats__list-item">
+          <h3 className="user-stats__list-title">{t("total_play_time")}</h3>
+          <div className="user-stats__stats-row">
+            <p className="user-stats__list-description">
+              <ClockIcon />
+              {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
+            </p>
+            <p title={t("ranking_updated_weekly")}>
+              {t("top_percentile", {
+                percentile: userStats.totalPlayTimeInSeconds.topPercentile,
+              })}
+            </p>
+          </div>
+        </li>
+
+        {hasKarma && karma !== undefined && karma !== null && (
+          <li className="user-stats__list-item user-stats__list-item--karma">
+            <h3 className="user-stats__list-title">{t("karma")}</h3>
             <div className="user-stats__stats-row">
               <p className="user-stats__list-description">
-                <ClockIcon />
-                {formatPlayTime(userStats.totalPlayTimeInSeconds.value)}
-              </p>
-              <p title={t("ranking_updated_weekly")}>
-                {t("top_percentile", {
-                  percentile: userStats.totalPlayTimeInSeconds.topPercentile,
-                })}
+                <Award size={20} /> {numberFormatter.format(karma)}{" "}
+                {t("karma_count")}
               </p>
             </div>
           </li>
-        </ul>
-      </div>
+        )}
+      </ul>
+
+      {userProfile && (
+        <WrappedFullscreenModal
+          userId={userProfile.id}
+          isOpen={showWrappedModal}
+          onClose={() => setShowWrappedModal(false)}
+        />
+      )}
     </div>
   );
 }

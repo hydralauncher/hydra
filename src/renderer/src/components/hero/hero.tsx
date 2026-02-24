@@ -50,14 +50,14 @@ export function Hero() {
       >
         <div className="hero__backdrop">
           <img
-            src={game.libraryHeroImageUrl}
+            src={game.libraryHeroImageUrl ?? undefined}
             alt={game.description ?? ""}
             className="hero__media"
           />
 
           <div className="hero__content">
             <img
-              src={game.logoImageUrl}
+              src={game.logoImageUrl ?? undefined}
               width="250px"
               alt={game.description ?? ""}
               loading="eager"

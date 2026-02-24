@@ -1,0 +1,55 @@
+import { Button } from "@renderer/components/button/button";
+import { Modal } from "@renderer/components/modal/modal";
+import { useTranslation } from "react-i18next";
+import "./modals.scss";
+import { removeCustomCss } from "@renderer/helpers";
+import { levelDBService } from "@renderer/services/leveldb.service";
+
+interface DeleteThemeModalProps {
+  visible: boolean;
+  onClose: () => void;
+  themeId: string;
+  isActive: boolean;
+  onThemeDeleted: () => void;
+  themeName: string;
+}
+
+export const DeleteThemeModal = ({
+  visible,
+  onClose,
+  themeId,
+  isActive,
+  onThemeDeleted,
+  themeName,
+}: DeleteThemeModalProps) => {
+  const { t } = useTranslation("settings");
+
+  const handleDeleteTheme = async () => {
+    if (isActive) {
+      removeCustomCss();
+    }
+
+    await levelDBService.del(themeId, "themes");
+    await window.electron.closeEditorWindow(themeId);
+    onThemeDeleted();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      title={t("delete_theme")}
+      description={t("delete_theme_description", { theme: themeName })}
+      onClose={onClose}
+    >
+      <div className="delete-all-themes-modal__container">
+        <Button theme="outline" onClick={onClose}>
+          {t("cancel")}
+        </Button>
+
+        <Button theme="primary" onClick={handleDeleteTheme}>
+          {t("delete_theme")}
+        </Button>
+      </div>
+    </Modal>
+  );
+};

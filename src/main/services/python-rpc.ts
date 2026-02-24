@@ -1,9 +1,11 @@
 import axios from "axios";
+import http from "node:http";
 
 import cp from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import net from "node:net";
+import path from "node:path";
 
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
@@ -26,11 +28,17 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-python-rpc.exe",
 };
 
+const RPC_PORT_RANGE_START = 8080;
+const RPC_PORT_RANGE_END = 9000;
+const DEFAULT_RPC_PORT = 8084;
+
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
-  public static readonly RPC_PORT = "8084";
   public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${this.RPC_PORT}`,
+    baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
+    httpAgent: new http.Agent({
+      family: 4, // Force IPv4
+    }),
   });
 
   private static pythonProcess: cp.ChildProcess | null = null;
@@ -58,15 +66,73 @@ export class PythonRPC {
     return newPassword;
   }
 
+  private static async isPortAvailable(port: number) {
+    return new Promise<boolean>((resolve) => {
+      const server = net.createServer();
+      server.unref();
+
+      server.on("error", () => {
+        server.close(() => resolve(false));
+      });
+
+      server.listen(port, "127.0.0.1", () => {
+        server.close(() => resolve(true));
+      });
+    });
+  }
+
+  private static async findAvailablePort() {
+    const scannedPorts = new Set<number>();
+    const enqueuePort = (port: number) => {
+      if (port < RPC_PORT_RANGE_START || port > RPC_PORT_RANGE_END) return;
+      if (!scannedPorts.has(port)) scannedPorts.add(port);
+    };
+
+    enqueuePort(DEFAULT_RPC_PORT);
+    for (let port = RPC_PORT_RANGE_START; port <= RPC_PORT_RANGE_END; port++) {
+      enqueuePort(port);
+    }
+
+    for (const port of scannedPorts) {
+      if (await this.isPortAvailable(port)) {
+        return port;
+      }
+    }
+
+    throw new Error("No available RPC port found");
+  }
+
+  private static updateRpcPort(port: number) {
+    this.rpc.defaults.baseURL = `http://localhost:${port}`;
+  }
+
   public static async spawn(
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
     const rpcPassword = await this.getRPCPassword();
 
+    let port: number;
+    try {
+      port = await this.findAvailablePort();
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Unknown error while selecting RPC port";
+      dialog.showErrorBox(
+        "RPC Error",
+        `Failed to select an available port for the download service.\n\n${message}`
+      );
+      throw err;
+    }
+
+    this.updateRpcPort(port);
+    pythonRpcLogger.log(`Using RPC port: ${port}`);
+
     const commonArgs = [
       this.BITTORRENT_PORT,
-      this.RPC_PORT,
+      String(port),
       rpcPassword,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
@@ -87,6 +153,7 @@ export class PythonRPC {
         );
 
         app.quit();
+        return;
       }
 
       const childProcess = cp.spawn(binaryPath, commonArgs, {

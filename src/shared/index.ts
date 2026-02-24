@@ -51,6 +51,25 @@ export const formatBytes = (bytes: number): string => {
   return `${Math.trunc(formatedByte * 10) / 10} ${FORMAT[base]}`;
 };
 
+export const parseBytes = (sizeString: string | null): number | null => {
+  if (!sizeString) return null;
+
+  const regex = /^([\d.,]+)\s*([A-Za-z]+)$/;
+  const match = regex.exec(sizeString.trim());
+  if (!match) return null;
+
+  const value = Number.parseFloat(match[1].replaceAll(",", "."));
+  const unit = match[2].toUpperCase();
+
+  if (Number.isNaN(value)) return null;
+
+  const unitIndex = FORMAT.indexOf(unit);
+  if (unitIndex === -1) return null;
+
+  const byteKBase = 1024;
+  return Math.round(value * Math.pow(byteKBase, unitIndex));
+};
+
 export const formatBytesToMbps = (bytesPerSecond: number): string => {
   const bitsPerSecond = bytesPerSecond * 8;
   const mbps = bitsPerSecond / (1024 * 1024);
@@ -110,10 +129,28 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
-  if (uri.startsWith("https://qiwi.gg")) return [Downloader.Qiwi];
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
+  if (
+    uri.startsWith("https://buzzheavier.com") ||
+    uri.startsWith("https://bzzhr.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
+    return [Downloader.Buzzheavier];
+  }
+  if (uri.startsWith("https://fuckingfast.co")) {
+    return [Downloader.FuckingFast];
+  }
+  if (
+    uri.startsWith("https://vikingfile.com") ||
+    uri.startsWith("https://vik1ngfile.site")
+  ) {
+    return [Downloader.VikingFile];
+  }
+  if (uri.startsWith("https://www.rootz.so")) {
+    return [Downloader.Rootz];
+  }
 
   if (realDebridHosts.some((host) => uri.startsWith(host)))
     return [Downloader.RealDebrid];
@@ -124,6 +161,8 @@ export const getDownloadersForUri = (uri: string) => {
       Downloader.Hydra,
       Downloader.TorBox,
       Downloader.RealDebrid,
+      Downloader.Premiumize,
+      Downloader.AllDebrid,
     ];
   }
 

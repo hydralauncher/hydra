@@ -4,11 +4,14 @@ import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 type ProfileGame = {
   id: string;
+  collectionId?: string | null;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
   hasManuallyUpdatedPlaytime: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
+  achievementCount: number;
+  unlockedAchievementCount: number;
 } & ShopAssets;
 
 export const mergeWithRemoteGames = async () => {
@@ -39,6 +42,12 @@ export const mergeWithRemoteGames = async () => {
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
             isPinned: game.isPinned ?? localGame.isPinned,
+            collectionId:
+              game.collectionId === undefined
+                ? (localGame.collectionId ?? null)
+                : game.collectionId,
+            achievementCount: game.achievementCount,
+            unlockedAchievementCount: game.unlockedAchievementCount,
           });
         } else {
           await gamesSublevel.put(gameKey, {
@@ -55,10 +64,20 @@ export const mergeWithRemoteGames = async () => {
             isDeleted: false,
             favorite: game.isFavorite ?? false,
             isPinned: game.isPinned ?? false,
+            collectionId: game.collectionId ?? null,
+            achievementCount: game.achievementCount,
+            unlockedAchievementCount: game.unlockedAchievementCount,
           });
         }
 
         const localGameShopAsset = await gamesShopAssetsSublevel.get(gameKey);
+
+        // Construct coverImageUrl if not provided by backend (Steam games use predictable pattern)
+        const coverImageUrl =
+          game.coverImageUrl ||
+          (game.shop === "steam"
+            ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`
+            : null);
 
         await gamesShopAssetsSublevel.put(gameKey, {
           updatedAt: Date.now(),
@@ -66,7 +85,7 @@ export const mergeWithRemoteGames = async () => {
           shop: game.shop,
           objectId: game.objectId,
           title: localGame?.title || game.title, // Preserve local title if it exists
-          coverImageUrl: game.coverImageUrl,
+          coverImageUrl,
           libraryHeroImageUrl: game.libraryHeroImageUrl,
           libraryImageUrl: game.libraryImageUrl,
           logoImageUrl: game.logoImageUrl,

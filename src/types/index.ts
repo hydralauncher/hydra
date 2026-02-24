@@ -20,9 +20,11 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
+  createdAt: string;
 }
 
 export interface DownloadSource {
@@ -36,14 +38,20 @@ export interface DownloadSource {
   createdAt: string;
 }
 
+export interface ProtonVersion {
+  name: string;
+  path: string;
+  source?: "steam" | "compatibility_tools" | "unknown";
+}
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
   title: string;
   iconUrl: string | null;
-  libraryHeroImageUrl: string;
-  libraryImageUrl: string;
-  logoImageUrl: string;
+  libraryHeroImageUrl: string | null;
+  libraryImageUrl: string | null;
+  logoImageUrl: string | null;
   logoPosition: string | null;
   coverImageUrl: string | null;
   downloadSources: string[];
@@ -83,6 +91,12 @@ export interface UserLibraryResponse {
   pinnedGames: UserGame[];
 }
 
+export interface GameCollection {
+  id: string;
+  name: string;
+  gamesCount: number;
+}
+
 export interface GameRunning {
   id: string;
   title: string;
@@ -116,6 +130,7 @@ export interface StartGameDownloadPayload {
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
+  fileSize?: string | null;
 }
 
 export interface UserFriend {
@@ -143,6 +158,10 @@ export interface FriendRequestSync {
   friendRequestCount: number;
 }
 
+export interface NotificationSync {
+  notificationCount: number;
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -165,6 +184,7 @@ export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
 export interface Badge {
   name: string;
+  title: string;
   description: string;
   badge: {
     url: string;
@@ -181,6 +201,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   featurebaseJwt: string;
+  workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
   quirks?: {
@@ -208,6 +229,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  hasCompletedWrapped2025: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -244,6 +266,7 @@ export interface GameReview {
   isBlocked: boolean;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
+  playTimeInSeconds?: number;
   user: {
     id: string;
     displayName: string;
@@ -252,7 +275,7 @@ export interface GameReview {
   translations: {
     [key: string]: string;
   };
-  detectedLanguage: string;
+  detectedLanguage: string | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -310,6 +333,59 @@ export interface GameArtifact {
   isFrozen: boolean;
 }
 
+export type NotificationType =
+  | "FRIEND_REQUEST_RECEIVED"
+  | "FRIEND_REQUEST_ACCEPTED"
+  | "BADGE_RECEIVED"
+  | "REVIEW_UPVOTE";
+
+export type LocalNotificationType =
+  | "EXTRACTION_COMPLETE"
+  | "DOWNLOAD_COMPLETE"
+  | "UPDATE_AVAILABLE"
+  | "ACHIEVEMENT_UNLOCKED"
+  | "SCAN_GAMES_COMPLETE";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  variables: Record<string, string>;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  priority: number;
+  createdAt: string;
+}
+
+export interface LocalNotification {
+  id: string;
+  type: LocalNotificationType;
+  title: string;
+  description: string;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type MergedNotification =
+  | (Notification & { source: "api" })
+  | (LocalNotification & { source: "local" });
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  pagination: {
+    total: number;
+    take: number;
+    skip: number;
+    hasMore: boolean;
+  };
+}
+
+export interface NotificationCountResponse {
+  count: number;
+}
+
 export interface ComparedAchievements {
   achievementsPointsTotal: number;
   owner: {
@@ -347,6 +423,24 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+  protondbSupportBadges: (
+    | "borked"
+    | "bronze"
+    | "silver"
+    | "gold"
+    | "platinum"
+  )[];
+  deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+}
+
+export interface ProtonDBData {
+  tier: string | null;
+  confidence: string | null;
+  score: number | null;
+  total: number | null;
+  trendingTier: string | null;
+  resolvedCategory: number | null;
+  deckCompatibility: "verified" | "playable" | "unsupported" | "unknown" | null;
 }
 
 export type CatalogueSearchResult = {
@@ -355,12 +449,20 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
+  tier?: string | null;
+  bestReportedTier?: string | null;
+  protondbSupportBadge?: string | null;
+  protondbSupportBadges?: string[];
+  deckCompatibility?: string | null;
+  deckCompatibilities?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
   Partial<ShopAssets> & {
     id: string;
     download: Download | null;
+    unlockedAchievementCount?: number;
+    achievementCount?: number;
   };
 
 export type UserGameDetails = ShopAssets & {

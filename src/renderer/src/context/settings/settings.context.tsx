@@ -2,16 +2,49 @@ import { createContext, useCallback, useEffect, useState } from "react";
 
 import { setUserPreferences } from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
+import { levelDBService } from "@renderer/services/leveldb.service";
 import type { UserBlocks, UserPreferences } from "@types";
 import { useSearchParams } from "react-router-dom";
 
+export type SettingsCategoryId =
+  | "general"
+  | "downloads"
+  | "notifications"
+  | "content_gameplay"
+  | "integrations"
+  | "compatibility"
+  | "account_privacy";
+
+const legacyTabMap: Record<number, SettingsCategoryId> = {
+  0: "general",
+  1: "content_gameplay",
+  2: "downloads",
+  3: "general",
+  4: "integrations",
+  5: "account_privacy",
+};
+
+const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
+  return [
+    "general",
+    "downloads",
+    "notifications",
+    "content_gameplay",
+    "integrations",
+    "compatibility",
+    "account_privacy",
+  ].includes(value);
+};
+
 export interface SettingsContext {
   updateUserPreferences: (values: Partial<UserPreferences>) => Promise<void>;
-  setCurrentCategoryIndex: React.Dispatch<React.SetStateAction<number>>;
+  setCurrentCategoryId: React.Dispatch<
+    React.SetStateAction<SettingsCategoryId>
+  >;
   clearSourceUrl: () => void;
   clearTheme: () => void;
   sourceUrl: string | null;
-  currentCategoryIndex: number;
+  currentCategoryId: SettingsCategoryId;
   blockedUsers: UserBlocks["blocks"];
   fetchBlockedUsers: () => Promise<void>;
   appearance: {
@@ -23,11 +56,11 @@ export interface SettingsContext {
 
 export const settingsContext = createContext<SettingsContext>({
   updateUserPreferences: async () => {},
-  setCurrentCategoryIndex: () => {},
+  setCurrentCategoryId: () => {},
   clearSourceUrl: () => {},
   clearTheme: () => {},
   sourceUrl: null,
-  currentCategoryIndex: 0,
+  currentCategoryId: "general",
   blockedUsers: [],
   fetchBlockedUsers: async () => {},
   appearance: {
@@ -58,7 +91,8 @@ export function SettingsContextProvider({
     authorId: null,
     authorName: null,
   });
-  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  const [currentCategoryId, setCurrentCategoryId] =
+    useState<SettingsCategoryId>("general");
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
 
   const [searchParams] = useSearchParams();
@@ -69,7 +103,7 @@ export function SettingsContextProvider({
   const defaultAppearanceAuthorName = searchParams.get("authorName");
 
   useEffect(() => {
-    if (sourceUrl) setCurrentCategoryIndex(2);
+    if (sourceUrl) setCurrentCategoryId("downloads");
   }, [sourceUrl]);
 
   useEffect(() => {
@@ -80,13 +114,20 @@ export function SettingsContextProvider({
 
   useEffect(() => {
     if (defaultTab) {
+      if (isSettingsCategoryId(defaultTab)) {
+        setCurrentCategoryId(defaultTab);
+        return;
+      }
+
       const idx = Number(defaultTab);
-      if (!Number.isNaN(idx)) setCurrentCategoryIndex(idx);
+      if (!Number.isNaN(idx) && legacyTabMap[idx]) {
+        setCurrentCategoryId(legacyTabMap[idx]);
+      }
     }
   }, [defaultTab]);
 
   useEffect(() => {
-    if (appearance.theme) setCurrentCategoryIndex(3);
+    if (appearance.theme) setCurrentCategoryId("general");
   }, [appearance.theme]);
 
   useEffect(() => {
@@ -134,20 +175,22 @@ export function SettingsContextProvider({
 
   const updateUserPreferences = async (values: Partial<UserPreferences>) => {
     await window.electron.updateUserPreferences(values);
-    window.electron.getUserPreferences().then((userPreferences) => {
-      dispatch(setUserPreferences(userPreferences));
-    });
+    levelDBService
+      .get("userPreferences", null, "json")
+      .then((userPreferences) => {
+        dispatch(setUserPreferences(userPreferences as UserPreferences | null));
+      });
   };
 
   return (
     <Provider
       value={{
         updateUserPreferences,
-        setCurrentCategoryIndex,
+        setCurrentCategoryId,
         clearSourceUrl,
         fetchBlockedUsers,
         clearTheme,
-        currentCategoryIndex,
+        currentCategoryId,
         sourceUrl,
         blockedUsers,
         appearance,

@@ -95,6 +95,8 @@ jobs:
       - name: Update PKGBUILD and .SRCINFO
         if: steps.check-update.outputs.update_needed == 'true'
         run: |
+          # sleeps for 1 minute to be sure GH updated the release info
+          sleep 60
           # Update pkgver in PKGBUILD
           cd hydra-launcher-bin
           NEW_VERSION="${{ steps.get-version.outputs.version }}"
@@ -135,7 +137,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            COMMIT_MSG="v${{ steps.get-version.outputs.version }}"
+            COMMIT_MSG="${{ steps.get-version.outputs.version }}"
             
             git commit -m "$COMMIT_MSG"
             

@@ -7,6 +7,7 @@ import { ProcessPayload } from "./download/types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger } from "./logger";
+import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { MAIN_LOOP_INTERVAL } from "@main/constants";
@@ -24,6 +25,13 @@ interface ExecutableInfo {
 
 interface GameExecutables {
   [key: string]: ExecutableInfo[];
+}
+
+interface LinuxProcessInfo {
+  name: string;
+  cwd: string;
+  exe: string;
+  steamCompatDataPath: string | null;
 }
 
 const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 3 minutes
@@ -69,7 +77,7 @@ const getGameExecutables = async () => {
   return gameExecutables;
 };
 
-const gameExecutables = await getGameExecutables();
+export const gameExecutables = await getGameExecutables();
 
 const findGamePathByProcess = async (
   processMap: Map<string, Set<string>>,
@@ -120,6 +128,7 @@ const getSystemProcessMap = async () => {
 
   const processMap = new Map<string, Set<string>>();
   const winePrefixMap = new Map<string, string>();
+  const linuxProcesses: LinuxProcessInfo[] = [];
 
   processes.forEach((process) => {
     const key = process.name?.toLowerCase();
@@ -135,11 +144,60 @@ const getSystemProcessMap = async () => {
       winePrefixMap.set(value, STEAM_COMPAT_DATA_PATH);
     }
 
+    if (platform === "linux") {
+      linuxProcesses.push({
+        name: key,
+        cwd: (process.cwd ?? "").toLowerCase(),
+        exe: (process.exe ?? "").toLowerCase(),
+        steamCompatDataPath: STEAM_COMPAT_DATA_PATH?.toLowerCase() ?? null,
+      });
+    }
+
     const currentSet = processMap.get(key) ?? new Set();
     processMap.set(key, currentSet.add(value));
   });
 
-  return { processMap, winePrefixMap };
+  return { processMap, winePrefixMap, linuxProcesses };
+};
+
+const hasLinuxCompatibilityProcessMatch = (
+  game: Game,
+  executablePath: string,
+  linuxProcesses: LinuxProcessInfo[]
+) => {
+  if (path.extname(executablePath).toLowerCase() !== ".exe") {
+    return false;
+  }
+
+  const executableName = path.basename(executablePath).toLowerCase();
+  const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
+  const executableDirectory = path.dirname(executablePath).toLowerCase();
+  const expectedWinePrefix = game.winePrefixPath?.toLowerCase();
+
+  return linuxProcesses.some((process) => {
+    if (process.cwd !== executableDirectory) {
+      return false;
+    }
+
+    if (
+      expectedWinePrefix &&
+      process.steamCompatDataPath &&
+      process.steamCompatDataPath !== expectedWinePrefix
+    ) {
+      return false;
+    }
+
+    if (
+      process.name === executableName ||
+      process.name === executableNameWithoutExtension
+    ) {
+      return true;
+    }
+
+    const processRunsUnderWine = process.exe.includes("wine");
+
+    return processRunsUnderWine && process.name.length > 0;
+  });
 };
 
 export const watchProcesses = async () => {
@@ -152,9 +210,11 @@ export const watchProcesses = async () => {
 
   if (!games.length) return;
 
-  const { processMap, winePrefixMap } = await getSystemProcessMap();
+  const { processMap, winePrefixMap, linuxProcesses } =
+    await getSystemProcessMap();
 
   for (const game of games) {
+    const gameKey = levelKeys.game(game.shop, game.objectId);
     const executablePath = game.executablePath;
     if (!executablePath) {
       if (gameExecutables[game.objectId]) {
@@ -168,15 +228,23 @@ export const watchProcesses = async () => {
       .slice(executablePath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
       .toLowerCase();
 
-    const hasProcess = processMap.get(executable)?.has(executablePath);
+    let hasProcess = processMap.get(executable)?.has(executablePath) ?? false;
+
+    if (!hasProcess && platform === "linux") {
+      hasProcess = hasLinuxCompatibilityProcessMatch(
+        game,
+        executablePath,
+        linuxProcesses
+      );
+    }
 
     if (hasProcess) {
-      if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
+      if (gamesPlaytime.has(gameKey)) {
         onTickGame(game);
       } else {
         onOpenGame(game);
       }
-    } else if (gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))) {
+    } else if (gamesPlaytime.has(gameKey)) {
       onCloseGame(game);
     }
   }
@@ -203,6 +271,11 @@ function onOpenGame(game: Game) {
     firstTick: now,
     lastSyncTick: now,
   });
+
+  // On Linux, keep the launcher visible briefly and let it auto-close itself.
+  if (process.platform !== "linux") {
+    WindowManager.closeGameLauncherWindow();
+  }
 
   // Hide Hydra to tray on game startup if enabled
   db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
@@ -304,11 +377,11 @@ function onTickGame(game: Game) {
 }
 
 const onCloseGame = (game: Game) => {
+  const gameKey = levelKeys.game(game.shop, game.objectId);
   const now = performance.now();
-  const gamePlaytime = gamesPlaytime.get(
-    levelKeys.game(game.shop, game.objectId)
-  )!;
-  gamesPlaytime.delete(levelKeys.game(game.shop, game.objectId));
+  const gamePlaytime = gamesPlaytime.get(gameKey)!;
+  gamesPlaytime.delete(gameKey);
+  PowerSaveBlockerManager.markGameClosed(gameKey);
 
   const delta = now - gamePlaytime.lastTick;
 
@@ -318,7 +391,7 @@ const onCloseGame = (game: Game) => {
     lastTimePlayed: new Date(),
   };
 
-  gamesSublevel.put(levelKeys.game(game.shop, game.objectId), updatedGame);
+  gamesSublevel.put(gameKey, updatedGame);
 
   if (game.shop === "custom") return;
 
@@ -339,13 +412,13 @@ const onCloseGame = (game: Game) => {
 
     return trackGamePlaytime(game, deltaToSync, game.lastTimePlayed!)
       .then(() => {
-        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+        return gamesSublevel.put(gameKey, {
           ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: 0,
         });
       })
       .catch(() => {
-        return gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+        return gamesSublevel.put(gameKey, {
           ...updatedGame,
           unsyncedDeltaPlayTimeInMilliseconds: deltaToSync,
         });

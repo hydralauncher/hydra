@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import {
   TextField,
   Button,
@@ -12,7 +19,7 @@ import languageResources from "@locales";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
-import { DesktopDownloadIcon } from "@primer/octicons-react";
+import { DesktopDownloadIcon, UnmuteIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
 import { AchievementCustomNotificationPosition } from "@types";
 
@@ -30,6 +37,12 @@ export function SettingsGeneral() {
     (state) => state.userPreferences.value
   );
 
+  const lastPacket = useAppSelector((state) => state.download.lastPacket);
+  const hasActiveDownload =
+    lastPacket !== null &&
+    lastPacket.progress < 1 &&
+    !lastPacket.isDownloadingMetadata;
+
   const [canInstallCommonRedist, setCanInstallCommonRedist] = useState(false);
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
 
@@ -43,13 +56,17 @@ export function SettingsGeneral() {
     achievementCustomNotificationsEnabled: true,
     achievementCustomNotificationPosition:
       "top-left" as AchievementCustomNotificationPosition,
+    achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
+    useNativeHttpDownloader: true,
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
+
+  const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     window.electron.getDefaultDownloadsPath().then((path) => {
@@ -81,6 +98,9 @@ export function SettingsGeneral() {
 
     return () => {
       clearInterval(interval);
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -110,11 +130,16 @@ export function SettingsGeneral() {
           userPreferences.achievementCustomNotificationsEnabled ?? true,
         achievementCustomNotificationPosition:
           userPreferences.achievementCustomNotificationPosition ?? "top-left",
+        achievementSoundVolume: Math.round(
+          (userPreferences.achievementSoundVolume ?? 0.15) * 100
+        ),
         friendRequestNotificationsEnabled:
           userPreferences.friendRequestNotificationsEnabled ?? false,
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
+        useNativeHttpDownloader:
+          userPreferences.useNativeHttpDownloader ?? true,
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
@@ -147,6 +172,21 @@ export function SettingsGeneral() {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
   };
+
+  const handleVolumeChange = useCallback(
+    (newVolume: number) => {
+      setForm((prev) => ({ ...prev, achievementSoundVolume: newVolume }));
+
+      if (volumeUpdateTimeoutRef.current) {
+        clearTimeout(volumeUpdateTimeoutRef.current);
+      }
+
+      volumeUpdateTimeoutRef.current = setTimeout(() => {
+        updateUserPreferences({ achievementSoundVolume: newVolume / 100 });
+      }, 300);
+    },
+    [updateUserPreferences]
+  );
 
   const handleChangeAchievementCustomNotificationPosition = async (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -216,6 +256,25 @@ export function SettingsGeneral() {
           label: language.nativeName,
         }))}
       />
+
+      <h2 className="settings-general__section-title">{t("downloads")}</h2>
+
+      <CheckboxField
+        label={t("use_native_http_downloader")}
+        checked={form.useNativeHttpDownloader}
+        disabled={hasActiveDownload}
+        onChange={() =>
+          handleChange({
+            useNativeHttpDownloader: !form.useNativeHttpDownloader,
+          })
+        }
+      />
+
+      {hasActiveDownload && (
+        <p className="settings-general__disabled-hint">
+          {t("cannot_change_downloader_while_downloading")}
+        </p>
+      )}
 
       <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
@@ -308,6 +367,39 @@ export function SettingsGeneral() {
             </Button>
           </>
         )}
+
+      {form.achievementNotificationsEnabled && (
+        <div className="settings-general__volume-control">
+          <label htmlFor="achievement-volume">
+            {t("achievement_sound_volume")}
+          </label>
+          <div className="settings-general__volume-slider-wrapper">
+            <UnmuteIcon size={16} className="settings-general__volume-icon" />
+            <input
+              id="achievement-volume"
+              type="range"
+              min="0"
+              max="100"
+              value={form.achievementSoundVolume}
+              onChange={(e) => {
+                const volumePercent = parseInt(e.target.value, 10);
+                if (!isNaN(volumePercent)) {
+                  handleVolumeChange(volumePercent);
+                }
+              }}
+              className="settings-general__volume-slider"
+              style={
+                {
+                  "--volume-percent": `${form.achievementSoundVolume}%`,
+                } as React.CSSProperties
+              }
+            />
+            <span className="settings-general__volume-value">
+              {form.achievementSoundVolume}%
+            </span>
+          </div>
+        </div>
+      )}
 
       <h2 className="settings-general__section-title">{t("common_redist")}</h2>
 

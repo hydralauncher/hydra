@@ -1,11 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField } from "@renderer/components";
+import { CheckboxField, ProtonPathPicker } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
 import { QuestionIcon } from "@primer/octicons-react";
+import type { ProtonVersion } from "@types";
 
 export function SettingsBehavior() {
   const userPreferences = useAppSelector(
@@ -13,6 +14,10 @@ export function SettingsBehavior() {
   );
 
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
+  const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
+  const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
+    useState("");
 
   const { updateUserPreferences } = useContext(settingsContext);
 
@@ -20,6 +25,7 @@ export function SettingsBehavior() {
     preferQuitInsteadOfHiding: false,
     runAtStartup: false,
     startMinimized: false,
+    launchToLibraryPage: false,
     disableNsfwAlert: false,
     enableAutoInstall: false,
     seedAfterDownloadComplete: false,
@@ -29,9 +35,12 @@ export function SettingsBehavior() {
     enableSteamAchievements: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
+    enableNewDownloadOptionsBadges: true,
+    createStartMenuShortcut: true,
   });
 
   const { t } = useTranslation("settings");
+  const { t: tGameDetails } = useTranslation("game_details");
 
   useEffect(() => {
     if (userPreferences) {
@@ -40,6 +49,7 @@ export function SettingsBehavior() {
           userPreferences.preferQuitInsteadOfHiding ?? false,
         runAtStartup: userPreferences.runAtStartup ?? false,
         startMinimized: userPreferences.startMinimized ?? false,
+        launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
         enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
@@ -53,9 +63,37 @@ export function SettingsBehavior() {
           userPreferences.enableSteamAchievements ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
         hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+        enableNewDownloadOptionsBadges:
+          userPreferences.enableNewDownloadOptionsBadges ?? true,
+        createStartMenuShortcut:
+          userPreferences.createStartMenuShortcut ?? true,
       });
+
+      setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     }
   }, [userPreferences]);
+
+  useEffect(() => {
+    if (window.electron.platform !== "linux") return;
+
+    window.electron
+      .getInstalledProtonVersions()
+      .then(setProtonVersions)
+      .catch(() => setProtonVersions([]))
+      .finally(() => setProtonVersionsLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!protonVersionsLoaded || !selectedDefaultProtonPath) return;
+
+    const hasSelectedVersion = protonVersions.some(
+      (version) => version.path === selectedDefaultProtonPath
+    );
+
+    if (!hasSelectedVersion) {
+      setSelectedDefaultProtonPath("");
+    }
+  }, [protonVersions, protonVersionsLoaded, selectedDefaultProtonPath]);
 
   useEffect(() => {
     window.electron.isPortableVersion().then((isPortableVersion) => {
@@ -124,14 +162,49 @@ export function SettingsBehavior() {
         </div>
       )}
 
+      <CheckboxField
+        label={t("launch_hydra_in_library_page")}
+        checked={form.launchToLibraryPage}
+        onChange={() =>
+          handleChange({ launchToLibraryPage: !form.launchToLibraryPage })
+        }
+      />
+
       {window.electron.platform === "linux" && (
-        <CheckboxField
-          label={t("enable_auto_install")}
-          checked={form.enableAutoInstall}
-          onChange={() =>
-            handleChange({ enableAutoInstall: !form.enableAutoInstall })
-          }
-        />
+        <>
+          <CheckboxField
+            label={t("enable_auto_install")}
+            checked={form.enableAutoInstall}
+            onChange={() =>
+              handleChange({ enableAutoInstall: !form.enableAutoInstall })
+            }
+          />
+
+          <div className="settings-behavior__proton-section">
+            <h3 className="settings-behavior__proton-title">
+              {t("default_proton_version")}
+            </h3>
+            <p className="settings-behavior__proton-description">
+              {t("default_proton_version_description")}
+            </p>
+
+            <ProtonPathPicker
+              versions={protonVersions}
+              selectedPath={selectedDefaultProtonPath}
+              onChange={(value) => {
+                setSelectedDefaultProtonPath(value);
+                updateUserPreferences({ defaultProtonPath: value || null });
+              }}
+              radioName="default-proton-version"
+              autoLabel={tGameDetails("proton_version_auto")}
+              autoSourceDescription={tGameDetails("proton_source_umu_default")}
+              steamSourceDescription={tGameDetails("proton_source_steam")}
+              compatibilityToolsSourceDescription={tGameDetails(
+                "proton_source_compatibility_tools"
+              )}
+            />
+          </div>
+        </>
       )}
 
       <CheckboxField
@@ -209,6 +282,29 @@ export function SettingsBehavior() {
           <QuestionIcon size={12} />
         </small>
       </div>
+
+      <CheckboxField
+        label={t("enable_new_download_options_badges")}
+        checked={form.enableNewDownloadOptionsBadges}
+        onChange={() =>
+          handleChange({
+            enableNewDownloadOptionsBadges:
+              !form.enableNewDownloadOptionsBadges,
+          })
+        }
+      />
+
+      {window.electron.platform === "win32" && (
+        <CheckboxField
+          label={t("create_start_menu_shortcut_on_download")}
+          checked={form.createStartMenuShortcut}
+          onChange={() =>
+            handleChange({
+              createStartMenuShortcut: !form.createStartMenuShortcut,
+            })
+          }
+        />
+      )}
     </>
   );
 }

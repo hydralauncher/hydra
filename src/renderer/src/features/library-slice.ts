@@ -5,10 +5,12 @@ import type { LibraryGame } from "@types";
 
 export interface LibraryState {
   value: LibraryGame[];
+  searchQuery: string;
 }
 
 const initialState: LibraryState = {
   value: [],
+  searchQuery: "",
 };
 
 export const librarySlice = createSlice({
@@ -18,7 +20,53 @@ export const librarySlice = createSlice({
     setLibrary: (state, action: PayloadAction<LibraryState["value"]>) => {
       state.value = action.payload;
     },
+
+    updateGameNewDownloadOptions: (
+      state,
+      action: PayloadAction<{ gameId: string; count: number }>
+    ) => {
+      const game = state.value.find((g) => g.id === action.payload.gameId);
+      if (game) {
+        game.newDownloadOptionsCount = action.payload.count;
+      }
+    },
+    clearNewDownloadOptions: (
+      state,
+      action: PayloadAction<{ gameId: string }>
+    ) => {
+      const game = state.value.find((g) => g.id === action.payload.gameId);
+      if (game) {
+        game.newDownloadOptionsCount = undefined;
+      }
+    },
+    setLibrarySearchQuery: (state, action: PayloadAction<string>) => {
+      state.searchQuery = action.payload;
+    },
+    setGameCollectionId: (
+      state,
+      action: PayloadAction<{
+        shop: LibraryGame["shop"];
+        objectId: string;
+        collectionId: string | null;
+      }>
+    ) => {
+      const game = state.value.find(
+        (g) =>
+          g.shop === action.payload.shop &&
+          g.objectId === action.payload.objectId
+      );
+
+      if (game) {
+        game.collectionId = action.payload.collectionId;
+      }
+    },
   },
 });
 
-export const { setLibrary } = librarySlice.actions;
+export const {
+  setLibrary,
+  updateGameNewDownloadOptions,
+  clearNewDownloadOptions,
+  setLibrarySearchQuery,
+  setGameCollectionId,
+} = librarySlice.actions;
