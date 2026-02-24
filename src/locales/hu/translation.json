@@ -622,7 +622,7 @@
     "downloads": "Letöltések",
     "use_native_http_downloader": "Natív HTTP letöltő használata (kísérleti)",
     "cannot_change_downloader_while_downloading": "Ez a beállítás nem változtatható letöltés közben.",
-    "create_start_menu_shortcut_on_download": "Start Menü parancsikon létrehozása letöltés után"
+    "create_shortcuts_on_download": "Start Menü parancsikon létrehozása letöltés után"
   },
   "notifications": {
     "download_complete": "Letöltés befejezve",
