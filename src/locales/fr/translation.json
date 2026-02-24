@@ -105,7 +105,11 @@
     "failed_create_collection": "Échec de la création de la collection",
     "collection_limit_reached": "Limite de collections atteinte",
     "collection_name_already_in_use": "Nom de collection déjà utilisé",
-    "no_collections_yet": "Aucune collection pour le moment"
+    "no_collections_yet": "Aucune collection pour le moment",
+    "expand_collections": "Développer les collections",
+    "collapse_collections": "Réduire les collections",
+    "expand_games": "Développer les jeux",
+    "collapse_games": "Réduire les jeux"
   },
   "header": {
     "search": "Rechercher",
@@ -494,7 +498,8 @@
     "download_error_premiumize_rate_limit_exceeded": "Limite de requêtes Premiumize dépassée. Veuillez patienter et réessayer.",
     "download_error_alldebrid_rate_limit_exceeded": "Limite de requêtes AllDebrid dépassée. Veuillez patienter et réessayer.",
     "download_error_premiumize_unavailable": "Premiumize est temporairement indisponible. Veuillez réessayer plus tard.",
-    "download_error_alldebrid_unavailable": "AllDebrid est temporairement indisponible. Veuillez réessayer plus tard."
+    "download_error_alldebrid_unavailable": "AllDebrid est temporairement indisponible. Veuillez réessayer plus tard.",
+    "download_error_premiumize_transfer_started": "Transfert lancé sur Premiumize, réessayez dans un instant."
   },
   "activation": {
     "title": "Activer Hydra",
