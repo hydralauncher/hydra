@@ -467,18 +467,6 @@ export class GameFilesManager {
       const iconPath = await this.downloadGameIcon();
 
       if (process.platform === "win32") {
-        const userPreferences = await db.get<string, UserPreferences | null>(
-          levelKeys.userPreferences,
-          { valueEncoding: "json" }
-        );
-
-        const shouldCreateShortcuts =
-          userPreferences?.createStartMenuShortcut ?? true;
-
-        if (!shouldCreateShortcuts) {
-          return;
-        }
-
         const desktopSuccess = this.createWindowsShortcut(
           shortcutName,
           SystemPath.getPath("desktop"),
@@ -492,25 +480,35 @@ export class GameFilesManager {
           );
         }
 
-        const startMenuPath = path.join(
-          SystemPath.getPath("appData"),
-          "Microsoft",
-          "Windows",
-          "Start Menu",
-          "Programs"
+        const userPreferences = await db.get<string, UserPreferences | null>(
+          levelKeys.userPreferences,
+          { valueEncoding: "json" }
         );
 
-        const startMenuSuccess = this.createWindowsShortcut(
-          shortcutName,
-          startMenuPath,
-          deepLink,
-          iconPath
-        );
+        const shouldCreateStartMenuShortcut =
+          userPreferences?.createStartMenuShortcut ?? true;
 
-        if (startMenuSuccess) {
-          logger.info(
-            `[GameFilesManager] Created Start Menu shortcut for ${this.objectId}`
+        if (shouldCreateStartMenuShortcut) {
+          const startMenuPath = path.join(
+            SystemPath.getPath("appData"),
+            "Microsoft",
+            "Windows",
+            "Start Menu",
+            "Programs"
           );
+
+          const startMenuSuccess = this.createWindowsShortcut(
+            shortcutName,
+            startMenuPath,
+            deepLink,
+            iconPath
+          );
+
+          if (startMenuSuccess) {
+            logger.info(
+              `[GameFilesManager] Created Start Menu shortcut for ${this.objectId}`
+            );
+          }
         }
       } else {
         const windowVbsPath = app.isPackaged
