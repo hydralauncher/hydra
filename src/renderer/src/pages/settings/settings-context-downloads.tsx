@@ -103,7 +103,7 @@ export function SettingsContextDownloads() {
 
         {window.electron.platform === "win32" && (
           <CheckboxField
-            label={t("create_start_menu_shortcut_on_download")}
+            label={t("create_shortcuts_on_download")}
             checked={form.createStartMenuShortcut}
             onChange={() =>
               handleChange({

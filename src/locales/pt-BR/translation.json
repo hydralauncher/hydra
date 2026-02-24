@@ -711,7 +711,7 @@
     "downloads": "Downloads",
     "use_native_http_downloader": "Usar downloader HTTP nativo (experimental)",
     "cannot_change_downloader_while_downloading": "Não é possível alterar esta configuração enquanto um download estiver em andamento",
-    "create_start_menu_shortcut_on_download": "Criar atalho no Menu Iniciar quando o jogo terminar de baixar",
+    "create_shortcuts_on_download": "Criar atalhos na Área de Trabalho e no Menu Iniciar quando o jogo terminar de baixar",
     "default_proton_version": "Versão padrão do Proton",
     "default_proton_version_description": "Selecione a versão do Proton usada pelo modo Automático quando um jogo não tiver substituição personalizada",
     "proton_version_auto": "Automático (padrão global ou padrão do umu)",

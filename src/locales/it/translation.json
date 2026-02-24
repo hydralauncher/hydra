@@ -622,7 +622,7 @@
     "downloads": "Download",
     "use_native_http_downloader": "Usa downloader HTTP nativo (sperimentale)",
     "cannot_change_downloader_while_downloading": "Impossibile cambiare questa impostazione mentre un download è in corso",
-    "create_start_menu_shortcut_on_download": "Crea collegamento nel menu Start quando il gioco finisce di scaricarsi"
+    "create_shortcuts_on_download": "Crea collegamento nel menu Start quando il gioco finisce di scaricarsi"
   },
   "notifications": {
     "download_complete": "Download completato",
