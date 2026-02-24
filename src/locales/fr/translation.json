@@ -504,7 +504,10 @@
     "download_error_premiumize_transfer_started": "Transfert lancé sur Premiumize, réessayez dans un instant.",
     "create_steam_shortcut_modal_vr_flag": "Jeu VR (Dans Steam : mettre à jour le flag VR ou supprimer/recréer le raccourci)",
     "create_steam_shortcut_modal_create_button": "Créer",
-    "create_steam_shortcut_modal_cancel_button": "Annuler"
+    "create_steam_shortcut_modal_cancel_button": "Annuler",
+    "delete_shortcut_success": "Raccourci Steam supprimé avec succès",
+    "delete_shortcut_error": "Échec de la suppression du raccourci Steam",
+    "delete_steam_shortcut": "Supprimer le raccourci Steam"
   },
   "activation": {
     "title": "Activer Hydra",

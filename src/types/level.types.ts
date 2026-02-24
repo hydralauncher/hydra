@@ -70,6 +70,7 @@ export interface Game {
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
+  steamShortcutAppId?: number;
 }
 
 export interface Download {

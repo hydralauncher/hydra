@@ -108,6 +108,7 @@ export function GameOptionsModal({
     string | null
   >(null);
   const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
+  const [steamShortcutExists, setSteamShortcutExists] = useState(false);
 
   const {
     removeGameInstaller,
@@ -224,6 +225,19 @@ export function GameOptionsModal({
       .catch(() => setWinetricksAvailable(false));
   }, [visible]);
 
+  useEffect(() => {
+    if (game.shop !== "custom") {
+      console.log(
+        "Checking Steam shortcut existence for",
+        window.electron.checkSteamShortcut(game.shop, game.objectId)
+      );
+      window.electron
+        .checkSteamShortcut(game.shop, game.objectId)
+        .then(setSteamShortcutExists)
+        .catch(() => setSteamShortcutExists(false));
+    }
+  }, [game.shop, game.objectId]);
+
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
       const gameKey = getGameKey(game.shop, game.objectId);
@@ -295,6 +309,12 @@ export function GameOptionsModal({
         t("you_might_need_to_restart_steam")
       );
 
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
+
       updateGame();
     } catch (error: unknown) {
       logger.error("Failed to create Steam shortcut", error);
@@ -305,33 +325,44 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateShortcut = async () => {
+  const handleDeleteSteamShortcut = async () => {
     try {
-      const locations: ShortcutLocation[] =
-        window.electron.platform === "win32"
-          ? ["desktop", "start_menu"]
-          : ["desktop"];
+      setCreatingSteamShortcut(true);
+      await window.electron.deleteSteamShortcut(game.shop, game.objectId);
 
-      for (const location of locations) {
-        const success = await window.electron.createGameShortcut(
-          game.shop,
-          game.objectId,
-          location
-        );
-
-        if (!success) {
-          throw new Error(t("create_shortcut_error"));
-        }
-      }
-
-      showSuccessToast(t("create_shortcut_success"));
-    } catch (error: unknown) {
-      logger.error("Failed to create shortcut", error);
-      showErrorToast(
-        t("create_shortcut_error"),
-        error instanceof Error ? error.message : undefined
+      showSuccessToast(
+        t("delete_shortcut_success"),
+        t("you_might_need_to_restart_steam")
       );
+
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
+
+      updateGame();
+    } catch (error: unknown) {
+      logger.error("Failed to delete Steam shortcut", error);
+      showErrorToast(t("delete_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
     }
+  };
+
+  const handleCreateShortcut = async (location: ShortcutLocation) => {
+    window.electron
+      .createGameShortcut(game.shop, game.objectId, location)
+      .then((success) => {
+        if (success) {
+          showSuccessToast(t("create_shortcut_success"));
+        } else {
+          showErrorToast(t("create_shortcut_error"));
+        }
+      })
+      .catch(() => {
+        showErrorToast(t("create_shortcut_error"));
+      });
   };
 
   const handleOpenDownloadFolder = async () => {
@@ -690,12 +721,14 @@ export function GameOptionsModal({
                 }
                 loadingSaveFolder={loadingSaveFolder}
                 saveFolderPath={saveFolderPath}
+                steamShortcutExists={steamShortcutExists}
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
                 onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
+                onDeleteSteamShortcut={handleDeleteSteamShortcut}
                 onChangeGameTitle={handleChangeGameTitle}
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}

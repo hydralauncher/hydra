@@ -15,12 +15,14 @@ interface GeneralSettingsSectionProps {
   shouldShowWinePrefixConfiguration: boolean;
   loadingSaveFolder: boolean;
   saveFolderPath: string | null;
+  steamShortcutExists: boolean;
   onChangeExecutableLocation: () => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenGameExecutablePath: () => Promise<void>;
   onOpenSaveFolder: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => void;
+  onDeleteSteamShortcut: () => Promise<void>;
   onChangeGameTitle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -37,12 +39,14 @@ export function GeneralSettingsSection({
   shouldShowWinePrefixConfiguration,
   loadingSaveFolder,
   saveFolderPath,
+  steamShortcutExists,
   onChangeExecutableLocation,
   onClearExecutablePath,
   onOpenGameExecutablePath,
   onOpenSaveFolder,
   onCreateShortcut,
   onCreateSteamShortcut,
+  onDeleteSteamShortcut,
   onChangeGameTitle,
   onBlurGameTitle,
   onChangeLaunchOptions,
@@ -139,16 +143,26 @@ export function GeneralSettingsSection({
             <Button onClick={() => onCreateShortcut("desktop")} theme="outline">
               {t("create_shortcut")}
             </Button>
-            {game.shop !== "custom" && (
-              <Button
-                onClick={onCreateSteamShortcut}
-                theme="outline"
-                disabled={creatingSteamShortcut}
-              >
-                <SteamLogo />
-                {t("create_steam_shortcut")}
-              </Button>
-            )}
+            {game.shop !== "custom" &&
+              (steamShortcutExists ? (
+                <Button
+                  onClick={onDeleteSteamShortcut}
+                  theme="danger"
+                  disabled={creatingSteamShortcut}
+                >
+                  <SteamLogo />
+                  {t("delete_steam_shortcut")}
+                </Button>
+              ) : (
+                <Button
+                  onClick={onCreateSteamShortcut}
+                  theme="outline"
+                  disabled={creatingSteamShortcut}
+                >
+                  <SteamLogo />
+                  {t("create_steam_shortcut")}
+                </Button>
+              ))}
             {shouldShowCreateStartMenuShortcut && (
               <Button
                 onClick={() => onCreateShortcut("start_menu")}

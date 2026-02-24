@@ -309,6 +309,10 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     options?: CreateSteamShortcutOptions
   ) => ipcRenderer.invoke("createSteamShortcut", shop, objectId, options),
+  deleteSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
+  checkSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
