@@ -11,6 +11,7 @@ import type {
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import {
+  useAppSelector,
   useDownload,
   useLibrary,
   useToast,
@@ -116,6 +117,12 @@ export function GameOptionsModal({
   } = useDownload();
 
   const { userDetails } = useUserDetails();
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const globalAutoRunGamemode = userPreferences?.autoRunGamemode === true;
+  const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
 
   const hasAchievements =
     (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
@@ -721,6 +728,8 @@ export function GameOptionsModal({
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}
                   autoRunMangohud={autoRunMangohud}
+                  globalAutoRunGamemode={globalAutoRunGamemode}
+                  globalAutoRunMangohud={globalAutoRunMangohud}
                   gamemodeAvailable={gamemodeAvailable}
                   mangohudAvailable={mangohudAvailable}
                   winetricksAvailable={winetricksAvailable}

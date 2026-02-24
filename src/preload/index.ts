@@ -221,9 +221,9 @@ contextBridge.exposeInMainWorld("electron", {
   assignGameToCollection: (
     shop: GameShop,
     objectId: string,
-    collectionId: string | null
+    collectionIds: string[]
   ) =>
-    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionId),
+    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
