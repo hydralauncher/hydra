@@ -168,6 +168,11 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    assignGameToCollection: (
+      shop: GameShop,
+      objectId: string,
+      collectionId: string | null
+    ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,
       objectId: string
