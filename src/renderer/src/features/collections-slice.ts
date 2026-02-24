@@ -38,13 +38,20 @@ export const collectionsSlice = createSlice({
     applyCollectionAssignment: (
       state,
       action: PayloadAction<{
-        previousCollectionId: string | null;
-        nextCollectionId: string | null;
+        previousCollectionIds: string[];
+        nextCollectionIds: string[];
       }>
     ) => {
-      const { previousCollectionId, nextCollectionId } = action.payload;
+      const { previousCollectionIds, nextCollectionIds } = action.payload;
 
-      if (previousCollectionId && previousCollectionId !== nextCollectionId) {
+      const previousIdsSet = new Set(previousCollectionIds);
+      const nextIdsSet = new Set(nextCollectionIds);
+
+      for (const previousCollectionId of previousIdsSet) {
+        if (nextIdsSet.has(previousCollectionId)) {
+          continue;
+        }
+
         const previousCollection = state.items.find(
           (collection) => collection.id === previousCollectionId
         );
@@ -57,7 +64,11 @@ export const collectionsSlice = createSlice({
         }
       }
 
-      if (nextCollectionId && previousCollectionId !== nextCollectionId) {
+      for (const nextCollectionId of nextIdsSet) {
+        if (previousIdsSet.has(nextCollectionId)) {
+          continue;
+        }
+
         const nextCollection = state.items.find(
           (collection) => collection.id === nextCollectionId
         );

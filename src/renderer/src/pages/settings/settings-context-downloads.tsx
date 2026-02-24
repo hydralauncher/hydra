@@ -52,7 +52,7 @@ export function SettingsContextDownloads() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>Download behavior</h3>
+        <h3>{t("download_behavior")}</h3>
 
         <CheckboxField
           label={t("use_native_http_downloader")}

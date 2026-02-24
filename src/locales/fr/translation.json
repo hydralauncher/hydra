@@ -459,6 +459,8 @@
     "mangohud_not_available_tooltip": "MangoHud n'est pas disponible dans votre PATH",
     "run_with_gamemode_prefix": "Lancer automatiquement avec",
     "gamemode_not_available_tooltip": "GameMode n'est pas disponible dans votre PATH",
+    "mangohud_disabled_due_to_global_setting_tooltip": "Cette option est désactivée car MangoHud est activé globalement",
+    "gamemode_disabled_due_to_global_setting_tooltip": "Cette option est désactivée car GameMode est activé globalement",
     "auto_run_inherit_global": "Utiliser le paramètre global",
     "auto_run_enabled": "Activé",
     "auto_run_disabled": "Désactivé",
@@ -499,7 +501,10 @@
     "download_error_alldebrid_rate_limit_exceeded": "Limite de requêtes AllDebrid dépassée. Veuillez patienter et réessayer.",
     "download_error_premiumize_unavailable": "Premiumize est temporairement indisponible. Veuillez réessayer plus tard.",
     "download_error_alldebrid_unavailable": "AllDebrid est temporairement indisponible. Veuillez réessayer plus tard.",
-    "download_error_premiumize_transfer_started": "Transfert lancé sur Premiumize, réessayez dans un instant."
+    "download_error_premiumize_transfer_started": "Transfert lancé sur Premiumize, réessayez dans un instant.",
+    "create_steam_shortcut_modal_vr_flag": "Jeu VR (Dans Steam : mettre à jour le flag VR ou supprimer/recréer le raccourci)",
+    "create_steam_shortcut_modal_create_button": "Créer",
+    "create_steam_shortcut_modal_cancel_button": "Annuler"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -563,6 +568,9 @@
     "quit_app_instead_hiding": "Ne pas masquer Hydra à la fermeture",
     "launch_with_system": "Lancer Hydra au démarrage du système",
     "general": "Général",
+    "content_gameplay": "Contenu et gameplay",
+    "integrations": "Intégrations",
+    "compatibility": "Compatibilité",
     "behavior": "Comportement",
     "download_sources": "Sources de téléchargement",
     "language": "Langue",
@@ -738,7 +746,11 @@
     "run_games_with_gamemode": "Lancer les jeux avec GameMode par défaut",
     "run_games_with_mangohud": "Lancer les jeux avec MangoHud par défaut",
     "default_proton_version": "Version de Proton par défaut",
-    "default_proton_version_description": "Sélectionnez la version de Proton utilisée par le mode Auto lorsqu’un jeu n’a pas de configuration personnalisée"
+    "default_proton_version_description": "Sélectionnez la version de Proton utilisée par le mode Auto lorsqu’un jeu n’a pas de configuration personnalisée",
+    "proton_version_auto": "Auto (valeur globale par défaut ou valeur par défaut umu)",
+    "proton_source_umu_default": "Sélection par défaut umu",
+    "proton_source_steam": "Installé par Steam",
+    "proton_source_compatibility_tools": "Installé dans Steam compatibilitytools.d"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",
