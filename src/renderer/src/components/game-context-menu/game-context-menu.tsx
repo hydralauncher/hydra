@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AuthPage } from "@shared";
 import {
   PlayIcon,
   DownloadIcon,
   HeartIcon,
   HeartFillIcon,
-  CheckIcon,
+  CheckCircleFillIcon,
   PlusIcon,
   GearIcon,
   PencilIcon,
@@ -31,6 +32,19 @@ interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: LibraryGame;
 }
 
+const getGameCollectionIds = (currentGame: LibraryGame): string[] => {
+  if (Array.isArray(currentGame.collectionIds)) {
+    return currentGame.collectionIds;
+  }
+
+  const legacyCollectionId = (currentGame as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
+
+const FAVORITES_COLLECTION_ID = "__favorites__";
+
 export function GameContextMenu({
   game,
   visible,
@@ -40,12 +54,26 @@ export function GameContextMenu({
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
+  const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
   const [showConfirmRemoveFiles, setShowConfirmRemoveFiles] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
-  const [isAssigningCollection, setIsAssigningCollection] = useState(false);
+  const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(() =>
+    getGameCollectionIds(game)
+  );
+  const [isFavoriteSelected, setIsFavoriteSelected] = useState(
+    Boolean(game.favorite)
+  );
+  const [pendingCollectionId, setPendingCollectionId] = useState<string | null>(
+    null
+  );
+  const [isFavoritePending, setIsFavoritePending] = useState(false);
+  const [favoriteSuccessVisible, setFavoriteSuccessVisible] = useState(false);
+  const [collectionSuccessId, setCollectionSuccessId] = useState<string | null>(
+    null
+  );
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -72,26 +100,90 @@ export function GameContextMenu({
     handleRemoveFiles,
     handleOpenGameOptions,
   } = useGameActions(game);
+  const selectedCollectionId = searchParams.get("collection");
 
   useEffect(() => {
     if (!visible || game.shop === "custom" || !userDetails) return;
     void loadCollections();
   }, [visible, game.shop, loadCollections, userDetails]);
 
-  const handleAssignGameCollection = async (collectionId: string | null) => {
-    if (isAssigningCollection) return;
+  useEffect(() => {
+    if (!visible) return;
 
-    setIsAssigningCollection(true);
+    setLocalCollectionIds(getGameCollectionIds(game));
+    setIsFavoriteSelected(Boolean(game.favorite));
+    setPendingCollectionId(null);
+    setIsFavoritePending(false);
+    setFavoriteSuccessVisible(false);
+    setCollectionSuccessId(null);
+  }, [visible, game]);
+
+  const handleAssignGameCollection = async (collectionId: string) => {
+    if (pendingCollectionId || isFavoritePending) return;
+
+    const isCurrentlyAssigned = localCollectionIds.includes(collectionId);
+    const nextCollectionIds = isCurrentlyAssigned
+      ? localCollectionIds.filter((id) => id !== collectionId)
+      : [...localCollectionIds, collectionId];
+
+    setPendingCollectionId(collectionId);
 
     try {
-      await assignGameToCollection(game, collectionId);
+      await assignGameToCollection(game, nextCollectionIds);
+
+      setLocalCollectionIds(nextCollectionIds);
+      if (!isCurrentlyAssigned) {
+        setCollectionSuccessId(collectionId);
+        window.setTimeout(() => {
+          setCollectionSuccessId((currentId) =>
+            currentId === collectionId ? null : currentId
+          );
+        }, 320);
+      }
 
       showSuccessToast(t("game_collection_updated"));
+
+      if (isCurrentlyAssigned && selectedCollectionId === collectionId) {
+        onClose();
+      }
     } catch (error) {
       void error;
       showErrorToast(t("failed_update_game_collection"));
     } finally {
-      setIsAssigningCollection(false);
+      setPendingCollectionId(null);
+    }
+  };
+
+  const handleToggleFavoriteStatus = async () => {
+    if (isFavoritePending || pendingCollectionId) return;
+
+    const isAddingToFavorites = !isFavoriteSelected;
+
+    setIsFavoritePending(true);
+
+    try {
+      await handleToggleFavorite(isFavoriteSelected);
+
+      setIsFavoriteSelected((currentValue) => !currentValue);
+
+      if (isAddingToFavorites) {
+        setFavoriteSuccessVisible(true);
+
+        window.setTimeout(() => {
+          setFavoriteSuccessVisible(false);
+        }, 320);
+      }
+
+      if (
+        !isAddingToFavorites &&
+        selectedCollectionId === FAVORITES_COLLECTION_ID
+      ) {
+        onClose();
+      }
+    } catch (error) {
+      void error;
+    } finally {
+      setIsFavoritePending(false);
     }
   };
 
@@ -99,33 +191,47 @@ export function GameContextMenu({
     {
       id: "favorite",
       label: t("favorites", { ns: "sidebar" }),
-      icon: game.favorite ? (
+      icon: isFavoriteSelected ? (
         <HeartFillIcon size={16} />
       ) : (
         <HeartIcon size={16} />
       ),
+      trailingIcon:
+        favoriteSuccessVisible || isFavoriteSelected ? (
+          <CheckCircleFillIcon
+            size={16}
+            className={
+              favoriteSuccessVisible ? "context-menu__success-check" : undefined
+            }
+          />
+        ) : undefined,
       onClick: () => {
-        void handleToggleFavorite();
+        void handleToggleFavoriteStatus();
       },
-      disabled: isDeleting || isAssigningCollection,
+      closeOnClick: false,
+      disabled: isDeleting,
     },
     ...(game.shop === "custom"
       ? []
       : collections.map((collection) => ({
           id: `collection-${collection.id}`,
           label: collection.name,
-          icon:
-            game.collectionId === collection.id ? (
-              <CheckIcon size={16} />
-            ) : (
-              <FileDirectoryIcon size={16} />
-            ),
+          icon: <FileDirectoryIcon size={16} />,
+          trailingIcon: localCollectionIds.includes(collection.id) ? (
+            <CheckCircleFillIcon
+              size={16}
+              className={
+                collectionSuccessId === collection.id
+                  ? "context-menu__success-check"
+                  : undefined
+              }
+            />
+          ) : undefined,
           onClick: () => {
-            void handleAssignGameCollection(
-              game.collectionId === collection.id ? null : collection.id
-            );
+            void handleAssignGameCollection(collection.id);
           },
-          disabled: isDeleting || isAssigningCollection,
+          closeOnClick: false,
+          disabled: isDeleting,
         }))),
     ...(game.shop === "custom"
       ? []
@@ -143,7 +249,7 @@ export function GameContextMenu({
 
               setShowCreateCollectionModal(true);
             },
-            disabled: isDeleting || isAssigningCollection,
+            disabled: isDeleting || Boolean(pendingCollectionId),
           },
         ]),
   ];
@@ -178,7 +284,7 @@ export function GameContextMenu({
         if (game.shop === "custom") return;
         void loadCollections();
       },
-      disabled: isDeleting || isAssigningCollection,
+      disabled: isDeleting || isFavoritePending || Boolean(pendingCollectionId),
       submenu:
         isCollectionsLoading && game.shop !== "custom"
           ? [
@@ -305,7 +411,30 @@ export function GameContextMenu({
         visible={showCreateCollectionModal}
         onClose={() => setShowCreateCollectionModal(false)}
         onCreated={(collection) => {
-          void handleAssignGameCollection(collection.id);
+          void (async () => {
+            const nextCollectionIds = Array.from(
+              new Set([...localCollectionIds, collection.id])
+            );
+
+            setPendingCollectionId(collection.id);
+
+            try {
+              await assignGameToCollection(game, nextCollectionIds);
+              setLocalCollectionIds(nextCollectionIds);
+              setCollectionSuccessId(collection.id);
+              window.setTimeout(() => {
+                setCollectionSuccessId((currentId) =>
+                  currentId === collection.id ? null : currentId
+                );
+              }, 320);
+              showSuccessToast(t("game_collection_updated"));
+            } catch (error) {
+              void error;
+              showErrorToast(t("failed_update_game_collection"));
+            } finally {
+              setPendingCollectionId(null);
+            }
+          })();
         }}
       />
 

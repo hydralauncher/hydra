@@ -100,6 +100,25 @@ $context-menu-danger-color: globals.$error-color;
     margin-left: auto;
   }
 
+  &__item-trailing-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    color: globals.$muted-color;
+  }
+
+  &__success-check {
+    animation: context-menu-check-in 180ms ease-out;
+    transform-origin: center;
+  }
+
+  &__item--danger &__item-trailing-icon {
+    color: $context-menu-danger-color;
+  }
+
   &__submenu {
     position: absolute;
     left: 100%;
@@ -160,5 +179,17 @@ $context-menu-danger-color: globals.$error-color;
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes context-menu-check-in {
+  from {
+    transform: scale(0.72);
+    opacity: 0.75;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }

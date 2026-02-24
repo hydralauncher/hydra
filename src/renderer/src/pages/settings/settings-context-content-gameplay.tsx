@@ -46,7 +46,7 @@ export function SettingsContextContentGameplay() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>Content preferences</h3>
+        <h3>{t("content_preferences")}</h3>
 
         <CheckboxField
           label={t("autoplay_trailers_on_game_page")}
@@ -79,7 +79,7 @@ export function SettingsContextContentGameplay() {
       </div>
 
       <div className="settings-context-panel__group">
-        <h3>Gameplay metadata</h3>
+        <h3>{t("gameplay_metadata")}</h3>
 
         <div className={`settings-behavior__checkbox-container--with-tooltip`}>
           <CheckboxField

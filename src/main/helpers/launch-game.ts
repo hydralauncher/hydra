@@ -196,8 +196,21 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
 
-  const useMangohud = game?.autoRunMangohud === true && isMangohudAvailable();
-  const useGamemode = game?.autoRunGamemode === true && isGamemodeAvailable();
+  const userPreferences = await db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
+
+  const useMangohud =
+    (userPreferences?.autoRunMangohud === true ||
+      game?.autoRunMangohud === true) &&
+    isMangohudAvailable();
+
+  const useGamemode =
+    (userPreferences?.autoRunGamemode === true ||
+      game?.autoRunGamemode === true) &&
+    isGamemodeAvailable();
 
   if (game) {
     await gamesSublevel.put(gameKey, {
