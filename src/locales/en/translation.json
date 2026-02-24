@@ -738,7 +738,7 @@
     "downloads": "Downloads",
     "use_native_http_downloader": "Use native HTTP downloader (experimental)",
     "cannot_change_downloader_while_downloading": "Cannot change this setting while a download is in progress",
-    "create_start_menu_shortcut_on_download": "Create Start Menu shortcut when game finishes downloading",
+    "create_start_menu_shortcut_on_download": "Create Desktop and Start Menu shortcuts when game finishes downloading",
     "default_proton_version": "Default Proton version",
     "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override"
   },
