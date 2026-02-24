@@ -17,7 +17,13 @@ const extractGameDownload = async (
     gamesSublevel.get(gameKey),
   ]);
 
-  if (!download || !game) return false;
+  if (!download || !game) {
+    const gameFilesManager = new GameFilesManager(shop, objectId);
+    await gameFilesManager.failExtraction(
+      new Error("Could not start extraction because download metadata is missing")
+    );
+    return false;
+  }
 
   await downloadsSublevel.put(gameKey, {
     ...download,
@@ -36,7 +42,9 @@ const extractGameDownload = async (
   }
 
   if (
-    FILE_EXTENSIONS_TO_EXTRACT.some((ext) => targetFolderName.endsWith(ext))
+    FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+      targetFolderName.toLowerCase().endsWith(ext)
+    )
   ) {
     gameFilesManager.extractDownloadedFile().catch((error) => {
       gameFilesManager.failExtraction(error).catch(() => {

@@ -5,7 +5,11 @@ import sharp from "sharp";
 import pngToIco from "png-to-ico";
 import type { GameShop, UserPreferences } from "@types";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
+import {
+  Downloader,
+  FILE_EXTENSIONS_TO_EXTRACT,
+  removeSymbolsFromName,
+} from "@shared";
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
@@ -65,20 +69,23 @@ export class GameFilesManager {
     );
 
     const download = await downloadsSublevel.get(this.gameKey);
-    if (!download) return;
 
-    await downloadsSublevel.put(this.gameKey, {
-      ...download,
-      status: "error",
-      extracting: false,
-      extractionProgress: 0,
-    });
+    if (download) {
+      const status =
+        download.progress === 1
+          ? download.shouldSeed && download.downloader === Downloader.Torrent
+            ? "seeding"
+            : "complete"
+          : download.status;
 
-    WindowManager.mainWindow?.webContents.send(
-      "on-extraction-complete",
-      this.shop,
-      this.objectId
-    );
+      await downloadsSublevel.put(this.gameKey, {
+        ...download,
+        status,
+        queued: false,
+        extracting: false,
+        extractionProgress: 0,
+      });
+    }
 
     WindowManager.mainWindow?.webContents.send(
       "on-extraction-failed",
@@ -105,7 +112,13 @@ export class GameFilesManager {
     }
 
     if (pathType !== "directory") {
-      return true;
+      await this.setExtractionFailedState(
+        new Error(
+          `Expected extraction directory but got "${pathType}" for ${directoryPath}`
+        ),
+        directoryPath
+      );
+      return false;
     }
 
     let files: string[];
@@ -117,7 +130,9 @@ export class GameFilesManager {
     }
 
     const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.endsWith(ext))
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+        file.toLowerCase().endsWith(ext)
+      )
     );
 
     const filesToExtract = compressedFiles.filter(

@@ -511,7 +511,14 @@ export class DownloadManager {
       : null;
 
     if (!extractionPath || !fs.existsSync(extractionPath)) {
-      gameFilesManager.setExtractionComplete();
+      gameFilesManager
+        .failExtraction(new Error("No downloaded archive was found to extract"))
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to persist extraction failure state",
+            error
+          );
+        });
       return;
     }
 
@@ -528,6 +535,12 @@ export class DownloadManager {
           "[DownloadManager] Failed to extract downloaded file",
           error
         );
+        gameFilesManager.failExtraction(error).catch((failError) => {
+          logger.error(
+            "[DownloadManager] Failed to persist extraction failure state",
+            failError
+          );
+        });
       });
     } else if (extractionStats.isDirectory()) {
       gameFilesManager
@@ -544,9 +557,26 @@ export class DownloadManager {
             "[DownloadManager] Failed to extract files in directory",
             error
           );
+          gameFilesManager.failExtraction(error).catch((failError) => {
+            logger.error(
+              "[DownloadManager] Failed to persist extraction failure state",
+              failError
+            );
+          });
         });
     } else {
-      gameFilesManager.setExtractionComplete();
+      gameFilesManager
+        .failExtraction(
+          new Error(
+            `Invalid extraction source type for "${download.folderName ?? "unknown"}"`
+          )
+        )
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to persist extraction failure state",
+            error
+          );
+        });
     }
   }
 
