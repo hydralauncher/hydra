@@ -118,7 +118,7 @@ export function SettingsContextNotifications() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>Library notifications</h3>
+        <h3>{t("library_notifications")}</h3>
 
         <CheckboxField
           label={t("enable_download_notifications")}
@@ -165,7 +165,7 @@ export function SettingsContextNotifications() {
       </div>
 
       <div className="settings-context-panel__group">
-        <h3>Achievement notifications</h3>
+        <h3>{t("achievement_notifications")}</h3>
 
         <CheckboxField
           label={t("enable_achievement_notifications")}

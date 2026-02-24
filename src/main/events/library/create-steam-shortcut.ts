@@ -3,6 +3,7 @@ import type { GameShop, ShopAssets } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import {
   composeSteamShortcut,
+  CreateSteamShortcutOptions,
   getSteamLocation,
   getSteamShortcuts,
   getSteamUsersIds,
@@ -76,7 +77,8 @@ const copyAssetIfExists = async (
 const createSteamShortcut = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
-  objectId: string
+  objectId: string,
+  options?: CreateSteamShortcutOptions
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -101,7 +103,8 @@ const createSteamShortcut = async (
     const newShortcut = composeSteamShortcut(
       game.title,
       game.executablePath,
-      iconImage
+      iconImage,
+      options
     );
 
     for (const steamUserId of steamUserIds) {
