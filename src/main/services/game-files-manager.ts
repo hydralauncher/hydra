@@ -79,6 +79,16 @@ export class GameFilesManager {
       this.shop,
       this.objectId
     );
+
+    WindowManager.mainWindow?.webContents.send(
+      "on-extraction-failed",
+      this.shop,
+      this.objectId
+    );
+  }
+
+  async failExtraction(error: unknown, targetPath?: string) {
+    await this.setExtractionFailedState(error, targetPath);
   }
 
   private readonly handleProgress = (progress: ExtractionProgress) => {
@@ -563,7 +573,14 @@ export class GameFilesManager {
 
     if (!download || !game) return false;
 
-    const filePath = path.join(download.downloadPath, download.folderName!);
+    if (!download.folderName) {
+      await this.setExtractionFailedState(
+        new Error("No downloaded archive was found to extract")
+      );
+      return false;
+    }
+
+    const filePath = path.join(download.downloadPath, download.folderName);
 
     const extractionPath = path.join(
       download.downloadPath,

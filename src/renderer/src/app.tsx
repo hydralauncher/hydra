@@ -75,7 +75,7 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -224,6 +224,14 @@ export function App() {
         dispatch(clearExtraction());
         updateLibrary();
       }),
+      window.electron.onExtractionFailed(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+        showErrorToast(
+          t("extraction_failed_title", { ns: "downloads" }),
+          t("extraction_failed_description", { ns: "downloads" })
+        );
+      }),
       window.electron.onArchiveDeletionPrompt((paths) => {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);
@@ -233,7 +241,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
 
   useEffect(() => {
     const asyncScrollAndNotify = async () => {
