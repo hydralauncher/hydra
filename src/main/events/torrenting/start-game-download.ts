@@ -57,6 +57,7 @@ const startGameDownload = async (
     extracting: false,
     automaticallyExtract,
     extractionProgress: 0,
+    addToDebridThenDownload: payload.addToDebridThenDownload,
   };
 
   try {

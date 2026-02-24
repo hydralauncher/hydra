@@ -449,6 +449,7 @@
     "game_removed_from_pinned": "Game removed from pinned",
     "game_added_to_pinned": "Game added to pinned",
     "automatically_extract_downloaded_files": "Automatically extract downloaded files",
+    "add_to_debrid_then_download": "Add to Debrid first, then download",
     "create_start_menu_shortcut": "Create Start Menu shortcut",
     "invalid_wine_prefix_path": "Invalid Wine prefix path",
     "invalid_wine_prefix_path_description": "The path to the Wine prefix is invalid. Please check the path and try again.",

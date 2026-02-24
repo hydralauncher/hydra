@@ -36,7 +36,8 @@ export interface DownloadSettingsModalProps {
     downloader: Downloader,
     downloadPath: string,
     automaticallyExtract: boolean,
-    addToQueueOnly?: boolean
+    addToQueueOnly?: boolean,
+    addToDebridThenDownload?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -70,8 +71,13 @@ export function DownloadSettingsModal({
     null
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
+  const [addToDebridThenDownload, setAddToDebridThenDownload] = useState(true);
 
   const { isFeatureEnabled, Feature } = useFeature();
+
+  const isDebridDownloader =
+    selectedDownloader === Downloader.RealDebrid ||
+    selectedDownloader === Downloader.TorBox;
 
   const getDiskFreeSpace = async (path: string) => {
     const result = await globalThis.electron.getDiskFreeSpace(path);
@@ -292,7 +298,8 @@ export function DownloadSettingsModal({
           selectedDownloader!,
           selectedPath,
           automaticExtractionEnabled,
-          hasActiveDownload
+          hasActiveDownload,
+          addToDebridThenDownload
         );
 
         if (response.ok) {
@@ -511,6 +518,16 @@ export function DownloadSettingsModal({
             setAutomaticExtractionEnabled(!automaticExtractionEnabled)
           }
         />
+
+        {isDebridDownloader && (
+          <CheckboxField
+            label={t("add_to_debrid_then_download")}
+            checked={addToDebridThenDownload}
+            onChange={() =>
+              setAddToDebridThenDownload(!addToDebridThenDownload)
+            }
+          />
+        )}
 
         <Button
           onClick={handleStartClick}

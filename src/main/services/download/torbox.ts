@@ -102,4 +102,47 @@ export class TorBoxClient {
 
     return { url, name };
   }
+
+  /** Add to TorBox and wait until the torrent is cached/ready, then return download info. */
+  static async getDownloadInfoWaitingForReady(
+    uri: string,
+    options: {
+      pollIntervalMs?: number;
+      timeoutMs?: number;
+      onProgress?: (progress: number, state: string) => void;
+    } = {}
+  ): Promise<{ url: string; name: string }> {
+    const { pollIntervalMs = 5000, timeoutMs = 3600_000, onProgress } = options;
+
+    const torrentData = await this.getTorrentIdAndName(uri);
+    const start = Date.now();
+
+    let polling = true;
+    while (polling) {
+      const info = await this.getTorrentInfo(torrentData.id);
+      if (!info) throw new Error("TorBox: torrent not found");
+
+      const { download_state, progress } = info;
+      if (download_state === "cached" || download_state === "completed") {
+        const url = await this.requestLink(torrentData.id);
+        const name = torrentData.name
+          ? `${torrentData.name}.zip`
+          : "download.zip";
+        return { url, name };
+      }
+      if (
+        download_state === "stalled (no seeds)" ||
+        download_state === "paused"
+      ) {
+        onProgress?.(progress, download_state);
+      }
+
+      if (Date.now() - start > timeoutMs) {
+        throw new Error("TorBox: timeout waiting for torrent to be ready");
+      }
+
+      onProgress?.(progress, download_state);
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+    }
+  }
 }
