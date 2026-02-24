@@ -727,7 +727,7 @@
     "downloads": "Téléchargements",
     "use_native_http_downloader": "Utiliser le téléchargeur HTTP natif (expérimental)",
     "cannot_change_downloader_while_downloading": "Impossible de modifier ce paramètre pendant qu’un téléchargement est en cours",
-    "create_start_menu_shortcut_on_download": "Créer un raccourci dans le menu Démarrer à la fin du téléchargement du jeu",
+    "create_shortcuts_on_download": "Créer un raccourci dans le menu Démarrer à la fin du téléchargement du jeu",
     "launch_hydra_in_library_page": "Lancer Hydra sur la page Bibliothèque",
     "enable_premiumize": "Activer Premiumize",
     "enable_alldebrid": "Activer AllDebrid",
