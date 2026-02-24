@@ -1,0 +1,23 @@
+@use "../../../scss/globals.scss";
+
+.create-steam-shortcut-modal {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit * 2;
+  }
+
+  &__inputs {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: flex-end;
+  }
+
+  &__actions {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+}
