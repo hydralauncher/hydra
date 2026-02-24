@@ -543,6 +543,8 @@
     "options": "Manage",
     "extract": "Extract files",
     "extracting": "Extracting files…",
+    "extraction_failed_title": "Extraction failed",
+    "extraction_failed_description": "Hydra could not extract this archive. Check the archive integrity/password and try extracting again.",
     "delete_archive_title": "Would you like to delete {{fileName}}?",
     "delete_archive_description": "The file has been successfully extracted and it's no longer needed.",
     "yes": "Yes",
