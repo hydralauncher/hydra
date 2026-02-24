@@ -17,10 +17,10 @@ import type {
   FriendRequestSync,
   NotificationSync,
   ShortcutLocation,
+  CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ProtonVersion,
-  CreateSteamShortcutOptions,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -345,6 +345,15 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(shop, objectId, progress);
     ipcRenderer.on("on-extraction-progress", listener);
     return () => ipcRenderer.removeListener("on-extraction-progress", listener);
+  },
+  onExtractionFailed: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-extraction-failed", listener);
+    return () => ipcRenderer.removeListener("on-extraction-failed", listener);
   },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (

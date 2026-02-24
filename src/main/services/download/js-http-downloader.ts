@@ -348,9 +348,15 @@ export class JsHttpDownloader {
     this.parseFileSize(response, startByte);
 
     let actualFilePath = filePath;
-    if (usedFallback && startByte === 0) {
+    if (startByte === 0) {
+      const urlDerivedFilename = path.basename(filePath);
       const headerFilename = this.parseContentDisposition(response);
       if (headerFilename) {
+        if (headerFilename !== urlDerivedFilename) {
+          logger.log(
+            `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
+          );
+        }
         actualFilePath = path.join(savePath, headerFilename);
         this.folderName = headerFilename;
         const targetDir = path.dirname(actualFilePath);
@@ -359,6 +365,10 @@ export class JsHttpDownloader {
         }
         logger.log(
           `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
+        );
+      } else if (usedFallback) {
+        logger.log(
+          "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
         );
       }
     }
@@ -385,17 +395,47 @@ export class JsHttpDownloader {
     const header = response.headers.get("content-disposition");
     if (!header) return undefined;
 
-    const filenameMatch = /filename\*?=['"]?(?:UTF-8'')?([^"';\n]+)['"]?/i.exec(
-      header
-    );
-    if (filenameMatch?.[1]) {
-      try {
-        return decodeURIComponent(filenameMatch[1].trim());
-      } catch {
-        return filenameMatch[1].trim();
-      }
+    const filenameStarMatch = /filename\*\s*=\s*([^;]+)/i.exec(header);
+    if (filenameStarMatch?.[1]) {
+      const rawValue = filenameStarMatch[1].trim().replace(/^["']|["']$/g, "");
+      const encodedPart = rawValue.includes("''")
+        ? rawValue.split("''").slice(1).join("''")
+        : rawValue;
+      const decoded = this.decodeFilenameValue(encodedPart);
+      if (decoded) return decoded;
     }
+
+    const filenameMatch = /filename\s*=\s*([^;]+)/i.exec(header);
+    if (filenameMatch?.[1]) {
+      const rawValue = filenameMatch[1].trim().replace(/^["']|["']$/g, "");
+      const decoded = this.decodeFilenameValue(rawValue);
+      if (decoded) return decoded;
+    }
+
     return undefined;
+  }
+
+  private decodeFilenameValue(value: string): string | undefined {
+    const normalized = value.trim();
+    if (!normalized) return undefined;
+
+    const sanitize = (name: string) =>
+      path
+        .basename(name)
+        .replaceAll(/[<>:"/\\|?*]/g, "_")
+        .split("")
+        .filter((char) => char.charCodeAt(0) >= 32)
+        .join("")
+        .trim();
+
+    try {
+      const decoded = decodeURIComponent(normalized);
+      const sanitized = sanitize(decoded);
+      return sanitized || undefined;
+    } catch {
+      const sanitized = sanitize(normalized);
+      return sanitized || undefined;
+    }
   }
 
   private createReadableStream(

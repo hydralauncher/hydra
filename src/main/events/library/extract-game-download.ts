@@ -17,7 +17,15 @@ const extractGameDownload = async (
     gamesSublevel.get(gameKey),
   ]);
 
-  if (!download || !game) return false;
+  if (!download || !game) {
+    const gameFilesManager = new GameFilesManager(shop, objectId);
+    await gameFilesManager.failExtraction(
+      new Error(
+        "Could not start extraction because download metadata is missing"
+      )
+    );
+    return false;
+  }
 
   await downloadsSublevel.put(gameKey, {
     ...download,
@@ -26,17 +34,29 @@ const extractGameDownload = async (
   });
 
   const gameFilesManager = new GameFilesManager(shop, objectId);
+  const targetFolderName = download.folderName;
+
+  if (!targetFolderName) {
+    await gameFilesManager.failExtraction(
+      new Error("No downloaded archive was found to extract")
+    );
+    return false;
+  }
 
   if (
-    FILE_EXTENSIONS_TO_EXTRACT.some((ext) => download.folderName?.endsWith(ext))
+    FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+      targetFolderName.toLowerCase().endsWith(ext)
+    )
   ) {
-    gameFilesManager.extractDownloadedFile().catch(() => {
-      // Errors are handled and persisted by GameFilesManager
+    gameFilesManager.extractDownloadedFile().catch((error) => {
+      gameFilesManager.failExtraction(error).catch(() => {
+        // Fail state persistence is already logged in GameFilesManager
+      });
     });
   } else {
     gameFilesManager
       .extractFilesInDirectory(
-        path.join(download.downloadPath, download.folderName!)
+        path.join(download.downloadPath, targetFolderName)
       )
       .then((success) => {
         if (success) {
@@ -45,8 +65,10 @@ const extractGameDownload = async (
           });
         }
       })
-      .catch(() => {
-        // Errors are handled and persisted by GameFilesManager
+      .catch((error) => {
+        gameFilesManager.failExtraction(error).catch(() => {
+          // Fail state persistence is already logged in GameFilesManager
+        });
       });
   }
 
