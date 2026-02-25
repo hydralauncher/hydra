@@ -5,3 +5,5 @@ out
 migration.stub
 hydra-python-rpc/
 src/main/generated/
+flatpak
+.flatpak-builder

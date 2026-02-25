@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Hydra Launcher
+Comment=Your Game Launcher for 21st century.
+GenericName=Game Launcher
+Exec=hydralauncher %F
+Icon=gg.hydralauncher.Hydra
+Type=Application
+StartupNotify=true
+StartupWMClass=Code
+Categories=Game;
+MimeType=x-scheme-handler/hydralauncher;
+Keywords=hydra;
