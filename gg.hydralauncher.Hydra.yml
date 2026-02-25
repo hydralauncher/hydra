@@ -1,0 +1,45 @@
+app-id: gg.hydralauncher.Hydra
+runtime: org.freedesktop.Platform
+runtime-version: "25.08"
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: "25.08"
+command: hydralauncher
+
+finish-args:
+  - --share=ipc
+  - --device=all
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --share=network
+  - --env=ELECTRON_TRASH=gio
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+  - --talk-name=org.freedesktop.secrets
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents
+  - --filesystem=home
+
+modules:
+  - name: hydralauncher
+    buildsystem: simple
+    build-commands:
+      - ar x hydralauncher.deb
+      - tar -xf data.tar.* -C /app
+      - install -Dm644 gg.hydralauncher.Hydra.desktop -t /app/share/applications
+      - install -Dm644 512x512.png /app/share/icons/hicolor/512x512/apps/gg.hydralauncher.Hydra.png
+      - install -Dm644 gg.hydralauncher.Hydra.desktop -t /app/share/applications
+      - install -Dm755 hydralauncher.sh /app/bin/hydralauncher
+    sources:
+      - type: file
+        url: https://github.com/hydralauncher/hydra/releases/download/v3.9.0/hydralauncher_3.9.0_amd64.deb
+        sha256: 72ac16d9f49d6f533c8e291212438b4a95221aa12d06a7a45a5437119e2ebdaf
+        dest-filename: hydralauncher.deb
+      - type: file
+        path: build/icons/512x512.png
+      - type: file
+        path: gg.hydralauncher.Hydra.desktop
+      - type: script
+        dest-filename: hydralauncher.sh
+        commands:
+          - zypak-wrapper.sh /app/opt/Hydra/hydralauncher "$@"

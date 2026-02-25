@@ -29,6 +29,14 @@
 
 Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
 
+## Flathub specific files
+
+- `gg.hydralauncher.Hydra.yml`: manifest - https://docs.flatpak.org/en/latest/manifests.html
+
+## Build and install for Flatpak
+
+- `flatpak run org.flatpak.Builder --install --user ./flatpak ./gg.hydralauncher.Hydra.yml --force-clean`
+
 ## Contributors
 
 <a href="https://github.com/hydralauncher/hydra/graphs/contributors">

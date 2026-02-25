@@ -5,3 +5,5 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+.flatpak-builder
+flatpak
