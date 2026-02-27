@@ -13,6 +13,7 @@ export enum Downloader {
   Rootz,
   Premiumize,
   AllDebrid,
+  Direct,
 }
 
 export enum DownloadSourceStatus {
