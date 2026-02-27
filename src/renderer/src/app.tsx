@@ -135,6 +135,7 @@ export function App() {
 
       await workwondersRef.current.changelog.initChangelogWidget();
       workwondersRef.current.changelog.initChangelogWidgetMini();
+      await workwondersRef.current.knowledge.initKnowledgeWidget();
 
       if (token) {
         workwondersRef.current.feedback.initFeedbackWidget();
@@ -142,6 +143,50 @@ export function App() {
     },
     [workwondersRef]
   );
+
+  useEffect(() => {
+    const onClick = async (event: MouseEvent) => {
+      const userPreferences = await window.electron.getUserPreferences();
+      const language = userPreferences?.language ?? "en";
+
+      const articleMapping = {
+        pt: {
+          "cannot-write-directory": 1429,
+          seeding: 1442,
+          "peers-and-seeds": 1449,
+          "steam-achievements": 1412,
+        },
+        en: {
+          "cannot-write-directory": 4122,
+          seeding: 4116,
+          "peers-and-seeds": 4119,
+          "steam-achievements": 4140,
+        },
+      };
+
+      const $helpCenterTarget = (event.target as HTMLElement).closest(
+        "[data-open-article]"
+      );
+
+      if ($helpCenterTarget) {
+        const article = $helpCenterTarget.getAttribute("data-open-article");
+        const articleId =
+          articleMapping[language.slice(0, 2)]?.[
+            article as keyof typeof articleMapping
+          ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
+
+        if (articleId) {
+          workwondersRef.current?.knowledge.showArticle(articleId);
+        }
+      }
+    };
+
+    window.addEventListener("click", onClick);
+
+    return () => {
+      window.removeEventListener("click", onClick);
+    };
+  }, []);
 
   const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
