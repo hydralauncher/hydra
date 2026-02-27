@@ -61,6 +61,19 @@ export class JsHttpDownloader {
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
   private isStallRetry = false;
+  private maxDownloadSpeedBytesPerSecond: number | null = null;
+  private throttleWindowStart = Date.now();
+  private bytesTransferredInThrottleWindow = 0;
+
+  setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
+    if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
+      this.maxDownloadSpeedBytesPerSecond = null;
+    } else {
+      this.maxDownloadSpeedBytesPerSecond = Math.floor(limit);
+    }
+
+    this.resetThrottleWindow();
+  }
 
   async startDownload(options: JsHttpDownloaderOptions): Promise<void> {
     if (this.isDownloading) {
@@ -75,6 +88,7 @@ export class JsHttpDownloader {
     this.retryCount = 0;
     this.isStallRetry = false;
     this.fileSize = 0;
+    this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
 
@@ -222,6 +236,38 @@ export class JsHttpDownloader {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private resetThrottleWindow(): void {
+    this.throttleWindowStart = Date.now();
+    this.bytesTransferredInThrottleWindow = 0;
+  }
+
+  private async applyThrottle(chunkSize: number): Promise<void> {
+    const limit = this.maxDownloadSpeedBytesPerSecond;
+    if (!limit) return;
+
+    while (!this.isPaused) {
+      const now = Date.now();
+      const elapsed = now - this.throttleWindowStart;
+
+      if (elapsed >= 1000) {
+        this.throttleWindowStart = now;
+        this.bytesTransferredInThrottleWindow = 0;
+      }
+
+      const availableBytes = limit - this.bytesTransferredInThrottleWindow;
+      if (
+        availableBytes >= chunkSize ||
+        this.bytesTransferredInThrottleWindow === 0
+      ) {
+        this.bytesTransferredInThrottleWindow += chunkSize;
+        return;
+      }
+
+      const waitMs = Math.max(1, 1000 - elapsed);
+      await this.sleep(waitMs);
+    }
   }
 
   private prepareDownloadPath(
@@ -401,6 +447,7 @@ export class JsHttpDownloader {
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>
   ): Readable {
+    const downloader = this;
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
       this.lastDataReceivedAt = Date.now();
@@ -409,19 +456,21 @@ export class JsHttpDownloader {
 
     return new Readable({
       read() {
-        reader
-          .read()
-          .then(({ done, value }) => {
+        void (async () => {
+          try {
+            const { done, value } = await reader.read();
             if (done) {
               this.push(null);
               return;
             }
+
+            await downloader.applyThrottle(value.length);
             onChunk(value.length);
             this.push(Buffer.from(value));
-          })
-          .catch((err: Error) => {
-            this.destroy(err);
-          });
+          } catch (err) {
+            this.destroy(err as Error);
+          }
+        })();
       },
     });
   }
@@ -561,5 +610,6 @@ export class JsHttpDownloader {
     this.isDownloading = false;
     this.retryCount = 0;
     this.isStallRetry = false;
+    this.resetThrottleWindow();
   }
 }

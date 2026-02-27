@@ -4,6 +4,7 @@ import type { UserPreferences } from "@types";
 import i18next from "i18next";
 import { db, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
+import { DownloadManager } from "@main/services";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -33,6 +34,17 @@ const updateUserPreferences = async (
       valueEncoding: "json",
     }
   );
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      preferences,
+      "maxDownloadSpeedBytesPerSecond"
+    )
+  ) {
+    await DownloadManager.applyDownloadSpeedLimit(
+      preferences.maxDownloadSpeedBytesPerSecond ?? null
+    );
+  }
 };
 
 registerEvent("updateUserPreferences", updateUserPreferences);
