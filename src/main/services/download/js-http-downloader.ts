@@ -447,7 +447,7 @@ export class JsHttpDownloader {
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>
   ): Readable {
-    const downloader = this;
+    const applyThrottle = this.applyThrottle.bind(this);
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
       this.lastDataReceivedAt = Date.now();
@@ -464,7 +464,7 @@ export class JsHttpDownloader {
               return;
             }
 
-            await downloader.applyThrottle(value.length);
+            await applyThrottle(value.length);
             onChunk(value.length);
             this.push(Buffer.from(value));
           } catch (err) {
