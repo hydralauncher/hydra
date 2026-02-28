@@ -511,7 +511,10 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "delete_shortcut_success": "Steam shortcut deleted successfully",
+    "delete_shortcut_error": "Failed to delete Steam shortcut",
+    "delete_steam_shortcut": "Delete Steam shortcut"
   },
   "activation": {
     "title": "Activate Hydra",

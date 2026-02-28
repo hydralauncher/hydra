@@ -283,6 +283,8 @@ declare global {
       objectId: string,
       options?: CreateSteamShortcutOptions
     ) => Promise<void>;
+    deleteSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
