@@ -4,6 +4,7 @@ from aria2p.client import ClientException as DownloadNotFound
 class HttpDownloader:
     def __init__(self):
         self.download = None
+        self.max_download_speed = None
         self.aria2 = aria2p.API(
             aria2p.Client(
                 host="http://localhost",
@@ -12,11 +13,21 @@ class HttpDownloader:
             )
         )
 
+    def set_download_limit(self, max_download_speed: int = None):
+        self.max_download_speed = max_download_speed if max_download_speed and max_download_speed > 0 else None
+        speed_limit = str(self.max_download_speed) if self.max_download_speed else "0"
+        try:
+            self.aria2.set_global_options({"max-overall-download-limit": speed_limit})
+        except Exception:
+            pass
+
     def start_download(self, url: str, save_path: str, header, out: str = None):
         if self.download:
             self.aria2.resume([self.download])
         else:
             options = {"dir": save_path}
+            if self.max_download_speed:
+                options["max-download-limit"] = str(self.max_download_speed)
             if header:
                 options["header"] = header
             if out:
