@@ -131,6 +131,8 @@ export interface StartGameDownloadPayload {
   downloader: Downloader;
   automaticallyExtract: boolean;
   fileSize?: string | null;
+  /** When true, add torrent to Debrid (Real-Debrid/TorBox) and wait until ready before downloading. */
+  addToDebridThenDownload?: boolean;
 }
 
 export interface UserFriend {

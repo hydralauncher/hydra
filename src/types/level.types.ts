@@ -89,6 +89,8 @@ export interface Download {
   extracting: boolean;
   automaticallyExtract: boolean;
   extractionProgress: number;
+  /** When true, add to Debrid and wait until ready before starting download. */
+  addToDebridThenDownload?: boolean;
 }
 
 export interface GameAchievement {

@@ -40,7 +40,8 @@ export interface RepacksModalProps {
     downloader: Downloader,
     downloadPath: string,
     automaticallyExtract: boolean,
-    addToQueueOnly?: boolean
+    addToQueueOnly?: boolean,
+    addToDebridThenDownload?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
