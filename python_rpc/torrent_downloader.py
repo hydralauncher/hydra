@@ -1,10 +1,25 @@
+import logging
+import threading
+import time
+from typing import List, Optional, Set
+
 import libtorrent as lt
 
+
 class TorrentDownloader:
-    def __init__(self, torrent_session, flags = lt.torrent_flags.auto_managed):
+    def __init__(
+        self,
+        torrent_session,
+        flags=lt.torrent_flags.auto_managed,
+        session_lock: Optional[threading.RLock] = None,
+    ):
         self.torrent_handle = None
         self.session = torrent_session
         self.flags = flags
+        self.session_lock = session_lock or threading.RLock()
+        self.selected_file_indices = None
+        self.selected_size_bytes = None
+        self.logger = logging.getLogger("hydra.torrent")
         self.trackers = [
             "udp://tracker.opentrackr.org:1337/announce",
             "http://tracker.opentrackr.org:1337/announce",
@@ -102,10 +117,137 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
-    def start_download(self, magnet: str, save_path: str):
-        params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': self.flags}
-        self.torrent_handle = self.session.add_torrent(params)
+    def _wait_for_metadata(self, timeout_seconds: float = 30.0, poll_interval: float = 0.25):
+        if not self.torrent_handle or not self.torrent_handle.is_valid():
+            return False
+
+        deadline = time.monotonic() + max(timeout_seconds, 1.0)
+
+        while time.monotonic() < deadline:
+            try:
+                status = self.torrent_handle.status()
+            except RuntimeError:
+                return False
+
+            if status.has_metadata:
+                return True
+
+            time.sleep(max(poll_interval, 0.05))
+
+        return False
+
+    def wait_for_metadata(self, timeout_seconds: float = 30.0):
+        return self._wait_for_metadata(timeout_seconds=timeout_seconds)
+
+    def _sanitize_file_indices(self, file_indices: List[int], files_storage):
+        if file_indices is None:
+            return None
+
+        if not isinstance(file_indices, list):
+            raise ValueError("invalid_file_indices")
+
+        max_index = files_storage.num_files() - 1
+        sanitized: Set[int] = set()
+
+        for index in file_indices:
+            if isinstance(index, bool) or not isinstance(index, int):
+                raise ValueError("invalid_file_indices")
+
+            if index < 0 or index > max_index:
+                raise ValueError("invalid_file_indices")
+
+            sanitized.add(index)
+
+        if not sanitized:
+            raise ValueError("empty_selection")
+
+        return sorted(sanitized)
+
+    def _set_selected_file_priorities(self, selected_indices: List[int], files_storage):
+        selected_set = set(selected_indices)
+
+        for index in range(files_storage.num_files()):
+            priority = 1 if index in selected_set else 0
+            self.torrent_handle.file_priority(index, priority)
+
+    def start_download(
+        self,
+        magnet: str,
+        save_path: str,
+        file_indices: Optional[List[int]] = None,
+        wait_timeout_seconds: float = 30.0,
+    ):
+        with self.session_lock:
+            if self.torrent_handle and self.torrent_handle.is_valid():
+                self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+                self.torrent_handle.resume()
+                return
+
+            params = {
+                "url": magnet,
+                "save_path": save_path,
+                "trackers": self.trackers,
+                "flags": self.flags | lt.torrent_flags.paused | lt.torrent_flags.auto_managed,
+            }
+
+            self.torrent_handle = self.session.add_torrent(params)
+
+        self.selected_file_indices = None
+        self.selected_size_bytes = None
+
+        if file_indices is not None:
+            try:
+                if not self._wait_for_metadata(timeout_seconds=wait_timeout_seconds):
+                    raise TimeoutError("metadata_timeout")
+
+                try:
+                    info = self.torrent_handle.get_torrent_info()
+                    files_storage = info.files()
+                except RuntimeError as error:
+                    raise RuntimeError("metadata_incomplete") from error
+
+                sanitized_indices = self._sanitize_file_indices(file_indices, files_storage)
+                self._set_selected_file_priorities(sanitized_indices, files_storage)
+
+                self.selected_file_indices = sanitized_indices
+                self.selected_size_bytes = sum(files_storage.file_size(index) for index in sanitized_indices)
+            except Exception:
+                self.cancel_download()
+                raise
+
+        self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
         self.torrent_handle.resume()
+
+    def get_torrent_files(self, timeout_seconds: float = 30.0, max_files: int = 100000):
+        if not self._wait_for_metadata(timeout_seconds=timeout_seconds):
+            raise TimeoutError("metadata_timeout")
+
+        try:
+            info = self.torrent_handle.get_torrent_info()
+        except RuntimeError as error:
+            raise RuntimeError("metadata_incomplete") from error
+
+        files_storage = info.files()
+        file_count = files_storage.num_files()
+
+        if file_count > max_files:
+            raise OverflowError("too_many_files")
+
+        files = []
+        for index in range(file_count):
+            files.append(
+                {
+                    "index": index,
+                    "path": files_storage.file_path(index),
+                    "length": files_storage.file_size(index),
+                }
+            )
+
+        return {
+            "name": info.name(),
+            "totalSize": info.total_size(),
+            "files": files,
+        }
 
     def pause_download(self):
         if self.torrent_handle:
@@ -113,37 +255,74 @@ class TorrentDownloader:
             self.torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
 
     def cancel_download(self):
-        if self.torrent_handle:
-            self.torrent_handle.pause()
-            self.session.remove_torrent(self.torrent_handle)
-            self.torrent_handle = None
+        with self.session_lock:
+            if self.torrent_handle:
+                if self.torrent_handle.is_valid():
+                    self.torrent_handle.pause()
+                    self.session.remove_torrent(self.torrent_handle)
+                self.torrent_handle = None
+                self.selected_file_indices = None
+                self.selected_size_bytes = None
 
     def abort_session(self):
-        for game_id in self.torrent_handles:
-            self.torrent_handle = self.torrent_handles[game_id]
-            self.torrent_handle.pause()
-            self.session.remove_torrent(self.torrent_handle)
-            
+        self.cancel_download()
         self.session.abort()
         self.torrent_handle = None
+        self.selected_file_indices = None
+        self.selected_size_bytes = None
 
     def get_download_status(self):
         if self.torrent_handle is None:
             return None
 
-        status = self.torrent_handle.status()
-        info = self.torrent_handle.get_torrent_info()
+        if not self.torrent_handle.is_valid():
+            return None
+
+        try:
+            status = self.torrent_handle.status()
+        except RuntimeError:
+            return None
+
+        info = None
+        has_metadata = status.has_metadata
+        if has_metadata:
+            try:
+                info = self.torrent_handle.get_torrent_info()
+            except RuntimeError:
+                info = None
+
+        file_size = 0
+        if hasattr(status, "total_wanted") and status.total_wanted > 0:
+            file_size = status.total_wanted
+        elif self.selected_size_bytes is not None:
+            file_size = self.selected_size_bytes
+        elif info:
+            file_size = info.total_size()
+
+        bytes_downloaded = 0
+        if hasattr(status, "total_wanted_done") and status.total_wanted_done >= 0:
+            bytes_downloaded = status.total_wanted_done
+        elif file_size > 0:
+            bytes_downloaded = int(status.progress * file_size)
+        else:
+            bytes_downloaded = status.all_time_download
+
+        progress = 0
+        if file_size > 0:
+            progress = min(max(bytes_downloaded / file_size, 0), 1)
+        else:
+            progress = status.progress
         
         response = {
             'folderName': info.name() if info else "",
-            'fileSize': info.total_size() if info else 0,
-            'progress': status.progress,
+            'fileSize': file_size,
+            'progress': progress,
             'downloadSpeed': status.download_rate,
             'uploadSpeed': status.upload_rate,
             'numPeers': status.num_peers,
             'numSeeds': status.num_seeds,
             'status': status.state,
-            'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+            'bytesDownloaded': bytes_downloaded,
         }
 
         return response

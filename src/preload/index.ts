@@ -21,6 +21,7 @@ import type {
   AchievementNotificationInfo,
   ProtonVersion,
   CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -75,6 +76,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkDebridAvailability: (magnets: string[]) =>
     ipcRenderer.invoke("checkDebridAvailability", magnets),
+  getTorrentFiles: (magnet: string) =>
+    ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
 
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>

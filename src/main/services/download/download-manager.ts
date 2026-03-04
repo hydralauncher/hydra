@@ -364,10 +364,15 @@ export class DownloadManager {
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
 
+        const effectiveFileSize =
+          fileSize > 0
+            ? fileSize
+            : (download.selectedFilesSize ?? download.fileSize ?? 0);
+
         await downloadsSublevel.put(downloadId, {
           ...download,
           bytesDownloaded,
-          fileSize,
+          fileSize: effectiveFileSize,
           progress,
           folderName,
           status: "active",
@@ -378,7 +383,13 @@ export class DownloadManager {
         numPeers,
         numSeeds,
         downloadSpeed,
-        timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+        timeRemaining: calculateETA(
+          fileSize > 0
+            ? fileSize
+            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
+          bytesDownloaded,
+          downloadSpeed
+        ),
         isDownloadingMetadata,
         isCheckingFiles,
         progress,
@@ -1141,6 +1152,7 @@ export class DownloadManager {
           game_id: downloadId,
           url: download.uri,
           save_path: download.downloadPath,
+          file_indices: download.fileIndices,
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);

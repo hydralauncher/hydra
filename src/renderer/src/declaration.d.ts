@@ -37,6 +37,7 @@ import type {
   LocalNotification,
   ProtonVersion,
   CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -74,6 +75,11 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
