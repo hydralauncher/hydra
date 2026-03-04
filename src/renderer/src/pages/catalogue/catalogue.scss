@@ -80,6 +80,33 @@
     gap: 12px;
   }
 
+  &__sort-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__sort-button {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 13px;
+    height: 40px;
+    border-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.03);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    svg {
+      margin-left: 8px;
+      opacity: 0.6;
+    }
+  }
+
   &__skeleton {
     height: 105px;
     border-radius: 4px;
