@@ -20,6 +20,8 @@ const initialState: CatalogueSearchState = {
     developers: [],
     protondbSupportBadges: [],
     deckCompatibility: [],
+    sortBy: "popularity",
+    reviewCount: 0,
   },
   steamUserTags: {},
   steamGenres: {},

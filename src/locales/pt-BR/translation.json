@@ -757,11 +757,18 @@
     "instructions": "Verifique a forma correta de instalar algum deles na sua distro Linux, garantindo assim a execução normal do jogo"
   },
   "catalogue": {
+    "sort_by": "Ordenar por",
+    "most_reviewed": "Mais avaliados",
+    "best_rated": "Melhor nota",
+    "weekly_top": "Destaques da semana",
+    "most_downloaded": "Mais baixados",
+    "most_played": "Mais jogados",
     "search": "Filtrar…",
     "developers": "Desenvolvedores",
     "genres": "Gêneros",
     "tags": "Marcadores",
     "publishers": "Distribuidoras",
+    "release_year": "Ano de lançamento",
     "protondb": "ProtonDB",
     "download_sources": "Fontes de download",
     "compatibility_requirements": "Compatibilidade com Linux",

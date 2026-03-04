@@ -138,10 +138,10 @@ export interface UserFriend {
   displayName: string;
   profileImageUrl: string | null;
   currentGame:
-    | (ShopAssets & {
-        sessionDurationInSeconds: number;
-      })
-    | null;
+  | (ShopAssets & {
+    sessionDurationInSeconds: number;
+  })
+  | null;
 }
 
 export interface UserFriends {
@@ -420,6 +420,7 @@ export interface CatalogueSearchPayload {
   title: string;
   downloadSourceFingerprints: string[];
   tags: number[];
+  sortBy: any;
   publishers: string[];
   genres: string[];
   developers: string[];
@@ -431,6 +432,7 @@ export interface CatalogueSearchPayload {
     | "platinum"
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+  reviewCount?: number;
 }
 
 export interface ProtonDBData {
@@ -455,6 +457,17 @@ export type CatalogueSearchResult = {
   protondbSupportBadges?: string[];
   deckCompatibility?: string | null;
   deckCompatibilities?: string[];
+  averageReviewScore?: number;
+  reviewCount?: number;
+  releaseYear?: number;
+  release_year?: number;
+  year?: number;
+  releaseDate?: string;
+  count?: number;
+  isHot?: boolean;
+  isWeekly?: boolean;
+  downloadCount?: number;
+  playerCount?: number;
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
