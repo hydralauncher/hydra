@@ -1,17 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
 
-import type { LibraryGame } from "@types";
+import type { GameCollection, LibraryGame } from "@types";
 
-import { TextField, ConfirmationModal } from "@renderer/components";
+import {
+  Button,
+  TextField,
+  ConfirmationModal,
+  ContextMenu,
+  CreateCollectionModal,
+  Modal,
+} from "@renderer/components";
 import {
   useDownload,
+  useGameCollections,
   useLibrary,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { AuthPage } from "@shared";
 
 import { routes } from "./routes";
 
@@ -26,16 +35,23 @@ import {
   CommentDiscussionIcon,
   PlayIcon,
   PlusIcon,
+  ChevronRightIcon,
+  HeartIcon,
+  FileDirectoryIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
+import { setCollections } from "@renderer/features";
 import { useDispatch } from "react-redux";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
+const FAVORITES_COLLECTION_ID = "__favorites__";
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
@@ -46,7 +62,7 @@ export function Sidebar() {
 
   const dispatch = useDispatch();
 
-  const { t } = useTranslation("sidebar");
+  const { t } = useTranslation(["sidebar", "library"]);
   const { library, updateLibrary } = useLibrary();
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
     installed: boolean;
@@ -56,6 +72,7 @@ export function Sidebar() {
   const [homebrewFolderExists, setHomebrewFolderExists] = useState(false);
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
 
@@ -70,14 +87,42 @@ export function Sidebar() {
     return sortBy(library, (game) => game.title);
   }, [library]);
 
-  const { hasActiveSubscription } = useUserDetails();
+  const { hasActiveSubscription, userDetails } = useUserDetails();
 
   const { lastPacket, progress } = useDownload();
 
   const { showWarningToast, showSuccessToast, showErrorToast } = useToast();
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
+  const [isCollectionsCollapsed, setIsCollectionsCollapsed] = useState(false);
+  const [isGamesCollapsed, setIsGamesCollapsed] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const [showCreateCollectionModal, setShowCreateCollectionModal] =
+    useState(false);
+  const [collectionContextMenu, setCollectionContextMenu] = useState<{
+    collection: GameCollection | null;
+    visible: boolean;
+    position: { x: number; y: number };
+  }>({ collection: null, visible: false, position: { x: 0, y: 0 } });
+  const [activeCollection, setActiveCollection] =
+    useState<GameCollection | null>(null);
+  const [showRenameCollectionModal, setShowRenameCollectionModal] =
+    useState(false);
+  const [collectionName, setCollectionName] = useState("");
+  const [isRenamingCollection, setIsRenamingCollection] = useState(false);
+  const [showDeleteCollectionModal, setShowDeleteCollectionModal] =
+    useState(false);
+  const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+  const {
+    collections,
+    hasLoaded: hasLoadedCollections,
+    loadCollections,
+  } = useGameCollections();
+
+  const selectedCollectionId = useMemo(() => {
+    if (!location.pathname.startsWith("/library")) return null;
+    return searchParams.get("collection");
+  }, [location.pathname, searchParams]);
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
@@ -85,6 +130,15 @@ export function Sidebar() {
 
   const handleAddGameButtonClick = () => {
     setShowAddGameModal(true);
+  };
+
+  const handleCreateCollectionButtonClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setShowCreateCollectionModal(true);
   };
 
   const handleCloseAddGameModal = () => {
@@ -152,6 +206,11 @@ export function Sidebar() {
   useEffect(() => {
     loadDeckyPluginInfo();
   }, []);
+
+  useEffect(() => {
+    if (!userDetails || hasLoadedCollections) return;
+    void loadCollections();
+  }, [hasLoadedCollections, loadCollections, userDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onSyncFriendRequests((result) => {
@@ -270,9 +329,204 @@ export function Sidebar() {
     }
   };
 
-  const favoriteGames = useMemo(() => {
-    return sortedLibrary.filter((game) => game.favorite);
+  const handleSidebarCollectionClick = (collectionId: string) => {
+    const params = new URLSearchParams();
+    params.set("collection", collectionId);
+
+    const path = `/library?${params.toString()}`;
+    if (path !== `${location.pathname}${location.search}`) {
+      navigate(path);
+    }
+  };
+
+  const handleOpenCollectionContextMenu = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    collection: GameCollection
+  ) => {
+    event.preventDefault();
+
+    setCollectionContextMenu({
+      collection,
+      visible: true,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  };
+
+  const handleCloseCollectionContextMenu = () => {
+    setCollectionContextMenu((prev) => ({ ...prev, visible: false }));
+  };
+
+  const resolveCollectionErrorMessage = (
+    error: unknown,
+    fallbackKey: "failed_rename_collection" | "failed_delete_collection"
+  ) => {
+    if (!(error instanceof Error)) return t(fallbackKey, { ns: "library" });
+
+    if (error.message.includes("game/collection-name-already-in-use")) {
+      return t("collection_name_already_in_use");
+    }
+
+    if (error.message.includes("game/collection-name-required")) {
+      return t("collection_name_required");
+    }
+
+    return t(fallbackKey, { ns: "library" });
+  };
+
+  const handleOpenRenameCollectionModal = () => {
+    const collection = collectionContextMenu.collection;
+    if (!collection) return;
+
+    setActiveCollection(collection);
+    setCollectionName(collection.name);
+    setShowRenameCollectionModal(true);
+    handleCloseCollectionContextMenu();
+  };
+
+  const handleCloseRenameCollectionModal = () => {
+    if (isRenamingCollection) return;
+
+    setShowRenameCollectionModal(false);
+    setCollectionName("");
+    setActiveCollection(null);
+  };
+
+  const handleRenameCollection = async () => {
+    const targetCollection =
+      activeCollection ?? collectionContextMenu.collection;
+    if (!targetCollection) return;
+
+    const nextName = collectionName.trim();
+    if (!nextName) {
+      showErrorToast(t("collection_name_required"));
+      return;
+    }
+
+    if (nextName === targetCollection.name.trim()) {
+      handleCloseRenameCollectionModal();
+      return;
+    }
+
+    setIsRenamingCollection(true);
+
+    try {
+      await window.electron.hydraApi.put(
+        `/profile/games/collections/${targetCollection.id}`,
+        {
+          data: { name: nextName },
+          needsAuth: true,
+        }
+      );
+
+      const updatedCollections = await window.electron.hydraApi.get<
+        GameCollection[]
+      >("/profile/games/collections", { needsAuth: true });
+      dispatch(setCollections(updatedCollections));
+      showSuccessToast(t("collection_renamed", { ns: "library" }));
+      handleCloseRenameCollectionModal();
+    } catch (error) {
+      showErrorToast(
+        resolveCollectionErrorMessage(error, "failed_rename_collection")
+      );
+    } finally {
+      setIsRenamingCollection(false);
+    }
+  };
+
+  const handleOpenDeleteCollectionModal = () => {
+    const collection = collectionContextMenu.collection;
+    if (!collection) return;
+
+    setActiveCollection(collection);
+    setShowDeleteCollectionModal(true);
+    handleCloseCollectionContextMenu();
+  };
+
+  const handleCloseDeleteCollectionModal = () => {
+    if (isDeletingCollection) return;
+
+    setShowDeleteCollectionModal(false);
+    setActiveCollection(null);
+  };
+
+  const handleDeleteCollection = async () => {
+    const targetCollection =
+      activeCollection ?? collectionContextMenu.collection;
+    if (!targetCollection) return;
+
+    setIsDeletingCollection(true);
+
+    try {
+      await window.electron.hydraApi.delete(
+        `/profile/games/collections/${targetCollection.id}`,
+        { needsAuth: true }
+      );
+
+      if (selectedCollectionId === targetCollection.id) {
+        const params = new URLSearchParams(searchParams);
+        params.delete("collection");
+        setSearchParams(params, { replace: true });
+      }
+
+      const updatedCollectionsPromise = window.electron.hydraApi.get<
+        GameCollection[]
+      >("/profile/games/collections", { needsAuth: true });
+      await updateLibrary();
+      const updatedCollections = await updatedCollectionsPromise;
+      dispatch(setCollections(updatedCollections));
+      showSuccessToast(t("collection_deleted", { ns: "library" }));
+      handleCloseDeleteCollectionModal();
+    } catch (error) {
+      showErrorToast(
+        resolveCollectionErrorMessage(error, "failed_delete_collection")
+      );
+    } finally {
+      setIsDeletingCollection(false);
+    }
+  };
+
+  const collectionContextMenuItems = useMemo(() => {
+    const isCollectionActionBusy = isRenamingCollection || isDeletingCollection;
+
+    return [
+      {
+        id: "rename-collection",
+        label: t("rename_collection", { ns: "library" }),
+        icon: <PencilIcon size={16} />,
+        onClick: handleOpenRenameCollectionModal,
+        disabled: isCollectionActionBusy,
+      },
+      {
+        id: "delete-collection",
+        label: t("delete_collection", { ns: "library" }),
+        icon: <TrashIcon size={16} />,
+        onClick: handleOpenDeleteCollectionModal,
+        danger: true,
+        disabled: isCollectionActionBusy,
+      },
+    ];
+  }, [
+    handleOpenDeleteCollectionModal,
+    handleOpenRenameCollectionModal,
+    isDeletingCollection,
+    isRenamingCollection,
+    t,
+  ]);
+
+  const favoritesCount = useMemo(() => {
+    return sortedLibrary.filter((game) => game.favorite).length;
   }, [sortedLibrary]);
+
+  const sidebarCollections = useMemo<GameCollection[]>(() => {
+    return [
+      {
+        id: FAVORITES_COLLECTION_ID,
+        name: t("favorites"),
+        gamesCount: favoritesCount,
+      },
+      ...collections,
+    ];
+  }, [collections, favoritesCount, t]);
 
   return (
     <aside
@@ -337,28 +591,118 @@ export function Sidebar() {
             </ul>
           </section>
 
-          {favoriteGames.length > 0 && (
-            <section className="sidebar__section">
-              <small className="sidebar__section-title">{t("favorites")}</small>
+          <section className="sidebar__section">
+            <div className="sidebar__section-header">
+              <button
+                type="button"
+                className="sidebar__section-toggle"
+                onClick={() =>
+                  setIsCollectionsCollapsed(!isCollectionsCollapsed)
+                }
+                aria-label={
+                  isCollectionsCollapsed
+                    ? t("expand_collections")
+                    : t("collapse_collections")
+                }
+              >
+                <ChevronRightIcon
+                  size={14}
+                  className={cn("sidebar__section-toggle-chevron", {
+                    "sidebar__section-toggle-chevron--expanded":
+                      !isCollectionsCollapsed,
+                  })}
+                />
+                <small className="sidebar__section-title">
+                  {t("collections")}
+                </small>
+              </button>
+              <button
+                type="button"
+                className="sidebar__add-button"
+                onClick={handleCreateCollectionButtonClick}
+                aria-label={t("create_collection")}
+                data-tooltip-id="create-collection-tooltip"
+                data-tooltip-content={t("create_collection_tooltip")}
+                data-tooltip-place="top"
+              >
+                <PlusIcon size={16} />
+              </button>
+            </div>
 
+            {!isCollectionsCollapsed && (
               <ul className="sidebar__menu">
-                {favoriteGames.map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                  />
-                ))}
+                {sidebarCollections.map((collection) => {
+                  const isFavoritesCollection =
+                    collection.id === FAVORITES_COLLECTION_ID;
+
+                  return (
+                    <li
+                      key={collection.id}
+                      className={cn("sidebar__menu-item", {
+                        "sidebar__menu-item--active":
+                          selectedCollectionId === collection.id,
+                      })}
+                    >
+                      <button
+                        type="button"
+                        className="sidebar__menu-item-button"
+                        onClick={() =>
+                          handleSidebarCollectionClick(collection.id)
+                        }
+                        onContextMenu={
+                          isFavoritesCollection
+                            ? undefined
+                            : (event) =>
+                                handleOpenCollectionContextMenu(
+                                  event,
+                                  collection
+                                )
+                        }
+                      >
+                        {isFavoritesCollection ? (
+                          <HeartIcon
+                            className="sidebar__collection-icon"
+                            size={16}
+                          />
+                        ) : (
+                          <FileDirectoryIcon
+                            className="sidebar__collection-icon"
+                            size={16}
+                          />
+                        )}
+                        <span className="sidebar__menu-item-button-label">
+                          {collection.name}
+                        </span>
+                        <span className="sidebar__collection-count">
+                          {collection.gamesCount}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
-            </section>
-          )}
+            )}
+          </section>
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">
-              <small className="sidebar__section-title">
-                {t("my_library")}
-              </small>
+              <button
+                type="button"
+                className="sidebar__section-toggle"
+                onClick={() => setIsGamesCollapsed(!isGamesCollapsed)}
+                aria-label={
+                  isGamesCollapsed ? t("expand_games") : t("collapse_games")
+                }
+              >
+                <ChevronRightIcon
+                  size={14}
+                  className={cn("sidebar__section-toggle-chevron", {
+                    "sidebar__section-toggle-chevron--expanded":
+                      !isGamesCollapsed,
+                  })}
+                />
+                <small className="sidebar__section-title">{t("games")}</small>
+              </button>
               <div
                 style={{ display: "flex", gap: "8px", alignItems: "center" }}
               >
@@ -387,26 +731,29 @@ export function Sidebar() {
               </div>
             </div>
 
-            <TextField
-              ref={filterRef}
-              placeholder={t("filter")}
-              onChange={handleFilter}
-              theme="dark"
-            />
+            {!isGamesCollapsed && (
+              <>
+                <TextField
+                  ref={filterRef}
+                  placeholder={t("filter")}
+                  onChange={handleFilter}
+                  theme="dark"
+                />
 
-            <ul className="sidebar__menu">
-              {filteredLibrary
-                .filter((game) => !game.favorite)
-                .filter((game) => !showPlayableOnly || isGamePlayable(game))
-                .map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                  />
-                ))}
-            </ul>
+                <ul className="sidebar__menu">
+                  {filteredLibrary
+                    .filter((game) => !showPlayableOnly || isGamePlayable(game))
+                    .map((game) => (
+                      <SidebarGameItem
+                        key={game.id}
+                        game={game}
+                        handleSidebarGameClick={handleSidebarGameClick}
+                        getGameTitle={getGameTitle}
+                      />
+                    ))}
+                </ul>
+              </>
+            )}
           </section>
         </div>
       </div>
@@ -437,6 +784,77 @@ export function Sidebar() {
         onClose={handleCloseAddGameModal}
       />
 
+      <CreateCollectionModal
+        visible={showCreateCollectionModal}
+        onClose={() => setShowCreateCollectionModal(false)}
+      />
+
+      <ContextMenu
+        items={collectionContextMenuItems}
+        visible={collectionContextMenu.visible}
+        position={collectionContextMenu.position}
+        onClose={handleCloseCollectionContextMenu}
+      />
+
+      <Modal
+        visible={showRenameCollectionModal}
+        title={t("rename_collection", { ns: "library" })}
+        description={t("rename_collection_description", { ns: "library" })}
+        onClose={handleCloseRenameCollectionModal}
+      >
+        <div className="sidebar__collection-modal">
+          <TextField
+            label={t("collection_name")}
+            placeholder={t("collection_name_placeholder")}
+            value={collectionName}
+            onChange={(event) => setCollectionName(event.target.value)}
+            theme="dark"
+            disabled={isRenamingCollection}
+            maxLength={60}
+          />
+
+          <div className="sidebar__collection-modal-actions">
+            <Button
+              type="button"
+              theme="outline"
+              onClick={handleCloseRenameCollectionModal}
+              disabled={isRenamingCollection}
+            >
+              {t("cancel")}
+            </Button>
+
+            <Button
+              type="button"
+              theme="primary"
+              onClick={() => {
+                void handleRenameCollection();
+              }}
+              disabled={!collectionName.trim() || isRenamingCollection}
+            >
+              {isRenamingCollection
+                ? t("renaming_collection", { ns: "library" })
+                : t("rename_collection", { ns: "library" })}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        visible={showDeleteCollectionModal}
+        title={t("delete_collection_title", { ns: "library" })}
+        descriptionText={t("delete_collection_description", {
+          ns: "library",
+          collectionName: activeCollection?.name ?? "",
+        })}
+        onClose={handleCloseDeleteCollectionModal}
+        onConfirm={() => {
+          void handleDeleteCollection();
+        }}
+        cancelButtonLabel={t("cancel")}
+        confirmButtonLabel={t("delete_collection", { ns: "library" })}
+        buttonsIsDisabled={isDeletingCollection}
+      />
+
       <ConfirmationModal
         visible={showDeckyConfirmModal}
         title={
@@ -456,6 +874,7 @@ export function Sidebar() {
       />
 
       <Tooltip id="add-custom-game-tooltip" />
+      <Tooltip id="create-collection-tooltip" />
       <Tooltip id="show-playable-only-tooltip" />
     </aside>
   );

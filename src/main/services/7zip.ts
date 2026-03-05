@@ -1,5 +1,5 @@
 import { app } from "electron";
-import cp from "node:child_process";
+import Seven, { CommandLineSwitches } from "node-7z";
 import path from "node:path";
 import { logger } from "./logger";
 
@@ -8,6 +8,17 @@ export const binaryName = {
   darwin: "7zz",
   win32: "7z.exe",
 };
+
+export interface ExtractionProgress {
+  percent: number;
+  fileCount: number;
+  file: string;
+}
+
+export interface ExtractionResult {
+  success: boolean;
+  extractedFiles: string[];
+}
 
 export class SevenZip {
   private static readonly binaryPath = app.isPackaged
@@ -32,43 +43,109 @@ export class SevenZip {
       cwd?: string;
       passwords?: string[];
     },
-    successCb: () => void,
-    errorCb: () => void
-  ) {
-    const tryPassword = (index = -1) => {
-      const password = passwords[index] ?? "";
-      logger.info(`Trying password ${password} on ${filePath}`);
+    onProgress?: (progress: ExtractionProgress) => void
+  ): Promise<ExtractionResult> {
+    return new Promise((resolve, reject) => {
+      const tryPassword = (index = 0) => {
+        const password = passwords[index] ?? "";
+        logger.info(
+          `Trying password "${password || "(empty)"}" on ${filePath}`
+        );
 
-      const args = ["x", filePath, "-y", "-p" + password];
+        const extractedFiles: string[] = [];
+        let fileCount = 0;
 
-      if (outputPath) {
-        args.push("-o" + outputPath);
-      }
+        const options: CommandLineSwitches = {
+          $bin: this.binaryPath,
+          $progress: true,
+          yes: true,
+          password: password || undefined,
+        };
 
-      const child = cp.execFile(this.binaryPath, args, {
-        cwd,
-      });
-
-      child.once("exit", (code) => {
-        if (code === 0) {
-          successCb();
-          return;
+        if (outputPath) {
+          options.outputDir = outputPath;
         }
 
-        if (index < passwords.length - 1) {
+        const stream = Seven.extractFull(filePath, outputPath || cwd || ".", {
+          ...options,
+          $spawnOptions: cwd ? { cwd } : undefined,
+        });
+
+        stream.on("progress", (progress) => {
+          if (onProgress) {
+            onProgress({
+              percent: progress.percent,
+              fileCount: fileCount,
+              file: progress.fileCount?.toString() || "",
+            });
+          }
+        });
+
+        stream.on("data", (data) => {
+          if (data.file) {
+            extractedFiles.push(data.file);
+            fileCount++;
+          }
+        });
+
+        stream.on("end", () => {
           logger.info(
-            `Failed to extract file: ${filePath} with password: ${password}. Trying next password...`
+            `Successfully extracted ${filePath} (${extractedFiles.length} files)`
           );
+          resolve({
+            success: true,
+            extractedFiles,
+          });
+        });
 
-          tryPassword(index + 1);
-        } else {
-          logger.info(`Failed to extract file: ${filePath}`);
+        stream.on("error", (err) => {
+          logger.error(`Extraction error for ${filePath}:`, err);
 
-          errorCb();
+          if (index < passwords.length - 1) {
+            logger.info(
+              `Failed to extract file: ${filePath} with password: "${password}". Trying next password...`
+            );
+            tryPassword(index + 1);
+          } else {
+            logger.error(
+              `Failed to extract file: ${filePath} after trying all passwords`
+            );
+            reject(new Error(`Failed to extract file: ${filePath}`));
+          }
+        });
+      };
+
+      tryPassword(0);
+    });
+  }
+
+  public static listFiles(
+    filePath: string,
+    password?: string
+  ): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      const files: string[] = [];
+
+      const options: CommandLineSwitches = {
+        $bin: this.binaryPath,
+        password: password || undefined,
+      };
+
+      const stream = Seven.list(filePath, options);
+
+      stream.on("data", (data) => {
+        if (data.file) {
+          files.push(data.file);
         }
       });
-    };
 
-    tryPassword();
+      stream.on("end", () => {
+        resolve(files);
+      });
+
+      stream.on("error", (err) => {
+        reject(err);
+      });
+    });
   }
 }

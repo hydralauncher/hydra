@@ -22,7 +22,6 @@ import {
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
 import { Downloader, getDownloadersForUri } from "@shared";
-import { CloudSyncModal } from "./cloud-sync-modal/cloud-sync-modal";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import "./game-details.scss";
 import "./hero.scss";
@@ -37,7 +36,7 @@ export default function GameDetails() {
   const fromRandomizer = searchParams.get("fromRandomizer");
   const gameTitle = searchParams.get("title");
 
-  const { startDownload } = useDownload();
+  const { startDownload, addGameToQueue } = useDownload();
 
   const { t } = useTranslation("game_details");
 
@@ -90,32 +89,48 @@ export default function GameDetails() {
           shop,
           showRepacksModal,
           showGameOptionsModal,
+          gameOptionsInitialCategory,
           hasNSFWContentBlocked,
           setHasNSFWContentBlocked,
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
+          setGameOptionsInitialCategory,
         }) => {
           const handleStartDownload = async (
             repack: GameRepack,
             downloader: Downloader,
             downloadPath: string,
-            automaticallyExtract: boolean
+            automaticallyExtract: boolean,
+            addToQueueOnly = false
           ) => {
-            const response = await startDownload({
-              objectId: objectId!,
-              title: gameTitle,
-              downloader,
-              shop,
-              downloadPath,
-              uri: selectRepackUri(repack, downloader),
-              automaticallyExtract: automaticallyExtract,
-            });
+            const response = addToQueueOnly
+              ? await addGameToQueue({
+                  objectId: objectId!,
+                  title: gameTitle,
+                  downloader,
+                  shop,
+                  downloadPath,
+                  uri: selectRepackUri(repack, downloader),
+                  automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
+                })
+              : await startDownload({
+                  objectId: objectId!,
+                  title: gameTitle,
+                  downloader,
+                  shop,
+                  downloadPath,
+                  uri: selectRepackUri(repack, downloader),
+                  automaticallyExtract: automaticallyExtract,
+                  fileSize: repack.fileSize,
+                });
 
             if (response.ok) {
               await updateGame();
               setShowRepacksModal(false);
               setShowGameOptionsModal(false);
+              setGameOptionsInitialCategory("general");
             }
 
             return response;
@@ -129,18 +144,8 @@ export default function GameDetails() {
           return (
             <CloudSyncContextProvider objectId={objectId!} shop={shop}>
               <CloudSyncContextConsumer>
-                {({
-                  showCloudSyncModal,
-                  setShowCloudSyncModal,
-                  showCloudSyncFilesModal,
-                  setShowCloudSyncFilesModal,
-                }) => (
+                {({ showCloudSyncFilesModal, setShowCloudSyncFilesModal }) => (
                   <>
-                    <CloudSyncModal
-                      onClose={() => setShowCloudSyncModal(false)}
-                      visible={showCloudSyncModal}
-                    />
-
                     <CloudSyncFilesModal
                       onClose={() => setShowCloudSyncFilesModal(false)}
                       visible={showCloudSyncFilesModal}
@@ -177,7 +182,9 @@ export default function GameDetails() {
                     game={game}
                     onClose={() => {
                       setShowGameOptionsModal(false);
+                      setGameOptionsInitialCategory("general");
                     }}
+                    initialCategory={gameOptionsInitialCategory}
                     onNavigateHome={() => navigate("/")}
                   />
                 )}

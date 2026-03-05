@@ -6,6 +6,7 @@ import { PythonRPC } from "@main/services/python-rpc";
 import { ProcessPayload } from "@main/services/download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
+import path from "node:path";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -31,17 +32,49 @@ const closeGame = async (
   const gameProcess = processes.find((runningProcess) => {
     if (process.platform === "linux") {
       return runningProcess.name === game.executablePath?.split("/").at(-1);
-    } else {
-      return runningProcess.exe === game.executablePath;
     }
+
+    return runningProcess.exe === game.executablePath;
   });
 
-  if (gameProcess) {
+  const linuxFallbackProcess =
+    process.platform === "linux" &&
+    !gameProcess &&
+    game.executablePath?.toLowerCase().endsWith(".exe")
+      ? processes.find((runningProcess) => {
+          const processCwd = runningProcess.cwd?.toLowerCase();
+          const gameDirectory = path
+            .dirname(game.executablePath!)
+            .toLowerCase();
+
+          if (!processCwd || processCwd !== gameDirectory) {
+            return false;
+          }
+
+          const expectedPrefix = game.winePrefixPath?.toLowerCase();
+          const processPrefix =
+            runningProcess.environ?.STEAM_COMPAT_DATA_PATH?.toLowerCase();
+
+          if (
+            expectedPrefix &&
+            processPrefix &&
+            processPrefix !== expectedPrefix
+          ) {
+            return false;
+          }
+
+          return runningProcess.exe?.toLowerCase().includes("wine") ?? false;
+        })
+      : null;
+
+  const processToClose = gameProcess ?? linuxFallbackProcess;
+
+  if (processToClose) {
     try {
-      process.kill(gameProcess.pid);
+      process.kill(processToClose.pid);
     } catch (err) {
       sudo.exec(
-        getKillCommand(gameProcess.pid),
+        getKillCommand(processToClose.pid),
         { name: app.getName() },
         (error, _stdout, _stderr) => {
           logger.error(error);

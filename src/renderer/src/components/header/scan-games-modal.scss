@@ -1,0 +1,107 @@
+@use "../../scss/globals.scss";
+
+.scan-games-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 3);
+  min-width: 400px;
+
+  &__description {
+    color: globals.$muted-color;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  &__results {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__result {
+    color: globals.$body-color;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  &__no-results {
+    color: globals.$muted-color;
+    font-size: 14px;
+    margin: 0;
+    text-align: center;
+    padding: calc(globals.$spacing-unit * 2) 0;
+  }
+
+  &__scanning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 3) 0;
+  }
+
+  &__spinner {
+    color: globals.$muted-color;
+    animation: spin 2s linear infinite;
+  }
+
+  &__scanning-text {
+    color: globals.$muted-color;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  &__games-list {
+    list-style: none;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    background-color: globals.$dark-background-color;
+    border-radius: 4px;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__game-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: globals.$spacing-unit;
+    border-bottom: 1px solid globals.$border-color;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
+
+  &__game-title {
+    color: globals.$body-color;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__game-path {
+    color: globals.$muted-color;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+}

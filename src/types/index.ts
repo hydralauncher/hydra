@@ -20,6 +20,7 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
   downloadSourceName: string;
@@ -35,6 +36,12 @@ export interface DownloadSource {
   fingerprint?: string;
   isRemote?: true;
   createdAt: string;
+}
+
+export interface ProtonVersion {
+  name: string;
+  path: string;
+  source?: "steam" | "compatibility_tools" | "unknown";
 }
 
 export interface ShopAssets {
@@ -84,6 +91,12 @@ export interface UserLibraryResponse {
   pinnedGames: UserGame[];
 }
 
+export interface GameCollection {
+  id: string;
+  name: string;
+  gamesCount: number;
+}
+
 export interface GameRunning {
   id: string;
   title: string;
@@ -117,6 +130,7 @@ export interface StartGameDownloadPayload {
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
+  fileSize?: string | null;
 }
 
 export interface UserFriend {
@@ -144,6 +158,10 @@ export interface FriendRequestSync {
   friendRequestCount: number;
 }
 
+export interface NotificationSync {
+  notificationCount: number;
+}
+
 export interface FriendRequest {
   id: string;
   displayName: string;
@@ -166,6 +184,7 @@ export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
 
 export interface Badge {
   name: string;
+  title: string;
   description: string;
   badge: {
     url: string;
@@ -182,6 +201,7 @@ export interface UserDetails {
   profileVisibility: ProfileVisibility;
   bio: string;
   featurebaseJwt: string;
+  workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
   quirks?: {
@@ -209,6 +229,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  hasCompletedWrapped2025: boolean;
 }
 
 export interface UpdateProfileRequest {
@@ -312,6 +333,59 @@ export interface GameArtifact {
   isFrozen: boolean;
 }
 
+export type NotificationType =
+  | "FRIEND_REQUEST_RECEIVED"
+  | "FRIEND_REQUEST_ACCEPTED"
+  | "BADGE_RECEIVED"
+  | "REVIEW_UPVOTE";
+
+export type LocalNotificationType =
+  | "EXTRACTION_COMPLETE"
+  | "DOWNLOAD_COMPLETE"
+  | "UPDATE_AVAILABLE"
+  | "ACHIEVEMENT_UNLOCKED"
+  | "SCAN_GAMES_COMPLETE";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  variables: Record<string, string>;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  priority: number;
+  createdAt: string;
+}
+
+export interface LocalNotification {
+  id: string;
+  type: LocalNotificationType;
+  title: string;
+  description: string;
+  pictureUrl: string | null;
+  url: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export type MergedNotification =
+  | (Notification & { source: "api" })
+  | (LocalNotification & { source: "local" });
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  pagination: {
+    total: number;
+    take: number;
+    skip: number;
+    hasMore: boolean;
+  };
+}
+
+export interface NotificationCountResponse {
+  count: number;
+}
+
 export interface ComparedAchievements {
   achievementsPointsTotal: number;
   owner: {
@@ -349,6 +423,24 @@ export interface CatalogueSearchPayload {
   publishers: string[];
   genres: string[];
   developers: string[];
+  protondbSupportBadges: (
+    | "borked"
+    | "bronze"
+    | "silver"
+    | "gold"
+    | "platinum"
+  )[];
+  deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+}
+
+export interface ProtonDBData {
+  tier: string | null;
+  confidence: string | null;
+  score: number | null;
+  total: number | null;
+  trendingTier: string | null;
+  resolvedCategory: number | null;
+  deckCompatibility: "verified" | "playable" | "unsupported" | "unknown" | null;
 }
 
 export type CatalogueSearchResult = {
@@ -357,6 +449,12 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
+  tier?: string | null;
+  bestReportedTier?: string | null;
+  protondbSupportBadge?: string | null;
+  protondbSupportBadges?: string[];
+  deckCompatibility?: string | null;
+  deckCompatibilities?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &

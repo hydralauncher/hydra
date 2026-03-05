@@ -1,0 +1,95 @@
+@use "../../../scss/globals.scss";
+
+.badges-box {
+  &__box {
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    padding: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: background-color ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__item-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: globals.$background-color;
+
+    img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+  }
+
+  &__item-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.5);
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: globals.$body-color;
+    margin: 0;
+  }
+
+  &__item-description {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
+
+  &__view-all-container {
+    padding-top: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  &__view-all {
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    transition: color ease 0.2s;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+}

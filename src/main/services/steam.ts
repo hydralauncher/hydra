@@ -140,10 +140,15 @@ export const generateSteamShortcutAppId = (
   return steamAppId;
 };
 
+export interface CreateSteamShortcutOptions {
+  openVr?: boolean;
+}
+
 export const composeSteamShortcut = (
   title: string,
   executablePath: string,
-  iconPath: string | null
+  iconPath: string | null,
+  options?: CreateSteamShortcutOptions
 ): SteamShortcut => {
   return {
     appid: generateSteamShortcutAppId(executablePath, title),
@@ -156,7 +161,7 @@ export const composeSteamShortcut = (
     IsHidden: false,
     AllowDesktopConfig: true,
     AllowOverlay: true,
-    OpenVR: false,
+    OpenVR: Boolean(options?.openVr),
     Devkit: false,
     DevkitGameID: "",
     DevkitOverrideAppID: false,

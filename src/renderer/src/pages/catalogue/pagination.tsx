@@ -1,5 +1,10 @@
 import { Button } from "@renderer/components/button/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { useFormat } from "@renderer/hooks/use-format";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
@@ -141,6 +146,11 @@ export function Pagination({
     }
   };
 
+  const firstPageTooltip = "Go to first page";
+  const previousPageTooltip = "Go to previous page";
+  const nextPageTooltip = "Go to next page";
+  const lastPageTooltip = "Go to last page";
+
   return (
     <div className="pagination">
       {startPage > 1 && (
@@ -148,11 +158,15 @@ export function Pagination({
           theme="outline"
           onClick={() => onPageChange(1)}
           className="pagination__button"
+          tooltip={firstPageTooltip}
+          aria-label={firstPageTooltip}
         >
-          <span className="pagination__double-chevron">
-            <ChevronLeftIcon />
-            <ChevronLeftIcon />
-          </span>
+          <ChevronsLeft
+            size={18}
+            strokeWidth={2.25}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
         </Button>
       )}
 
@@ -161,8 +175,15 @@ export function Pagination({
         onClick={() => onPageChange(page - 1)}
         className="pagination__button"
         disabled={page === 1}
+        tooltip={previousPageTooltip}
+        aria-label={previousPageTooltip}
       >
-        <ChevronLeftIcon />
+        <ChevronLeft
+          size={16}
+          strokeWidth={2.25}
+          absoluteStrokeWidth
+          aria-hidden="true"
+        />
       </Button>
 
       {isLastThree && startPage > 1 && (
@@ -230,8 +251,15 @@ export function Pagination({
         onClick={() => onPageChange(page + 1)}
         className="pagination__button"
         disabled={page === totalPages}
+        tooltip={nextPageTooltip}
+        aria-label={nextPageTooltip}
       >
-        <ChevronRightIcon />
+        <ChevronRight
+          size={16}
+          strokeWidth={2.25}
+          absoluteStrokeWidth
+          aria-hidden="true"
+        />
       </Button>
 
       {endPage < totalPages && (
@@ -239,11 +267,15 @@ export function Pagination({
           theme="outline"
           onClick={() => onPageChange(totalPages)}
           className="pagination__button"
+          tooltip={lastPageTooltip}
+          aria-label={lastPageTooltip}
         >
-          <span className="pagination__double-chevron">
-            <ChevronRightIcon />
-            <ChevronRightIcon />
-          </span>
+          <ChevronsRight
+            size={18}
+            strokeWidth={2.25}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
         </Button>
       )}
     </div>

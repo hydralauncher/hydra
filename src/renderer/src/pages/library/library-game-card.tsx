@@ -1,7 +1,12 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo } from "react";
-import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
+import { memo, useEffect, useState } from "react";
+import {
+  ClockIcon,
+  AlertFillIcon,
+  TrophyIcon,
+  ImageIcon,
+} from "@primer/octicons-react";
 import "./library-game-card.scss";
 
 interface LibraryGameCardProps {
@@ -25,14 +30,47 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const coverImage = (
+  const resolveImageSource = (imageUrl: string | null | undefined): string => {
+    if (!imageUrl) return "";
+
+    const trimmedImageUrl = imageUrl.trim();
+    if (!trimmedImageUrl) return "";
+
+    if (
+      trimmedImageUrl.startsWith("http://") ||
+      trimmedImageUrl.startsWith("https://") ||
+      trimmedImageUrl.startsWith("data:") ||
+      trimmedImageUrl.startsWith("blob:")
+    ) {
+      return trimmedImageUrl;
+    }
+
+    if (trimmedImageUrl.startsWith("local:")) {
+      const normalizedLocalPath = trimmedImageUrl
+        .slice("local:".length)
+        .replaceAll("\\", "/");
+      return `local:${normalizedLocalPath}`;
+    }
+
+    const normalizedPath = trimmedImageUrl.replaceAll("\\", "/");
+    if (/^[A-Za-z]:\//.test(normalizedPath) || normalizedPath.startsWith("/")) {
+      return `local:${normalizedPath}`;
+    }
+
+    return normalizedPath;
+  };
+
+  const coverImage = resolveImageSource(
     game.customIconUrl ??
-    game.coverImageUrl ??
-    game.libraryImageUrl ??
-    game.libraryHeroImageUrl ??
-    game.iconUrl ??
-    ""
-  ).replaceAll("\\", "/");
+      game.coverImageUrl ??
+      game.libraryImageUrl ??
+      game.iconUrl
+  );
+
+  const [imageError, setImageError] = useState(false);
+  useEffect(() => {
+    setImageError(false);
+  }, [coverImage]);
 
   return (
     <button
@@ -98,12 +136,19 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         )}
       </div>
 
-      <img
-        src={coverImage ?? undefined}
-        alt={game.title}
-        className="library-game-card__game-image"
-        loading="lazy"
-      />
+      {imageError || !coverImage ? (
+        <div className="library-game-card__cover-placeholder">
+          <ImageIcon size={48} />
+        </div>
+      ) : (
+        <img
+          src={coverImage}
+          alt={game.title}
+          className="library-game-card__game-image"
+          loading="lazy"
+          onError={() => setImageError(true)}
+        />
+      )}
     </button>
   );
 });

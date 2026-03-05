@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { WorkWonders } from "workwonders-sdk";
 import {
   useAppDispatch,
   useAppSelector,
@@ -19,11 +19,13 @@ import {
   setUserDetails,
   setProfileBackground,
   setGameRunning,
+  setExtractionProgress,
+  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 
 import {
   injectCustomCss,
@@ -50,13 +52,10 @@ export function App() {
 
   const { clearDownload, setLastPacket } = useDownload();
 
+  const workwondersRef = useRef<WorkWonders | null>(null);
+
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -77,6 +76,10 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast } = useToast();
+
+  const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
+    useState(false);
+  const [archivePaths, setArchivePaths] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -113,7 +116,79 @@ export function App() {
     return () => unsubscribe();
   }, [updateLibrary]);
 
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      workwondersRef.current = new WorkWonders();
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidgetMini();
+      workwondersRef.current.knowledge.initKnowledgeWidget();
+
+      if (token) {
+        workwondersRef.current.feedback.initFeedbackWidget();
+      }
+    },
+    [workwondersRef]
+  );
+
   useEffect(() => {
+    const onClick = async (event: MouseEvent) => {
+      const userPreferences = await window.electron.getUserPreferences();
+      const language = userPreferences?.language ?? "en";
+
+      const articleMapping = {
+        pt: {
+          "cannot-write-directory": 1429,
+          seeding: 1442,
+          "peers-and-seeds": 1449,
+          "steam-achievements": 1412,
+        },
+        en: {
+          "cannot-write-directory": 4122,
+          seeding: 4116,
+          "peers-and-seeds": 4119,
+          "steam-achievements": 4140,
+        },
+      };
+
+      const $helpCenterTarget = (event.target as HTMLElement).closest(
+        "[data-open-article]"
+      );
+
+      if ($helpCenterTarget) {
+        const article = $helpCenterTarget.getAttribute("data-open-article");
+        const articleId =
+          articleMapping[language.slice(0, 2)]?.[
+            article as keyof typeof articleMapping
+          ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
+
+        if (articleId) {
+          workwondersRef.current?.knowledge.showArticle(articleId);
+        }
+      }
+    };
+
+    window.addEventListener("click", onClick);
+
+    return () => {
+      window.removeEventListener("click", onClick);
+    };
+  }, []);
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -124,28 +199,31 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          window.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -184,15 +262,30 @@ export function App() {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
+      window.electron.onExtractionProgress((shop, objectId, progress) => {
+        dispatch(setExtractionProgress({ shop, objectId, progress }));
+      }),
+      window.electron.onExtractionComplete(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+      }),
+      window.electron.onArchiveDeletionPrompt((paths) => {
+        setArchivePaths(paths);
+        setShowArchiveDeletionModal(true);
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
+    const asyncScrollAndNotify = async () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      await workwondersRef.current?.notifyUrlChange?.();
+    };
+    asyncScrollAndNotify();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -281,14 +374,11 @@ export function App() {
         feature={hydraCloudFeature}
       />
 
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
+      <ArchiveDeletionModal
+        visible={showArchiveDeletionModal}
+        archivePaths={archivePaths}
+        onClose={() => setShowArchiveDeletionModal(false)}
+      />
 
       <main>
         <Sidebar />

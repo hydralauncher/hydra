@@ -4,13 +4,74 @@
   &__container {
     display: flex;
     gap: calc(globals.$spacing-unit * 2);
+    min-height: 520px;
+  }
+
+  &__sidebar {
+    width: 210px;
+    min-width: 210px;
+    display: flex;
     flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.75);
+    border-right: 1px solid globals.$border-color;
+    background: globals.$dark-background-color;
+  }
+
+  &__sidebar-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    border: 0;
+    background: transparent;
+    color: globals.$muted-color;
+    text-align: left;
+    padding: calc(globals.$spacing-unit * 1.25)
+      calc(globals.$spacing-unit * 1.5);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: globals.$body-font-size;
+    line-height: 1.2;
+    transition:
+      color 0.2s ease,
+      background-color 0.1s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.9;
+    }
+  }
+
+  &__panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2.5);
+    min-width: 0;
+    padding: calc(globals.$spacing-unit * 2.5);
+  }
+
+  &__panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__section {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__header {
@@ -23,23 +84,20 @@
     }
   }
 
-  &__cloud-sync-label {
+  &__cloud-panel {
     display: flex;
+    flex-direction: column;
     gap: globals.$spacing-unit;
-    align-items: center;
-  }
-
-  &__cloud-sync-hydra-cloud {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
-    color: #fff;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 4px;
-    font-size: globals.$small-font-size;
   }
 
   &__row {
     display: flex;
     gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+  }
+
+  &__tool-button-wrapper {
+    display: inline-flex;
   }
 
   &__executable-field {
@@ -54,6 +112,7 @@
     &-buttons {
       display: flex;
       gap: globals.$spacing-unit;
+      flex-wrap: wrap;
     }
   }
 
@@ -77,6 +136,64 @@
     }
   }
 
+  &__inline-code {
+    font-family: monospace;
+    user-select: text;
+  }
+
+  &__mangohud-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__gamemode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__mangohud-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &__gamemode-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &__mangohud-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
+
+  &__gamemode-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
+
+  &__auto-run-select {
+    min-width: 180px;
+    flex-shrink: 0;
+  }
+
   &__downloads {
     display: flex;
     flex-direction: column;
@@ -95,6 +212,34 @@
     &-buttons {
       display: flex;
       gap: globals.$spacing-unit;
+      flex-wrap: wrap;
+    }
+  }
+
+  &__category-note {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+
+  @media (max-width: 860px) {
+    &__container {
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    &__sidebar {
+      width: 100%;
+      min-width: 0;
+      padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
+        globals.$spacing-unit;
+      border-right: none;
+      border-bottom: 1px solid globals.$border-color;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    &__panel {
+      padding-top: globals.$spacing-unit;
     }
   }
 }

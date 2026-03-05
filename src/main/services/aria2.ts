@@ -7,9 +7,12 @@ export class Aria2 {
   private static process: cp.ChildProcess | null = null;
 
   public static spawn() {
-    const binaryPath = app.isPackaged
-      ? path.join(process.resourcesPath, "aria2c")
-      : path.join(__dirname, "..", "..", "binaries", "aria2c");
+    const binaryPath =
+      process.platform === "darwin"
+        ? "aria2c"
+        : app.isPackaged
+          ? path.join(process.resourcesPath, "aria2c")
+          : path.join(__dirname, "..", "..", "binaries", "aria2c");
 
     this.process = cp.spawn(
       binaryPath,

@@ -1,0 +1,100 @@
+@use "../../../scss/globals.scss";
+
+.wrapped-fullscreen-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    border: none;
+    z-index: 1;
+  }
+
+  &__container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: calc(globals.$spacing-unit * 2);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  &__close-button {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 5);
+    right: calc(globals.$spacing-unit * 5);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: background 0.2s ease;
+    z-index: 10;
+    pointer-events: auto;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__content {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  &__loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+
+  &__spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: wrapped-spin 0.8s linear infinite;
+  }
+
+  &__iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+}
+
+@keyframes wrapped-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,12 +1,12 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 import { HeroPanel } from "./hero";
 import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
-import { EditGameModal } from "./modals";
 import { GameReviews } from "./game-reviews";
 import { GameLogo } from "./game-logo";
 
@@ -15,7 +15,6 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -55,23 +54,23 @@ const getImageWithCustomPriority = (
 
 export function GameDetailsContent() {
   const { t } = useTranslation("game_details");
+  const [searchParams] = useSearchParams();
+  const reviewsRef = useRef<HTMLDivElement>(null);
 
   const {
     objectId,
     shopDetails,
     game,
     hasNSFWContentBlocked,
-    updateGame,
     shop,
+    setShowGameOptionsModal,
+    setGameOptionsInitialCategory,
   } = useContext(gameDetailsContext);
 
-  const { showHydraCloudModal } = useSubscription();
-
   const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { updateLibrary, library } = useLibrary();
+  const { library } = useLibrary();
 
-  const { setShowCloudSyncModal, getGameArtifacts } =
-    useContext(cloudSyncContext);
+  const { getGameArtifacts } = useContext(cloudSyncContext);
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -94,7 +93,6 @@ export function GameDetailsContent() {
   }, [shopDetails, t, game?.shop]);
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
-  const [showEditGameModal, setShowEditGameModal] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
 
@@ -117,25 +115,33 @@ export function GameDetailsContent() {
     }
 
     if (!hasActiveSubscription) {
-      showHydraCloudModal("backup");
+      setGameOptionsInitialCategory("hydra_cloud");
+      setShowGameOptionsModal(true);
       return;
     }
 
-    setShowCloudSyncModal(true);
+    setGameOptionsInitialCategory("hydra_cloud");
+    setShowGameOptionsModal(true);
   };
 
   const handleEditGameClick = () => {
-    setShowEditGameModal(true);
-  };
-
-  const handleGameUpdated = () => {
-    updateGame();
-    updateLibrary();
+    setGameOptionsInitialCategory("assets");
+    setShowGameOptionsModal(true);
   };
 
   useEffect(() => {
     getGameArtifacts();
   }, [getGameArtifacts]);
+
+  // Scroll to reviews section if reviews=true in URL
+  useEffect(() => {
+    const shouldScrollToReviews = searchParams.get("reviews") === "true";
+    if (shouldScrollToReviews && reviewsRef.current) {
+      setTimeout(() => {
+        reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  }, [searchParams, objectId]);
 
   const isCustomGame = game?.shop === "custom";
 
@@ -229,31 +235,23 @@ export function GameDetailsContent() {
             )}
 
             {shop !== "custom" && shop && objectId && (
-              <GameReviews
-                shop={shop}
-                objectId={objectId}
-                game={game}
-                userDetailsId={userDetails?.id}
-                isGameInLibrary={isGameInLibrary}
-                hasUserReviewed={hasUserReviewed}
-                onUserReviewedChange={setHasUserReviewed}
-              />
+              <div ref={reviewsRef}>
+                <GameReviews
+                  shop={shop}
+                  objectId={objectId}
+                  game={game}
+                  userDetailsId={userDetails?.id}
+                  isGameInLibrary={isGameInLibrary}
+                  hasUserReviewed={hasUserReviewed}
+                  onUserReviewedChange={setHasUserReviewed}
+                />
+              </div>
             )}
           </div>
 
           {shop !== "custom" && <Sidebar />}
         </div>
       </section>
-
-      {game && (
-        <EditGameModal
-          visible={showEditGameModal}
-          onClose={() => setShowEditGameModal(false)}
-          game={game}
-          shopDetails={shopDetails}
-          onGameUpdated={handleGameUpdated}
-        />
-      )}
     </div>
   );
 }

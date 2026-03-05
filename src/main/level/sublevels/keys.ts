@@ -20,4 +20,6 @@ export const levelKeys = {
   downloadSources: "downloadSources",
   downloadSourcesCheckBaseline: "downloadSourcesCheckBaseline", // When we last started the app
   downloadSourcesSinceValue: "downloadSourcesSinceValue", // The 'since' value API used (for modal comparison)
+  localNotifications: "localNotifications",
+  commonRedistPassed: "commonRedistPassed", // Whether common redistributables preflight has passed
 };

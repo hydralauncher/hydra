@@ -4,8 +4,7 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
-  setFriendsModalVisible,
-  setFriendsModalHidden,
+  clearCollections,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
@@ -13,24 +12,17 @@ import type {
   UserDetails,
   FriendRequest,
 } from "@types";
-import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
-  const {
-    userDetails,
-    profileBackground,
-    friendRequests,
-    friendRequestCount,
-    isFriendsModalVisible,
-    friendModalUserId,
-    friendRequetsModalTab,
-  } = useAppSelector((state) => state.userDetails);
+  const { userDetails, profileBackground, friendRequests, friendRequestCount } =
+    useAppSelector((state) => state.userDetails);
 
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
+    dispatch(clearCollections());
 
     window.localStorage.removeItem("userDetails");
   }, [dispatch]);
@@ -69,6 +61,7 @@ export function useUserDetails() {
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
         featurebaseJwt: userDetails?.featurebaseJwt || "",
+        workwondersJwt: userDetails?.workwondersJwt || "",
         karma: userDetails?.karma || 0,
       });
     },
@@ -85,22 +78,9 @@ export function useUserDetails() {
     return window.electron.hydraApi
       .get<FriendRequest[]>("/profile/friend-requests")
       .then((friendRequests) => {
-        window.electron.syncFriendRequests();
         dispatch(setFriendRequests(friendRequests));
       })
       .catch(() => {});
-  }, [dispatch]);
-
-  const showFriendsModal = useCallback(
-    (initialTab: UserFriendModalTab, userId: string) => {
-      dispatch(setFriendsModalVisible({ initialTab, userId }));
-      fetchFriendRequests();
-    },
-    [dispatch, fetchFriendRequests]
-  );
-
-  const hideFriendsModal = useCallback(() => {
-    dispatch(setFriendsModalHidden());
   }, [dispatch]);
 
   const sendFriendRequest = useCallback(
@@ -134,7 +114,7 @@ export function useUserDetails() {
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.hydraApi.delete(`/profile/friends/${userId}`);
+    window.electron.hydraApi.delete(`/profile/friend-requests/${userId}`);
 
   const blockUser = (userId: string) =>
     window.electron.hydraApi.post(`/users/${userId}/block`);
@@ -152,12 +132,7 @@ export function useUserDetails() {
     profileBackground,
     friendRequests,
     friendRequestCount,
-    friendRequetsModalTab,
-    isFriendsModalVisible,
-    friendModalUserId,
     hasActiveSubscription,
-    showFriendsModal,
-    hideFriendsModal,
     fetchUserDetails,
     signOut,
     clearUserDetails,

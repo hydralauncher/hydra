@@ -1,0 +1,231 @@
+@use "../../scss/globals.scss";
+
+.game-launcher {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+  -webkit-app-region: drag;
+  padding: calc(globals.$spacing-unit * 3);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+
+  &__background {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(20px);
+    transform: scale(1.1);
+    z-index: 0;
+  }
+
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0.85) 50%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &__glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      ellipse at top right,
+      rgba(22, 177, 149, 0.15) 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  &__logo-badge {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 2);
+    z-index: 10;
+
+    svg {
+      width: 28px;
+      height: 28px;
+      fill: globals.$body-color;
+      opacity: 0.6;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    gap: calc(globals.$spacing-unit * 2);
+    -webkit-app-region: no-drag;
+    min-height: 0;
+    position: relative;
+    z-index: 5;
+  }
+
+  &__cover {
+    height: 100%;
+    width: auto;
+    max-width: 180px;
+    border-radius: 8px;
+    object-fit: contain;
+    flex-shrink: 0;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__cover-placeholder {
+    height: 100%;
+    width: 180px;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: globals.$muted-color;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: globals.$body-color;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    padding-right: 40px;
+  }
+
+  &__status {
+    font-size: 14px;
+    color: globals.$muted-color;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: globals.$muted-color;
+    border-right-color: globals.$muted-color;
+    border-radius: 50%;
+    animation: spinner-rotate 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spinner-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  &__dots {
+    display: inline-block;
+    width: 20px;
+
+    &::after {
+      content: "";
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+  }
+
+  @keyframes dots {
+    0% {
+      content: "";
+    }
+    25% {
+      content: ".";
+    }
+    50% {
+      content: "..";
+    }
+    75% {
+      content: "...";
+    }
+    100% {
+      content: "";
+    }
+  }
+
+  &__stats {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    padding-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__button {
+    width: 100%;
+    background-color: globals.$muted-color;
+    border: solid 1px transparent;
+    color: #0d0d0d;
+    border-radius: 8px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    min-height: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: calc(globals.$spacing-unit * 2);
+
+    &:hover {
+      background-color: #dadbe1;
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+}

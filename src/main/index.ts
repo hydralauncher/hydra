@@ -10,10 +10,13 @@ import {
   WindowManager,
   Lock,
   Aria2,
+  PowerSaveBlockerManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
-import { db, levelKeys } from "./level";
+import { db, gamesSublevel, levelKeys } from "./level";
+import { GameShop, UserPreferences } from "@types";
+import { launchGame } from "./helpers";
 import { loadState } from "./main";
 
 const { autoUpdater } = updater;
@@ -140,23 +143,71 @@ app.whenReady().then(async () => {
 
   if (language) i18n.changeLanguage(language);
 
-  if (!process.argv.includes("--hidden")) {
+  // Check if starting from a "run" deep link - don't show main window in that case
+  const deepLinkArg = process.argv.find((arg) =>
+    arg.startsWith("hydralauncher://")
+  );
+  const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
+
+  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow();
   }
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
+
+  if (deepLinkArg) {
+    handleDeepLinkPath(deepLinkArg);
+  }
 });
 
 app.on("browser-window-created", (_, window) => {
   optimizer.watchWindowShortcuts(window);
 });
 
+const handleRunGame = async (shop: GameShop, objectId: string) => {
+  const gameKey = levelKeys.game(shop, objectId);
+  const game = await gamesSublevel.get(gameKey);
+
+  if (!game?.executablePath) {
+    logger.error("Game not found or no executable path", { shop, objectId });
+    return;
+  }
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    { valueEncoding: "json" }
+  );
+
+  // Only open main window if setting is disabled
+  if (!userPreferences?.hideToTrayOnGameStart) {
+    WindowManager.createMainWindow();
+  }
+
+  await launchGame({
+    shop,
+    objectId,
+    executablePath: game.executablePath,
+    launchOptions: game.launchOptions,
+  });
+};
+
 const handleDeepLinkPath = (uri?: string) => {
   if (!uri) return;
 
   try {
     const url = new URL(uri);
+
+    if (url.host === "run") {
+      const shop = url.searchParams.get("shop") as GameShop | null;
+      const objectId = url.searchParams.get("objectId");
+
+      if (shop && objectId) {
+        handleRunGame(shop, objectId);
+      }
+
+      return;
+    }
 
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
@@ -190,17 +241,25 @@ const handleDeepLinkPath = (uri?: string) => {
 };
 
 app.on("second-instance", (_event, commandLine) => {
-  // Someone tried to run a second instance, we should focus our window.
-  if (WindowManager.mainWindow) {
-    if (WindowManager.mainWindow.isMinimized())
-      WindowManager.mainWindow.restore();
+  const deepLink = commandLine.find((arg) =>
+    arg.startsWith("hydralauncher://")
+  );
 
-    WindowManager.mainWindow.focus();
-  } else {
-    WindowManager.createMainWindow();
+  // Check if this is a "run" deep link - don't show main window in that case
+  const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
+
+  if (!isRunDeepLink) {
+    if (WindowManager.mainWindow) {
+      if (WindowManager.mainWindow.isMinimized())
+        WindowManager.mainWindow.restore();
+
+      WindowManager.mainWindow.focus();
+    } else {
+      WindowManager.createMainWindow();
+    }
   }
 
-  handleDeepLinkPath(commandLine.pop());
+  handleDeepLinkPath(deepLink);
 });
 
 app.on("open-url", (_event, url) => {
@@ -221,6 +280,7 @@ app.on("before-quit", async (e) => {
 
   if (!canAppBeClosed) {
     e.preventDefault();
+    PowerSaveBlockerManager.reset();
     /* Disconnects libtorrent */
     PythonRPC.kill();
     Aria2.kill();

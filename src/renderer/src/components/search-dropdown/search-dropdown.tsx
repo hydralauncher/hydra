@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ClockIcon, SearchIcon, XIcon } from "@primer/octicons-react";
 import cn from "classnames";
@@ -92,23 +92,8 @@ export function SearchDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [visible, onClose, searchContainerRef]);
 
-  const handleItemClick = useCallback(
-    (
-      type: "history" | "suggestion",
-      item: SearchHistoryEntry | SearchSuggestion
-    ) => {
-      if (type === "history") {
-        onSelectHistory((item as SearchHistoryEntry).query);
-      } else {
-        onSelectSuggestion(item as SearchSuggestion);
-      }
-    },
-    [onSelectHistory, onSelectSuggestion]
-  );
-
   if (!visible) return null;
 
-  const totalItems = historyItems.length + suggestions.length;
   const hasHistory = historyItems.length > 0;
   const hasSuggestions = suggestions.length > 0;
 
@@ -158,7 +143,7 @@ export function SearchDropdown({
                       activeIndex === getItemIndex("history", index),
                   })}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleItemClick("history", item)}
+                  onClick={() => onSelectHistory(item.query)}
                 >
                   <ClockIcon size={16} className="search-dropdown__item-icon" />
                   <span className="search-dropdown__item-text">
@@ -200,7 +185,7 @@ export function SearchDropdown({
                       activeIndex === getItemIndex("suggestion", index),
                   })}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleItemClick("suggestion", item)}
+                  onClick={() => onSelectSuggestion(item)}
                 >
                   {item.iconUrl ? (
                     <img
@@ -227,13 +212,6 @@ export function SearchDropdown({
       {isLoadingSuggestions && !hasSuggestions && !hasHistory && (
         <div className="search-dropdown__loading">{t("loading")}</div>
       )}
-
-      {!isLoadingSuggestions &&
-        !hasHistory &&
-        !hasSuggestions &&
-        totalItems === 0 && (
-          <div className="search-dropdown__empty">{t("no_results")}</div>
-        )}
     </div>
   );
 

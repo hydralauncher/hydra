@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  useAppSelector,
   useDownload,
   useLibrary,
   useToast,
@@ -25,6 +26,8 @@ export function BottomPanel() {
   const { showSuccessToast } = useToast();
 
   const { lastPacket, progress, downloadSpeed, eta } = useDownload();
+
+  const extraction = useAppSelector((state) => state.download.extraction);
 
   const [version, setVersion] = useState("");
   const [sessionHash, setSessionHash] = useState<null | string>("");
@@ -68,6 +71,20 @@ export function BottomPanel() {
       return t("installing_common_redist", { log: commonRedistStatus });
     }
 
+    if (extraction) {
+      const extractingGame = library.find(
+        (game) => game.id === extraction.visibleId
+      );
+
+      if (extractingGame) {
+        const extractionPercentage = Math.round(extraction.progress * 100);
+        return t("extracting", {
+          title: extractingGame.title,
+          percentage: `${extractionPercentage}%`,
+        });
+      }
+    }
+
     const game = lastPacket
       ? library.find((game) => game.id === lastPacket?.gameId)
       : undefined;
@@ -85,10 +102,32 @@ export function BottomPanel() {
           percentage: progress,
         });
 
+      const hasBatchInfo =
+        lastPacket?.batchFilesTotal != null && lastPacket.batchFilesTotal > 1;
+
       if (!eta) {
+        if (hasBatchInfo) {
+          return t("calculating_eta_batch", {
+            title: game.title,
+            percentage: progress,
+            filesDownloaded: lastPacket!.batchFilesDownloaded ?? 0,
+            filesTotal: lastPacket!.batchFilesTotal,
+          });
+        }
         return t("calculating_eta", {
           title: game.title,
           percentage: progress,
+        });
+      }
+
+      if (hasBatchInfo) {
+        return t("downloading_batch", {
+          title: game.title,
+          percentage: progress,
+          eta,
+          speed: downloadSpeed,
+          filesDownloaded: lastPacket!.batchFilesDownloaded ?? 0,
+          filesTotal: lastPacket!.batchFilesTotal,
         });
       }
 
@@ -109,6 +148,7 @@ export function BottomPanel() {
     eta,
     downloadSpeed,
     commonRedistStatus,
+    extraction,
   ]);
 
   return (
@@ -122,10 +162,10 @@ export function BottomPanel() {
       </button>
 
       <button
-        data-featurebase-changelog
+        data-open-workwonders-changelog-mini
         className="bottom-panel__version-button"
       >
-        <small data-featurebase-changelog>
+        <small>
           {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
           {VERSION_CODENAME}&quot;
         </small>

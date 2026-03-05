@@ -17,6 +17,8 @@ files:
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 asarUnpack:
   - resources/**
+  - node_modules/sharp/**
+  - node_modules/@img/sharp-libvips-*/**
 win:
   executableName: Hydra
   extraResources:
@@ -52,6 +54,7 @@ linux:
   extraResources:
     - from: binaries/7zzs
     - from: binaries/aria2c
+    - from: binaries/umu/umu-run
   target:
     - AppImage
     - snap

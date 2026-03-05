@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
 
 import {
   Badge,
@@ -21,7 +22,12 @@ import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
 import { Downloader } from "@shared";
 import { orderBy } from "lodash-es";
-import { useDate, useFeature, useAppDispatch } from "@renderer/hooks";
+import {
+  useDate,
+  useFeature,
+  useAppDispatch,
+  useAppSelector,
+} from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getGameKey } from "@renderer/helpers";
@@ -33,7 +39,8 @@ export interface RepacksModalProps {
     repack: GameRepack,
     downloader: Downloader,
     downloadPath: string,
-    automaticallyExtract: boolean
+    automaticallyExtract: boolean,
+    addToQueueOnly?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
@@ -70,6 +77,9 @@ export function RepacksModal({
   const { formatDate } = useDate();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const getHashFromMagnet = (magnet: string) => {
     if (!magnet || typeof magnet !== "string") {
@@ -129,10 +139,12 @@ export function RepacksModal({
       }
     };
 
-    if (visible) {
+    if (visible && userPreferences?.enableNewDownloadOptionsBadges !== false) {
       fetchLastCheckTimestamp();
+    } else {
+      setIsLoadingTimestamp(false);
     }
-  }, [visible, repacks]);
+  }, [visible, repacks, userPreferences?.enableNewDownloadOptionsBadges]);
 
   useEffect(() => {
     if (
@@ -174,6 +186,20 @@ export function RepacksModal({
       ["desc", "desc"]
     );
   }, [repacks, hashesInDebrid]);
+
+  const getRepackAvailabilityStatus = (
+    repack: GameRepack
+  ): "online" | "partial" | "offline" => {
+    const unavailableSet = new Set(repack.unavailableUris ?? []);
+    const availableCount = repack.uris.filter(
+      (uri) => !unavailableSet.has(uri)
+    ).length;
+    const unavailableCount = repack.uris.length - availableCount;
+
+    if (unavailableCount === 0) return "online";
+    if (availableCount === 0) return "offline";
+    return "partial";
+  };
 
   useEffect(() => {
     const term = filterTerm.trim().toLowerCase();
@@ -353,6 +379,8 @@ export function RepacksModal({
             filteredRepacks.map((repack) => {
               const isLastDownloadedOption =
                 checkIfLastDownloadedOption(repack);
+              const availabilityStatus = getRepackAvailabilityStatus(repack);
+              const tooltipId = `availability-orb-${repack.id}`;
 
               return (
                 <Button
@@ -361,13 +389,22 @@ export function RepacksModal({
                   onClick={() => handleRepackClick(repack)}
                   className="repacks-modal__repack-button"
                 >
+                  <span
+                    className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
+                    data-tooltip-id={tooltipId}
+                    data-tooltip-content={t(`source_${availabilityStatus}`)}
+                  />
+                  <Tooltip id={tooltipId} />
+
                   <p className="repacks-modal__repack-title">
                     {repack.title}
-                    {isNewRepack(repack) && (
-                      <span className="repacks-modal__new-badge">
-                        {t("new_download_option")}
-                      </span>
-                    )}
+                    {userPreferences?.enableNewDownloadOptionsBadges !==
+                      false &&
+                      isNewRepack(repack) && (
+                        <span className="repacks-modal__new-badge">
+                          {t("new_download_option")}
+                        </span>
+                      )}
                   </p>
 
                   {isLastDownloadedOption && (
