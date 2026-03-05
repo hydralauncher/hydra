@@ -57,6 +57,7 @@ export class DownloadManager {
   private static usingJsDownloader = false;
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
+  private static maxDownloadSpeedBytesPerSecond: number | null = null;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -193,11 +194,56 @@ export class DownloadManager {
     return downloader !== Downloader.Torrent;
   }
 
+  private static normalizeDownloadSpeedLimit(
+    value?: number | null
+  ): number | null {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      return null;
+    }
+
+    return Math.floor(value);
+  }
+
+  private static async getPersistedDownloadSpeedLimit() {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return this.normalizeDownloadSpeedLimit(
+      userPreferences?.maxDownloadSpeedBytesPerSecond
+    );
+  }
+
+  public static async applyDownloadSpeedLimit(
+    value?: number | null
+  ): Promise<void> {
+    const normalizedLimit =
+      value === undefined
+        ? await this.getPersistedDownloadSpeedLimit()
+        : this.normalizeDownloadSpeedLimit(value);
+
+    this.maxDownloadSpeedBytesPerSecond = normalizedLimit;
+    this.jsDownloader?.setMaxDownloadSpeedBytesPerSecond(normalizedLimit);
+
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "set_download_limit",
+        max_download_speed_bytes_per_second: normalizedLimit,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update RPC download speed limit:",
+          error
+        );
+      });
+  }
+
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
-    PythonRPC.spawn(
+    await PythonRPC.spawn(
       download?.status === "active"
         ? await this.getDownloadPayload(download).catch((err) => {
             logger.error("Error getting download payload", err);
@@ -215,6 +261,8 @@ export class DownloadManager {
     if (download) {
       this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
     }
+
+    await this.applyDownloadSpeedLimit();
   }
 
   private static async getDownloadStatusFromJs(): Promise<DownloadProgress | null> {
@@ -1306,6 +1354,9 @@ export class DownloadManager {
           };
 
           this.jsDownloader = new JsHttpDownloader();
+          this.jsDownloader.setMaxDownloadSpeedBytesPerSecond(
+            this.maxDownloadSpeedBytesPerSecond
+          );
           this.isPreparingDownload = false;
           void this.runAllDebridBatch();
         } else {
@@ -1320,6 +1371,9 @@ export class DownloadManager {
           }
 
           this.jsDownloader = new JsHttpDownloader();
+          this.jsDownloader.setMaxDownloadSpeedBytesPerSecond(
+            this.maxDownloadSpeedBytesPerSecond
+          );
           this.isPreparingDownload = false;
 
           this.logResolvedUrl(options.url);
