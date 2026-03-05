@@ -62,13 +62,11 @@ export function ProtonDBSection({
               <div className="protondb__section">
                 <div className="protondb__category">
                   <p className="protondb__category-title">
-                    <span
+                    <img
+                      src={ProtonDBLogo}
+                      alt=""
                       className="protondb__proton-icon"
                       aria-hidden="true"
-                      style={{
-                        WebkitMaskImage: `url(${ProtonDBLogo})`,
-                        maskImage: `url(${ProtonDBLogo})`,
-                      }}
                     />
                     {t("protondb_tier")}
                   </p>
@@ -85,13 +83,11 @@ export function ProtonDBSection({
 
                 <div className="protondb__category">
                   <p className="protondb__category-title">
-                    <span
+                    <img
+                      src={SteamDeckLogo}
+                      alt=""
                       className="protondb__steamdeck-icon"
                       aria-hidden="true"
-                      style={{
-                        WebkitMaskImage: `url(${SteamDeckLogo})`,
-                        maskImage: `url(${SteamDeckLogo})`,
-                      }}
                     />
                     {t("deck_compatibility")}
                   </p>
