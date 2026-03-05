@@ -61,23 +61,6 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0;
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
   }
 
   &__downloader-item {
@@ -248,50 +231,36 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
 
-    .text-field {
+    .text-field-container {
       flex: 1;
+      min-width: 0;
     }
   }
 
   &__torrent-filters {
     display: flex;
-    background-color: #1a1a1b;
-    border-radius: 4px;
-    padding: 2px;
-    gap: 2px;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    margin-left: auto;
+    padding-left: calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
   }
 
-  &__torrent-filter-button {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover {
-      color: #ffffff;
-    }
-
-    &.active {
-      background-color: #2a2a2b;
-      color: #ffffff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  &__torrent-disclaimer {
-    font-size: 12px;
+  &__torrent-sort-label {
+    font-size: 13px;
     color: rgba(255, 255, 255, 0.72);
-    padding: 8px 10px;
-    border-left: 2px solid rgba(255, 193, 7, 0.85);
-    background: rgba(255, 193, 7, 0.08);
+    white-space: nowrap;
+  }
+
+  &__torrent-sort-select.select-field__container {
+    flex: 0 0 auto;
+    width: fit-content;
+  }
+
+  &__torrent-sort-select .select-field__option {
+    min-width: 0;
   }
 
   &__torrent-table {
@@ -328,22 +297,31 @@
 
   &__torrent-files-list {
     background-color: #0b0b0c;
-    max-height: 460px;
     overflow: hidden;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
 
-    div::-webkit-scrollbar {
-      width: 8px;
+  &__torrent-files-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+      width: 9px;
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
-    div::-webkit-scrollbar-track {
-      background: transparent;
+    &::-webkit-scrollbar-track {
+      background-color: rgba(255, 255, 255, 0.06);
     }
 
-    div::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 999px;
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.24);
+      border-radius: 24px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.34);
     }
   }
 
