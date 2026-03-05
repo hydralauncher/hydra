@@ -211,7 +211,7 @@
     "repacks_modal_description": "Kies de herverpakking die u wilt downloaden",
     "select_folder_hint": "Om de standaardmap te wijzigen, gaat u naar <0>instellingen</0>",
     "download_now": "Download nu",
-    "copy_now": "Kopieer downloadlink"
+    "copy_now": "Kopieer downloadlink",
     "calculating_eta": "Calculating remaining time…",
     "paused": "Paused",
     "protondb_tier": "Tier",
