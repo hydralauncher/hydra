@@ -494,8 +494,16 @@ export class DownloadManager {
     shouldSeed?: boolean
   ) {
     const shouldExtract = download.automaticallyExtract;
+    const isSelectiveTorrent =
+      download.downloader === Downloader.Torrent &&
+      Array.isArray(download.fileIndices) &&
+      download.fileIndices.length > 0;
 
-    if (shouldSeed && download.downloader === Downloader.Torrent) {
+    if (
+      shouldSeed &&
+      download.downloader === Downloader.Torrent &&
+      !isSelectiveTorrent
+    ) {
       await downloadsSublevel.put(gameId, {
         ...download,
         status: "seeding",
@@ -1339,7 +1347,14 @@ export class DownloadManager {
     } else {
       logger.log("[DownloadManager] Using Python RPC downloader");
       const payload = await this.getDownloadPayload(download);
-      await PythonRPC.rpc.post("/action", payload);
+      const isSelectiveTorrentStart =
+        download.downloader === Downloader.Torrent &&
+        Array.isArray(download.fileIndices) &&
+        download.fileIndices.length > 0;
+
+      await PythonRPC.rpc.post("/action", payload, {
+        timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
+      });
       this.downloadingGameId = downloadId;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
