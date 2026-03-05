@@ -425,10 +425,15 @@ export class DownloadManager {
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
 
+        const effectiveFileSize =
+          fileSize > 0
+            ? fileSize
+            : (download.selectedFilesSize ?? download.fileSize ?? 0);
+
         await downloadsSublevel.put(downloadId, {
           ...download,
           bytesDownloaded,
-          fileSize,
+          fileSize: effectiveFileSize,
           progress,
           folderName,
           status: "active",
@@ -439,7 +444,13 @@ export class DownloadManager {
         numPeers,
         numSeeds,
         downloadSpeed,
-        timeRemaining: calculateETA(fileSize, bytesDownloaded, downloadSpeed),
+        timeRemaining: calculateETA(
+          fileSize > 0
+            ? fileSize
+            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
+          bytesDownloaded,
+          downloadSpeed
+        ),
         isDownloadingMetadata,
         isCheckingFiles,
         progress,
@@ -544,8 +555,16 @@ export class DownloadManager {
     shouldSeed?: boolean
   ) {
     const shouldExtract = download.automaticallyExtract;
+    const isSelectiveTorrent =
+      download.downloader === Downloader.Torrent &&
+      Array.isArray(download.fileIndices) &&
+      download.fileIndices.length > 0;
 
-    if (shouldSeed && download.downloader === Downloader.Torrent) {
+    if (
+      shouldSeed &&
+      download.downloader === Downloader.Torrent &&
+      !isSelectiveTorrent
+    ) {
       await downloadsSublevel.put(gameId, {
         ...download,
         status: "seeding",
@@ -1201,6 +1220,7 @@ export class DownloadManager {
           game_id: downloadId,
           url: download.uri,
           save_path: download.downloadPath,
+          file_indices: download.fileIndices,
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
@@ -1394,10 +1414,17 @@ export class DownloadManager {
     } else {
       logger.log("[DownloadManager] Using Python RPC downloader");
       const payload = await this.getDownloadPayload(download);
+      const isSelectiveTorrentStart =
+        download.downloader === Downloader.Torrent &&
+        Array.isArray(download.fileIndices) &&
+        download.fileIndices.length > 0;
+
       if (payload?.url) {
         this.logResolvedUrl(payload.url);
       }
-      await PythonRPC.rpc.post("/action", payload);
+      await PythonRPC.rpc.post("/action", payload, {
+        timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
+      });
       this.downloadingGameId = downloadId;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;

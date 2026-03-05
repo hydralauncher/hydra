@@ -102,7 +102,9 @@ export default function GameDetails() {
             downloader: Downloader,
             downloadPath: string,
             automaticallyExtract: boolean,
-            addToQueueOnly = false
+            addToQueueOnly = false,
+            fileIndices?: number[],
+            selectedFilesSize?: number | null
           ) => {
             const response = addToQueueOnly
               ? await addGameToQueue({
@@ -114,6 +116,8 @@ export default function GameDetails() {
                   uri: selectRepackUri(repack, downloader),
                   automaticallyExtract: automaticallyExtract,
                   fileSize: repack.fileSize,
+                  fileIndices,
+                  selectedFilesSize,
                 })
               : await startDownload({
                   objectId: objectId!,
@@ -124,6 +128,8 @@ export default function GameDetails() {
                   uri: selectRepackUri(repack, downloader),
                   automaticallyExtract: automaticallyExtract,
                   fileSize: repack.fileSize,
+                  fileIndices,
+                  selectedFilesSize,
                 });
 
             if (response.ok) {

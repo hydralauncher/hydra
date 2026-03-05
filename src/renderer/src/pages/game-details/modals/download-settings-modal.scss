@@ -19,6 +19,34 @@
     color: globals.$body-color;
   }
 
+  &__select-files-link {
+    align-self: flex-start;
+    margin-top: 6px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      color: #ffffff;
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+
+  &__select-files-link-text {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   &__downloaders-list-wrapper {
     border: 1px solid globals.$border-color;
     overflow: hidden;
@@ -202,6 +230,285 @@
 
   &__loading-spinner {
     animation: spin 1s linear infinite;
+  }
+
+  &__torrent-step {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.015) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  &__torrent-step-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit;
+
+    .text-field {
+      flex: 1;
+    }
+  }
+
+  &__torrent-filters {
+    display: flex;
+    background-color: #1a1a1b;
+    border-radius: 4px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  &__torrent-filter-button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+      color: #ffffff;
+    }
+
+    &.active {
+      background-color: #2a2a2b;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  &__torrent-disclaimer {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    padding: 8px 10px;
+    border-left: 2px solid rgba(255, 193, 7, 0.85);
+    background: rgba(255, 193, 7, 0.08);
+  }
+
+  &__torrent-table {
+    overflow: hidden;
+  }
+
+  &__torrent-table-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    height: 34px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+
+    span:last-child {
+      text-align: right;
+    }
+  }
+
+  &__torrent-files-feedback {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: #0b0b0c;
+    padding: calc(globals.$spacing-unit * 1.5);
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  &__torrent-files-list {
+    background-color: #0b0b0c;
+    max-height: 460px;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    div::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    div::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    div::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+    }
+  }
+
+  &__torrent-file-row {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    height: 36px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    &--selected {
+      background-color: rgba(255, 255, 255, 0.07);
+    }
+
+    &--select-all {
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: globals.$spacing-unit;
+    }
+  }
+
+  &__torrent-file-name-cell {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    .checkbox-field__checkbox {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+      min-height: 14px;
+      border-radius: 2px;
+      padding: 0;
+
+      svg {
+        width: 10px;
+        height: 10px;
+      }
+    }
+  }
+
+  &__torrent-folder-row {
+    outline: none;
+  }
+
+  &__torrent-row-trigger {
+    border: none;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    font: inherit;
+    cursor: pointer;
+
+    &--label {
+      min-width: 0;
+      flex: 1;
+      text-align: left;
+    }
+  }
+
+  &__torrent-folder-chevron {
+    width: 14px;
+    min-width: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.65);
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease;
+
+    &--expanded {
+      transform: rotate(0deg);
+    }
+  }
+
+  &__torrent-folder-spacer {
+    width: 14px;
+    min-width: 14px;
+    display: inline-flex;
+  }
+
+  &__torrent-node-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  &__torrent-node-icon {
+    color: rgba(255, 255, 255, 0.7);
+    min-width: 14px;
+  }
+
+  &__folder-checkbox--indeterminate {
+    position: relative;
+
+    .checkbox-field__icon {
+      opacity: 0;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 2px;
+      background: globals.$dark-background-color;
+      border-radius: 2px;
+    }
+  }
+
+  &__torrent-file-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    font-size: 12px;
+
+    &--bold {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    &--folder {
+      font-weight: 600;
+    }
+  }
+
+  &__torrent-file-size {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  &__torrent-files-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+
+    .button {
+      min-width: 180px;
+    }
+  }
+
+  &__torrent-files-summary {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.76);
   }
 }
 

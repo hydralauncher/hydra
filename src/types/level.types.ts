@@ -88,6 +88,8 @@ export interface Download {
   extracting: boolean;
   automaticallyExtract: boolean;
   extractionProgress: number;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
 }
 
 export interface GameAchievement {
