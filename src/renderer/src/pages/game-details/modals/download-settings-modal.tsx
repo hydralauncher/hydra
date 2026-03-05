@@ -13,6 +13,7 @@ import {
   CheckboxField,
   Link,
   Modal,
+  SelectField,
   TextField,
 } from "@renderer/components";
 import {
@@ -42,7 +43,6 @@ import {
 import { motion } from "framer-motion";
 import { Tooltip } from "react-tooltip";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
-import List from "rc-virtual-list";
 import "./download-settings-modal.scss";
 
 export interface DownloadSettingsModalProps {
@@ -61,6 +61,22 @@ export interface DownloadSettingsModalProps {
 }
 
 type TorrentSortColumn = "name" | "size" | "downloading";
+type TorrentSortDirection = "asc" | "desc";
+
+const parseTorrentSortOption = (
+  value: string
+): { column: TorrentSortColumn; direction: TorrentSortDirection } => {
+  const [column, direction] = value.split("_");
+
+  if (
+    (column === "name" || column === "size" || column === "downloading") &&
+    (direction === "asc" || direction === "desc")
+  ) {
+    return { column, direction };
+  }
+
+  return { column: "name", direction: "asc" };
+};
 
 interface TorrentFolderNode {
   id: string;
@@ -255,7 +271,7 @@ export function DownloadSettingsModal({
   const [showTorrentStepModal, setShowTorrentStepModal] = useState(false);
   const [torrentSort, setTorrentSort] = useState<{
     column: TorrentSortColumn;
-    direction: "asc" | "desc";
+    direction: TorrentSortDirection;
   }>({ column: "name", direction: "asc" });
   const torrentFilesCache = useRef<Map<string, TorrentFilesResponse>>(
     new Map()
@@ -506,7 +522,7 @@ export function DownloadSettingsModal({
 
       const aSelected = selectedTorrentIndices.has(aIndex);
       const bSelected = selectedTorrentIndices.has(bIndex);
-      const downloadingComparison = Number(bSelected) - Number(aSelected);
+      const downloadingComparison = Number(aSelected) - Number(bSelected);
 
       return downloadingComparison * directionMultiplier;
     };
@@ -929,14 +945,6 @@ export function DownloadSettingsModal({
     selectAllTorrentFiles();
   };
 
-  const handleTorrentSort = (column: TorrentSortColumn) => {
-    setTorrentSort((prev) => ({
-      column,
-      direction:
-        prev.column === column && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
   const renderFolderRow = (row: FolderTorrentTreeRow) => {
     const isChecked =
       row.totalCount > 0 && row.selectedCount === row.totalCount;
@@ -1024,7 +1032,7 @@ export function DownloadSettingsModal({
       <span className="download-settings-modal__torrent-file-name-cell">
         <span
           className="download-settings-modal__torrent-node-content"
-          style={{ paddingLeft: `${row.depth * 16 + 16}px` }}
+          style={{ paddingLeft: `${row.depth * 16}px` }}
         >
           <span className="download-settings-modal__torrent-folder-spacer" />
           <button
@@ -1068,6 +1076,11 @@ export function DownloadSettingsModal({
     return renderFileRow(row);
   };
 
+  const torrentRowsMaxHeight = Math.min(
+    460,
+    Math.max(36, filteredTorrentRows.length * 36)
+  );
+
   let torrentRowsContent: ReactNode;
   if (torrentFilesLoading) {
     torrentRowsContent = (
@@ -1087,14 +1100,12 @@ export function DownloadSettingsModal({
   } else {
     torrentRowsContent = (
       <div className="download-settings-modal__torrent-files-list">
-        <List
-          data={filteredTorrentRows}
-          height={Math.min(460, Math.max(36, filteredTorrentRows.length * 36))}
-          itemHeight={36}
-          itemKey="key"
+        <div
+          className="download-settings-modal__torrent-files-scroll"
+          style={{ maxHeight: `${torrentRowsMaxHeight}px` }}
         >
-          {renderTorrentRow}
-        </List>
+          {filteredTorrentRows.map(renderTorrentRow)}
+        </div>
       </div>
     );
   }
@@ -1355,48 +1366,31 @@ export function DownloadSettingsModal({
             />
 
             <div className="download-settings-modal__torrent-filters">
-              <button
-                type="button"
-                className={`download-settings-modal__torrent-filter-button ${
-                  torrentSort.column === "name" ? "active" : ""
-                }`}
-                onClick={() => handleTorrentSort("name")}
-              >
-                {t("torrent_name_column")}
-                {torrentSort.column === "name" && (
-                  <span>{torrentSort.direction === "asc" ? " ↑" : " ↓"}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`download-settings-modal__torrent-filter-button ${
-                  torrentSort.column === "size" ? "active" : ""
-                }`}
-                onClick={() => handleTorrentSort("size")}
-              >
-                {t("torrent_size_column")}
-                {torrentSort.column === "size" && (
-                  <span>{torrentSort.direction === "asc" ? " ↑" : " ↓"}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`download-settings-modal__torrent-filter-button ${
-                  torrentSort.column === "downloading" ? "active" : ""
-                }`}
-                onClick={() => handleTorrentSort("downloading")}
-              >
-                {t("torrent_downloading_column")}
-                {torrentSort.column === "downloading" && (
-                  <span>{torrentSort.direction === "asc" ? " ↑" : " ↓"}</span>
-                )}
-              </button>
+              <span className="download-settings-modal__torrent-sort-label">
+                {t("sort_by", { ns: "library" })}
+              </span>
+              <SelectField
+                className="download-settings-modal__torrent-sort-select"
+                theme="dark"
+                value={torrentSort.column === "size" ? "size_asc" : "name_asc"}
+                onChange={(event) => {
+                  setTorrentSort(parseTorrentSortOption(event.target.value));
+                }}
+                options={[
+                  {
+                    key: "torrent-name-asc",
+                    value: "name_asc",
+                    label: t("torrent_name_column"),
+                  },
+                  {
+                    key: "torrent-size-asc",
+                    value: "size_asc",
+                    label: t("torrent_size_column"),
+                  },
+                ]}
+              />
             </div>
           </div>
-
-          <p className="download-settings-modal__torrent-disclaimer">
-            {t("torrent_files_disclaimer")}
-          </p>
 
           <div className="download-settings-modal__torrent-table">
             <div className="download-settings-modal__torrent-table-head">
