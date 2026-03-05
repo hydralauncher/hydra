@@ -117,6 +117,15 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
+    def set_download_limit(self, max_download_speed: int = None):
+        download_limit = (
+            max_download_speed if max_download_speed and max_download_speed > 0 else 0
+        )
+        try:
+            self.session.set_download_rate_limit(download_limit)
+        except Exception:
+            pass
+
     def _wait_for_metadata(self, timeout_seconds: float = 30.0, poll_interval: float = 0.25):
         if not self.torrent_handle or not self.torrent_handle.is_valid():
             return False

@@ -17,6 +17,7 @@ import {
 } from "@primer/octicons-react";
 import { AddDownloadSourceModal } from "./add-download-source-modal";
 import { useAppDispatch, useToast } from "@renderer/hooks";
+import { useFormat } from "@renderer/hooks/use-format";
 import { DownloadSourceStatus } from "@shared";
 import { settingsContext } from "@renderer/context";
 import { useNavigate } from "react-router-dom";
@@ -43,6 +44,7 @@ export function SettingsDownloadSources() {
 
   const { t } = useTranslation("settings");
   const { showSuccessToast } = useToast();
+  const { numberFormatter } = useFormat();
 
   const dispatch = useAppDispatch();
 
@@ -281,8 +283,9 @@ export function SettingsDownloadSources() {
                       ? t("download_source_no_information")
                       : t("download_count", {
                           count: downloadSource.downloadCount,
-                          countFormatted:
-                            downloadSource.downloadCount.toLocaleString(),
+                          countFormatted: numberFormatter.format(
+                            downloadSource.downloadCount
+                          ),
                         })}
                   </small>
                 </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { XIcon } from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
 import "./wrapped-tab.scss";
 
 interface WrappedFullscreenModalProps {
@@ -31,6 +32,7 @@ export function WrappedFullscreenModal({
   isOpen,
   onClose,
 }: Readonly<WrappedFullscreenModalProps>) {
+  const { t } = useTranslation("profile");
   const [config, setConfig] = useState<ScaleConfig>(SCALE_CONFIGS[0.5]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,14 +62,20 @@ export function WrappedFullscreenModal({
         type="button"
         className="wrapped-fullscreen-modal__backdrop"
         onClick={onClose}
-        aria-label="Close wrapped"
+        aria-label={t("catalogue.close", {
+          ns: "translation",
+          defaultValue: "Close",
+        })}
       />
       <div className="wrapped-fullscreen-modal__container">
         <button
           type="button"
           className="wrapped-fullscreen-modal__close-button"
           onClick={onClose}
-          aria-label="Close wrapped"
+          aria-label={t("catalogue.close", {
+            ns: "translation",
+            defaultValue: "Close",
+          })}
         >
           <XIcon size={24} />
         </button>
@@ -84,7 +92,7 @@ export function WrappedFullscreenModal({
           <iframe
             src={`https://hydrawrapped.com/embed/${userId}?scale=${config.scale}`}
             className="wrapped-fullscreen-modal__iframe"
-            title="Wrapped 2025"
+            title={t("wrapped_2025")}
             onLoad={() => setIsLoading(false)}
           />
         </div>

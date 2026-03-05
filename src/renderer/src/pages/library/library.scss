@@ -285,4 +285,16 @@
       }
     }
   }
+
+  &__collection-modal {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__collection-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(globals.$spacing-unit);
+  }
 }
