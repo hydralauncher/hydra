@@ -20,7 +20,6 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
-  featurebaseJwt: string;
   workwondersJwt: string;
 }
 
