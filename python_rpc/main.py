@@ -39,11 +39,11 @@ metadata_semaphore = threading.BoundedSemaphore(value=2)
 
 # This can be streamed down from Node
 downloading_game_id = -1
+current_download_limit = None
 
 torrent_session = lt.session(
     {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
 )
-
 
 MAGNET_HASH_HEX_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 MAGNET_HASH_BASE32_RE = re.compile(r"^[a-zA-Z2-7]{32}$")
@@ -167,6 +167,23 @@ def map_downloader_error(error: Exception):
     return jsonify({"error": "internal_error"}), 500
 
 
+def normalize_download_limit(value):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    return parsed if parsed > 0 else None
+
+
+def apply_download_limit(downloader):
+    if not downloader:
+        return
+
+    set_download_limit = getattr(downloader, "set_download_limit", None)
+    if callable(set_download_limit):
+        set_download_limit(current_download_limit)
+
 def validate_rpc_password():
     """Middleware to validate RPC password."""
     header_password = request.headers.get("x-hydra-rpc-password")
@@ -181,6 +198,7 @@ def start_torrent_download(game_id, url, save_path, file_indices=None, flags=Non
         existing_downloader = downloads.get(game_id)
 
     if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
+        apply_download_limit(existing_downloader)
         existing_downloader.start_download(url, save_path, file_indices=file_indices)
         return
 
@@ -189,6 +207,7 @@ def start_torrent_download(game_id, url, save_path, file_indices=None, flags=Non
         flags or lt.torrent_flags.auto_managed,
         session_lock=downloads_lock,
     )
+    apply_download_limit(torrent_downloader)
 
     with downloads_lock:
         downloads[game_id] = torrent_downloader
@@ -206,10 +225,12 @@ def start_http_download(game_id, url, save_path, header=None, out=None):
         existing_downloader = downloads.get(game_id)
 
     if existing_downloader and isinstance(existing_downloader, HttpDownloader):
+        apply_download_limit(existing_downloader)
         existing_downloader.start_download(url, save_path, header, out)
         return
 
     http_downloader = HttpDownloader()
+    apply_download_limit(http_downloader)
 
     with downloads_lock:
         downloads[game_id] = http_downloader
@@ -413,6 +434,7 @@ def profile_image():
 @app.route("/action", methods=["POST"])
 def action():
     global downloading_game_id
+    global current_download_limit
 
     auth_error = validate_rpc_password()
     if auth_error:
@@ -425,7 +447,8 @@ def action():
     if not action_name:
         return jsonify({"error": "invalid_action"}), 400
 
-    if not game_id:
+    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding"}
+    if action_name in requires_game_id and not game_id:
         return jsonify({"error": "invalid_game_id"}), 400
 
     try:
@@ -493,6 +516,16 @@ def action():
 
             with downloads_lock:
                 downloads.pop(game_id, None)
+        elif action_name == "set_download_limit":
+            current_download_limit = normalize_download_limit(
+                data.get("max_download_speed_bytes_per_second")
+            )
+
+            with downloads_lock:
+                active_downloaders = list(downloads.values())
+
+            for downloader in active_downloaders:
+                apply_download_limit(downloader)
         else:
             return jsonify({"error": "invalid_action"}), 400
     except Exception as error:

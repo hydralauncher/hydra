@@ -20,7 +20,6 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
-  featurebaseJwt: string;
   workwondersJwt: string;
 }
 
@@ -141,6 +140,7 @@ export interface UserPreferences {
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
+  maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
-import { useDownload, useLibrary, useToast } from "@renderer/hooks";
+import {
+  useDownload,
+  useGameCollections,
+  useLibrary,
+  useToast,
+} from "@renderer/hooks";
 import { useNavigate, useLocation } from "react-router-dom";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
@@ -10,6 +15,7 @@ export function useGameActions(game: LibraryGame) {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
   const { updateLibrary } = useLibrary();
+  const { loadCollections } = useGameCollections();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -235,7 +241,7 @@ export function useGameActions(game: LibraryGame) {
       }
 
       await removeGameFromLibrary(game.shop, game.objectId);
-      updateLibrary();
+      await Promise.all([updateLibrary(), loadCollections()]);
       showSuccessToast(t("game_removed_from_library"));
       try {
         window.dispatchEvent(

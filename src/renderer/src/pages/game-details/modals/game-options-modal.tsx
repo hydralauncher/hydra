@@ -13,6 +13,7 @@ import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import {
   useAppSelector,
   useDownload,
+  useGameCollections,
   useLibrary,
   useToast,
   useUserDetails,
@@ -64,6 +65,7 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
   const { updateLibrary } = useLibrary();
+  const { loadCollections } = useGameCollections();
 
   const {
     updateGame,
@@ -249,7 +251,7 @@ export function GameOptionsModal({
     }
 
     await removeGameFromLibrary(game.shop, game.objectId);
-    updateGame();
+    await Promise.all([updateGame(), updateLibrary(), loadCollections()]);
     onClose();
 
     // Redirect to home page if it's a custom game
