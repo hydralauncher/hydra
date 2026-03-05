@@ -98,6 +98,7 @@
     "repacks_modal_description": "اختر الإصدار المعاد الذي تريد تنزيله",
     "select_folder_hint": "لتغيير المجلد الافتراضي، انتقل إلى <0>الإعدادات</0>",
     "download_now": "تنزيل الآن",
+    "copy_now": "رابط تحميل النسخ",
     "no_shop_details": "تعذر الحصول على تفاصيل المتجر.",
     "download_options": "خيارات التنزيل",
     "download_path": "مسار التنزيل",

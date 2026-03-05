@@ -69,7 +69,8 @@
     "change": "Змяніць",
     "repacks_modal_description": "Абярыце рэпак, які хочаце сцягнуць",
     "select_folder_hint": "Каб змяніць папку па змоўчанні, адкрыйце",
-    "download_now": "Сцягнуць зараз"
+    "download_now": "Сцягнуць зараз",
+    "copy_now": "Скапіяваць спасылку для загрузкі"
   },
   "activation": {
     "title": "Актываваць Hydra",
