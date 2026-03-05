@@ -211,7 +211,7 @@
     "repacks_modal_description": "다운로드 할 리팩을 선택해 주세요",
     "select_folder_hint": "기본 폴더를 바꾸려면 <0>설정</0>으로 가세요",
     "download_now": "지금 다운로드",
-    "copy_now": "복사하기 다운로드 링크"
+    "copy_now": "복사하기 다운로드 링크",
     "calculating_eta": "Calculating remaining time…",
     "paused": "Paused",
     "protondb_tier": "Tier",

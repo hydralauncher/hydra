@@ -211,7 +211,7 @@
     "repacks_modal_description": "ریپک مورد نظر برای دانلود را انتخاب کنید",
     "select_folder_hint": "برای تغییر پوشه‌ی پیش‌فرض به <0>Settings</0> بروید",
     "download_now": "الان دانلود کن",
-    "copy_now": "لینک دانلود کپی"
+    "copy_now": "لینک دانلود کپی",
     "calculating_eta": "Calculating remaining time…",
     "paused": "Paused",
     "protondb_tier": "Tier",
