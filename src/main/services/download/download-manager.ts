@@ -136,6 +136,19 @@ export class DownloadManager {
     };
   }
 
+  private static logResolvedUrl(url: string): void {
+    let sanitizedUrl = url;
+
+    try {
+      const parsedUrl = new URL(url);
+      sanitizedUrl = `${parsedUrl.origin}${parsedUrl.pathname}`;
+    } catch {
+      sanitizedUrl = url.replace(/[?#].*$/, "");
+    }
+
+    logger.log(`[DownloadManager] Resolved URL: ${sanitizedUrl}`);
+  }
+
   private static createDownloadPayload(
     directUrl: string,
     originalUrl: string,
@@ -759,6 +772,7 @@ export class DownloadManager {
           filename: this.sanitizeRelativePath(entry.filename),
         };
 
+        this.logResolvedUrl(options.url);
         await downloader.startDownload(options);
 
         if (!this.allDebridBatch || !this.jsDownloader) break;
@@ -1308,6 +1322,7 @@ export class DownloadManager {
           this.jsDownloader = new JsHttpDownloader();
           this.isPreparingDownload = false;
 
+          this.logResolvedUrl(options.url);
           this.jsDownloader.startDownload(options).catch((err) => {
             logger.error("[DownloadManager] JS download error:", err);
             this.usingJsDownloader = false;
@@ -1325,6 +1340,9 @@ export class DownloadManager {
     } else {
       logger.log("[DownloadManager] Using Python RPC downloader");
       const payload = await this.getDownloadPayload(download);
+      if (payload?.url) {
+        this.logResolvedUrl(payload.url);
+      }
       await PythonRPC.rpc.post("/action", payload);
       this.downloadingGameId = downloadId;
       this.usingJsDownloader = false;
