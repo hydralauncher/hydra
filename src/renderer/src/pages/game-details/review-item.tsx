@@ -135,7 +135,7 @@ export function ReviewItem({
               <Avatar
                 src={review.user.profileImageUrl}
                 alt={review.user.displayName || "User"}
-                size={40}
+                size={44}
               />
             </button>
             <div className="game-details__review-user-info">
@@ -147,39 +147,38 @@ export function ReviewItem({
               >
                 {review.user.displayName || "Anonymous"}
               </button>
+              <div className="game-details__review-meta-row">
+                <div className="game-details__review-meta-left">
+                  <div
+                    className="game-details__review-score-stars"
+                    title={getRatingText(review.score, t)}
+                  >
+                    <Star
+                      size={12}
+                      className="game-details__review-star game-details__review-star--filled"
+                    />
+                    <span className="game-details__review-score-text">
+                      {review.score}/5
+                    </span>
+                  </div>
+                  {Boolean(
+                    review.playTimeInSeconds && review.playTimeInSeconds > 0
+                  ) && (
+                    <div className="game-details__review-playtime">
+                      <ClockIcon size={12} />
+                      <span>
+                        {formatPlayTime(review.playTimeInSeconds || 0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <div className="game-details__review-date">
             {formatDistance(new Date(review.createdAt), new Date(), {
               addSuffix: true,
             })}
-          </div>
-        </div>
-        <div className="game-details__review-header-bottom">
-          <div className="game-details__review-meta-row">
-            <div
-              className="game-details__review-score-stars"
-              title={getRatingText(review.score, t)}
-            >
-              <Star
-                size={12}
-                className="game-details__review-star game-details__review-star--filled"
-              />
-              <span className="game-details__review-score-text">
-                {review.score}/5
-              </span>
-            </div>
-            {Boolean(
-              review.playTimeInSeconds && review.playTimeInSeconds > 0
-            ) && (
-              <div className="game-details__review-playtime">
-                <ClockIcon size={12} />
-                <span>
-                  {t("review_played_for")}{" "}
-                  {formatPlayTime(review.playTimeInSeconds || 0)}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>

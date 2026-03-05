@@ -41,6 +41,13 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+type WorkWondersWithKnowledge = WorkWonders & {
+  knowledge?: {
+    initKnowledgeWidget?: () => void;
+    showArticle?: (articleId: number) => void;
+  };
+};
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -135,7 +142,9 @@ export function App() {
 
       workwondersRef.current.changelog.initChangelogWidget();
       workwondersRef.current.changelog.initChangelogWidgetMini();
-      workwondersRef.current.knowledge.initKnowledgeWidget();
+      const workWondersWithKnowledge =
+        workwondersRef.current as WorkWondersWithKnowledge;
+      workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
 
       if (token) {
         workwondersRef.current.feedback.initFeedbackWidget();
@@ -176,7 +185,9 @@ export function App() {
           ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
 
         if (articleId) {
-          workwondersRef.current?.knowledge.showArticle(articleId);
+          const workWondersWithKnowledge =
+            workwondersRef.current as WorkWondersWithKnowledge | null;
+          workWondersWithKnowledge?.knowledge?.showArticle?.(articleId);
         }
       }
     };
