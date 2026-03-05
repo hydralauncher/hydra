@@ -129,7 +129,9 @@
     "extracting": "Распаковка {{title}}… ({{percentage}} завершено)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Установка завершена",
-    "installation_complete_message": "Библиотеки успешно установлены"
+    "installation_complete_message": "Библиотеки успешно установлены",
+    "downloading_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Completion {{eta}} - {{speed}}",
+    "calculating_eta_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Calculating remaining time…"
   },
   "catalogue": {
     "search": "Фильтр…",
@@ -196,6 +198,16 @@
     "open_screenshot": "Открыть скриншот {{number}}",
     "download_settings": "Параметры загрузки",
     "downloader": "Загрузчик",
+    "torrent_files": "Файлы торрента",
+    "torrent_name_column": "Название",
+    "torrent_size_column": "Размер",
+    "torrent_downloading_column": "Загрузка",
+    "select_files_to_download": "Выберите файлы для загрузки",
+    "loading_torrent_files": "Загрузка файлов торрента...",
+    "search_torrent_files": "Поиск файлов",
+    "selected_files": "Выбранные файлы",
+    "select_all_files": "Выбрать все",
+    "retry_fetch_torrent_files": "Повторить",
     "downloader_online": "Онлайн",
     "downloader_not_configured": "Доступен, но не настроен",
     "downloader_offline": "Ссылка недоступна",
@@ -404,7 +416,33 @@
     "hide_original": "Скрыть оригинал",
     "review_from_blocked_user": "Отзыв от заблокированного пользователя",
     "show": "Показать",
-    "hide": "Скрыть"
+    "hide": "Скрыть",
+    "edit_game_modal_fill_required": "Please fill in all required fields",
+    "edit_game_modal_failed": "Failed to update assets",
+    "run_with_mangohud": "Automatically run with MangoHud",
+    "auto_run_inherit_global": "Use global setting",
+    "auto_run_enabled": "Enabled",
+    "auto_run_disabled": "Disabled",
+    "winetricks_opened": "Winetricks opened",
+    "winetricks_open_error": "Failed to open Winetricks",
+    "proton_version_update_error": "Failed to update Proton version",
+    "proton_prefix_reset_error": "Failed to reset the game prefix for Proton switch",
+    "proton_switch_confirmation_title": "Switch Proton version?",
+    "proton_switch_confirmation_description": "To avoid prefix version conflicts, Hydra will delete this game's auto-managed Wine prefix at {{path}} and recreate it on next launch. This may remove data stored inside that prefix.",
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "settings_category_general_description": "Executable path, launch options, and shortcuts",
+    "settings_category_assets_description": "Customize game title, icon, logo, and hero artwork",
+    "settings_category_hydra_cloud_description": "Configure cloud sync behavior for this game",
+    "settings_category_compatibility_description": "Linux compatibility settings including Wine and Proton",
+    "settings_category_downloads_description": "Manage download options and installation files",
+    "settings_category_danger_zone_description": "Irreversible actions for this game",
+    "launch_options_description_linux": "Add game launch arguments, or use <code>%command%</code> to wrap the launch command.",
+    "source_online": "Source is online",
+    "source_partial": "Some links are offline",
+    "source_offline": "Source is offline",
+    "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
+    "create_steam_shortcut_modal_create_button": "Create",
+    "create_steam_shortcut_modal_cancel_button": "Cancel"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -455,7 +493,8 @@
     "network": "СЕТЬ",
     "peak": "ПИК",
     "move_up": "Переместить вверх",
-    "move_down": "Переместить вниз"
+    "move_down": "Переместить вниз",
+    "files": "FILES"
   },
   "settings": {
     "downloads_path": "Путь загрузок",
@@ -638,7 +677,13 @@
     "downloads": "Загрузки",
     "use_native_http_downloader": "Использовать встроенный HTTP-загрузчик (экспериментально)",
     "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки",
-    "create_start_menu_shortcut_on_download": "Создать ярлык в меню «Пуск» при завершении загрузки игры"
+    "create_shortcuts_on_download": "Создавать ярлыки на рабочем столе и в меню «Пуск» после завершения загрузки игры",
+    "default_proton_version": "Версия Proton по умолчанию",
+    "default_proton_version_description": "Выберите версию Proton, которую использует автоматический режим, если для игры не задана отдельная настройка",
+    "proton_version_auto": "Авто (глобальное значение по умолчанию или значение umu по умолчанию)",
+    "proton_source_umu_default": "выбор umu по умолчанию",
+    "proton_source_steam": "Установлено через Steam",
+    "proton_source_compatibility_tools": "Установлено в Steam compatibilitytools.d"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
@@ -818,7 +863,9 @@
     "favorites": "Избранное",
     "disk_usage": "Использование диска",
     "disk_usage_tooltip": "Установленный размер на диске",
-    "installer_size_tooltip": "Размер установщика"
+    "installer_size_tooltip": "Размер установщика",
+    "empty_favorites_title": "No favorite games",
+    "empty_favorites_description": "Mark games as favorites to keep them handy here."
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
