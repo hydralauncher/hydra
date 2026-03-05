@@ -133,9 +133,9 @@ export function App() {
         locale: parsedLocale,
       });
 
-      await workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidget();
       workwondersRef.current.changelog.initChangelogWidgetMini();
-      await workwondersRef.current.knowledge.initKnowledgeWidget();
+      workwondersRef.current.knowledge.initKnowledgeWidget();
 
       if (token) {
         workwondersRef.current.feedback.initFeedbackWidget();
