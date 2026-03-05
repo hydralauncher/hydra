@@ -35,12 +35,7 @@ const updateUserPreferences = async (
     }
   );
 
-  if (
-    Object.prototype.hasOwnProperty.call(
-      preferences,
-      "maxDownloadSpeedBytesPerSecond"
-    )
-  ) {
+  if (Object.hasOwn(preferences, "maxDownloadSpeedBytesPerSecond")) {
     await DownloadManager.applyDownloadSpeedLimit(
       preferences.maxDownloadSpeedBytesPerSecond ?? null
     );
