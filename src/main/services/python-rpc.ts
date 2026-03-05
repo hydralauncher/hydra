@@ -20,6 +20,7 @@ interface GamePayload {
   header?: string;
   out?: string;
   total_size?: number;
+  file_indices?: number[];
 }
 
 const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
@@ -36,6 +37,7 @@ export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
   public static readonly rpc = axios.create({
     baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
+    timeout: 10000,
     httpAgent: new http.Agent({
       family: 4, // Force IPv4
     }),
@@ -104,6 +106,30 @@ export class PythonRPC {
 
   private static updateRpcPort(port: number) {
     this.rpc.defaults.baseURL = `http://localhost:${port}`;
+  }
+
+  public static async ensureReady(
+    retries = 20,
+    delayMs = 250,
+    timeoutMs = 2000
+  ): Promise<void> {
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        await this.rpc.get("/healthcheck", { timeout: timeoutMs });
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Python RPC healthcheck failed");
   }
 
   public static async spawn(
@@ -183,6 +209,8 @@ export class PythonRPC {
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
+
+    await this.ensureReady();
   }
 
   public static kill() {

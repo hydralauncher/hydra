@@ -21,6 +21,8 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
@@ -50,13 +52,15 @@ const startGameDownload = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
     extracting: false,
     automaticallyExtract,
     extractionProgress: 0,
+    fileIndices,
+    selectedFilesSize,
+    fileSize: selectedFilesSize ?? null,
   };
 
   try {

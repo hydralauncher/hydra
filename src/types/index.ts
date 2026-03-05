@@ -66,8 +66,16 @@ export type ShopDetailsWithAssets = ShopDetails & {
 };
 
 export interface TorrentFile {
+  index: number;
   path: string;
   length: number;
+}
+
+export interface TorrentFilesResponse {
+  infoHash: string;
+  name: string;
+  totalSize: number;
+  files: TorrentFile[];
 }
 
 export type UserGame = {
@@ -131,6 +139,8 @@ export interface StartGameDownloadPayload {
   downloader: Downloader;
   automaticallyExtract: boolean;
   fileSize?: string | null;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
 }
 
 export interface UserFriend {
