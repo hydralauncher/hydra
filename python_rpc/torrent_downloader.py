@@ -102,6 +102,13 @@ class TorrentDownloader:
             "http://bvarf.tracker.sh:2086/announce",
         ]
 
+    def set_download_limit(self, max_download_speed: int = None):
+        download_limit = max_download_speed if max_download_speed and max_download_speed > 0 else 0
+        try:
+            self.session.set_download_rate_limit(download_limit)
+        except Exception:
+            pass
+
     def start_download(self, magnet: str, save_path: str):
         params = {'url': magnet, 'save_path': save_path, 'trackers': self.trackers, 'flags': self.flags}
         self.torrent_handle = self.session.add_torrent(params)
