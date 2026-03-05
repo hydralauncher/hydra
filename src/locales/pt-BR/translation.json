@@ -148,7 +148,9 @@
     "extracting": "Extraindo {{title}}… ({{percentage}} concluído)",
     "installing_common_redist": "{{log}}…",
     "installation_complete": "Instalação concluída",
-    "installation_complete_message": "Componentes recomendados instalados com sucesso"
+    "installation_complete_message": "Componentes recomendados instalados com sucesso",
+    "downloading_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Completion {{eta}} - {{speed}}",
+    "calculating_eta_batch": "Downloading {{title}}… ({{percentage}} complete {{filesDownloaded}}/{{filesTotal}} files) - Calculating remaining time…"
   },
   "game_details": {
     "open_download_options": "Ver opções de download",
@@ -465,7 +467,30 @@
     "rating_count": "Avaliação",
     "review_from_blocked_user": "Avaliação de usuário bloqueado",
     "show": "Mostrar",
-    "hide": "Ocultar"
+    "hide": "Ocultar",
+    "edit_game_modal_fill_required": "Please fill in all required fields",
+    "edit_game_modal_failed": "Failed to update assets",
+    "run_with_mangohud": "Automatically run with MangoHud",
+    "auto_run_inherit_global": "Use global setting",
+    "auto_run_enabled": "Enabled",
+    "auto_run_disabled": "Disabled",
+    "winetricks_opened": "Winetricks opened",
+    "winetricks_open_error": "Failed to open Winetricks",
+    "proton_version_update_error": "Failed to update Proton version",
+    "proton_prefix_reset_error": "Failed to reset the game prefix for Proton switch",
+    "proton_switch_confirmation_title": "Switch Proton version?",
+    "proton_switch_confirmation_description": "To avoid prefix version conflicts, Hydra will delete this game's auto-managed Wine prefix at {{path}} and recreate it on next launch. This may remove data stored inside that prefix.",
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "settings_category_general_description": "Executable path, launch options, and shortcuts",
+    "settings_category_assets_description": "Customize game title, icon, logo, and hero artwork",
+    "settings_category_hydra_cloud_description": "Configure cloud sync behavior for this game",
+    "settings_category_compatibility_description": "Linux compatibility settings including Wine and Proton",
+    "settings_category_downloads_description": "Manage download options and installation files",
+    "settings_category_danger_zone_description": "Irreversible actions for this game",
+    "launch_options_description_linux": "Add game launch arguments, or use <code>%command%</code> to wrap the launch command.",
+    "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
+    "create_steam_shortcut_modal_create_button": "Create",
+    "create_steam_shortcut_modal_cancel_button": "Cancel"
   },
   "activation": {
     "title": "Ativação",
@@ -516,7 +541,8 @@
     "network": "REDE",
     "peak": "PICO",
     "move_up": "Mover para cima",
-    "move_down": "Mover para baixo"
+    "move_down": "Mover para baixo",
+    "files": "FILES"
   },
   "settings": {
     "downloads_path": "Diretório dos downloads",
@@ -968,7 +994,9 @@
     "empty_collection_description": "Clique com o botão direito em qualquer jogo, abra Coleção e adicione-o aqui.",
     "disk_usage": "Uso de disco",
     "disk_usage_tooltip": "Tamanho instalado no disco",
-    "installer_size_tooltip": "Tamanho do instalador"
+    "installer_size_tooltip": "Tamanho do instalador",
+    "empty_favorites_title": "No favorite games",
+    "empty_favorites_description": "Mark games as favorites to keep them handy here."
   },
   "notifications_page": {
     "title": "Notificações",
