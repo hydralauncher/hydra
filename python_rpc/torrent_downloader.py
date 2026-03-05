@@ -164,11 +164,25 @@ class TorrentDownloader:
         return sorted(sanitized)
 
     def _set_selected_file_priorities(self, selected_indices: List[int], files_storage):
-        selected_set = set(selected_indices)
+        priorities = [0] * files_storage.num_files()
+        for index in selected_indices:
+            priorities[index] = 1
 
-        for index in range(files_storage.num_files()):
-            priority = 1 if index in selected_set else 0
-            self.torrent_handle.file_priority(index, priority)
+        self.torrent_handle.prioritize_files(priorities)
+
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            try:
+                current_priorities = [int(priority) for priority in self.torrent_handle.get_file_priorities()]
+            except RuntimeError:
+                break
+
+            if current_priorities == priorities:
+                return
+
+            time.sleep(0.1)
+
+        self.logger.warning("File priority synchronization timeout")
 
     def start_download(
         self,
@@ -177,26 +191,45 @@ class TorrentDownloader:
         file_indices: Optional[List[int]] = None,
         wait_timeout_seconds: float = 30.0,
     ):
+        selective_download = file_indices is not None
+
         with self.session_lock:
             if self.torrent_handle and self.torrent_handle.is_valid():
-                self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-                self.torrent_handle.resume()
-                return
+                if not selective_download:
+                    self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+                    self.torrent_handle.resume()
+                    return
+
+                self.torrent_handle.pause()
+                self.session.remove_torrent(self.torrent_handle)
+                self.torrent_handle = None
+
+            initial_flags = self.flags | lt.torrent_flags.paused
+
+            if selective_download:
+                initial_flags |= lt.torrent_flags.default_dont_download
+                initial_flags |= lt.torrent_flags.auto_managed
+            else:
+                initial_flags |= lt.torrent_flags.auto_managed
 
             params = {
                 "url": magnet,
                 "save_path": save_path,
                 "trackers": self.trackers,
-                "flags": self.flags | lt.torrent_flags.paused | lt.torrent_flags.auto_managed,
+                "flags": initial_flags,
             }
 
-            self.torrent_handle = self.session.add_torrent(params)
+            if self.torrent_handle is None or not self.torrent_handle.is_valid():
+                self.torrent_handle = self.session.add_torrent(params)
 
         self.selected_file_indices = None
         self.selected_size_bytes = None
 
-        if file_indices is not None:
+        if selective_download:
             try:
+                self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+                self.torrent_handle.resume()
+
                 if not self._wait_for_metadata(timeout_seconds=wait_timeout_seconds):
                     raise TimeoutError("metadata_timeout")
 
@@ -205,6 +238,9 @@ class TorrentDownloader:
                     files_storage = info.files()
                 except RuntimeError as error:
                     raise RuntimeError("metadata_incomplete") from error
+
+                self.torrent_handle.pause()
+                self.torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
 
                 sanitized_indices = self._sanitize_file_indices(file_indices, files_storage)
                 self._set_selected_file_priorities(sanitized_indices, files_storage)
@@ -259,7 +295,7 @@ class TorrentDownloader:
             if self.torrent_handle:
                 if self.torrent_handle.is_valid():
                     self.torrent_handle.pause()
-                    self.session.remove_torrent(self.torrent_handle)
+                    self.session.remove_torrent(self.torrent_handle, lt.session.delete_partfile)
                 self.torrent_handle = None
                 self.selected_file_indices = None
                 self.selected_size_bytes = None
