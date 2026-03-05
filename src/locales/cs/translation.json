@@ -101,6 +101,7 @@
     "repacks_modal_description": "Vyber repack který chceš stáhnout",
     "select_folder_hint": "Pro změnu základní složky, jdi do <0>Nastavení</0>",
     "download_now": "Stáhnout",
+    "copy_now": "Kopírovat odkaz ke stažení",
     "no_shop_details": "Nepodařilo se mi načíst informace o obchodu.",
     "download_options": "Možnosti stahování",
     "download_path": "Umístění stahování",

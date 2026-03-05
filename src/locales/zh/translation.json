@@ -163,6 +163,7 @@
     "repacks_modal_description": "选择您想要下载的重打包",
     "select_folder_hint": "要更改默认文件夹,请访问<0>设置</0>",
     "download_now": "立即下载",
+    "copy_now": "复制下载链接",
     "no_shop_details": "无法检索商店详细信息.",
     "download_options": "下载选项",
     "download_path": "下载路径",

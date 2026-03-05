@@ -13,6 +13,7 @@ import {
   SyncIcon,
   CheckCircleFillIcon,
   PlusIcon,
+  CopyIcon
 } from "@primer/octicons-react";
 import { Downloader, formatBytes, getDownloadersForUri } from "@shared";
 import type { GameRepack } from "@types";
@@ -311,6 +312,12 @@ export function DownloadSettingsModal({
     }
   };
 
+  const handleCopyClick = async () => {
+    if (repack && repack.uris[0]) {
+      navigator.clipboard.writeText(repack.uris[0]);
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -528,6 +535,13 @@ export function DownloadSettingsModal({
           }
         >
           {getButtonContent()}
+        </Button>
+
+        <Button
+          onClick={handleCopyClick}
+        >
+          <CopyIcon />
+          {t("copy_now")}
         </Button>
       </div>
 
