@@ -200,7 +200,6 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
-  featurebaseJwt: string;
   workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;
