@@ -271,7 +271,7 @@ class TorrentDownloader:
         self.selected_file_indices = None
         self.selected_size_bytes = None
 
-    def get_download_status(self):
+    def _get_handle_status(self):
         if self.torrent_handle is None:
             return None
 
@@ -279,40 +279,58 @@ class TorrentDownloader:
             return None
 
         try:
-            status = self.torrent_handle.status()
+            return self.torrent_handle.status()
         except RuntimeError:
             return None
 
-        info = None
-        has_metadata = status.has_metadata
-        if has_metadata:
-            try:
-                info = self.torrent_handle.get_torrent_info()
-            except RuntimeError:
-                info = None
+    def _get_torrent_info_if_available(self, status):
+        if not status.has_metadata:
+            return None
 
-        file_size = 0
-        if hasattr(status, "total_wanted") and status.total_wanted > 0:
-            file_size = status.total_wanted
-        elif self.selected_size_bytes is not None:
-            file_size = self.selected_size_bytes
-        elif info:
-            file_size = info.total_size()
+        try:
+            return self.torrent_handle.get_torrent_info()
+        except RuntimeError:
+            return None
 
-        bytes_downloaded = 0
-        if hasattr(status, "total_wanted_done") and status.total_wanted_done >= 0:
-            bytes_downloaded = status.total_wanted_done
-        elif file_size > 0:
-            bytes_downloaded = int(status.progress * file_size)
-        else:
-            bytes_downloaded = status.all_time_download
+    def _get_file_size(self, status, info):
+        total_wanted = getattr(status, "total_wanted", 0)
+        if total_wanted > 0:
+            return total_wanted
 
-        progress = 0
+        if self.selected_size_bytes is not None:
+            return self.selected_size_bytes
+
+        if info:
+            return info.total_size()
+
+        return 0
+
+    def _get_bytes_downloaded(self, status, file_size):
+        total_wanted_done = getattr(status, "total_wanted_done", -1)
+        if total_wanted_done >= 0:
+            return total_wanted_done
+
         if file_size > 0:
-            progress = min(max(bytes_downloaded / file_size, 0), 1)
-        else:
-            progress = status.progress
-        
+            return int(status.progress * file_size)
+
+        return status.all_time_download
+
+    def _get_progress(self, status, file_size, bytes_downloaded):
+        if file_size <= 0:
+            return status.progress
+
+        return min(max(bytes_downloaded / file_size, 0), 1)
+
+    def get_download_status(self):
+        status = self._get_handle_status()
+        if status is None:
+            return None
+
+        info = self._get_torrent_info_if_available(status)
+        file_size = self._get_file_size(status, info)
+        bytes_downloaded = self._get_bytes_downloaded(status, file_size)
+        progress = self._get_progress(status, file_size, bytes_downloaded)
+
         response = {
             'folderName': info.name() if info else "",
             'fileSize': file_size,

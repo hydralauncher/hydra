@@ -493,27 +493,22 @@ export function DownloadSettingsModal({
       const bFile = torrentFilesByIndex.get(bIndex);
       if (!aFile || !bFile) return 0;
 
-      let comparison = 0;
       if (torrentSort.column === "name") {
-        comparison = (
+        const nameComparison = (
           torrentTree.fileNameByIndex.get(aIndex) ?? ""
         ).localeCompare(torrentTree.fileNameByIndex.get(bIndex) ?? "");
-      } else if (torrentSort.column === "size") {
-        comparison = aFile.length - bFile.length;
-      } else {
-        const aSelected = selectedTorrentIndices.has(aIndex);
-        const bSelected = selectedTorrentIndices.has(bIndex);
-
-        if (aSelected === bSelected) {
-          comparison = 0;
-        } else if (aSelected) {
-          comparison = -1;
-        } else {
-          comparison = 1;
-        }
+        return nameComparison * directionMultiplier;
       }
 
-      return comparison * directionMultiplier;
+      if (torrentSort.column === "size") {
+        return (aFile.length - bFile.length) * directionMultiplier;
+      }
+
+      const aSelected = selectedTorrentIndices.has(aIndex);
+      const bSelected = selectedTorrentIndices.has(bIndex);
+      const downloadingComparison = Number(bSelected) - Number(aSelected);
+
+      return downloadingComparison * directionMultiplier;
     };
 
     const compareFolderIds = (aFolderId: string, bFolderId: string) => {
