@@ -199,7 +199,7 @@ export default function GameDetails() {
                     <div className="game-details__stars-icon-container">
                       <img
                         src={starsIconAnimated}
-                        alt="Stars animation"
+                        alt=""
                         className="game-details__stars-icon"
                       />
                     </div>
