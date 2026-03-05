@@ -834,8 +834,7 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const id = download.uri.split("/").pop();
-    const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+    const downloadUrl = await PixelDrainApi.unlock(download.uri);
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1065,8 +1064,7 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const id = download.uri.split("/").pop();
-        const downloadUrl = await PixelDrainApi.getDownloadUrl(id!);
+        const downloadUrl = await PixelDrainApi.unlock(download.uri);
 
         return {
           action: "start",
