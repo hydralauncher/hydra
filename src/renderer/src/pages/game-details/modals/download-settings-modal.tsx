@@ -1372,12 +1372,7 @@ export function DownloadSettingsModal({
               <SelectField
                 className="download-settings-modal__torrent-sort-select"
                 theme="dark"
-                value={
-                  torrentSort.column === "downloading" &&
-                  torrentSort.direction === "desc"
-                    ? "downloading_desc"
-                    : "name_asc"
-                }
+                value={torrentSort.column === "size" ? "size_asc" : "name_asc"}
                 onChange={(event) => {
                   setTorrentSort(parseTorrentSortOption(event.target.value));
                 }}
@@ -1385,12 +1380,12 @@ export function DownloadSettingsModal({
                   {
                     key: "torrent-name-asc",
                     value: "name_asc",
-                    label: `${t("torrent_name_column")} (ASC)`,
+                    label: t("torrent_name_column"),
                   },
                   {
-                    key: "torrent-downloading-desc",
-                    value: "downloading_desc",
-                    label: `${t("torrent_downloading_column")} (DESC)`,
+                    key: "torrent-size-asc",
+                    value: "size_asc",
+                    label: t("torrent_size_column"),
                   },
                 ]}
               />
