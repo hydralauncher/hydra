@@ -17,8 +17,25 @@ start_seeding_payload = sys.argv[5]
 downloads = {}
 # This can be streamed down from Node
 downloading_game_id = -1
+current_download_limit = None
 
 torrent_session = lt.session({'listen_interfaces': '0.0.0.0:{port}'.format(port=torrent_port)})
+
+def normalize_download_limit(value):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    return parsed if parsed > 0 else None
+
+def apply_download_limit(downloader):
+    if not downloader:
+        return
+
+    set_download_limit = getattr(downloader, "set_download_limit", None)
+    if callable(set_download_limit):
+        set_download_limit(current_download_limit)
 
 if start_download_payload:
     initial_download = json.loads(urllib.parse.unquote(start_download_payload))
@@ -26,6 +43,7 @@ if start_download_payload:
     
     if initial_download['url'].startswith('magnet'):
         torrent_downloader = TorrentDownloader(torrent_session)
+        apply_download_limit(torrent_downloader)
         downloads[initial_download['game_id']] = torrent_downloader
         try:
             torrent_downloader.start_download(initial_download['url'], initial_download['save_path'])
@@ -33,6 +51,7 @@ if start_download_payload:
             print("Error starting torrent download", e)
     else:
         http_downloader = HttpDownloader()
+        apply_download_limit(http_downloader)
         downloads[initial_download['game_id']] = http_downloader
         try:
             http_downloader.start_download(initial_download['url'], initial_download['save_path'], initial_download.get('header'), initial_download.get('out'))
@@ -43,6 +62,7 @@ if start_seeding_payload:
     initial_seeding = json.loads(urllib.parse.unquote(start_seeding_payload))
     for seed in initial_seeding:
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+        apply_download_limit(torrent_downloader)
         downloads[seed['game_id']] = torrent_downloader
         try:
             torrent_downloader.start_download(seed['url'], seed['save_path'])
@@ -135,6 +155,7 @@ def profile_image():
 def action():
     global torrent_session
     global downloading_game_id
+    global current_download_limit
 
     auth_error = validate_rpc_password()
     if auth_error:
@@ -154,6 +175,7 @@ def action():
                 existing_downloader.start_download(url, data['save_path'])
             else:
                 torrent_downloader = TorrentDownloader(torrent_session)
+                apply_download_limit(torrent_downloader)
                 downloads[game_id] = torrent_downloader
                 torrent_downloader.start_download(url, data['save_path'])
         else:
@@ -161,6 +183,7 @@ def action():
                 existing_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
             else:
                 http_downloader = HttpDownloader()
+                apply_download_limit(http_downloader)
                 downloads[game_id] = http_downloader
                 http_downloader.start_download(url, data['save_path'], data.get('header'), data.get('out'))
         
@@ -179,12 +202,20 @@ def action():
             downloader.cancel_download()
     elif action == 'resume_seeding':
         torrent_downloader = TorrentDownloader(torrent_session, lt.torrent_flags.upload_mode)
+        apply_download_limit(torrent_downloader)
         downloads[game_id] = torrent_downloader
         torrent_downloader.start_download(data['url'], data['save_path'])
     elif action == 'pause_seeding':
         downloader = downloads.get(game_id)
         if downloader:
             downloader.cancel_download()
+    elif action == 'set_download_limit':
+        current_download_limit = normalize_download_limit(
+            data.get('max_download_speed_bytes_per_second')
+        )
+
+        for downloader in downloads.values():
+            apply_download_limit(downloader)
 
     else:
         return jsonify({"error": "Invalid action"}), 400
