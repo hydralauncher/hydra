@@ -85,26 +85,40 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     }));
   }, [game.installerSizeInBytes, game.installedSizeInBytes]);
 
-  const backgroundImage = useMemo(
+  const heroSources = useMemo(
     () =>
-      getImageWithCustomPriority(
+      [
         game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl ?? game.iconUrl
-      ),
-    [
-      game.customHeroImageUrl,
-      game.libraryHeroImageUrl,
-      game.libraryImageUrl,
-      game.iconUrl,
-    ]
+        game.libraryImageUrl,
+        game.iconUrl,
+      ].filter((url) => !!url && url.trim() !== ""),
+    [game]
   );
+
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
   );
 
   useEffect(() => {
+    const currentUrl = heroSources[heroIndex];
+    if (!currentUrl) return;
+
+    const img = new Image();
+    img.src = normalizePathForCss(currentUrl);
+
+    img.onerror = () => {
+      if (heroIndex < heroSources.length - 1) {
+        setHeroIndex((prev) => prev + 1);
+      }
+    };
+  }, [heroIndex, heroSources]);
+
+  useEffect(() => {
+    setHeroIndex(0);
+
     if (game.unlockedAchievementCount) return;
 
     window.electron
@@ -116,11 +130,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       });
   }, [game]);
 
-  const backgroundStyle = useMemo(
-    () =>
-      backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
-    [backgroundImage]
-  );
+  const backgroundStyle = useMemo(() => {
+    const url = heroSources[heroIndex];
+    return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
+  }, [heroIndex, heroSources]);
 
   const achievementBarStyle = useMemo(
     () => ({
