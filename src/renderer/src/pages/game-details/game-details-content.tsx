@@ -192,7 +192,7 @@ export function GameDetailsContent() {
                     <div className="game-details__cloud-icon-container">
                       <img
                         src={cloudIconAnimated}
-                        alt="Cloud icon"
+                        alt=""
                         className="game-details__cloud-icon"
                       />
                     </div>

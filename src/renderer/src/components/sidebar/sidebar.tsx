@@ -573,7 +573,7 @@ export function Sidebar() {
                   >
                     <img
                       src={deckyIcon}
-                      alt="Decky"
+                      alt=""
                       style={{ width: 16, height: 16 }}
                     />
                     <span>

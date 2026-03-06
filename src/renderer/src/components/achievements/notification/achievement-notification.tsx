@@ -68,7 +68,7 @@ export function AchievementNotificationItem({
             <img
               className="achievement-notification__ellipses-overlay"
               src={Ellipses}
-              alt="Ellipses effect"
+              alt=""
             />
             <div className="achievement-notification__trophy-overlay"></div>
           </div>

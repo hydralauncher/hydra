@@ -61,6 +61,19 @@ export class JsHttpDownloader {
   private stallCheckInterval: NodeJS.Timeout | null = null;
   private isPaused = false;
   private isStallRetry = false;
+  private maxDownloadSpeedBytesPerSecond: number | null = null;
+  private throttleWindowStart = Date.now();
+  private bytesTransferredInThrottleWindow = 0;
+
+  setMaxDownloadSpeedBytesPerSecond(limit: number | null): void {
+    if (typeof limit !== "number" || !Number.isFinite(limit) || limit <= 0) {
+      this.maxDownloadSpeedBytesPerSecond = null;
+    } else {
+      this.maxDownloadSpeedBytesPerSecond = Math.floor(limit);
+    }
+
+    this.resetThrottleWindow();
+  }
 
   async startDownload(options: JsHttpDownloaderOptions): Promise<void> {
     if (this.isDownloading) {
@@ -75,6 +88,7 @@ export class JsHttpDownloader {
     this.retryCount = 0;
     this.isStallRetry = false;
     this.fileSize = 0;
+    this.resetThrottleWindow();
     await this.startDownloadWithRetry();
   }
 
@@ -224,6 +238,38 @@ export class JsHttpDownloader {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  private resetThrottleWindow(): void {
+    this.throttleWindowStart = Date.now();
+    this.bytesTransferredInThrottleWindow = 0;
+  }
+
+  private async applyThrottle(chunkSize: number): Promise<void> {
+    const limit = this.maxDownloadSpeedBytesPerSecond;
+    if (!limit) return;
+
+    while (!this.isPaused) {
+      const now = Date.now();
+      const elapsed = now - this.throttleWindowStart;
+
+      if (elapsed >= 1000) {
+        this.throttleWindowStart = now;
+        this.bytesTransferredInThrottleWindow = 0;
+      }
+
+      const availableBytes = limit - this.bytesTransferredInThrottleWindow;
+      if (
+        availableBytes >= chunkSize ||
+        this.bytesTransferredInThrottleWindow === 0
+      ) {
+        this.bytesTransferredInThrottleWindow += chunkSize;
+        return;
+      }
+
+      const waitMs = Math.max(1, 1000 - elapsed);
+      await this.sleep(waitMs);
+    }
+  }
+
   private prepareDownloadPath(
     savePath: string,
     filename: string | undefined,
@@ -348,9 +394,15 @@ export class JsHttpDownloader {
     this.parseFileSize(response, startByte);
 
     let actualFilePath = filePath;
-    if (usedFallback && startByte === 0) {
+    if (startByte === 0) {
+      const urlDerivedFilename = path.basename(filePath);
       const headerFilename = this.parseContentDisposition(response);
       if (headerFilename) {
+        if (headerFilename !== urlDerivedFilename) {
+          logger.log(
+            `[JsHttpDownloader] Filename mismatch detected. URL-derived="${urlDerivedFilename}" header-derived="${headerFilename}"`
+          );
+        }
         actualFilePath = path.join(savePath, headerFilename);
         this.folderName = headerFilename;
         const targetDir = path.dirname(actualFilePath);
@@ -359,6 +411,10 @@ export class JsHttpDownloader {
         }
         logger.log(
           `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
+        );
+      } else if (usedFallback) {
+        logger.log(
+          "[JsHttpDownloader] Content-Disposition filename not found, using fallback filename"
         );
       }
     }
@@ -385,22 +441,53 @@ export class JsHttpDownloader {
     const header = response.headers.get("content-disposition");
     if (!header) return undefined;
 
-    const filenameMatch = /filename\*?=['"]?(?:UTF-8'')?([^"';\n]+)['"]?/i.exec(
-      header
-    );
-    if (filenameMatch?.[1]) {
-      try {
-        return decodeURIComponent(filenameMatch[1].trim());
-      } catch {
-        return filenameMatch[1].trim();
-      }
+    const filenameStarMatch = /filename\*\s*=\s*([^;]+)/i.exec(header);
+    if (filenameStarMatch?.[1]) {
+      const rawValue = filenameStarMatch[1].trim().replace(/^["']|["']$/g, "");
+      const encodedPart = rawValue.includes("''")
+        ? rawValue.split("''").slice(1).join("''")
+        : rawValue;
+      const decoded = this.decodeFilenameValue(encodedPart);
+      if (decoded) return decoded;
     }
+
+    const filenameMatch = /filename\s*=\s*([^;]+)/i.exec(header);
+    if (filenameMatch?.[1]) {
+      const rawValue = filenameMatch[1].trim().replace(/^["']|["']$/g, "");
+      const decoded = this.decodeFilenameValue(rawValue);
+      if (decoded) return decoded;
+    }
+
     return undefined;
+  }
+
+  private decodeFilenameValue(value: string): string | undefined {
+    const normalized = value.trim();
+    if (!normalized) return undefined;
+
+    const sanitize = (name: string) =>
+      path
+        .basename(name)
+        .replaceAll(/[<>:"/\\|?*]/g, "_")
+        .split("")
+        .filter((char) => char.charCodeAt(0) >= 32)
+        .join("")
+        .trim();
+
+    try {
+      const decoded = decodeURIComponent(normalized);
+      const sanitized = sanitize(decoded);
+      return sanitized || undefined;
+    } catch {
+      const sanitized = sanitize(normalized);
+      return sanitized || undefined;
+    }
   }
 
   private createReadableStream(
     reader: ReadableStreamDefaultReader<Uint8Array>
   ): Readable {
+    const applyThrottle = this.applyThrottle.bind(this);
     const onChunk = (length: number) => {
       this.bytesDownloaded += length;
       this.lastDataReceivedAt = Date.now();
@@ -409,19 +496,21 @@ export class JsHttpDownloader {
 
     return new Readable({
       read() {
-        reader
-          .read()
-          .then(({ done, value }) => {
+        void (async () => {
+          try {
+            const { done, value } = await reader.read();
             if (done) {
               this.push(null);
               return;
             }
+
+            await applyThrottle(value.length);
             onChunk(value.length);
             this.push(Buffer.from(value));
-          })
-          .catch((err: Error) => {
-            this.destroy(err);
-          });
+          } catch (err) {
+            this.destroy(err as Error);
+          }
+        })();
       },
     });
   }
@@ -561,5 +650,6 @@ export class JsHttpDownloader {
     this.isDownloading = false;
     this.retryCount = 0;
     this.isStallRetry = false;
+    this.resetThrottleWindow();
   }
 }

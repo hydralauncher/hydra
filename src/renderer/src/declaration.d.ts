@@ -37,6 +37,7 @@ import type {
   LocalNotification,
   ProtonVersion,
   CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -74,6 +75,11 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
@@ -272,6 +278,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
+    ) => () => Electron.IpcRenderer;
+    onExtractionFailed: (
+      cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
