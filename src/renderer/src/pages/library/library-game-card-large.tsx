@@ -25,15 +25,6 @@ const normalizePathForCss = (url: string | null | undefined): string => {
   return url.replaceAll("\\", "/");
 };
 
-const getImageWithCustomPriority = (
-  customUrl: string | null | undefined,
-  originalUrl: string | null | undefined,
-  fallbackUrl?: string | null | undefined
-) => {
-  const selectedUrl = customUrl || originalUrl || fallbackUrl || "";
-  return normalizePathForCss(selectedUrl);
-};
-
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
