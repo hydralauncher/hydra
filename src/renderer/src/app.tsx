@@ -41,6 +41,13 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+type WorkWondersWithKnowledge = WorkWonders & {
+  knowledge?: {
+    initKnowledgeWidget?: () => void;
+    showArticle?: (articleId: number) => void;
+  };
+};
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -75,7 +82,7 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -135,7 +142,9 @@ export function App() {
 
       workwondersRef.current.changelog.initChangelogWidget();
       workwondersRef.current.changelog.initChangelogWidgetMini();
-      workwondersRef.current.knowledge.initKnowledgeWidget();
+      const workWondersWithKnowledge =
+        workwondersRef.current as WorkWondersWithKnowledge;
+      workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
 
       if (token) {
         workwondersRef.current.feedback.initFeedbackWidget();
@@ -176,7 +185,9 @@ export function App() {
           ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
 
         if (articleId) {
-          workwondersRef.current?.knowledge.showArticle(articleId);
+          const workWondersWithKnowledge =
+            workwondersRef.current as WorkWondersWithKnowledge | null;
+          workWondersWithKnowledge?.knowledge?.showArticle?.(articleId);
         }
       }
     };
@@ -269,6 +280,14 @@ export function App() {
         dispatch(clearExtraction());
         updateLibrary();
       }),
+      window.electron.onExtractionFailed(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+        showErrorToast(
+          t("extraction_failed_title", { ns: "downloads" }),
+          t("extraction_failed_description", { ns: "downloads" })
+        );
+      }),
       window.electron.onArchiveDeletionPrompt((paths) => {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);
@@ -278,7 +297,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
 
   useEffect(() => {
     const asyncScrollAndNotify = async () => {
