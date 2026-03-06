@@ -1,6 +1,6 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -9,6 +9,7 @@ import {
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./library-game-card.scss";
+import { logger } from "@renderer/logger";
 
 interface ProgressInfo {
   raw: number;
@@ -41,9 +42,74 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     useGameCard(game, onContextMenu);
   const { t } = useTranslation("library");
 
-  const coverImage = game.coverImageUrl?.replaceAll("\\", "/") ?? "";
+  const sources = useMemo(
+    () =>
+      [
+        game.customIconUrl,
+        game.coverImageUrl,
+        game.libraryImageUrl,
+        game.iconUrl,
+      ].filter((url): url is string => !!url && url.trim() !== ""),
+    [
+      game.customIconUrl,
+      game.coverImageUrl,
+      game.libraryImageUrl,
+      game.iconUrl,
+    ]
+  );
 
+  const [fallbackIndex, setFallbackIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+
+  const resolveImageSource = (imageUrl: string | null | undefined): string => {
+    if (!imageUrl) return "";
+
+    const trimmedImageUrl = imageUrl.trim();
+    if (!trimmedImageUrl) return "";
+
+    if (
+      trimmedImageUrl.startsWith("http://") ||
+      trimmedImageUrl.startsWith("https://") ||
+      trimmedImageUrl.startsWith("data:") ||
+      trimmedImageUrl.startsWith("blob:")
+    ) {
+      return trimmedImageUrl;
+    }
+
+    if (trimmedImageUrl.startsWith("local:")) {
+      const normalizedLocalPath = trimmedImageUrl
+        .slice("local:".length)
+        .replaceAll("\\", "/");
+      return `local:${normalizedLocalPath}`;
+    }
+
+    const normalizedPath = trimmedImageUrl.replaceAll("\\", "/");
+    if (/^[A-Za-z]:\//.test(normalizedPath) || normalizedPath.startsWith("/")) {
+      return `local:${normalizedPath}`;
+    }
+
+    return normalizedPath;
+  };
+
+  const activeImageSource = resolveImageSource(sources[fallbackIndex]);
+
+  const handleImageError = () => {
+    logger.warn(`Image failed to load for ${game.title}`, {
+      failedUrl: sources[fallbackIndex],
+      level: fallbackIndex,
+    });
+
+    if (fallbackIndex < sources.length - 1) {
+      setFallbackIndex((prevIndex) => prevIndex + 1);
+    } else {
+      setImageError(true);
+    }
+  };
+
+  useEffect(() => {
+    setFallbackIndex(0);
+    setImageError(false);
+  }, [game.id]);
 
   const gameState = useMemo(() => {
     if (extractionProgress) return "extracting";
@@ -177,17 +243,17 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         )}
       </div>
 
-      {imageError || !coverImage ? (
+      {imageError || !activeImageSource ? (
         <div className="library-game-card__cover-placeholder">
           <ImageIcon size={48} />
         </div>
       ) : (
         <img
-          src={coverImage}
+          src={activeImageSource}
           alt={game.title}
           className="library-game-card__game-image"
           loading="lazy"
-          onError={() => setImageError(true)}
+          onError={handleImageError}
         />
       )}
     </button>
