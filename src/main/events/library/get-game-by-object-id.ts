@@ -22,13 +22,14 @@ const getGameByObjectId = async (
   if (!game || game.isDeleted) return null;
 
   const validAchievementNames = new Set(
-    achievements?.achievements?.map((a) => a.name) || []
+    achievements?.achievements?.map((a) => (a.name ?? "").toUpperCase()) || []
   );
 
   const unlockedAchievementCount =
     achievements?.unlockedAchievements?.filter(
       (unlocked) =>
-        validAchievementNames.has(unlocked.name) && unlocked.unlockTime > 0
+        validAchievementNames.has((unlocked.name ?? "").toUpperCase()) &&
+        unlocked.unlockTime > 0
     ).length ??
     game.unlockedAchievementCount ??
     0;
