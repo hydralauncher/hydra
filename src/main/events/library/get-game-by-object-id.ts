@@ -1,5 +1,10 @@
 import { registerEvent } from "../register-event";
-import { gamesSublevel, downloadsSublevel, gameAchievementsSublevel, levelKeys } from "@main/level";
+import {
+  gamesSublevel,
+  downloadsSublevel,
+  gameAchievementsSublevel,
+  levelKeys,
+} from "@main/level";
 import type { GameShop } from "@types";
 
 const getGameByObjectId = async (
@@ -20,11 +25,13 @@ const getGameByObjectId = async (
     achievements?.achievements?.map((a) => a.name) || []
   );
 
-  const unlockedAchievementCount = achievements?.unlockedAchievements?.filter(
-    (unlocked) =>
-      validAchievementNames.has(unlocked.name) &&
-      unlocked.unlockTime > 0
-  ).length ?? game.unlockedAchievementCount ?? 0;
+  const unlockedAchievementCount =
+    achievements?.unlockedAchievements?.filter(
+      (unlocked) =>
+        validAchievementNames.has(unlocked.name) && unlocked.unlockTime > 0
+    ).length ??
+    game.unlockedAchievementCount ??
+    0;
 
   return { ...game, id: gameKey, download, unlockedAchievementCount };
 };

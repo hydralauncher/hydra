@@ -21,15 +21,19 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
+            const achievements = await gameAchievementsSublevel.get(key).catch(() => null);
 
-            let unlockedAchievementCount = game.unlockedAchievementCount ?? 0;
+            const validAchievementNames = new Set(
+              achievements?.achievements?.map((a) => a.name) || []
+            );
 
-            if (!game.unlockedAchievementCount) {
-              const achievements = await gameAchievementsSublevel.get(key);
-
-              unlockedAchievementCount =
-                achievements?.unlockedAchievements?.length ?? 0;
-            }
+            const unlockedAchievementCount =
+              achievements?.unlockedAchievements?.filter(
+                (unlocked) =>
+                  validAchievementNames.has(unlocked.name) && unlocked.unlockTime > 0
+              ).length ??
+              game.unlockedAchievementCount ??
+              0;
 
             // Verify installer still exists, clear if deleted externally
             let installerSizeInBytes = game.installerSizeInBytes;
