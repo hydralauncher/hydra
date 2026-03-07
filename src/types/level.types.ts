@@ -88,6 +88,8 @@ export interface Download {
   extracting: boolean;
   automaticallyExtract: boolean;
   extractionProgress: number;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
 }
 
 export interface GameAchievement {
@@ -138,6 +140,7 @@ export interface UserPreferences {
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
+  maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

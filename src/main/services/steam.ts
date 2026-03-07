@@ -63,6 +63,7 @@ export const getSteamAppDetails = async (
   const searchParams = new URLSearchParams({
     appids: objectId,
     l: language,
+    cc: "us",
   });
 
   return axios

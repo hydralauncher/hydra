@@ -17,10 +17,11 @@ import type {
   FriendRequestSync,
   NotificationSync,
   ShortcutLocation,
+  CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ProtonVersion,
-  CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -75,6 +76,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkDebridAvailability: (magnets: string[]) =>
     ipcRenderer.invoke("checkDebridAvailability", magnets),
+  getTorrentFiles: (magnet: string) =>
+    ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
 
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
@@ -345,6 +350,15 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(shop, objectId, progress);
     ipcRenderer.on("on-extraction-progress", listener);
     return () => ipcRenderer.removeListener("on-extraction-progress", listener);
+  },
+  onExtractionFailed: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-extraction-failed", listener);
+    return () => ipcRenderer.removeListener("on-extraction-failed", listener);
   },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (
