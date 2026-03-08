@@ -289,7 +289,14 @@ export function Sidebar() {
       });
     }
 
-    if (game.download?.queued) return t("queued", { title: game.title });
+    if (
+      game.download?.queued &&
+      game.download.status !== "removed" &&
+      game.download.status !== "complete" &&
+      game.download.status !== "seeding"
+    ) {
+      return t("queued", { title: game.title });
+    }
 
     if (game.download?.status === "paused")
       return t("paused", { title: game.title });
