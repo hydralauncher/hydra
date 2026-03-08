@@ -300,6 +300,7 @@
     "download_error_alldebrid_rate_limit_exceeded": "Limite de requisições do AllDebrid excedido. Tente novamente mais tarde.",
     "download_error_premiumize_unavailable": "Premiumize está temporariamente indisponível. Tente novamente mais tarde.",
     "download_error_alldebrid_unavailable": "AllDebrid está temporariamente indisponível. Tente novamente mais tarde.",
+    "download_error_vikingfile_nimbus_quota_exceeded": "A cota do Nimbus para o VikingFile terminou hoje. Tente novamente amanhã.",
     "download_error_not_cached_on_torbox": "Este download não está disponível no TorBox e a verificação do status do download não está disponível.",
     "download_error_not_cached_on_hydra": "Este download não está disponível no Nimbus.",
     "game_removed_from_favorites": "Jogo removido dos favoritos",
