@@ -34,8 +34,8 @@ import cria from "./pt-de-cria/translation.json";
 export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
-  cria,
-  en,
+  "cria": cria,
+  en,g
   de,
   es,
   nl,
