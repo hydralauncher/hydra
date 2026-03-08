@@ -11,7 +11,6 @@ import {
   be,
   zhCN,
   da,
-  
 } from "date-fns/locale";
 
 import { charMap } from "./char-map";
