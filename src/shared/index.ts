@@ -1,6 +1,7 @@
 import {
   ptBR,
   enUS,
+  cria,
   es,
   fr,
   pl,
@@ -11,6 +12,7 @@ import {
   be,
   zhCN,
   da,
+  
 } from "date-fns/locale";
 
 import { charMap } from "./char-map";
@@ -182,6 +184,7 @@ export const getDownloadersForUris = (uris: string[]) => {
 
 export const getDateLocale = (language: string) => {
   if (language.startsWith("pt")) return ptBR;
+  if (language.startsWith("cria")) return cria;
   if (language.startsWith("es")) return es;
   if (language.startsWith("fr")) return fr;
   if (language.startsWith("hu")) return hu;
