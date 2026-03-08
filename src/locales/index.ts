@@ -35,7 +35,7 @@ export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   "cria": cria,
-  en,g
+  en,
   de,
   es,
   nl,
