@@ -9,7 +9,7 @@ import path from "node:path";
 
 import { pythonRpcLogger } from "./logger";
 import { Readable } from "node:stream";
-import { app, dialog } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import { db, levelKeys } from "@main/level";
 
 interface GamePayload {
@@ -57,7 +57,20 @@ export class PythonRPC {
     if (!readable) return;
 
     readable.setEncoding("utf-8");
-    readable.on("data", pythonRpcLogger.log);
+    readable.on("data", (chunk: string) => {
+      for (const line of chunk.split(/\r?\n/)) {
+        const message = line.trim();
+        if (!message) continue;
+
+        pythonRpcLogger.log(message);
+
+        for (const window of BrowserWindow.getAllWindows()) {
+          if (!window.isDestroyed()) {
+            window.webContents.send("on-python-rpc-log", message);
+          }
+        }
+      }
+    });
   }
 
   private static async getRPCPassword() {
