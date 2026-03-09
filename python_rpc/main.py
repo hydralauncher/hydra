@@ -32,6 +32,14 @@ rpc_password = sys.argv[3]
 start_download_payload = sys.argv[4]
 start_seeding_payload = sys.argv[5]
 
+logger.info(
+    "RPC process booting (torrent_port=%s, http_port=%s, has_initial_download=%s, initial_seeding_count_hint=%s)",
+    torrent_port,
+    http_port,
+    bool(start_download_payload),
+    "set" if bool(start_seeding_payload) else "none",
+)
+
 
 downloads = {}
 downloads_lock = threading.RLock()
@@ -146,6 +154,7 @@ def map_downloader_error(error: Exception):
     code = str(error)
 
     if isinstance(error, TimeoutError) or code == "metadata_timeout":
+        logger.warning("Handled RPC timeout error: %s", code)
         return jsonify({"error": "metadata_timeout"}), 408
 
     if code in {
@@ -155,12 +164,15 @@ def map_downloader_error(error: Exception):
         "invalid_url",
         "invalid_save_path",
     }:
+        logger.warning("Handled RPC client error: %s", code)
         return jsonify({"error": code}), 400
 
     if code == "metadata_incomplete":
+        logger.warning("Handled RPC metadata error: %s", code)
         return jsonify({"error": "metadata_incomplete"}), 422
 
     if code == "too_many_files":
+        logger.warning("Handled RPC file limit error: %s", code)
         return jsonify({"error": "too_many_files"}), 413
 
     logger.error("Unhandled RPC error: %s", error, exc_info=True)
@@ -194,6 +206,13 @@ def validate_rpc_password():
 
 
 def start_torrent_download(game_id, url, save_path, file_indices=None, flags=None):
+    logger.info(
+        "Starting torrent download (game_id=%s, selective_files=%s, save_path=%s)",
+        game_id,
+        len(file_indices or []),
+        save_path,
+    )
+
     with downloads_lock:
         existing_downloader = downloads.get(game_id)
 
@@ -221,6 +240,14 @@ def start_torrent_download(game_id, url, save_path, file_indices=None, flags=Non
 
 
 def start_http_download(game_id, url, save_path, header=None, out=None):
+    logger.info(
+        "Starting HTTP download (game_id=%s, has_header=%s, output_name=%s, save_path=%s)",
+        game_id,
+        bool(header),
+        bool(out),
+        save_path,
+    )
+
     with downloads_lock:
         existing_downloader = downloads.get(game_id)
 
@@ -247,6 +274,11 @@ def bootstrap_downloads():
     global downloading_game_id
 
     initial_download = load_json_payload(start_download_payload)
+    logger.info(
+        "Bootstrapping downloads (has_initial_download=%s)",
+        bool(initial_download),
+    )
+
     if initial_download:
         downloading_game_id = initial_download["game_id"]
 
@@ -272,6 +304,7 @@ def bootstrap_downloads():
 
     initial_seeding = load_json_payload(start_seeding_payload)
     if initial_seeding:
+        logger.info("Bootstrapping seeding entries count=%s", len(initial_seeding))
         for seed in initial_seeding:
             try:
                 start_torrent_download(
@@ -461,6 +494,13 @@ def action():
             if not isinstance(save_path, str):
                 raise ValueError("invalid_save_path")
 
+            logger.info(
+                "Received start action (game_id=%s, is_torrent=%s, selective_files=%s)",
+                game_id,
+                url.startswith("magnet"),
+                len(data.get("file_indices") or []),
+            )
+
             if url.startswith("magnet"):
                 file_indices = parse_file_indices(data.get("file_indices"))
                 start_torrent_download(
@@ -479,7 +519,9 @@ def action():
                 )
 
             downloading_game_id = game_id
+            logger.info("Start action completed (game_id=%s)", game_id)
         elif action_name == "pause":
+            logger.info("Received pause action (game_id=%s)", game_id)
             with downloads_lock:
                 downloader = downloads.get(game_id)
 
@@ -489,6 +531,7 @@ def action():
             if downloading_game_id == game_id:
                 downloading_game_id = -1
         elif action_name == "cancel":
+            logger.info("Received cancel action (game_id=%s)", game_id)
             with downloads_lock:
                 downloader = downloads.get(game_id)
 
@@ -501,6 +544,7 @@ def action():
             if downloading_game_id == game_id:
                 downloading_game_id = -1
         elif action_name == "resume_seeding":
+            logger.info("Received resume_seeding action (game_id=%s)", game_id)
             start_torrent_download(
                 game_id,
                 data["url"],
@@ -508,6 +552,7 @@ def action():
                 flags=lt.torrent_flags.upload_mode,
             )
         elif action_name == "pause_seeding":
+            logger.info("Received pause_seeding action (game_id=%s)", game_id)
             with downloads_lock:
                 downloader = downloads.get(game_id)
 
@@ -519,6 +564,10 @@ def action():
         elif action_name == "set_download_limit":
             current_download_limit = normalize_download_limit(
                 data.get("max_download_speed_bytes_per_second")
+            )
+            logger.info(
+                "Received set_download_limit action (bytes_per_second=%s)",
+                current_download_limit,
             )
 
             with downloads_lock:

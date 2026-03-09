@@ -354,6 +354,7 @@
     "download_error_alldebrid_rate_limit_exceeded": "Превышен лимит запросов AllDebrid. Пожалуйста, попробуйте позже.",
     "download_error_premiumize_unavailable": "Premiumize временно недоступен. Пожалуйста, попробуйте позже.",
     "download_error_alldebrid_unavailable": "AllDebrid временно недоступен. Пожалуйста, попробуйте позже.",
+    "download_error_vikingfile_nimbus_quota_exceeded": "Квота Nimbus для VikingFile на сегодня закончилась. Пожалуйста, попробуйте снова завтра.",
     "update_playtime_title": "Обновить время игры",
     "update_playtime_description": "Вручную обновите время игры для {{game}}",
     "update_playtime": "Обновить время игры",

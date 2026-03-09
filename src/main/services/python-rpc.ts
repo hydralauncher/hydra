@@ -45,6 +45,14 @@ export class PythonRPC {
 
   private static pythonProcess: cp.ChildProcess | null = null;
 
+  private static describeError(error: unknown): string {
+    if (error instanceof Error) {
+      return `${error.name}: ${error.message}`;
+    }
+
+    return String(error);
+  }
+
   private static logStderr(readable: Readable | null) {
     if (!readable) return;
 
@@ -118,9 +126,17 @@ export class PythonRPC {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         await this.rpc.get("/healthcheck", { timeout: timeoutMs });
+        if (attempt > 0) {
+          pythonRpcLogger.log(
+            `[PythonRPC] Healthcheck succeeded on attempt ${attempt + 1}/${retries}`
+          );
+        }
         return;
       } catch (error) {
         lastError = error;
+        pythonRpcLogger.warn(
+          `[PythonRPC] Healthcheck attempt ${attempt + 1}/${retries} failed: ${this.describeError(error)}`
+        );
         if (attempt < retries - 1) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
@@ -136,6 +152,10 @@ export class PythonRPC {
     initialDownload?: GamePayload,
     initialSeeding?: GamePayload[]
   ) {
+    pythonRpcLogger.log(
+      `[PythonRPC] Starting RPC process (initialDownload=${Boolean(initialDownload)}, initialSeeding=${initialSeeding?.length ?? 0})`
+    );
+
     const rpcPassword = await this.getRPCPassword();
 
     let port: number;
@@ -154,7 +174,7 @@ export class PythonRPC {
     }
 
     this.updateRpcPort(port);
-    pythonRpcLogger.log(`Using RPC port: ${port}`);
+    pythonRpcLogger.log(`[PythonRPC] Using RPC port: ${port}`);
 
     const commonArgs = [
       this.BITTORRENT_PORT,
@@ -187,6 +207,26 @@ export class PythonRPC {
         stdio: ["inherit", "inherit"],
       });
 
+      pythonRpcLogger.log(`[PythonRPC] Spawned packaged binary: ${binaryPath}`);
+
+      childProcess.once("spawn", () => {
+        pythonRpcLogger.log(
+          `[PythonRPC] Process spawned (pid=${childProcess.pid ?? "unknown"})`
+        );
+      });
+      childProcess.on("error", (error) => {
+        pythonRpcLogger.error("[PythonRPC] Process error:", error);
+      });
+      childProcess.on("exit", (code, signal) => {
+        pythonRpcLogger.warn(
+          `[PythonRPC] Process exited (code=${code ?? "null"}, signal=${signal ?? "null"})`
+        );
+
+        if (this.pythonProcess === childProcess) {
+          this.pythonProcess = null;
+        }
+      });
+
       this.logStderr(childProcess.stderr);
 
       this.pythonProcess = childProcess;
@@ -203,19 +243,50 @@ export class PythonRPC {
         stdio: ["inherit", "inherit"],
       });
 
+      pythonRpcLogger.log(
+        `[PythonRPC] Spawned development script: ${scriptPath}`
+      );
+
+      childProcess.once("spawn", () => {
+        pythonRpcLogger.log(
+          `[PythonRPC] Process spawned (pid=${childProcess.pid ?? "unknown"})`
+        );
+      });
+      childProcess.on("error", (error) => {
+        pythonRpcLogger.error("[PythonRPC] Process error:", error);
+      });
+      childProcess.on("exit", (code, signal) => {
+        pythonRpcLogger.warn(
+          `[PythonRPC] Process exited (code=${code ?? "null"}, signal=${signal ?? "null"})`
+        );
+
+        if (this.pythonProcess === childProcess) {
+          this.pythonProcess = null;
+        }
+      });
+
       this.logStderr(childProcess.stderr);
 
       this.pythonProcess = childProcess;
     }
 
     this.rpc.defaults.headers.common["x-hydra-rpc-password"] = rpcPassword;
+    pythonRpcLogger.log("[PythonRPC] Waiting for healthcheck readiness...");
 
-    await this.ensureReady();
+    try {
+      await this.ensureReady();
+      pythonRpcLogger.log("[PythonRPC] RPC healthcheck is ready");
+    } catch (error) {
+      pythonRpcLogger.error("[PythonRPC] RPC failed readiness checks:", error);
+      throw error;
+    }
   }
 
   public static kill() {
     if (this.pythonProcess) {
-      pythonRpcLogger.log("Killing python process");
+      pythonRpcLogger.log(
+        `[PythonRPC] Killing python process (pid=${this.pythonProcess.pid ?? "unknown"})`
+      );
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
