@@ -120,7 +120,8 @@ export const loadState = async () => {
 
   // Prioritize interrupted download, then queued downloads
   const downloadToResume =
-    interruptedDownload ?? updatedDownloads.find((game) => game.queued);
+    interruptedDownload ??
+    updatedDownloads.find((game) => game.queued && game.status === "paused");
 
   const downloadsToSeed = updatedDownloads.filter(
     (game) =>
