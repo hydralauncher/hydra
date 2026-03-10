@@ -14,6 +14,11 @@ export class PixelDrainApi {
   }
 
   private static extractId(url: string): string {
+    const rawValue = url.trim();
+    if (/^[a-zA-Z0-9_-]+$/.test(rawValue)) {
+      return rawValue;
+    }
+
     let parsedUrl: URL;
 
     try {
@@ -23,17 +28,24 @@ export class PixelDrainApi {
     }
 
     const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-    const id = pathParts[1];
-
-    if (pathParts[0] !== "u" || !id) {
-      throw new Error(`Invalid pixeldrain URL: ${url}`);
+    if (pathParts[0] === "u" && pathParts[1]) {
+      return pathParts[1];
     }
 
-    return id;
+    if (pathParts[0] === "api" && pathParts[1] === "file" && pathParts[2]) {
+      return pathParts[2];
+    }
+
+    if (pathParts.length === 1 && /^[a-zA-Z0-9_-]+$/.test(pathParts[0])) {
+      return pathParts[0];
+    }
+
+    throw new Error(`Invalid pixeldrain URL: ${url}`);
   }
 
   private static async checkAvailability(id: string): Promise<void> {
     const response = await axios.head(`https://pixeldrain.com/u/${id}`, {
+      timeout: this.BYPASS_TIMEOUT_MS,
       validateStatus: () => true,
     });
 
@@ -74,14 +86,23 @@ export class PixelDrainApi {
   public static async unlock(url: string): Promise<string> {
     try {
       const id = this.extractId(url);
-      const bypassUrl = await this.tryBypass(id);
+      const officialUrl = `https://pixeldrain.com/api/file/${id}?download`;
 
-      if (bypassUrl) {
-        return bypassUrl;
+      try {
+        await this.checkAvailability(id);
+        return officialUrl;
+      } catch (error) {
+        if (error instanceof Error && error.message === "File not found") {
+          throw error;
+        }
+
+        const bypassUrl = await this.tryBypass(id);
+        if (bypassUrl) {
+          return bypassUrl;
+        }
+
+        throw error;
       }
-
-      await this.checkAvailability(id);
-      return `https://pixeldrain.com/api/file/${id}?download`;
     } catch (error) {
       logger.error("Error fetching PixelDrain URL:", error);
       throw error;
