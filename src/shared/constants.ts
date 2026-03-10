@@ -75,6 +75,7 @@ export enum DownloadError {
   AllDebridRateLimitExceeded = "download_error_alldebrid_rate_limit_exceeded",
   PremiumizeUnavailable = "download_error_premiumize_unavailable",
   AllDebridUnavailable = "download_error_alldebrid_unavailable",
+  VikingFileNimbusQuotaExceeded = "download_error_vikingfile_nimbus_quota_exceeded",
   InvalidMagnet = "download_error_invalid_magnet",
   TorrentMetadataTimeout = "download_error_torrent_metadata_timeout",
   TorrentMetadataIncomplete = "download_error_torrent_metadata_incomplete",
