@@ -24,3 +24,4 @@ export * from "./search-dropdown/search-dropdown";
 export * from "./fullscreen-media-modal/fullscreen-media-modal";
 export * from "./proton-path-picker/proton-path-picker";
 export * from "./create-collection-modal/create-collection-modal";
+export * from "./dropdown-menu/dropdown-menu";
