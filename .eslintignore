@@ -5,3 +5,7 @@ out
 migration.stub
 hydra-python-rpc/
 src/main/generated/
+venv/
+node_modules/
+.git/
+electron.vite.config.*.mjs
