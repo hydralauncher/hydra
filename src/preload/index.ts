@@ -581,6 +581,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("preflight-progress", listener);
     return () => ipcRenderer.removeListener("preflight-progress", listener);
   },
+  onPythonRpcLog: (cb: (value: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: string) =>
+      cb(value);
+    ipcRenderer.on("on-python-rpc-log", listener);
+    return () => ipcRenderer.removeListener("on-python-rpc-log", listener);
+  },
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
