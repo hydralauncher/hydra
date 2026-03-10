@@ -310,6 +310,7 @@
     "download_error_alldebrid_rate_limit_exceeded": "Límite de solicitudes de AllDebrid excedido. Probá de nuevo más tarde.",
     "download_error_premiumize_unavailable": "Premiumize está temporalmente fuera de servicio. Probá de nuevo más tarde.",
     "download_error_alldebrid_unavailable": "AllDebrid está temporalmente fuera de servicio. Probá de nuevo más tarde.",
+    "download_error_vikingfile_nimbus_quota_exceeded": "La cuota de Nimbus para VikingFile se terminó por hoy. Probá de nuevo mañana.",
     "update_playtime_title": "Actualizar tiempo de juego",
     "update_playtime_description": "Actualizar manualmente el tiempo de juego para {{game}}",
     "update_playtime": "Actualizar tiempo de juego",

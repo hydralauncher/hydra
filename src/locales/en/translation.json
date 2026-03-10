@@ -448,6 +448,7 @@
     "download_error_alldebrid_rate_limit_exceeded": "AllDebrid rate limit exceeded. Please wait and try again.",
     "download_error_premiumize_unavailable": "Premiumize is temporarily unavailable. Please try again later.",
     "download_error_alldebrid_unavailable": "AllDebrid is temporarily unavailable. Please try again later.",
+    "download_error_vikingfile_nimbus_quota_exceeded": "Nimbus quota for VikingFile has ended for today. Please try again tomorrow.",
     "download_error_invalid_magnet": "Invalid magnet link.",
     "download_error_torrent_metadata_timeout": "Timed out while fetching torrent metadata. Please try again.",
     "download_error_torrent_metadata_incomplete": "Torrent metadata is incomplete and cannot be processed right now.",
