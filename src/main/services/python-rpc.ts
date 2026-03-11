@@ -4,7 +4,6 @@ import http from "node:http";
 import cp from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 
 import { pythonRpcLogger } from "./logger";
@@ -84,21 +83,6 @@ export class PythonRPC {
     });
 
     return newPassword;
-  }
-
-  private static async isPortAvailable(port: number) {
-    return new Promise<boolean>((resolve) => {
-      const server = net.createServer();
-      server.unref();
-
-      server.on("error", () => {
-        server.close(() => resolve(false));
-      });
-
-      server.listen(port, "127.0.0.1", () => {
-        server.close(() => resolve(true));
-      });
-    });
   }
 
   public static async ensureReady(
