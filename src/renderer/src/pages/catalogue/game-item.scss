@@ -168,54 +168,16 @@
     padding: calc(globals.$spacing-unit * 2) 0;
   }
 
-  &__metadata {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+  &__genres {
     color: globals.$body-color;
     font-size: 12px;
     text-align: left;
     margin-bottom: 4px;
   }
 
-  &__review-count {
-    opacity: 0.7;
-    margin-right: 4px;
-  }
-
-  &__separator {
-    opacity: 0.5;
-    margin: 0 2px;
-  }
-
-  &__genres {
-    color: globals.$body-color;
-  }
-
   &__repackers {
     display: flex;
     gap: globals.$spacing-unit;
     flex-wrap: wrap;
-    transition: opacity 0.2s ease;
-  }
-
-  &__stats {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 2);
-    margin-top: 4px;
-    height: 18px;
-  }
-
-  &__stats-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: globals.$muted-color;
-    font-size: 12px;
-
-    svg {
-      color: var(--color-primary);
-    }
   }
 }
