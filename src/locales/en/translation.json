@@ -158,7 +158,6 @@
     "genres": "Genres",
     "tags": "Tags",
     "publishers": "Publishers",
-    "release_year": "Release year",
     "protondb": "ProtonDB",
     "download_sources": "Download sources",
     "compatibility_requirements": "Linux compatibility",
@@ -173,15 +172,7 @@
     "deck_verified_only": "Verified only",
     "result_count": "{{resultCount}} results",
     "filter_count": "{{filterCount}} available",
-    "clear_filters": "Clear {{filterCount}} selected",
-    "sort_by": "Sort by",
-    "most_reviewed": "Most reviewed",
-    "best_rated": "Best Rated",
-    "review_count": "Review count",
-    "release_date": "Release date",
-    "weekly_top": "Weekly Top",
-    "most_downloaded": "Most Downloaded",
-    "most_played": "Most Played"
+    "clear_filters": "Clear {{filterCount}} selected"
   },
   "game_details": {
     "open_download_options": "Open download options",

@@ -7,11 +7,8 @@ import { Link } from "@renderer/components/link/link";
 import "./game-item.scss";
 import { useTranslation } from "react-i18next";
 import { CatalogueSearchResult } from "@types";
-import { QuestionIcon, PlusIcon, CheckIcon, DownloadIcon, PeopleIcon } from "@primer/octicons-react";
-import { StarRating } from "@renderer/components/star-rating/star-rating";
-import { useFormat } from "@renderer/hooks";
+import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
 import cn from "classnames";
-import { useCallback } from "react";
 
 const ProtonDBBadge = lazy(async () => {
   const mod = await import("./protondb-badge");
@@ -32,10 +29,8 @@ export function GameItem({ game }: GameItemProps) {
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
 
   const [added, setAdded] = useState(false);
-  const [stats, setStats] = useState<any | null>(null);
 
   const { library, updateLibrary } = useLibrary();
-  const { numberFormatter } = useFormat();
   const shouldShowProtonFeatures = window.electron.platform === "linux";
 
   useEffect(() => {
@@ -45,20 +40,6 @@ export function GameItem({ game }: GameItemProps) {
     );
     setAdded(exists);
   }, [library, game.shop, game.objectId]);
-
-  useEffect(() => {
-    if (game.downloadCount !== undefined && game.playerCount !== undefined) {
-      setStats({
-        downloadCount: game.downloadCount,
-        playerCount: game.playerCount,
-      });
-      return;
-    }
-
-    window.electron.getGameStats(game.objectId, game.shop).then((stats) => {
-      setStats(stats);
-    });
-  }, [game.objectId, game.shop, game.downloadCount, game.playerCount]);
 
   const addGameToLibrary = async () => {
     if (added || isAddingToLibrary) return;
@@ -78,9 +59,6 @@ export function GameItem({ game }: GameItemProps) {
       setIsAddingToLibrary(false);
     }
   };
-
-  const handleHover = useCallback(() => {
-  }, []);
 
   const genres = useMemo(() => {
     return game.genres?.map((genre) => {
@@ -130,14 +108,14 @@ export function GameItem({ game }: GameItemProps) {
   const protonBadgeValue = rawProtonValue?.toLowerCase().trim() ?? null;
   const protonBadge =
     protonBadgeValue &&
-      ["borked", "bronze", "silver", "gold", "platinum"].includes(
-        protonBadgeValue
-      )
+    ["borked", "bronze", "silver", "gold", "platinum"].includes(
+      protonBadgeValue
+    )
       ? protonBadgeValue
       : null;
 
   return (
-    <article className="game-item" onMouseEnter={handleHover}>
+    <article className="game-item">
       <Link to={buildGameDetailsPath(game)} className="game-item__content-link">
         <div className="game-item__cover-wrapper">
           {libraryImage}
@@ -151,46 +129,12 @@ export function GameItem({ game }: GameItemProps) {
 
         <div className="game-item__details">
           <span>{game.title}</span>
-          <div className="game-item__metadata">
-            {game.averageReviewScore !== undefined && (
-              <Suspense fallback={null}>
-                <StarRating rating={game.averageReviewScore} size={14} />
-              </Suspense>
-            )}
-            {game.reviewCount !== undefined && (
-              <span className="game-item__review-count">
-                ({game.reviewCount})
-              </span>
-            )}
-            {((game.averageReviewScore !== undefined &&
-              game.averageReviewScore > 0) ||
-              game.reviewCount !== undefined) && (
-                <span className="game-item__separator">•</span>
-              )}
-            <span className="game-item__genres">
-              {(genres || []).join(", ")}
-            </span>
-          </div>
+          <span className="game-item__genres">{genres.join(", ")}</span>
 
           <div className="game-item__repackers">
-            {(game.downloadSources || []).map((sourceName) => (
+            {game.downloadSources.map((sourceName) => (
               <Badge key={sourceName}>{sourceName}</Badge>
             ))}
-          </div>
-
-          <div className="game-item__stats">
-            <div className="game-item__stats-item">
-              <DownloadIcon size={14} />
-              <span>
-                {stats ? numberFormatter.format(stats.downloadCount) : "…"}
-              </span>
-            </div>
-            <div className="game-item__stats-item">
-              <PeopleIcon size={14} />
-              <span>
-                {stats ? numberFormatter.format(stats.playerCount) : "…"}
-              </span>
-            </div>
           </div>
         </div>
       </Link>
