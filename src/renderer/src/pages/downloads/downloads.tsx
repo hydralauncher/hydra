@@ -78,6 +78,8 @@ export default function Downloads() {
       /* Game has been manually added to the library */
       if (!next.download) return prev;
 
+      if (next.download.status === "removed") return prev;
+
       /* Is downloading or extracting */
       const isExtracting =
         next.download.extracting || extraction?.visibleId === next.id;
@@ -85,8 +87,13 @@ export default function Downloads() {
         return { ...prev, downloading: [...prev.downloading, next] };
 
       /* Is either queued, paused, or failed */
+      const isQueuedDownload =
+        next.download.queued &&
+        next.download.status !== "complete" &&
+        next.download.status !== "seeding";
+
       if (
-        next.download.queued ||
+        isQueuedDownload ||
         next.download?.status === "paused" ||
         next.download?.status === "error"
       )

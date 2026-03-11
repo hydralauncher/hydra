@@ -8,6 +8,7 @@ import {
   ImageIcon,
 } from "@primer/octicons-react";
 import "./library-game-card.scss";
+import { logger } from "@renderer/logger";
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -29,6 +30,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 }: Readonly<LibraryGameCardProps>) {
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const sources = [
+    game.customIconUrl, // Level 0
+    game.coverImageUrl, // Level 1
+    game.libraryImageUrl, // Level 2
+    game.iconUrl, // Level 3
+  ].filter((url) => url && url.trim() !== "");
+
+  const [fallbackIndex, setFallbackIndex] = useState(0);
+  const [imageError, setImageError] = useState(false);
 
   const resolveImageSource = (imageUrl: string | null | undefined): string => {
     if (!imageUrl) return "";
@@ -60,17 +71,25 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     return normalizedPath;
   };
 
-  const coverImage = resolveImageSource(
-    game.customIconUrl ??
-      game.coverImageUrl ??
-      game.libraryImageUrl ??
-      game.iconUrl
-  );
+  const activeImageSource = resolveImageSource(sources[fallbackIndex]);
 
-  const [imageError, setImageError] = useState(false);
+  const handleImageError = () => {
+    logger.warn(`Image failed to load for ${game.title}`, {
+      failedUrl: sources[fallbackIndex],
+      level: fallbackIndex,
+    });
+
+    if (fallbackIndex < sources.length - 1) {
+      setFallbackIndex((prevIndex) => prevIndex + 1);
+    } else {
+      setImageError(true);
+    }
+  };
+
   useEffect(() => {
+    setFallbackIndex(0);
     setImageError(false);
-  }, [coverImage]);
+  }, [game.id]);
 
   return (
     <button
@@ -136,17 +155,17 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         )}
       </div>
 
-      {imageError || !coverImage ? (
+      {imageError || !activeImageSource ? (
         <div className="library-game-card__cover-placeholder">
           <ImageIcon size={48} />
         </div>
       ) : (
         <img
-          src={coverImage}
+          src={activeImageSource}
           alt={game.title}
           className="library-game-card__game-image"
           loading="lazy"
-          onError={() => setImageError(true)}
+          onError={handleImageError}
         />
       )}
     </button>

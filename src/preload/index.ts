@@ -314,6 +314,10 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     options?: CreateSteamShortcutOptions
   ) => ipcRenderer.invoke("createSteamShortcut", shop, objectId, options),
+  deleteSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
+  checkSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -580,6 +584,12 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(value);
     ipcRenderer.on("preflight-progress", listener);
     return () => ipcRenderer.removeListener("preflight-progress", listener);
+  },
+  onPythonRpcLog: (cb: (value: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: string) =>
+      cb(value);
+    ipcRenderer.on("on-python-rpc-log", listener);
+    return () => ipcRenderer.removeListener("on-python-rpc-log", listener);
   },
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
