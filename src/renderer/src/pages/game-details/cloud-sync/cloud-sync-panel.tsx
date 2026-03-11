@@ -188,8 +188,6 @@ export function CloudSyncPanel({
 
   const disableActions =
     uploadingBackup || restoringBackup || deletingArtifact || freezingArtifact;
-  const isMissingWinePrefix =
-    window.electron.platform === "linux" && !game?.winePrefixPath;
 
   if (!hasActiveSubscription) {
     return (
@@ -247,13 +245,10 @@ export function CloudSyncPanel({
         <Button
           type="button"
           onClick={() => uploadSaveGame(lastDownloadedOption?.title ?? null)}
-          tooltip={isMissingWinePrefix ? t("missing_wine_prefix") : undefined}
-          tooltipPlace="left"
           disabled={
             disableActions ||
             !backupPreview?.overall.totalGames ||
-            hasReachedLimit ||
-            isMissingWinePrefix
+            hasReachedLimit
           }
         >
           {uploadingBackup ? (

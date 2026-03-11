@@ -5,6 +5,7 @@ import { Cracker } from "@shared";
 import { achievementsLogger } from "../logger";
 import { SystemPath } from "../system-path";
 import { getSteamLocation, getSteamUsersIds } from "../steam";
+import { Wine } from "../wine";
 import { db, levelKeys } from "@main/level";
 
 const getAppDataPath = () => {
@@ -252,12 +253,14 @@ export const getAlternativeObjectIds = (objectId: string) => {
 
 export const findAchievementFiles = (game: Game) => {
   const achievementFiles: AchievementFile[] = [];
+  const effectiveWinePrefixPath =
+    Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
 
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
       for (const objectId of getAlternativeObjectIds(game.objectId)) {
         const filePath = path.join(
-          game.winePrefixPath ?? "",
+          effectiveWinePrefixPath,
           folderPath,
           ...mapFileLocationWithObjectId(fileLocation, objectId)
         );
@@ -331,11 +334,14 @@ export const findAchievementFileInExecutableDirectory = (
     return [];
   }
 
+  const effectiveWinePrefixPath =
+    Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId) ?? "";
+
   return [
     {
       type: Cracker.userstats,
       filePath: path.join(
-        game.winePrefixPath ?? "",
+        effectiveWinePrefixPath,
         game.executablePath,
         "..",
         "SteamData",
@@ -345,7 +351,7 @@ export const findAchievementFileInExecutableDirectory = (
     {
       type: Cracker._3dm,
       filePath: path.join(
-        game.winePrefixPath ?? "",
+        effectiveWinePrefixPath,
         game.executablePath,
         "..",
         "3DMGAME",

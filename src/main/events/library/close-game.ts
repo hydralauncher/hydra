@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { logger } from "@main/services";
+import { logger, Wine } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import { PythonRPC } from "@main/services/python-rpc";
@@ -51,7 +51,10 @@ const closeGame = async (
             return false;
           }
 
-          const expectedPrefix = game.winePrefixPath?.toLowerCase();
+          const expectedPrefix = Wine.getEffectivePrefixPath(
+            game.winePrefixPath,
+            game.objectId
+          )?.toLowerCase();
           const processPrefix =
             runningProcess.environ?.STEAM_COMPAT_DATA_PATH?.toLowerCase();
 

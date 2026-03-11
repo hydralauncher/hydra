@@ -1,4 +1,10 @@
-import { CloudSync, HydraApi, logger, WindowManager } from "@main/services";
+import {
+  CloudSync,
+  HydraApi,
+  logger,
+  WindowManager,
+  Wine,
+} from "@main/services";
 import fs from "node:fs";
 import * as tar from "tar";
 import { registerEvent } from "../register-event";
@@ -98,6 +104,10 @@ const downloadGameArtifact = async (
 ) => {
   try {
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+    const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+      game?.winePrefixPath,
+      objectId
+    );
 
     const {
       downloadUrl,
@@ -152,7 +162,7 @@ const downloadGameArtifact = async (
         backupPath,
         objectId,
         normalizePath(homeDir),
-        game?.winePrefixPath,
+        effectiveWinePrefixPath,
         artifactWinePrefixPath
       );
 

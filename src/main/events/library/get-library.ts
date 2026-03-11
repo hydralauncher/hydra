@@ -21,16 +21,22 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
           .map(async ([key, game]) => {
             const download = await downloadsSublevel.get(key);
             const gameAssets = await gamesShopAssetsSublevel.get(key);
-            const achievements = await gameAchievementsSublevel.get(key).catch(() => null);
+            const achievements = await gameAchievementsSublevel
+              .get(key)
+              .catch(() => null);
 
             const validAchievementNames = new Set(
-              achievements?.achievements?.map((a) => (a.name ?? "").toUpperCase()) || []
+              achievements?.achievements?.map((a) =>
+                (a.name ?? "").toUpperCase()
+              ) || []
             );
 
             const unlockedAchievementCount =
               achievements?.unlockedAchievements?.filter(
                 (unlocked) =>
-                  validAchievementNames.has((unlocked.name ?? "").toUpperCase()) && unlocked.unlockTime > 0
+                  validAchievementNames.has(
+                    (unlocked.name ?? "").toUpperCase()
+                  ) && unlocked.unlockTime > 0
               ).length ??
               game.unlockedAchievementCount ??
               0;
