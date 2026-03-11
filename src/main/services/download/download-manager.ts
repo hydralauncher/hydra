@@ -1194,7 +1194,6 @@ export class DownloadManager {
 
   private static async getDownloadPayload(download: Download) {
     const downloadId = levelKeys.game(download.shop, download.objectId);
-
     switch (download.downloader) {
       case Downloader.Gofile: {
         const id = download.uri.split("/").pop();
@@ -1378,6 +1377,15 @@ export class DownloadManager {
           game_id: downloadId,
           url: downloadUrl,
           save_path: download.downloadPath,
+        };
+      }
+      case Downloader.Direct: {
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: download.uri,
+          save_path: download.downloadPath,
+          allow_multiple_connections: false,
         };
       }
       default:
