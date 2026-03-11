@@ -5,7 +5,3 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
-venv/
-node_modules/
-.git/
-electron.vite.config.*.mjs
