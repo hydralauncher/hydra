@@ -525,6 +525,7 @@
     "repacks_modal_description": "Wybierz repack, który chcesz pobrać",
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do <0>Ustawień</0>",
     "download_now": "Pobierz teraz",
+    "copy_now": "Skopiuj link do pobrania",
     "no_shop_details": "Nie udało się pobrać szczegółów sklepu.",
     "download_options": "Opcje pobierania",
     "previous_screenshot": "Poprzedni zrzut ekranu",
