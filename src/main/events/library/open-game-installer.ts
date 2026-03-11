@@ -7,7 +7,7 @@ import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
-import { logger, Umu } from "@main/services";
+import { logger, Umu, Wine } from "@main/services";
 
 const launchInstallerWithWine = async (filePath: string): Promise<boolean> => {
   return await new Promise<boolean>((resolve) => {
@@ -102,6 +102,10 @@ const openGameInstaller = async (
   const downloadKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(downloadKey);
   const game = await gamesSublevel.get(downloadKey).catch(() => null);
+  const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+    game?.winePrefixPath,
+    objectId
+  );
 
   if (!download?.folderName) return true;
 
@@ -128,7 +132,7 @@ const openGameInstaller = async (
   if (fs.existsSync(setupPath)) {
     return await executeGameInstaller(setupPath, {
       gameId: objectId,
-      winePrefixPath: game?.winePrefixPath,
+      winePrefixPath: effectiveWinePrefixPath,
       protonPath: game?.protonPath,
     });
   }
@@ -143,7 +147,7 @@ const openGameInstaller = async (
       path.join(gamePath, gamePathExecutableFiles[0]),
       {
         gameId: objectId,
-        winePrefixPath: game?.winePrefixPath,
+        winePrefixPath: effectiveWinePrefixPath,
         protonPath: game?.protonPath,
       }
     );

@@ -23,7 +23,6 @@ export class GofileApi {
   private static readonly defaultUserAgent = "Mozilla/5.0";
   private static readonly language = "en-US";
   private static readonly timeoutMs = 15000;
-  private static readonly maxRetries = 3;
   private static token: string;
 
   private static get userAgent() {
@@ -53,10 +52,6 @@ export class GofileApi {
     return headers;
   }
 
-  private static async sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   public static async authorize() {
     const requestHeaders = {
       ...this.getBaseHeaders(),
@@ -64,41 +59,30 @@ export class GofileApi {
       "X-BL": this.language,
     };
 
-    for (let retry = 0; retry < this.maxRetries; retry += 1) {
-      try {
-        const response = await axios.post<{
-          status: string;
-          data: GofileAccountsReponse;
-        }>("https://api.gofile.io/accounts", undefined, {
-          headers: requestHeaders,
-          timeout: this.timeoutMs,
-        });
+    try {
+      const response = await axios.post<{
+        status: string;
+        data: GofileAccountsReponse;
+      }>("https://api.gofile.io/accounts", undefined, {
+        headers: requestHeaders,
+        timeout: this.timeoutMs,
+      });
 
-        if (response.data.status === "ok") {
-          this.token = response.data.data.token;
-          return this.token;
-        }
-
-        throw new Error(
-          `Account creation failed: ${response.data.status ?? "unknown"}`
-        );
-      } catch (error) {
-        const isLastAttempt = retry === this.maxRetries - 1;
-        if (isLastAttempt) {
-          if (axios.isAxiosError(error) && error.code === "ECONNABORTED") {
-            throw new Error(
-              "Account creation timed out after multiple retries"
-            );
-          }
-
-          throw error;
-        }
-
-        await this.sleep(2 ** retry * 1000);
+      if (response.data.status === "ok") {
+        this.token = response.data.data.token;
+        return this.token;
       }
-    }
 
-    throw new Error("Account creation failed after all retries");
+      throw new Error(
+        `Account creation failed: ${response.data.status ?? "unknown"}`
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.code === "ECONNABORTED") {
+        throw new Error("Account creation timed out");
+      }
+
+      throw error;
+    }
   }
 
   public static async getDownloadLink(id: string, password?: string) {

@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import type { GameShop } from "@types";
-import { Ludusavi } from "@main/services";
+import { Ludusavi, Wine } from "@main/services";
 import { gamesSublevel, levelKeys } from "@main/level";
 
 const getGameBackupPreview = async (
@@ -10,7 +10,11 @@ const getGameBackupPreview = async (
 ) => {
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 
-  return Ludusavi.getBackupPreview(shop, objectId, game?.winePrefixPath);
+  return Ludusavi.getBackupPreview(
+    shop,
+    objectId,
+    Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId)
+  );
 };
 
 registerEvent("getGameBackupPreview", getGameBackupPreview);
