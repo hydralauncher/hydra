@@ -29,14 +29,11 @@ const binaryNameByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   win32: "hydra-python-rpc.exe",
 };
 
-const RPC_PORT_RANGE_START = 8080;
-const RPC_PORT_RANGE_END = 9000;
-const DEFAULT_RPC_PORT = 8084;
-
 export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
+  public static readonly DEFAULT_RPC_PORT = "8087";
   public static readonly rpc = axios.create({
-    baseURL: `http://localhost:${DEFAULT_RPC_PORT}`,
+    baseURL: `http://localhost:${this.DEFAULT_RPC_PORT}`,
     timeout: 10000,
     httpAgent: new http.Agent({
       family: 4, // Force IPv4
@@ -104,31 +101,6 @@ export class PythonRPC {
     });
   }
 
-  private static async findAvailablePort() {
-    const scannedPorts = new Set<number>();
-    const enqueuePort = (port: number) => {
-      if (port < RPC_PORT_RANGE_START || port > RPC_PORT_RANGE_END) return;
-      if (!scannedPorts.has(port)) scannedPorts.add(port);
-    };
-
-    enqueuePort(DEFAULT_RPC_PORT);
-    for (let port = RPC_PORT_RANGE_START; port <= RPC_PORT_RANGE_END; port++) {
-      enqueuePort(port);
-    }
-
-    for (const port of scannedPorts) {
-      if (await this.isPortAvailable(port)) {
-        return port;
-      }
-    }
-
-    throw new Error("No available RPC port found");
-  }
-
-  private static updateRpcPort(port: number) {
-    this.rpc.defaults.baseURL = `http://localhost:${port}`;
-  }
-
   public static async ensureReady(
     retries = 20,
     delayMs = 250,
@@ -171,27 +143,9 @@ export class PythonRPC {
 
     const rpcPassword = await this.getRPCPassword();
 
-    let port: number;
-    try {
-      port = await this.findAvailablePort();
-    } catch (err) {
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : "Unknown error while selecting RPC port";
-      dialog.showErrorBox(
-        "RPC Error",
-        `Failed to select an available port for the download service.\n\n${message}`
-      );
-      throw err;
-    }
-
-    this.updateRpcPort(port);
-    pythonRpcLogger.log(`[PythonRPC] Using RPC port: ${port}`);
-
     const commonArgs = [
       this.BITTORRENT_PORT,
-      String(port),
+      this.DEFAULT_RPC_PORT,
       rpcPassword,
       initialDownload ? JSON.stringify(initialDownload) : "",
       initialSeeding ? JSON.stringify(initialSeeding) : "",
