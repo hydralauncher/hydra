@@ -21,6 +21,7 @@ import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
 import { setTimeout } from "node:timers/promises";
+import { Wine } from "../wine";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -61,7 +62,11 @@ const watchAchievementsWithWine = async () => {
     .values()
     .all()
     .then((games) =>
-      games.filter((game) => !game.isDeleted && game.winePrefixPath)
+      games.filter(
+        (game) =>
+          !game.isDeleted &&
+          !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
+      )
     );
 
   for (const game of games) {
