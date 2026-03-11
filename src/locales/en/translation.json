@@ -158,6 +158,7 @@
     "genres": "Genres",
     "tags": "Tags",
     "publishers": "Publishers",
+    "release_year": "Release year",
     "protondb": "ProtonDB",
     "download_sources": "Download sources",
     "compatibility_requirements": "Linux compatibility",
@@ -172,7 +173,15 @@
     "deck_verified_only": "Verified only",
     "result_count": "{{resultCount}} results",
     "filter_count": "{{filterCount}} available",
-    "clear_filters": "Clear {{filterCount}} selected"
+    "clear_filters": "Clear {{filterCount}} selected",
+    "sort_by": "Sort by",
+    "most_reviewed": "Most reviewed",
+    "best_rated": "Best Rated",
+    "review_count": "Review count",
+    "release_date": "Release date",
+    "weekly_top": "Weekly Top",
+    "most_downloaded": "Most Downloaded",
+    "most_played": "Most Played"
   },
   "game_details": {
     "open_download_options": "Open download options",
@@ -521,7 +530,13 @@
     "hide_original": "Hide original",
     "review_from_blocked_user": "Review from blocked user",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
+    "create_steam_shortcut_modal_create_button": "Create",
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "delete_shortcut_success": "Steam shortcut deleted successfully",
+    "delete_shortcut_error": "Failed to delete Steam shortcut",
+    "delete_steam_shortcut": "Delete Steam shortcut"
   },
   "activation": {
     "title": "Activate Hydra",
