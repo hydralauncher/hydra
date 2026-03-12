@@ -2,7 +2,14 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": ["libtorrent"],
+    "packages": [
+        "aria2p",
+        "charset_normalizer",
+        "flask",
+        "libtorrent",
+        "PIL",
+        "psutil",
+    ],
     "build_exe": "hydra-python-rpc",
     "include_msvcr": True
 }
