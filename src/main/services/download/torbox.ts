@@ -117,8 +117,7 @@ export class TorBoxClient {
     const torrentData = await this.getTorrentIdAndName(uri);
     const start = Date.now();
 
-    const polling = true;
-    while (polling) {
+    while (true) {
       const info = await this.getTorrentInfo(torrentData.id);
       if (!info) throw new Error("TorBox: torrent not found");
 
@@ -135,6 +134,10 @@ export class TorBoxClient {
         download_state === "paused"
       ) {
         onProgress?.(progress, download_state);
+
+        if (download_state === "stalled (no seeds)") {
+          throw new Error("TorBox: stalled (no seeds)");
+        }
       }
 
       if (Date.now() - start > timeoutMs) {
@@ -144,6 +147,5 @@ export class TorBoxClient {
       onProgress?.(progress, download_state);
       await new Promise((r) => setTimeout(r, pollIntervalMs));
     }
-    throw new Error("TorBox: unreachable");
   }
 }
