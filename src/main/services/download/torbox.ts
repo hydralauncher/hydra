@@ -117,7 +117,8 @@ export class TorBoxClient {
     const torrentData = await this.getTorrentIdAndName(uri);
     const start = Date.now();
 
-    while (true) {
+    const keepPolling = true;
+    while (keepPolling) {
       const info = await this.getTorrentInfo(torrentData.id);
       if (!info) throw new Error("TorBox: torrent not found");
 
@@ -147,5 +148,6 @@ export class TorBoxClient {
       onProgress?.(progress, download_state);
       await new Promise((r) => setTimeout(r, pollIntervalMs));
     }
+    throw new Error("TorBox: unreachable");
   }
 }
