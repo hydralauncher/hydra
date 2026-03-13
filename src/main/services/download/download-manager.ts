@@ -1074,7 +1074,14 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
+    const downloadUrl = download.addToDebridThenDownload
+      ? await RealDebridClient.getDownloadUrlWaitingForReady(download.uri, {
+          onProgress: (progress, status) =>
+            logger.log(
+              `[Real-Debrid] Waiting for torrent: ${(progress * 100).toFixed(0)}% (${status})`
+            ),
+        })
+      : await RealDebridClient.getDownloadUrl(download.uri);
     if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
     const filename = this.resolveFilename(
       resumingFilename,
@@ -1128,7 +1135,14 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
+    const { name, url } = download.addToDebridThenDownload
+      ? await TorBoxClient.getDownloadInfoWaitingForReady(download.uri, {
+          onProgress: (progress, state) =>
+            logger.log(
+              `[TorBox] Waiting for torrent: ${(progress * 100).toFixed(0)}% (${state})`
+            ),
+        })
+      : await TorBoxClient.getDownloadInfo(download.uri);
     if (!url) return null;
     return this.buildDownloadOptions(
       url,
@@ -1291,7 +1305,14 @@ export class DownloadManager {
           file_indices: download.fileIndices,
         };
       case Downloader.RealDebrid: {
-        const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
+        const downloadUrl = download.addToDebridThenDownload
+          ? await RealDebridClient.getDownloadUrlWaitingForReady(download.uri, {
+              onProgress: (progress, status) =>
+                logger.log(
+                  `[Real-Debrid] Waiting for torrent: ${(progress * 100).toFixed(0)}% (${status})`
+                ),
+            })
+          : await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
 
         return {
@@ -1334,7 +1355,14 @@ export class DownloadManager {
         };
       }
       case Downloader.TorBox: {
-        const { name, url } = await TorBoxClient.getDownloadInfo(download.uri);
+        const { name, url } = download.addToDebridThenDownload
+          ? await TorBoxClient.getDownloadInfoWaitingForReady(download.uri, {
+              onProgress: (progress, state) =>
+                logger.log(
+                  `[TorBox] Waiting for torrent: ${(progress * 100).toFixed(0)}% (${state})`
+                ),
+            })
+          : await TorBoxClient.getDownloadInfo(download.uri);
         if (!url) return;
         return {
           action: "start",
