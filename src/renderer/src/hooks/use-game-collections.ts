@@ -6,8 +6,20 @@ import {
   applyCollectionAssignment,
   setCollections,
   setCollectionsLoading,
-  setGameCollectionId,
+  setGameCollectionIds,
 } from "@renderer/features";
+
+const getNormalizedCollectionIds = (
+  game: Partial<LibraryGame> | undefined
+): string[] => {
+  if (!game) return [];
+  if (Array.isArray(game.collectionIds)) return game.collectionIds;
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
 
 export function useGameCollections() {
   const dispatch = useAppDispatch();
@@ -52,7 +64,7 @@ export function useGameCollections() {
   const assignGameToCollection = useCallback(
     async (
       game: Pick<LibraryGame, "shop" | "objectId">,
-      collectionId: string | null
+      collectionIds: string[]
     ) => {
       const currentGame = library.find(
         (libraryGame) =>
@@ -60,26 +72,26 @@ export function useGameCollections() {
           libraryGame.objectId === game.objectId
       );
 
-      const previousCollectionId = currentGame?.collectionId ?? null;
+      const previousCollectionIds = getNormalizedCollectionIds(currentGame);
 
       await window.electron.assignGameToCollection(
         game.shop,
         game.objectId,
-        collectionId
+        collectionIds
       );
 
       dispatch(
-        setGameCollectionId({
+        setGameCollectionIds({
           shop: game.shop,
           objectId: game.objectId,
-          collectionId,
+          collectionIds,
         })
       );
 
       dispatch(
         applyCollectionAssignment({
-          previousCollectionId,
-          nextCollectionId: collectionId,
+          previousCollectionIds,
+          nextCollectionIds: collectionIds,
         })
       );
     },

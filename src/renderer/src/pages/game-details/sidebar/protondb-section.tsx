@@ -9,7 +9,13 @@ import SteamDeckLogo from "@renderer/assets/steam-deck-logo.svg?url";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./sidebar.scss";
 
-const protonTiers = ["borked", "bronze", "silver", "gold", "platinum"];
+const protonTierTranslation: Record<string, string> = {
+  borked: "protondb_tier_borked",
+  bronze: "protondb_tier_bronze",
+  silver: "protondb_tier_silver",
+  gold: "protondb_tier_gold",
+  platinum: "protondb_tier_platinum",
+};
 
 const deckCompatibilityTranslation: Record<string, string> = {
   verified: "deck_verified",
@@ -32,10 +38,9 @@ export function ProtonDBSection({
   const { t } = useTranslation(["game_details", "catalogue"]);
 
   const tier = protonDBData?.tier?.toLowerCase().trim() ?? null;
-  const isKnownTier = tier ? protonTiers.includes(tier) : false;
-  const tierLabel = tier
-    ? `${tier.charAt(0).toUpperCase()}${tier.slice(1)}`
-    : "-";
+  const tierKey = tier ? protonTierTranslation[tier] : null;
+  const isKnownTier = Boolean(tierKey);
+  const tierLabel = tierKey ? t(tierKey) : "-";
 
   const scoreLabel =
     typeof protonDBData?.score === "number"
@@ -57,13 +62,11 @@ export function ProtonDBSection({
               <div className="protondb__section">
                 <div className="protondb__category">
                   <p className="protondb__category-title">
-                    <span
+                    <img
+                      src={ProtonDBLogo}
+                      alt=""
                       className="protondb__proton-icon"
                       aria-hidden="true"
-                      style={{
-                        WebkitMaskImage: `url(${ProtonDBLogo})`,
-                        maskImage: `url(${ProtonDBLogo})`,
-                      }}
                     />
                     {t("protondb_tier")}
                   </p>
@@ -80,13 +83,11 @@ export function ProtonDBSection({
 
                 <div className="protondb__category">
                   <p className="protondb__category-title">
-                    <span
+                    <img
+                      src={SteamDeckLogo}
+                      alt=""
                       className="protondb__steamdeck-icon"
                       aria-hidden="true"
-                      style={{
-                        WebkitMaskImage: `url(${SteamDeckLogo})`,
-                        maskImage: `url(${SteamDeckLogo})`,
-                      }}
                     />
                     {t("deck_compatibility")}
                   </p>

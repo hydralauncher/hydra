@@ -41,6 +41,17 @@ const SORT_OPTIONS: SortOption[] = [
   "title_desc",
 ];
 
+const getGameCollectionIds = (game: LibraryGame): string[] => {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
+
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
   const { showSuccessToast, showErrorToast } = useToast();
@@ -367,8 +378,8 @@ export default function Library() {
       if (selectedCollectionId === FAVORITES_COLLECTION_ID) {
         filtered = filtered.filter((game) => game.favorite);
       } else {
-        filtered = filtered.filter(
-          (game) => game.collectionId === selectedCollectionId
+        filtered = filtered.filter((game) =>
+          getGameCollectionIds(game).includes(selectedCollectionId)
         );
       }
     }

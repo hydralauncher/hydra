@@ -17,9 +17,11 @@ import type {
   FriendRequestSync,
   NotificationSync,
   ShortcutLocation,
+  CreateSteamShortcutOptions,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ProtonVersion,
+  TorrentFilesResponse,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -74,6 +76,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   checkDebridAvailability: (magnets: string[]) =>
     ipcRenderer.invoke("checkDebridAvailability", magnets),
+  getTorrentFiles: (magnet: string) =>
+    ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >,
 
   /* Catalogue */
   getGameShopDetails: (objectId: string, shop: GameShop, language: string) =>
@@ -220,9 +226,9 @@ contextBridge.exposeInMainWorld("electron", {
   assignGameToCollection: (
     shop: GameShop,
     objectId: string,
-    collectionId: string | null
+    collectionIds: string[]
   ) =>
-    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionId),
+    ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
   clearNewDownloadOptions: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("clearNewDownloadOptions", shop, objectId),
   toggleGamePin: (shop: GameShop, objectId: string, pinned: boolean) =>
@@ -303,8 +309,15 @@ contextBridge.exposeInMainWorld("electron", {
   scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
-  createSteamShortcut: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("createSteamShortcut", shop, objectId),
+  createSteamShortcut: (
+    shop: GameShop,
+    objectId: string,
+    options?: CreateSteamShortcutOptions
+  ) => ipcRenderer.invoke("createSteamShortcut", shop, objectId, options),
+  deleteSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
+  checkSteamShortcut: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -341,6 +354,15 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(shop, objectId, progress);
     ipcRenderer.on("on-extraction-progress", listener);
     return () => ipcRenderer.removeListener("on-extraction-progress", listener);
+  },
+  onExtractionFailed: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-extraction-failed", listener);
+    return () => ipcRenderer.removeListener("on-extraction-failed", listener);
   },
   onArchiveDeletionPrompt: (cb: (archivePaths: string[]) => void) => {
     const listener = (
@@ -562,6 +584,12 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(value);
     ipcRenderer.on("preflight-progress", listener);
     return () => ipcRenderer.removeListener("preflight-progress", listener);
+  },
+  onPythonRpcLog: (cb: (value: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, value: string) =>
+      cb(value);
+    ipcRenderer.on("on-python-rpc-log", listener);
+    return () => ipcRenderer.removeListener("on-python-rpc-log", listener);
   },
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),

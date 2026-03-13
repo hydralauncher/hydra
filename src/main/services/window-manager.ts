@@ -64,7 +64,11 @@ export class WindowManager {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`);
+      let devUrl = `${process.env["ELECTRON_RENDERER_URL"]}#/${hash}`;
+      if (process.platform === "win32") {
+        devUrl = devUrl.replace("localhost", "127.0.0.1");
+      }
+      window.loadURL(devUrl);
     } else if (import.meta.env.MAIN_VITE_LAUNCHER_SUBDOMAIN) {
       // Try to load from remote URL in production
       try {

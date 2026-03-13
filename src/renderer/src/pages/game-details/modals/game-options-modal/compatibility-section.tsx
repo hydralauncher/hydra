@@ -18,6 +18,8 @@ interface CompatibilitySettingsSectionProps {
   selectedProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  globalAutoRunGamemode: boolean;
+  globalAutoRunMangohud: boolean;
   gamemodeAvailable: boolean;
   mangohudAvailable: boolean;
   winetricksAvailable: boolean;
@@ -38,6 +40,8 @@ export function CompatibilitySettingsSection({
   selectedProtonPath,
   autoRunGamemode,
   autoRunMangohud,
+  globalAutoRunGamemode,
+  globalAutoRunMangohud,
   gamemodeAvailable,
   mangohudAvailable,
   winetricksAvailable,
@@ -53,6 +57,43 @@ export function CompatibilitySettingsSection({
   const { t } = useTranslation("game_details");
 
   const showWinetricksUnavailableTooltip = !winetricksAvailable;
+  const gamemodeToggleDisabled = !gamemodeAvailable || globalAutoRunGamemode;
+  const mangohudToggleDisabled = !mangohudAvailable || globalAutoRunMangohud;
+
+  const gamemodeTooltipId = !gamemodeAvailable
+    ? "gamemode-unavailable-tooltip"
+    : globalAutoRunGamemode
+      ? "gamemode-global-enabled-tooltip"
+      : undefined;
+
+  const mangohudTooltipId = !mangohudAvailable
+    ? "mangohud-unavailable-tooltip"
+    : globalAutoRunMangohud
+      ? "mangohud-global-enabled-tooltip"
+      : undefined;
+
+  const protonVersionAutoLabel = t("proton_version_auto", {
+    ns: ["game_details", "settings"],
+    defaultValue: "Auto (global default or umu default)",
+  });
+
+  const protonSourceUmuDefault = t("proton_source_umu_default", {
+    ns: ["game_details", "settings"],
+    defaultValue: "umu default selection",
+  });
+
+  const protonSourceSteam = t("proton_source_steam", {
+    ns: ["game_details", "settings"],
+    defaultValue: "Installed by Steam",
+  });
+
+  const protonSourceCompatibilityTools = t(
+    "proton_source_compatibility_tools",
+    {
+      ns: ["game_details", "settings"],
+      defaultValue: "Installed in Steam compatibilitytools.d",
+    }
+  );
 
   return (
     <>
@@ -125,22 +166,29 @@ export function CompatibilitySettingsSection({
             label={
               <span
                 className={`game-options-modal__gamemode-label ${
-                  !gamemodeAvailable
+                  gamemodeToggleDisabled
                     ? "game-options-modal__gamemode-label--disabled"
                     : ""
                 }`}
-                data-tooltip-id={
-                  !gamemodeAvailable
-                    ? "gamemode-unavailable-tooltip"
-                    : undefined
-                }
+                data-tooltip-id={gamemodeTooltipId}
                 data-tooltip-content={
                   !gamemodeAvailable
-                    ? t("gamemode_not_available_tooltip")
-                    : undefined
+                    ? t("gamemode_not_available_tooltip", {
+                        defaultValue: "GameMode is not available in your PATH",
+                      })
+                    : globalAutoRunGamemode
+                      ? t("gamemode_disabled_due_to_global_setting_tooltip", {
+                          defaultValue:
+                            "This option is disabled because GameMode is enabled globally",
+                        })
+                      : undefined
                 }
               >
-                <span>{t("run_with_gamemode_prefix")}</span>
+                <span>
+                  {t("run_with_gamemode_prefix", {
+                    defaultValue: "Automatically run with",
+                  })}
+                </span>
                 <Link
                   to={gamemodeSiteUrl}
                   className="game-options-modal__gamemode-link"
@@ -150,12 +198,14 @@ export function CompatibilitySettingsSection({
                 </Link>
               </span>
             }
-            checked={autoRunGamemode}
-            disabled={!gamemodeAvailable}
+            checked={autoRunGamemode || globalAutoRunGamemode}
+            disabled={gamemodeToggleDisabled}
             onChange={(event) => onChangeGamemodeState(event.target.checked)}
           />
 
-          {!gamemodeAvailable && <Tooltip id="gamemode-unavailable-tooltip" />}
+          {gamemodeToggleDisabled && gamemodeTooltipId && (
+            <Tooltip id={gamemodeTooltipId} />
+          )}
         </div>
 
         <div className="game-options-modal__mangohud-toggle">
@@ -163,22 +213,29 @@ export function CompatibilitySettingsSection({
             label={
               <span
                 className={`game-options-modal__mangohud-label ${
-                  !mangohudAvailable
+                  mangohudToggleDisabled
                     ? "game-options-modal__mangohud-label--disabled"
                     : ""
                 }`}
-                data-tooltip-id={
-                  !mangohudAvailable
-                    ? "mangohud-unavailable-tooltip"
-                    : undefined
-                }
+                data-tooltip-id={mangohudTooltipId}
                 data-tooltip-content={
                   !mangohudAvailable
-                    ? t("mangohud_not_available_tooltip")
-                    : undefined
+                    ? t("mangohud_not_available_tooltip", {
+                        defaultValue: "MangoHud is not available in your PATH",
+                      })
+                    : globalAutoRunMangohud
+                      ? t("mangohud_disabled_due_to_global_setting_tooltip", {
+                          defaultValue:
+                            "This option is disabled because MangoHud is enabled globally",
+                        })
+                      : undefined
                 }
               >
-                <span>{t("run_with_mangohud_prefix")}</span>
+                <span>
+                  {t("run_with_mangohud_prefix", {
+                    defaultValue: "Automatically run with",
+                  })}
+                </span>
                 <Link
                   to={mangohudSiteUrl}
                   className="game-options-modal__mangohud-link"
@@ -188,12 +245,14 @@ export function CompatibilitySettingsSection({
                 </Link>
               </span>
             }
-            checked={autoRunMangohud}
-            disabled={!mangohudAvailable}
+            checked={autoRunMangohud || globalAutoRunMangohud}
+            disabled={mangohudToggleDisabled}
             onChange={(event) => onChangeMangohudState(event.target.checked)}
           />
 
-          {!mangohudAvailable && <Tooltip id="mangohud-unavailable-tooltip" />}
+          {mangohudToggleDisabled && mangohudTooltipId && (
+            <Tooltip id={mangohudTooltipId} />
+          )}
         </div>
       </div>
 
@@ -210,12 +269,10 @@ export function CompatibilitySettingsSection({
           selectedPath={selectedProtonPath}
           onChange={onChangeProtonVersion}
           radioName={`proton-version-${game.objectId}`}
-          autoLabel={t("proton_version_auto")}
-          autoSourceDescription={t("proton_source_umu_default")}
-          steamSourceDescription={t("proton_source_steam")}
-          compatibilityToolsSourceDescription={t(
-            "proton_source_compatibility_tools"
-          )}
+          autoLabel={protonVersionAutoLabel}
+          autoSourceDescription={protonSourceUmuDefault}
+          steamSourceDescription={protonSourceSteam}
+          compatibilityToolsSourceDescription={protonSourceCompatibilityTools}
         />
       </div>
     </>

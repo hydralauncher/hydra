@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
 import type {
+  CreateSteamShortcutOptions,
   Game,
   LibraryGame,
   ProtonVersion,
@@ -10,7 +11,9 @@ import type {
 import { gameDetailsContext } from "@renderer/context";
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import {
+  useAppSelector,
   useDownload,
+  useGameCollections,
   useLibrary,
   useToast,
   useUserDetails,
@@ -39,6 +42,7 @@ import { DownloadsSettingsSection } from "./game-options-modal/downloads-section
 import { DangerZoneSection } from "./game-options-modal/danger-zone-section";
 import { HydraCloudSettingsSection } from "./game-options-modal/hydra-cloud-section";
 import type { GameSettingsCategoryId } from "./game-options-modal/types";
+import { CreateSteamShortcutModal } from "./create-steam-shortcut-modal";
 
 export interface GameOptionsModalProps {
   visible: boolean;
@@ -61,6 +65,7 @@ export function GameOptionsModal({
 
   const { showSuccessToast, showErrorToast } = useToast();
   const { updateLibrary } = useLibrary();
+  const { loadCollections } = useGameCollections();
 
   const {
     updateGame,
@@ -104,6 +109,8 @@ export function GameOptionsModal({
   const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState<
     string | null
   >(null);
+  const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
+  const [steamShortcutExists, setSteamShortcutExists] = useState(false);
 
   const {
     removeGameInstaller,
@@ -113,6 +120,12 @@ export function GameOptionsModal({
   } = useDownload();
 
   const { userDetails } = useUserDetails();
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const globalAutoRunGamemode = userPreferences?.autoRunGamemode === true;
+  const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
 
   const hasAchievements =
     (achievements?.filter((achievement) => achievement.unlocked).length ?? 0) >
@@ -214,6 +227,19 @@ export function GameOptionsModal({
       .catch(() => setWinetricksAvailable(false));
   }, [visible]);
 
+  useEffect(() => {
+    if (game.shop !== "custom") {
+      console.log(
+        "Checking Steam shortcut existence for",
+        window.electron.checkSteamShortcut(game.shop, game.objectId)
+      );
+      window.electron
+        .checkSteamShortcut(game.shop, game.objectId)
+        .then(setSteamShortcutExists)
+        .catch(() => setSteamShortcutExists(false));
+    }
+  }, [game.shop, game.objectId]);
+
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
       const gameKey = getGameKey(game.shop, game.objectId);
@@ -239,7 +265,7 @@ export function GameOptionsModal({
     }
 
     await removeGameFromLibrary(game.shop, game.objectId);
-    updateGame();
+    await Promise.all([updateGame(), updateLibrary(), loadCollections()]);
     onClose();
 
     // Redirect to home page if it's a custom game
@@ -268,15 +294,28 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCreateSteamShortcut = async () => {
+  const handleCreateSteamShortcut = async (
+    options?: CreateSteamShortcutOptions
+  ) => {
     try {
       setCreatingSteamShortcut(true);
-      await window.electron.createSteamShortcut(game.shop, game.objectId);
+
+      await window.electron.createSteamShortcut(
+        game.shop,
+        game.objectId,
+        options ?? {}
+      );
 
       showSuccessToast(
         t("create_shortcut_success"),
         t("you_might_need_to_restart_steam")
       );
+
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
 
       updateGame();
     } catch (error: unknown) {
@@ -284,36 +323,48 @@ export function GameOptionsModal({
       showErrorToast(t("create_shortcut_error"));
     } finally {
       setCreatingSteamShortcut(false);
+      setShowSteamShortcutModal(false);
     }
   };
 
-  const handleCreateShortcut = async () => {
+  const handleDeleteSteamShortcut = async () => {
     try {
-      const locations: ShortcutLocation[] =
-        window.electron.platform === "win32"
-          ? ["desktop", "start_menu"]
-          : ["desktop"];
+      setCreatingSteamShortcut(true);
+      await window.electron.deleteSteamShortcut(game.shop, game.objectId);
 
-      for (const location of locations) {
-        const success = await window.electron.createGameShortcut(
-          game.shop,
-          game.objectId,
-          location
-        );
-
-        if (!success) {
-          throw new Error(t("create_shortcut_error"));
-        }
-      }
-
-      showSuccessToast(t("create_shortcut_success"));
-    } catch (error: unknown) {
-      logger.error("Failed to create shortcut", error);
-      showErrorToast(
-        t("create_shortcut_error"),
-        error instanceof Error ? error.message : undefined
+      showSuccessToast(
+        t("delete_shortcut_success"),
+        t("you_might_need_to_restart_steam")
       );
+
+      const exists = await window.electron.checkSteamShortcut(
+        game.shop,
+        game.objectId
+      );
+      setSteamShortcutExists(exists);
+
+      updateGame();
+    } catch (error: unknown) {
+      logger.error("Failed to delete Steam shortcut", error);
+      showErrorToast(t("delete_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
     }
+  };
+
+  const handleCreateShortcut = async (location: ShortcutLocation) => {
+    window.electron
+      .createGameShortcut(game.shop, game.objectId, location)
+      .then((success) => {
+        if (success) {
+          showSuccessToast(t("create_shortcut_success"));
+        } else {
+          showErrorToast(t("create_shortcut_error"));
+        }
+      })
+      .catch(() => {
+        showErrorToast(t("create_shortcut_error"));
+      });
   };
 
   const handleOpenDownloadFolder = async () => {
@@ -635,6 +686,13 @@ export function GameOptionsModal({
         game={game}
       />
 
+      <CreateSteamShortcutModal
+        visible={showSteamShortcutModal}
+        creating={creatingSteamShortcut}
+        onClose={() => setShowSteamShortcutModal(false)}
+        onConfirm={handleCreateSteamShortcut}
+      />
+
       <Modal
         visible={visible}
         title={game.title}
@@ -665,12 +723,14 @@ export function GameOptionsModal({
                 }
                 loadingSaveFolder={loadingSaveFolder}
                 saveFolderPath={saveFolderPath}
+                steamShortcutExists={steamShortcutExists}
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
-                onCreateSteamShortcut={handleCreateSteamShortcut}
+                onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
+                onDeleteSteamShortcut={handleDeleteSteamShortcut}
                 onChangeGameTitle={handleChangeGameTitle}
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
@@ -703,6 +763,8 @@ export function GameOptionsModal({
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}
                   autoRunMangohud={autoRunMangohud}
+                  globalAutoRunGamemode={globalAutoRunGamemode}
+                  globalAutoRunMangohud={globalAutoRunMangohud}
                   gamemodeAvailable={gamemodeAvailable}
                   mangohudAvailable={mangohudAvailable}
                   winetricksAvailable={winetricksAvailable}

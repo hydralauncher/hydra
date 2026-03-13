@@ -8,6 +8,39 @@ const handleAxiosError = (
   err: AxiosError,
   downloader: Downloader
 ): DownloadErrorResult | null => {
+  const rpcErrorCode = (err.response?.data as { error?: string } | undefined)
+    ?.error;
+
+  if (downloader === Downloader.Torrent) {
+    if (rpcErrorCode === "invalid_magnet") {
+      return { ok: false, error: DownloadError.InvalidMagnet };
+    }
+
+    if (rpcErrorCode === "metadata_timeout") {
+      return { ok: false, error: DownloadError.TorrentMetadataTimeout };
+    }
+
+    if (rpcErrorCode === "metadata_incomplete") {
+      return { ok: false, error: DownloadError.TorrentMetadataIncomplete };
+    }
+
+    if (rpcErrorCode === "empty_selection") {
+      return { ok: false, error: DownloadError.TorrentNoFilesSelected };
+    }
+
+    if (rpcErrorCode === "invalid_file_indices") {
+      return { ok: false, error: DownloadError.TorrentInvalidFileSelection };
+    }
+
+    if (rpcErrorCode === "too_many_files") {
+      return { ok: false, error: DownloadError.TorrentTooManyFiles };
+    }
+
+    if (rpcErrorCode) {
+      return { ok: false, error: DownloadError.TorrentFilesUnavailable };
+    }
+  }
+
   if (err.response?.status === 429 && downloader === Downloader.Gofile) {
     return { ok: false, error: DownloadError.GofileQuotaExceeded };
   }
@@ -44,6 +77,10 @@ const handleAxiosError = (
 
   if (err.response?.status === 503 && downloader === Downloader.AllDebrid) {
     return { ok: false, error: DownloadError.AllDebridUnavailable };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.VikingFile) {
+    return { ok: false, error: DownloadError.VikingFileNimbusQuotaExceeded };
   }
 
   if (downloader === Downloader.TorBox) {

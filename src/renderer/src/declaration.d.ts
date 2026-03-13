@@ -36,6 +36,8 @@ import type {
   DownloadSource,
   LocalNotification,
   ProtonVersion,
+  CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -73,6 +75,11 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
@@ -171,7 +178,7 @@ declare global {
     assignGameToCollection: (
       shop: GameShop,
       objectId: string,
-      collectionId: string | null
+      collectionIds: string[]
     ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,
@@ -272,12 +279,21 @@ declare global {
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
+    onExtractionFailed: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
     ) => () => Electron.IpcRenderer;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
-    createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    createSteamShortcut: (
+      shop: GameShop,
+      objectId: string,
+      options?: CreateSteamShortcutOptions
+    ) => Promise<void>;
+    deleteSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
@@ -412,6 +428,7 @@ declare global {
     onPreflightProgress: (
       cb: (value: { status: string; detail: string | null }) => void
     ) => () => Electron.IpcRenderer;
+    onPythonRpcLog: (cb: (value: string) => void) => () => Electron.IpcRenderer;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;

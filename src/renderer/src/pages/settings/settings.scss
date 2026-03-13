@@ -19,8 +19,9 @@
   }
 
   &__sidebar {
-    width: 220px;
+    width: max-content;
     min-width: 220px;
+    max-width: 320px;
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
@@ -44,6 +45,7 @@
     cursor: pointer;
     font-size: globals.$body-font-size;
     line-height: 1.2;
+    white-space: nowrap;
     transition:
       color 0.2s ease,
       background-color 0.1s ease;

@@ -136,13 +136,13 @@ export default function Home() {
                     <div className="home__icon-wrapper">
                       <img
                         src={flameIconStatic}
-                        alt="Flame icon"
+                        alt=""
                         className="home__flame-icon"
                         style={{ display: animateFlame ? "none" : "block" }}
                       />
                       <img
                         src={flameIconAnimated}
-                        alt="Flame animation"
+                        alt=""
                         className="home__flame-icon"
                         style={{ display: animateFlame ? "block" : "none" }}
                       />
@@ -163,7 +163,7 @@ export default function Home() {
             <div className="home__icon-wrapper">
               <img
                 src={starsIconAnimated}
-                alt="Stars animation"
+                alt=""
                 className="home__stars-icon"
               />
             </div>
@@ -176,7 +176,7 @@ export default function Home() {
             <div className="home__title-icon">
               <img
                 src={flameIconAnimated}
-                alt="Flame animation"
+                alt=""
                 className="home__title-flame-icon"
               />
             </div>

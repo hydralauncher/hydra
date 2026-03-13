@@ -20,7 +20,6 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
-  featurebaseJwt: string;
   workwondersJwt: string;
 }
 
@@ -52,7 +51,7 @@ export interface Game {
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
-  collectionId?: string | null;
+  collectionIds?: string[];
   isDeleted: boolean;
   winePrefixPath?: string | null;
   protonPath?: string | null;
@@ -70,6 +69,7 @@ export interface Game {
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
+  steamShortcutAppId?: number;
 }
 
 export interface Download {
@@ -91,6 +91,8 @@ export interface Download {
   extractionProgress: number;
   /** When true, add to Debrid and wait until ready before starting download. */
   addToDebridThenDownload?: boolean;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
 }
 
 export interface GameAchievement {
@@ -141,6 +143,7 @@ export interface UserPreferences {
   enableNewDownloadOptionsBadges?: boolean;
   useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
+  maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;

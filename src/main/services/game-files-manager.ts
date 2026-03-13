@@ -5,7 +5,11 @@ import sharp from "sharp";
 import pngToIco from "png-to-ico";
 import type { GameShop, UserPreferences } from "@types";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
+import {
+  Downloader,
+  FILE_EXTENSIONS_TO_EXTRACT,
+  removeSymbolsFromName,
+} from "@shared";
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
@@ -65,20 +69,33 @@ export class GameFilesManager {
     );
 
     const download = await downloadsSublevel.get(this.gameKey);
-    if (!download) return;
 
-    await downloadsSublevel.put(this.gameKey, {
-      ...download,
-      status: "error",
-      extracting: false,
-      extractionProgress: 0,
-    });
+    if (download) {
+      const status =
+        download.progress === 1
+          ? download.shouldSeed && download.downloader === Downloader.Torrent
+            ? "seeding"
+            : "complete"
+          : download.status;
+
+      await downloadsSublevel.put(this.gameKey, {
+        ...download,
+        status,
+        queued: false,
+        extracting: false,
+        extractionProgress: 0,
+      });
+    }
 
     WindowManager.mainWindow?.webContents.send(
-      "on-extraction-complete",
+      "on-extraction-failed",
       this.shop,
       this.objectId
     );
+  }
+
+  async failExtraction(error: unknown, targetPath?: string) {
+    await this.setExtractionFailedState(error, targetPath);
   }
 
   private readonly handleProgress = (progress: ExtractionProgress) => {
@@ -95,7 +112,13 @@ export class GameFilesManager {
     }
 
     if (pathType !== "directory") {
-      return true;
+      await this.setExtractionFailedState(
+        new Error(
+          `Expected extraction directory but got "${pathType}" for ${directoryPath}`
+        ),
+        directoryPath
+      );
+      return false;
     }
 
     let files: string[];
@@ -107,7 +130,7 @@ export class GameFilesManager {
     }
 
     const compressedFiles = files.filter((file) =>
-      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.endsWith(ext))
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) => file.toLowerCase().endsWith(ext))
     );
 
     const filesToExtract = compressedFiles.filter(
@@ -444,6 +467,18 @@ export class GameFilesManager {
       const iconPath = await this.downloadGameIcon();
 
       if (process.platform === "win32") {
+        const userPreferences = await db.get<string, UserPreferences | null>(
+          levelKeys.userPreferences,
+          { valueEncoding: "json" }
+        );
+
+        const shouldCreateDownloadShortcuts =
+          userPreferences?.createStartMenuShortcut ?? true;
+
+        if (!shouldCreateDownloadShortcuts) {
+          return;
+        }
+
         const desktopSuccess = this.createWindowsShortcut(
           shortcutName,
           SystemPath.getPath("desktop"),
@@ -457,35 +492,25 @@ export class GameFilesManager {
           );
         }
 
-        const userPreferences = await db.get<string, UserPreferences | null>(
-          levelKeys.userPreferences,
-          { valueEncoding: "json" }
+        const startMenuPath = path.join(
+          SystemPath.getPath("appData"),
+          "Microsoft",
+          "Windows",
+          "Start Menu",
+          "Programs"
         );
 
-        const shouldCreateStartMenuShortcut =
-          userPreferences?.createStartMenuShortcut ?? true;
+        const startMenuSuccess = this.createWindowsShortcut(
+          shortcutName,
+          startMenuPath,
+          deepLink,
+          iconPath
+        );
 
-        if (shouldCreateStartMenuShortcut) {
-          const startMenuPath = path.join(
-            SystemPath.getPath("appData"),
-            "Microsoft",
-            "Windows",
-            "Start Menu",
-            "Programs"
+        if (startMenuSuccess) {
+          logger.info(
+            `[GameFilesManager] Created Start Menu shortcut for ${this.objectId}`
           );
-
-          const startMenuSuccess = this.createWindowsShortcut(
-            shortcutName,
-            startMenuPath,
-            deepLink,
-            iconPath
-          );
-
-          if (startMenuSuccess) {
-            logger.info(
-              `[GameFilesManager] Created Start Menu shortcut for ${this.objectId}`
-            );
-          }
         }
       } else {
         const windowVbsPath = app.isPackaged
@@ -563,7 +588,14 @@ export class GameFilesManager {
 
     if (!download || !game) return false;
 
-    const filePath = path.join(download.downloadPath, download.folderName!);
+    if (!download.folderName) {
+      await this.setExtractionFailedState(
+        new Error("No downloaded archive was found to extract")
+      );
+      return false;
+    }
+
+    const filePath = path.join(download.downloadPath, download.folderName);
 
     const extractionPath = path.join(
       download.downloadPath,

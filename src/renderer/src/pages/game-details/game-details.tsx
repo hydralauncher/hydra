@@ -103,7 +103,9 @@ export default function GameDetails() {
             downloadPath: string,
             automaticallyExtract: boolean,
             addToQueueOnly = false,
-            addToDebridThenDownload?: boolean
+            addToDebridThenDownload?: boolean,
+            fileIndices?: number[],
+            selectedFilesSize?: number | null
           ) => {
             const payload = {
               objectId: objectId!,
@@ -115,6 +117,8 @@ export default function GameDetails() {
               automaticallyExtract,
               fileSize: repack.fileSize,
               addToDebridThenDownload,
+              fileIndices,
+              selectedFilesSize,
             };
             const response = addToQueueOnly
               ? await addGameToQueue(payload)
@@ -193,7 +197,7 @@ export default function GameDetails() {
                     <div className="game-details__stars-icon-container">
                       <img
                         src={starsIconAnimated}
-                        alt="Stars animation"
+                        alt=""
                         className="game-details__stars-icon"
                       />
                     </div>

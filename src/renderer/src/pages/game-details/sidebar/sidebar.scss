@@ -139,28 +139,18 @@
   &__steamdeck-icon {
     width: 18px;
     height: 18px;
-    display: inline-block;
-    background-color: currentcolor;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-position: center;
-    mask-position: center;
+    display: block;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(100%);
     flex-shrink: 0;
   }
 
   &__proton-icon {
     width: 18px;
     height: 18px;
-    display: inline-block;
-    background-color: currentcolor;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-position: center;
-    mask-position: center;
+    display: block;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(100%);
     flex-shrink: 0;
   }
 

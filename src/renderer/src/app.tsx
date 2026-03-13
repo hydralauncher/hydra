@@ -41,6 +41,13 @@ export interface AppProps {
   children: React.ReactNode;
 }
 
+type WorkWondersWithKnowledge = WorkWonders & {
+  knowledge?: {
+    initKnowledgeWidget?: () => void;
+    showArticle?: (articleId: number) => void;
+  };
+};
+
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library } = useLibrary();
@@ -75,7 +82,7 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -133,8 +140,11 @@ export function App() {
         locale: parsedLocale,
       });
 
-      await workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidget();
       workwondersRef.current.changelog.initChangelogWidgetMini();
+      const workWondersWithKnowledge =
+        workwondersRef.current as WorkWondersWithKnowledge;
+      workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
 
       if (token) {
         workwondersRef.current.feedback.initFeedbackWidget();
@@ -142,6 +152,52 @@ export function App() {
     },
     [workwondersRef]
   );
+
+  useEffect(() => {
+    const onClick = async (event: MouseEvent) => {
+      const userPreferences = await window.electron.getUserPreferences();
+      const language = userPreferences?.language ?? "en";
+
+      const articleMapping = {
+        pt: {
+          "cannot-write-directory": 1429,
+          seeding: 1442,
+          "peers-and-seeds": 1449,
+          "steam-achievements": 1412,
+        },
+        en: {
+          "cannot-write-directory": 4122,
+          seeding: 4116,
+          "peers-and-seeds": 4119,
+          "steam-achievements": 4140,
+        },
+      };
+
+      const $helpCenterTarget = (event.target as HTMLElement).closest(
+        "[data-open-article]"
+      );
+
+      if ($helpCenterTarget) {
+        const article = $helpCenterTarget.getAttribute("data-open-article");
+        const articleId =
+          articleMapping[language.slice(0, 2)]?.[
+            article as keyof typeof articleMapping
+          ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
+
+        if (articleId) {
+          const workWondersWithKnowledge =
+            workwondersRef.current as WorkWondersWithKnowledge | null;
+          workWondersWithKnowledge?.knowledge?.showArticle?.(articleId);
+        }
+      }
+    };
+
+    window.addEventListener("click", onClick);
+
+    return () => {
+      window.removeEventListener("click", onClick);
+    };
+  }, []);
 
   const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
@@ -224,6 +280,14 @@ export function App() {
         dispatch(clearExtraction());
         updateLibrary();
       }),
+      window.electron.onExtractionFailed(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+        showErrorToast(
+          t("extraction_failed_title", { ns: "downloads" }),
+          t("extraction_failed_description", { ns: "downloads" })
+        );
+      }),
       window.electron.onArchiveDeletionPrompt((paths) => {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);
@@ -233,7 +297,7 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
 
   useEffect(() => {
     const asyncScrollAndNotify = async () => {

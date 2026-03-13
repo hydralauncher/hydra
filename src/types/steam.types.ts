@@ -76,3 +76,7 @@ export interface SteamShortcut {
   LastPlayTime: number;
   FlatpakAppID: string;
 }
+
+export interface CreateSteamShortcutOptions {
+  openVr?: boolean;
+}

@@ -23,7 +23,11 @@ const addGameToQueue = async (
     uri,
     automaticallyExtract,
     fileSize,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
+
+  const parsedFileSize = parseBytes(fileSize ?? null);
 
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -37,7 +41,7 @@ const addGameToQueue = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: parseBytes(fileSize ?? null),
+    fileSize: selectedFilesSize ?? parsedFileSize,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
@@ -45,6 +49,8 @@ const addGameToQueue = async (
     automaticallyExtract,
     extractionProgress: 0,
     addToDebridThenDownload: payload.addToDebridThenDownload,
+    fileIndices,
+    selectedFilesSize,
   };
 
   try {

@@ -66,8 +66,16 @@ export type ShopDetailsWithAssets = ShopDetails & {
 };
 
 export interface TorrentFile {
+  index: number;
   path: string;
   length: number;
+}
+
+export interface TorrentFilesResponse {
+  infoHash: string;
+  name: string;
+  totalSize: number;
+  files: TorrentFile[];
 }
 
 export type UserGame = {
@@ -133,6 +141,8 @@ export interface StartGameDownloadPayload {
   fileSize?: string | null;
   /** When true, add torrent to Debrid (Real-Debrid/TorBox) and wait until ready before downloading. */
   addToDebridThenDownload?: boolean;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
 }
 
 export interface UserFriend {
@@ -202,7 +212,6 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   bio: string;
-  featurebaseJwt: string;
   workwondersJwt: string;
   subscription: Subscription | null;
   karma: number;

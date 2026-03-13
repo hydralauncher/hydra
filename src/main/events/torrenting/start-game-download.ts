@@ -3,6 +3,7 @@ import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { Downloader, parseBytes } from "@shared";
 import {
   handleDownloadError,
   isKnownDownloadError,
@@ -21,9 +22,18 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    fileSize,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
 
+  const parsedFileSize = parseBytes(fileSize ?? null);
+
   const gameKey = levelKeys.game(shop, objectId);
+
+  logger.log(
+    `[startGameDownload] Requested gameId=${gameKey} downloader=${Downloader[downloader]} selectiveFiles=${fileIndices?.length ?? 0}`
+  );
 
   await DownloadManager.pauseDownload();
 
@@ -50,7 +60,6 @@ const startGameDownload = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
@@ -58,6 +67,9 @@ const startGameDownload = async (
     automaticallyExtract,
     extractionProgress: 0,
     addToDebridThenDownload: payload.addToDebridThenDownload,
+    fileIndices,
+    selectedFilesSize,
+    fileSize: selectedFilesSize ?? parsedFileSize,
   };
 
   try {
@@ -74,12 +86,17 @@ const startGameDownload = async (
       }).catch(() => {}),
     ]);
 
+    logger.log(`[startGameDownload] Started gameId=${gameKey} successfully`);
+
     return { ok: true };
   } catch (err: unknown) {
     if (isKnownDownloadError(err)) {
-      logger.warn("Failed to start download with expected download error", err);
+      logger.warn(
+        `Failed to start download with expected download error gameId=${gameKey}`,
+        err
+      );
     } else {
-      logger.error("Failed to start download", err);
+      logger.error(`Failed to start download gameId=${gameKey}`, err);
     }
     return handleDownloadError(err, downloader);
   }
