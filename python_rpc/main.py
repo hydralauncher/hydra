@@ -9,12 +9,7 @@ import time
 import urllib.parse
 
 import libtorrent as lt
-import psutil
 from flask import Flask, jsonify, request
-
-from http_downloader import HttpDownloader
-from profile_image_processor import ProfileImageProcessor
-from torrent_downloader import TorrentDownloader
 
 app = Flask(__name__)
 
@@ -53,12 +48,49 @@ TORRENT_FILES_CACHE_MAX_ITEMS = 128
 torrent_files_cache = {}
 torrent_files_cache_lock = threading.RLock()
 
+http_downloader_class = None
+torrent_downloader_class = None
+profile_image_processor_class = None
+
 
 def load_json_payload(raw_payload: str):
     if not raw_payload:
         return None
 
     return json.loads(urllib.parse.unquote(raw_payload))
+
+
+def get_http_downloader_class():
+    global http_downloader_class
+
+    if http_downloader_class is None:
+        from http_downloader import HttpDownloader
+
+        http_downloader_class = HttpDownloader
+
+    return http_downloader_class
+
+
+def get_torrent_downloader_class():
+    global torrent_downloader_class
+
+    if torrent_downloader_class is None:
+        from torrent_downloader import TorrentDownloader
+
+        torrent_downloader_class = TorrentDownloader
+
+    return torrent_downloader_class
+
+
+def get_profile_image_processor_class():
+    global profile_image_processor_class
+
+    if profile_image_processor_class is None:
+        from profile_image_processor import ProfileImageProcessor
+
+        profile_image_processor_class = ProfileImageProcessor
+
+    return profile_image_processor_class
 
 
 def parse_file_indices(file_indices):
@@ -197,12 +229,14 @@ def start_torrent_download(game_id, url, save_path, file_indices=None, flags=Non
     with downloads_lock:
         existing_downloader = downloads.get(game_id)
 
-    if existing_downloader and isinstance(existing_downloader, TorrentDownloader):
+    torrent_downloader_cls = get_torrent_downloader_class()
+
+    if existing_downloader and isinstance(existing_downloader, torrent_downloader_cls):
         apply_download_limit(existing_downloader)
         existing_downloader.start_download(url, save_path, file_indices=file_indices)
         return
 
-    torrent_downloader = TorrentDownloader(
+    torrent_downloader = torrent_downloader_cls(
         torrent_session,
         flags or lt.torrent_flags.auto_managed,
         session_lock=downloads_lock,
@@ -224,12 +258,14 @@ def start_http_download(game_id, url, save_path, header=None, out=None):
     with downloads_lock:
         existing_downloader = downloads.get(game_id)
 
-    if existing_downloader and isinstance(existing_downloader, HttpDownloader):
+    http_downloader_cls = get_http_downloader_class()
+
+    if existing_downloader and isinstance(existing_downloader, http_downloader_cls):
         apply_download_limit(existing_downloader)
         existing_downloader.start_download(url, save_path, header, out)
         return
 
-    http_downloader = HttpDownloader()
+    http_downloader = http_downloader_cls()
     apply_download_limit(http_downloader)
 
     with downloads_lock:
@@ -366,7 +402,7 @@ def torrent_files():
     if not metadata_semaphore.acquire(timeout=5):
         return jsonify({"error": "metadata_busy"}), 429
 
-    temp_downloader = TorrentDownloader(
+    temp_downloader = get_torrent_downloader_class()(
         torrent_session,
         lt.torrent_flags.upload_mode,
         session_lock=downloads_lock,
@@ -406,6 +442,8 @@ def process_list():
         iter_list.append("cwd")
         iter_list.append("environ")
 
+    import psutil
+
     process_list_payload = [proc.info for proc in psutil.process_iter(iter_list)]
     return jsonify(process_list_payload), 200
 
@@ -423,7 +461,7 @@ def profile_image():
     target_extension = data.get("target_extension") or "webp"
 
     try:
-        processed_image_path, mime_type = ProfileImageProcessor.process_image(
+        processed_image_path, mime_type = get_profile_image_processor_class().process_image(
             image_path, target_extension
         )
         return jsonify({"imagePath": processed_image_path, "mimeType": mime_type}), 200
@@ -534,8 +572,19 @@ def action():
     return "", 200
 
 
-bootstrap_downloads()
+def start_bootstrap_thread():
+    def bootstrap_after_start():
+        time.sleep(0.25)
+        bootstrap_downloads()
+
+    bootstrap_thread = threading.Thread(
+        target=bootstrap_after_start,
+        name="hydra.rpc.bootstrap",
+        daemon=True,
+    )
+    bootstrap_thread.start()
 
 
 if __name__ == "__main__":
+    start_bootstrap_thread()
     app.run(host="127.0.0.1", port=int(http_port), threaded=True)

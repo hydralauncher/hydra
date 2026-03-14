@@ -109,7 +109,7 @@ export class PythonRPC {
   }
 
   public static async ensureReady(
-    retries = 20,
+    retries = 40,
     delayMs = 250,
     timeoutMs = 2000
   ): Promise<void> {

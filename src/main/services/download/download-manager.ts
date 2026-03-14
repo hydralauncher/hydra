@@ -63,6 +63,104 @@ export class DownloadManager {
     return this.downloadingGameId !== null;
   }
 
+  private static getExpectedDownloadSize(download: Download, fallback = 0) {
+    return download.selectedFilesSize ?? download.fileSize ?? fallback;
+  }
+
+  private static getDownloadContentPath(download: Download) {
+    if (!download.folderName) return null;
+
+    return path.join(download.downloadPath, download.folderName);
+  }
+
+  private static getNormalizedProgress(
+    bytesDownloaded: number,
+    fileSize: number
+  ) {
+    if (fileSize <= 0) return 0;
+
+    return Math.min(Math.max(bytesDownloaded / fileSize, 0), 1);
+  }
+
+  private static async disableSeedingForDownload(
+    download: Download,
+    options?: {
+      bytesDownloaded?: number;
+      expectedSize?: number;
+      status?: Download["status"];
+      reason?: string;
+    }
+  ) {
+    const gameId = levelKeys.game(download.shop, download.objectId);
+    const expectedSize =
+      options?.expectedSize ?? this.getExpectedDownloadSize(download);
+    const bytesDownloaded =
+      options?.bytesDownloaded ?? download.bytesDownloaded;
+    const status =
+      options?.status ?? (expectedSize > 0 ? "paused" : "complete");
+
+    logger.warn(
+      `[DownloadManager] Disabling seeding for ${gameId}${options?.reason ? `: ${options.reason}` : ""}`
+    );
+
+    await downloadsSublevel.put(gameId, {
+      ...download,
+      status,
+      shouldSeed: false,
+      queued: false,
+      bytesDownloaded,
+      progress:
+        expectedSize > 0
+          ? this.getNormalizedProgress(bytesDownloaded, expectedSize)
+          : download.progress,
+      extracting: false,
+      extractionProgress: 0,
+    });
+
+    WindowManager.mainWindow?.webContents.send("on-hard-delete");
+  }
+
+  public static async validateStartupSeedingDownloads(downloads: Download[]) {
+    const validDownloads: Download[] = [];
+
+    for (const download of downloads) {
+      const expectedSize = this.getExpectedDownloadSize(download);
+      const contentPath = this.getDownloadContentPath(download);
+
+      if (!contentPath) {
+        await this.disableSeedingForDownload(download, {
+          status: "complete",
+          reason: "missing download folder name",
+        });
+        continue;
+      }
+
+      if (expectedSize <= 0) {
+        await this.disableSeedingForDownload(download, {
+          status: "complete",
+          reason: "missing expected download size",
+        });
+        continue;
+      }
+
+      const bytesDownloaded = await getDirSize(contentPath);
+
+      if (bytesDownloaded < expectedSize) {
+        await this.disableSeedingForDownload(download, {
+          bytesDownloaded,
+          expectedSize,
+          status: "paused",
+          reason: `local files incomplete (${bytesDownloaded}/${expectedSize} bytes)`,
+        });
+        continue;
+      }
+
+      validDownloads.push(download);
+    }
+
+    return validDownloads;
+  }
+
   private static extractFilename(
     url: string,
     originalUrl?: string
@@ -689,32 +787,54 @@ export class DownloadManager {
       .get<LibtorrentPayload[] | []>("/seed-status")
       .then((res) => res.data);
 
-    if (!seedStatus.length) return;
-
     logger.log(seedStatus);
 
-    seedStatus.forEach(async (status) => {
-      const download = await downloadsSublevel.get(status.gameId);
+    await Promise.all(
+      seedStatus.map(async (status) => {
+        const download = await downloadsSublevel.get(status.gameId);
 
-      if (!download) return;
+        if (!download) return;
 
-      const totalSize = await getDirSize(
-        path.join(download.downloadPath, status.folderName)
-      );
-
-      if (totalSize < status.fileSize) {
-        await this.cancelDownload(status.gameId);
-
-        await downloadsSublevel.put(status.gameId, {
+        const contentPath = this.getDownloadContentPath({
           ...download,
-          status: "paused",
-          shouldSeed: false,
-          progress: totalSize / status.fileSize,
+          folderName: status.folderName || download.folderName,
         });
 
-        WindowManager.mainWindow?.webContents.send("on-hard-delete");
-      }
-    });
+        if (!contentPath) {
+          await this.pauseSeeding(status.gameId).catch((err) => {
+            logger.error(
+              "Failed to pause seeding with missing content path",
+              err
+            );
+          });
+
+          await this.disableSeedingForDownload(download, {
+            status: "complete",
+            reason: "missing content path while polling seed status",
+          });
+          return;
+        }
+
+        const totalSize = await getDirSize(contentPath);
+        const expectedSize = Math.max(
+          status.fileSize || 0,
+          this.getExpectedDownloadSize(download)
+        );
+
+        if (expectedSize > 0 && totalSize < expectedSize) {
+          await this.pauseSeeding(status.gameId).catch((err) => {
+            logger.error("Failed to pause incomplete seed", err);
+          });
+
+          await this.disableSeedingForDownload(download, {
+            bytesDownloaded: totalSize,
+            expectedSize,
+            status: "paused",
+            reason: `local files incomplete while seeding (${totalSize}/${expectedSize} bytes)`,
+          });
+        }
+      })
+    );
 
     WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
   }

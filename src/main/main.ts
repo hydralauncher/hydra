@@ -122,12 +122,14 @@ export const loadState = async () => {
   const downloadToResume =
     interruptedDownload ?? updatedDownloads.find((game) => game.queued);
 
-  const downloadsToSeed = updatedDownloads.filter(
-    (game) =>
-      game.shouldSeed &&
-      game.downloader === Downloader.Torrent &&
-      game.progress === 1 &&
-      game.uri !== null
+  const downloadsToSeed = await DownloadManager.validateStartupSeedingDownloads(
+    updatedDownloads.filter(
+      (game) =>
+        game.shouldSeed &&
+        game.downloader === Downloader.Torrent &&
+        game.progress === 1 &&
+        game.uri !== null
+    )
   );
 
   // For torrents or if JS downloader is disabled, use Python RPC
