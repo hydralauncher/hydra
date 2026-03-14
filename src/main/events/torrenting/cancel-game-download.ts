@@ -20,7 +20,6 @@ const cancelGameDownload = async (
   await downloadsSublevel.put(downloadKey, {
     ...download,
     status: "removed",
-    queued: false,
   });
 };
 
