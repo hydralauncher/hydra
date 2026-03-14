@@ -778,6 +778,7 @@ export function DownloadGroup({
   );
 
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
+    const download = lastPacket?.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
     const deleting = isGameDeleting(game.id);
@@ -846,13 +847,13 @@ export function DownloadGroup({
     }
 
     const isResumeDisabled =
-      (game.download?.downloader === Downloader.RealDebrid &&
+      (download?.downloader === Downloader.RealDebrid &&
         !userPreferences?.realDebridApiToken) ||
-      (game.download?.downloader === Downloader.Premiumize &&
+      (download?.downloader === Downloader.Premiumize &&
         !userPreferences?.premiumizeApiToken) ||
-      (game.download?.downloader === Downloader.AllDebrid &&
+      (download?.downloader === Downloader.AllDebrid &&
         !userPreferences?.allDebridApiToken) ||
-      (game.download?.downloader === Downloader.TorBox &&
+      (download?.downloader === Downloader.TorBox &&
         !userPreferences?.torBoxApiToken);
 
     const queueIndex = queuedGameIds.indexOf(game.id);
