@@ -182,6 +182,7 @@ export const getDownloadersForUris = (uris: string[]) => {
 
 export const getDateLocale = (language: string) => {
   if (language.startsWith("pt")) return ptBR;
+  if (language.startsWith("cria")) return ptBR;
   if (language.startsWith("es")) return es;
   if (language.startsWith("fr")) return fr;
   if (language.startsWith("hu")) return hu;
