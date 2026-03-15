@@ -116,4 +116,55 @@ export class RealDebridClient {
 
     return decodeURIComponent(download);
   }
+
+  /** Add to Real-Debrid and wait until the torrent is ready, then return the download URL. */
+  public static async getDownloadUrlWaitingForReady(
+    uri: string,
+    options: {
+      pollIntervalMs?: number;
+      timeoutMs?: number;
+      onProgress?: (progress: number, status: string) => void;
+    } = {}
+  ): Promise<string> {
+    const { pollIntervalMs = 5000, timeoutMs = 3600_000, onProgress } = options;
+
+    if (!uri.startsWith("magnet:")) {
+      const url = await this.getDownloadUrl(uri);
+      if (!url) throw new Error("Failed to unrestrict link");
+      return url;
+    }
+
+    const realDebridTorrentId = await this.getTorrentId(uri);
+    let torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
+
+    if (torrentInfo.status === "waiting_files_selection") {
+      await this.selectAllFiles(realDebridTorrentId);
+      torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
+    }
+
+    const start = Date.now();
+    const polling = true;
+    while (polling) {
+      if (torrentInfo.status === "downloaded") {
+        const [link] = torrentInfo.links;
+        const { download } = await this.unrestrictLink(link);
+        return decodeURIComponent(download);
+      }
+      if (
+        torrentInfo.status === "error" ||
+        torrentInfo.status === "dead" ||
+        torrentInfo.status === "virus"
+      ) {
+        throw new Error(`Real-Debrid: torrent ${torrentInfo.status}`);
+      }
+      if (Date.now() - start > timeoutMs) {
+        throw new Error("Real-Debrid: timeout waiting for torrent to be ready");
+      }
+
+      onProgress?.(torrentInfo.progress, torrentInfo.status);
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+      torrentInfo = await this.getTorrentInfo(realDebridTorrentId);
+    }
+    throw new Error("Real-Debrid: unreachable");
+  }
 }
