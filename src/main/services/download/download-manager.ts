@@ -243,37 +243,26 @@ export class DownloadManager {
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
-    logger.log(
-      `[DownloadManager] Starting RPC bridge (activeDownload=${Boolean(download)}, seedingCount=${downloadsToSeed?.length ?? 0})`
+    await PythonRPC.spawn(
+      download?.status === "active"
+        ? await this.getDownloadPayload(download).catch((err) => {
+            logger.error("Error getting download payload", err);
+            return undefined;
+          })
+        : undefined,
+      downloadsToSeed?.map((download) => ({
+        action: "seed",
+        game_id: levelKeys.game(download.shop, download.objectId),
+        url: download.uri,
+        save_path: download.downloadPath,
+      }))
     );
-
-    try {
-      await PythonRPC.spawn(
-        download?.status === "active"
-          ? await this.getDownloadPayload(download).catch((err) => {
-              logger.error("Error getting download payload", err);
-              return undefined;
-            })
-          : undefined,
-        downloadsToSeed?.map((download) => ({
-          action: "seed",
-          game_id: levelKeys.game(download.shop, download.objectId),
-          url: download.uri,
-          save_path: download.downloadPath,
-        }))
-      );
-    } catch (error) {
-      logger.error("[DownloadManager] Failed to start RPC bridge", error);
-      throw error;
-    }
 
     if (download) {
       this.downloadingGameId = levelKeys.game(download.shop, download.objectId);
     }
 
     await this.applyDownloadSpeedLimit();
-
-    logger.log("[DownloadManager] RPC bridge started successfully");
   }
 
   private static async getDownloadStatusFromJs(): Promise<DownloadProgress | null> {
@@ -367,23 +356,13 @@ export class DownloadManager {
         }
       }
 
-      const effectiveFileSize =
-        fileSize > 0
-          ? fileSize
-          : (download.selectedFilesSize ?? download.fileSize ?? 0);
-
-      const normalizedProgress =
-        status.status === "complete"
-          ? 1
-          : effectiveFileSize > 0
-            ? Math.min(Math.max(bytesDownloaded / effectiveFileSize, 0), 1)
-            : progress;
+      const effectiveFileSize = fileSize > 0 ? fileSize : download.fileSize;
 
       const updatedDownload = {
         ...download,
         bytesDownloaded,
         fileSize: effectiveFileSize,
-        progress: normalizedProgress,
+        progress,
         folderName,
         status:
           status.status === "complete"
@@ -406,7 +385,7 @@ export class DownloadManager {
         ),
         isDownloadingMetadata: false,
         isCheckingFiles: false,
-        progress: normalizedProgress,
+        progress,
         gameId: downloadId,
         download: updatedDownload,
         batchFilesTotal,
@@ -443,40 +422,23 @@ export class DownloadManager {
 
       const download = await downloadsSublevel.get(downloadId);
 
-      const effectiveFileSize =
-        fileSize > 0
-          ? fileSize
-          : (download?.selectedFilesSize ?? download?.fileSize ?? 0);
-
-      const normalizedProgress =
-        effectiveFileSize > 0
-          ? Math.min(Math.max(bytesDownloaded / effectiveFileSize, 0), 1)
-          : progress;
-
       if (!isDownloadingMetadata && !isCheckingFiles) {
         if (!download) return null;
+
+        const effectiveFileSize =
+          fileSize > 0
+            ? fileSize
+            : (download.selectedFilesSize ?? download.fileSize ?? 0);
 
         await downloadsSublevel.put(downloadId, {
           ...download,
           bytesDownloaded,
           fileSize: effectiveFileSize,
-          progress: normalizedProgress,
+          progress,
           folderName,
           status: "active",
         });
       }
-
-      const updatedDownload =
-        download && !isDownloadingMetadata && !isCheckingFiles
-          ? {
-              ...download,
-              bytesDownloaded,
-              fileSize: effectiveFileSize,
-              progress: normalizedProgress,
-              folderName,
-              status: "active" as const,
-            }
-          : download;
 
       return {
         numPeers,
@@ -491,9 +453,9 @@ export class DownloadManager {
         ),
         isDownloadingMetadata,
         isCheckingFiles,
-        progress: normalizedProgress,
+        progress,
         gameId: downloadId,
-        download: updatedDownload,
+        download,
       } as DownloadProgress;
     } catch {
       return null;
@@ -1404,10 +1366,6 @@ export class DownloadManager {
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
-    logger.log(
-      `[DownloadManager] Starting download gameId=${downloadId} downloader=${Downloader[download.downloader]} useJs=${useJsDownloader && isHttp} queued=${download.queued} selectiveFiles=${download.fileIndices?.length ?? 0}`
-    );
-
     if (useJsDownloader && isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
@@ -1470,20 +1428,13 @@ export class DownloadManager {
 
           this.logResolvedUrl(options.url);
           this.jsDownloader.startDownload(options).catch((err) => {
-            logger.error(
-              `[DownloadManager] JS download error gameId=${downloadId}:`,
-              err
-            );
+            logger.error("[DownloadManager] JS download error:", err);
             this.usingJsDownloader = false;
             this.jsDownloader = null;
             this.allDebridBatch = null;
           });
         }
       } catch (err) {
-        logger.error(
-          `[DownloadManager] Failed to start JS download gameId=${downloadId}:`,
-          err
-        );
         this.isPreparingDownload = false;
         this.usingJsDownloader = false;
         this.downloadingGameId = null;
@@ -1493,14 +1444,6 @@ export class DownloadManager {
     } else {
       logger.log("[DownloadManager] Using Python RPC downloader");
       const payload = await this.getDownloadPayload(download);
-
-      if (!payload) {
-        logger.error(
-          `[DownloadManager] Failed to build RPC payload gameId=${downloadId}`
-        );
-        throw new Error("Failed to build download payload");
-      }
-
       const isSelectiveTorrentStart =
         download.downloader === Downloader.Torrent &&
         Array.isArray(download.fileIndices) &&
@@ -1509,30 +1452,12 @@ export class DownloadManager {
       if (payload?.url) {
         this.logResolvedUrl(payload.url);
       }
-
-      logger.log(
-        `[DownloadManager] Sending RPC start action gameId=${downloadId} timeoutMs=${isSelectiveTorrentStart ? 60_000 : 10_000}`
-      );
-
-      try {
-        await PythonRPC.rpc.post("/action", payload, {
-          timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
-        });
-      } catch (error) {
-        logger.error(
-          `[DownloadManager] RPC start action failed gameId=${downloadId}:`,
-          error
-        );
-        throw error;
-      }
-
+      await PythonRPC.rpc.post("/action", payload, {
+        timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
+      });
       this.downloadingGameId = downloadId;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
     }
-
-    logger.log(
-      `[DownloadManager] Download start flow completed gameId=${downloadId}`
-    );
   }
 }
