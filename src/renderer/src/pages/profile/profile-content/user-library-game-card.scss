@@ -6,6 +6,9 @@
     overflow: hidden;
     position: relative;
     display: flex;
+    contain: layout paint;
+    content-visibility: auto;
+    contain-intrinsic-size: 240px 360px;
     transition: all ease 0.2s;
     cursor: grab;
     container-type: inline-size;
@@ -95,8 +98,6 @@
   &__pin-button {
     color: rgba(255, 255, 255, 0.8);
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 50%;
     padding: 6px;
@@ -122,8 +123,6 @@
 
   &__playtime {
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     color: rgba(255, 255, 255, 0.8);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;

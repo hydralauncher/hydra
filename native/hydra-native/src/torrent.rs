@@ -25,7 +25,8 @@ const TORRENT_FILES_CACHE_MAX_ITEMS: usize = 128;
 const TORRENT_MAX_FILES: usize = 100_000;
 const SEED_ESTIMATE_TTL_SECONDS: u64 = 600;
 const SEED_POLL_INTERVAL_SECONDS: u64 = 90;
-const ENABLE_TRACKER_SEED_ESTIMATOR: bool = false;
+const MAX_TRACKERS_FOR_SEED_ESTIMATE: usize = 8;
+const ENABLE_TRACKER_SEED_ESTIMATOR: bool = true;
 
 static MAGNET_HASH_HEX_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^[a-fA-F0-9]{40}$").expect("valid regex"));
@@ -214,6 +215,70 @@ struct PendingStart {
     save_path: String,
 }
 
+fn sanitize_folder_component(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut sanitized = String::with_capacity(trimmed.len());
+
+    for ch in trimmed.chars() {
+        let mapped = match ch {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+            _ if ch.is_control() => '_',
+            _ => ch,
+        };
+        sanitized.push(mapped);
+    }
+
+    let compact = sanitized.trim_matches(['.', ' ']);
+    if compact.is_empty() {
+        return None;
+    }
+
+    Some(compact.to_string())
+}
+
+fn build_reserved_output_folder(
+    root_save_path: &str,
+    torrent_name: Option<&str>,
+    file_count: usize,
+    info_hash: &str,
+) -> String {
+    if file_count <= 1 {
+        return root_save_path.to_string();
+    }
+
+    let fallback_hash_len = info_hash.len().min(12);
+    let fallback_name = format!("torrent-{}", &info_hash[..fallback_hash_len]);
+    let folder_name = torrent_name
+        .and_then(sanitize_folder_component)
+        .unwrap_or(fallback_name);
+
+    PathBuf::from(root_save_path)
+        .join(folder_name)
+        .to_string_lossy()
+        .to_string()
+}
+
+async fn resolve_torrent_output_folder(
+    root_save_path: &str,
+    magnet: &str,
+    info_hash: &str,
+    timeout_ms: u32,
+) -> String {
+    match fetch_torrent_files_internal(magnet.to_string(), info_hash.to_string(), timeout_ms).await {
+        Ok(files_payload) => build_reserved_output_folder(
+            root_save_path,
+            Some(&files_payload.name),
+            files_payload.files.len(),
+            info_hash,
+        ),
+        Err(_) => root_save_path.to_string(),
+    }
+}
+
 #[derive(Clone)]
 struct TorrentMeta {
     info_hash: String,
@@ -358,10 +423,7 @@ fn validate_magnet_uri(raw_magnet: &str) -> napi::Result<(String, String)> {
 }
 
 fn parse_magnet_trackers(magnet: &str) -> Vec<String> {
-    let mut trackers = DEFAULT_TRACKERS
-        .iter()
-        .map(|value| value.to_string())
-        .collect::<Vec<_>>();
+    let mut trackers = Vec::new();
 
     if let Ok(parsed) = Url::parse(magnet) {
         for (key, value) in parsed.query_pairs() {
@@ -371,6 +433,13 @@ fn parse_magnet_trackers(magnet: &str) -> Vec<String> {
                     trackers.push(tracker);
                 }
             }
+        }
+    }
+
+    for value in DEFAULT_TRACKERS {
+        let tracker = value.to_string();
+        if !trackers.contains(&tracker) {
+            trackers.push(tracker);
         }
     }
 
@@ -537,7 +606,11 @@ async fn update_seed_estimate(game_id: &str, meta: &TorrentMeta) {
     };
 
     let mut best = None;
-    for tracker in &meta.trackers {
+    for tracker in meta
+        .trackers
+        .iter()
+        .take(MAX_TRACKERS_FOR_SEED_ESTIMATE)
+    {
         let estimate = if tracker.starts_with("udp://") {
             fetch_tracker_seeders_udp(tracker, &info_hash).await
         } else {
@@ -566,7 +639,7 @@ async fn ensure_seed_polling(game_id: String) {
         return;
     }
 
-    let meta = {
+    {
         let mut manager = TORRENT_MANAGER.lock().await;
 
         if manager.seed_poll_tasks.contains_key(&game_id) {
@@ -588,10 +661,7 @@ async fn ensure_seed_polling(game_id: String) {
         });
 
         manager.seed_poll_tasks.insert(game_id.clone(), task);
-        meta
-    };
-
-    update_seed_estimate(&game_id, &meta).await;
+    }
 }
 
 fn current_seed_estimate(manager: &TorrentManager, game_id: &str) -> Option<u32> {
@@ -934,177 +1004,188 @@ pub fn torrent_get_seed_status() -> napi::Result<Vec<TorrentSeedStatusPayload>> 
 }
 
 #[napi]
-pub fn torrent_get_files(
+pub async fn torrent_get_files(
     magnet: String,
     timeout_ms: Option<u32>,
 ) -> napi::Result<TorrentFilesPayload> {
-    TOKIO_RT.block_on(async {
-        let (magnet, info_hash) = validate_magnet_uri(&magnet)?;
-        let timeout_ms = TorrentManager::normalize_timeout_ms(timeout_ms, 30_000);
-        fetch_torrent_files_internal(magnet, info_hash, timeout_ms).await
-    })
+    let (magnet, info_hash) = validate_magnet_uri(&magnet)?;
+    let timeout_ms = TorrentManager::normalize_timeout_ms(timeout_ms, 30_000);
+    fetch_torrent_files_internal(magnet, info_hash, timeout_ms).await
 }
 
 #[napi]
-pub fn torrent_start(payload: StartTorrentPayload) -> napi::Result<()> {
-    TOKIO_RT.block_on(async {
-        if payload.save_path.trim().is_empty() {
-            return Err(Error::from_reason("invalid_save_path"));
-        }
+pub async fn torrent_start(payload: StartTorrentPayload) -> napi::Result<()> {
+    if payload.save_path.trim().is_empty() {
+        return Err(Error::from_reason("invalid_save_path"));
+    }
 
-        let (magnet, info_hash) = validate_magnet_uri(&payload.url)?;
-        let is_selective = payload.file_indices.is_some();
+    let (magnet, info_hash) = validate_magnet_uri(&payload.url)?;
+    let is_selective = payload.file_indices.is_some();
+    let output_resolution_timeout_ms =
+        TorrentManager::normalize_timeout_ms(payload.timeout_ms, 10_000);
 
-        let existing_handle = {
-            let manager = TORRENT_MANAGER.lock().await;
-            manager.downloads.get(&payload.game_id).cloned()
-        };
+    let existing_handle = {
+        let manager = TORRENT_MANAGER.lock().await;
+        manager.downloads.get(&payload.game_id).cloned()
+    };
 
-        if !is_selective {
-            if let Some(handle) = existing_handle {
-                let session = get_or_create_session().await?;
-                let _ = session.unpause(&handle).await;
+    if !is_selective {
+        if let Some(handle) = existing_handle {
+            let session = get_or_create_session().await?;
+            let _ = session.unpause(&handle).await;
 
-                let mut manager = TORRENT_MANAGER.lock().await;
-                manager.downloading_game_id = Some(payload.game_id.clone());
-                manager.seeding_game_ids.remove(&payload.game_id);
-                manager.pending_starts.remove(&payload.game_id);
-                drop(manager);
-                ensure_seed_polling(payload.game_id).await;
-                return Ok(());
-            }
-
-            {
-                let mut manager = TORRENT_MANAGER.lock().await;
-                manager.abort_pending_start(&payload.game_id);
-                manager.pending_starts.insert(
-                    payload.game_id.clone(),
-                    PendingStart {
-                        save_path: payload.save_path.clone(),
-                    },
-                );
-                manager.downloading_game_id = Some(payload.game_id.clone());
-                manager.seeding_game_ids.remove(&payload.game_id);
-            }
-
-            {
-                let mut manager = TORRENT_MANAGER.lock().await;
-                manager.torrent_meta.insert(
-                    payload.game_id.clone(),
-                    TorrentMeta {
-                        info_hash: info_hash.clone(),
-                        trackers: parse_magnet_trackers(&magnet),
-                    },
-                );
-            }
-
-            if let Err(error) = complete_pending_start(
-                payload.game_id.clone(),
-                info_hash,
-                magnet,
-                payload.save_path,
-            )
-            .await
-            {
-                eprintln!(
-                    "[hydra-native] pending torrent start failed for {}: {}",
-                    payload.game_id, error
-                );
-
-                let mut manager = TORRENT_MANAGER.lock().await;
-                manager.pending_starts.remove(&payload.game_id);
-                manager.pending_tasks.remove(&payload.game_id);
-
-                if manager.downloading_game_id.as_deref() == Some(payload.game_id.as_str()) {
-                    manager.downloading_game_id = None;
-                }
-
-                return Err(error);
-            }
+            let mut manager = TORRENT_MANAGER.lock().await;
+            manager.downloading_game_id = Some(payload.game_id.clone());
+            manager.seeding_game_ids.remove(&payload.game_id);
+            manager.pending_starts.remove(&payload.game_id);
+            drop(manager);
+            ensure_seed_polling(payload.game_id).await;
             return Ok(());
         }
 
-        if let Some(handle) = existing_handle {
-            let session = get_or_create_session().await?;
-            let _ = session.delete(handle.id().into(), false).await;
-        }
+        let resolved_save_path = resolve_torrent_output_folder(
+            &payload.save_path,
+            &magnet,
+            &info_hash,
+            output_resolution_timeout_ms,
+        )
+        .await;
 
         {
             let mut manager = TORRENT_MANAGER.lock().await;
             manager.abort_pending_start(&payload.game_id);
+            manager.pending_starts.insert(
+                payload.game_id.clone(),
+                PendingStart {
+                    save_path: resolved_save_path.clone(),
+                },
+            );
+            manager.downloading_game_id = Some(payload.game_id.clone());
+            manager.seeding_game_ids.remove(&payload.game_id);
         }
 
-        let timeout_ms =
-            TorrentManager::normalize_timeout_ms(payload.timeout_ms, 60_000);
-
-        let trackers = parse_magnet_trackers(&magnet);
-
-        let files_payload =
-            fetch_torrent_files_internal(magnet.clone(), info_hash.clone(), timeout_ms).await?;
-
-        let raw_indices = payload
-            .file_indices
-            .ok_or_else(|| Error::from_reason("invalid_file_indices"))?;
-
-        if raw_indices.is_empty() {
-            return Err(Error::from_reason("empty_selection"));
+        {
+            let mut manager = TORRENT_MANAGER.lock().await;
+            manager.torrent_meta.insert(
+                payload.game_id.clone(),
+                TorrentMeta {
+                    info_hash: info_hash.clone(),
+                    trackers: parse_magnet_trackers(&magnet),
+                },
+            );
         }
 
-        let max_index = files_payload.files.len().saturating_sub(1) as u32;
-        let mut sanitized = HashSet::new();
-
-        for index in raw_indices {
-            if index > max_index {
-                return Err(Error::from_reason("invalid_file_indices"));
-            }
-            sanitized.insert(index as usize);
-        }
-
-        if sanitized.is_empty() {
-            return Err(Error::from_reason("empty_selection"));
-        }
-
-        let mut only_files: Vec<usize> = sanitized.into_iter().collect();
-        only_files.sort_unstable();
-
-        let session = get_or_create_session().await?;
-        let mut opts = AddTorrentOptions::default();
-        opts.output_folder = Some(payload.save_path);
-        opts.overwrite = true;
-        opts.only_files = Some(only_files);
-
-        let add_future = session.add_torrent(AddTorrent::from_url(magnet), Some(opts));
-        let response = timeout(Duration::from_millis(timeout_ms as u64), add_future)
-            .await
-            .map_err(|_| Error::from_reason("metadata_timeout"))?
-            .map_err(map_anyhow_error)?;
-
-        let handle = match response {
-            AddTorrentResponse::Added(_, handle) | AddTorrentResponse::AlreadyManaged(_, handle) => {
-                handle
-            }
-            AddTorrentResponse::ListOnly(_) => {
-                return Err(Error::from_reason("metadata_incomplete"));
-            }
-        };
-
-        let mut manager = TORRENT_MANAGER.lock().await;
-        manager.downloads.insert(payload.game_id.clone(), handle);
-        manager.torrent_meta.insert(
+        if let Err(error) = complete_pending_start(
             payload.game_id.clone(),
-            TorrentMeta {
-                info_hash,
-                trackers,
-            },
-        );
-        manager.downloading_game_id = Some(payload.game_id.clone());
-        manager.seeding_game_ids.remove(&payload.game_id);
-        drop(manager);
+            info_hash,
+            magnet,
+            resolved_save_path,
+        )
+        .await
+        {
+            eprintln!(
+                "[hydra-native] pending torrent start failed for {}: {}",
+                payload.game_id, error
+            );
 
-        ensure_seed_polling(payload.game_id).await;
+            let mut manager = TORRENT_MANAGER.lock().await;
+            manager.pending_starts.remove(&payload.game_id);
+            manager.pending_tasks.remove(&payload.game_id);
 
-        Ok(())
-    })
+            if manager.downloading_game_id.as_deref() == Some(payload.game_id.as_str()) {
+                manager.downloading_game_id = None;
+            }
+
+            return Err(error);
+        }
+        return Ok(());
+    }
+
+    if let Some(handle) = existing_handle {
+        let session = get_or_create_session().await?;
+        let _ = session.delete(handle.id().into(), false).await;
+    }
+
+    {
+        let mut manager = TORRENT_MANAGER.lock().await;
+        manager.abort_pending_start(&payload.game_id);
+    }
+
+    let timeout_ms = TorrentManager::normalize_timeout_ms(payload.timeout_ms, 60_000);
+
+    let trackers = parse_magnet_trackers(&magnet);
+
+    let files_payload =
+        fetch_torrent_files_internal(magnet.clone(), info_hash.clone(), timeout_ms).await?;
+
+    let raw_indices = payload
+        .file_indices
+        .ok_or_else(|| Error::from_reason("invalid_file_indices"))?;
+
+    if raw_indices.is_empty() {
+        return Err(Error::from_reason("empty_selection"));
+    }
+
+    let max_index = files_payload.files.len().saturating_sub(1) as u32;
+    let mut sanitized = HashSet::new();
+
+    for index in raw_indices {
+        if index > max_index {
+            return Err(Error::from_reason("invalid_file_indices"));
+        }
+        sanitized.insert(index as usize);
+    }
+
+    if sanitized.is_empty() {
+        return Err(Error::from_reason("empty_selection"));
+    }
+
+    let mut only_files: Vec<usize> = sanitized.into_iter().collect();
+    only_files.sort_unstable();
+
+    let session = get_or_create_session().await?;
+    let mut opts = AddTorrentOptions::default();
+    let resolved_save_path = build_reserved_output_folder(
+        &payload.save_path,
+        Some(&files_payload.name),
+        files_payload.files.len(),
+        &info_hash,
+    );
+    opts.output_folder = Some(resolved_save_path);
+    opts.overwrite = true;
+    opts.only_files = Some(only_files);
+
+    let add_future = session.add_torrent(AddTorrent::from_url(magnet), Some(opts));
+    let response = timeout(Duration::from_millis(timeout_ms as u64), add_future)
+        .await
+        .map_err(|_| Error::from_reason("metadata_timeout"))?
+        .map_err(map_anyhow_error)?;
+
+    let handle = match response {
+        AddTorrentResponse::Added(_, handle) | AddTorrentResponse::AlreadyManaged(_, handle) => {
+            handle
+        }
+        AddTorrentResponse::ListOnly(_) => {
+            return Err(Error::from_reason("metadata_incomplete"));
+        }
+    };
+
+    let mut manager = TORRENT_MANAGER.lock().await;
+    manager.downloads.insert(payload.game_id.clone(), handle);
+    manager.torrent_meta.insert(
+        payload.game_id.clone(),
+        TorrentMeta {
+            info_hash,
+            trackers,
+        },
+    );
+    manager.downloading_game_id = Some(payload.game_id.clone());
+    manager.seeding_game_ids.remove(&payload.game_id);
+    drop(manager);
+
+    ensure_seed_polling(payload.game_id).await;
+
+    Ok(())
 }
 
 #[napi]
@@ -1194,8 +1275,16 @@ pub fn torrent_resume_seeding(payload: ResumeSeedingPayload) -> napi::Result<()>
             return Ok(());
         }
 
+        let resolved_save_path = resolve_torrent_output_folder(
+            &payload.save_path,
+            &magnet,
+            &info_hash,
+            15_000,
+        )
+        .await;
+
         let mut opts = AddTorrentOptions::default();
-        opts.output_folder = Some(payload.save_path);
+        opts.output_folder = Some(resolved_save_path);
         opts.overwrite = true;
 
         let add_future = session.add_torrent(AddTorrent::from_url(magnet), Some(opts));

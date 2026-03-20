@@ -31,7 +31,7 @@ const getTorrentFiles = async (
   }
 
   try {
-    const response = NativeAddon.getTorrentFiles(magnet, 45_000);
+    const response = await NativeAddon.getTorrentFiles(magnet, 45_000);
 
     return {
       ok: true,

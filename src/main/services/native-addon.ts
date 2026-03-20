@@ -23,14 +23,17 @@ type HydraNativeModule = {
   listProcesses: () => ProcessPayload[];
   torrentGetStatus: () => LibtorrentPayload | null;
   torrentGetSeedStatus: () => Array<LibtorrentPayload & { gameId: string }>;
-  torrentGetFiles: (magnet: string, timeoutMs?: number) => TorrentFilesResponse;
+  torrentGetFiles: (
+    magnet: string,
+    timeoutMs?: number
+  ) => Promise<TorrentFilesResponse>;
   torrentStart: (payload: {
     gameId: string;
     url: string;
     savePath: string;
     fileIndices?: number[];
     timeoutMs?: number;
-  }) => void;
+  }) => Promise<void>;
   torrentPause: (gameId: string) => void;
   torrentCancel: (gameId: string) => void;
   torrentResumeSeeding: (payload: {
@@ -133,21 +136,21 @@ export class NativeAddon {
     return this.load().torrentGetSeedStatus();
   }
 
-  public static getTorrentFiles(
+  public static async getTorrentFiles(
     magnet: string,
     timeoutMs?: number
-  ): TorrentFilesResponse {
+  ): Promise<TorrentFilesResponse> {
     return this.load().torrentGetFiles(magnet, timeoutMs);
   }
 
-  public static startTorrentDownload(payload: {
+  public static async startTorrentDownload(payload: {
     gameId: string;
     url: string;
     savePath: string;
     fileIndices?: number[];
     timeoutMs?: number;
   }) {
-    this.load().torrentStart(payload);
+    return this.load().torrentStart(payload);
   }
 
   public static pauseTorrentDownload(gameId: string) {
