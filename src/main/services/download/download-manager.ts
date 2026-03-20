@@ -54,6 +54,7 @@ export class DownloadManager {
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
+  private static readonly TORRENT_START_HANDSHAKE_TIMEOUT_MS = 1_500;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -666,9 +667,15 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
-    const seedStatus = NativeAddon.getTorrentSeedStatus();
+    const seedStatus = NativeAddon.getTorrentSeedStatus().map((status) => ({
+      ...status,
+      status: "seeding" as const,
+    }));
 
-    if (!seedStatus.length) return;
+    if (!seedStatus.length) {
+      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      return;
+    }
 
     logger.log(seedStatus);
 
@@ -1424,16 +1431,57 @@ export class DownloadManager {
         Array.isArray(download.fileIndices) &&
         download.fileIndices.length > 0;
 
-      NativeAddon.startTorrentDownload({
+      const previousDownloadingGameId = this.downloadingGameId;
+      const previousIsPreparingDownload = this.isPreparingDownload;
+      const previousUsingJsDownloader = this.usingJsDownloader;
+      const previousAllDebridBatch = this.allDebridBatch;
+
+      this.downloadingGameId = downloadId;
+      this.isPreparingDownload = true;
+      this.usingJsDownloader = false;
+      this.allDebridBatch = null;
+
+      const startPromise = NativeAddon.startTorrentDownload({
         gameId: downloadId,
         url: download.uri,
         savePath: download.downloadPath,
         fileIndices: download.fileIndices,
         timeoutMs: isSelectiveTorrentStart ? 60_000 : 10_000,
       });
-      this.downloadingGameId = downloadId;
-      this.usingJsDownloader = false;
-      this.allDebridBatch = null;
+
+      void startPromise
+        .then(() => {
+          const downloadWasCancelledOrReplaced =
+            this.downloadingGameId !== downloadId;
+
+          if (!downloadWasCancelledOrReplaced) {
+            this.isPreparingDownload = false;
+            return;
+          }
+
+          try {
+            NativeAddon.cancelTorrentDownload(downloadId);
+          } catch (err) {
+            logger.error("Failed to cancel stale torrent download", err);
+          }
+        })
+        .catch((error) => {
+          if (this.downloadingGameId === downloadId) {
+            this.isPreparingDownload = previousIsPreparingDownload;
+            this.downloadingGameId = previousDownloadingGameId;
+            this.usingJsDownloader = previousUsingJsDownloader;
+            this.allDebridBatch = previousAllDebridBatch;
+          }
+
+          logger.error("[DownloadManager] Native torrent start error:", error);
+        });
+
+      await Promise.race([
+        startPromise,
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, this.TORRENT_START_HANDSHAKE_TIMEOUT_MS);
+        }),
+      ]);
     }
   }
 }
