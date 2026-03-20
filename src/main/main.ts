@@ -10,7 +10,6 @@ import {
   RealDebridClient,
   PremiumizeClient,
   AllDebridClient,
-  Aria2,
   DownloadManager,
   HydraApi,
   uploadGamesBatch,
@@ -35,8 +34,6 @@ export const loadState = async () => {
   );
 
   await import("./events");
-
-  Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
