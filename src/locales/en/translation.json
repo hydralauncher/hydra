@@ -6,7 +6,7 @@
   "home": {
     "surprise_me": "Surprise me",
     "no_results": "No results found",
-    "start_typing": "Starting typing to search...",
+    "start_typing": "Start typing to search...",
     "hot": "Hot now",
     "weekly": "📅 Top games of the week",
     "achievements": "🏆 Games to beat"
@@ -186,7 +186,7 @@
     "cancel": "Cancel",
     "remove": "Remove",
     "space_left_on_disk": "{{space}} left on disk",
-    "eta": "Conclusion {{eta}}",
+    "eta": "Completion {{eta}}",
     "calculating_eta": "Calculating remaining time…",
     "downloading_metadata": "Downloading metadata…",
     "filter": "Filter repacks",
@@ -547,7 +547,7 @@
   "downloads": {
     "resume": "Resume",
     "pause": "Pause",
-    "eta": "Conclusion {{eta}}",
+    "eta": "Completion {{eta}}",
     "paused": "Paused",
     "verifying": "Verifying…",
     "completed": "Completed",
@@ -690,7 +690,7 @@
     "become_subscriber": "Be Hydra Cloud",
     "subscription_renew_cancelled": "Automatic renewal is disabled",
     "subscription_renews_on": "Your subscription renews on {{date}}",
-    "bill_sent_until": "Your next bill will be sent until this day",
+    "bill_sent_until": "Your next bill will be sent on this day",
     "no_themes": "Seems like you don't have any themes yet, but no worries, click here to create your first masterpiece.",
     "editor_tab_code": "Code",
     "editor_tab_info": "Info",
