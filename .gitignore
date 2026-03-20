@@ -10,6 +10,8 @@ out
 ludusavi/**
 !ludusavi/config.yaml
 hydra-python-rpc/
+/hydra-native/
+native/hydra-native/target/
 .python-version
 
 # Sentry Config File
