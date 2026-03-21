@@ -236,6 +236,7 @@
     "next_step": "Next step",
     "add_to_queue": "Add to queue",
     "loading": "Loading...",
+    "copy_now": "Copy Download Link",
     "no_shop_details": "Could not retrieve shop details.",
     "download_options": "Download options",
     "download_path": "Download path",

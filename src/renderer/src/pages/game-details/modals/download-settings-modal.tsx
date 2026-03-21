@@ -22,6 +22,7 @@ import {
   CheckCircleFillIcon,
   CheckIcon,
   PlusIcon,
+  CopyIcon,
   ChevronDownIcon,
   FileDirectoryIcon,
   FileIcon,
@@ -920,6 +921,12 @@ export function DownloadSettingsModal({
     }
   };
 
+  const handleCopyClick = async () => {
+    if (repack && repack.uris[0]) {
+      navigator.clipboard.writeText(repack.uris[0]);
+    }
+  };
+
   const handlePrimaryButtonClick = async () => {
     await handleStartClick();
   };
@@ -1341,6 +1348,11 @@ export function DownloadSettingsModal({
           }
         >
           {getButtonContent()}
+        </Button>
+
+        <Button onClick={handleCopyClick}>
+          <CopyIcon />
+          {t("copy_now")}
         </Button>
       </div>
 
