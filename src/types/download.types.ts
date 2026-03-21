@@ -15,6 +15,7 @@ export interface DownloadProgress {
   timeRemaining: number;
   numPeers: number;
   numSeeds: number;
+  estimatedSeeds: number;
   isDownloadingMetadata: boolean;
   isCheckingFiles: boolean;
   progress: number;

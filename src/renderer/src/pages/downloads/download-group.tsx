@@ -450,13 +450,17 @@ function HeroDownloadView({
             {game.download?.downloader === Downloader.Torrent &&
               isGameDownloading &&
               lastPacket &&
-              (lastPacket.numSeeds > 0 || lastPacket.numPeers > 0) && (
+              (lastPacket.estimatedSeeds > 0 ||
+                lastPacket.numSeeds > 0 ||
+                lastPacket.numPeers > 0) && (
                 <div className="download-group__stat-item">
                   <div className="download-group__stat-content">
                     <span className="download-group__stat-label">
-                      Seeds:{" "}
+                      Seeds (~):{" "}
                       <span className="download-group__stat-value">
-                        {lastPacket.numSeeds}
+                        {lastPacket.estimatedSeeds > 0
+                          ? lastPacket.estimatedSeeds
+                          : lastPacket.numSeeds}
                       </span>
                       , Peers:{" "}
                       <span className="download-group__stat-value">
