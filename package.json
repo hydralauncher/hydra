@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "3.9.2",
+  "version": "3.9.4",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -62,7 +62,7 @@
     "electron-updater": "^6.6.2",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
-    "file-type": "^20.5.0",
+    "file-type": "^21.3.1",
     "framer-motion": "^12.15.0",
     "hls.js": "^1.5.12",
     "i18next": "^23.11.2",
