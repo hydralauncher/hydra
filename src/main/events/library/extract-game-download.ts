@@ -1,9 +1,9 @@
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
 import path from "node:path";
-import { GameFilesManager } from "@main/services";
+import { DownloadManager, GameFilesManager, logger } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+import { Downloader, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 
 const extractGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -43,33 +43,62 @@ const extractGameDownload = async (
     return false;
   }
 
-  if (
-    FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
-      targetFolderName.toLowerCase().endsWith(ext)
-    )
-  ) {
-    gameFilesManager.extractDownloadedFile().catch((error) => {
-      gameFilesManager.failExtraction(error).catch(() => {
-        // Fail state persistence is already logged in GameFilesManager
+  const runExtraction = () => {
+    if (
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+        targetFolderName.toLowerCase().endsWith(ext)
+      )
+    ) {
+      return gameFilesManager.extractDownloadedFile().catch((error) => {
+        return gameFilesManager.failExtraction(error).catch(() => {
+          // Fail state persistence is already logged in GameFilesManager
+        });
       });
-    });
-  } else {
-    gameFilesManager
+    }
+
+    return gameFilesManager
       .extractFilesInDirectory(
         path.join(download.downloadPath, targetFolderName)
       )
       .then((success) => {
         if (success) {
-          gameFilesManager.setExtractionComplete(false).catch(() => {
+          return gameFilesManager.setExtractionComplete(false).catch(() => {
             // Extraction completion failures are already logged downstream
           });
         }
+
+        return undefined;
       })
       .catch((error) => {
-        gameFilesManager.failExtraction(error).catch(() => {
+        return gameFilesManager.failExtraction(error).catch(() => {
           // Fail state persistence is already logged in GameFilesManager
         });
       });
+  };
+
+  const shouldPauseSeedingForExtraction =
+    download.downloader === Downloader.Torrent &&
+    download.shouldSeed &&
+    download.status === "seeding";
+
+  if (shouldPauseSeedingForExtraction) {
+    await DownloadManager.pauseSeeding(gameKey).catch((error) => {
+      logger.error(
+        "[extractGameDownload] Failed to pause seeding before extraction",
+        error
+      );
+    });
+
+    void runExtraction().finally(() => {
+      DownloadManager.resumeSeeding(download).catch((error) => {
+        logger.error(
+          "[extractGameDownload] Failed to resume seeding after extraction",
+          error
+        );
+      });
+    });
+  } else {
+    void runExtraction();
   }
 
   return true;
