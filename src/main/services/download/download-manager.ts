@@ -501,7 +501,7 @@ export class DownloadManager {
       { valueEncoding: "json" }
     );
 
-    await this.updateDownloadStatus(
+    const shouldSeed = await this.updateDownloadStatus(
       download,
       gameId,
       userPreferences?.seedAfterDownloadComplete
@@ -526,7 +526,23 @@ export class DownloadManager {
     }
 
     if (download.automaticallyExtract) {
-      this.handleExtraction(download, game);
+      const shouldPauseSeedingForExtraction =
+        shouldSeed && download.downloader === Downloader.Torrent;
+
+      if (shouldPauseSeedingForExtraction) {
+        await this.cancelDownload(gameId);
+
+        void this.handleExtraction(download, game).finally(() => {
+          this.resumeSeeding(download).catch((error) => {
+            logger.error(
+              "[DownloadManager] Failed to resume seeding after extraction",
+              error
+            );
+          });
+        });
+      } else {
+        void this.handleExtraction(download, game);
+      }
     } else {
       const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
       gameFilesManager.searchAndBindExecutable();
@@ -539,7 +555,7 @@ export class DownloadManager {
     download: Download,
     gameId: string,
     shouldSeed?: boolean
-  ) {
+  ): Promise<boolean> {
     const shouldExtract = download.automaticallyExtract;
     const isSelectiveTorrent =
       download.downloader === Downloader.Torrent &&
@@ -558,6 +574,8 @@ export class DownloadManager {
         queued: false,
         extracting: shouldExtract,
       });
+
+      return true;
     } else {
       await downloadsSublevel.put(gameId, {
         ...download,
@@ -566,11 +584,14 @@ export class DownloadManager {
         queued: false,
         extracting: shouldExtract,
       });
-      this.cancelDownload(gameId);
+
+      await this.cancelDownload(gameId);
+
+      return false;
     }
   }
 
-  private static handleExtraction(download: Download, game: any) {
+  private static async handleExtraction(download: Download, game: any) {
     const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
     const extractionPath = download.folderName
       ? path.join(download.downloadPath, download.folderName)
@@ -596,12 +617,12 @@ export class DownloadManager {
         download.folderName?.toLowerCase().endsWith(ext)
       )
     ) {
-      gameFilesManager.extractDownloadedFile().catch((error) => {
+      await gameFilesManager.extractDownloadedFile().catch((error) => {
         logger.error(
           "[DownloadManager] Failed to extract downloaded file",
           error
         );
-        gameFilesManager.failExtraction(error).catch((failError) => {
+        return gameFilesManager.failExtraction(error).catch((failError) => {
           logger.error(
             "[DownloadManager] Failed to persist extraction failure state",
             failError
@@ -609,7 +630,7 @@ export class DownloadManager {
         });
       });
     } else if (extractionStats.isDirectory()) {
-      gameFilesManager
+      await gameFilesManager
         .extractFilesInDirectory(extractionPath)
         .then((success) => {
           if (success) {
