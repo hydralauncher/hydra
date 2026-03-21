@@ -263,6 +263,7 @@ export class DownloadManager {
         return {
           numPeers: 0,
           numSeeds: 0,
+          estimatedSeeds: 0,
           downloadSpeed: 0,
           timeRemaining: -1,
           isDownloadingMetadata: true, // Use this to indicate "preparing"
@@ -361,6 +362,7 @@ export class DownloadManager {
       return {
         numPeers: 0,
         numSeeds: 0,
+        estimatedSeeds: 0,
         downloadSpeed,
         timeRemaining: calculateETA(
           effectiveFileSize ?? 0,
@@ -391,6 +393,7 @@ export class DownloadManager {
         progress,
         numPeers,
         numSeeds,
+        estimatedSeeds,
         downloadSpeed,
         bytesDownloaded,
         fileSize,
@@ -425,6 +428,7 @@ export class DownloadManager {
       return {
         numPeers,
         numSeeds,
+        estimatedSeeds,
         downloadSpeed,
         timeRemaining: calculateETA(
           fileSize > 0

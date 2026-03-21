@@ -37,7 +37,8 @@ static TOKIO_RT: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().unwrap_or_else(|err| panic!("failed to initialize tokio runtime: {err}"))
 });
 
-static TORRENT_MANAGER: Lazy<Mutex<TorrentManager>> = Lazy::new(|| Mutex::new(TorrentManager::new()));
+static TORRENT_MANAGER: Lazy<Mutex<TorrentManager>> =
+    Lazy::new(|| Mutex::new(TorrentManager::new()));
 static TRACKER_HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(7))
@@ -167,6 +168,7 @@ pub struct TorrentStatusPayload {
     pub progress: f64,
     pub num_peers: u32,
     pub num_seeds: u32,
+    pub estimated_seeds: u32,
     pub download_speed: i64,
     pub upload_speed: i64,
     pub bytes_downloaded: i64,
@@ -182,6 +184,7 @@ pub struct TorrentSeedStatusPayload {
     pub progress: f64,
     pub num_peers: u32,
     pub num_seeds: u32,
+    pub estimated_seeds: u32,
     pub download_speed: i64,
     pub upload_speed: i64,
     pub bytes_downloaded: i64,
@@ -268,7 +271,8 @@ async fn resolve_torrent_output_folder(
     info_hash: &str,
     timeout_ms: u32,
 ) -> String {
-    match fetch_torrent_files_internal(magnet.to_string(), info_hash.to_string(), timeout_ms).await {
+    match fetch_torrent_files_internal(magnet.to_string(), info_hash.to_string(), timeout_ms).await
+    {
         Ok(files_payload) => build_reserved_output_folder(
             root_save_path,
             Some(&files_payload.name),
@@ -470,7 +474,9 @@ fn decode_info_hash_bytes(hash: &str) -> Option<[u8; 20]> {
 
 fn parse_complete_from_bencode(bytes: &[u8]) -> Option<u32> {
     let marker = b"8:completei";
-    let pos = bytes.windows(marker.len()).position(|window| window == marker)?;
+    let pos = bytes
+        .windows(marker.len())
+        .position(|window| window == marker)?;
     let mut cursor = pos + marker.len();
     let mut value = 0u32;
     let mut parsed_digit = false;
@@ -485,7 +491,9 @@ fn parse_complete_from_bencode(bytes: &[u8]) -> Option<u32> {
         }
 
         parsed_digit = true;
-        value = value.saturating_mul(10).saturating_add((byte - b'0') as u32);
+        value = value
+            .saturating_mul(10)
+            .saturating_add((byte - b'0') as u32);
         cursor += 1;
     }
 
@@ -605,12 +613,8 @@ async fn update_seed_estimate(game_id: &str, meta: &TorrentMeta) {
         return;
     };
 
-    let mut best = None;
-    for tracker in meta
-        .trackers
-        .iter()
-        .take(MAX_TRACKERS_FOR_SEED_ESTIMATE)
-    {
+    let mut estimates: Vec<u32> = Vec::new();
+    for tracker in meta.trackers.iter().take(MAX_TRACKERS_FOR_SEED_ESTIMATE) {
         let estimate = if tracker.starts_with("udp://") {
             fetch_tracker_seeders_udp(tracker, &info_hash).await
         } else {
@@ -618,11 +622,19 @@ async fn update_seed_estimate(game_id: &str, meta: &TorrentMeta) {
         };
 
         if let Some(value) = estimate {
-            best = Some(best.map_or(value, |current: u32| current.max(value)));
+            estimates.push(value);
         }
     }
 
-    if let Some(value) = best {
+    if !estimates.is_empty() {
+        estimates.sort_unstable();
+        let middle = estimates.len() / 2;
+        let value = if estimates.len() % 2 == 0 {
+            (estimates[middle - 1].saturating_add(estimates[middle])) / 2
+        } else {
+            estimates[middle]
+        };
+
         let mut manager = TORRENT_MANAGER.lock().await;
         manager.seed_estimates.insert(
             game_id.to_string(),
@@ -735,8 +747,9 @@ fn compute_status(
                 3
             };
 
-            let (num_peers, download_speed, upload_speed, connected_seeders) =
-                if let Some(live) = &stats.live {
+            let (num_peers, download_speed, upload_speed, connected_seeders) = if let Some(live) =
+                &stats.live
+            {
                 (
                     (live.snapshot.peer_stats.live + live.snapshot.peer_stats.connecting) as u32,
                     (live.download_speed.mbps * 1024.0 * 1024.0).max(0.0) as i64,
@@ -782,9 +795,8 @@ fn build_status_payload(
     let (status, num_peers, _num_seeds, download_speed, upload_speed, connected_seeders) =
         compute_status(&stats, metadata_available, seeding_hint);
 
-    let num_seeds = tracker_seed_estimate
-        .unwrap_or(0)
-        .max(connected_seeders);
+    let num_seeds = connected_seeders;
+    let estimated_seeds = tracker_seed_estimate.unwrap_or(0);
 
     let file_size = stats.total_bytes;
     let bytes_downloaded = stats.progress_bytes;
@@ -800,6 +812,7 @@ fn build_status_payload(
         progress,
         num_peers,
         num_seeds,
+        estimated_seeds,
         download_speed,
         upload_speed,
         bytes_downloaded: bytes_downloaded as i64,
@@ -857,9 +870,7 @@ async fn fetch_torrent_files_internal(
         } else {
             let mut components = file.components;
             components.push(file.name);
-            PathBuf::from_iter(components)
-                .to_string_lossy()
-                .to_string()
+            PathBuf::from_iter(components).to_string_lossy().to_string()
         };
 
         total_size = total_size.saturating_add(file.length);
@@ -953,6 +964,7 @@ pub fn torrent_get_status() -> napi::Result<Option<TorrentStatusPayload>> {
                 progress: 0.0,
                 num_peers: 0,
                 num_seeds: 0,
+                estimated_seeds: 0,
                 download_speed: 0,
                 upload_speed: 0,
                 bytes_downloaded: 0,
@@ -980,7 +992,8 @@ pub fn torrent_get_seed_status() -> napi::Result<Vec<TorrentSeedStatusPayload>> 
                 continue;
             };
 
-            let status = build_status_payload(handle, true, current_seed_estimate(&manager, game_id));
+            let status =
+                build_status_payload(handle, true, current_seed_estimate(&manager, game_id));
             if status.status != 5 {
                 continue;
             }
@@ -990,6 +1003,7 @@ pub fn torrent_get_seed_status() -> napi::Result<Vec<TorrentSeedStatusPayload>> 
                 progress: status.progress,
                 num_peers: status.num_peers,
                 num_seeds: status.num_seeds,
+                estimated_seeds: status.estimated_seeds,
                 download_speed: status.download_speed,
                 upload_speed: status.upload_speed,
                 bytes_downloaded: status.bytes_downloaded,
@@ -1275,13 +1289,8 @@ pub fn torrent_resume_seeding(payload: ResumeSeedingPayload) -> napi::Result<()>
             return Ok(());
         }
 
-        let resolved_save_path = resolve_torrent_output_folder(
-            &payload.save_path,
-            &magnet,
-            &info_hash,
-            15_000,
-        )
-        .await;
+        let resolved_save_path =
+            resolve_torrent_output_folder(&payload.save_path, &magnet, &info_hash, 15_000).await;
 
         let mut opts = AddTorrentOptions::default();
         opts.output_folder = Some(resolved_save_path);
@@ -1294,9 +1303,8 @@ pub fn torrent_resume_seeding(payload: ResumeSeedingPayload) -> napi::Result<()>
             .map_err(map_anyhow_error)?;
 
         let handle = match response {
-            AddTorrentResponse::Added(_, handle) | AddTorrentResponse::AlreadyManaged(_, handle) => {
-                handle
-            }
+            AddTorrentResponse::Added(_, handle)
+            | AddTorrentResponse::AlreadyManaged(_, handle) => handle,
             AddTorrentResponse::ListOnly(_) => {
                 return Err(Error::from_reason("metadata_incomplete"));
             }
