@@ -651,7 +651,7 @@
     "button_delete_all_sources": "Remove all",
     "added_download_source": "Added download source",
     "download_sources_synced": "All download sources are synced",
-    "insert_valid_json_url": "Insert a valid JSON url",
+    "insert_valid_json_url": "Insert a valid JSON URL",
     "found_download_option_zero": "No download option found",
     "found_download_option_one": "Found {{countFormatted}} download option",
     "found_download_option_other": "Found {{countFormatted}} download options",
@@ -673,7 +673,7 @@
     "launch_hydra_in_library_page": "Launch Hydra in Library page",
     "disable_nsfw_alert": "Disable NSFW alert",
     "seed_after_download_complete": "Seed after download complete",
-    "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
+    "show_hidden_achievement_description": "Show hidden achievement descriptions before unlocking them",
     "account": "Account",
     "hydra_cloud": "Hydra Cloud",
     "no_users_blocked": "You have no blocked users",
@@ -1003,7 +1003,7 @@
     "achievement_earn_points": "Earn {{points}} points with this achievement",
     "earned_points": "Earned points:",
     "available_points": "Available points:",
-    "how_to_earn_achievements_points": "How to earn achievements points?"
+    "how_to_earn_achievements_points": "How to earn achievement points?"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
