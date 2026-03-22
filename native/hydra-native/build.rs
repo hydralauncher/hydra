@@ -26,10 +26,6 @@ fn main() {
             build.include(include_path);
         }
     } else if target_os == "windows" {
-        let torrent_abi_version =
-            std::env::var("TORRENT_ABI_VERSION").unwrap_or_else(|_| "1".to_string());
-        build.define("TORRENT_ABI_VERSION", Some(torrent_abi_version.as_str()));
-
         let library = vcpkg::Config::new()
             .emit_includes(true)
             .find_package("libtorrent")
@@ -43,14 +39,17 @@ fn main() {
             build.include(include_path);
         }
 
-        vcpkg::Config::new()
-            .find_package("boost-throw-exception")
-            .unwrap_or_else(|error| {
-                panic!("vcpkg boost-throw-exception package is required for hydra-native: {error}")
-            });
+        for link_path in &library.link_paths {
+            emit_matching_link_lib(link_path, "boost_throw_exception");
+            emit_matching_link_lib(link_path, "boost_exception");
+        }
 
+        println!("cargo:rustc-link-lib=bcrypt");
+        println!("cargo:rustc-link-lib=mswsock");
+        println!("cargo:rustc-link-lib=ws2_32");
+        println!("cargo:rustc-link-lib=iphlpapi");
+        println!("cargo:rustc-link-lib=dbghelp");
         println!("cargo:rustc-link-lib=crypt32");
-        println!("cargo:rustc-link-lib=user32");
     }
 
     build.compile("hydra_libtorrent_bridge");
@@ -64,5 +63,29 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/torrent_helpers.cc");
     println!("cargo:rerun-if-changed=cpp/libtorrent_bridge.h");
     println!("cargo:rerun-if-changed=cpp/libtorrent_bridge.cc");
-    println!("cargo:rerun-if-env-changed=TORRENT_ABI_VERSION");
+}
+
+fn emit_matching_link_lib(link_path: &std::path::Path, prefix: &str) {
+    let entries = match std::fs::read_dir(link_path) {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let extension = path.extension().and_then(|value| value.to_str());
+        if extension != Some("lib") {
+            continue;
+        }
+
+        let stem = match path.file_stem().and_then(|value| value.to_str()) {
+            Some(stem) => stem,
+            None => continue,
+        };
+
+        if stem.starts_with(prefix) {
+            println!("cargo:rustc-link-lib={stem}");
+            return;
+        }
+    }
 }
