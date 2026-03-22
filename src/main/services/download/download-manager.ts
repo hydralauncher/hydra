@@ -704,28 +704,32 @@ export class DownloadManager {
 
     logger.log(seedStatus);
 
-    seedStatus.forEach(async (status) => {
+    for (const status of seedStatus) {
       const download = await downloadsSublevel.get(status.gameId);
 
-      if (!download) return;
+      if (!download) continue;
 
       const totalSize = await getDirSize(
         path.join(download.downloadPath, status.folderName)
       );
 
       if (totalSize < status.fileSize) {
-        await this.cancelDownload(status.gameId);
+        await this.pauseSeeding(status.gameId);
 
         await downloadsSublevel.put(status.gameId, {
           ...download,
-          status: "paused",
+          status: "error",
           shouldSeed: false,
-          progress: totalSize / status.fileSize,
+          queued: false,
+          progress:
+            status.fileSize > 0
+              ? Math.min(totalSize / status.fileSize, 1)
+              : download.progress,
         });
 
         WindowManager.mainWindow?.webContents.send("on-hard-delete");
       }
-    });
+    }
 
     WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
   }

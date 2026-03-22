@@ -3,6 +3,8 @@ import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { Download, UserPreferences } from "@types";
+import path from "node:path";
+import fs from "node:fs";
 import {
   SystemPath,
   CommonRedistManager,
@@ -22,6 +24,29 @@ import {
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
+import { getDirSize } from "./services/download/helpers";
+
+const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
+  if (!download.folderName) return false;
+
+  const downloadTargetPath = path.join(
+    download.downloadPath,
+    download.folderName
+  );
+
+  if (!fs.existsSync(downloadTargetPath)) {
+    return true;
+  }
+
+  const expectedSize = download.selectedFilesSize ?? download.fileSize ?? 0;
+
+  if (expectedSize <= 0) {
+    return false;
+  }
+
+  const currentSize = await getDirSize(downloadTargetPath);
+  return currentSize < expectedSize;
+};
 
 export const loadState = async () => {
   await Lock.acquireLock();
@@ -94,7 +119,11 @@ export const loadState = async () => {
 
     // Find interrupted active download (download that was running when app closed)
     // Mark it as paused but remember it for auto-resume
-    if (download.status === "active" && !interruptedDownload) {
+    if (
+      download.status === "active" &&
+      !interruptedDownload &&
+      download.queued
+    ) {
       interruptedDownload = download;
       await downloadsSublevel.put(downloadKey, {
         ...download,
@@ -115,17 +144,96 @@ export const loadState = async () => {
     .all()
     .then((games) => orderBy(games, "timestamp", "desc"));
 
+  const normalizedDownloads: Download[] = [];
+
+  for (const download of updatedDownloads) {
+    const downloadKey = levelKeys.game(download.shop, download.objectId);
+
+    const shouldResetQueueFlag =
+      download.queued &&
+      ["removed", "complete", "seeding"].includes(download.status ?? "");
+
+    if (
+      shouldResetQueueFlag ||
+      (download.status === "removed" && download.shouldSeed)
+    ) {
+      const normalizedDownload = {
+        ...download,
+        queued: false,
+        shouldSeed: download.status === "removed" ? false : download.shouldSeed,
+      };
+
+      logger.warn(
+        `[Startup] Normalized invalid download flags for ${downloadKey} ` +
+          `(status=${download.status}, queued=${download.queued}, shouldSeed=${download.shouldSeed})`
+      );
+
+      await downloadsSublevel.put(downloadKey, normalizedDownload);
+      normalizedDownloads.push(normalizedDownload);
+      continue;
+    }
+
+    normalizedDownloads.push(download);
+  }
+
   // Prioritize interrupted download, then queued downloads
   const downloadToResume =
-    interruptedDownload ?? updatedDownloads.find((game) => game.queued);
+    interruptedDownload ??
+    normalizedDownloads.find(
+      (game) =>
+        game.queued && (game.status === "paused" || game.status === "error")
+    );
 
-  const downloadsToSeed = updatedDownloads.filter(
-    (game) =>
-      game.shouldSeed &&
-      game.downloader === Downloader.Torrent &&
-      game.progress === 1 &&
-      game.uri !== null
-  );
+  if (downloadToResume) {
+    logger.log(
+      `[Startup] Resuming download ${levelKeys.game(downloadToResume.shop, downloadToResume.objectId)} ` +
+        `(status=${downloadToResume.status}, queued=${downloadToResume.queued})`
+    );
+  }
+
+  const downloadsToSeed: Download[] = [];
+
+  for (const game of normalizedDownloads) {
+    if (
+      !game.shouldSeed ||
+      game.downloader !== Downloader.Torrent ||
+      game.progress !== 1 ||
+      game.uri === null ||
+      game.status !== "seeding"
+    ) {
+      continue;
+    }
+
+    if (!(await hasMissingSeedFiles(game))) {
+      downloadsToSeed.push(game);
+      continue;
+    }
+
+    const gameKey = levelKeys.game(game.shop, game.objectId);
+    const expectedSize = game.selectedFilesSize ?? game.fileSize ?? 0;
+    let progress = game.progress;
+
+    if (game.folderName) {
+      const downloadTargetPath = path.join(game.downloadPath, game.folderName);
+      const currentSize = await getDirSize(downloadTargetPath);
+      progress =
+        expectedSize > 0
+          ? Math.min(currentSize / expectedSize, 1)
+          : game.progress;
+    }
+
+    await downloadsSublevel.put(gameKey, {
+      ...game,
+      status: "error",
+      shouldSeed: false,
+      queued: false,
+      progress,
+    });
+
+    logger.warn(
+      `[Startup] Seed files missing for ${gameKey}; moved download state to error`
+    );
+  }
 
   // For torrents or if JS downloader is disabled, use Python RPC
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;

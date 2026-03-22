@@ -45,6 +45,7 @@ type HydraNativeModule = {
   torrentSetDownloadLimit: (
     maxDownloadSpeedBytesPerSecond?: number | null
   ) => void;
+  torrentBackend?: () => string;
 };
 
 export class NativeAddon {
@@ -66,13 +67,43 @@ export class NativeAddon {
     if (this.nativeModule) return this.nativeModule;
 
     const addonPath = this.resolveAddonPath();
+    const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
       throw new Error(`Hydra native addon not found at ${addonPath}`);
     }
 
+    if (process.platform === "linux") {
+      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
+        ? `${addonDir}:${process.env.LD_LIBRARY_PATH}`
+        : addonDir;
+    }
+
     const require = createRequire(import.meta.url);
     const nativeModule = require(addonPath) as HydraNativeModule;
+
+    try {
+      const backend = nativeModule.torrentBackend?.();
+      if (backend === "libtorrent") {
+        logger.log(`[NativeAddon] Torrent backend: ${backend}`);
+      } else if (backend) {
+        throw new Error(
+          `Unsupported native torrent backend '${backend}'. Expected 'libtorrent'.`
+        );
+      } else if (!app.isPackaged) {
+        throw new Error(
+          "Native addon does not expose torrent backend identifier. This usually means a stale hydra-native.node build. Rebuild with `npm run build:native` after installing libtorrent dev packages."
+        );
+      } else {
+        logger.warn(
+          "[NativeAddon] Torrent backend identifier unavailable (stale native addon binary?)"
+        );
+      }
+    } catch (error) {
+      logger.error("[NativeAddon] Failed backend validation", error);
+      throw error;
+    }
+
     this.nativeModule = nativeModule;
 
     return nativeModule;
