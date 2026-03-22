@@ -27,6 +27,10 @@ const startGameDownload = async (
 
   const gameKey = levelKeys.game(shop, objectId);
 
+  logger.log(
+    `[Downloads] Start requested for ${gameKey} (downloader=${downloader}, queued=true)`
+  );
+
   await DownloadManager.pauseDownload();
 
   for await (const [key, value] of downloadsSublevel.iterator()) {

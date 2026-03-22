@@ -31,6 +31,24 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install libtorrent dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config
+          sudo apt-get install -y libtorrent-rasterbar2.0-dev || sudo apt-get install -y libtorrent-rasterbar-dev
+
+      - name: Install libtorrent dependencies (Windows)
+        if: matrix.os == 'windows-2022'
+        shell: pwsh
+        run: |
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
+          & "$vcpkgRoot/vcpkg.exe" install "libtorrent:x64-windows-static-md"
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKGRS_TRIPLET=x64-windows-static-md"
+
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
