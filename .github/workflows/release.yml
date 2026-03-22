@@ -17,6 +17,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      VCPKG_COMMIT: b472291f295551b7127359ea38fdd2ca092f6f1b
+      VCPKG_BINARY_CACHE: 'C:\Users\runneradmin\AppData\Local\vcpkg\archives'
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -25,9 +29,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
+          cache: "yarn"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache vcpkg binary archives (Windows)
+        id: cache-vcpkg
+        if: matrix.os == 'windows-2022'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: ${{ runner.os }}-vcpkg-${{ env.VCPKG_COMMIT }}-x64-windows-static-md
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-${{ env.VCPKG_COMMIT }}-
 
       - name: Install libtorrent dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -42,10 +57,22 @@ jobs:
         run: |
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          git -C $vcpkgRoot fetch --depth 1 origin $env:VCPKG_COMMIT
+          git -C $vcpkgRoot checkout $env:VCPKG_COMMIT
           & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
-          & "$vcpkgRoot/vcpkg.exe" install "libtorrent:x64-windows-static-md" "boost-throw-exception:x64-windows-static-md"
+          New-Item -ItemType Directory -Path $env:VCPKG_BINARY_CACHE -Force | Out-Null
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_DEFAULT_BINARY_CACHE=$env:VCPKG_BINARY_CACHE"
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_BINARY_SOURCES=clear;files,$env:VCPKG_BINARY_CACHE,readwrite"
+          & "$vcpkgRoot/vcpkg.exe" install --clean-after-build "libtorrent:x64-windows-static-md" "boost-throw-exception:x64-windows-static-md"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKGRS_TRIPLET=x64-windows-static-md"
+
+      - name: Save vcpkg binary archives (Windows)
+        if: matrix.os == 'windows-2022' && steps.cache-vcpkg.outputs.cache-hit != 'true' && always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_BINARY_CACHE }}
+          key: ${{ steps.cache-vcpkg.outputs.cache-primary-key }}
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
