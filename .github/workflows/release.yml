@@ -43,9 +43,10 @@ jobs:
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
           & "$vcpkgRoot/bootstrap-vcpkg.bat" -disableMetrics
-          & "$vcpkgRoot/vcpkg.exe" install "libtorrent:x64-windows-static-md"
+          & "$vcpkgRoot/vcpkg.exe" install "libtorrent:x64-windows-static-md" "boost-throw-exception:x64-windows-static-md"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKGRS_TRIPLET=x64-windows-static-md"
+          Add-Content -Path $env:GITHUB_ENV -Value "TORRENT_ABI_VERSION=1"
 
       - name: Install dependencies
         run: yarn --frozen-lockfile

@@ -26,6 +26,10 @@ fn main() {
             build.include(include_path);
         }
     } else if target_os == "windows" {
+        let torrent_abi_version =
+            std::env::var("TORRENT_ABI_VERSION").unwrap_or_else(|_| "1".to_string());
+        build.define("TORRENT_ABI_VERSION", Some(torrent_abi_version.as_str()));
+
         let library = vcpkg::Config::new()
             .emit_includes(true)
             .find_package("libtorrent")
@@ -38,6 +42,15 @@ fn main() {
         for include_path in library.include_paths {
             build.include(include_path);
         }
+
+        vcpkg::Config::new()
+            .find_package("boost-throw-exception")
+            .unwrap_or_else(|error| {
+                panic!("vcpkg boost-throw-exception package is required for hydra-native: {error}")
+            });
+
+        println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=user32");
     }
 
     build.compile("hydra_libtorrent_bridge");
@@ -51,4 +64,5 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/torrent_helpers.cc");
     println!("cargo:rerun-if-changed=cpp/libtorrent_bridge.h");
     println!("cargo:rerun-if-changed=cpp/libtorrent_bridge.cc");
+    println!("cargo:rerun-if-env-changed=TORRENT_ABI_VERSION");
 }
