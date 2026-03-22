@@ -1,12 +1,5 @@
 import { userProfileContext } from "@renderer/context";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
 import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -92,9 +85,7 @@ export function ProfileContent() {
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const [statsIndex, setStatsIndex] = useState(0);
-  const [isAnimationRunning, setIsAnimationRunning] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const statsAnimation = useRef(-1);
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
 
@@ -134,17 +125,9 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
-      // When sortBy changes, clear animated games so all games animate in
-      if (currentSortByRef.current !== sortBy) {
-        animatedGameIdsRef.current.clear();
-        currentSortByRef.current = sortBy;
-      }
       getUserLibraryGames(sortBy, true);
     }
   }, [sortBy, getUserLibraryGames, userProfile]);
-
-  const animatedGameIdsRef = useRef<Set<string>>(new Set());
-  const currentSortByRef = useRef<SortOption>(sortBy);
 
   const handleLoadMore = useCallback(() => {
     if (
@@ -327,34 +310,16 @@ export function ProfileContent() {
     }
   };
 
-  const handleOnMouseEnterGameCard = () => {
-    setIsAnimationRunning(false);
-  };
-
-  const handleOnMouseLeaveGameCard = () => {
-    setIsAnimationRunning(true);
-  };
-
   useEffect(() => {
-    let zero = performance.now();
-    if (!isAnimationRunning) return;
-
-    statsAnimation.current = requestAnimationFrame(
-      function animateGameStats(time) {
-        if (time - zero <= GAME_STATS_ANIMATION_DURATION_IN_MS) {
-          statsAnimation.current = requestAnimationFrame(animateGameStats);
-        } else {
-          setStatsIndex((index) => index + 1);
-          zero = performance.now();
-          statsAnimation.current = requestAnimationFrame(animateGameStats);
-        }
-      }
+    const interval = window.setInterval(
+      () => setStatsIndex((index) => index + 1),
+      GAME_STATS_ANIMATION_DURATION_IN_MS
     );
 
     return () => {
-      cancelAnimationFrame(statsAnimation.current);
+      window.clearInterval(interval);
     };
-  }, [setStatsIndex, isAnimationRunning]);
+  }, []);
 
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
@@ -396,13 +361,9 @@ export function ProfileContent() {
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
-                  isLoadingLibraryGames={isLoadingLibraryGames}
                   statsIndex={statsIndex}
                   userStats={userStats}
-                  animatedGameIdsRef={animatedGameIdsRef}
                   onLoadMore={handleLoadMore}
-                  onMouseEnter={handleOnMouseEnterGameCard}
-                  onMouseLeave={handleOnMouseLeaveGameCard}
                   isMe={isMe}
                 />
               )}

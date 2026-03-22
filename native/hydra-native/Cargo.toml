@@ -1,0 +1,27 @@
+[package]
+name = "hydra-native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.100"
+image = { version = "0.25.8", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
+cxx = "1.0.189"
+mime_guess = "2.0.5"
+napi = { version = "3.5.2", default-features = false, features = ["napi8", "tokio_rt"] }
+napi-derive = "3.3.2"
+once_cell = "1.21.3"
+regex = "1.12.2"
+sysinfo = "0.37.2"
+url = "2.5.7"
+urlencoding = "2.1.3"
+uuid = { version = "1.11.0", features = ["v4"] }
+
+[build-dependencies]
+cxx-build = "1.0.189"
+napi-build = "2.3.1"
+pkg-config = "0.3.32"
+vcpkg = "0.2.15"

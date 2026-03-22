@@ -5,7 +5,15 @@ import type {
 } from "@types";
 
 import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import "./catalogue.scss";
 
@@ -82,7 +90,8 @@ const areSameValues = (first: string[], second: string[]) =>
   first.every((item) => second.includes(item));
 
 export default function Catalogue() {
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestSequenceRef = useRef(0);
+  const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
@@ -90,8 +99,17 @@ export default function Catalogue() {
   const { steamGenres, steamUserTags, filters, page } = useAppSelector(
     (state) => state.catalogueSearch
   );
+  const deferredTitleFilter = useDeferredValue(filters.title);
+
+  const effectiveFilters = useMemo(() => {
+    return {
+      ...filters,
+      title: deferredTitleFilter,
+    };
+  }, [filters, deferredTitleFilter]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
 
@@ -110,11 +128,9 @@ export default function Catalogue() {
         filters: CatalogueSearchPayload,
         downloadSources: DownloadSource[],
         pageSize: number,
-        offset: number
+        offset: number,
+        requestId: number
       ) => {
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
         const requestData = {
           ...filters,
           take: pageSize,
@@ -124,19 +140,25 @@ export default function Catalogue() {
           ),
         };
 
-        const response = await window.electron.hydraApi.post<{
-          edges: CatalogueSearchResult[];
-          count: number;
-        }>("/catalogue/search", {
-          data: requestData,
-          needsAuth: false,
-        });
+        try {
+          const response = await window.electron.hydraApi.post<{
+            edges: CatalogueSearchResult[];
+            count: number;
+          }>("/catalogue/search", {
+            data: requestData,
+            needsAuth: false,
+          });
 
-        if (abortController.signal.aborted) return;
+          if (requestId !== requestSequenceRef.current) return;
 
-        setResults(response.edges);
-        setItemsCount(response.count);
-        setIsLoading(false);
+          setResults(response.edges);
+          setItemsCount(response.count);
+          setIsLoading(false);
+        } finally {
+          if (requestId === requestSequenceRef.current) {
+            setIsFetching(false);
+          }
+        }
       },
       500
     )
@@ -146,21 +168,29 @@ export default function Catalogue() {
     s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
 
   useEffect(() => {
-    setResults([]);
-    setIsLoading(true);
-    abortControllerRef.current?.abort();
+    hasResultsRef.current = results.length > 0;
+  }, [results.length]);
+
+  useEffect(() => {
+    const requestId = ++requestSequenceRef.current;
+    setIsFetching(true);
+
+    if (!hasResultsRef.current) {
+      setIsLoading(true);
+    }
 
     debouncedSearch(
-      filters,
+      effectiveFilters,
       downloadSources,
       PAGE_SIZE,
-      (page - 1) * PAGE_SIZE
+      (page - 1) * PAGE_SIZE,
+      requestId
     );
 
     return () => {
       debouncedSearch.cancel();
     };
-  }, [filters, downloadSources, page, debouncedSearch]);
+  }, [effectiveFilters, downloadSources, page, debouncedSearch]);
 
   const language = i18n.language.split("-")[0];
 
@@ -409,6 +439,10 @@ export default function Catalogue() {
             </SkeletonTheme>
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
+          )}
+
+          {isFetching && !isLoading && (
+            <span className="catalogue__result-count">{t("loading")}</span>
           )}
 
           <div className="catalogue__pagination-container">

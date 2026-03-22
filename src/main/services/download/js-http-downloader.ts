@@ -11,6 +11,7 @@ export interface JsHttpDownloaderStatus {
   downloadSpeed: number;
   numPeers: number;
   numSeeds: number;
+  estimatedSeeds: number;
   status: "active" | "paused" | "complete" | "error";
   bytesDownloaded: number;
 }
@@ -599,6 +600,7 @@ export class JsHttpDownloader {
       downloadSpeed: this.downloadSpeed,
       numPeers: 0,
       numSeeds: 0,
+      estimatedSeeds: 0,
       status: this.status,
       bytesDownloaded: this.bytesDownloaded,
     };

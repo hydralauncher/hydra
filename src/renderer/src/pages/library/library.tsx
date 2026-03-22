@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useLibrary,
@@ -95,6 +101,7 @@ export default function Library() {
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const dispatch = useAppDispatch();
   const { t } = useTranslation(["library", "sidebar"]);
 
@@ -371,42 +378,8 @@ export default function Library() {
     hasLoadedCollections,
   ]);
 
-  const filteredLibrary = useMemo(() => {
-    let filtered = library;
-
-    if (selectedCollectionId) {
-      if (selectedCollectionId === FAVORITES_COLLECTION_ID) {
-        filtered = filtered.filter((game) => game.favorite);
-      } else {
-        filtered = filtered.filter((game) =>
-          getGameCollectionIds(game).includes(selectedCollectionId)
-        );
-      }
-    }
-
-    if (!searchQuery.trim()) return filtered;
-
-    const queryLower = searchQuery.toLowerCase();
-    return filtered.filter((game) => {
-      const titleLower = game.title.toLowerCase();
-      let queryIndex = 0;
-
-      for (
-        let i = 0;
-        i < titleLower.length && queryIndex < queryLower.length;
-        i++
-      ) {
-        if (titleLower[i] === queryLower[queryIndex]) {
-          queryIndex++;
-        }
-      }
-
-      return queryIndex === queryLower.length;
-    });
-  }, [library, searchQuery, selectedCollectionId]);
-
   const sortedLibrary = useMemo(() => {
-    return [...filteredLibrary].sort((a, b) => {
+    return [...library].sort((a, b) => {
       switch (sortBy) {
         case "recently_played": {
           const aHasPlayed = a.lastTimePlayed !== null;
@@ -459,7 +432,41 @@ export default function Library() {
         sensitivity: "base",
       });
     });
-  }, [filteredLibrary, sortBy]);
+  }, [library, sortBy]);
+
+  const filteredLibrary = useMemo(() => {
+    let filtered = sortedLibrary;
+
+    if (selectedCollectionId) {
+      if (selectedCollectionId === FAVORITES_COLLECTION_ID) {
+        filtered = filtered.filter((game) => game.favorite);
+      } else {
+        filtered = filtered.filter((game) =>
+          getGameCollectionIds(game).includes(selectedCollectionId)
+        );
+      }
+    }
+
+    if (!deferredSearchQuery.trim()) return filtered;
+
+    const queryLower = deferredSearchQuery.toLowerCase();
+    return filtered.filter((game) => {
+      const titleLower = game.title.toLowerCase();
+      let queryIndex = 0;
+
+      for (
+        let i = 0;
+        i < titleLower.length && queryIndex < queryLower.length;
+        i++
+      ) {
+        if (titleLower[i] === queryLower[queryIndex]) {
+          queryIndex++;
+        }
+      }
+
+      return queryIndex === queryLower.length;
+    });
+  }, [sortedLibrary, deferredSearchQuery, selectedCollectionId]);
 
   const favoritesCount = useMemo(() => {
     return library.filter((game) => game.favorite).length;
@@ -477,7 +484,7 @@ export default function Library() {
   }, [collections, favoritesCount, t]);
 
   const hasGames = library.length > 0;
-  const hasNoFilteredGames = sortedLibrary.length === 0;
+  const hasNoFilteredGames = filteredLibrary.length === 0;
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
@@ -593,7 +600,7 @@ export default function Library() {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
-                {sortedLibrary.map((game) => (
+                {filteredLibrary.map((game) => (
                   <LibraryGameCardLarge
                     key={`${game.shop}-${game.objectId}`}
                     game={game}
@@ -612,7 +619,7 @@ export default function Library() {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
-                {sortedLibrary.map((game) => (
+                {filteredLibrary.map((game) => (
                   <li
                     key={`${game.shop}-${game.objectId}`}
                     style={{ listStyle: "none" }}
