@@ -26,6 +26,8 @@ fn main() {
             build.include(include_path);
         }
     } else if target_os == "windows" {
+        build.define("TORRENT_ABI_VERSION", Some("3"));
+
         let library = vcpkg::Config::new()
             .emit_includes(true)
             .find_package("libtorrent")
@@ -42,6 +44,10 @@ fn main() {
         for link_path in &library.link_paths {
             emit_matching_link_lib(link_path, "boost_throw_exception");
             emit_matching_link_lib(link_path, "boost_exception");
+
+            let manual_link_path = link_path.join("manual-link");
+            emit_matching_link_lib(&manual_link_path, "boost_throw_exception");
+            emit_matching_link_lib(&manual_link_path, "boost_exception");
         }
 
         println!("cargo:rustc-link-lib=bcrypt");
@@ -50,6 +56,7 @@ fn main() {
         println!("cargo:rustc-link-lib=iphlpapi");
         println!("cargo:rustc-link-lib=dbghelp");
         println!("cargo:rustc-link-lib=crypt32");
+        println!("cargo:rustc-link-lib=user32");
     }
 
     build.compile("hydra_libtorrent_bridge");
