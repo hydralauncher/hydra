@@ -19,6 +19,7 @@
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/file_storage.hpp>
 #include <libtorrent/session_handle.hpp>
+#include <libtorrent/settings_pack.hpp>
 #include <libtorrent/torrent_flags.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_info.hpp>
@@ -53,7 +54,13 @@ rust::String set_download_limit(std::int64_t max_download_speed_bytes_per_second
       auto const bounded = std::min(max_download_speed_bytes_per_second, max_int64);
       limit = static_cast<int>(bounded);
     }
+#if TORRENT_ABI_VERSION >= 3
+    lt::settings_pack settings;
+    settings.set_int(lt::settings_pack::download_rate_limit, limit);
+    detail::g_session->apply_settings(settings);
+#else
     detail::g_session->set_download_rate_limit(limit);
+#endif
   } catch (std::exception const& e) {
     return detail::to_rust_string(e.what());
   } catch (...) {
