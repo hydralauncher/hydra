@@ -26,6 +26,8 @@ fn main() {
             build.include(include_path);
         }
     } else if target_os == "windows" {
+        build.flag_if_supported("/EHsc");
+        build.define("_WIN32_WINNT", Some("0x0A00"));
         build.define("TORRENT_ABI_VERSION", Some("3"));
 
         let library = vcpkg::Config::new()
