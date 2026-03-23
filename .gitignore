@@ -18,5 +18,3 @@ native/hydra-native/target/
 .env.sentry-build-plugin
 
 *storybook.log
-
-aria2/

@@ -5,7 +5,7 @@
   <h1 align="center">Hydra Launcher</h1>
 
   <p align="center">
-    <strong>Hydra Launcher is an open-source gaming platform created to be the single tool that you need in order to manage your gaming library. Hydra is written in Node.js (Electron, React, Typescript) and Rust.</strong>
+    <strong>Hydra Launcher is an open-source gaming platform created to be the single tool that you need in order to manage your gaming library. Hydra is written in Node.js (Electron, React, Typescript), Python, and Rust.</strong>
   </p>
 
 [![build](https://img.shields.io/github/actions/workflow/status/hydralauncher/hydra/build.yml)](https://github.com/hydralauncher/hydra/actions)
@@ -32,10 +32,13 @@ Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.h
 ### Local development requirements
 
 - Node.js + Yarn
+- Python 3.9+ with `pip install -r requirements.txt`
 - Rust toolchain (for `hydra-native`)
 - `libtorrent-rasterbar` development package (Linux/macOS, usually `libtorrent-rasterbar2.0-dev` or `libtorrent-rasterbar-dev`) or vcpkg `libtorrent` (Windows)
 
 After installing dependencies, `postinstall` now builds the Rust native addon automatically (`hydra-native/hydra-native.node`).
+
+Packaging scripts (`yarn build:win`, `yarn build:mac`, `yarn build:linux`, `yarn build:unpack`) now run `yarn build:python-rpc` automatically.
 
 ## Contributors
 

@@ -119,11 +119,7 @@ export const loadState = async () => {
 
     // Find interrupted active download (download that was running when app closed)
     // Mark it as paused but remember it for auto-resume
-    if (
-      download.status === "active" &&
-      !interruptedDownload &&
-      download.queued
-    ) {
+    if (download.status === "active" && !interruptedDownload) {
       interruptedDownload = download;
       await downloadsSublevel.put(downloadKey, {
         ...download,
@@ -148,32 +144,24 @@ export const loadState = async () => {
 
   for (const download of updatedDownloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
-
-    const shouldResetQueueFlag =
+    const hasInvalidQueuedState =
       download.queued &&
-      ["removed", "complete", "seeding"].includes(download.status ?? "");
+      (download.status === "removed" ||
+        download.status === "complete" ||
+        download.status === "seeding");
 
-    if (
-      shouldResetQueueFlag ||
-      (download.status === "removed" && download.shouldSeed)
-    ) {
-      const normalizedDownload = {
-        ...download,
-        queued: false,
-        shouldSeed: download.status === "removed" ? false : download.shouldSeed,
-      };
-
-      logger.warn(
-        `[Startup] Normalized invalid download flags for ${downloadKey} ` +
-          `(status=${download.status}, queued=${download.queued}, shouldSeed=${download.shouldSeed})`
-      );
-
-      await downloadsSublevel.put(downloadKey, normalizedDownload);
-      normalizedDownloads.push(normalizedDownload);
+    if (!hasInvalidQueuedState) {
+      normalizedDownloads.push(download);
       continue;
     }
 
-    normalizedDownloads.push(download);
+    const normalizedDownload = {
+      ...download,
+      queued: false,
+    };
+
+    await downloadsSublevel.put(downloadKey, normalizedDownload);
+    normalizedDownloads.push(normalizedDownload);
   }
 
   // Prioritize interrupted download, then queued downloads
@@ -184,15 +172,6 @@ export const loadState = async () => {
         game.queued && (game.status === "paused" || game.status === "error")
     );
 
-  if (downloadToResume) {
-    logger.log(
-      `[Startup] Resuming download ${levelKeys.game(downloadToResume.shop, downloadToResume.objectId)} ` +
-        `(status=${downloadToResume.status}, queued=${downloadToResume.queued})`
-    );
-  } else {
-    logger.log("[Startup] No download selected for auto-resume");
-  }
-
   const downloadsToSeed: Download[] = [];
 
   for (const game of normalizedDownloads) {
@@ -200,8 +179,8 @@ export const loadState = async () => {
       !game.shouldSeed ||
       game.downloader !== Downloader.Torrent ||
       game.progress !== 1 ||
-      game.uri === null ||
-      game.status !== "seeding"
+      game.status !== "seeding" ||
+      game.uri === null
     ) {
       continue;
     }
@@ -217,7 +196,9 @@ export const loadState = async () => {
 
     if (game.folderName) {
       const downloadTargetPath = path.join(game.downloadPath, game.folderName);
-      const currentSize = await getDirSize(downloadTargetPath);
+      const currentSize = fs.existsSync(downloadTargetPath)
+        ? await getDirSize(downloadTargetPath)
+        : 0;
       progress =
         expectedSize > 0
           ? Math.min(currentSize / expectedSize, 1)
@@ -226,50 +207,29 @@ export const loadState = async () => {
 
     await downloadsSublevel.put(gameKey, {
       ...game,
-      status: "error",
+      status: "paused",
       shouldSeed: false,
       queued: false,
       progress,
     });
 
     logger.warn(
-      `[Startup] Seed files missing for ${gameKey}; moved download state to error`
+      `[Startup] Seed files missing for ${gameKey}; seeding was disabled`
     );
   }
 
-  logger.log(
-    `[Startup] Seed queue prepared (${downloadsToSeed.length}) ids=${JSON.stringify(
-      downloadsToSeed.map((download) =>
-        levelKeys.game(download.shop, download.objectId)
-      )
-    )}`
-  );
-
-  // For torrents or if JS downloader is disabled, use Python RPC
+  // For torrents use Python RPC; HTTP downloads use JS downloader.
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
-  // Default to true - native HTTP downloader is enabled by default
-  const useJsDownloader =
-    (userPreferences?.useNativeHttpDownloader ?? true) && !isTorrent;
-
-  if (useJsDownloader && downloadToResume) {
+  if (downloadToResume && !isTorrent) {
     // Start Python RPC for seeding only, then resume HTTP download with JS
     await DownloadManager.startRPC(undefined, downloadsToSeed);
-    logger.log(
-      "[Startup] Started RPC for seeding bootstrap (JS downloader path)"
-    );
     await DownloadManager.startDownload(downloadToResume).catch((err) => {
       // If resume fails, just log it - user can manually retry
       logger.error("Failed to auto-resume download:", err);
     });
-    logger.log(
-      `[Startup] Auto-resume transition complete for ${levelKeys.game(downloadToResume.shop, downloadToResume.objectId)} (js=${useJsDownloader})`
-    );
   } else {
     // Use Python RPC for everything (torrent or fallback)
     await DownloadManager.startRPC(downloadToResume, downloadsToSeed);
-    logger.log(
-      `[Startup] RPC bootstrap complete (resume=${downloadToResume ? levelKeys.game(downloadToResume.shop, downloadToResume.objectId) : "none"}, js=${useJsDownloader})`
-    );
   }
 
   startMainLoop();
