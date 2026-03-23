@@ -1277,7 +1277,7 @@ export class DownloadManager {
           save_path: download.downloadPath,
         };
       }
-      case Downloader.Torrent:
+      case Downloader.Torrent: {
         const hasSelectedFileIndices =
           Array.isArray(download.fileIndices) &&
           download.fileIndices.length > 0;
@@ -1292,6 +1292,7 @@ export class DownloadManager {
             : undefined,
           metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
         };
+      }
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
