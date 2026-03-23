@@ -18,7 +18,6 @@ export interface LibtorrentPayload {
   progress: number;
   numPeers: number;
   numSeeds: number;
-  estimatedSeeds: number;
   downloadSpeed: number;
   uploadSpeed: number;
   bytesDownloaded: number;

@@ -10,8 +10,12 @@ import {
   VikingFileApi,
   RootzApi,
 } from "../hosters";
-import { NativeAddon } from "../native-addon";
-import { LibtorrentStatus } from "./types";
+import { PythonRPC } from "../python-rpc";
+import {
+  LibtorrentPayload,
+  LibtorrentStatus,
+  PauseDownloadPayload,
+} from "./types";
 import { calculateETA, getDirSize } from "./helpers";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
@@ -54,7 +58,6 @@ export class DownloadManager {
   private static isPreparingDownload = false;
   private static allDebridBatch: AllDebridBatchState | null = null;
   private static maxDownloadSpeedBytesPerSecond: number | null = null;
-  private static readonly TORRENT_START_HANDSHAKE_TIMEOUT_MS = 1_500;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -178,10 +181,6 @@ export class DownloadManager {
     };
   }
 
-  private static async shouldUseJsDownloader(): Promise<boolean> {
-    return true;
-  }
-
   private static isHttpDownloader(downloader: Downloader): boolean {
     return downloader !== Downloader.Torrent;
   }
@@ -218,32 +217,25 @@ export class DownloadManager {
     this.maxDownloadSpeedBytesPerSecond = normalizedLimit;
     this.jsDownloader?.setMaxDownloadSpeedBytesPerSecond(normalizedLimit);
 
-    try {
-      NativeAddon.setTorrentDownloadLimit(normalizedLimit);
-    } catch (error) {
-      logger.error(
-        "[DownloadManager] Failed to update torrent speed limit:",
-        error
-      );
-    }
-  }
-
-  private static logNativePollStatus(payload: {
-    gameId: string;
-    status: LibtorrentStatus;
-    isCheckingFiles: boolean;
-    progress: number;
-    bytesDownloaded: number;
-    fileSize: number;
-    folderName: string;
-  }) {
-    logger.log(`[DownloadManager] Native poll ${JSON.stringify(payload)}`);
+    await PythonRPC.rpc
+      .post("/action", {
+        action: "set_download_limit",
+        max_download_speed_bytes_per_second: normalizedLimit,
+      })
+      .catch((error) => {
+        logger.error(
+          "[DownloadManager] Failed to update RPC download speed limit:",
+          error
+        );
+      });
   }
 
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
   ) {
+    await PythonRPC.spawn();
+
     if (downloadsToSeed?.length) {
       for (const seedDownload of downloadsToSeed) {
         await this.resumeSeeding(seedDownload).catch((error) => {
@@ -252,7 +244,7 @@ export class DownloadManager {
       }
     }
 
-    if (download?.status === "active") {
+    if (download) {
       await this.startDownload(download).catch((error) => {
         logger.error("[DownloadManager] Failed to resume download", error);
       });
@@ -275,7 +267,6 @@ export class DownloadManager {
         return {
           numPeers: 0,
           numSeeds: 0,
-          estimatedSeeds: 0,
           downloadSpeed: 0,
           timeRemaining: -1,
           isDownloadingMetadata: true, // Use this to indicate "preparing"
@@ -374,7 +365,6 @@ export class DownloadManager {
       return {
         numPeers: 0,
         numSeeds: 0,
-        estimatedSeeds: 0,
         downloadSpeed,
         timeRemaining: calculateETA(
           effectiveFileSize ?? 0,
@@ -396,31 +386,29 @@ export class DownloadManager {
   }
 
   private static async getDownloadStatusFromRpc(): Promise<DownloadProgress | null> {
-    if (!this.downloadingGameId) return null;
-    const downloadId = this.downloadingGameId;
+    let response: { data: LibtorrentPayload | null };
 
-    let response: ReturnType<typeof NativeAddon.getTorrentStatus> = null;
     try {
-      response = NativeAddon.getTorrentStatus(downloadId);
+      response = await PythonRPC.rpc.get<LibtorrentPayload | null>("/status");
     } catch (error) {
-      logger.error("[DownloadManager] Native status poll failed", error);
+      logger.error("[DownloadManager] RPC status poll failed", error);
       return null;
     }
 
-    if (response === null) return null;
+    if (response.data === null || !this.downloadingGameId) return null;
+    const downloadId = this.downloadingGameId;
 
     try {
       const {
         progress,
         numPeers,
         numSeeds,
-        estimatedSeeds,
         downloadSpeed,
         bytesDownloaded,
         fileSize,
         folderName,
         status,
-      } = response;
+      } = response.data;
 
       const isDownloadingMetadata =
         status === LibtorrentStatus.DownloadingMetadata;
@@ -446,48 +434,20 @@ export class DownloadManager {
         });
       }
 
-      const fallbackFileSize =
-        download?.selectedFilesSize ?? download?.fileSize ?? 0;
-      const effectiveFileSize = fileSize > 0 ? fileSize : fallbackFileSize;
-
-      const reportedProgress =
-        isDownloadingMetadata || isCheckingFiles
-          ? Math.max(download?.progress ?? 0, progress)
-          : progress;
-
-      const reportedBytesDownloaded =
-        isDownloadingMetadata || isCheckingFiles
-          ? Math.max(download?.bytesDownloaded ?? 0, bytesDownloaded)
-          : bytesDownloaded;
-
-      const shouldSuppressLiveMetrics =
-        isDownloadingMetadata || isCheckingFiles;
-
-      this.logNativePollStatus({
-        gameId: downloadId,
-        status,
-        isCheckingFiles,
-        progress: reportedProgress,
-        bytesDownloaded: reportedBytesDownloaded,
-        fileSize: effectiveFileSize,
-        folderName,
-      });
-
       return {
-        numPeers: shouldSuppressLiveMetrics ? 0 : numPeers,
-        numSeeds: shouldSuppressLiveMetrics ? 0 : numSeeds,
-        estimatedSeeds,
-        downloadSpeed: shouldSuppressLiveMetrics ? 0 : downloadSpeed,
-        timeRemaining: shouldSuppressLiveMetrics
-          ? -1
-          : calculateETA(
-              effectiveFileSize,
-              reportedBytesDownloaded,
-              downloadSpeed
-            ),
+        numPeers,
+        numSeeds,
+        downloadSpeed,
+        timeRemaining: calculateETA(
+          fileSize > 0
+            ? fileSize
+            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
+          bytesDownloaded,
+          downloadSpeed
+        ),
         isDownloadingMetadata,
         isCheckingFiles,
-        progress: reportedProgress,
+        progress,
         gameId: downloadId,
         download,
       } as DownloadProgress;
@@ -635,7 +595,6 @@ export class DownloadManager {
         queued: false,
         extracting: shouldExtract,
       });
-
       await this.cancelDownload(gameId);
 
       return false;
@@ -649,7 +608,7 @@ export class DownloadManager {
       : null;
 
     if (!extractionPath || !fs.existsSync(extractionPath)) {
-      gameFilesManager
+      await gameFilesManager
         .failExtraction(new Error("No downloaded archive was found to extract"))
         .catch((error) => {
           logger.error(
@@ -683,19 +642,17 @@ export class DownloadManager {
     } else if (extractionStats.isDirectory()) {
       await gameFilesManager
         .extractFilesInDirectory(extractionPath)
-        .then((success) => {
+        .then(async (success) => {
           if (success) {
-            return gameFilesManager.setExtractionComplete();
+            await gameFilesManager.setExtractionComplete();
           }
-
-          return undefined;
         })
         .catch((error) => {
           logger.error(
             "[DownloadManager] Failed to extract files in directory",
             error
           );
-          gameFilesManager.failExtraction(error).catch((failError) => {
+          return gameFilesManager.failExtraction(error).catch((failError) => {
             logger.error(
               "[DownloadManager] Failed to persist extraction failure state",
               failError
@@ -703,7 +660,7 @@ export class DownloadManager {
           });
         });
     } else {
-      gameFilesManager
+      await gameFilesManager
         .failExtraction(
           new Error(
             `Invalid extraction source type for "${download.folderName ?? "unknown"}"`
@@ -743,12 +700,14 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
-    let seedStatus: ReturnType<typeof NativeAddon.getTorrentSeedStatus> = [];
+    let seedStatus: LibtorrentPayload[] = [];
 
     try {
-      seedStatus = NativeAddon.getTorrentSeedStatus();
+      seedStatus = await PythonRPC.rpc
+        .get<LibtorrentPayload[] | []>("/seed-status")
+        .then((res) => res.data);
     } catch (error) {
-      logger.error("[DownloadManager] Native seed status poll failed", error);
+      logger.error("[DownloadManager] RPC seed status poll failed", error);
       WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
       return;
     }
@@ -774,9 +733,8 @@ export class DownloadManager {
 
         await downloadsSublevel.put(status.gameId, {
           ...download,
-          status: "error",
+          status: "paused",
           shouldSeed: false,
-          queued: false,
           progress:
             status.fileSize > 0
               ? Math.min(totalSize / status.fileSize, 1)
@@ -795,11 +753,12 @@ export class DownloadManager {
       logger.log("[DownloadManager] Pausing JS download");
       this.jsDownloader.pauseDownload();
     } else if (downloadKey) {
-      try {
-        NativeAddon.pauseTorrentDownload(downloadKey);
-      } catch {
-        // ignore pause failures
-      }
+      await PythonRPC.rpc
+        .post("/action", {
+          action: "pause",
+          game_id: downloadKey,
+        } as PauseDownloadPayload)
+        .catch(() => {});
     }
 
     if (downloadKey === this.downloadingGameId) {
@@ -822,12 +781,10 @@ export class DownloadManager {
         this.jsDownloader = null;
         this.usingJsDownloader = false;
         this.allDebridBatch = null;
-      } else if (!this.isPreparingDownload) {
-        try {
-          NativeAddon.cancelTorrentDownload(downloadKey!);
-        } catch (err) {
-          logger.error("Failed to cancel game download", err);
-        }
+      } else {
+        await PythonRPC.rpc
+          .post("/action", { action: "cancel", game_id: downloadKey })
+          .catch((err) => logger.error("Failed to cancel game download", err));
       }
 
       WindowManager.mainWindow?.setProgressBar(-1);
@@ -836,20 +793,27 @@ export class DownloadManager {
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
+    } else if (downloadKey) {
+      await PythonRPC.rpc
+        .post("/action", { action: "cancel", game_id: downloadKey })
+        .catch((err) => logger.error("Failed to cancel game download", err));
     }
   }
 
   static async resumeSeeding(download: Download) {
-    NativeAddon.resumeTorrentSeeding({
-      gameId: levelKeys.game(download.shop, download.objectId),
+    await PythonRPC.rpc.post("/action", {
+      action: "resume_seeding",
+      game_id: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
-      savePath: download.downloadPath,
-      folderName: download.folderName ?? undefined,
+      save_path: download.downloadPath,
     });
   }
 
   static async pauseSeeding(downloadKey: string) {
-    NativeAddon.pauseTorrentSeeding(downloadKey);
+    await PythonRPC.rpc.post("/action", {
+      action: "pause_seeding",
+      game_id: downloadKey,
+    });
   }
 
   private static async getJsDownloadOptions(download: Download): Promise<{
@@ -1314,12 +1278,19 @@ export class DownloadManager {
         };
       }
       case Downloader.Torrent:
+        const hasSelectedFileIndices =
+          Array.isArray(download.fileIndices) &&
+          download.fileIndices.length > 0;
+
         return {
           action: "start",
           game_id: downloadId,
           url: download.uri,
           save_path: download.downloadPath,
-          file_indices: download.fileIndices,
+          file_indices: hasSelectedFileIndices
+            ? download.fileIndices
+            : undefined,
+          metadata_timeout_ms: hasSelectedFileIndices ? 60_000 : undefined,
         };
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
@@ -1417,25 +1388,21 @@ export class DownloadManager {
   }
 
   static async validateDownloadUrl(download: Download): Promise<void> {
-    const useJsDownloader = await this.shouldUseJsDownloader();
     const isHttp = this.isHttpDownloader(download.downloader);
 
-    if (useJsDownloader && isHttp) {
+    if (isHttp) {
       const options = await this.getJsDownloadOptions(download);
       if (!options) {
         throw new Error("Failed to validate download URL");
       }
-    } else if (isHttp) {
-      await this.getDownloadPayload(download);
     }
   }
 
   static async startDownload(download: Download) {
-    const useJsDownloader = await this.shouldUseJsDownloader();
     const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
-    if (useJsDownloader && isHttp) {
+    if (isHttp) {
       logger.log("[DownloadManager] Using JS HTTP downloader");
 
       // Set preparing state immediately so UI knows download is starting
@@ -1511,7 +1478,8 @@ export class DownloadManager {
         throw err;
       }
     } else {
-      logger.log("[DownloadManager] Using native torrent downloader");
+      logger.log("[DownloadManager] Using Python RPC downloader");
+      const payload = await this.getDownloadPayload(download);
       const isSelectiveTorrentStart =
         download.downloader === Downloader.Torrent &&
         Array.isArray(download.fileIndices) &&
@@ -1527,48 +1495,41 @@ export class DownloadManager {
       this.usingJsDownloader = false;
       this.allDebridBatch = null;
 
-      const startPromise = NativeAddon.startTorrentDownload({
-        gameId: downloadId,
-        url: download.uri,
-        savePath: download.downloadPath,
-        folderName: download.folderName ?? undefined,
-        fileIndices: download.fileIndices,
-        timeoutMs: isSelectiveTorrentStart ? 60_000 : 10_000,
-      });
+      if (payload?.url) {
+        this.logResolvedUrl(payload.url);
+      }
 
-      void startPromise
-        .then(() => {
-          const downloadWasCancelledOrReplaced =
-            this.downloadingGameId !== downloadId;
-
-          if (!downloadWasCancelledOrReplaced) {
-            this.isPreparingDownload = false;
-            return;
-          }
-
-          try {
-            NativeAddon.cancelTorrentDownload(downloadId);
-          } catch (err) {
-            logger.error("Failed to cancel stale torrent download", err);
-          }
-        })
-        .catch((error) => {
-          if (this.downloadingGameId === downloadId) {
-            this.isPreparingDownload = previousIsPreparingDownload;
-            this.downloadingGameId = previousDownloadingGameId;
-            this.usingJsDownloader = previousUsingJsDownloader;
-            this.allDebridBatch = previousAllDebridBatch;
-          }
-
-          logger.error("[DownloadManager] Native torrent start error:", error);
+      try {
+        await PythonRPC.rpc.post("/action", payload, {
+          timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
         });
 
-      await Promise.race([
-        startPromise,
-        new Promise<void>((resolve) => {
-          setTimeout(resolve, this.TORRENT_START_HANDSHAKE_TIMEOUT_MS);
-        }),
-      ]);
+        const downloadWasCancelledOrReplaced =
+          this.downloadingGameId !== downloadId;
+
+        if (downloadWasCancelledOrReplaced) {
+          await PythonRPC.rpc
+            .post("/action", { action: "cancel", game_id: downloadId })
+            .catch((error) => {
+              logger.error(
+                "[DownloadManager] Failed to cancel stale torrent download",
+                error
+              );
+            });
+          return;
+        }
+
+        this.isPreparingDownload = false;
+      } catch (error) {
+        if (this.downloadingGameId === downloadId) {
+          this.downloadingGameId = previousDownloadingGameId;
+          this.isPreparingDownload = previousIsPreparingDownload;
+          this.usingJsDownloader = previousUsingJsDownloader;
+          this.allDebridBatch = previousAllDebridBatch;
+        }
+
+        throw error;
+      }
     }
   }
 }

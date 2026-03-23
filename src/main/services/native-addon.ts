@@ -3,8 +3,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 import { app } from "electron";
-import type { ProcessPayload, LibtorrentPayload } from "./download/types";
-import type { TorrentFilesResponse } from "@types";
+import type { ProcessPayload } from "./download/types";
 
 import { logger } from "./logger";
 
@@ -21,33 +20,6 @@ type HydraNativeModule = {
     targetExtension?: string
   ) => NativeProcessProfileImageResponse;
   listProcesses: () => ProcessPayload[];
-  torrentGetStatus: (gameId: string) => LibtorrentPayload | null;
-  torrentGetSeedStatus: () => Array<LibtorrentPayload & { gameId: string }>;
-  torrentGetFiles: (
-    magnet: string,
-    timeoutMs?: number
-  ) => Promise<TorrentFilesResponse>;
-  torrentStart: (payload: {
-    gameId: string;
-    url: string;
-    savePath: string;
-    folderName?: string;
-    fileIndices?: number[];
-    timeoutMs?: number;
-  }) => Promise<void>;
-  torrentPause: (gameId: string) => void;
-  torrentCancel: (gameId: string) => void;
-  torrentResumeSeeding: (payload: {
-    gameId: string;
-    url: string;
-    savePath: string;
-    folderName?: string;
-  }) => void;
-  torrentPauseSeeding: (gameId: string) => void;
-  torrentSetDownloadLimit: (
-    maxDownloadSpeedBytesPerSecond?: number | null
-  ) => void;
-  torrentBackend?: () => string;
 };
 
 export class NativeAddon {
@@ -83,28 +55,6 @@ export class NativeAddon {
 
     const require = createRequire(import.meta.url);
     const nativeModule = require(addonPath) as HydraNativeModule;
-
-    try {
-      const backend = nativeModule.torrentBackend?.();
-      if (backend === "libtorrent") {
-        logger.log(`[NativeAddon] Torrent backend: ${backend}`);
-      } else if (backend) {
-        throw new Error(
-          `Unsupported native torrent backend '${backend}'. Expected 'libtorrent'.`
-        );
-      } else if (!app.isPackaged) {
-        throw new Error(
-          "Native addon does not expose torrent backend identifier. This usually means a stale hydra-native.node build. Rebuild with `npm run build:native` after installing libtorrent dev packages."
-        );
-      } else {
-        logger.warn(
-          "[NativeAddon] Torrent backend identifier unavailable (stale native addon binary?)"
-        );
-      }
-    } catch (error) {
-      logger.error("[NativeAddon] Failed backend validation", error);
-      throw error;
-    }
 
     this.nativeModule = nativeModule;
 
@@ -157,60 +107,5 @@ export class NativeAddon {
       logger.error("Failed to list processes via native addon", error);
       return [];
     }
-  }
-
-  public static getTorrentStatus(gameId: string): LibtorrentPayload | null {
-    return this.load().torrentGetStatus(gameId);
-  }
-
-  public static getTorrentSeedStatus(): Array<
-    LibtorrentPayload & { gameId: string }
-  > {
-    return this.load().torrentGetSeedStatus();
-  }
-
-  public static async getTorrentFiles(
-    magnet: string,
-    timeoutMs?: number
-  ): Promise<TorrentFilesResponse> {
-    return this.load().torrentGetFiles(magnet, timeoutMs);
-  }
-
-  public static async startTorrentDownload(payload: {
-    gameId: string;
-    url: string;
-    savePath: string;
-    folderName?: string;
-    fileIndices?: number[];
-    timeoutMs?: number;
-  }) {
-    return this.load().torrentStart(payload);
-  }
-
-  public static pauseTorrentDownload(gameId: string) {
-    this.load().torrentPause(gameId);
-  }
-
-  public static cancelTorrentDownload(gameId: string) {
-    this.load().torrentCancel(gameId);
-  }
-
-  public static resumeTorrentSeeding(payload: {
-    gameId: string;
-    url: string;
-    savePath: string;
-    folderName?: string;
-  }) {
-    this.load().torrentResumeSeeding(payload);
-  }
-
-  public static pauseTorrentSeeding(gameId: string) {
-    this.load().torrentPauseSeeding(gameId);
-  }
-
-  public static setTorrentDownloadLimit(
-    maxDownloadSpeedBytesPerSecond?: number | null
-  ) {
-    this.load().torrentSetDownloadLimit(maxDownloadSpeedBytesPerSecond);
   }
 }

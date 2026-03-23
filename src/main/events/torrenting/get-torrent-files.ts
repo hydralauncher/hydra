@@ -1,11 +1,17 @@
 import { registerEvent } from "../register-event";
-import { NativeAddon } from "@main/services/native-addon";
+import { PythonRPC } from "@main/services/python-rpc";
 import type { TorrentFilesResponse } from "@types";
 import { DownloadError } from "@shared";
 
 const mapTorrentFilesError = (error: unknown) => {
-  if (error instanceof Error) {
-    switch (error.message) {
+  const rpcError =
+    typeof error === "object" && error !== null && "response" in error
+      ? ((error as { response?: { data?: { error?: string } } }).response?.data
+          ?.error ?? undefined)
+      : undefined;
+
+  if (rpcError) {
+    switch (rpcError) {
       case "invalid_magnet":
         return DownloadError.InvalidMagnet;
       case "metadata_timeout":
@@ -14,9 +20,15 @@ const mapTorrentFilesError = (error: unknown) => {
         return DownloadError.TorrentMetadataIncomplete;
       case "too_many_files":
         return DownloadError.TorrentTooManyFiles;
+      case "metadata_busy":
+        return DownloadError.TorrentMetadataTimeout;
       default:
         return DownloadError.TorrentFilesUnavailable;
     }
+  }
+
+  if (error instanceof Error) {
+    return DownloadError.TorrentFilesUnavailable;
   }
 
   return DownloadError.TorrentFilesUnavailable;
@@ -31,11 +43,20 @@ const getTorrentFiles = async (
   }
 
   try {
-    const response = await NativeAddon.getTorrentFiles(magnet, 45_000);
+    const response = await PythonRPC.rpc.post<TorrentFilesResponse>(
+      "/torrent-files",
+      {
+        magnet,
+        timeout_ms: 45_000,
+      },
+      {
+        timeout: 45000,
+      }
+    );
 
     return {
       ok: true,
-      data: response as TorrentFilesResponse,
+      data: response.data,
     };
   } catch (error) {
     return {
