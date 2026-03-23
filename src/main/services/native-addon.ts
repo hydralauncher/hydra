@@ -31,7 +31,7 @@ type HydraNativeModule = {
     gameId: string;
     url: string;
     savePath: string;
-    folderName?: string | null;
+    folderName?: string;
     fileIndices?: number[];
     timeoutMs?: number;
   }) => Promise<void>;
@@ -41,7 +41,7 @@ type HydraNativeModule = {
     gameId: string;
     url: string;
     savePath: string;
-    folderName?: string | null;
+    folderName?: string;
   }) => void;
   torrentPauseSeeding: (gameId: string) => void;
   torrentSetDownloadLimit: (
@@ -180,7 +180,7 @@ export class NativeAddon {
     gameId: string;
     url: string;
     savePath: string;
-    folderName?: string | null;
+    folderName?: string;
     fileIndices?: number[];
     timeoutMs?: number;
   }) {
@@ -199,7 +199,7 @@ export class NativeAddon {
     gameId: string;
     url: string;
     savePath: string;
-    folderName?: string | null;
+    folderName?: string;
   }) {
     this.load().torrentResumeSeeding(payload);
   }
