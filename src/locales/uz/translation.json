@@ -215,6 +215,7 @@
     "download_in_progress": "Yuklab olish davom etmoqda",
     "download_paused": "Yuklab olish to'xtatilgan",
     "last_downloaded_option": "Oxirgi yuklab olish varianti",
+    "friend_shared_download_option": "Doʻst ulashdi",
     "create_shortcut_success": "Yorliq yaratildi",
     "create_shortcut_error": "Yorliq yaratib bo'lmadi",
     "allow_nsfw_content": "Davom etish",
@@ -282,6 +283,7 @@
     "download_error_not_cached_on_torbox": "Bu yuklab olish TorBox'da mavjud emas, va TorBox'dan yuklab olish holatini olish hozircha mumkin emas.",
     "game_added_to_favorites": "O'yin sevimlilarga qo'shildi",
     "game_removed_from_favorites": "O'yin sevimlilardan olib tashlandi",
+    "game_shared_to_clipboard": "Oyin havolasi vaqtinchalik xotiraga nusxalandi",
     "automatically_extract_downloaded_files": "Yuklab olingan fayllarni avtomatik chiqarish",
     "open_download_options": "Open download options",
     "download_options_zero": "No download option",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Bu ulashilgan yuklab olish varianti sizda hali yoq manbani talab qiladi."
   },
   "activation": {
     "title": "Hydra'ni faollashtirish",

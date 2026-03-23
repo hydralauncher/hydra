@@ -260,6 +260,7 @@
     "download_paused": "Download in pausa",
     "extracting": "Estrazione",
     "last_downloaded_option": "Ultima opzione scaricata",
+    "friend_shared_download_option": "Condivisa da un amico",
     "new_download_option": "Nuovo",
     "create_steam_shortcut": "Crea collegamento Steam",
     "create_shortcut_success": "Collegamento creato con successo",
@@ -381,6 +382,7 @@
     "download_error_not_cached_on_torbox": "Questo download non è disponibile su TorBox e il controllo dello stato su TorBox non è ancora disponibile.",
     "download_error_not_cached_on_hydra": "Questo download non è disponibile su Nimbus.",
     "game_removed_from_favorites": "Gioco rimosso dai preferiti",
+    "game_shared_to_clipboard": "Link del gioco copiato negli appunti",
     "game_added_to_favorites": "Gioco aggiunto ai preferiti",
     "game_removed_from_pinned": "Gioco rimosso dai fissati",
     "game_added_to_pinned": "Gioco aggiunto ai fissati",
@@ -511,7 +513,8 @@
     "download_error_alldebrid_unavailable": "AllDebrid is temporarily unavailable. Please try again later.",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Questa opzione di download condivisa richiede una fonte che non hai ancora."
   },
   "activation": {
     "title": "Attiva Hydra",

@@ -262,6 +262,7 @@
     "download_paused": "Загрузка приостановлена",
     "extracting": "Распаковка",
     "last_downloaded_option": "Последний вариант загрузки",
+    "friend_shared_download_option": "Поделился друг",
     "new_download_option": "Новый",
     "create_steam_shortcut": "Создать ярлык Steam",
     "create_shortcut_success": "Ярлык создан",
@@ -393,6 +394,7 @@
     "download_error_not_cached_on_torbox": "Эта загрузка недоступна на TorBox, и получить статус загрузки с TorBox пока невозможно.",
     "download_error_not_cached_on_hydra": "Эта загрузка недоступна на Nimbus.",
     "game_removed_from_favorites": "Игра удалена из избранного",
+    "game_shared_to_clipboard": "Ссылка на игру скопирована в буфер обмена",
     "game_added_to_favorites": "Игра добавлена в избранное",
     "game_removed_from_pinned": "Игра удалена из закрепленных",
     "game_added_to_pinned": "Игра добавлена в закрепленные",
@@ -470,7 +472,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Для этого общего варианта загрузки нужен источник, которого у вас пока нет."
   },
   "activation": {
     "title": "Активировать Hydra",

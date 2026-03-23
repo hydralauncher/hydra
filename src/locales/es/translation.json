@@ -260,6 +260,7 @@
     "download_paused": "Descarga pausada",
     "extracting": "Extrayendo",
     "last_downloaded_option": "Última opción de descarga",
+    "friend_shared_download_option": "Compartida por un amigo",
     "new_download_option": "Nuevo",
     "create_steam_shortcut": "Crear atajo de Steam",
     "create_shortcut_success": "Atajo creado con éxito",
@@ -349,6 +350,7 @@
     "download_error_not_cached_on_torbox": "Esta descarga no está disponible en TorBox y no está disponible el estado de descarga de sondeo todavía.",
     "download_error_not_cached_on_hydra": "Esta descarga no está disponible en Nimbus.",
     "game_removed_from_favorites": "Juego eliminado de favoritos",
+    "game_shared_to_clipboard": "Enlace del juego copiado al portapapeles",
     "game_added_to_favorites": "Juego añadido a favoritos",
     "game_removed_from_pinned": "Juego removido de fijados",
     "game_added_to_pinned": "Juego añadido a fijados",
@@ -470,7 +472,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Esta opción de descarga compartida necesita una fuente que todavía no tienes."
   },
   "activation": {
     "title": "Activar Hydra",

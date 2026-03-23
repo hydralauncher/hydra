@@ -254,6 +254,7 @@
     "download_paused": "Prenos v premoru",
     "extracting": "Razpakiranje",
     "last_downloaded_option": "Zadnja prenesena možnost",
+    "friend_shared_download_option": "Deljeno od prijatelja",
     "new_download_option": "Novo",
     "create_steam_shortcut": "Ustvari Steam bližnjico",
     "create_shortcut_success": "Bližnjica je bila uspešno ustvarjena",
@@ -375,6 +376,7 @@
     "download_error_not_cached_on_torbox": "Ta prenos ni na voljo v TorBox in preverjanje statusa prenosa iz TorBox še ni na voljo.",
     "download_error_not_cached_on_hydra": "Ta prenos ni na voljo v Nimbus.",
     "game_removed_from_favorites": "Igra odstranjena iz priljubljenih",
+    "game_shared_to_clipboard": "Povezava do igre kopirana v odlozisce",
     "game_added_to_favorites": "Igra dodana med priljubljene",
     "game_removed_from_pinned": "Igra odstranjena iz pripetih",
     "game_added_to_pinned": "Igra pripeta",
@@ -511,7 +513,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Ta deljena moznost prenosa potrebuje vir, ki ga se nimate."
   },
   "activation": {
     "title": "Aktiviraj Hydra",

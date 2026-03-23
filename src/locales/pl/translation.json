@@ -263,6 +263,7 @@
     "download_paused": "Pobieranie wstrzymane",
     "extracting": "Rozpakowywanie",
     "last_downloaded_option": "Ostatnio pobrana opcja",
+    "friend_shared_download_option": "Udostępnione przez znajomego",
     "new_download_option": "Nowa",
     "create_steam_shortcut": "Utwórz skrót Steam",
     "create_shortcut_success": "Skrót utworzony pomyślnie",
@@ -442,6 +443,7 @@
     "download_error_not_cached_on_torbox": "To pobieranie nie jest dostępne na TorBox, a sprawdzanie statusu pobierania z TorBox nie jest jeszcze dostępne.",
     "download_error_not_cached_on_hydra": "To pobieranie nie jest dostępne na Nimbus.",
     "game_removed_from_favorites": "Gra usunięta z ulubionych",
+    "game_shared_to_clipboard": "Link do gry skopiowany do schowka",
     "game_added_to_favorites": "Gra dodana do ulubionych",
     "game_removed_from_pinned": "Gra usunięta z przypiętych",
     "game_added_to_pinned": "Gra dodana do przypiętych",
@@ -530,7 +532,8 @@
     "previous_screenshot": "Poprzedni zrzut ekranu",
     "next_screenshot": "Następny zrzut ekranu",
     "screenshot": "Zrzut ekranu {{number}}",
-    "open_screenshot": "Otwórz zrzut ekranu {{number}}"
+    "open_screenshot": "Otwórz zrzut ekranu {{number}}",
+    "shared_download_source_missing": "Ta udostepniona opcja pobierania wymaga zrodla, ktorego jeszcze nie masz."
   },
   "activation": {
     "enter_activation_code": "Wpisz kod aktywacyjny",

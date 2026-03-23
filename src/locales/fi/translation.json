@@ -247,6 +247,7 @@
     "download_in_progress": "Lataus käynnissä",
     "download_paused": "Lataus keskeytetty",
     "last_downloaded_option": "Viimeisin latausvaihtoehto",
+    "friend_shared_download_option": "Ystävän jakama",
     "create_steam_shortcut": "Luo Steam-pikakuvake",
     "create_shortcut_success": "Pikakuvake luotu",
     "you_might_need_to_restart_steam": "Saattaa olla, että sinun on käynnistettävä Steam uudelleen nähdäksesi muutokset",
@@ -376,6 +377,7 @@
     "download_error_not_cached_on_torbox": "Tämä lataus ei ole saatavilla TorBoxissa, eikä lataustilan hakeminen TorBoxista ole toistaiseksi mahdollista.",
     "download_error_not_cached_on_hydra": "Tämä lataus ei ole saatavilla Nimbuksessa.",
     "game_removed_from_favorites": "Peli poistettu suosikeista",
+    "game_shared_to_clipboard": "Pelin linkki kopioitu leikepöydälle",
     "game_added_to_favorites": "Peli lisätty suosikkeihin",
     "game_removed_from_pinned": "Peli poistettu kiinnitetyistä",
     "game_added_to_pinned": "Peli lisätty kiinnitettyihin",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Tama jaettu latausvaihtoehto tarvitsee lahteen, jota sinulla ei viela ole."
   },
   "activation": {
     "title": "Aktivoi Hydra",

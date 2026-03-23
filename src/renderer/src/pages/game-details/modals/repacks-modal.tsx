@@ -44,12 +44,16 @@ export interface RepacksModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null
   ) => Promise<{ ok: boolean; error?: string }>;
+  friendSharedRepackId?: string | null;
+  sharedSourceUrl?: string | null;
   onClose: () => void;
 }
 
 export function RepacksModal({
   visible,
   startDownload,
+  friendSharedRepackId,
+  sharedSourceUrl,
   onClose,
 }: Readonly<RepacksModalProps>) {
   const [filteredRepacks, setFilteredRepacks] = useState<GameRepack[]>([]);
@@ -250,6 +254,21 @@ export function RepacksModal({
     return repack.uris.some((uri) => uri.includes(game.download!.uri));
   };
 
+  const checkIfWasSharedByFriend = (repack: GameRepack) => {
+    if (!friendSharedRepackId) return false;
+    return repack.id === friendSharedRepackId;
+  };
+
+  const hasSharedRepackLocally = useMemo(() => {
+    if (!friendSharedRepackId) return true;
+    return repacks.some((repack) => repack.id === friendSharedRepackId);
+  }, [friendSharedRepackId, repacks]);
+
+  const handleAddSharedSource = () => {
+    if (!sharedSourceUrl) return;
+    navigate(`/settings?urls=${encodeURIComponent(sharedSourceUrl)}`);
+  };
+
   const isNewRepack = (repack: GameRepack): boolean => {
     if (isLoadingTimestamp) return false;
 
@@ -355,6 +374,23 @@ export function RepacksModal({
           </div>
         </div>
 
+        {friendSharedRepackId && !hasSharedRepackLocally && sharedSourceUrl && (
+          <div className="repacks-modal__shared-source-warning">
+            <p className="repacks-modal__shared-source-warning-text">
+              {t("shared_download_source_missing")}
+            </p>
+
+            <Button
+              type="button"
+              theme="outline"
+              onClick={handleAddSharedSource}
+            >
+              <PlusCircleIcon />
+              {t("add_download_source", { ns: "settings" })}
+            </Button>
+          </div>
+        )}
+
         <div className="repacks-modal__repacks">
           {filteredRepacks.length === 0 ? (
             <div className="repacks-modal__no-results">
@@ -379,8 +415,8 @@ export function RepacksModal({
             </div>
           ) : (
             filteredRepacks.map((repack) => {
-              const isLastDownloadedOption =
-                checkIfLastDownloadedOption(repack);
+              const isLastDownloadedOption = checkIfLastDownloadedOption(repack);
+              const isFriendSharedDownloadOption = checkIfWasSharedByFriend(repack);
               const availabilityStatus = getRepackAvailabilityStatus(repack);
               const tooltipId = `availability-orb-${repack.id}`;
 
@@ -411,6 +447,10 @@ export function RepacksModal({
 
                   {isLastDownloadedOption && (
                     <Badge>{t("last_downloaded_option")}</Badge>
+                  )}
+
+                  {isFriendSharedDownloadOption && (
+                    <Badge>{t("friend_shared_download_option")}</Badge>
                   )}
 
                   <p className="repacks-modal__repack-info">

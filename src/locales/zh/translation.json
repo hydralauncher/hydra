@@ -243,6 +243,7 @@
     "download_in_progress": "下载进行中",
     "download_paused": "下载暂停",
     "last_downloaded_option": "上次下载的选项",
+    "friend_shared_download_option": "好友分享",
     "create_shortcut_success": "成功创建快捷方式",
     "create_shortcut_error": "创建快捷方式出错",
     "nsfw_content_title": "本游戏包含不适合展示的内容",
@@ -313,6 +314,7 @@
     "freeze_backup": "固定以免被自动备份覆盖",
     "game_added_to_favorites": "游戏已添加到收藏",
     "game_removed_from_favorites": "游戏已从收藏中移除",
+    "game_shared_to_clipboard": "游戏链接已复制到剪贴板",
     "invalid_wine_prefix_path": "无效的Wine前置路径",
     "invalid_wine_prefix_path_description": "Wine前置的路径无效。请检查路径并重试。",
     "launch_options": "启动选项",
@@ -511,7 +513,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "此共享下载选项需要一个你尚未拥有的源。"
   },
   "activation": {
     "title": "激活 Hydra",

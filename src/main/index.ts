@@ -209,6 +209,31 @@ const handleDeepLinkPath = (uri?: string) => {
       return;
     }
 
+    if (url.host === "game") {
+      const shop = url.searchParams.get("shop") as GameShop | null;
+      const objectId = url.searchParams.get("objectId");
+      const repackId = url.searchParams.get("repackId");
+      const sourceUrl = url.searchParams.get("sourceUrl");
+
+      if (shop && objectId) {
+        const params = new URLSearchParams();
+
+        if (repackId) {
+          params.set("repackId", repackId);
+        }
+
+        if (sourceUrl) {
+          params.set("sourceUrl", sourceUrl);
+        }
+
+        const query = params.toString();
+
+        WindowManager.redirect(`game/${shop}/${objectId}${query ? `?${query}` : ""}`);
+      }
+
+      return;
+    }
+
     if (url.host === "install-source") {
       WindowManager.redirect(`settings${url.search}`);
       return;

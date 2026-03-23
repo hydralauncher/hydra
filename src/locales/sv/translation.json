@@ -244,6 +244,7 @@
     "download_in_progress": "Nedladdning pågår",
     "download_paused": "Nedladdning pausad",
     "last_downloaded_option": "Senast nedladdade alternativ",
+    "friend_shared_download_option": "Delad av en vän",
     "create_steam_shortcut": "Skapa Steam-genväg",
     "create_shortcut_success": "Genväg skapad",
     "you_might_need_to_restart_steam": "Du kan behöva starta om Steam för att se ändringarna",
@@ -313,6 +314,7 @@
     "download_error_not_cached_on_torbox": "Denna nedladdning finns inte på TorBox och statusövervakning från TorBox är ännu inte tillgänglig.",
     "download_error_not_cached_on_hydra": "Denna nedladdning finns inte på Nimbus.",
     "game_removed_from_favorites": "Spelet togs bort från favoriter",
+    "game_shared_to_clipboard": "Spellänk kopierad till urklipp",
     "game_added_to_favorites": "Spelet lades till i favoriter",
     "automatically_extract_downloaded_files": "Extrahera nedladdade filer automatiskt",
     "create_start_menu_shortcut": "Skapa genväg i Startmenyn",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Det har delade nedladdningsalternativet kraver en kalla som du inte har annu."
   },
   "activation": {
     "title": "Aktivera Hydra",

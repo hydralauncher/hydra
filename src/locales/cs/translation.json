@@ -244,6 +244,7 @@
     "download_in_progress": "Probíhá stahování",
     "download_paused": "Stahování pozastaveno",
     "last_downloaded_option": "Poslední stažená možnost",
+    "friend_shared_download_option": "Sdíleno přítelem",
     "create_shortcut_success": "Zástupce vytvořen úspěšně",
     "create_shortcut_error": "Chyba při pokusu vytvořit zástupce",
     "nsfw_content_title": "Tahle hra obsahuje nevhodný obsah",
@@ -310,6 +311,7 @@
     "download_error_not_cached_on_real_debrid": "Toto stahování není dostupné na Real-Debrid a získávání informací o stahování z Real-Debrid není zatím dostupné.",
     "download_error_not_cached_on_torbox": "Toto stahování není dostupné na TorBox a získávání informací o stahování z TorBox není zatím dostupné.",
     "game_removed_from_favorites": "Hra odebrána z oblíbených",
+    "game_shared_to_clipboard": "Odkaz na hru zkopírován do schránky",
     "game_added_to_favorites": "Hra přidána do oblíbených",
     "automatically_extract_downloaded_files": "Automaticky rozbalit stažené soubory",
     "protondb_tier": "Tier",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Tato sdílená možnost stahování vyžaduje zdroj, který ještě nemáte."
   },
   "activation": {
     "title": "Aktivovat hydru",

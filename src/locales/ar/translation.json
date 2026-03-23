@@ -244,6 +244,7 @@
     "download_in_progress": "جاري التنزيل",
     "download_paused": "التنزيل معلق",
     "last_downloaded_option": "خيار التنزيل الأخير",
+    "friend_shared_download_option": "تمت مشاركتها بواسطة صديق",
     "create_shortcut_success": "تم إنشاء الاختصار بنجاح",
     "create_shortcut_error": "خطأ في إنشاء الاختصار",
     "nsfw_content_title": "هذه اللعبة تحتوي على محتوى غير لائق",
@@ -308,6 +309,7 @@
     "download_error_not_cached_on_real_debrid": "هذا التنزيل غير متوفر على Real-Debrid وجلب حالة التنزيل من Real-Debrid غير متاح حاليًا.",
     "download_error_not_cached_on_torbox": "هذا التنزيل غير متوفر على TorBox وجلب حالة التنزيل من TorBox غير متاح حاليًا.",
     "game_removed_from_favorites": "تمت إزالة اللعبة من المفضلة",
+    "game_shared_to_clipboard": "تم نسخ رابط اللعبة إلى الحافظة",
     "game_added_to_favorites": "تمت إضافة اللعبة إلى المفضلة",
     "protondb_tier": "Tier",
     "protondb_tier_borked": "Borked",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "يتطلب خيار التنزيل المشترك هذا مصدراً لا تملكه بعد."
   },
   "activation": {
     "title": "تفعيل Hydra",

@@ -243,6 +243,7 @@
     "download_in_progress": "Nedlasting pågår",
     "download_paused": "Nedlasting satt på pause",
     "last_downloaded_option": "Siste nedlastingsmulighet",
+    "friend_shared_download_option": "Delt av en venn",
     "create_shortcut_success": "Opprettelse av snarvei vellykket",
     "create_shortcut_error": "Feil under oprettelsen av snarvei",
     "nsfw_content_title": "Dette spillet inneholder upassende innhold",
@@ -454,6 +455,7 @@
     "download_error_not_cached_on_torbox": "This download is not available on TorBox and polling download status from TorBox is not yet available.",
     "download_error_not_cached_on_hydra": "This download is not available on Nimbus.",
     "game_removed_from_favorites": "Game removed from favorites",
+    "game_shared_to_clipboard": "Spilllenke kopiert til utklippstavlen",
     "game_added_to_favorites": "Game added to favorites",
     "game_removed_from_pinned": "Game removed from pinned",
     "game_added_to_pinned": "Game added to pinned",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Dette delte nedlastingsalternativet krever en kilde du ikke har ennå."
   },
   "activation": {
     "title": "Aktivér Hydra",

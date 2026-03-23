@@ -35,6 +35,8 @@ export default function GameDetails() {
 
   const fromRandomizer = searchParams.get("fromRandomizer");
   const gameTitle = searchParams.get("title");
+  const friendSharedRepackId = searchParams.get("repackId");
+  const sharedSourceUrl = searchParams.get("sourceUrl");
 
   const { startDownload, addGameToQueue } = useDownload();
 
@@ -166,6 +168,8 @@ export default function GameDetails() {
                 <RepacksModal
                   visible={showRepacksModal}
                   startDownload={handleStartDownload}
+                  friendSharedRepackId={friendSharedRepackId}
+                  sharedSourceUrl={sharedSourceUrl}
                   onClose={() => setShowRepacksModal(false)}
                 />
 

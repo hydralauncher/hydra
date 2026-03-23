@@ -51,6 +51,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   setGameOptionsInitialCategory: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
+  getDownloadSourceById: () => null
 });
 
 const { Provider } = gameDetailsContext;
@@ -88,6 +89,7 @@ export function GameDetailsContextProvider({
   const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
     useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
+  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
 
   const { i18n } = useTranslation("game_details");
   const location = useLocation();
@@ -324,6 +326,7 @@ export function GameDetailsContextProvider({
           "downloadSources"
         )) as DownloadSource[];
         const sources = orderBy(sourcesRaw, "createdAt", "desc");
+        setDownloadSources(sources);
 
         const params = {
           take: 100,
@@ -347,6 +350,12 @@ export function GameDetailsContextProvider({
 
     fetchDownloadSources();
   }, [shop, objectId]);
+
+  const getDownloadSourceById = useCallback(
+    (downloadSourceId: string) =>
+      downloadSources.find((source) => source.id === downloadSourceId) ?? null,
+    [downloadSources]
+  );
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;
@@ -400,6 +409,7 @@ export function GameDetailsContextProvider({
         setShowRepacksModal,
         setShowGameOptionsModal,
         setGameOptionsInitialCategory,
+        getDownloadSourceById
       }}
     >
       {children}

@@ -244,6 +244,7 @@
     "executable_section_title": "Файл",
     "executable_path_in_use": "Виконуваний файл наразі використовується \"{{game}}\"",
     "last_downloaded_option": "Останній варіант завантаження",
+    "friend_shared_download_option": "Поділився друг",
     "next_screenshot": "Наступний скрішнот",
     "no_executable_selected": "Файл не вибрано",
     "no_shop_details": "Не вдалося отримати опис",
@@ -314,6 +315,7 @@
     "download_error_not_cached_on_torbox": "Це завантаження недоступне на TorBox, і перевірка статусу завантаження з TorBox наразі недоступна.",
     "download_error_not_cached_on_hydra": "Це завантаження недоступне через Nimbus.",
     "game_removed_from_favorites": "Гра видалена з улюбленних",
+    "game_shared_to_clipboard": "Посилання на гру скопійовано в буфер обміну",
     "game_added_to_favorites": "Гра була добавлена у улюблені",
     "automatically_extract_downloaded_files": "Автоматично розархівувати завантаженні файли",
     "create_steam_shortcut": "Створити ярлик Steam",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Цей спільний варіант завантаження потребує джерела, якого у вас ще немає."
   },
   "activation": {
     "title": "Активувати Hydra",

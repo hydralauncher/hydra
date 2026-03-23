@@ -244,6 +244,7 @@
     "download_in_progress": "Download erfolgt",
     "download_paused": "Download ist pausiert",
     "last_downloaded_option": "Letzte Download-Option",
+    "friend_shared_download_option": "Von einem Freund geteilt",
     "create_steam_shortcut": "Steam-Verknüpfung erstellen",
     "create_shortcut_success": "Verknüpfung erfolgreich erstellt",
     "you_might_need_to_restart_steam": "Möglicherweise musst du Steam neu starten, um die Änderungen zu sehen",
@@ -313,6 +314,7 @@
     "download_error_not_cached_on_torbox": "Dieser Download ist nicht auf TorBox verfügbar und das Abrufen des Download-Status von TorBox ist noch nicht verfügbar.",
     "download_error_not_cached_on_hydra": "Dieser Download ist nicht auf Nimbus verfügbar.",
     "game_removed_from_favorites": "Spiel aus Favoriten entfernt",
+    "game_shared_to_clipboard": "Spiel-Link in die Zwischenablage kopiert",
     "game_added_to_favorites": "Spiel zu Favoriten hinzugefügt",
     "automatically_extract_downloaded_files": "Heruntergeladene Dateien automatisch entpacken",
     "create_start_menu_shortcut": "Startmenü-Verknüpfung erstellen",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Diese geteilte Download-Option benötigt eine Quelle, die du noch nicht hast."
   },
   "activation": {
     "title": "Hydra aktivieren",

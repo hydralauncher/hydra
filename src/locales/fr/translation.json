@@ -253,6 +253,7 @@
     "download_in_progress": "Téléchargement en cours",
     "download_paused": "Téléchargement en pause",
     "last_downloaded_option": "Dernière option téléchargée",
+    "friend_shared_download_option": "Partagée par un ami",
     "create_shortcut_success": "Raccourci créé avec succès",
     "create_shortcut_error": "Erreur lors de la création du raccourci",
     "nsfw_content_title": "Ce jeu contient du contenu inapproprié",
@@ -320,6 +321,7 @@
     "download_error_not_cached_on_torbox": "Ce téléchargement n'est pas disponible sur TorBox, et le suivi n'est pas encore disponible.",
     "download_error_not_cached_on_hydra": "Ce téléchargement n'est pas disponible sur Nimbus.",
     "game_removed_from_favorites": "Jeu retiré des favoris",
+    "game_shared_to_clipboard": "Lien du jeu copié dans le presse-papiers",
     "game_added_to_favorites": "Jeu ajouté aux favoris",
     "automatically_extract_downloaded_files": "Extraire automatiquement les fichiers téléchargés",
     "already_in_library": "Déjà dans la bibliothèque",
@@ -545,7 +547,8 @@
     "download_error_torrent_no_files_selected": "Sélectionnez au moins un fichier torrent pour démarrer le téléchargement.",
     "download_error_torrent_invalid_file_selection": "Les fichiers torrent sélectionnés sont invalides. Veuillez recharger et réessayer.",
     "download_error_torrent_too_many_files": "Ce torrent contient trop de fichiers pour être affiché en toute sécurité.",
-    "download_error_torrent_files_unavailable": "Impossible de récupérer les fichiers torrent. Veuillez réessayer."
+    "download_error_torrent_files_unavailable": "Impossible de récupérer les fichiers torrent. Veuillez réessayer.",
+    "shared_download_source_missing": "Cette option de téléchargement partagée nécessite une source que vous n’avez pas encore."
   },
   "activation": {
     "title": "Activer Hydra",
