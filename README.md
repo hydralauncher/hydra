@@ -34,7 +34,6 @@ Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.h
 - Node.js + Yarn
 - Python 3.9+ with `pip install -r requirements.txt`
 - Rust toolchain (for `hydra-native`)
-- `libtorrent-rasterbar` development package (Linux/macOS, usually `libtorrent-rasterbar2.0-dev` or `libtorrent-rasterbar-dev`) or vcpkg `libtorrent` (Windows)
 
 After installing dependencies, `postinstall` now builds the Rust native addon automatically (`hydra-native/hydra-native.node`).
 

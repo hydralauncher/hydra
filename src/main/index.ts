@@ -280,7 +280,7 @@ app.on("before-quit", async (e) => {
   if (!canAppBeClosed) {
     e.preventDefault();
     PowerSaveBlockerManager.reset();
-    /* Disconnects libtorrent */
+    /* Disconnects Python RPC */
     PythonRPC.kill();
     await clearGamesPlaytime();
     canAppBeClosed = true;

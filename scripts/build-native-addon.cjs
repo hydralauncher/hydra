@@ -72,52 +72,6 @@ const copySidecarLibrariesOnWindows = async (sourceDirectory) => {
   }
 };
 
-const listUnixDependencies = async (binaryPath) => {
-  if (process.platform === "linux") {
-    const { stdout } = await execFile("ldd", [binaryPath], {
-      cwd: projectRoot,
-      maxBuffer: 1024 * 1024 * 10,
-    });
-
-    return stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .map((line) => {
-        const match = line.match(/=>\s+(\/[^\s]+)\s+\(/);
-        return match ? match[1] : null;
-      })
-      .filter(Boolean);
-  }
-
-  return [];
-};
-
-const shouldBundleUnixDependency = (dependencyPath) => {
-  const basename = path.basename(dependencyPath);
-
-  return (
-    basename.startsWith("libtorrent-rasterbar") ||
-    basename.startsWith("libboost_")
-  );
-};
-
-const copySidecarLibrariesOnUnix = async () => {
-  if (process.platform !== "linux") return;
-
-  const dependencies = await listUnixDependencies(outputNodePath);
-
-  for (const dependencyPath of dependencies) {
-    if (!shouldBundleUnixDependency(dependencyPath)) continue;
-    if (!fs.existsSync(dependencyPath)) continue;
-
-    const targetPath = path.join(outputDir, path.basename(dependencyPath));
-
-    if (!fs.existsSync(targetPath)) {
-      fs.copyFileSync(dependencyPath, targetPath);
-    }
-  }
-};
-
 const build = async () => {
   const sourceLibraryName = sourceLibraryNameByPlatform[process.platform];
 
@@ -127,7 +81,7 @@ const build = async () => {
     );
   }
 
-  console.log("Building hydra-native Rust addon (libtorrent)...");
+  console.log("Building hydra-native Rust addon...");
 
   const cargoArgs = [
     "build",
@@ -154,7 +108,6 @@ const build = async () => {
   fs.copyFileSync(sourceLibraryPath, outputNodePath);
 
   await copySidecarLibrariesOnWindows(path.dirname(sourceLibraryPath));
-  await copySidecarLibrariesOnUnix();
   await ensureDepsResolvableOnLinux();
 
   console.log(`Hydra native addon ready at ${outputNodePath}`);
