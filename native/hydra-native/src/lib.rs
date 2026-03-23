@@ -3,11 +3,6 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::{cmp::Ordering, collections::HashMap};
 
-mod libtorrent_bridge;
-
-#[path = "torrent_libtorrent.rs"]
-mod torrent;
-
 use image::codecs::gif::GifDecoder;
 use image::codecs::png::PngDecoder;
 use image::codecs::webp::WebPDecoder;
