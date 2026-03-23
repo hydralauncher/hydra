@@ -23,13 +23,30 @@ function formatDate(dateStr: string): string {
   if (parts.length < 3) return dateStr;
 
   const months: Record<string, string> = {
-    jan: "Jan", feb: "Feb", mar: "Mar", apr: "Apr",
-    may: "May", jun: "Jun", jul: "Jul", aug: "Aug",
-    sep: "Sep", oct: "Oct", nov: "Nov", dec: "Dec",
-    janeiro: "Jan", fevereiro: "Feb", março: "Mar",
-    abril: "Apr", maio: "May", junho: "Jun",
-    julho: "Jul", agosto: "Aug", setembro: "Sep",
-    outubro: "Oct", novembro: "Nov", dezembro: "Dec",
+    jan: "Jan",
+    feb: "Feb",
+    mar: "Mar",
+    apr: "Apr",
+    may: "May",
+    jun: "Jun",
+    jul: "Jul",
+    aug: "Aug",
+    sep: "Sep",
+    oct: "Oct",
+    nov: "Nov",
+    dec: "Dec",
+    janeiro: "Jan",
+    fevereiro: "Feb",
+    março: "Mar",
+    abril: "Apr",
+    maio: "May",
+    junho: "Jun",
+    julho: "Jul",
+    agosto: "Aug",
+    setembro: "Sep",
+    outubro: "Oct",
+    novembro: "Nov",
+    dezembro: "Dec",
   };
 
   const year = parts.find((p) => p.length === 4 && !isNaN(Number(p)));
@@ -48,14 +65,20 @@ function formatDate(dateStr: string): string {
 
 function cleanPublisher(raw: string): string {
   return raw
-    .replace(/\s*(co\.,?\s*ltd\.?|inc\.?|llc\.?|corp\.?|ltd\.?|gmbh|s\.?a\.?|s\.?r\.?l\.?|entertainment|interactive|studios?|games?|publishing)/gi, "")
+    .replace(
+      /\s*(co\.,?\s*ltd\.?|inc\.?|llc\.?|corp\.?|ltd\.?|gmbh|s\.?a\.?|s\.?r\.?l\.?|entertainment|interactive|studios?|games?|publishing)/gi,
+      ""
+    )
     .replace(/[,.\s]+$/, "")
     .trim();
 }
 
 const UUID_RE = /^[0-9a-f-]{36}$/i;
 
-export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps>) {
+export function GameInfo({
+  game,
+  showAddButton = false,
+}: Readonly<GameInfoProps>) {
   const { i18n, t } = useTranslation("home");
   const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
@@ -75,7 +98,10 @@ export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps
     fetchedRef.current = key;
 
     const cached = detailsCache.get(key);
-    if (cached) { setDetails(cached); return; }
+    if (cached) {
+      setDetails(cached);
+      return;
+    }
 
     setDetails(null);
     window.electron
@@ -90,7 +116,9 @@ export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps
   useEffect(() => {
     const resolve = async () => {
       if (!sourcesCache) {
-        const all = (await levelDBService.values("downloadSources")) as DownloadSource[];
+        const all = (await levelDBService.values(
+          "downloadSources"
+        )) as DownloadSource[];
         sourcesCache = orderBy(all, "createdAt", "desc");
       }
 
@@ -114,14 +142,15 @@ export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps
     };
 
     resolve();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.objectId, game.downloadSources?.join(",")]);
 
   const publisher = details?.publishers?.[0]
     ? cleanPublisher(details.publishers[0])
     : "";
   const date = details?.release_date?.date
-    ? formatDate(details.release_date.date) : "";
+    ? formatDate(details.release_date.date)
+    : "";
 
   const meta = [publisher, date].filter(Boolean).join(" - ");
 
@@ -132,7 +161,9 @@ export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps
       {sourceNames.length > 0 && (
         <div className="home__source-tags">
           {sourceNames.map((name) => (
-            <span key={name} className="home__source-tag">{name}</span>
+            <span key={name} className="home__source-tag">
+              {name}
+            </span>
           ))}
         </div>
       )}
@@ -153,7 +184,11 @@ export function GameInfo({ game, showAddButton = false }: Readonly<GameInfoProps
               if (isInLibrary || isAdding) return;
               setIsAdding(true);
               try {
-                await window.electron.addGameToLibrary(game.shop, game.objectId, game.title);
+                await window.electron.addGameToLibrary(
+                  game.shop,
+                  game.objectId,
+                  game.title
+                );
                 updateLibrary();
               } finally {
                 setIsAdding(false);

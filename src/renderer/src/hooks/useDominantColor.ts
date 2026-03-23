@@ -20,7 +20,10 @@ export function useDominantColor(imageUrl: string | undefined): string {
       ctx.drawImage(img, 0, 0, 16, 16);
 
       const data = ctx.getImageData(0, 0, 16, 16).data;
-      let r = 0, g = 0, b = 0, count = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        count = 0;
 
       for (let i = 0; i < data.length; i += 4) {
         const brightness = data[i] + data[i + 1] + data[i + 2];

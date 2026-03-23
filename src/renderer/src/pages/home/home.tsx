@@ -93,30 +93,39 @@ export default function Home() {
 
   const categories = Object.values(CatalogueCategory);
 
-  const libraryAsGames = useMemo<ShopAssets[]>(() =>
-    library
-      .filter((g): g is LibraryGame & { objectId: string; shop: NonNullable<LibraryGame["shop"]> } =>
-        Boolean(g.objectId && g.shop)
-      )
-      .map((g) => ({
-        objectId: g.objectId!,
-        shop: g.shop!,
-        title: g.title,
-        iconUrl: g.iconUrl ?? null,
-        libraryHeroImageUrl: g.libraryHeroImageUrl ?? null,
-        libraryImageUrl: g.libraryImageUrl ?? null,
-        logoImageUrl: g.logoImageUrl ?? null,
-        logoPosition: null,
-        coverImageUrl: null,
-        downloadSources: [],
-      })),
-  [library]);
+  const libraryAsGames = useMemo<ShopAssets[]>(
+    () =>
+      library
+        .filter(
+          (
+            g
+          ): g is LibraryGame & {
+            objectId: string;
+            shop: NonNullable<LibraryGame["shop"]>;
+          } => Boolean(g.objectId && g.shop)
+        )
+        .map((g) => ({
+          objectId: g.objectId!,
+          shop: g.shop!,
+          title: g.title,
+          iconUrl: g.iconUrl ?? null,
+          libraryHeroImageUrl: g.libraryHeroImageUrl ?? null,
+          libraryImageUrl: g.libraryImageUrl ?? null,
+          logoImageUrl: g.logoImageUrl ?? null,
+          logoPosition: null,
+          coverImageUrl: null,
+          downloadSources: [],
+        })),
+    [library]
+  );
 
   const showSkeleton = isLoading || isTransitioning;
   const currentGames = isMyGames
     ? libraryAsGames
     : catalogue[currentCatalogueCategory];
-  const selectedGame = showSkeleton ? null : (currentGames[selectedIndex] ?? null);
+  const selectedGame = showSkeleton
+    ? null
+    : (currentGames[selectedIndex] ?? null);
 
   const backgroundSrc = useMemo(() => {
     if (!selectedGame) return undefined;
@@ -204,7 +213,11 @@ export default function Home() {
             {categories.map((category) => (
               <li key={category}>
                 <Button
-                  theme={!isMyGames && category === currentCatalogueCategory ? "primary" : "outline"}
+                  theme={
+                    !isMyGames && category === currentCatalogueCategory
+                      ? "primary"
+                      : "outline"
+                  }
                   onClick={() => handleCatTabClick(category)}
                 >
                   {t(category)}
@@ -216,48 +229,51 @@ export default function Home() {
           <div className="home__slider" ref={sliderRef}>
             {showSkeleton
               ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="home__card">
-                  <Skeleton className="home__card-skeleton" />
-                </div>
-              ))
+                  <div key={i} className="home__card">
+                    <Skeleton className="home__card-skeleton" />
+                  </div>
+                ))
               : currentGames.map((game, index) => (
-                <button
-                  key={game.objectId}
-                  type="button"
-                  className={cn("home__card", {
-                    "home__card--selected": index === selectedIndex,
-                  })}
-                  onClick={() => setSelectedIndex(index)}
-                  onDoubleClick={() =>
-                    navigate(buildGameDetailsPath(game))
-                  }
-                  style={
-                    index === selectedIndex
-                      ? { boxShadow: `inset 0 0 0 2px ${glowColor}` }
-                      : undefined
-                  }
-                >
-                  <img
-                    src={
-                      game.shop === "steam"
-                        ? `https://steamcdn-a.akamaihd.net/steam/apps/${game.objectId}/library_600x900_2x.jpg`
-                        : (game.libraryImageUrl ?? undefined)
+                  <button
+                    key={game.objectId}
+                    type="button"
+                    className={cn("home__card", {
+                      "home__card--selected": index === selectedIndex,
+                    })}
+                    onClick={() => setSelectedIndex(index)}
+                    onDoubleClick={() => navigate(buildGameDetailsPath(game))}
+                    style={
+                      index === selectedIndex
+                        ? { boxShadow: `inset 0 0 0 2px ${glowColor}` }
+                        : undefined
                     }
-                    alt={game.title}
-                    className="home__card-image"
-                    loading="lazy"
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      if (game.libraryImageUrl && img.src !== game.libraryImageUrl) {
-                        img.src = game.libraryImageUrl;
+                  >
+                    <img
+                      src={
+                        game.shop === "steam"
+                          ? `https://steamcdn-a.akamaihd.net/steam/apps/${game.objectId}/library_600x900_2x.jpg`
+                          : (game.libraryImageUrl ?? undefined)
                       }
-                    }}
-                  />
-                </button>
-              ))}
+                      alt={game.title}
+                      className="home__card-image"
+                      loading="lazy"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (
+                          game.libraryImageUrl &&
+                          img.src !== game.libraryImageUrl
+                        ) {
+                          img.src = game.libraryImageUrl;
+                        }
+                      }}
+                    />
+                  </button>
+                ))}
           </div>
 
-          {selectedGame && <GameInfo game={selectedGame} showAddButton={!isMyGames} />}
+          {selectedGame && (
+            <GameInfo game={selectedGame} showAddButton={!isMyGames} />
+          )}
         </div>
       </section>
     </SkeletonTheme>

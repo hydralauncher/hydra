@@ -22,12 +22,9 @@ import {
 } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 
-
-
 import "./sidebar.scss";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
-
 
 import { sortBy } from "lodash-es";
 import cn from "classnames";
@@ -46,7 +43,6 @@ import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { setCollections } from "@renderer/features";
 import { useDispatch } from "react-redux";
-
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -159,13 +155,10 @@ export function Sidebar() {
         version: info.version,
         outdated: info.outdated,
       });
-
     } catch (error) {
       console.error("Failed to load Decky plugin info:", error);
     }
   };
-
-
 
   const handleConfirmDeckyInstallation = async () => {
     setShowDeckyConfirmModal(false);
@@ -291,8 +284,6 @@ export function Sidebar() {
 
     return game.title;
   };
-
-
 
   const handleSidebarGameClick = (
     event: React.MouseEvent,
@@ -534,7 +525,6 @@ export function Sidebar() {
     >
       <div className="sidebar__container">
         <div className="sidebar__content">
-
           <section className="sidebar__section">
             <div className="sidebar__section-header">
               <button

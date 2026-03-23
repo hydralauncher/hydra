@@ -30,8 +30,6 @@ import { routes as navRoutes } from "../sidebar/routes";
 import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
 
-
-
 export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -41,9 +39,7 @@ export function Header() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { draggingDisabled } = useAppSelector(
-    (state) => state.window
-  );
+  const { draggingDisabled } = useAppSelector((state) => state.window);
 
   const { userDetails } = useUserDetails();
 
@@ -102,8 +98,6 @@ export function Header() {
     3
   );
 
-
-
   const totalItems = historyItems.length + suggestions.length;
 
   const updateDropdownPosition = () => {
@@ -115,8 +109,6 @@ export function Header() {
       });
     }
   };
-
-
 
   const handleFocus = () => {
     if (isFocused && isDropdownVisible) {
@@ -474,4 +466,3 @@ export function Header() {
     </>
   );
 }
-
