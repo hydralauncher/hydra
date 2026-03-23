@@ -228,6 +228,18 @@ export class DownloadManager {
     }
   }
 
+  private static logNativePollStatus(payload: {
+    gameId: string;
+    status: LibtorrentStatus;
+    isCheckingFiles: boolean;
+    progress: number;
+    bytesDownloaded: number;
+    fileSize: number;
+    folderName: string;
+  }) {
+    logger.log(`[DownloadManager] Native poll ${JSON.stringify(payload)}`);
+  }
+
   public static async startRPC(
     download?: Download,
     downloadsToSeed?: Download[]
@@ -384,9 +396,18 @@ export class DownloadManager {
   }
 
   private static async getDownloadStatusFromRpc(): Promise<DownloadProgress | null> {
-    const response = NativeAddon.getTorrentStatus();
-    if (response === null || !this.downloadingGameId) return null;
+    if (!this.downloadingGameId) return null;
     const downloadId = this.downloadingGameId;
+
+    let response: ReturnType<typeof NativeAddon.getTorrentStatus> = null;
+    try {
+      response = NativeAddon.getTorrentStatus(downloadId);
+    } catch (error) {
+      logger.error("[DownloadManager] Native status poll failed", error);
+      return null;
+    }
+
+    if (response === null) return null;
 
     try {
       const {
@@ -425,21 +446,48 @@ export class DownloadManager {
         });
       }
 
+      const fallbackFileSize =
+        download?.selectedFilesSize ?? download?.fileSize ?? 0;
+      const effectiveFileSize = fileSize > 0 ? fileSize : fallbackFileSize;
+
+      const reportedProgress =
+        isDownloadingMetadata || isCheckingFiles
+          ? Math.max(download?.progress ?? 0, progress)
+          : progress;
+
+      const reportedBytesDownloaded =
+        isDownloadingMetadata || isCheckingFiles
+          ? Math.max(download?.bytesDownloaded ?? 0, bytesDownloaded)
+          : bytesDownloaded;
+
+      const shouldSuppressLiveMetrics =
+        isDownloadingMetadata || isCheckingFiles;
+
+      this.logNativePollStatus({
+        gameId: downloadId,
+        status,
+        isCheckingFiles,
+        progress: reportedProgress,
+        bytesDownloaded: reportedBytesDownloaded,
+        fileSize: effectiveFileSize,
+        folderName,
+      });
+
       return {
-        numPeers,
-        numSeeds,
+        numPeers: shouldSuppressLiveMetrics ? 0 : numPeers,
+        numSeeds: shouldSuppressLiveMetrics ? 0 : numSeeds,
         estimatedSeeds,
-        downloadSpeed,
-        timeRemaining: calculateETA(
-          fileSize > 0
-            ? fileSize
-            : (download?.selectedFilesSize ?? download?.fileSize ?? 0),
-          bytesDownloaded,
-          downloadSpeed
-        ),
+        downloadSpeed: shouldSuppressLiveMetrics ? 0 : downloadSpeed,
+        timeRemaining: shouldSuppressLiveMetrics
+          ? -1
+          : calculateETA(
+              effectiveFileSize,
+              reportedBytesDownloaded,
+              downloadSpeed
+            ),
         isDownloadingMetadata,
         isCheckingFiles,
-        progress,
+        progress: reportedProgress,
         gameId: downloadId,
         download,
       } as DownloadProgress;
@@ -469,7 +517,10 @@ export class DownloadManager {
 
     this.sendProgressUpdate(progress, status, game);
 
-    const isComplete = progress === 1 || download.status === "complete";
+    const isComplete =
+      !status.isCheckingFiles &&
+      !status.isDownloadingMetadata &&
+      (progress === 1 || download.status === "complete");
     if (isComplete) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
@@ -692,10 +743,15 @@ export class DownloadManager {
   }
 
   public static async getSeedStatus() {
-    const seedStatus = NativeAddon.getTorrentSeedStatus().map((status) => ({
-      ...status,
-      status: "seeding" as const,
-    }));
+    let seedStatus: ReturnType<typeof NativeAddon.getTorrentSeedStatus> = [];
+
+    try {
+      seedStatus = NativeAddon.getTorrentSeedStatus();
+    } catch (error) {
+      logger.error("[DownloadManager] Native seed status poll failed", error);
+      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      return;
+    }
 
     if (!seedStatus.length) {
       WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
@@ -788,6 +844,7 @@ export class DownloadManager {
       gameId: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
       savePath: download.downloadPath,
+      folderName: download.folderName,
     });
   }
 
@@ -1474,6 +1531,7 @@ export class DownloadManager {
         gameId: downloadId,
         url: download.uri,
         savePath: download.downloadPath,
+        folderName: download.folderName,
         fileIndices: download.fileIndices,
         timeoutMs: isSelectiveTorrentStart ? 60_000 : 10_000,
       });

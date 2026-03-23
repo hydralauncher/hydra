@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <iostream>
 
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/error_code.hpp>
@@ -252,77 +253,106 @@ rust::String cancel_torrent(rust::Str game_id) {
 BridgeTorrentStatusResult get_torrent_status(rust::Str game_id) {
   BridgeTorrentStatusResult result = detail::empty_status_result();
 
-  lt::torrent_handle handle;
-  std::optional<std::int64_t> selected_size_bytes;
+  try {
+    std::string game_id_value(game_id);
 
-  {
-    std::lock_guard<std::mutex> guard(detail::g_mutex);
-    auto it = detail::g_downloads.find(std::string(game_id));
-    if (it == detail::g_downloads.end()) {
+    lt::torrent_handle handle;
+    std::optional<std::int64_t> selected_size_bytes;
+
+    {
+      std::lock_guard<std::mutex> guard(detail::g_mutex);
+      auto it = detail::g_downloads.find(game_id_value);
+      if (it == detail::g_downloads.end()) {
+        return result;
+      }
+
+      handle = it->second.handle;
+      selected_size_bytes = it->second.selected_size_bytes;
+    }
+
+    if (!handle.is_valid()) {
       return result;
     }
 
-    handle = it->second.handle;
-    selected_size_bytes = it->second.selected_size_bytes;
-  }
-
-  if (!handle.is_valid()) {
-    return result;
-  }
-
-  lt::torrent_status status;
-  try {
-    status = handle.status();
-  } catch (...) {
-    return result;
-  }
-
-  std::shared_ptr<const lt::torrent_info> info;
-  if (status.has_metadata) {
+    lt::torrent_status status;
     try {
-      info = handle.torrent_file();
+      status = handle.status();
     } catch (...) {
-      info.reset();
+      return result;
     }
-  }
 
-  auto total_wanted = static_cast<std::int64_t>(status.total_wanted);
-  std::int64_t file_size = 0;
-  if (total_wanted > 0) {
-    file_size = total_wanted;
-  } else if (selected_size_bytes.has_value()) {
-    file_size = selected_size_bytes.value();
-  } else if (info) {
-    file_size = static_cast<std::int64_t>(info->total_size());
-  }
+    std::shared_ptr<const lt::torrent_info> info;
+    if (status.has_metadata) {
+      try {
+        info = handle.torrent_file();
+      } catch (...) {
+        info.reset();
+      }
+    }
 
-  auto total_wanted_done = static_cast<std::int64_t>(status.total_wanted_done);
-  std::int64_t bytes_downloaded = 0;
-  if (total_wanted_done >= 0) {
-    bytes_downloaded = total_wanted_done;
-  } else if (file_size > 0) {
-    bytes_downloaded = static_cast<std::int64_t>(status.progress * static_cast<double>(file_size));
-  } else {
-    bytes_downloaded = static_cast<std::int64_t>(status.all_time_download);
-  }
+    auto total_wanted = static_cast<std::int64_t>(status.total_wanted);
+    std::int64_t file_size = 0;
+    std::string file_size_source = "status.total_wanted";
 
-  double progress = 0.0;
-  if (file_size <= 0) {
-    progress = static_cast<double>(status.progress);
-  } else {
-    progress = std::clamp(static_cast<double>(bytes_downloaded) / static_cast<double>(file_size), 0.0, 1.0);
-  }
+    if (total_wanted > 0) {
+      file_size = total_wanted;
+    } else if (selected_size_bytes.has_value() && selected_size_bytes.value() > 0) {
+      file_size = selected_size_bytes.value();
+      file_size_source = "selected_size_bytes";
+    } else if (info) {
+      file_size = static_cast<std::int64_t>(info->total_size());
+      file_size_source = "torrent_info.total_size";
+    } else {
+      file_size_source = "unknown";
+    }
 
-  result.present = true;
-  result.progress = progress;
-  result.num_peers = static_cast<std::uint32_t>(std::max(status.num_peers, 0));
-  result.num_seeds = static_cast<std::uint32_t>(std::max(status.num_seeds, 0));
-  result.download_speed = static_cast<std::int64_t>(status.download_rate);
-  result.upload_speed = static_cast<std::int64_t>(status.upload_rate);
-  result.bytes_downloaded = bytes_downloaded;
-  result.file_size = file_size;
-  result.folder_name = info ? detail::to_rust_string(info->name()) : "";
-  result.status = detail::map_torrent_state(status.state);
+    auto total_wanted_done = static_cast<std::int64_t>(status.total_wanted_done);
+    std::int64_t bytes_downloaded = 0;
+    if (total_wanted_done >= 0) {
+      bytes_downloaded = total_wanted_done;
+    } else if (file_size > 0) {
+      bytes_downloaded =
+          static_cast<std::int64_t>(status.progress * static_cast<double>(file_size));
+    } else {
+      bytes_downloaded = static_cast<std::int64_t>(status.all_time_download);
+    }
+
+    if (bytes_downloaded < 0) {
+      bytes_downloaded = 0;
+    }
+
+    double progress = 0.0;
+    if (file_size <= 0) {
+      progress = static_cast<double>(status.progress);
+    } else {
+      progress = std::clamp(
+          static_cast<double>(bytes_downloaded) / static_cast<double>(file_size),
+          0.0,
+          1.0);
+    }
+
+    auto mapped_status = detail::map_torrent_state(status.state);
+
+    std::cerr << "[hydra-native][get_torrent_status] game_id=" << game_id_value
+              << " mapped_status=" << mapped_status << " total_wanted=" << total_wanted
+              << " total_wanted_done=" << total_wanted_done
+              << " all_time_download=" << static_cast<std::int64_t>(status.all_time_download)
+              << " file_size=" << file_size << " file_size_source=" << file_size_source
+              << std::endl;
+
+    result.present = true;
+    result.progress = progress;
+    result.num_peers = static_cast<std::uint32_t>(std::max(status.num_peers, 0));
+    result.num_seeds = static_cast<std::uint32_t>(std::max(status.num_seeds, 0));
+    result.download_speed = static_cast<std::int64_t>(status.download_rate);
+    result.upload_speed = static_cast<std::int64_t>(status.upload_rate);
+    result.bytes_downloaded = bytes_downloaded;
+    result.file_size = file_size;
+    result.folder_name = info ? detail::to_rust_string(info->name()) : "";
+    result.status = mapped_status;
+  } catch (...) {
+    return detail::empty_status_result();
+  }
 
   return result;
 }

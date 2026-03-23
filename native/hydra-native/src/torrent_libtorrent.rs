@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -171,6 +171,7 @@ pub struct StartTorrentPayload {
     pub game_id: String,
     pub url: String,
     pub save_path: String,
+    pub folder_name: Option<String>,
     pub file_indices: Option<Vec<u32>>,
     pub timeout_ms: Option<u32>,
 }
@@ -180,6 +181,7 @@ pub struct ResumeSeedingPayload {
     pub game_id: String,
     pub url: String,
     pub save_path: String,
+    pub folder_name: Option<String>,
 }
 
 struct CachedTorrentFiles {
@@ -234,19 +236,77 @@ fn build_reserved_output_folder(
         .to_string()
 }
 
+fn has_single_top_level_folder(files_payload: &TorrentFilesPayload) -> bool {
+    if files_payload.files.is_empty() {
+        return false;
+    }
+
+    let mut root_segment: Option<String> = None;
+
+    for file in &files_payload.files {
+        let normalized_path = file.path.replace('\\', "/");
+        let parts = normalized_path
+            .split('/')
+            .filter(|segment| !segment.trim().is_empty())
+            .collect::<Vec<_>>();
+
+        if parts.len() < 2 {
+            return false;
+        }
+
+        let first_segment = parts[0].to_ascii_lowercase();
+        if let Some(existing_segment) = &root_segment {
+            if existing_segment != &first_segment {
+                return false;
+            }
+        } else {
+            root_segment = Some(first_segment);
+        }
+    }
+
+    root_segment.is_some()
+}
+
+fn resolve_existing_folder_candidate(
+    root_save_path: &str,
+    folder_name: Option<&str>,
+) -> Option<String> {
+    let sanitized_folder_name = folder_name
+        .and_then(sanitize_folder_component)
+        .filter(|value| !value.is_empty())?;
+
+    let existing_path = PathBuf::from(root_save_path).join(sanitized_folder_name);
+    if existing_path.is_dir() {
+        return Some(existing_path.to_string_lossy().to_string());
+    }
+
+    None
+}
+
 fn resolve_torrent_output_folder(
     root_save_path: &str,
     magnet: &str,
     info_hash: &str,
     timeout_ms: u32,
+    folder_name: Option<&str>,
 ) -> String {
+    if let Some(existing_path) = resolve_existing_folder_candidate(root_save_path, folder_name) {
+        return existing_path;
+    }
+
     match fetch_torrent_files_internal(magnet.to_string(), info_hash.to_string(), timeout_ms) {
-        Ok(files_payload) => build_reserved_output_folder(
-            root_save_path,
-            Some(&files_payload.name),
-            files_payload.files.len(),
-            info_hash,
-        ),
+        Ok(files_payload) => {
+            if has_single_top_level_folder(&files_payload) {
+                root_save_path.to_string()
+            } else {
+                build_reserved_output_folder(
+                    root_save_path,
+                    Some(&files_payload.name),
+                    files_payload.files.len(),
+                    info_hash,
+                )
+            }
+        }
         Err(_) => root_save_path.to_string(),
     }
 }
@@ -255,7 +315,7 @@ fn ensure_reserved_output_folder_exists(
     root_save_path: &str,
     resolved_save_path: &str,
 ) -> napi::Result<()> {
-    if resolved_save_path == root_save_path {
+    if Path::new(resolved_save_path) == Path::new(root_save_path) {
         return Ok(());
     }
 
@@ -460,17 +520,10 @@ fn fetch_torrent_files_internal(
 }
 
 #[napi]
-pub fn torrent_get_status() -> napi::Result<Option<TorrentStatusPayload>> {
-    let game_id = {
-        let manager = TORRENT_MANAGER
-            .lock()
-            .map_err(|_| Error::from_reason("internal_error"))?;
-        manager.downloading_game_id.clone()
-    };
-
-    let Some(game_id) = game_id else {
+pub fn torrent_get_status(game_id: String) -> napi::Result<Option<TorrentStatusPayload>> {
+    if game_id.trim().is_empty() {
         return Ok(None);
-    };
+    }
 
     let status = bridge::get_torrent_status(&game_id);
     if !status.present {
@@ -565,6 +618,15 @@ pub async fn torrent_start(payload: StartTorrentPayload) -> napi::Result<()> {
         &magnet,
         &info_hash,
         output_resolution_timeout_ms,
+        payload.folder_name.as_deref(),
+    );
+
+    eprintln!(
+        "[hydra-native][torrent_start] game_id={} save_path={} resolved_save_path={} folder_name_hint={}",
+        payload.game_id,
+        payload.save_path,
+        resolved_save_path,
+        payload.folder_name.as_deref().unwrap_or("")
     );
 
     ensure_reserved_output_folder_exists(&payload.save_path, &resolved_save_path)?;
@@ -633,8 +695,21 @@ pub fn torrent_resume_seeding(payload: ResumeSeedingPayload) -> napi::Result<()>
     let (magnet, info_hash) = validate_magnet_uri(&payload.url)?;
     ensure_session()?;
 
-    let resolved_save_path =
-        resolve_torrent_output_folder(&payload.save_path, &magnet, &info_hash, 15_000);
+    let resolved_save_path = resolve_torrent_output_folder(
+        &payload.save_path,
+        &magnet,
+        &info_hash,
+        15_000,
+        payload.folder_name.as_deref(),
+    );
+
+    eprintln!(
+        "[hydra-native][torrent_resume_seeding] game_id={} save_path={} resolved_save_path={} folder_name_hint={}",
+        payload.game_id,
+        payload.save_path,
+        resolved_save_path,
+        payload.folder_name.as_deref().unwrap_or("")
+    );
 
     ensure_reserved_output_folder_exists(&payload.save_path, &resolved_save_path)?;
 
@@ -667,7 +742,7 @@ pub fn torrent_pause_seeding(game_id: String) -> napi::Result<()> {
 
 #[napi]
 pub fn torrent_set_download_limit(
-  max_download_speed_bytes_per_second: Option<u32>,
+    max_download_speed_bytes_per_second: Option<u32>,
 ) -> napi::Result<()> {
     let limit = max_download_speed_bytes_per_second.filter(|value| *value > 0);
 
