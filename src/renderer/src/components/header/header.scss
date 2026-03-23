@@ -8,9 +8,19 @@
   -webkit-app-region: drag;
   width: 100%;
   padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
+  padding-bottom: calc(globals.$spacing-unit * 3);
   color: globals.$muted-color;
-  border-bottom: solid 1px globals.$border-color;
-  background-color: globals.$dark-background-color;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.35) 40%,
+    rgba(0, 0, 0, 0.15) 70%,
+    transparent 100%
+  );
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
 
   &--dragging-disabled {
     -webkit-app-region: no-drag;
@@ -20,35 +30,76 @@
     -webkit-app-region: no-drag;
   }
 
-  &__search {
-    background-color: globals.$background-color;
-    display: inline-flex;
-    transition: all ease 0.2s;
-    width: 200px;
+  &__nav {
+    display: flex;
     align-items: center;
-    border-radius: 8px;
-    border: solid 1px globals.$border-color;
-    height: 40px;
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
     -webkit-app-region: no-drag;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &__nav-item {
+    color: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    padding: 8px 24px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all ease 0.15s;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+
     &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(255, 255, 255, 0.05);
     }
 
-    &--focused {
-      width: 250px;
-      border-color: #dadbe1;
+    &--active {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: solid 1px rgba(255, 255, 255, 0.15);
     }
+  }
+
+  &__search-bar {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: search-slide-down 0.15s ease;
+    z-index: 2;
+  }
+
+  &__search-bar-icon {
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
   }
 
   &__search-input {
     background-color: transparent;
     border: none;
     width: 100%;
-    height: 100%;
+    height: 28px;
     outline: none;
     color: #dadbe1;
     cursor: default;
     font-family: inherit;
+    font-size: 13px;
     text-overflow: ellipsis;
 
     &:focus {
@@ -57,21 +108,54 @@
   }
 
   &__action-button {
-    color: inherit;
+    color: rgba(255, 255, 255, 0.5);
     cursor: pointer;
-    transition: all ease 0.2s;
-    padding: globals.$spacing-unit;
+    transition: all ease 0.15s;
+    padding: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 100px;
+    -webkit-app-region: no-drag;
 
     &:hover {
-      color: #dadbe1;
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &--active {
+      color: #fff;
     }
 
     &--scanning svg {
       animation: spin 2s linear infinite;
     }
+  }
+
+  &__profile-button {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    border-radius: 100px;
+    -webkit-app-region: no-drag;
+    transition: all ease 0.15s;
+    padding: 4px 12px;
+    color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      color: #fff;
+      background-color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  &__profile-label {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   @keyframes spin {
@@ -83,15 +167,30 @@
     }
   }
 
+  @keyframes search-slide-down {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
   &__section {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: globals.$spacing-unit;
     height: 100%;
-    overflow: hidden;
 
     &--left {
-      flex: 1;
+      flex-shrink: 0;
+    }
+
+    &--right {
+      flex-shrink: 0;
+      margin-left: auto;
     }
   }
 
@@ -99,33 +198,17 @@
     color: globals.$body-color;
     cursor: pointer;
     -webkit-app-region: no-drag;
-    position: absolute;
-    transition: transform ease 0.2s;
-    animation-duration: 0.2s;
+    transition: all ease 0.2s;
     width: 16px;
     height: 16px;
     display: flex;
     align-items: center;
     opacity: 0;
     pointer-events: none;
-    animation-name: slide-out;
 
     &--enabled {
-      animation: slide-in;
       opacity: 1;
       pointer-events: all;
-    }
-  }
-
-  &__title {
-    transition: all ease 0.2s;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-
-    &--has-back-button {
-      transform: translateX(28px);
-      width: calc(100% - 28px);
     }
   }
 }

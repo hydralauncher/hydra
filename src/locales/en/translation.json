@@ -8,8 +8,10 @@
     "no_results": "No results found",
     "start_typing": "Starting typing to search...",
     "hot": "Hot now",
-    "weekly": "📅 Top games of the week",
-    "achievements": "🏆 Games to beat"
+    "my_games": "My Games",
+    "weekly": "Top games of the week",
+    "achievements": "Games to beat",
+    "see_more": "See more"
   },
   "sidebar": {
     "catalogue": "Catalogue",

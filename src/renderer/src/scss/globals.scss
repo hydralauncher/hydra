@@ -1,10 +1,10 @@
-$background-color: #121212;
-$dark-background-color: #0d0d0d;
+$background-color: #000000;
+$dark-background-color: #000000;
 
 $muted-color: #f0f1f7;
 $body-color: #d0d1d7;
 
-$border-color: rgba(255, 255, 255, 0.08);
+$border-color: transparent;
 $success-color: #1c9749;
 $danger-color: #801d1e;
 $error-color: #e11d48;
@@ -23,6 +23,7 @@ $bottom-panel-z-index: 3;
 $title-bar-z-index: 4;
 $backdrop-z-index: 4;
 $modal-z-index: 5;
+$sidebar-z-index: 10;
 
 $body-font-size: 14px;
 $small-font-size: 12px;

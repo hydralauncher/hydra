@@ -5,21 +5,21 @@
 }
 
 ::-webkit-scrollbar {
-  width: 9px;
-  background-color: globals.$dark-background-color;
+  width: 4px;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.18);
 }
 
 html,
@@ -33,11 +33,12 @@ body {
   overflow: hidden;
   user-select: none;
   font-family:
-    Noto Sans,
+    Poppins,
     sans-serif;
   font-size: globals.$body-font-size;
   color: globals.$body-color;
   margin: 0;
+  background-color: #000;
 }
 
 button {
@@ -72,6 +73,7 @@ main {
 
 main {
   overflow: hidden;
+  position: relative;
 }
 
 input::-webkit-outer-spin-button,
@@ -101,6 +103,7 @@ progress[value] {
   flex-direction: column;
   container-name: globals.$app-container;
   container-type: inline-size;
+  position: relative;
 
   &__content {
     overflow-y: auto;
@@ -109,11 +112,8 @@ progress[value] {
     flex-direction: column;
     position: relative;
     height: 100%;
-    background: linear-gradient(
-      0deg,
-      globals.$dark-background-color 50%,
-      globals.$background-color 100%
-    );
+    background-color: transparent;
+    padding-top: 60px;
   }
 }
 
@@ -122,12 +122,11 @@ progress[value] {
   width: 100%;
   height: 35px;
   min-height: 35px;
-  background-color: globals.$dark-background-color;
+  background-color: transparent;
   align-items: center;
   padding: 0 calc(globals.$spacing-unit * 2);
   -webkit-app-region: drag;
   z-index: 4;
-  border-bottom: 1px solid globals.$border-color;
 
   &__cloud-text {
     background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);

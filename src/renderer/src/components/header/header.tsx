@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
+  BellIcon,
   SearchIcon,
   SyncIcon,
   XIcon,
@@ -14,6 +15,7 @@ import {
   useAppSelector,
   useSearchHistory,
   useSearchSuggestions,
+  useUserDetails,
 } from "@renderer/hooks";
 
 import "./header.scss";
@@ -24,14 +26,11 @@ import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
+import { routes as navRoutes } from "../sidebar/routes";
+import { Avatar } from "../avatar/avatar";
+import { AuthPage } from "@shared";
 
-const pathTitle: Record<string, string> = {
-  "/": "home",
-  "/catalogue": "catalogue",
-  "/library": "library",
-  "/downloads": "downloads",
-  "/settings": "settings",
-};
+
 
 export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,9 +41,19 @@ export function Header() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { headerTitle, draggingDisabled } = useAppSelector(
+  const { draggingDisabled } = useAppSelector(
     (state) => state.window
   );
+
+  const { userDetails } = useUserDetails();
+
+  const handleProfileClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+    navigate(`/profile/${userDetails.id}`);
+  };
 
   const catalogueSearchValue = useAppSelector(
     (state) => state.catalogueSearch.filters.title
@@ -93,17 +102,7 @@ export function Header() {
     3
   );
 
-  const title = useMemo(() => {
-    if (location.pathname.startsWith("/game")) return headerTitle;
-    if (location.pathname.startsWith("/achievements")) return headerTitle;
-    if (location.pathname.startsWith("/profile")) return headerTitle;
-    if (location.pathname.startsWith("/notifications")) return headerTitle;
-    if (location.pathname.startsWith("/library"))
-      return headerTitle || t("library");
-    if (location.pathname.startsWith("/search")) return t("search_results");
 
-    return t(pathTitle[location.pathname]);
-  }, [location.pathname, headerTitle, t]);
 
   const totalItems = historyItems.length + suggestions.length;
 
@@ -117,10 +116,7 @@ export function Header() {
     }
   };
 
-  const focusInput = () => {
-    setIsFocused(true);
-    inputRef.current?.focus();
-  };
+
 
   const handleFocus = () => {
     if (isFocused && isDropdownVisible) {
@@ -283,6 +279,39 @@ export function Header() {
     }
   }, [searchParams, setSearchParams]);
 
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchBarWidth, setSearchBarWidth] = useState(0);
+  const navRef = useRef<HTMLElement>(null);
+
+  const handleToggleSearch = () => {
+    setIsSearchOpen((prev) => {
+      if (!prev) {
+        if (navRef.current) {
+          setSearchBarWidth(navRef.current.offsetWidth);
+        }
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+      return !prev;
+    });
+  };
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(target)
+      ) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSearchOpen]);
+
   return (
     <>
       <header
@@ -302,17 +331,27 @@ export function Header() {
           >
             <ArrowLeftIcon />
           </button>
-
-          <h3
-            className={cn("header__title", {
-              "header__title--has-back-button": location.key !== "default",
-            })}
-          >
-            {title}
-          </h3>
         </section>
 
-        <section className="header__section">
+        <nav ref={navRef} className="header__nav">
+          {navRoutes.map(({ path, nameKey }) => (
+            <button
+              key={path}
+              type="button"
+              className={cn("header__nav-item", {
+                "header__nav-item--active":
+                  path === "/"
+                    ? location.pathname === "/"
+                    : location.pathname.startsWith(path),
+              })}
+              onClick={() => navigate(path)}
+            >
+              {t(nameKey, { ns: "sidebar" })}
+            </button>
+          ))}
+        </nav>
+
+        <section className="header__section header__section--right">
           {isOnLibraryPage && window.electron.platform === "win32" && (
             <button
               type="button"
@@ -328,20 +367,48 @@ export function Header() {
             </button>
           )}
 
+          <button
+            type="button"
+            className={cn("header__action-button", {
+              "header__action-button--active": isSearchOpen,
+            })}
+            onClick={handleToggleSearch}
+          >
+            {isSearchOpen ? <XIcon size={16} /> : <SearchIcon size={16} />}
+          </button>
+
+          <button
+            type="button"
+            className="header__action-button"
+            onClick={() => navigate("/notifications")}
+            title={t("notifications", { ns: "sidebar" })}
+          >
+            <BellIcon size={16} />
+          </button>
+
+          <button
+            type="button"
+            className="header__profile-button"
+            onClick={handleProfileClick}
+          >
+            <Avatar
+              size={24}
+              src={userDetails?.profileImageUrl}
+              alt={userDetails?.displayName}
+            />
+            <span className="header__profile-label">
+              {userDetails?.displayName || t("sign_in", { ns: "sidebar" })}
+            </span>
+          </button>
+        </section>
+
+        {isSearchOpen && (
           <div
             ref={searchContainerRef}
-            className={cn("header__search", {
-              "header__search--focused": isFocused,
-            })}
+            className="header__search-bar"
+            style={{ width: searchBarWidth > 0 ? searchBarWidth : undefined }}
           >
-            <button
-              type="button"
-              className="header__action-button"
-              onClick={focusInput}
-            >
-              <SearchIcon />
-            </button>
-
+            <SearchIcon size={14} className="header__search-bar-icon" />
             <input
               ref={inputRef}
               type="text"
@@ -354,7 +421,6 @@ export function Header() {
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
             />
-
             {searchValue && (
               <button
                 type="button"
@@ -362,11 +428,11 @@ export function Header() {
                 onClick={handleClearSearch}
                 className="header__action-button"
               >
-                <XIcon />
+                <XIcon size={14} />
               </button>
             )}
           </div>
-        </section>
+        )}
       </header>
 
       {isOnLibraryPage && window.electron.platform === "win32" && (
@@ -408,3 +474,4 @@ export function Header() {
     </>
   );
 }
+

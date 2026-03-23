@@ -1,26 +1,49 @@
 @use "../../scss/globals.scss";
 
 .home {
-  &__content {
+  width: 100%;
+  height: calc(100% + 60px);
+  margin-top: -60px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &__background {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+    animation: fade-in 0.4s ease;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.4) 40%,
+      rgba(0, 0, 0, 0.8) 100%
+    );
+    z-index: 1;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    padding: 0 calc(globals.$spacing-unit * 3);
     gap: calc(globals.$spacing-unit * 2);
-    padding: 0;
-    flex: 1;
-    overflow-y: auto;
   }
 
-  &__header {
-    display: flex;
-    gap: globals.$spacing-unit;
-    justify-content: space-between;
-    align-items: center;
-    padding: calc(globals.$spacing-unit * 3);
-  }
-
-  &__buttons-list {
+  &__tabs {
     display: flex;
     list-style: none;
     margin: 0;
@@ -28,88 +51,125 @@
     gap: globals.$spacing-unit;
   }
 
-  &__card-skeleton {
-    width: 100%;
-    height: 180px;
-    box-shadow: 0px 0px 15px 0px #000000;
+  &__slider {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+    margin: 0 calc(globals.$spacing-unit * -3);
+    scroll-behavior: smooth;
+    align-items: center;
+    min-height: 258px;
+
+    &::-webkit-scrollbar {
+      height: 0;
+      display: none;
+    }
+  }
+
+  &__card {
+    flex-shrink: 0;
+    width: 110px;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
     overflow: hidden;
-    border-radius: 4px;
-    transition: all ease 0.2s;
-    z-index: 1;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
 
-    &:active {
-      opacity: globals.$active-opacity;
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &--selected {
+      width: 140px;
+
+      &:hover {
+        opacity: 1;
+      }
     }
   }
 
-  &__no-results {
+  &__card-image {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+    transition: box-shadow 0.25s ease;
+  }
+
+  &__card-skeleton {
+    width: 110px;
+    height: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+  }
+
+  &__details {
+    padding-top: globals.$spacing-unit;
+    min-height: 90px;
+  }
+
+  &__game-title {
+    font-size: 32px;
+    font-weight: 400;
+    color: #fff;
+    margin: 0;
+  }
+
+  &__game-meta {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 4px 0 0;
+  }
+
+  &__view-button {
+    min-width: 180px;
+    padding: 0 32px;
+  }
+
+  &__actions {
     display: flex;
+    gap: 8px;
     align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    grid-column: 1 / -1;
+    margin-top: 12px;
   }
 
-  &__flame-icon {
-    width: 30px;
-    top: -10px;
-    left: -5px;
-    position: absolute;
+  &__add-button {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    flex-shrink: 0;
   }
 
-  &__stars-icon {
-    width: 70px;
-    position: absolute;
-    top: -28px;
-    left: -27px;
-  }
-
-  &__icon-wrapper {
-    width: 16px;
-    height: 16px;
-    position: relative;
-  }
-
-  &__title-icon {
-    width: 24px;
-    height: 24px;
-    position: relative;
+  &__source-tags {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
   }
 
-  &__title-flame-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
+  &__source-tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.12);
+    padding: 2px 10px;
+    border-radius: 12px;
   }
+}
 
-  &__title {
-    display: flex;
-    gap: globals.$spacing-unit;
-    padding: 0 calc(globals.$spacing-unit * 3);
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: calc(globals.$spacing-unit * 2);
-    transition: all ease 0.2s;
-    padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
-
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: 1250px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    @media (min-width: 1600px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
+  to {
+    opacity: 1;
   }
 }

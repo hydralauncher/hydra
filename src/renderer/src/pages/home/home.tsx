@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDominantColor } from "@renderer/hooks/useDominantColor";
 import { useTranslation } from "react-i18next";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
@@ -6,24 +7,26 @@ import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
-import { Button, GameCard, Hero } from "@renderer/components";
-import type { DownloadSource, ShopAssets, Steam250Game } from "@types";
-
-import flameIconStatic from "@renderer/assets/icons/flame-static.png";
-import flameIconAnimated from "@renderer/assets/icons/flame-animated.gif";
-import starsIconAnimated from "@renderer/assets/icons/stars-animated.gif";
+import { Button } from "@renderer/components";
+import type { DownloadSource, LibraryGame, ShopAssets } from "@types";
+import { useLibrary } from "@renderer/hooks/use-library";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { CatalogueCategory } from "@shared";
+import cn from "classnames";
+import { GameInfo } from "./game-info";
 import "./home.scss";
 
 export default function Home() {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
+  const { library } = useLibrary();
 
-  const [animateFlame, setAnimateFlame] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [randomGame, setRandomGame] = useState<Steam250Game | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isMyGames, setIsMyGames] = useState(true);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   const [currentCatalogueCategory, setCurrentCatalogueCategory] = useState(
     CatalogueCategory.Hot
@@ -48,43 +51,22 @@ export default function Home() {
       const downloadSources = orderBy(sources, "createdAt", "desc");
 
       const params = {
-        take: 12,
+        take: 20,
         skip: 0,
         downloadSourceIds: downloadSources.map((source) => source.id),
       };
 
-      const catalogue = await window.electron.hydraApi.get<ShopAssets[]>(
+      const result = await window.electron.hydraApi.get<ShopAssets[]>(
         `/catalogue/${category}`,
-        {
-          params,
-          needsAuth: false,
-        }
+        { params, needsAuth: false }
       );
 
-      setCatalogue((prev) => ({ ...prev, [category]: catalogue }));
+      setCatalogue((prev) => ({ ...prev, [category]: result }));
+      setSelectedIndex(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
-
-  const getRandomGame = useCallback(() => {
-    window.electron.getRandomGame().then((game) => {
-      if (game) setRandomGame(game);
-    });
-  }, []);
-
-  const handleRandomizerClick = () => {
-    if (randomGame) {
-      navigate(
-        buildGameDetailsPath(
-          { ...randomGame, shop: "steam" },
-          {
-            fromRandomizer: "1",
-          }
-        )
-      );
-    }
-  };
 
   const handleCategoryClick = (category: CatalogueCategory) => {
     if (category !== currentCatalogueCategory) {
@@ -92,112 +74,191 @@ export default function Home() {
     }
   };
 
+  const handleMyGamesClick = () => {
+    setIsTransitioning(true);
+    setIsMyGames(true);
+    setSelectedIndex(0);
+    requestAnimationFrame(() => setIsTransitioning(false));
+  };
+
+  const handleCatTabClick = (category: CatalogueCategory) => {
+    setIsMyGames(false);
+    handleCategoryClick(category);
+  };
+
   useEffect(() => {
     setIsLoading(true);
     getCatalogue(CatalogueCategory.Hot);
-
-    getRandomGame();
-  }, [getCatalogue, getRandomGame]);
+  }, [getCatalogue]);
 
   const categories = Object.values(CatalogueCategory);
 
-  const handleMouseEnterCategory = (category: CatalogueCategory) => {
-    if (category === CatalogueCategory.Hot) {
-      setAnimateFlame(true);
-    }
-  };
+  const libraryAsGames = useMemo<ShopAssets[]>(() =>
+    library
+      .filter((g): g is LibraryGame & { objectId: string; shop: NonNullable<LibraryGame["shop"]> } =>
+        Boolean(g.objectId && g.shop)
+      )
+      .map((g) => ({
+        objectId: g.objectId!,
+        shop: g.shop!,
+        title: g.title,
+        iconUrl: g.iconUrl ?? null,
+        libraryHeroImageUrl: g.libraryHeroImageUrl ?? null,
+        libraryImageUrl: g.libraryImageUrl ?? null,
+        logoImageUrl: g.logoImageUrl ?? null,
+        logoPosition: null,
+        coverImageUrl: null,
+        downloadSources: [],
+      })),
+  [library]);
 
-  const handleMouseLeaveCategory = (category: CatalogueCategory) => {
-    if (category === CatalogueCategory.Hot) {
-      setAnimateFlame(false);
+  const showSkeleton = isLoading || isTransitioning;
+  const currentGames = isMyGames
+    ? libraryAsGames
+    : catalogue[currentCatalogueCategory];
+  const selectedGame = showSkeleton ? null : (currentGames[selectedIndex] ?? null);
+
+  const backgroundSrc = useMemo(() => {
+    if (!selectedGame) return undefined;
+    if (selectedGame.libraryHeroImageUrl) {
+      return selectedGame.libraryHeroImageUrl;
     }
-  };
+    if (selectedGame.shop === "steam") {
+      return `https://steamcdn-a.akamaihd.net/steam/apps/${selectedGame.objectId}/library_hero.jpg`;
+    }
+    return selectedGame.libraryImageUrl ?? undefined;
+  }, [selectedGame]);
+
+  const cardImageUrl = useMemo(() => {
+    if (!selectedGame) return undefined;
+    return selectedGame.shop === "steam"
+      ? `https://steamcdn-a.akamaihd.net/steam/apps/${selectedGame.objectId}/library_600x900_2x.jpg`
+      : (selectedGame.libraryImageUrl ?? undefined);
+  }, [selectedGame]);
+
+  const glowColor = useDominantColor(cardImageUrl);
+
+  const scrollToCard = useCallback((index: number) => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    const card = slider.children[index] as HTMLElement | undefined;
+    if (!card) return;
+    const offset = slider.clientWidth * 0.03;
+    slider.scrollTo({ left: card.offsetLeft - offset, behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLoading || currentGames.length === 0) return;
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setSelectedIndex((prev) => {
+          const next = Math.min(prev + 1, currentGames.length - 1);
+          scrollToCard(next);
+          return next;
+        });
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setSelectedIndex((prev) => {
+          const next = Math.max(prev - 1, 0);
+          scrollToCard(next);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isLoading, currentGames.length, scrollToCard]);
+
+  useEffect(() => {
+    if (!isLoading && currentGames.length > 0) {
+      requestAnimationFrame(() => scrollToCard(0));
+    }
+  }, [isLoading, currentGames.length, scrollToCard]);
 
   return (
     <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
-      <section className="home__content">
-        <Hero />
+      <section className="home">
+        {backgroundSrc && (
+          <img
+            src={backgroundSrc}
+            alt=""
+            className="home__background"
+            key={backgroundSrc}
+          />
+        )}
+        <div className="home__overlay" />
 
-        <section className="home__header">
-          <ul className="home__buttons-list">
+        <div className="home__content">
+          <ul className="home__tabs">
+            <li>
+              <Button
+                theme={isMyGames ? "primary" : "outline"}
+                onClick={handleMyGamesClick}
+              >
+                {t("my_games")}
+              </Button>
+            </li>
             {categories.map((category) => (
               <li key={category}>
                 <Button
-                  theme={
-                    category === currentCatalogueCategory
-                      ? "primary"
-                      : "outline"
-                  }
-                  onClick={() => handleCategoryClick(category)}
-                  onMouseEnter={() => handleMouseEnterCategory(category)}
-                  onMouseLeave={() => handleMouseLeaveCategory(category)}
+                  theme={!isMyGames && category === currentCatalogueCategory ? "primary" : "outline"}
+                  onClick={() => handleCatTabClick(category)}
                 >
-                  {category === CatalogueCategory.Hot && (
-                    <div className="home__icon-wrapper">
-                      <img
-                        src={flameIconStatic}
-                        alt=""
-                        className="home__flame-icon"
-                        style={{ display: animateFlame ? "none" : "block" }}
-                      />
-                      <img
-                        src={flameIconAnimated}
-                        alt=""
-                        className="home__flame-icon"
-                        style={{ display: animateFlame ? "block" : "none" }}
-                      />
-                    </div>
-                  )}
-
                   {t(category)}
                 </Button>
               </li>
             ))}
           </ul>
 
-          <Button
-            onClick={handleRandomizerClick}
-            theme="outline"
-            disabled={!randomGame}
-          >
-            <div className="home__icon-wrapper">
-              <img
-                src={starsIconAnimated}
-                alt=""
-                className="home__stars-icon"
-              />
-            </div>
-            {t("surprise_me")}
-          </Button>
-        </section>
-
-        <h2 className="home__title">
-          {currentCatalogueCategory === CatalogueCategory.Hot && (
-            <div className="home__title-icon">
-              <img
-                src={flameIconAnimated}
-                alt=""
-                className="home__title-flame-icon"
-              />
-            </div>
-          )}
-
-          {t(currentCatalogueCategory)}
-        </h2>
-
-        <section className="home__cards">
-          {isLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <Skeleton key={index} className="home__card-skeleton" />
+          <div className="home__slider" ref={sliderRef}>
+            {showSkeleton
+              ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="home__card">
+                  <Skeleton className="home__card-skeleton" />
+                </div>
               ))
-            : catalogue[currentCatalogueCategory].map((result) => (
-                <GameCard
-                  key={result.objectId}
-                  game={result}
-                  onClick={() => navigate(buildGameDetailsPath(result))}
-                />
+              : currentGames.map((game, index) => (
+                <button
+                  key={game.objectId}
+                  type="button"
+                  className={cn("home__card", {
+                    "home__card--selected": index === selectedIndex,
+                  })}
+                  onClick={() => setSelectedIndex(index)}
+                  onDoubleClick={() =>
+                    navigate(buildGameDetailsPath(game))
+                  }
+                  style={
+                    index === selectedIndex
+                      ? { boxShadow: `inset 0 0 0 2px ${glowColor}` }
+                      : undefined
+                  }
+                >
+                  <img
+                    src={
+                      game.shop === "steam"
+                        ? `https://steamcdn-a.akamaihd.net/steam/apps/${game.objectId}/library_600x900_2x.jpg`
+                        : (game.libraryImageUrl ?? undefined)
+                    }
+                    alt={game.title}
+                    className="home__card-image"
+                    loading="lazy"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (game.libraryImageUrl && img.src !== game.libraryImageUrl) {
+                        img.src = game.libraryImageUrl;
+                      }
+                    }}
+                  />
+                </button>
               ))}
-        </section>
+          </div>
+
+          {selectedGame && <GameInfo game={selectedGame} showAddButton={!isMyGames} />}
+        </div>
       </section>
     </SkeletonTheme>
   );

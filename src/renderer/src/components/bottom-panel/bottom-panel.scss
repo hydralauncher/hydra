@@ -2,8 +2,10 @@
 
 .bottom-panel {
   width: 100%;
-  border-top: solid 1px globals.$border-color;
-  background-color: globals.$background-color;
+  border-top: none;
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
   display: flex;
   align-items: center;

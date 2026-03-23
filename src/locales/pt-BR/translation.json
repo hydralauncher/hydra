@@ -5,11 +5,13 @@
   },
   "home": {
     "hot": "Populares",
-    "weekly": "📅 Mais baixados da semana",
-    "achievements": "🏆 Pra platinar",
+    "my_games": "Meus Jogos",
+    "weekly": "Mais baixados da semana",
+    "achievements": "Pra platinar",
     "surprise_me": "Surpreenda-me",
     "no_results": "Nenhum resultado encontrado",
-    "start_typing": "Comece a digitar para pesquisar…"
+    "start_typing": "Comece a digitar para pesquisar…",
+    "see_more": "Ver mais"
   },
   "sidebar": {
     "catalogue": "Catálogo",

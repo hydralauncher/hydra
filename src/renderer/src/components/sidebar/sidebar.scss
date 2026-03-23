@@ -1,15 +1,34 @@
 @use "../../scss/globals.scss";
 
+.sidebar-wrapper {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  z-index: globals.$sidebar-z-index;
+  overflow: visible;
+
+  &:hover {
+    width: auto;
+
+    .sidebar {
+      transform: translateX(0);
+    }
+  }
+}
+
 .sidebar {
-  background-color: globals.$dark-background-color;
+  background-color: rgba(0, 0, 0, 0.92);
   color: globals.$muted-color;
   flex-direction: column;
   display: flex;
-  transition: opacity ease 0.2s;
-  border-right: solid 1px globals.$border-color;
-  position: relative;
+  height: 100%;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
   overflow: hidden;
   padding-top: globals.$spacing-unit;
+  backdrop-filter: blur(20px);
 
   &--resizing {
     opacity: globals.$active-opacity;
@@ -57,11 +76,11 @@
     border-radius: 4px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.1);
     }
 
     &--active {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.08);
     }
 
     &--muted {
@@ -124,8 +143,6 @@
     border-radius: 6px;
     display: flex;
     margin-left: auto;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.5);
   }
 
   &__collection-icon {
@@ -135,8 +152,8 @@
 
   &__collection-count {
     margin-left: auto;
-    background-color: #fff;
-    color: globals.$background-color;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
     font-size: 10px;
     font-weight: 700;
     border-radius: 999px;
@@ -219,11 +236,11 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    border-top: solid 1px globals.$border-color;
+    border-top: solid 1px rgba(255, 255, 255, 0.06);
     transition: background-color ease 0.1s;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.1);
     }
   }
 

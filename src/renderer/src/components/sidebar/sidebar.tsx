@@ -22,13 +22,13 @@ import {
 } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 
-import { routes } from "./routes";
+
 
 import "./sidebar.scss";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import { SidebarProfile } from "./sidebar-profile";
+
 import { sortBy } from "lodash-es";
 import cn from "classnames";
 import {
@@ -46,7 +46,7 @@ import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { setCollections } from "@renderer/features";
 import { useDispatch } from "react-redux";
-import deckyIcon from "@renderer/assets/icons/decky.png";
+
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -69,7 +69,7 @@ export function Sidebar() {
     version: string | null;
     outdated: boolean;
   }>({ installed: false, version: null, outdated: false });
-  const [homebrewFolderExists, setHomebrewFolderExists] = useState(false);
+
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -149,7 +149,7 @@ export function Sidebar() {
     if (window.electron.platform !== "linux") return;
 
     try {
-      const [info, folderExists] = await Promise.all([
+      const [info] = await Promise.all([
         window.electron.getHydraDeckyPluginInfo(),
         window.electron.checkHomebrewFolderExists(),
       ]);
@@ -159,18 +159,13 @@ export function Sidebar() {
         version: info.version,
         outdated: info.outdated,
       });
-      setHomebrewFolderExists(folderExists);
+
     } catch (error) {
       console.error("Failed to load Decky plugin info:", error);
     }
   };
 
-  const handleInstallHydraDeckyPlugin = () => {
-    if (deckyPluginInfo.installed && !deckyPluginInfo.outdated) {
-      return;
-    }
-    setShowDeckyConfirmModal(true);
-  };
+
 
   const handleConfirmDeckyInstallation = async () => {
     setShowDeckyConfirmModal(false);
@@ -297,11 +292,7 @@ export function Sidebar() {
     return game.title;
   };
 
-  const handleSidebarItemClick = (path: string) => {
-    if (path !== location.pathname) {
-      navigate(path);
-    }
-  };
+
 
   const handleSidebarGameClick = (
     event: React.MouseEvent,
@@ -542,54 +533,7 @@ export function Sidebar() {
       }}
     >
       <div className="sidebar__container">
-        <SidebarProfile />
-
         <div className="sidebar__content">
-          <section className="sidebar__section">
-            <ul className="sidebar__menu">
-              {routes.map(({ nameKey, path, render }) => (
-                <li
-                  key={nameKey}
-                  className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active": location.pathname === path,
-                  })}
-                >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={() => handleSidebarItemClick(path)}
-                  >
-                    {render()}
-                    <span>{t(nameKey)}</span>
-                  </button>
-                </li>
-              ))}
-              {window.electron.platform === "linux" && homebrewFolderExists && (
-                <li className="sidebar__menu-item sidebar__menu-item--decky">
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={handleInstallHydraDeckyPlugin}
-                  >
-                    <img
-                      src={deckyIcon}
-                      alt=""
-                      style={{ width: 16, height: 16 }}
-                    />
-                    <span>
-                      {deckyPluginInfo.installed && !deckyPluginInfo.outdated
-                        ? t("decky_plugin_installed_version", {
-                            version: deckyPluginInfo.version,
-                          })
-                        : deckyPluginInfo.installed && deckyPluginInfo.outdated
-                          ? t("update_decky_plugin")
-                          : t("install_decky_plugin")}
-                    </span>
-                  </button>
-                </li>
-              )}
-            </ul>
-          </section>
 
           <section className="sidebar__section">
             <div className="sidebar__section-header">

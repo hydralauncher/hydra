@@ -400,7 +400,9 @@ export function App() {
       />
 
       <main>
-        <Sidebar />
+        <div className="sidebar-wrapper">
+          <Sidebar />
+        </div>
 
         <article className="container">
           <Header />

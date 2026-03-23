@@ -1,7 +1,6 @@
 @use "../../scss/globals.scss";
 
 .auto-update-sub-header {
-  border-bottom: solid 1px globals.$body-color;
   padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 3);
 
   &__new-version-link {

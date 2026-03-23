@@ -2,8 +2,10 @@
 
 .button {
   padding: globals.$spacing-unit globals.$spacing-unit * 2;
-  background-color: globals.$muted-color;
-  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 100px;
   border: solid 1px transparent;
   transition: all ease 0.2s;
   cursor: pointer;
@@ -12,6 +14,7 @@
   align-items: center;
   justify-content: center;
   gap: globals.$spacing-unit;
+  color: #fff;
 
   &:active {
     opacity: globals.$active-opacity;
@@ -23,37 +26,45 @@
   }
 
   &--primary {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: solid 1px transparent;
+
     &:hover {
-      background-color: #dadbe1;
+      background: rgba(255, 255, 255, 0.12);
     }
 
     &:disabled {
-      background-color: globals.$muted-color;
+      background: rgba(255, 255, 255, 0.03);
     }
   }
 
   &--outline {
-    background-color: transparent;
-    border: solid 1px globals.$border-color;
-    color: globals.$muted-color;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: solid 1px transparent;
+    color: rgba(255, 255, 255, 0.8);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
     }
 
     &:disabled {
-      background-color: transparent;
+      background: transparent;
     }
   }
 
   &--dark {
-    background-color: globals.$dark-background-color;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
     color: globals.$muted-color;
   }
 
   &--danger {
     border-color: transparent;
-    background-color: globals.$danger-color;
+    background: globals.$danger-color;
     color: globals.$muted-color;
 
     &:hover {
