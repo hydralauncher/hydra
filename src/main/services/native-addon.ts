@@ -21,7 +21,7 @@ type HydraNativeModule = {
     targetExtension?: string
   ) => NativeProcessProfileImageResponse;
   listProcesses: () => ProcessPayload[];
-  torrentGetStatus: () => LibtorrentPayload | null;
+  torrentGetStatus: (gameId: string) => LibtorrentPayload | null;
   torrentGetSeedStatus: () => Array<LibtorrentPayload & { gameId: string }>;
   torrentGetFiles: (
     magnet: string,
@@ -31,6 +31,7 @@ type HydraNativeModule = {
     gameId: string;
     url: string;
     savePath: string;
+    folderName?: string | null;
     fileIndices?: number[];
     timeoutMs?: number;
   }) => Promise<void>;
@@ -40,6 +41,7 @@ type HydraNativeModule = {
     gameId: string;
     url: string;
     savePath: string;
+    folderName?: string | null;
   }) => void;
   torrentPauseSeeding: (gameId: string) => void;
   torrentSetDownloadLimit: (
@@ -157,8 +159,8 @@ export class NativeAddon {
     }
   }
 
-  public static getTorrentStatus(): LibtorrentPayload | null {
-    return this.load().torrentGetStatus();
+  public static getTorrentStatus(gameId: string): LibtorrentPayload | null {
+    return this.load().torrentGetStatus(gameId);
   }
 
   public static getTorrentSeedStatus(): Array<
@@ -178,6 +180,7 @@ export class NativeAddon {
     gameId: string;
     url: string;
     savePath: string;
+    folderName?: string | null;
     fileIndices?: number[];
     timeoutMs?: number;
   }) {
@@ -196,6 +199,7 @@ export class NativeAddon {
     gameId: string;
     url: string;
     savePath: string;
+    folderName?: string | null;
   }) {
     this.load().torrentResumeSeeding(payload);
   }

@@ -189,6 +189,8 @@ export const loadState = async () => {
       `[Startup] Resuming download ${levelKeys.game(downloadToResume.shop, downloadToResume.objectId)} ` +
         `(status=${downloadToResume.status}, queued=${downloadToResume.queued})`
     );
+  } else {
+    logger.log("[Startup] No download selected for auto-resume");
   }
 
   const downloadsToSeed: Download[] = [];
@@ -235,6 +237,14 @@ export const loadState = async () => {
     );
   }
 
+  logger.log(
+    `[Startup] Seed queue prepared (${downloadsToSeed.length}) ids=${JSON.stringify(
+      downloadsToSeed.map((download) =>
+        levelKeys.game(download.shop, download.objectId)
+      )
+    )}`
+  );
+
   // For torrents or if JS downloader is disabled, use Python RPC
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
   // Default to true - native HTTP downloader is enabled by default
@@ -244,13 +254,22 @@ export const loadState = async () => {
   if (useJsDownloader && downloadToResume) {
     // Start Python RPC for seeding only, then resume HTTP download with JS
     await DownloadManager.startRPC(undefined, downloadsToSeed);
+    logger.log(
+      "[Startup] Started RPC for seeding bootstrap (JS downloader path)"
+    );
     await DownloadManager.startDownload(downloadToResume).catch((err) => {
       // If resume fails, just log it - user can manually retry
       logger.error("Failed to auto-resume download:", err);
     });
+    logger.log(
+      `[Startup] Auto-resume transition complete for ${levelKeys.game(downloadToResume.shop, downloadToResume.objectId)} (js=${useJsDownloader})`
+    );
   } else {
     // Use Python RPC for everything (torrent or fallback)
     await DownloadManager.startRPC(downloadToResume, downloadsToSeed);
+    logger.log(
+      `[Startup] RPC bootstrap complete (resume=${downloadToResume ? levelKeys.game(downloadToResume.shop, downloadToResume.objectId) : "none"}, js=${useJsDownloader})`
+    );
   }
 
   startMainLoop();
