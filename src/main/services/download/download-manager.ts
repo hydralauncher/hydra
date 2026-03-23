@@ -844,7 +844,7 @@ export class DownloadManager {
       gameId: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
       savePath: download.downloadPath,
-      folderName: download.folderName,
+      folderName: download.folderName ?? undefined,
     });
   }
 
@@ -1531,7 +1531,7 @@ export class DownloadManager {
         gameId: downloadId,
         url: download.uri,
         savePath: download.downloadPath,
-        folderName: download.folderName,
+        folderName: download.folderName ?? undefined,
         fileIndices: download.fileIndices,
         timeoutMs: isSelectiveTorrentStart ? 60_000 : 10_000,
       });
