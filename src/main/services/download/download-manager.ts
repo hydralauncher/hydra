@@ -218,7 +218,7 @@ export class DownloadManager {
     this.jsDownloader?.setMaxDownloadSpeedBytesPerSecond(normalizedLimit);
 
     await PythonRPC.rpc
-      .post("/action", {
+      .call("action", {
         action: "set_download_limit",
         max_download_speed_bytes_per_second: normalizedLimit,
       })
@@ -389,7 +389,7 @@ export class DownloadManager {
     let response: { data: LibtorrentPayload | null };
 
     try {
-      response = await PythonRPC.rpc.get<LibtorrentPayload | null>("/status");
+      response = await PythonRPC.rpc.call<LibtorrentPayload | null>("status");
     } catch (error) {
       logger.error("[DownloadManager] RPC status poll failed", error);
       return null;
@@ -704,7 +704,7 @@ export class DownloadManager {
 
     try {
       seedStatus = await PythonRPC.rpc
-        .get<LibtorrentPayload[] | []>("/seed-status")
+        .call<LibtorrentPayload[] | []>("seed_status")
         .then((res) => res.data);
     } catch (error) {
       logger.error("[DownloadManager] RPC seed status poll failed", error);
@@ -754,7 +754,7 @@ export class DownloadManager {
       this.jsDownloader.pauseDownload();
     } else if (downloadKey) {
       await PythonRPC.rpc
-        .post("/action", {
+        .call("action", {
           action: "pause",
           game_id: downloadKey,
         } as PauseDownloadPayload)
@@ -783,7 +783,7 @@ export class DownloadManager {
         this.allDebridBatch = null;
       } else {
         await PythonRPC.rpc
-          .post("/action", { action: "cancel", game_id: downloadKey })
+          .call("action", { action: "cancel", game_id: downloadKey })
           .catch((err) => logger.error("Failed to cancel game download", err));
       }
 
@@ -795,13 +795,13 @@ export class DownloadManager {
       this.allDebridBatch = null;
     } else if (downloadKey) {
       await PythonRPC.rpc
-        .post("/action", { action: "cancel", game_id: downloadKey })
+        .call("action", { action: "cancel", game_id: downloadKey })
         .catch((err) => logger.error("Failed to cancel game download", err));
     }
   }
 
   static async resumeSeeding(download: Download) {
-    await PythonRPC.rpc.post("/action", {
+    await PythonRPC.rpc.call("action", {
       action: "resume_seeding",
       game_id: levelKeys.game(download.shop, download.objectId),
       url: download.uri,
@@ -810,7 +810,7 @@ export class DownloadManager {
   }
 
   static async pauseSeeding(downloadKey: string) {
-    await PythonRPC.rpc.post("/action", {
+    await PythonRPC.rpc.call("action", {
       action: "pause_seeding",
       game_id: downloadKey,
     });
@@ -1501,7 +1501,7 @@ export class DownloadManager {
       }
 
       try {
-        await PythonRPC.rpc.post("/action", payload, {
+        await PythonRPC.rpc.call("action", payload, {
           timeout: isSelectiveTorrentStart ? 60_000 : 10_000,
         });
 
@@ -1510,7 +1510,7 @@ export class DownloadManager {
 
         if (downloadWasCancelledOrReplaced) {
           await PythonRPC.rpc
-            .post("/action", { action: "cancel", game_id: downloadId })
+            .call("action", { action: "cancel", game_id: downloadId })
             .catch((error) => {
               logger.error(
                 "[DownloadManager] Failed to cancel stale torrent download",

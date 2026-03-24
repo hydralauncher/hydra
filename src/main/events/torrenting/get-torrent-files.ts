@@ -43,8 +43,8 @@ const getTorrentFiles = async (
   }
 
   try {
-    const response = await PythonRPC.rpc.post<TorrentFilesResponse>(
-      "/torrent-files",
+    const response = await PythonRPC.rpc.call<TorrentFilesResponse>(
+      "torrent_files",
       {
         magnet,
         timeout_ms: 45_000,
