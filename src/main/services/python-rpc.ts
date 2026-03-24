@@ -78,20 +78,12 @@ export class PythonRPC {
   public static readonly BITTORRENT_PORT = "5881";
 
   public static readonly rpc = {
-    get: async <T>(path: string, config?: RpcRequestConfig) => {
-      const data = await this.request<T>(this.pathToMethod(path), undefined, {
-        timeout: config?.timeout,
-      });
-
-      return { data };
-    },
-
-    post: async <T>(
-      path: string,
-      payload?: unknown,
+    call: async <T>(
+      method: PythonRpcMethod,
+      params?: unknown,
       config?: RpcRequestConfig
     ) => {
-      const data = await this.request<T>(this.pathToMethod(path), payload, {
+      const data = await this.request<T>(method, params, {
         timeout: config?.timeout,
       });
 
@@ -109,21 +101,6 @@ export class PythonRPC {
   private static readyPromise: Promise<void> | null = null;
   private static readyResolver: (() => void) | null = null;
   private static readyRejecter: ((error: unknown) => void) | null = null;
-
-  private static pathToMethod(pathname: string): PythonRpcMethod {
-    switch (pathname) {
-      case "/status":
-        return "status";
-      case "/seed-status":
-        return "seed_status";
-      case "/torrent-files":
-        return "torrent_files";
-      case "/action":
-        return "action";
-      default:
-        throw new Error(`Unsupported Python RPC path: ${pathname}`);
-    }
-  }
 
   private static logStderr(readable: Readable | null) {
     if (!readable) return;
