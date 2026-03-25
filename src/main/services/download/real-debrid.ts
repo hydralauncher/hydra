@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import https from "https";
+import https from "node:https";
 import parseTorrent from "parse-torrent";
 import type {
   RealDebridAddMagnet,
