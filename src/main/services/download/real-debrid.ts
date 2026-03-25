@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from "axios";
+import https from "https";
 import parseTorrent from "parse-torrent";
 import type {
   RealDebridAddMagnet,
@@ -17,6 +18,7 @@ export class RealDebridClient {
       headers: {
         Authorization: `Bearer ${apiToken}`,
       },
+      httpsAgent: new https.Agent({ family: 4 }),
     });
   }
 
