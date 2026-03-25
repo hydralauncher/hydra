@@ -288,9 +288,17 @@ export function App() {
           t("extraction_failed_description", { ns: "downloads" })
         );
       }),
-      window.electron.onArchiveDeletionPrompt((paths) => {
-        setArchivePaths(paths);
-        setShowArchiveDeletionModal(true);
+      window.electron.onArchiveDeletionPrompt(async (paths) => {
+        const preferences = await window.electron.getUserPreferences();
+        if (preferences?.deleteArchiveFilesAfterExtraction) {
+          setShowArchiveDeletionModal(false);
+          for (const path of paths) {
+            await window.electron.deleteArchive(path);
+          }
+        } else {
+          setArchivePaths(paths);
+          setShowArchiveDeletionModal(true);
+        }
       }),
     ];
 
