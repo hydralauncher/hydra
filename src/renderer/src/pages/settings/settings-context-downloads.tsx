@@ -53,7 +53,7 @@ export function SettingsContextDownloads() {
     useNativeHttpDownloader: true,
     seedAfterDownloadComplete: false,
     showDownloadSpeedInMegabytes: false,
-    extractFilesByDefault: true,
+    extractFilesByDefault: false,
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
     deleteArchiveFilesAfterExtraction: false,
