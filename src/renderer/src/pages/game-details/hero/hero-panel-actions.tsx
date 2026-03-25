@@ -7,7 +7,7 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
-  ShareIcon
+  ShareIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
@@ -42,7 +42,7 @@ export function HeroPanelActions() {
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
-    getDownloadSourceById
+    getDownloadSourceById,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -184,10 +184,12 @@ export function HeroPanelActions() {
         shop: game.shop,
         objectId: game.objectId,
         repackId: downloadedRepack.id,
-        sourceUrl: sourceUrl
+        sourceUrl: sourceUrl,
       });
 
-      await navigator.clipboard.writeText(`hydralauncher://game?${params.toString()}`);
+      await navigator.clipboard.writeText(
+        `hydralauncher://game?${params.toString()}`
+      );
       showSuccessToast(t("game_shared_to_clipboard"));
     } finally {
       setToggleLibraryGameDisabled(false);
@@ -310,28 +312,28 @@ export function HeroPanelActions() {
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
 
-        {userDetails && game.shop !== "custom" && (
+        {game.shop !== "custom" && (
           <>
-            <Button
-              onClick={toggleGamePinned}
-              theme="outline"
-              disabled={deleting}
-              className="hero-panel-actions__action"
-            >
-              {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
-            </Button>
             {
-              game.download && (
-                <Button
-                  onClick={toggleShareGame}
-                  theme="outline"
-                  disabled={deleting}
-                  className="hero-panel-actions__action"
-                >
-                  <ShareIcon />
-                </Button>
-              )
+              userDetails && (<Button
+                onClick={toggleGamePinned}
+                theme="outline"
+                disabled={deleting}
+                className="hero-panel-actions__action"
+              >
+                {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+              </Button>)
             }
+            {game.download && (
+              <Button
+                onClick={toggleShareGame}
+                theme="outline"
+                disabled={deleting}
+                className="hero-panel-actions__action"
+              >
+                <ShareIcon />
+              </Button>
+            )}
           </>
         )}
 
