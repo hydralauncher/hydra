@@ -1,12 +1,13 @@
 import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Trans, useTranslation } from "react-i18next";
+  CheckCircleFillIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  FileDirectoryIcon,
+  FileIcon,
+  PlusIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
 import {
   Badge,
   Button,
@@ -16,23 +17,6 @@ import {
   SelectField,
   TextField,
 } from "@renderer/components";
-import {
-  DownloadIcon,
-  SyncIcon,
-  CheckCircleFillIcon,
-  CheckIcon,
-  PlusIcon,
-  ChevronDownIcon,
-  FileDirectoryIcon,
-  FileIcon,
-} from "@primer/octicons-react";
-import {
-  DownloadError,
-  Downloader,
-  formatBytes,
-  getDownloadersForUri,
-} from "@shared";
-import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import {
   useAppSelector,
@@ -40,10 +24,26 @@ import {
   useFeature,
   useToast,
 } from "@renderer/hooks";
+import {
+  DownloadError,
+  Downloader,
+  formatBytes,
+  getDownloadersForUri,
+} from "@shared";
+import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { motion } from "framer-motion";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
-import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import "./download-settings-modal.scss";
+import { RealDebridInfoModal } from "./real-debrid-info-modal";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -250,6 +250,10 @@ export function DownloadSettingsModal({
   const [automaticExtractionEnabled, setAutomaticExtractionEnabled] = useState(
     userPreferences?.extractFilesByDefault ?? true
   );
+  const [
+    deleteArchiveFilesAfterExtraction,
+    setDeleteArchiveFilesAfterExtraction,
+  ] = useState(userPreferences?.deleteArchiveFilesAfterExtraction ?? false);
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
@@ -1322,6 +1326,16 @@ export function DownloadSettingsModal({
           checked={automaticExtractionEnabled}
           onChange={() =>
             setAutomaticExtractionEnabled(!automaticExtractionEnabled)
+          }
+        />
+
+        <CheckboxField
+          label={t("delete_archive_files_after_extraction")}
+          checked={deleteArchiveFilesAfterExtraction}
+          onChange={() =>
+            setDeleteArchiveFilesAfterExtraction(
+              !deleteArchiveFilesAfterExtraction
+            )
           }
         />
 
