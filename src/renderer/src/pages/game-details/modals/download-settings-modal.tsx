@@ -253,7 +253,9 @@ export function DownloadSettingsModal({
   const [
     deleteArchiveFilesAfterExtraction,
     setDeleteArchiveFilesAfterExtraction,
-  ] = useState(userPreferences?.deleteArchiveFilesAfterExtraction ?? false);
+  ] = useState(
+    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+  );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(

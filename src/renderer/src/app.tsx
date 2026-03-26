@@ -290,7 +290,7 @@ export function App() {
       }),
       window.electron.onArchiveDeletionPrompt(async (paths) => {
         const preferences = await window.electron.getUserPreferences();
-        if (preferences?.deleteArchiveFilesAfterExtraction) {
+        if (preferences?.deleteArchiveFilesAfterExtractionByDefault) {
           setShowArchiveDeletionModal(false);
           for (const path of paths) {
             await window.electron.deleteArchive(path);
