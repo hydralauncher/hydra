@@ -2,8 +2,8 @@ import { useCallback, useContext, useEffect } from "react";
 import { Button, Modal, ModalProps, TextField } from "@renderer/components";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type { GameArtifact } from "@types";
-import { cloudSyncContext } from "@renderer/context";
+import type { GameArtifact, WebDavBackupEntry } from "@types";
+import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 import { logger } from "@renderer/logger";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -15,14 +15,19 @@ import "./cloud-sync-rename-artifact-modal.scss";
 export interface CloudSyncRenameArtifactModalProps
   extends Omit<ModalProps, "children" | "title"> {
   artifact: GameArtifact | null;
+  webDavBackup?: WebDavBackupEntry | null;
+  onWebDavBackupRenamed?: () => void;
 }
 
 export function CloudSyncRenameArtifactModal({
   visible,
   onClose,
   artifact,
+  webDavBackup,
+  onWebDavBackupRenamed,
 }: Readonly<CloudSyncRenameArtifactModalProps>) {
   const { t } = useTranslation("game_details");
+  const { objectId, shop } = useContext(gameDetailsContext);
 
   const validationSchema = yup.object({
     label: yup
@@ -40,42 +45,68 @@ export function CloudSyncRenameArtifactModal({
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      label: artifact?.label ?? "",
+      label:
+        artifact?.label ?? webDavBackup?.filename?.replace(/\.tar$/i, "") ?? "",
     },
     resolver: yupResolver(validationSchema),
   });
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   useEffect(() => {
     if (artifact) {
       setValue("label", artifact.label ?? "");
+    } else if (webDavBackup) {
+      setValue("label", webDavBackup.filename?.replace(/\.tar$/i, "") ?? "");
     }
-  }, [artifact, setValue]);
+  }, [artifact, webDavBackup, setValue]);
 
   const onSubmit = useCallback(
     async (data: InferType<typeof validationSchema>) => {
       try {
-        if (!artifact) return;
-
-        await window.electron.hydraApi.put(
-          `/profile/games/artifacts/${artifact.id}`,
-          {
-            data: {
-              label: data.label,
-            },
+        if (artifact) {
+          await window.electron.hydraApi.put(
+            `/profile/games/artifacts/${artifact.id}`,
+            {
+              data: {
+                label: data.label,
+              },
+            }
+          );
+          await getGameArtifacts();
+        } else if (webDavBackup && objectId) {
+          await window.electron.renameWebDavBackup(
+            objectId,
+            shop,
+            webDavBackup.href,
+            data.label
+          );
+          if (onWebDavBackupRenamed) {
+            onWebDavBackupRenamed();
           }
-        );
-        await getGameArtifacts();
+        } else {
+          return;
+        }
 
         showSuccessToast(t("artifact_renamed"));
-
         onClose();
       } catch (err) {
-        logger.error("Failed to rename artifact", err);
+        logger.error("Failed to rename backup", err);
+        showErrorToast("Failed to rename backup");
       }
     },
-    [artifact, getGameArtifacts, onClose, showSuccessToast, t]
+    [
+      artifact,
+      webDavBackup,
+      objectId,
+      shop,
+      getGameArtifacts,
+      onClose,
+      showSuccessToast,
+      showErrorToast,
+      t,
+      onWebDavBackupRenamed,
+    ]
   );
 
   return (

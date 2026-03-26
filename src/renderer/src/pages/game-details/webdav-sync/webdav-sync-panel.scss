@@ -10,7 +10,7 @@
   }
 }
 
-.cloud-sync-panel {
+.webdav-sync-panel {
   &__section-header {
     display: flex;
     flex-direction: column;
@@ -29,20 +29,6 @@
 
   &__automatic-sync {
     margin-bottom: calc(globals.$spacing-unit * 1.5);
-  }
-
-  &__automatic-sync-label {
-    display: flex;
-    gap: globals.$spacing-unit;
-    align-items: center;
-  }
-
-  &__automatic-sync-badge {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
-    color: #fff;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 4px;
-    font-size: globals.$small-font-size;
   }
 
   &__title-container {
@@ -67,54 +53,6 @@
     border-radius: 6px;
     min-width: 24px;
     text-align: center;
-  }
-
-  &__artifact-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-    max-width: 100%;
-    color: globals.$body-color;
-    font-size: 16px;
-    font-weight: 600;
-    text-align: left;
-    padding: 0;
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-
-    svg {
-      flex-shrink: 0;
-    }
-  }
-
-  &__artifact-label-text {
-    font-weight: 600;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  &__artifact-source-badges {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-  }
-
-  &__source-badge {
-    font-size: 11px;
-    line-height: 1;
-    border-radius: 999px;
-    padding: 3px 8px;
-    color: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    white-space: nowrap;
   }
 
   &__artifacts {
@@ -159,6 +97,16 @@
       }
     }
 
+    &-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
     &-meta {
       display: flex;
       align-items: center;
@@ -176,28 +124,13 @@
     animation: rotate 1s linear infinite;
   }
 
-  &__manage-files-button {
-    margin: 0;
-    padding: 0;
-    align-self: flex-start;
-    font-size: 14px;
-    cursor: pointer;
-    text-decoration: underline;
-    color: globals.$body-color;
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: globals.$disabled-opacity;
-    }
-  }
-
   &__backup-state-label {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  &__upgrade {
+  &__not-configured {
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;

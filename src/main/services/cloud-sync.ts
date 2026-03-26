@@ -18,6 +18,14 @@ import { SystemPath } from "./system-path";
 import { Wine } from "./wine";
 
 export class CloudSync {
+  private static formatTimeForLabel(date: Date) {
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${hours}-${minutes}-${seconds}`;
+  }
+
   public static getWindowsLikeUserProfilePath(winePrefixPath?: string | null) {
     if (process.platform === "linux") {
       if (!winePrefixPath) {
@@ -53,8 +61,10 @@ export class CloudSync {
 
   public static getBackupLabel(automatic: boolean) {
     const language = i18next.language;
-
-    const date = formatDate(new Date(), language);
+    const now = new Date();
+    const date = `${formatDate(now, language)}-${CloudSync.formatTimeForLabel(
+      now
+    )}`;
 
     if (automatic) {
       return t("automatic_backup_from", {
@@ -69,7 +79,7 @@ export class CloudSync {
     });
   }
 
-  private static async bundleBackup(
+  public static async bundleBackup(
     shop: GameShop,
     objectId: string,
     winePrefix: string | null

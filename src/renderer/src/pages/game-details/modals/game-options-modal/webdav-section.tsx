@@ -1,27 +1,21 @@
 import { useTranslation } from "react-i18next";
 
 import type { LibraryGame } from "@types";
-import { CloudSyncPanel } from "../../cloud-sync/cloud-sync-panel";
+import { WebDavSyncPanel } from "../../webdav-sync/webdav-sync-panel";
 
-interface HydraCloudSettingsSectionProps {
+interface WebDavSettingsSectionProps {
   game: LibraryGame;
-  automaticCloudSync: boolean;
   automaticWebDavSync: boolean;
-  onToggleAutomaticCloudSync: (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => Promise<void>;
   onToggleAutomaticWebDavSync: (
     event: React.ChangeEvent<HTMLInputElement>
   ) => Promise<void>;
 }
 
-export function HydraCloudSettingsSection({
+export function WebDavSettingsSection({
   game,
-  automaticCloudSync,
   automaticWebDavSync,
-  onToggleAutomaticCloudSync,
   onToggleAutomaticWebDavSync,
-}: Readonly<HydraCloudSettingsSectionProps>) {
+}: Readonly<WebDavSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
   if (game.shop === "custom") {
@@ -34,10 +28,8 @@ export function HydraCloudSettingsSection({
 
   return (
     <div className="game-options-modal__cloud-panel">
-      <CloudSyncPanel
-        automaticCloudSync={automaticCloudSync}
+      <WebDavSyncPanel
         automaticWebDavSync={automaticWebDavSync}
-        onToggleAutomaticCloudSync={onToggleAutomaticCloudSync}
         onToggleAutomaticWebDavSync={onToggleAutomaticWebDavSync}
       />
     </div>

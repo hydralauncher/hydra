@@ -163,21 +163,23 @@ export class HydraApi {
           logger.error(" ---- RESPONSE ERROR -----");
           const { config } = error;
 
-          const data = JSON.parse(config.data ?? null);
+          if (config) {
+            const data = JSON.parse(config.data ?? null);
 
-          logger.error(
-            config.method,
-            config.baseURL,
-            config.url,
-            omit(config.headers, [
-              "accessToken",
-              "refreshToken",
-              "Authorization",
-            ]),
-            Array.isArray(data)
-              ? data
-              : omit(data, ["accessToken", "refreshToken"])
-          );
+            logger.error(
+              config.method,
+              config.baseURL,
+              config.url,
+              omit(config.headers, [
+                "accessToken",
+                "refreshToken",
+                "Authorization",
+              ]),
+              Array.isArray(data)
+                ? data
+                : omit(data, ["accessToken", "refreshToken"])
+            );
+          }
           if (error.response) {
             logger.error(
               "Response error:",

@@ -1,0 +1,31 @@
+# Local WebDAV server for testing the Hydra WebDAV backup integration.
+#
+# Usage:
+#   docker compose up -d
+#
+# Then in Hydra → Settings → Integrations → WebDAV:
+#   Server URL : http://localhost:8080
+#   Username   : hydra
+#   Password   : hydra123
+#
+# To browse uploaded backups:
+#   docker compose exec webdav ls /var/lib/dav/data/
+#
+# To stop:
+#   docker compose down
+
+services:
+  webdav:
+    image: bytemark/webdav
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      AUTH_TYPE: Basic
+      USERNAME: hydra
+      PASSWORD: hydra123
+    volumes:
+      - webdav-data:/var/lib/dav
+
+volumes:
+  webdav-data:

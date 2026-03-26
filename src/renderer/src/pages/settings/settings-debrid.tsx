@@ -4,6 +4,7 @@ import { SettingsTorBox } from "./settings-torbox";
 import { SettingsRealDebrid } from "./settings-real-debrid";
 import { SettingsPremiumize } from "./settings-premiumize";
 import { SettingsAllDebrid } from "./settings-all-debrid";
+import { SettingsWebDav } from "./settings-webdav";
 import { ChevronRightIcon, CheckCircleFillIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./settings-debrid.scss";
@@ -13,6 +14,7 @@ interface CollapseState {
   realDebrid: boolean;
   premiumize: boolean;
   allDebrid: boolean;
+  webDav: boolean;
 }
 
 export function SettingsDebrid() {
@@ -32,6 +34,7 @@ export function SettingsDebrid() {
       realDebrid: !userPreferences?.realDebridApiToken,
       premiumize: !userPreferences?.premiumizeApiToken,
       allDebrid: !userPreferences?.allDebridApiToken,
+      webDav: !userPreferences?.webDavHost,
     };
   }, [userPreferences]);
 
@@ -230,6 +233,46 @@ export function SettingsDebrid() {
           {!collapseState.torbox && <SettingsTorBox />}
         </div>
       )}
+
+      <div
+        className={`settings-debrid__section ${
+          collapseState.webDav ? "" : "settings-debrid__section--expanded"
+        }`}
+      >
+        <div className="settings-debrid__section-header">
+          <button
+            type="button"
+            className="settings-debrid__collapse-button"
+            onClick={() => toggleSection("webDav")}
+            aria-label={
+              collapseState.webDav
+                ? t("expand_debrid_section", { provider: t("webdav") })
+                : t("collapse_debrid_section", { provider: t("webdav") })
+            }
+          >
+            <span
+              className={`settings-debrid__collapse-icon ${
+                collapseState.webDav
+                  ? ""
+                  : "settings-debrid__collapse-icon--expanded"
+              }`}
+            >
+              <ChevronRightIcon size={16} />
+            </span>
+          </button>
+          <h3 className="settings-debrid__section-title">{t("webdav")}</h3>
+          {userPreferences?.webDavHost &&
+            userPreferences?.webDavUsername &&
+            userPreferences?.webDavPassword && (
+              <CheckCircleFillIcon
+                size={16}
+                className="settings-debrid__check-icon"
+              />
+            )}
+        </div>
+
+        {!collapseState.webDav && <SettingsWebDav />}
+      </div>
     </div>
   );
 }

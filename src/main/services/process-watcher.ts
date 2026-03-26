@@ -6,6 +6,7 @@ import axios from "axios";
 import { ProcessPayload } from "./download/types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
+import { WebDavBackup } from "./webdav-backup";
 import { logger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "path";
@@ -267,6 +268,27 @@ export const watchProcesses = async () => {
   }
 };
 
+function triggerWebDavAutoBackup(game: Game, context: string, label: string) {
+  if (game.shop === "custom" || !game.automaticWebDavSync) return;
+
+  db.get<string, UserPreferences>(levelKeys.userPreferences, {
+    valueEncoding: "json",
+  })
+    .then((prefs) => {
+      if (WebDavBackup.isConfigured(prefs)) {
+        WebDavBackup.uploadSaveGame(
+          game.objectId,
+          game.shop,
+          null,
+          label
+        ).catch((err) => {
+          logger.error(`WebDAV auto-backup failed (${context})`, err);
+        });
+      }
+    })
+    .catch(() => {});
+}
+
 function onOpenGame(game: Game) {
   const now = performance.now();
 
@@ -300,6 +322,8 @@ function onOpenGame(game: Game) {
   );
 
   if (game.remoteId) {
+    const automaticBackupLabel = CloudSync.getBackupLabel(true);
+
     trackGamePlaytime(
       game,
       game.unsyncedDeltaPlayTimeInMilliseconds ?? 0,
@@ -318,11 +342,14 @@ function onOpenGame(game: Game) {
         game.objectId,
         game.shop,
         null,
-        CloudSync.getBackupLabel(true)
+        automaticBackupLabel
       );
     }
+
+    triggerWebDavAutoBackup(game, "game open", automaticBackupLabel);
   } else {
     createGame({ ...game, lastTimePlayed: new Date() }).catch(() => {});
+    triggerWebDavAutoBackup(game, "game open", CloudSync.getBackupLabel(true));
   }
 }
 
@@ -399,13 +426,17 @@ const onCloseGame = (game: Game) => {
 
   if (game.shop === "custom") return;
 
+  const automaticBackupLabel = CloudSync.getBackupLabel(true);
+
+  triggerWebDavAutoBackup(game, "game close", automaticBackupLabel);
+
   if (game.remoteId) {
     if (game.automaticCloudSync) {
       CloudSync.uploadSaveGame(
         game.objectId,
         game.shop,
         null,
-        CloudSync.getBackupLabel(true)
+        automaticBackupLabel
       );
     }
 

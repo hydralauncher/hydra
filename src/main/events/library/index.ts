@@ -37,6 +37,7 @@ import "./scan-installed-games";
 import "./select-game-proton-path";
 import "./select-game-wine-prefix";
 import "./toggle-automatic-cloud-sync";
+import "./toggle-automatic-webdav-sync";
 import "./toggle-game-gamemode";
 import "./toggle-game-mangohud";
 import "./toggle-game-pin";

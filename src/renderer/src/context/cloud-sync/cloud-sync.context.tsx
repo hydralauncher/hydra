@@ -6,9 +6,11 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { useAppSelector } from "@renderer/hooks";
 
 export enum CloudSyncState {
   New,
@@ -81,8 +83,14 @@ export function CloudSyncContextProvider({
   const [showCloudSyncFilesModal, setShowCloudSyncFilesModal] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [freezingArtifact, setFreezingArtifact] = useState(false);
+  const pendingUploadCompletionsRef = useRef(0);
 
   const { showSuccessToast, showErrorToast } = useToast();
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const userDetails = useAppSelector((state) => state.userDetails.userDetails);
 
   const downloadGameArtifact = useCallback(
     async (gameArtifactId: string) => {
@@ -133,15 +141,50 @@ export function CloudSyncContextProvider({
   const uploadSaveGame = useCallback(
     async (downloadOptionTitle: string | null) => {
       setUploadingBackup(true);
-      window.electron
-        .uploadSaveGame(objectId, shop, downloadOptionTitle)
-        .catch((err) => {
-          setUploadingBackup(false);
-          logger.error("Failed to upload save game", { objectId, shop, err });
-          showErrorToast(t("backup_failed"));
-        });
+
+      const isWebDavConfigured =
+        userPreferences?.webDavHost &&
+        userPreferences?.webDavUsername &&
+        userPreferences?.webDavPassword;
+      const shouldUploadToHydraCloud = Boolean(
+        userDetails?.subscription?.expiresAt &&
+          new Date(userDetails.subscription.expiresAt) > new Date()
+      );
+
+      const uploadTargets: Promise<void>[] = [];
+
+      if (shouldUploadToHydraCloud) {
+        uploadTargets.push(
+          window.electron.uploadSaveGame(objectId, shop, downloadOptionTitle)
+        );
+      }
+
+      if (isWebDavConfigured) {
+        uploadTargets.push(
+          window.electron.uploadSaveGameToWebDav(
+            objectId,
+            shop,
+            downloadOptionTitle
+          )
+        );
+      }
+
+      if (uploadTargets.length === 0) {
+        setUploadingBackup(false);
+        showErrorToast(t("backup_failed"));
+        return;
+      }
+
+      pendingUploadCompletionsRef.current = uploadTargets.length;
+
+      Promise.all(uploadTargets).catch((err) => {
+        pendingUploadCompletionsRef.current = 0;
+        setUploadingBackup(false);
+        logger.error("Failed to upload save game", { objectId, shop, err });
+        showErrorToast(t("backup_failed"));
+      });
     },
-    [objectId, shop, t, showErrorToast]
+    [objectId, shop, t, showErrorToast, userPreferences, userDetails]
   );
 
   const toggleArtifactFreeze = useCallback(
@@ -168,10 +211,18 @@ export function CloudSyncContextProvider({
       objectId,
       shop,
       () => {
-        showSuccessToast(t("backup_uploaded"));
-        setUploadingBackup(false);
-        getGameArtifacts();
-        getGameBackupPreview();
+        if (pendingUploadCompletionsRef.current <= 0) {
+          return;
+        }
+
+        pendingUploadCompletionsRef.current -= 1;
+
+        if (pendingUploadCompletionsRef.current === 0) {
+          showSuccessToast(t("backup_uploaded"));
+          setUploadingBackup(false);
+          getGameArtifacts();
+          getGameBackupPreview();
+        }
       }
     );
 

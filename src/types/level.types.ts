@@ -65,6 +65,7 @@ export interface Game {
   unlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
+  automaticWebDavSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
@@ -145,6 +146,10 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  webDavHost?: string | null;
+  webDavUsername?: string | null;
+  webDavPassword?: string | null;
+  webDavLocation?: string | null;
 }
 
 export interface ScreenState {

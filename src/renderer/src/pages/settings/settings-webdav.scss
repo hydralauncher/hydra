@@ -1,0 +1,20 @@
+@use "../../scss/globals.scss";
+
+.settings-webdav {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__description {
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: flex-end;
+  }
+}

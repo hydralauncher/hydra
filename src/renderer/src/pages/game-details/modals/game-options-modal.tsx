@@ -88,6 +88,9 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [automaticWebDavSync, setAutomaticWebDavSync] = useState(
+    game.automaticWebDavSync ?? false
+  );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
@@ -606,7 +609,11 @@ export function GameOptionsModal({
 
   useEffect(() => {
     if (visible) {
-      setSelectedCategory(initialCategory ?? "general");
+      setSelectedCategory(
+        initialCategory === "webdav"
+          ? "hydra_cloud"
+          : (initialCategory ?? "general")
+      );
     }
   }, [initialCategory, visible]);
 
@@ -654,6 +661,18 @@ export function GameOptionsModal({
       await levelDBService.put(gameKey, updated, "games");
     }
 
+    updateGame();
+  };
+
+  const handleToggleAutomaticWebDavSync = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setAutomaticWebDavSync(event.target.checked);
+    await window.electron.toggleAutomaticWebDavSync(
+      game.shop,
+      game.objectId,
+      event.target.checked
+    );
     updateGame();
   };
 
@@ -750,7 +769,9 @@ export function GameOptionsModal({
               <HydraCloudSettingsSection
                 game={game}
                 automaticCloudSync={automaticCloudSync}
+                automaticWebDavSync={automaticWebDavSync}
                 onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
+                onToggleAutomaticWebDavSync={handleToggleAutomaticWebDavSync}
               />
             )}
 

@@ -7,7 +7,7 @@ export function SettingsContextIntegrations() {
   return (
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
-        <h3>{t("debrid_services")}</h3>
+        <h3>{t("integrations", { defaultValue: "Integrations" })}</h3>
         <SettingsDebrid />
       </div>
     </div>
