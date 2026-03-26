@@ -21,6 +21,7 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
   } = payload;
@@ -57,6 +58,7 @@ const startGameDownload = async (
     queued: true,
     extracting: false,
     automaticallyExtract,
+    automaticallyDeleteArchiveFiles,
     extractionProgress: 0,
     fileIndices,
     selectedFilesSize,
@@ -64,9 +66,8 @@ const startGameDownload = async (
   };
 
   try {
-    await DownloadManager.startDownload(download).then(() => {
-      return downloadsSublevel.put(gameKey, download);
-    });
+    await downloadsSublevel.put(gameKey, download);
+    await DownloadManager.startDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
