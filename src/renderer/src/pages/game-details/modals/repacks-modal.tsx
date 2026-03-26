@@ -42,7 +42,8 @@ export interface RepacksModalProps {
     automaticallyExtract: boolean,
     addToQueueOnly?: boolean,
     fileIndices?: number[],
-    selectedFilesSize?: number | null
+    selectedFilesSize?: number | null,
+    automaticallyDeleteArchiveFiles?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }

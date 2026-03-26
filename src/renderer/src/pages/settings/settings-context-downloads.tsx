@@ -56,7 +56,7 @@ export function SettingsContextDownloads() {
     extractFilesByDefault: false,
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
-    deleteArchiveFilesAfterExtraction: false,
+    deleteArchiveFilesAfterExtractionByDefault: false,
   });
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export function SettingsContextDownloads() {
               userPreferences.showDownloadSpeedInMegabytes ?? false
             )
           : "",
-      deleteArchiveFilesAfterExtraction:
+      deleteArchiveFilesAfterExtractionByDefault:
         userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
     });
   }, [userPreferences]);
@@ -212,11 +212,11 @@ export function SettingsContextDownloads() {
 
         <CheckboxField
           label={t("delete_archive_files_after_extraction")}
-          checked={form.deleteArchiveFilesAfterExtraction}
+          checked={form.deleteArchiveFilesAfterExtractionByDefault}
           onChange={() =>
             handleChange({
-              deleteArchiveFilesAfterExtraction:
-                !form.deleteArchiveFilesAfterExtraction,
+              deleteArchiveFilesAfterExtractionByDefault:
+                !form.deleteArchiveFilesAfterExtractionByDefault,
             })
           }
         />
