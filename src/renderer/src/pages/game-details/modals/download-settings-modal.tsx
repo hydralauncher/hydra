@@ -55,7 +55,8 @@ export interface DownloadSettingsModalProps {
     automaticallyExtract: boolean,
     addToQueueOnly?: boolean,
     fileIndices?: number[],
-    selectedFilesSize?: number | null
+    selectedFilesSize?: number | null,
+    automaticallyDeleteArchiveFiles?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -471,6 +472,15 @@ export function DownloadSettingsModal({
     setSelectedDownloader(getDefaultDownloader(availableDownloaders));
   }, [getDefaultDownloader, userPreferences?.downloadsPath, downloadOptions]);
 
+  useEffect(() => {
+    if (visible) {
+      setDeleteArchiveFilesAfterExtraction(
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   const torrentFilesByIndex = useMemo(() => {
     const fileMap = new Map<number, TorrentFile>();
     torrentFiles.forEach((file) => fileMap.set(file.index, file));
@@ -771,6 +781,9 @@ export function DownloadSettingsModal({
     if (!visible) {
       setShowTorrentStepModal(false);
     }
+    if (userPreferences?.extractFilesByDefault) {
+      setAutomaticExtractionEnabled(true);
+    }
   }, [visible]);
 
   useEffect(() => {
@@ -906,7 +919,8 @@ export function DownloadSettingsModal({
           automaticExtractionEnabled,
           hasActiveDownload,
           selectedFileIndices,
-          totalSelectedSize
+          totalSelectedSize,
+          deleteArchiveFilesAfterExtraction
         );
 
         if (response.ok) {
