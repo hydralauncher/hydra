@@ -79,7 +79,7 @@ export function SettingsContextDownloads() {
             )
           : "",
       deleteArchiveFilesAfterExtraction:
-        userPreferences.deleteArchiveFilesAfterExtraction ?? false,
+        userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
     });
   }, [userPreferences]);
 

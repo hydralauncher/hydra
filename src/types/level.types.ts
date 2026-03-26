@@ -135,7 +135,7 @@ export interface UserPreferences {
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
-  deleteArchiveFilesAfterExtraction?: boolean;
+  deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
