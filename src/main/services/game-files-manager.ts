@@ -1,27 +1,27 @@
-import path from "node:path";
-import fs from "node:fs";
-import axios from "axios";
-import sharp from "sharp";
-import pngToIco from "png-to-ico";
-import type { GameShop, UserPreferences } from "@types";
+import { ASSETS_PATH } from "@main/constants";
+import { getGameAssets } from "@main/events/catalogue/get-game-assets";
+import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
   FILE_EXTENSIONS_TO_EXTRACT,
   removeSymbolsFromName,
 } from "@shared";
-import { SevenZip, ExtractionProgress } from "./7zip";
-import { WindowManager } from "./window-manager";
-import { publishExtractionCompleteNotification } from "./notifications";
-import { logger } from "./logger";
-import { getDirectorySize } from "@main/events/helpers/get-directory-size";
-import { GameExecutables } from "./game-executables";
+import type { GameShop, UserPreferences } from "@types";
+import axios from "axios";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
-import { SystemPath } from "./system-path";
-import { ASSETS_PATH } from "@main/constants";
-import { getGameAssets } from "@main/events/catalogue/get-game-assets";
+import fs from "node:fs";
+import path from "node:path";
+import pngToIco from "png-to-ico";
+import sharp from "sharp";
+import { ExtractionProgress, SevenZip } from "./7zip";
 import { getPathType } from "./extraction-path";
+import { GameExecutables } from "./game-executables";
+import { logger } from "./logger";
+import { publishExtractionCompleteNotification } from "./notifications";
+import { SystemPath } from "./system-path";
+import { WindowManager } from "./window-manager";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
@@ -186,10 +186,28 @@ export class GameFilesManager {
       .filter((archivePath) => fs.existsSync(archivePath));
 
     if (archivePaths.length > 0) {
-      WindowManager.mainWindow?.webContents.send(
-        "on-archive-deletion-prompt",
-        archivePaths
-      );
+      const [download, userPreferences] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+          valueEncoding: "json",
+        }),
+      ]);
+
+      const shouldDelete =
+        download?.automaticallyDeleteArchiveFiles ??
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+        false;
+
+      if (shouldDelete) {
+        for (const archivePath of archivePaths) {
+          fs.unlink(archivePath, () => {});
+        }
+      } else {
+        WindowManager.mainWindow?.webContents.send(
+          "on-archive-deletion-prompt",
+          archivePaths
+        );
+      }
     }
 
     return true;
@@ -623,10 +641,24 @@ export class GameFilesManager {
         }
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          WindowManager.mainWindow?.webContents.send(
-            "on-archive-deletion-prompt",
-            [filePath]
+          const userPreferences = await db.get<string, UserPreferences | null>(
+            levelKeys.userPreferences,
+            { valueEncoding: "json" }
           );
+
+          const shouldDelete =
+            download.automaticallyDeleteArchiveFiles ??
+            userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+            false;
+
+          if (shouldDelete) {
+            fs.unlink(filePath, () => {});
+          } else {
+            WindowManager.mainWindow?.webContents.send(
+              "on-archive-deletion-prompt",
+              [filePath]
+            );
+          }
         }
 
         await downloadsSublevel.put(this.gameKey, {
