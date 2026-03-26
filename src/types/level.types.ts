@@ -88,6 +88,7 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   automaticallyExtract: boolean;
+  automaticallyDeleteArchiveFiles: boolean;
   extractionProgress: number;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
