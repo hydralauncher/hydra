@@ -601,7 +601,6 @@ export function CloudSyncPanel({
                   date: formatDate(artifact.createdAt),
                 }))
               : (webDavBackup?.filename ?? "").replace(/\.tar$/i, "");
-            const isHydraArtifactOrWebDavWithArtifact = Boolean(artifact);
             const hostname = artifact?.hostname
               ? artifact.hostname
               : (webDavBackup?.hostname ?? "");
