@@ -1,5 +1,7 @@
 @use "../../scss/globals.scss";
 
+$context-menu-danger-color: globals.$error-color;
+
 .context-menu {
   position: fixed;
   z-index: 1000;
@@ -50,14 +52,18 @@
     }
 
     &--danger {
-      color: globals.$danger-color;
+      color: $context-menu-danger-color;
 
       &:hover:not(.context-menu__item--disabled) {
-        background-color: rgba(128, 29, 30, 0.1);
+        background-color: rgba(225, 29, 72, 0.18);
+      }
+
+      &:active:not(.context-menu__item--disabled) {
+        background-color: rgba(225, 29, 72, 0.28);
       }
 
       .context-menu__item-icon {
-        color: globals.$danger-color;
+        color: $context-menu-danger-color;
       }
     }
 
@@ -92,6 +98,25 @@
     font-size: 10px;
     color: globals.$muted-color;
     margin-left: auto;
+  }
+
+  &__item-trailing-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    color: globals.$muted-color;
+  }
+
+  &__success-check {
+    animation: context-menu-check-in 180ms ease-out;
+    transform-origin: center;
+  }
+
+  &__item--danger &__item-trailing-icon {
+    color: $context-menu-danger-color;
   }
 
   &__submenu {
@@ -154,5 +179,17 @@
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes context-menu-check-in {
+  from {
+    transform: scale(0.72);
+    opacity: 0.75;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }

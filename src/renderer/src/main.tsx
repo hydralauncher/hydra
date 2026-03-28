@@ -53,6 +53,11 @@ Sentry.init({
 const isStaging = await window.electron.isStaging();
 addCookieInterceptor(isStaging);
 
+const syncDocumentLanguage = (language: string) => {
+  document.documentElement.lang = language;
+  document.documentElement.dir = i18n.dir(language);
+};
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -75,6 +80,9 @@ i18n
     } else {
       window.electron.updateUserPreferences({ language: i18n.language });
     }
+
+    syncDocumentLanguage(i18n.language);
+    i18n.on("languageChanged", syncDocumentLanguage);
   });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
