@@ -6,4 +6,5 @@ import "./pause-game-seed";
 import "./resume-game-download";
 import "./resume-game-seed";
 import "./start-game-download";
+import "./get-torrent-files";
 import "./update-download-queue-position";

@@ -4,6 +4,7 @@ import {
   setProfileBackground,
   setUserDetails,
   setFriendRequests,
+  clearCollections,
 } from "@renderer/features";
 import type {
   FriendRequestAction,
@@ -21,6 +22,7 @@ export function useUserDetails() {
   const clearUserDetails = useCallback(async () => {
     dispatch(setUserDetails(null));
     dispatch(setProfileBackground(null));
+    dispatch(clearCollections());
 
     window.localStorage.removeItem("userDetails");
   }, [dispatch]);
@@ -58,7 +60,6 @@ export function useUserDetails() {
         ...response,
         username: userDetails?.username || "",
         subscription: userDetails?.subscription || null,
-        featurebaseJwt: userDetails?.featurebaseJwt || "",
         workwondersJwt: userDetails?.workwondersJwt || "",
         karma: userDetails?.karma || 0,
       });
@@ -67,7 +68,7 @@ export function useUserDetails() {
       updateUserDetails,
       userDetails?.username,
       userDetails?.subscription,
-      userDetails?.featurebaseJwt,
+      userDetails?.workwondersJwt,
       userDetails?.karma,
     ]
   );

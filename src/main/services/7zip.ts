@@ -31,6 +31,18 @@ export class SevenZip {
         binaryName[process.platform]
       );
 
+  private static isPasswordRelatedError(error: unknown): boolean {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error ?? "");
+    const normalizedMessage = errorMessage.toLowerCase();
+
+    return (
+      normalizedMessage.includes("wrong password") ||
+      normalizedMessage.includes("can not open encrypted archive") ||
+      normalizedMessage.includes("encrypted")
+    );
+  }
+
   public static extractFile(
     {
       filePath,
@@ -46,7 +58,11 @@ export class SevenZip {
     onProgress?: (progress: ExtractionProgress) => void
   ): Promise<ExtractionResult> {
     return new Promise((resolve, reject) => {
+      let settled = false;
+      let activeAttempt = 0;
+
       const tryPassword = (index = 0) => {
+        const attemptId = ++activeAttempt;
         const password = passwords[index] ?? "";
         logger.info(
           `Trying password "${password || "(empty)"}" on ${filePath}`
@@ -89,6 +105,11 @@ export class SevenZip {
         });
 
         stream.on("end", () => {
+          if (settled || attemptId !== activeAttempt) {
+            return;
+          }
+
+          settled = true;
           logger.info(
             `Successfully extracted ${filePath} (${extractedFiles.length} files)`
           );
@@ -99,14 +120,22 @@ export class SevenZip {
         });
 
         stream.on("error", (err) => {
+          if (settled || attemptId !== activeAttempt) {
+            return;
+          }
+
           logger.error(`Extraction error for ${filePath}:`, err);
 
-          if (index < passwords.length - 1) {
+          const shouldTryNextPassword =
+            index < passwords.length - 1 && this.isPasswordRelatedError(err);
+
+          if (shouldTryNextPassword) {
             logger.info(
               `Failed to extract file: ${filePath} with password: "${password}". Trying next password...`
             );
             tryPassword(index + 1);
           } else {
+            settled = true;
             logger.error(
               `Failed to extract file: ${filePath} after trying all passwords`
             );

@@ -1,0 +1,53 @@
+@use "../../scss/globals.scss";
+
+.proton-compatibility-section {
+  &__content-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__label {
+    font-size: 12px;
+    color: globals.$muted-color;
+    line-height: 1.4;
+  }
+
+  &__option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__option-item {
+    min-height: 28px;
+    width: fit-content;
+    touch-action: manipulation;
+
+    &.radio-field--selected .radio-field__label {
+      color: #ffffff;
+    }
+  }
+
+  &__option-orb {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--proton-option-color);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    flex-shrink: 0;
+  }
+
+  &__option-label {
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+}

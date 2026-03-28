@@ -1,5 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -24,6 +31,7 @@ import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
+import { debounce } from "lodash-es";
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -61,7 +69,26 @@ export function Header() {
     ? librarySearchValue
     : catalogueSearchValue;
 
+  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
+  const deferredSearchValue = useDeferredValue(localSearchValue);
+
   const dispatch = useAppDispatch();
+
+  const debouncedLibrarySearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        dispatch(setLibrarySearchQuery(value));
+      }, 180),
+    [dispatch]
+  );
+
+  const debouncedCatalogueSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        dispatch(setFilters({ title: value }));
+      }, 250),
+    [dispatch]
+  );
 
   const [isFocused, setIsFocused] = useState(false);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -83,7 +110,7 @@ export function Header() {
     useSearchHistory();
 
   const { suggestions, isLoading: isLoadingSuggestions } = useSearchSuggestions(
-    searchValue,
+    deferredSearchValue,
     isOnLibraryPage,
     isDropdownVisible && isFocused && !isOnCataloguePage
   );
@@ -106,6 +133,17 @@ export function Header() {
   }, [location.pathname, headerTitle, t]);
 
   const totalItems = historyItems.length + suggestions.length;
+
+  useEffect(() => {
+    setLocalSearchValue(searchValue);
+  }, [searchValue, isOnLibraryPage, isOnCataloguePage]);
+
+  useEffect(() => {
+    return () => {
+      debouncedLibrarySearch.cancel();
+      debouncedCatalogueSearch.cancel();
+    };
+  }, [debouncedCatalogueSearch, debouncedLibrarySearch]);
 
   const updateDropdownPosition = () => {
     if (searchContainerRef.current) {
@@ -149,6 +187,9 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
+    debouncedLibrarySearch.cancel();
+    debouncedCatalogueSearch.cancel();
+
     if (isOnLibraryPage) {
       dispatch(setLibrarySearchQuery(value.slice(0, 255)));
     } else {
@@ -157,7 +198,23 @@ export function Header() {
     setActiveIndex(-1);
   };
 
+  const handleInputChange = (value: string) => {
+    const normalizedValue = value.slice(0, 255);
+
+    setLocalSearchValue(normalizedValue);
+    setActiveIndex(-1);
+
+    if (isOnLibraryPage) {
+      debouncedCatalogueSearch.cancel();
+      debouncedLibrarySearch(normalizedValue);
+    } else {
+      debouncedLibrarySearch.cancel();
+      debouncedCatalogueSearch(normalizedValue);
+    }
+  };
+
   const executeSearch = (query: string) => {
+    setLocalSearchValue(query.slice(0, 255));
     const context = isOnLibraryPage ? "library" : "catalogue";
     if (query.trim()) {
       addToHistory(query, context);
@@ -187,12 +244,23 @@ export function Header() {
   };
 
   const handleClearSearch = () => {
+    debouncedLibrarySearch.cancel();
+    debouncedCatalogueSearch.cancel();
+
+    setLocalSearchValue("");
+
     if (isOnLibraryPage) {
       dispatch(setLibrarySearchQuery(""));
     } else {
       dispatch(setFilters({ title: "" }));
     }
     setActiveIndex(-1);
+  };
+
+  const handleClearSearchMouseDown = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.preventDefault();
   };
 
   const handleRemoveHistoryItem = (query: string) => {
@@ -213,8 +281,8 @@ export function Header() {
           const suggestionIndex = activeIndex - historyItems.length;
           handleSelectSuggestion(suggestions[suggestionIndex]);
         }
-      } else if (searchValue.trim()) {
-        executeSearch(searchValue);
+      } else if (localSearchValue.trim()) {
+        executeSearch(localSearchValue);
       }
     } else if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -341,17 +409,18 @@ export function Header() {
               type="text"
               name="search"
               placeholder={isOnLibraryPage ? t("search_library") : t("search")}
-              value={searchValue}
+              value={localSearchValue}
               className="header__search-input"
-              onChange={(event) => handleSearch(event.target.value)}
+              onChange={(event) => handleInputChange(event.target.value)}
               onFocus={handleFocus}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
             />
 
-            {searchValue && (
+            {localSearchValue && (
               <button
                 type="button"
+                onMouseDown={handleClearSearchMouseDown}
                 onClick={handleClearSearch}
                 className="header__action-button"
               >
@@ -371,7 +440,7 @@ export function Header() {
       <SearchDropdown
         visible={
           isDropdownVisible &&
-          (searchValue.trim().length > 0 ||
+          (localSearchValue.trim().length > 0 ||
             historyItems.length > 0 ||
             suggestions.length > 0 ||
             isLoadingSuggestions)
@@ -386,7 +455,7 @@ export function Header() {
         onClearHistory={handleClearHistory}
         onClose={handleCloseDropdown}
         activeIndex={activeIndex}
-        currentQuery={searchValue}
+        currentQuery={deferredSearchValue}
         searchContainerRef={searchContainerRef}
       />
 

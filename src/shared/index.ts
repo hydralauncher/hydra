@@ -72,7 +72,7 @@ export const parseBytes = (sizeString: string | null): number | null => {
 
 export const formatBytesToMbps = (bytesPerSecond: number): string => {
   const bitsPerSecond = bytesPerSecond * 8;
-  const mbps = bitsPerSecond / (1024 * 1024);
+  const mbps = bitsPerSecond / 1e6;
   return `${Math.trunc(mbps * 10) / 10} Mbps`;
 };
 
@@ -161,6 +161,8 @@ export const getDownloadersForUri = (uri: string) => {
       Downloader.Hydra,
       Downloader.TorBox,
       Downloader.RealDebrid,
+      Downloader.Premiumize,
+      Downloader.AllDebrid,
     ];
   }
 

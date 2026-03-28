@@ -10,7 +10,9 @@ export const getDownloadSourcesCheckBaseline = async (): Promise<
     const timestamp = await db.get(levelKeys.downloadSourcesCheckBaseline, {
       valueEncoding: "utf8",
     });
-    return timestamp;
+
+    // Value was wrapped in quotes for some reason, remove them if they exist
+    return timestamp.replaceAll('"', "");
   } catch (error) {
     if (error instanceof Error && error.name === "NotFoundError") {
       logger.debug("Download sources check baseline not found, returning null");

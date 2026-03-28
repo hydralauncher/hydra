@@ -23,7 +23,10 @@ import type {
 
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { GameDetailsContext } from "./game-details.context.types";
+import {
+  GameDetailsContext,
+  GameOptionsCategoryId,
+} from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
@@ -37,6 +40,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   objectId: undefined,
   showRepacksModal: false,
   showGameOptionsModal: false,
+  gameOptionsInitialCategory: "general",
   stats: null,
   achievements: null,
   hasNSFWContentBlocked: false,
@@ -44,6 +48,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
+  setGameOptionsInitialCategory: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
 });
@@ -80,6 +85,8 @@ export function GameDetailsContextProvider({
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
+  const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
+    useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
   const { i18n } = useTranslation("game_details");
@@ -185,6 +192,7 @@ export function GameDetailsContextProvider({
     setIsLoading(true);
     setIsGameRunning(false);
     setAchievements(null);
+    setGameOptionsInitialCategory("general");
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
 
@@ -259,6 +267,7 @@ export function GameDetailsContextProvider({
       try {
         const detail = (ev as CustomEvent).detail || {};
         if (detail.objectId && detail.objectId === objectId) {
+          setGameOptionsInitialCategory("general");
           setShowGameOptionsModal(true);
         }
       } catch (e) {
@@ -280,6 +289,7 @@ export function GameDetailsContextProvider({
     const state =
       (location && (location.state as Record<string, unknown>)) || {};
     if (state.openGameOptions) {
+      setGameOptionsInitialCategory("general");
       setShowGameOptionsModal(true);
 
       try {
@@ -378,6 +388,7 @@ export function GameDetailsContextProvider({
         isLoading,
         objectId,
         showGameOptionsModal,
+        gameOptionsInitialCategory,
         showRepacksModal,
         stats,
         achievements,
@@ -388,6 +399,7 @@ export function GameDetailsContextProvider({
         updateGame,
         setShowRepacksModal,
         setShowGameOptionsModal,
+        setGameOptionsInitialCategory,
       }}
     >
       {children}

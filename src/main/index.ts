@@ -9,7 +9,7 @@ import {
   clearGamesPlaytime,
   WindowManager,
   Lock,
-  Aria2,
+  PowerSaveBlockerManager,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -279,9 +279,9 @@ app.on("before-quit", async (e) => {
 
   if (!canAppBeClosed) {
     e.preventDefault();
-    /* Disconnects libtorrent */
+    PowerSaveBlockerManager.reset();
+    /* Disconnects Python RPC */
     PythonRPC.kill();
-    Aria2.kill();
     await clearGamesPlaytime();
     canAppBeClosed = true;
     app.quit();

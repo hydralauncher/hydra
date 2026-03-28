@@ -32,6 +32,7 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
+  FileIcon,
   LinkIcon,
   PlayIcon,
   TrashIcon,
@@ -466,6 +467,24 @@ function HeroDownloadView({
                 </div>
               )}
 
+            {lastPacket?.batchFilesTotal != null &&
+              lastPacket.batchFilesTotal > 1 && (
+                <div className="download-group__stat-item">
+                  <span style={{ color: dominantColor, display: "flex" }}>
+                    <FileIcon size={16} />
+                  </span>
+                  <div className="download-group__stat-content">
+                    <span className="download-group__stat-label">
+                      {t("files")}:
+                    </span>
+                    <span className="download-group__stat-value">
+                      {lastPacket.batchFilesDownloaded ?? 0}/
+                      {lastPacket.batchFilesTotal}
+                    </span>
+                  </div>
+                </div>
+              )}
+
             {game.download?.downloader !== undefined && (
               <div className="download-group__stat-item">
                 <div className="download-group__stat-content">
@@ -662,7 +681,10 @@ export function DownloadGroup({
 
   const isGameSeeding = (game: LibraryGame) => {
     const entry = seedingStatus.find((s) => s.gameId === game.id);
-    if (entry?.status) return entry.status === "seeding";
+    if (entry) {
+      const rawStatus = (entry as { status?: unknown }).status;
+      return rawStatus === "seeding" || rawStatus === 5;
+    }
     return game.download?.status === "seeding";
   };
 
@@ -830,6 +852,10 @@ export function DownloadGroup({
     const isResumeDisabled =
       (download?.downloader === Downloader.RealDebrid &&
         !userPreferences?.realDebridApiToken) ||
+      (download?.downloader === Downloader.Premiumize &&
+        !userPreferences?.premiumizeApiToken) ||
+      (download?.downloader === Downloader.AllDebrid &&
+        !userPreferences?.allDebridApiToken) ||
       (download?.downloader === Downloader.TorBox &&
         !userPreferences?.torBoxApiToken);
 

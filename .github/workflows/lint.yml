@@ -20,7 +20,7 @@ jobs:
           node-version: 22.21.0
 
       - name: Install dependencies
-        run: yarn --frozen-lockfile
+        run: yarn --frozen-lockfile --ignore-scripts
 
       - name: Validate current commit (last commit) with commitlint
         run: npx commitlint --last --verbose
