@@ -5543,10 +5543,10 @@ file-entry-cache@^6.0.1:
   dependencies:
     flat-cache "^3.0.4"
 
-file-type@^21.3.1:
-  version "21.3.1"
-  resolved "https://registry.yarnpkg.com/file-type/-/file-type-21.3.1.tgz#a49e103e3491e0e52d13f5b2d99d4d7204a34a5e"
-  integrity sha512-SrzXX46I/zsRDjTb82eucsGg0ODq2NpGDp4HcsFKApPy8P8vACjpJRDoGGMfEzhFC0ry61ajd7f72J3603anBA==
+file-type@^21.3.2:
+  version "21.3.2"
+  resolved "https://registry.yarnpkg.com/file-type/-/file-type-21.3.2.tgz#b28bb3a19ea4b03f59af31546b9d95ee8a3623eb"
+  integrity sha512-DLkUvGwep3poOV2wpzbHCOnSKGk1LzyXTv+aHFgN2VFl96wnp8YA9YjO2qPzg5PuL8q/SW9Pdi6WTkYOIh995w==
   dependencies:
     "@tokenizer/inflate" "^0.4.1"
     strtok3 "^10.3.4"
@@ -9459,10 +9459,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.3.4:
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.3.4.tgz#995a64f1ce7677ada55d837ca9352760571742f1"
-  integrity sha512-KuxBb7Hx+edxYqDyiz+RlevdkAMghvgWLWONs2NE9BX+MuQOWSOcYWY+YbM5bovlgvOI1Fh2E9bHnefA4d9cNA==
+workwonders-sdk@0.4.2:
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.4.2.tgz#81ea9f46c955e0929b4b72ccaaea8a4c53b1e99e"
+  integrity sha512-PA9kj5dLkcnmgO9y0h3EAFRrRzDCCYWUvTagxYdN+OPNtNs0IEroBPsWLCCu6KAGqEv700tdYX33JF15EjxAuA==
   dependencies:
     ky "^1.14.2"
 
