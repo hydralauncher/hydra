@@ -50,7 +50,7 @@
 	"collection_name_placeholder": "Gyűjtemény név beillesztése",
 	"collection_name_required": "Gyűjtemény név használása kötelező",
 	"collection_created": "Gyűjtemény létrehozva",
-	"create_collection_tooltip": "Gyűjtemény létrehozása"
+	"create_collection_tooltip": "Gyűjtemény létrehozása",
 	"failed_create_collection": "Gyűjtemény létrehozása sikertelen",
 	"collection_limit_reached": "Gyűjtemény limit elérve",
 	"collection_name_already_in_use": "Gyűjtemény név már használatban",
