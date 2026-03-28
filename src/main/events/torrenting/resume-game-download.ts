@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 
-import { DownloadManager } from "@main/services";
+import { DownloadManager, logger } from "@main/services";
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
@@ -20,6 +20,10 @@ const resumeGameDownload = async (
       download.status === "error") &&
     download.progress !== 1
   ) {
+    logger.log(
+      `[Downloads] Resume requested for ${gameKey} (status=${download.status}, queued=${download.queued})`
+    );
+
     await DownloadManager.pauseDownload();
 
     for await (const [key, value] of downloadsSublevel.iterator()) {

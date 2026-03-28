@@ -5,12 +5,15 @@ directories:
 extraResources:
   - ludusavi
   - hydra-python-rpc
+  - hydra-native
   - seeds
   - from: node_modules/create-desktop-shortcuts/src/windows.vbs
   - from: resources/achievement.wav
 files:
   - "!**/.vscode/*"
   - "!src/*"
+  - "!native/hydra-native/target"
+  - "!native/hydra-native/target/**"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
@@ -22,7 +25,6 @@ asarUnpack:
 win:
   executableName: Hydra
   extraResources:
-    - from: binaries/aria2c.exe
     - from: binaries/7z.exe
     - from: binaries/7z.dll
   target:
@@ -53,7 +55,6 @@ dmg:
 linux:
   extraResources:
     - from: binaries/7zzs
-    - from: binaries/aria2c
     - from: binaries/umu/umu-run
   target:
     - AppImage
