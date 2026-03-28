@@ -121,6 +121,34 @@ const deleteIfExists = (filePath: string) => {
   }
 };
 
+const buildRunDeepLink = (shop: GameShop, objectId: string) => {
+  const query = new URLSearchParams({
+    shop,
+    objectId,
+  });
+
+  return `hydralauncher://run?${query.toString()}`;
+};
+
+const quoteLinuxExecArg = (value: string) => {
+  return `"${value.replaceAll('"', '\\"')}"`;
+};
+
+const getShortcutArguments = (deepLink: string) => {
+  const deepLinkArgument =
+    process.platform === "linux" ? quoteLinuxExecArg(deepLink) : deepLink;
+
+  if (process.defaultApp && process.argv.length >= 2) {
+    const appEntry = path.resolve(process.argv[1]);
+    const appEntryArgument =
+      process.platform === "linux" ? quoteLinuxExecArg(appEntry) : appEntry;
+
+    return `${appEntryArgument} ${deepLinkArgument}`;
+  }
+
+  return deepLinkArgument;
+};
+
 const getWindowsOutputPath = (location: ShortcutLocation) => {
   return location === "desktop"
     ? SystemPath.getPath("desktop")
@@ -186,7 +214,8 @@ const createGameShortcut = async (
 
   const shortcutName =
     removeSymbolsFromName(game.title).trim() || game.objectId;
-  const deepLink = `hydralauncher://run?shop=${shop}&objectId=${objectId}`;
+  const deepLink = buildRunDeepLink(shop, objectId);
+  const shortcutArguments = getShortcutArguments(deepLink);
   const outputPath =
     process.platform === "win32"
       ? getWindowsOutputPath(location)
@@ -229,7 +258,7 @@ const createGameShortcut = async (
 
   const options = {
     filePath: process.execPath,
-    arguments: deepLink,
+    arguments: shortcutArguments,
     name: shortcutName,
     outputPath,
     icon: iconPath ?? undefined,
