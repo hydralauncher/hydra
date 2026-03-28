@@ -39,7 +39,12 @@ export const downloadSlice = createSlice({
       }
 
       // Track peak speed and speed history atomically when packet arrives
-      if (payload?.gameId && payload.downloadSpeed != null) {
+      if (
+        payload?.gameId &&
+        payload.downloadSpeed != null &&
+        !payload.isCheckingFiles &&
+        !payload.isDownloadingMetadata
+      ) {
         const { gameId, downloadSpeed } = payload;
 
         // Update peak speed if this is higher

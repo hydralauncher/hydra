@@ -16,12 +16,6 @@ export function SettingsContextDownloads() {
     (state) => state.userPreferences.value
   );
 
-  const lastPacket = useAppSelector((state) => state.download.lastPacket);
-  const hasActiveDownload =
-    lastPacket !== null &&
-    lastPacket.progress < 1 &&
-    !lastPacket.isDownloadingMetadata;
-
   const formatLimitInputValue = (
     value: number,
     useMegabytes: boolean
@@ -50,7 +44,6 @@ export function SettingsContextDownloads() {
   };
 
   const [form, setForm] = useState({
-    useNativeHttpDownloader: true,
     seedAfterDownloadComplete: false,
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
@@ -62,7 +55,6 @@ export function SettingsContextDownloads() {
     if (!userPreferences) return;
 
     setForm({
-      useNativeHttpDownloader: userPreferences.useNativeHttpDownloader ?? true,
       seedAfterDownloadComplete:
         userPreferences.seedAfterDownloadComplete ?? false,
       showDownloadSpeedInMegabytes:
@@ -141,17 +133,6 @@ export function SettingsContextDownloads() {
       <div className="settings-context-panel__group">
         <h3>{t("download_behavior")}</h3>
 
-        <CheckboxField
-          label={t("use_native_http_downloader")}
-          checked={form.useNativeHttpDownloader}
-          disabled={hasActiveDownload}
-          onChange={() =>
-            handleChange({
-              useNativeHttpDownloader: !form.useNativeHttpDownloader,
-            })
-          }
-        />
-
         <TextField
           type="number"
           min="0"
@@ -174,12 +155,6 @@ export function SettingsContextDownloads() {
           onBlur={handleMaxDownloadSpeedBlur}
           placeholder={t("max_download_speed_unlimited")}
         />
-
-        {hasActiveDownload && (
-          <p className="settings-general__disabled-hint">
-            {t("cannot_change_downloader_while_downloading")}
-          </p>
-        )}
 
         <CheckboxField
           label={t("seed_after_download_complete")}

@@ -729,8 +729,6 @@
     "autoplay_trailers_on_game_page": "Riproduci automaticamente i trailer nella pagina del gioco",
     "hide_to_tray_on_game_start": "Nascondi Hydra nel tray all'avvio del gioco",
     "downloads": "Download",
-    "use_native_http_downloader": "Usa downloader HTTP nativo (sperimentale)",
-    "cannot_change_downloader_while_downloading": "Impossibile cambiare questa impostazione mentre un download è in corso",
     "create_start_menu_shortcut_on_download": "Crea collegamento nel menu Start quando il gioco finisce di scaricarsi",
     "content_gameplay": "Content & gameplay",
     "integrations": "Integrations",

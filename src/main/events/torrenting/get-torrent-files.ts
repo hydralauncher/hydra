@@ -1,14 +1,16 @@
 import { registerEvent } from "../register-event";
 import { PythonRPC } from "@main/services/python-rpc";
 import type { TorrentFilesResponse } from "@types";
-import { AxiosError } from "axios";
 import { DownloadError } from "@shared";
 
 const mapTorrentFilesError = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    const rpcError = (error.response?.data as { error?: string } | undefined)
-      ?.error;
+  const rpcError =
+    typeof error === "object" && error !== null && "response" in error
+      ? ((error as { response?: { data?: { error?: string } } }).response?.data
+          ?.error ?? undefined)
+      : undefined;
 
+  if (rpcError) {
     switch (rpcError) {
       case "invalid_magnet":
         return DownloadError.InvalidMagnet;
@@ -26,7 +28,7 @@ const mapTorrentFilesError = (error: unknown) => {
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return DownloadError.TorrentFilesUnavailable;
   }
 
   return DownloadError.TorrentFilesUnavailable;
@@ -41,12 +43,11 @@ const getTorrentFiles = async (
   }
 
   try {
-    await PythonRPC.ensureReady();
-
-    const response = await PythonRPC.rpc.post<TorrentFilesResponse>(
-      "/torrent-files",
+    const response = await PythonRPC.rpc.call<TorrentFilesResponse>(
+      "torrent_files",
       {
         magnet,
+        timeout_ms: 45_000,
       },
       {
         timeout: 45000,
