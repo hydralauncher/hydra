@@ -171,7 +171,7 @@
     "deck_verified_only": "Csak Ellenőrzött",
     "result_count": "{{resultCount}} találat",
     "filter_count": "{{filterCount}} elérhető",
-    "clear_filters": "Kiválasztottak {{filterCount}} tisztítása"
+    "clear_filters": "{{filterCount}} szűrő tisztítása"
   },
   "game_details": {
     "open_download_options": "Letöltési opciók megnyitása",
