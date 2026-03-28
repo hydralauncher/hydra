@@ -1,0 +1,18 @@
+@use "../../scss/globals.scss";
+
+.proton-path-picker {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 2);
+
+  &__option {
+    padding: calc(globals.$spacing-unit / 2) 0;
+  }
+
+  &__option-label {
+    min-width: 0;
+    line-height: 1.2;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+  }
+}

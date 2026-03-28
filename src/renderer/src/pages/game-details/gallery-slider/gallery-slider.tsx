@@ -68,22 +68,25 @@ export function GallerySlider() {
   useEffect(() => {
     if (!emblaApi) return;
 
-    let isInitialLoad = true;
-
     const onSelect = () => {
       const newIndex = emblaApi.selectedScrollSnap();
       setSelectedIndex(newIndex);
 
-      if (!isInitialLoad) {
-        const videos = document.querySelectorAll(".gallery-slider__media");
-        videos.forEach((video) => {
-          if (video instanceof HTMLVideoElement) {
-            video.pause();
-          }
-        });
-      }
+      const videos = document.querySelectorAll(".gallery-slider__media");
+      videos.forEach((video) => {
+        if (video instanceof HTMLVideoElement) {
+          video.pause();
+        }
+      });
 
-      isInitialLoad = false;
+      if (autoplayEnabled) {
+        const selectedSlide = emblaApi.slideNodes()[newIndex];
+        const selectedVideo = selectedSlide?.querySelector("video");
+
+        if (selectedVideo instanceof HTMLVideoElement) {
+          selectedVideo.play().catch(() => {});
+        }
+      }
     };
 
     emblaApi.on("select", onSelect);
@@ -92,7 +95,7 @@ export function GallerySlider() {
     return () => {
       emblaApi.off("select", onSelect);
     };
-  }, [emblaApi]);
+  }, [emblaApi, autoplayEnabled]);
 
   const mediaItems = useMemo(() => {
     const items: Array<{
@@ -177,6 +180,11 @@ export function GallerySlider() {
     return screenshotPreviews;
   }, [shopDetails]);
 
+  const firstVideoIndex = useMemo(
+    () => mediaItems.findIndex((item) => item.type === "video"),
+    [mediaItems]
+  );
+
   if (!hasScreenshots) {
     return null;
   }
@@ -185,14 +193,14 @@ export function GallerySlider() {
     <div className="gallery-slider__container">
       <div className="gallery-slider__viewport" ref={emblaRef}>
         <div className="gallery-slider__container-inner">
-          {mediaItems.map((item) => (
+          {mediaItems.map((item, index) => (
             <div key={item.id} className="gallery-slider__slide">
               {item.type === "video" ? (
                 <VideoPlayer
                   videoSrc={item.videoSrc}
                   videoType={item.videoType}
                   poster={item.poster}
-                  autoplay={autoplayEnabled}
+                  autoplay={autoplayEnabled && index === firstVideoIndex}
                   loop
                   muted
                   controls

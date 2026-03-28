@@ -1,8 +1,14 @@
 import { Button } from "@renderer/components/button/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { useFormat } from "@renderer/hooks/use-format";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent, RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import "./pagination.scss";
 
 interface JumpControlProps {
@@ -10,6 +16,7 @@ interface JumpControlProps {
   value: string;
   totalPages: number;
   inputRef: RefObject<HTMLInputElement>;
+  goToPageLabel: string;
   onOpen: () => void;
   onClose: () => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -21,6 +28,7 @@ function JumpControl({
   value,
   totalPages,
   inputRef,
+  goToPageLabel,
   onOpen,
   onClose,
   onChange,
@@ -39,7 +47,7 @@ function JumpControl({
       onChange={onChange}
       onKeyDown={onKeyDown}
       onBlur={onClose}
-      aria-label="Go to page"
+      aria-label={goToPageLabel}
     />
   ) : (
     <Button theme="outline" className="pagination__button" onClick={onOpen}>
@@ -59,6 +67,7 @@ export function Pagination({
   totalPages,
   onPageChange,
 }: Readonly<PaginationProps>) {
+  const { t } = useTranslation("catalogue");
   const { formatNumber } = useFormat();
 
   const [isJumpOpen, setIsJumpOpen] = useState(false);
@@ -141,6 +150,20 @@ export function Pagination({
     }
   };
 
+  const goToPageLabel = t("go_to_page", { defaultValue: "Go to page" });
+  const firstPageTooltip = t("go_to_first_page", {
+    defaultValue: "Go to first page",
+  });
+  const previousPageTooltip = t("go_to_previous_page", {
+    defaultValue: "Go to previous page",
+  });
+  const nextPageTooltip = t("go_to_next_page", {
+    defaultValue: "Go to next page",
+  });
+  const lastPageTooltip = t("go_to_last_page", {
+    defaultValue: "Go to last page",
+  });
+
   return (
     <div className="pagination">
       {startPage > 1 && (
@@ -148,11 +171,15 @@ export function Pagination({
           theme="outline"
           onClick={() => onPageChange(1)}
           className="pagination__button"
+          tooltip={firstPageTooltip}
+          aria-label={firstPageTooltip}
         >
-          <span className="pagination__double-chevron">
-            <ChevronLeftIcon />
-            <ChevronLeftIcon />
-          </span>
+          <ChevronsLeft
+            size={18}
+            strokeWidth={2.25}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
         </Button>
       )}
 
@@ -161,8 +188,15 @@ export function Pagination({
         onClick={() => onPageChange(page - 1)}
         className="pagination__button"
         disabled={page === 1}
+        tooltip={previousPageTooltip}
+        aria-label={previousPageTooltip}
       >
-        <ChevronLeftIcon />
+        <ChevronLeft
+          size={16}
+          strokeWidth={2.25}
+          absoluteStrokeWidth
+          aria-hidden="true"
+        />
       </Button>
 
       {isLastThree && startPage > 1 && (
@@ -179,6 +213,7 @@ export function Pagination({
             value={jumpValue}
             totalPages={totalPages}
             inputRef={jumpInputRef}
+            goToPageLabel={goToPageLabel}
             onOpen={() => setIsJumpOpen(true)}
             onClose={() => setIsJumpOpen(false)}
             onChange={onJumpChange}
@@ -208,6 +243,7 @@ export function Pagination({
             value={jumpValue}
             totalPages={totalPages}
             inputRef={jumpInputRef}
+            goToPageLabel={goToPageLabel}
             onOpen={() => setIsJumpOpen(true)}
             onClose={() => setIsJumpOpen(false)}
             onChange={onJumpChange}
@@ -230,8 +266,15 @@ export function Pagination({
         onClick={() => onPageChange(page + 1)}
         className="pagination__button"
         disabled={page === totalPages}
+        tooltip={nextPageTooltip}
+        aria-label={nextPageTooltip}
       >
-        <ChevronRightIcon />
+        <ChevronRight
+          size={16}
+          strokeWidth={2.25}
+          absoluteStrokeWidth
+          aria-hidden="true"
+        />
       </Button>
 
       {endPage < totalPages && (
@@ -239,11 +282,15 @@ export function Pagination({
           theme="outline"
           onClick={() => onPageChange(totalPages)}
           className="pagination__button"
+          tooltip={lastPageTooltip}
+          aria-label={lastPageTooltip}
         >
-          <span className="pagination__double-chevron">
-            <ChevronRightIcon />
-            <ChevronRightIcon />
-          </span>
+          <ChevronsRight
+            size={18}
+            strokeWidth={2.25}
+            absoluteStrokeWidth
+            aria-hidden="true"
+          />
         </Button>
       )}
     </div>

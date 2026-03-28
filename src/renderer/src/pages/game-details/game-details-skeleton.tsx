@@ -61,40 +61,35 @@ export function GameDetailsSkeleton() {
               </section>
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
-              <Skeleton
-                height={200}
-                width="100%"
-                style={{ borderRadius: "8px" }}
-              />
+            <div className="gallery-slider__container">
+              <div
+                className="gallery-slider__viewport"
+                style={{ height: "250px" }}
+              >
+                <Skeleton
+                  height="100%"
+                  width="100%"
+                  className="gallery-slider__media"
+                />
+              </div>
             </div>
 
             <div className="game-details__description">
               <Skeleton count={8} height={22} style={{ marginBottom: "8px" }} />
               <Skeleton height={22} width="60%" />
             </div>
-
-            <Skeleton
-              height={36}
-              width={100}
-              style={{
-                borderRadius: "4px",
-                marginTop: "24px",
-                alignSelf: "center",
-              }}
-            />
-
-            <div style={{ marginTop: "48px" }} />
           </div>
 
           <aside className="content-sidebar">
             <div className="sidebar-section">
-              <div
-                className="sidebar-section__button"
-                style={{ pointerEvents: "none" }}
-              >
-                <Skeleton height={16} width={16} />
-                <Skeleton height={16} width={60} />
+              <div className="sidebar-section__header">
+                <div
+                  className="sidebar-section__button"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <Skeleton height={18} width={18} />
+                  <Skeleton height={18} width={88} />
+                </div>
               </div>
 
               <div className="sidebar-section__content">
@@ -127,12 +122,14 @@ export function GameDetailsSkeleton() {
             </div>
 
             <div className="sidebar-section">
-              <div
-                className="sidebar-section__button"
-                style={{ pointerEvents: "none" }}
-              >
-                <Skeleton height={16} width={16} />
-                <Skeleton height={16} width={120} />
+              <div className="sidebar-section__header">
+                <div
+                  className="sidebar-section__button"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <Skeleton height={18} width={18} />
+                  <Skeleton height={18} width={136} />
+                </div>
               </div>
 
               <div className="sidebar-section__content">

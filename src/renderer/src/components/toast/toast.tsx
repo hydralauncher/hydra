@@ -5,6 +5,7 @@ import {
   XCircleFillIcon,
   XIcon,
 } from "@primer/octicons-react";
+import { useTranslation } from "react-i18next";
 
 import "./toast.scss";
 import cn from "classnames";
@@ -28,6 +29,7 @@ export function Toast({
   duration = 2500,
   onClose,
 }: Readonly<ToastProps>) {
+  const { t } = useTranslation();
   const [isClosing, setIsClosing] = useState(false);
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
 
@@ -114,7 +116,7 @@ export function Toast({
               type="button"
               className="toast__close-button"
               onClick={startAnimateClosing}
-              aria-label="Close toast"
+              aria-label={t("catalogue.close", { defaultValue: "Close" })}
             >
               <XIcon />
             </button>

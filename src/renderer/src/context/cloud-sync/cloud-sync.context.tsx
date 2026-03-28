@@ -20,10 +20,8 @@ export enum CloudSyncState {
 export interface CloudSyncContext {
   backupPreview: LudusaviBackup | null;
   artifacts: GameArtifact[];
-  showCloudSyncModal: boolean;
   showCloudSyncFilesModal: boolean;
   backupState: CloudSyncState;
-  setShowCloudSyncModal: React.Dispatch<React.SetStateAction<boolean>>;
   downloadGameArtifact: (gameArtifactId: string) => Promise<void>;
   uploadSaveGame: (downloadOptionTitle: string | null) => Promise<void>;
   deleteGameArtifact: (gameArtifactId: string) => Promise<void>;
@@ -42,9 +40,7 @@ export interface CloudSyncContext {
 
 export const cloudSyncContext = createContext<CloudSyncContext>({
   backupPreview: null,
-  showCloudSyncModal: false,
   backupState: CloudSyncState.Unknown,
-  setShowCloudSyncModal: () => {},
   downloadGameArtifact: async () => {},
   uploadSaveGame: async () => {},
   artifacts: [],
@@ -77,7 +73,6 @@ export function CloudSyncContextProvider({
   const { t } = useTranslation("game_details");
 
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
-  const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
   const [backupPreview, setBackupPreview] = useState<LudusaviBackup | null>(
     null
   );
@@ -217,7 +212,6 @@ export function CloudSyncContextProvider({
   useEffect(() => {
     setBackupPreview(null);
     setArtifacts([]);
-    setShowCloudSyncModal(false);
     setRestoringBackup(false);
     setUploadingBackup(false);
   }, [objectId, shop]);
@@ -236,7 +230,6 @@ export function CloudSyncContextProvider({
     <Provider
       value={{
         backupPreview,
-        showCloudSyncModal,
         artifacts,
         backupState,
         restoringBackup,
@@ -244,7 +237,6 @@ export function CloudSyncContextProvider({
         showCloudSyncFilesModal,
         loadingPreview,
         freezingArtifact,
-        setShowCloudSyncModal,
         uploadSaveGame,
         downloadGameArtifact,
         deleteGameArtifact,

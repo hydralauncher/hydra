@@ -2,17 +2,85 @@ import { AxiosError } from "axios";
 import { Downloader, DownloadError } from "@shared";
 
 type DownloadErrorResult = { ok: false; error?: string };
+const KNOWN_DOWNLOAD_ERRORS = new Set<string>(Object.values(DownloadError));
 
 const handleAxiosError = (
   err: AxiosError,
   downloader: Downloader
 ): DownloadErrorResult | null => {
+  const rpcErrorCode = (err.response?.data as { error?: string } | undefined)
+    ?.error;
+
+  if (downloader === Downloader.Torrent) {
+    if (rpcErrorCode === "invalid_magnet") {
+      return { ok: false, error: DownloadError.InvalidMagnet };
+    }
+
+    if (rpcErrorCode === "metadata_timeout") {
+      return { ok: false, error: DownloadError.TorrentMetadataTimeout };
+    }
+
+    if (rpcErrorCode === "metadata_incomplete") {
+      return { ok: false, error: DownloadError.TorrentMetadataIncomplete };
+    }
+
+    if (rpcErrorCode === "empty_selection") {
+      return { ok: false, error: DownloadError.TorrentNoFilesSelected };
+    }
+
+    if (rpcErrorCode === "invalid_file_indices") {
+      return { ok: false, error: DownloadError.TorrentInvalidFileSelection };
+    }
+
+    if (rpcErrorCode === "too_many_files") {
+      return { ok: false, error: DownloadError.TorrentTooManyFiles };
+    }
+
+    if (rpcErrorCode) {
+      return { ok: false, error: DownloadError.TorrentFilesUnavailable };
+    }
+  }
+
   if (err.response?.status === 429 && downloader === Downloader.Gofile) {
     return { ok: false, error: DownloadError.GofileQuotaExceeded };
   }
 
   if (err.response?.status === 403 && downloader === Downloader.RealDebrid) {
     return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
+  }
+
+  if (
+    (err.response?.status === 401 || err.response?.status === 403) &&
+    downloader === Downloader.Premiumize
+  ) {
+    return { ok: false, error: DownloadError.PremiumizeAccountNotAuthorized };
+  }
+
+  if (
+    (err.response?.status === 401 || err.response?.status === 403) &&
+    downloader === Downloader.AllDebrid
+  ) {
+    return { ok: false, error: DownloadError.AllDebridAccountNotAuthorized };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.Premiumize) {
+    return { ok: false, error: DownloadError.PremiumizeRateLimitExceeded };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.AllDebrid) {
+    return { ok: false, error: DownloadError.AllDebridRateLimitExceeded };
+  }
+
+  if (err.response?.status === 503 && downloader === Downloader.Premiumize) {
+    return { ok: false, error: DownloadError.PremiumizeUnavailable };
+  }
+
+  if (err.response?.status === 503 && downloader === Downloader.AllDebrid) {
+    return { ok: false, error: DownloadError.AllDebridUnavailable };
+  }
+
+  if (err.response?.status === 429 && downloader === Downloader.VikingFile) {
+    return { ok: false, error: DownloadError.VikingFileNimbusQuotaExceeded };
   }
 
   if (downloader === Downloader.TorBox) {
@@ -46,6 +114,34 @@ const handleHostSpecificError = (
   return null;
 };
 
+const mapTorrentErrorCode = (code: string): DownloadErrorResult | null => {
+  if (code === "invalid_magnet") {
+    return { ok: false, error: DownloadError.InvalidMagnet };
+  }
+
+  if (code === "metadata_timeout") {
+    return { ok: false, error: DownloadError.TorrentMetadataTimeout };
+  }
+
+  if (code === "metadata_incomplete") {
+    return { ok: false, error: DownloadError.TorrentMetadataIncomplete };
+  }
+
+  if (code === "empty_selection") {
+    return { ok: false, error: DownloadError.TorrentNoFilesSelected };
+  }
+
+  if (code === "invalid_file_indices") {
+    return { ok: false, error: DownloadError.TorrentInvalidFileSelection };
+  }
+
+  if (code === "too_many_files") {
+    return { ok: false, error: DownloadError.TorrentTooManyFiles };
+  }
+
+  return null;
+};
+
 export const handleDownloadError = (
   err: unknown,
   downloader: Downloader
@@ -56,6 +152,11 @@ export const handleDownloadError = (
   }
 
   if (err instanceof Error) {
+    if (downloader === Downloader.Torrent) {
+      const mapped = mapTorrentErrorCode(err.message);
+      if (mapped) return mapped;
+    }
+
     const hostResult = handleHostSpecificError(err.message, downloader);
     if (hostResult) return hostResult;
 
@@ -63,4 +164,8 @@ export const handleDownloadError = (
   }
 
   return { ok: false };
+};
+
+export const isKnownDownloadError = (err: unknown) => {
+  return err instanceof Error && KNOWN_DOWNLOAD_ERRORS.has(err.message);
 };

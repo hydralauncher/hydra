@@ -18,6 +18,8 @@ const initialState: CatalogueSearchState = {
     publishers: [],
     genres: [],
     developers: [],
+    protondbSupportBadges: [],
+    deckCompatibility: [],
   },
   steamUserTags: {},
   steamGenres: {},

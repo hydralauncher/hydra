@@ -8,6 +8,8 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
+  PremiumizeUser,
+  AllDebridUser,
   UserProfile,
   FriendRequestAction,
   UpdateProfileRequest,
@@ -33,6 +35,9 @@ import type {
   DiskUsage,
   DownloadSource,
   LocalNotification,
+  ProtonVersion,
+  CreateSteamShortcutOptions,
+  TorrentFilesResponse,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -70,6 +75,11 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
@@ -95,6 +105,19 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    toggleGameMangohud: (
+      shop: GameShop,
+      objectId: string,
+      autoRunMangohud: boolean
+    ) => Promise<void>;
+    toggleGameGamemode: (
+      shop: GameShop,
+      objectId: string,
+      autoRunGamemode: boolean
+    ) => Promise<void>;
+    isGamemodeAvailable: () => Promise<boolean>;
+    isMangohudAvailable: () => Promise<boolean>;
+    isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
@@ -152,6 +175,11 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    assignGameToCollection: (
+      shop: GameShop,
+      objectId: string,
+      collectionIds: string[]
+    ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,
       objectId: string
@@ -171,6 +199,16 @@ declare global {
       objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
+    selectGameProtonPath: (
+      shop: GameShop,
+      objectId: string,
+      protonPath: string | null
+    ) => Promise<void>;
+    getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
+    getGameLaunchProtonVersion: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
@@ -180,6 +218,7 @@ declare global {
       objectId: string
     ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
+    openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (
       shop: GameShop,
@@ -218,6 +257,8 @@ declare global {
     ) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
+    authenticateAllDebrid: (apiToken: string) => Promise<AllDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
@@ -238,12 +279,21 @@ declare global {
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
+    onExtractionFailed: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
     ) => () => Electron.IpcRenderer;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
-    createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    createSteamShortcut: (
+      shop: GameShop,
+      objectId: string,
+      options?: CreateSteamShortcutOptions
+    ) => Promise<void>;
+    deleteSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
@@ -312,6 +362,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,

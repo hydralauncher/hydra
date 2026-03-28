@@ -4,7 +4,11 @@ import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { parseBytes } from "@shared";
-import { handleDownloadError, prepareGameEntry } from "@main/helpers";
+import {
+  handleDownloadError,
+  isKnownDownloadError,
+  prepareGameEntry,
+} from "@main/helpers";
 
 const addGameToQueue = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,7 +23,11 @@ const addGameToQueue = async (
     uri,
     automaticallyExtract,
     fileSize,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
+
+  const parsedFileSize = parseBytes(fileSize ?? null);
 
   const gameKey = levelKeys.game(shop, objectId);
 
@@ -33,19 +41,28 @@ const addGameToQueue = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: parseBytes(fileSize ?? null),
+    fileSize: selectedFilesSize ?? parsedFileSize,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
     extracting: false,
     automaticallyExtract,
     extractionProgress: 0,
+    fileIndices,
+    selectedFilesSize,
   };
 
   try {
     await DownloadManager.validateDownloadUrl(download);
   } catch (err: unknown) {
-    logger.error("Failed to validate download URL for queue", err);
+    if (isKnownDownloadError(err)) {
+      logger.warn(
+        "Failed to validate download URL for queue with expected download error",
+        err
+      );
+    } else {
+      logger.error("Failed to validate download URL for queue", err);
+    }
     return handleDownloadError(err, downloader);
   }
 
