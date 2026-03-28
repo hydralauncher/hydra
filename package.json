@@ -97,7 +97,7 @@
     "winreg": "^1.2.5",
     "workwonders-sdk": "0.4.2",
     "ws": "^8.18.1",
-    "yaml": "^2.6.1",
+    "yaml": "^2.8.3",
     "yup": "^1.5.0"
   },
   "devDependencies": {
