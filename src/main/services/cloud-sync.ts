@@ -15,6 +15,7 @@ import { Ludusavi } from "./ludusavi";
 import { formatDate, SubscriptionRequiredError } from "@shared";
 import i18next, { t } from "i18next";
 import { SystemPath } from "./system-path";
+import { Wine } from "./wine";
 
 export class CloudSync {
   public static getWindowsLikeUserProfilePath(winePrefixPath?: string | null) {
@@ -118,11 +119,15 @@ export class CloudSync {
     }
 
     const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+    const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+      game?.winePrefixPath,
+      objectId
+    );
 
     const bundleLocation = await this.bundleBackup(
       shop,
       objectId,
-      game?.winePrefixPath ?? null
+      effectiveWinePrefixPath
     );
 
     const stat = await fs.promises.stat(bundleLocation);
@@ -135,10 +140,12 @@ export class CloudSync {
       shop,
       objectId,
       hostname: os.hostname(),
-      winePrefixPath: game?.winePrefixPath
-        ? fs.realpathSync(game.winePrefixPath)
+      winePrefixPath: effectiveWinePrefixPath
+        ? fs.existsSync(effectiveWinePrefixPath)
+          ? fs.realpathSync(effectiveWinePrefixPath)
+          : effectiveWinePrefixPath
         : null,
-      homeDir: this.getWindowsLikeUserProfilePath(game?.winePrefixPath ?? null),
+      homeDir: this.getWindowsLikeUserProfilePath(effectiveWinePrefixPath),
       downloadOptionTitle,
       platform: process.platform,
       label,

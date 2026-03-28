@@ -20,6 +20,8 @@ export interface DownloadProgress {
   progress: number;
   gameId: string;
   download: Download;
+  batchFilesTotal?: number;
+  batchFilesDownloaded?: number;
 }
 
 /* TorBox */
@@ -167,6 +169,22 @@ export interface RealDebridUser {
   type: string;
   premium: number;
   expiration: string;
+}
+
+/* Premiumize */
+export interface PremiumizeUser {
+  customer_id: string;
+  premium_until: number;
+  space_used: number;
+  limit_used: number;
+}
+
+/* AllDebrid */
+export interface AllDebridUser {
+  username: string;
+  email: string;
+  isPremium: boolean;
+  premiumUntil: number;
 }
 
 /* Torrent */

@@ -24,7 +24,11 @@ export function CheckboxField({ label, ...props }: CheckboxFieldProps) {
           className="checkbox-field__input"
           {...props}
         />
-        {props.checked && <CheckIcon />}
+        <span
+          className={`checkbox-field__icon ${props.checked ? "checked" : ""}`}
+        >
+          <CheckIcon />
+        </span>
       </div>
       <label htmlFor={id} className="checkbox-field__label">
         {label}

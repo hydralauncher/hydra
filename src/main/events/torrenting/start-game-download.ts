@@ -3,7 +3,11 @@ import type { Download, StartGameDownloadPayload } from "@types";
 import { DownloadManager, HydraApi, logger } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { handleDownloadError, prepareGameEntry } from "@main/helpers";
+import {
+  handleDownloadError,
+  isKnownDownloadError,
+  prepareGameEntry,
+} from "@main/helpers";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -17,9 +21,15 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
+
+  logger.log(
+    `[Downloads] Start requested for ${gameKey} (downloader=${downloader}, queued=true)`
+  );
 
   await DownloadManager.pauseDownload();
 
@@ -46,13 +56,15 @@ const startGameDownload = async (
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
     extracting: false,
     automaticallyExtract,
     extractionProgress: 0,
+    fileIndices,
+    selectedFilesSize,
+    fileSize: selectedFilesSize ?? null,
   };
 
   try {
@@ -71,7 +83,11 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    logger.error("Failed to start download", err);
+    if (isKnownDownloadError(err)) {
+      logger.warn("Failed to start download with expected download error", err);
+    } else {
+      logger.error("Failed to start download", err);
+    }
     return handleDownloadError(err, downloader);
   }
 };

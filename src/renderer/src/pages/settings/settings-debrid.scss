@@ -14,6 +14,10 @@
   &__section {
     display: flex;
     flex-direction: column;
+
+    &--expanded:not(:last-child) {
+      margin-bottom: calc(globals.$spacing-unit * 3);
+    }
   }
 
   &__section-header {
@@ -40,12 +44,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all ease 0.2s;
     flex-shrink: 0;
 
     &:hover {
       color: rgba(255, 255, 255, 0.9);
       background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__collapse-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &--expanded {
+      transform: rotate(90deg);
     }
   }
 

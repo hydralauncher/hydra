@@ -3,35 +3,136 @@
 .filter-item {
   display: flex;
   align-items: center;
+  gap: 8px;
   color: globals.$body-color;
-  background-color: globals.$dark-background-color;
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: solid 1px globals.$border-color;
+  background-color: color-mix(
+    in srgb,
+    globals.$dark-background-color 84%,
+    var(--filter-item-color) 16%
+  );
+  padding: 4px 6px 4px 10px;
+  border-radius: 8px;
+  border: solid 1px
+    color-mix(in srgb, globals.$border-color 70%, var(--filter-item-color) 30%);
   font-size: 12px;
+  min-height: 32px;
+  max-width: 100%;
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+  }
 
   &__orb {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    margin-right: 8px;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.28);
+    align-self: center;
   }
 
   &__remove-button {
-    color: globals.$body-color;
-    margin-left: 4px;
+    color: color-mix(
+      in srgb,
+      globals.$body-color 84%,
+      var(--filter-item-color) 16%
+    );
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    padding: 0;
+    border: none;
+    line-height: 1;
+    align-self: center;
+    border-radius: 0;
+    width: 22px;
+    height: 22px;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: transparent;
+      color: globals.$body-color;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--filter-item-color);
+      outline-offset: 1px;
+    }
+
+    svg {
+      display: block;
+      transform: translateY(-0.5px);
+    }
   }
 }
 
 .filter-section {
+  background-color: globals.$background-color;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  &__button {
+    padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    display: flex;
+    align-items: center;
+    background-color: globals.$background-color;
+    color: globals.$muted-color;
+    width: 100%;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+    gap: globals.$spacing-unit;
+    font-size: globals.$body-font-size;
+    font-weight: bold;
+    border: none;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  &__chevron {
+    transition: transform ease 0.2s;
+    flex-shrink: 0;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
   &__header {
     display: flex;
     gap: 8px;
     align-items: center;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__header-count {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+    flex-shrink: 0;
   }
 
   &__orb {
@@ -43,6 +144,20 @@
   &__title {
     font-size: 16px;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__content {
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    background-color: globals.$dark-background-color;
+    position: relative;
+  }
+
+  &__content-inner {
+    padding: calc(globals.$spacing-unit * 2);
   }
 
   &__count {
@@ -58,10 +173,15 @@
     color: globals.$body-color;
     cursor: pointer;
     text-decoration: underline;
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+    }
   }
 
   &__search {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   &__item {

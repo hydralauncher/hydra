@@ -4,7 +4,7 @@
   &__form {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 2);
   }
 
   &__submit-button {
@@ -16,7 +16,6 @@
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    margin-bottom: calc(globals.$spacing-unit * 2);
     align-items: flex-start;
   }
 
