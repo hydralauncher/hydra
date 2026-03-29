@@ -403,7 +403,7 @@
     "proton_version_update_error": "Proton verzió frissítése nem sikerült",
     "proton_prefix_reset_error": "Nem sikerült visszaállítani a játék prefixét a Proton váltáshoz",
     "proton_switch_confirmation_title": "Proton verzió váltása?",
-    "proton_switch_confirmation_description": "A prefix konfliktusok elkerülése érdekében a Hydra törli ennek a játéknak az automatikusan kezelt Wine prefixét itt: {{path}}, és a következő indításkor újra létrehozza. Ez törölheti a prefixben tárolt adatokat.",
+    "proton_switch_confirmation_description": "A konfliktusok kerülése miatt a Hydra törli a játéknak az automatikusan kezelt prefixét itt: {{path}}, következő indításkor újra létrehozza. Ez törölheti a tárolt adatokat.",
     "additional_options": "További beállítások",
     "proton_version_auto": "Auto (globális alapértelmezés vagy umu alapértelmezés)",
     "proton_source_umu_default": "umu alapértelmezés választás",
