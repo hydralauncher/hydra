@@ -6,9 +6,6 @@
     overflow: hidden;
     position: relative;
     display: flex;
-    contain: layout paint;
-    content-visibility: auto;
-    contain-intrinsic-size: 240px 360px;
     transition: all ease 0.2s;
     cursor: grab;
     container-type: inline-size;
