@@ -962,7 +962,7 @@
     "amount_hours_short": "{{amount}}ó",
     "amount_minutes_short": "{{amount}}p",
     "manual_playtime_tooltip": "Ez a játszottidő manuálisan lett frissítve",
-    "all_games": "Összes Játék",																 
+    "all_games": "Összes Játék",
     "sort_by": "Rendezés:",
     "sort_title_asc": "Cím (A-Z)",
     "sort_title_desc": "Cím (Z-A)",
@@ -979,14 +979,14 @@
     "collection_deleted": "Gyűjtemény törölve",
     "failed_delete_collection": "Gyűjtemény törlése sikertelen",
     "recently_played": "Legutóbb játszott",
-    "favorites": "Favorites",	 
+    "favorites": "Favorites",
     "empty_favorites_title": "Nincs kedvenc játék",
     "empty_favorites_description": "Mark games as favorites to keep them handy here.",
     "empty_collection_title": "Ez a gyűjtemény üres",
     "empty_collection_description": "Jobb-katt bármelyik játékra, nyisd meg a Gyűjtemény részt, majd add hozzá a játékot.",
     "disk_usage": "Lemez használat",
     "disk_usage_tooltip": "Telepített méret a lemezen",
-    "installer_size_tooltip": "Telepítő mérete"										  
+    "installer_size_tooltip": "Telepítő mérete"
   },
   "achievement": {
     "achievement_unlocked": "Achievement feloldva",
