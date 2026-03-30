@@ -25,16 +25,12 @@ import "./user-library-game-card.scss";
 interface UserLibraryGameCardProps {
   game: UserGame;
   statIndex: number;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   sortBy?: string;
 }
 
 export function UserLibraryGameCard({
   game,
   statIndex,
-  onMouseEnter,
-  onMouseLeave,
   sortBy,
 }: UserLibraryGameCardProps) {
   const { userProfile, isMe, getUserLibraryGames } =
@@ -131,8 +127,6 @@ export function UserLibraryGameCard({
   return (
     <>
       <li
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
         className="user-library-game__wrapper"
         title={isTooltipHovered ? undefined : game.title}
       >
@@ -248,6 +242,8 @@ export function UserLibraryGameCard({
               src={game.coverImageUrl}
               alt={game.title}
               className="user-library-game__game-image"
+              loading="lazy"
+              decoding="async"
               onError={() => setImageError(true)}
             />
           )}

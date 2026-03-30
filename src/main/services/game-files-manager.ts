@@ -437,6 +437,38 @@ export class GameFilesManager {
     }
   }
 
+  private buildRunDeepLink() {
+    const query = new URLSearchParams({
+      shop: this.shop,
+      objectId: this.objectId,
+    });
+
+    return `hydralauncher://run?${query.toString()}`;
+  }
+
+  private quoteLinuxExecArg(value: string) {
+    return `"${value.replaceAll('"', '\\"')}"`;
+  }
+
+  private getShortcutArguments(deepLink: string) {
+    const deepLinkArgument =
+      process.platform === "linux"
+        ? this.quoteLinuxExecArg(deepLink)
+        : deepLink;
+
+    if (process.defaultApp && process.argv.length >= 2) {
+      const appEntry = path.resolve(process.argv[1]);
+      const appEntryArgument =
+        process.platform === "linux"
+          ? this.quoteLinuxExecArg(appEntry)
+          : appEntry;
+
+      return `${appEntryArgument} ${deepLinkArgument}`;
+    }
+
+    return deepLinkArgument;
+  }
+
   private createWindowsShortcut(
     shortcutName: string,
     outputPath: string,
@@ -481,7 +513,8 @@ export class GameFilesManager {
     try {
       const shortcutName =
         removeSymbolsFromName(gameTitle).trim() || this.objectId;
-      const deepLink = `hydralauncher://run?shop=${this.shop}&objectId=${this.objectId}`;
+      const deepLink = this.buildRunDeepLink();
+      const shortcutArguments = this.getShortcutArguments(deepLink);
       const iconPath = await this.downloadGameIcon();
 
       if (process.platform === "win32") {
@@ -537,7 +570,7 @@ export class GameFilesManager {
 
         const options = {
           filePath: process.execPath,
-          arguments: deepLink,
+          arguments: shortcutArguments,
           name: shortcutName,
           outputPath: SystemPath.getPath("desktop"),
           icon: iconPath ?? undefined,
