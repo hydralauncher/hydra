@@ -141,7 +141,6 @@ export interface UserPreferences {
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
-  useNativeHttpDownloader?: boolean;
   createStartMenuShortcut?: boolean;
   maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAppSelector } from "./redux";
 import { debounce } from "lodash-es";
 import { logger } from "@renderer/logger";
@@ -22,31 +22,49 @@ export function useSearchSuggestions(
   const library = useAppSelector((state) => state.library.value);
   const abortControllerRef = useRef<AbortController | null>(null);
   const cacheRef = useRef<Map<string, SearchSuggestion[]>>(new Map());
+  const librarySearchIndex = useMemo(
+    () =>
+      library.map((game) => ({
+        titleLower: game.title.toLowerCase(),
+        game,
+      })),
+    [library]
+  );
 
   const getLibrarySuggestions = useCallback(
     (searchQuery: string, limit: number = 3): SearchSuggestion[] => {
-      if (!searchQuery.trim()) return [];
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      if (normalizedQuery.length < 2) return [];
 
-      const queryLower = searchQuery.toLowerCase();
       const matches: SearchSuggestion[] = [];
 
-      for (const game of library) {
+      for (const { game, titleLower } of librarySearchIndex) {
         if (matches.length >= limit) break;
 
-        const titleLower = game.title.toLowerCase();
+        if (titleLower.includes(normalizedQuery)) {
+          matches.push({
+            title: game.title,
+            objectId: game.objectId,
+            shop: game.shop,
+            iconUrl: game.iconUrl,
+            source: "library",
+          });
+          continue;
+        }
+
         let queryIndex = 0;
 
         for (
-          let i = 0;
-          i < titleLower.length && queryIndex < queryLower.length;
-          i++
+          let index = 0;
+          index < titleLower.length && queryIndex < normalizedQuery.length;
+          index++
         ) {
-          if (titleLower[i] === queryLower[queryIndex]) {
+          if (titleLower[index] === normalizedQuery[queryIndex]) {
             queryIndex++;
           }
         }
 
-        if (queryIndex === queryLower.length) {
+        if (queryIndex === normalizedQuery.length) {
           matches.push({
             title: game.title,
             objectId: game.objectId,
@@ -59,7 +77,7 @@ export function useSearchSuggestions(
 
       return matches;
     },
-    [library]
+    [librarySearchIndex]
   );
 
   const fetchCatalogueSuggestions = useCallback(

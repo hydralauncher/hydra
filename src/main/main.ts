@@ -3,6 +3,8 @@ import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import type { Download, UserPreferences } from "@types";
+import path from "node:path";
+import fs from "node:fs";
 import {
   SystemPath,
   CommonRedistManager,
@@ -10,7 +12,6 @@ import {
   RealDebridClient,
   PremiumizeClient,
   AllDebridClient,
-  Aria2,
   DownloadManager,
   HydraApi,
   uploadGamesBatch,
@@ -23,6 +24,29 @@ import {
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
+import { getDirSize } from "./services/download/helpers";
+
+const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
+  if (!download.folderName) return false;
+
+  const downloadTargetPath = path.join(
+    download.downloadPath,
+    download.folderName
+  );
+
+  if (!fs.existsSync(downloadTargetPath)) {
+    return true;
+  }
+
+  const expectedSize = download.selectedFilesSize ?? download.fileSize ?? 0;
+
+  if (expectedSize <= 0) {
+    return false;
+  }
+
+  const currentSize = await getDirSize(downloadTargetPath);
+  return currentSize < expectedSize;
+};
 
 export const loadState = async () => {
   await Lock.acquireLock();
@@ -35,8 +59,6 @@ export const loadState = async () => {
   );
 
   await import("./events");
-
-  Aria2.spawn();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
@@ -118,25 +140,87 @@ export const loadState = async () => {
     .all()
     .then((games) => orderBy(games, "timestamp", "desc"));
 
+  const normalizedDownloads: Download[] = [];
+
+  for (const download of updatedDownloads) {
+    const downloadKey = levelKeys.game(download.shop, download.objectId);
+    const hasInvalidQueuedState =
+      download.queued &&
+      (download.status === "removed" ||
+        download.status === "complete" ||
+        download.status === "seeding");
+
+    if (!hasInvalidQueuedState) {
+      normalizedDownloads.push(download);
+      continue;
+    }
+
+    const normalizedDownload = {
+      ...download,
+      queued: false,
+    };
+
+    await downloadsSublevel.put(downloadKey, normalizedDownload);
+    normalizedDownloads.push(normalizedDownload);
+  }
+
   // Prioritize interrupted download, then queued downloads
   const downloadToResume =
-    interruptedDownload ?? updatedDownloads.find((game) => game.queued);
+    interruptedDownload ??
+    normalizedDownloads.find(
+      (game) =>
+        game.queued && (game.status === "paused" || game.status === "error")
+    );
 
-  const downloadsToSeed = updatedDownloads.filter(
-    (game) =>
-      game.shouldSeed &&
-      game.downloader === Downloader.Torrent &&
-      game.progress === 1 &&
-      game.uri !== null
-  );
+  const downloadsToSeed: Download[] = [];
 
-  // For torrents or if JS downloader is disabled, use Python RPC
+  for (const game of normalizedDownloads) {
+    if (
+      !game.shouldSeed ||
+      game.downloader !== Downloader.Torrent ||
+      game.progress !== 1 ||
+      game.status !== "seeding" ||
+      game.uri === null
+    ) {
+      continue;
+    }
+
+    if (!(await hasMissingSeedFiles(game))) {
+      downloadsToSeed.push(game);
+      continue;
+    }
+
+    const gameKey = levelKeys.game(game.shop, game.objectId);
+    const expectedSize = game.selectedFilesSize ?? game.fileSize ?? 0;
+    let progress = game.progress;
+
+    if (game.folderName) {
+      const downloadTargetPath = path.join(game.downloadPath, game.folderName);
+      const currentSize = fs.existsSync(downloadTargetPath)
+        ? await getDirSize(downloadTargetPath)
+        : 0;
+      progress =
+        expectedSize > 0
+          ? Math.min(currentSize / expectedSize, 1)
+          : game.progress;
+    }
+
+    await downloadsSublevel.put(gameKey, {
+      ...game,
+      status: "paused",
+      shouldSeed: false,
+      queued: false,
+      progress,
+    });
+
+    logger.warn(
+      `[Startup] Seed files missing for ${gameKey}; seeding was disabled`
+    );
+  }
+
+  // For torrents use Python RPC; HTTP downloads use JS downloader.
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
-  // Default to true - native HTTP downloader is enabled by default
-  const useJsDownloader =
-    (userPreferences?.useNativeHttpDownloader ?? true) && !isTorrent;
-
-  if (useJsDownloader && downloadToResume) {
+  if (downloadToResume && !isTorrent) {
     // Start Python RPC for seeding only, then resume HTTP download with JS
     await DownloadManager.startRPC(undefined, downloadsToSeed);
     await DownloadManager.startDownload(downloadToResume).catch((err) => {

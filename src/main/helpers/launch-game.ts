@@ -9,10 +9,9 @@ import {
   Umu,
   PowerSaveBlockerManager,
   Wine,
+  NativeAddon,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
-import { ProcessPayload } from "@main/services/download/types";
-import { PythonRPC } from "@main/services/python-rpc";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
@@ -147,9 +146,7 @@ const cleanupStaleCompatibilityProcesses = async (
   const defaultPrefixPath = Wine.getDefaultPrefixPathForGame(objectId);
   if (defaultPrefixPath !== winePrefixPath) return;
 
-  const processes =
-    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
-    [];
+  const processes = NativeAddon.listProcesses();
 
   const stalePids = processes
     .filter((runningProcess) => {
