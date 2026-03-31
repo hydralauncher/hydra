@@ -1,0 +1,71 @@
+name: Publish Unlockers Manifest
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "unlockers/src/**"
+      - "scripts/generate-unlockers-manifest.cjs"
+      - "scripts/sign-unlockers-manifest.cjs"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+
+      - name: Generate unlockers manifest
+        env:
+          UNLOCKERS_MANIFEST_OUTPUT_PATH: /tmp/unlockers-manifest.json
+          UNLOCKERS_SOURCE_REF: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/generate-unlockers-manifest.cjs
+
+      - name: Sign unlockers manifest
+        env:
+          UNLOCKERS_MANIFEST_PATH: /tmp/unlockers-manifest.json
+          UNLOCKERS_SIGNATURE_OUTPUT_PATH: /tmp/unlockers-manifest.sig
+          UNLOCKERS_PRIVATE_KEY: ${{ secrets.UNLOCKERS_PRIVATE_KEY }}
+        run: node scripts/sign-unlockers-manifest.cjs
+
+      - name: Publish to unlockers-live branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch origin unlockers-live || true
+
+          if git show-ref --verify --quiet refs/remotes/origin/unlockers-live; then
+            git checkout -B unlockers-live origin/unlockers-live
+          else
+            git checkout --orphan unlockers-live
+            git rm -rf .
+          fi
+
+          mkdir -p unlockers
+          cp /tmp/unlockers-manifest.json unlockers/manifest.json
+          cp /tmp/unlockers-manifest.sig unlockers/manifest.sig
+
+          git add unlockers/manifest.json unlockers/manifest.sig
+
+          if git diff --staged --quiet; then
+            echo "No unlocker manifest changes to publish"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: publish unlockers manifest for ${{ github.sha }}"
+          git push origin unlockers-live

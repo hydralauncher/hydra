@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly MAIN_VITE_WS_URL: string;
   readonly MAIN_VITE_NIMBUS_API_URL: string;
   readonly MAIN_VITE_LAUNCHER_SUBDOMAIN: string;
+  readonly MAIN_VITE_UNLOCKERS_MANIFEST_URL: string;
+  readonly MAIN_VITE_UNLOCKERS_SIGNATURE_URL: string;
+  readonly MAIN_VITE_UNLOCKERS_PUBLIC_KEY: string;
   readonly ELECTRON_RENDERER_URL: string;
 }
 

@@ -27,6 +27,8 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 8000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const DEFAULT_DOWNLOAD_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
 const RETRYABLE_ERROR_CODES = new Set([
   "ECONNRESET",
@@ -307,6 +309,15 @@ export class JsHttpDownloader {
     startByte: number
   ): Record<string, string> {
     const requestHeaders: Record<string, string> = { ...headers };
+
+    const hasUserAgentHeader = Object.keys(requestHeaders).some(
+      (key) => key.toLowerCase() === "user-agent"
+    );
+
+    if (!hasUserAgentHeader) {
+      requestHeaders["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
+    }
+
     if (startByte > 0) {
       requestHeaders["Range"] = `bytes=${startByte}-`;
     }
