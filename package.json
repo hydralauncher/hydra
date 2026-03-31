@@ -31,7 +31,9 @@
     "build:mac": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux",
     "prepare": "husky",
-    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
+    "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto",
+    "unlockers:manifest": "node ./scripts/generate-unlockers-manifest.cjs",
+    "unlockers:sign": "node ./scripts/sign-unlockers-manifest.cjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

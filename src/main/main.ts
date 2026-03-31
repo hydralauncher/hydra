@@ -20,6 +20,7 @@ import {
   Lock,
   DeckyPlugin,
   DownloadSourcesChecker,
+  OtaUnlockerService,
   WSClient,
   logger,
 } from "@main/services";
@@ -59,6 +60,8 @@ export const loadState = async () => {
   );
 
   await import("./events");
+
+  await OtaUnlockerService.initialize();
 
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);

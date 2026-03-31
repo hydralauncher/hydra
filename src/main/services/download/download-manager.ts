@@ -31,6 +31,7 @@ import { AllDebridClient } from "./all-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { OtaUnlockerService } from "../unlockers";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -135,6 +136,35 @@ export class DownloadManager {
       filename,
       headers,
     };
+  }
+
+  private static parseGofileUri(uri: string) {
+    let normalizedUri = uri.trim();
+
+    if (
+      !normalizedUri.startsWith("http://") &&
+      !normalizedUri.startsWith("https://")
+    ) {
+      normalizedUri = `https://${normalizedUri}`;
+    }
+
+    try {
+      const parsed = new URL(normalizedUri);
+      const id = parsed.pathname.split("/").filter(Boolean).pop() || "";
+      const password = parsed.searchParams.get("password") || undefined;
+
+      return {
+        id,
+        password,
+      };
+    } catch {
+      const id =
+        normalizedUri.split("?")[0].split("/").filter(Boolean).pop() || "";
+      return {
+        id,
+        password: undefined,
+      };
+    }
   }
 
   private static logResolvedUrl(url: string): void {
@@ -957,10 +987,15 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const id = download.uri.split("/").pop();
+    const { id, password } = this.parseGofileUri(download.uri);
+    if (!id) {
+      throw new Error("Invalid gofile URL");
+    }
+
     const token = await GofileApi.authorize();
-    const downloadLink = await GofileApi.getDownloadLink(id!);
+    const downloadLink = await GofileApi.getDownloadLink(id, password);
     await GofileApi.checkDownloadUrl(downloadLink);
+
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -978,7 +1013,12 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const downloadUrl = await PixelDrainApi.unlock(download.uri);
+    const otaResult = await OtaUnlockerService.resolveDownload(
+      Downloader.PixelDrain,
+      download.uri
+    );
+    const downloadUrl =
+      otaResult?.url ?? (await PixelDrainApi.unlock(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -995,7 +1035,12 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+    const otaResult = await OtaUnlockerService.resolveDownload(
+      Downloader.Datanodes,
+      download.uri
+    );
+    const downloadUrl =
+      otaResult?.url ?? (await DatanodesApi.getDownloadUrl(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1015,7 +1060,12 @@ export class DownloadManager {
     logger.log(
       `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
     );
-    const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
+    const otaResult = await OtaUnlockerService.resolveDownload(
+      Downloader.Buzzheavier,
+      download.uri
+    );
+    const directUrl =
+      otaResult?.url ?? (await BuzzheavierApi.getDirectLink(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1035,7 +1085,12 @@ export class DownloadManager {
     logger.log(
       `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
     );
-    const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+    const otaResult = await OtaUnlockerService.resolveDownload(
+      Downloader.FuckingFast,
+      download.uri
+    );
+    const directUrl =
+      otaResult?.url ?? (await FuckingFastApi.getDirectLink(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1052,7 +1107,12 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+    const otaResult = await OtaUnlockerService.resolveDownload(
+      Downloader.Mediafire,
+      download.uri
+    );
+    const downloadUrl =
+      otaResult?.url ?? (await MediafireApi.getDownloadUrl(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1157,7 +1217,13 @@ export class DownloadManager {
     logger.log(
       `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
     );
-    const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
+    const downloadUrl =
+      (
+        await OtaUnlockerService.resolveDownload(
+          Downloader.VikingFile,
+          download.uri
+        )
+      )?.url ?? (await VikingFileApi.getDownloadUrl(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1174,7 +1240,9 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+    const downloadUrl =
+      (await OtaUnlockerService.resolveDownload(Downloader.Rootz, download.uri))
+        ?.url ?? (await RootzApi.getDownloadUrl(download.uri));
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1192,9 +1260,13 @@ export class DownloadManager {
 
     switch (download.downloader) {
       case Downloader.Gofile: {
-        const id = download.uri.split("/").pop();
+        const { id, password } = this.parseGofileUri(download.uri);
+        if (!id) {
+          throw new Error("Invalid gofile URL");
+        }
+
         const token = await GofileApi.authorize();
-        const downloadLink = await GofileApi.getDownloadLink(id!);
+        const downloadLink = await GofileApi.getDownloadLink(id, password);
         await GofileApi.checkDownloadUrl(downloadLink);
 
         return {
@@ -1208,7 +1280,13 @@ export class DownloadManager {
         };
       }
       case Downloader.PixelDrain: {
-        const downloadUrl = await PixelDrainApi.unlock(download.uri);
+        const downloadUrl =
+          (
+            await OtaUnlockerService.resolveDownload(
+              Downloader.PixelDrain,
+              download.uri
+            )
+          )?.url ?? (await PixelDrainApi.unlock(download.uri));
 
         return {
           action: "start",
@@ -1218,7 +1296,13 @@ export class DownloadManager {
         };
       }
       case Downloader.Datanodes: {
-        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+        const downloadUrl =
+          (
+            await OtaUnlockerService.resolveDownload(
+              Downloader.Datanodes,
+              download.uri
+            )
+          )?.url ?? (await DatanodesApi.getDownloadUrl(download.uri));
         return {
           action: "start",
           game_id: downloadId,
@@ -1231,7 +1315,13 @@ export class DownloadManager {
           `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
         );
         try {
-          const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
+          const directUrl =
+            (
+              await OtaUnlockerService.resolveDownload(
+                Downloader.Buzzheavier,
+                download.uri
+              )
+            )?.url ?? (await BuzzheavierApi.getDirectLink(download.uri));
           logger.log(`[DownloadManager] Buzzheavier direct URL obtained`);
           return this.createDownloadPayload(
             directUrl,
@@ -1252,7 +1342,13 @@ export class DownloadManager {
           `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
         );
         try {
-          const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+          const directUrl =
+            (
+              await OtaUnlockerService.resolveDownload(
+                Downloader.FuckingFast,
+                download.uri
+              )
+            )?.url ?? (await FuckingFastApi.getDirectLink(download.uri));
           logger.log(`[DownloadManager] FuckingFast direct URL obtained`);
           return this.createDownloadPayload(
             directUrl,
@@ -1269,7 +1365,13 @@ export class DownloadManager {
         }
       }
       case Downloader.Mediafire: {
-        const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+        const downloadUrl =
+          (
+            await OtaUnlockerService.resolveDownload(
+              Downloader.Mediafire,
+              download.uri
+            )
+          )?.url ?? (await MediafireApi.getDownloadUrl(download.uri));
         return {
           action: "start",
           game_id: downloadId,
@@ -1366,7 +1468,13 @@ export class DownloadManager {
         logger.log(
           `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
         );
-        const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
+        const downloadUrl =
+          (
+            await OtaUnlockerService.resolveDownload(
+              Downloader.VikingFile,
+              download.uri
+            )
+          )?.url ?? (await VikingFileApi.getDownloadUrl(download.uri));
         return this.createDownloadPayload(
           downloadUrl,
           download.uri,
@@ -1375,7 +1483,13 @@ export class DownloadManager {
         );
       }
       case Downloader.Rootz: {
-        const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+        const downloadUrl =
+          (
+            await OtaUnlockerService.resolveDownload(
+              Downloader.Rootz,
+              download.uri
+            )
+          )?.url ?? (await RootzApi.getDownloadUrl(download.uri));
         return {
           action: "start",
           game_id: downloadId,
