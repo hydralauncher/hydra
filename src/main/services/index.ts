@@ -24,3 +24,4 @@ export * from "./download-sources-checker";
 export * from "./notifications/local-notifications";
 export * from "./power-save-blocker";
 export * from "./native-addon";
+export * from "./unlockers";

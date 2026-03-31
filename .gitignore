@@ -18,3 +18,10 @@ native/hydra-native/target/
 .env.sentry-build-plugin
 
 *storybook.log
+
+# OTA unlockers signing keys
+unlockers/keys/
+
+# OTA unlocker generated artifacts (published by CI)
+unlockers/manifest.json
+unlockers/manifest.sig

@@ -5,6 +5,7 @@ import { AchievementWatcherManager } from "./achievements/achievement-watcher-ma
 import { UpdateManager } from "./update-manager";
 import { MAIN_LOOP_INTERVAL } from "@main/constants";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
+import { OtaUnlockerService } from "./unlockers";
 
 export const startMainLoop = async () => {
   // eslint-disable-next-line no-constant-condition
@@ -15,6 +16,7 @@ export const startMainLoop = async () => {
       AchievementWatcherManager.watchAchievements(),
       DownloadManager.getSeedStatus(),
       UpdateManager.checkForUpdatePeriodically(),
+      OtaUnlockerService.checkForUpdatesPeriodically(),
     ]);
 
     PowerSaveBlockerManager.syncState({
