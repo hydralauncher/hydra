@@ -1,0 +1,150 @@
+@use "../../scss/globals.scss";
+
+.catalogue-hero {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+
+  &__skeleton {
+    width: 100%;
+    height: 280px;
+    border-radius: 12px;
+
+    @media (min-width: 1024px) {
+      height: 360px;
+    }
+  }
+
+  &__viewport {
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  &__container {
+    display: flex;
+    backface-visibility: hidden;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  &__slide {
+    position: relative;
+    flex: 0 0 100%;
+    min-width: 0;
+    height: 280px;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+
+    @media (min-width: 1024px) {
+      height: 360px;
+    }
+
+    &:hover .catalogue-hero__image {
+      transform: scale(1.03);
+    }
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.85) 0%,
+      rgba(0, 0, 0, 0.3) 40%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  &__content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 1;
+  }
+
+  &__logo {
+    height: 48px;
+    width: auto;
+    max-width: 280px;
+    object-fit: contain;
+    object-position: left;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+
+    @media (min-width: 1024px) {
+      height: 56px;
+      max-width: 340px;
+    }
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    text-align: left;
+
+    @media (min-width: 1024px) {
+      font-size: 36px;
+    }
+  }
+
+  &__description {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 500px;
+    line-height: 1.5;
+    margin: 0;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__dots {
+    position: absolute;
+    bottom: 16px;
+    right: 32px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    &--active {
+      background: #fff;
+      width: 24px;
+      border-radius: 4px;
+    }
+  }
+}

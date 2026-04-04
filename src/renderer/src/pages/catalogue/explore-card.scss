@@ -1,0 +1,193 @@
+@use "../../scss/globals.scss";
+
+.explore-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid globals.$border-color;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: explore-card-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+
+    .explore-card__image {
+      transform: scale(1.05);
+    }
+
+    .explore-card__overlay {
+      opacity: 1;
+    }
+
+    .explore-card__library-btn {
+      opacity: 1;
+    }
+
+    .explore-card__hover-stats {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    opacity: globals.$active-opacity;
+  }
+
+  &--unavailable {
+    opacity: 0.4;
+
+    &:hover {
+      opacity: 0.55;
+    }
+  }
+
+  &__image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 460 / 215;
+    overflow: hidden;
+    background: globals.$dark-background-color;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  &__library-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 2;
+    cursor: pointer;
+
+    &:hover {
+      background: globals.$brand-teal;
+    }
+
+    &--added {
+      opacity: 0.5;
+      color: globals.$success-color;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.55);
+      }
+    }
+  }
+
+  &__hover-stats {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+  }
+
+  &__hover-stat {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+
+  &__body {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+
+  &__genres {
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  &__genre {
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 10px;
+    color: globals.$body-color;
+    white-space: nowrap;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__availability {
+    font-size: 11px;
+    color: globals.$body-color;
+    opacity: 0.5;
+
+    &--available {
+      color: globals.$success-color;
+      opacity: 1;
+    }
+  }
+}
+
+@keyframes explore-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
