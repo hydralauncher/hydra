@@ -3,17 +3,17 @@
 .content-sidebar {
   height: 100%;
   flex-shrink: 0;
-  width: 250px;
+  width: 260px;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 1.5);
 
   @media (min-width: 1024px) {
-    width: 280px;
+    width: 290px;
   }
 
   @media (min-width: 1280px) {
-    width: 320px;
+    width: 330px;
   }
 
   @media (min-width: 1440px) {
@@ -52,7 +52,7 @@
 
     a {
       display: flex;
-      color: globals.$body-color;
+      color: globals.$brand-teal;
     }
   }
 
@@ -71,21 +71,22 @@
     padding: calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__category {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
-    background: linear-gradient(
-      90deg,
-      transparent 20%,
-      rgb(255 255 255 / 2%) 100%
-    );
-    border-radius: 4px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
     border: solid 1px globals.$border-color;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
   }
 
   &__category-label {
@@ -98,7 +99,7 @@
 
   &__category-skeleton {
     border: solid 1px globals.$border-color;
-    border-radius: 4px;
+    border-radius: 8px;
     height: 76px;
   }
 }
@@ -107,7 +108,7 @@
   &__section {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1);
+    gap: calc(globals.$spacing-unit * 1.25);
     padding: calc(globals.$spacing-unit * 2);
     transition: max-height ease 0.5s;
     overflow: hidden;
@@ -115,10 +116,11 @@
 
   &__category-title {
     font-size: globals.$small-font-size;
-    font-weight: bold;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+    color: globals.$body-color;
   }
 
   &__category {
@@ -127,10 +129,15 @@
     gap: calc(globals.$spacing-unit / 2);
     justify-content: space-between;
     align-items: center;
-    padding: calc(globals.$spacing-unit * 1.5);
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.02);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
     border-left: 3px solid globals.$brand-teal;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
 
     &:nth-child(2) {
       border-left-color: globals.$brand-blue;
@@ -142,7 +149,8 @@
   }
 
   &__category-value {
-    font-weight: bold;
+    font-weight: 700;
+    color: #fff;
   }
 }
 
@@ -151,36 +159,38 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: calc(globals.$spacing-unit * 1.5);
   padding: calc(globals.$spacing-unit * 2);
 
   &__item {
     display: flex;
     cursor: pointer;
-    transition: all ease 0.1s;
+    transition: all ease 0.15s;
     color: globals.$muted-color;
     width: 100%;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: globals.$spacing-unit;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
     align-items: center;
     text-align: left;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.15);
+      background-color: rgba(255, 255, 255, 0.08);
       text-decoration: none;
     }
   }
 
   &__item-image {
-    width: 54px;
-    height: 54px;
-    border-radius: 4px;
+    width: 52px;
+    height: 52px;
+    border-radius: 6px;
     object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 
     &--locked {
       filter: grayscale(100%);
+      opacity: 0.5;
     }
   }
 }
@@ -193,9 +203,14 @@
   gap: calc(globals.$spacing-unit / 2);
   color: globals.$warning-color;
   cursor: pointer;
+  font-size: globals.$small-font-size;
+  padding: globals.$spacing-unit;
+  border-radius: 6px;
+  transition: background 0.15s ease;
 
   &:hover {
     text-decoration: underline;
+    background: rgba(255, 193, 7, 0.05);
   }
 }
 
@@ -206,11 +221,13 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   gap: 8px;
+  border-radius: 0 0 8px 8px;
 }
 
 .achievements-placeholder__blur {
