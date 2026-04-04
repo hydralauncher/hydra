@@ -67,6 +67,23 @@ Redux Toolkit slices in `src/renderer/src/features/` (download, library, userPre
 
 32 languages in `src/locales/[lang]/translation.json`. Uses i18next + react-i18next. All user-facing strings must go through `useTranslation("namespace")` — never hardcode English strings.
 
+## Build & Quality
+
+- After making changes, always run `yarn typecheck` and fix ALL errors (unused imports, undefined references, incorrect props) before reporting the task as complete.
+- Never commit code that doesn't pass typecheck. No exceptions.
+- If a build or typecheck fails, fix every error in one pass — don't fix one at a time across multiple rounds.
+
+## Git Workflow
+
+- When asked to "commit and push" or similar, just do it immediately — stage, commit, push. No explanations or summaries of what changed.
+- Follow conventional commit format (enforced by commitlint).
+
+## Implementation Approach
+
+- **Read before writing**: Before implementing a feature, read the 3-5 most relevant existing files and grep for similar patterns already in the codebase. Match established conventions.
+- **Confirm approach on ambiguous requests**: If the scope or location of a change is unclear, state the plan in 2-3 bullets and wait for confirmation before writing code.
+- **Build real UI, not text**: When asked to implement a UI feature, always build actual interactive React components — never just display information as text output or explanations.
+
 ## Code Conventions
 
 - **Logging**: Always use `logger` — never `console`. Main: `import { logger } from "@main/services"`. Renderer: `import { logger } from "@renderer/logger"`.
@@ -75,7 +92,6 @@ Redux Toolkit slices in `src/renderer/src/features/` (download, library, userPre
 - **Exports**: Prefer named exports over default exports for utilities and services.
 - **ESLint**: Fix issues properly before disabling rules. If disabling, add a comment explaining why. Unused vars prefixed with `_` are allowed.
 - **Comments**: Focus on "why", not "what". Keep concise; avoid restating code.
-- **Commits**: Follow conventional commit format (enforced by commitlint).
 
 ## Formatting
 

@@ -94,7 +94,8 @@
       "Bash(npx eslint:*)",
       "Bash(find:*)",
       "Bash(yarn build:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
