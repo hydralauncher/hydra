@@ -38,6 +38,9 @@ const getUsedAssetPaths = async (): Promise<Set<string>> => {
     if (game.libraryHeroImageUrl?.startsWith("local:")) {
       usedPaths.add(game.libraryHeroImageUrl.replace("local:", ""));
     }
+    if (game.coverImageUrl?.startsWith("local:")) {
+      usedPaths.add(game.coverImageUrl.replace("local:", ""));
+    }
   });
 
   return usedPaths;

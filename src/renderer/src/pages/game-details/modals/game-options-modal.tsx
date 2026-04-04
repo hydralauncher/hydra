@@ -509,6 +509,7 @@ export function GameOptionsModal({
           iconUrl: game.iconUrl || undefined,
           logoImageUrl: game.logoImageUrl || undefined,
           libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+          coverImageUrl: game.coverImageUrl || undefined,
         });
       } else {
         await window.electron.updateGameCustomAssets({
@@ -583,12 +584,12 @@ export function GameOptionsModal({
       },
       ...(shouldShowWinePrefixConfiguration
         ? [
-            {
-              id: "compatibility" as const,
-              label: t("settings_category_compatibility"),
-              icon: <Wrench size={16} />,
-            },
-          ]
+          {
+            id: "compatibility" as const,
+            label: t("settings_category_compatibility"),
+            icon: <Wrench size={16} />,
+          },
+        ]
         : []),
       {
         id: "downloads" as const,

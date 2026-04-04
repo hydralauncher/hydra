@@ -18,11 +18,11 @@ type ProfileGame = {
 const getLocalCollectionIds = (
   localGame:
     | {
-        collectionIds?: string[];
-      }
+      collectionIds?: string[];
+    }
     | {
-        collectionId?: string | null;
-      }
+      collectionId?: string | null;
+    }
     | null
     | undefined
 ): string[] => {
@@ -66,8 +66,8 @@ export const mergeWithRemoteGames = async () => {
         if (localGame) {
           const updatedLastTimePlayed =
             localGame.lastTimePlayed == null ||
-            (game.lastTimePlayed &&
-              new Date(game.lastTimePlayed) >
+              (game.lastTimePlayed &&
+                new Date(game.lastTimePlayed) >
                 new Date(localGame.lastTimePlayed))
               ? game.lastTimePlayed
               : localGame.lastTimePlayed;
@@ -97,6 +97,7 @@ export const mergeWithRemoteGames = async () => {
             iconUrl: game.iconUrl,
             libraryHeroImageUrl: game.libraryHeroImageUrl,
             logoImageUrl: game.logoImageUrl,
+            coverImageUrl: game.coverImageUrl,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
@@ -114,6 +115,7 @@ export const mergeWithRemoteGames = async () => {
         // Construct coverImageUrl if not provided by backend (Steam games use predictable pattern)
         const coverImageUrl =
           game.coverImageUrl ||
+          game.libraryImageUrl ||
           (game.shop === "steam"
             ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`
             : null);
@@ -134,5 +136,5 @@ export const mergeWithRemoteGames = async () => {
         });
       }
     })
-    .catch(() => {});
+    .catch(() => { });
 };

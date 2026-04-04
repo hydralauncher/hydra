@@ -32,6 +32,7 @@ const addGameToLibrary = async (
       iconUrl: gameAssets?.iconUrl ?? null,
       libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
       logoImageUrl: gameAssets?.logoImageUrl ?? null,
+      coverImageUrl: gameAssets?.libraryImageUrl ?? null,
       objectId,
       shop,
       remoteId: null,
@@ -44,7 +45,7 @@ const addGameToLibrary = async (
   }
 
   if (game) {
-    await createGame(game).catch(() => {});
+    await createGame(game).catch(() => { });
 
     AchievementWatcherManager.firstSyncWithRemoteIfNeeded(
       game.shop,

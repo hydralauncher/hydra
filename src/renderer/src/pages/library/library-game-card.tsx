@@ -32,9 +32,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     useGameCard(game, onContextMenu);
 
   const sources = [
-    game.customIconUrl, // Level 0
+    game.customCoverImageUrl, // Level 0
     game.coverImageUrl, // Level 1
-    game.libraryImageUrl, // Level 2
+    game.customIconUrl, // Level 2
     game.iconUrl, // Level 3
   ].filter((url) => url && url.trim() !== "");
 
@@ -138,7 +138,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 {Math.round(
                   ((game.unlockedAchievementCount ?? 0) /
                     (game.achievementCount ?? 1)) *
-                    100
+                  100
                 )}
                 %
               </span>

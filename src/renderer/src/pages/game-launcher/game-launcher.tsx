@@ -129,13 +129,7 @@ export default function GameLauncher() {
     window.electron.closeGameLauncherWindow();
   };
 
-  const normalizedCoverImage =
-    gameAssets?.coverImageUrl?.replaceAll("\\", "/").trim() || "";
-  const fallbackSteamCoverImage =
-    !normalizedCoverImage && shop === "steam" && objectId
-      ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
-      : "";
-  const coverImageSource = normalizedCoverImage || fallbackSteamCoverImage;
+  const coverImageSource = game?.customCoverImageUrl || game?.coverImageUrl || game?.customIconUrl || game?.iconUrl;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game?.playTimeInMilliseconds ?? 0;
   const achievementCount = game?.achievementCount ?? 0;
@@ -268,14 +262,14 @@ export default function GameLauncher() {
 
   const backgroundStyle = accentColor
     ? {
-        background: `linear-gradient(135deg, ${darkenColor(accentColor, 0.7)} 0%, ${darkenColor(accentColor, 0.8, 0.9)} 50%, ${darkenColor(accentColor, 0.85, 0.8)} 100%)`,
-      }
+      background: `linear-gradient(135deg, ${darkenColor(accentColor, 0.7)} 0%, ${darkenColor(accentColor, 0.8, 0.9)} 50%, ${darkenColor(accentColor, 0.85, 0.8)} 100%)`,
+    }
     : undefined;
 
   const glowStyle = accentColor
     ? {
-        background: `radial-gradient(ellipse at top right, ${darkenColor(accentColor, 0.3, 0.15)} 0%, transparent 50%)`,
-      }
+      background: `radial-gradient(ellipse at top right, ${darkenColor(accentColor, 0.3, 0.15)} 0%, transparent 50%)`,
+    }
     : undefined;
 
   return (

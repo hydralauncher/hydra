@@ -81,7 +81,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       [
         game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl,
+        game.customCoverImageUrl,
+        game.coverImageUrl,
+        game.customIconUrl,
         game.iconUrl,
       ].filter((url) => !!url && url.trim() !== ""),
     [game]
@@ -215,7 +217,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 <span className="library-game-card-large__achievement-percentage">
                   {Math.round(
                     (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
-                      100
+                    100
                   )}
                   %
                 </span>
