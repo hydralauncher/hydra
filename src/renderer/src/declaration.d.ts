@@ -146,7 +146,7 @@ declare global {
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
+      assetType: "icon" | "logo" | "hero" | "cover"
     ) => Promise<string>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
