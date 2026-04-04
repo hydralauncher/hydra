@@ -51,7 +51,9 @@ export function ExploreCard({ game, index }: ExploreCardProps) {
     }
   }, [game.objectId, game.shop, stats]);
 
-  const addToLibrary = async (e: React.MouseEvent) => {
+  const addToLibrary = async (
+    e: React.MouseEvent | React.KeyboardEvent
+  ) => {
     e.stopPropagation();
     if (inLibrary || isAdding) return;
     setIsAdding(true);
@@ -101,6 +103,9 @@ export function ExploreCard({ game, index }: ExploreCardProps) {
           role="button"
           tabIndex={-1}
           onClick={addToLibrary}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") addToLibrary(e);
+          }}
           title={
             inLibrary
               ? tDetails("already_in_library")
