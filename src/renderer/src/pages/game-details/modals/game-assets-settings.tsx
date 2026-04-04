@@ -139,8 +139,7 @@ export function GameAssetsSettings({
         !currentGame.libraryHeroImageUrl &&
         Boolean(gameWithAssets.originalHeroPath);
       const coverRemoved =
-        !currentGame.coverImageUrl &&
-        Boolean(gameWithAssets.originalCoverPath);
+        !currentGame.coverImageUrl && Boolean(gameWithAssets.originalCoverPath);
 
       setAssetPaths({
         icon: extractLocalPath(currentGame.iconUrl),
@@ -294,7 +293,7 @@ export function GameAssetsSettings({
       case "hero":
         return game.libraryHeroImageUrl;
       case "cover":
-        return game.coverImageUrl
+        return game.coverImageUrl;
       default:
         return null;
     }
@@ -526,8 +525,12 @@ export function GameAssetsSettings({
   };
 
   const updateNonCustomGame = async (currentGame: LibraryGame) => {
-    const { customIconUrl, customLogoImageUrl, customHeroImageUrl, customCoverImageUrl } =
-      prepareNonCustomGameAssets();
+    const {
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl,
+      customCoverImageUrl,
+    } = prepareNonCustomGameAssets();
 
     return window.electron.updateGameCustomAssets({
       shop: currentGame.shop,
@@ -632,15 +635,15 @@ export function GameAssetsSettings({
               </Button>
               {(assetPath ||
                 (isCustomGame(game) && getOriginalAssetUrl(assetType))) && (
-                  <Button
-                    type="button"
-                    theme="outline"
-                    onClick={() => void handleRestoreDefault(assetType)}
-                    disabled={isUpdating}
-                  >
-                    <XIcon />
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  theme="outline"
+                  onClick={() => void handleRestoreDefault(assetType)}
+                  disabled={isUpdating}
+                >
+                  <XIcon />
+                </Button>
+              )}
             </div>
           }
         />
@@ -653,8 +656,9 @@ export function GameAssetsSettings({
           <button
             type="button"
             aria-label={t(getTranslationKey("_drop_zone"))}
-            className={`game-assets-settings__image-preview ${assetType === "icon" ? "game-assets-settings__icon-preview" : ""
-              } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
+            className={`game-assets-settings__image-preview ${
+              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+            } ${isDragOver ? "game-assets-settings__drop-zone--active" : ""}`}
             onDragOver={handleDragOver}
             onDragEnter={(event) => handleDragEnter(event, assetType)}
             onDragLeave={handleDragLeave}
@@ -676,9 +680,11 @@ export function GameAssetsSettings({
           <button
             type="button"
             aria-label={t(getTranslationKey("_drop_zone_empty"))}
-            className={`game-assets-settings__image-preview ${assetType === "icon" ? "game-assets-settings__icon-preview" : ""
-              } game-assets-settings__drop-zone ${isDragOver ? "game-assets-settings__drop-zone--active" : ""
-              }`}
+            className={`game-assets-settings__image-preview ${
+              assetType === "icon" ? "game-assets-settings__icon-preview" : ""
+            } game-assets-settings__drop-zone ${
+              isDragOver ? "game-assets-settings__drop-zone--active" : ""
+            }`}
             onDragOver={handleDragOver}
             onDragEnter={(event) => handleDragEnter(event, assetType)}
             onDragLeave={handleDragLeave}

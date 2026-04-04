@@ -67,7 +67,8 @@ const updateCustomGame = async (
     originalIconPath: originalIconPath || existingGame.originalIconPath || null,
     originalLogoPath: originalLogoPath || existingGame.originalLogoPath || null,
     originalHeroPath: originalHeroPath || existingGame.originalHeroPath || null,
-    originalCoverPath: originalCoverPath || existingGame.originalCoverPath || null,
+    originalCoverPath:
+      originalCoverPath || existingGame.originalCoverPath || null,
   };
 
   await gamesSublevel.put(gameKey, updatedGame);

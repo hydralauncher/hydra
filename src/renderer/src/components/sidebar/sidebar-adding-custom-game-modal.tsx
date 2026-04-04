@@ -79,7 +79,7 @@ export function SidebarAddingCustomGameModal({
         iconUrl,
         logoImageUrl,
         libraryHeroImageUrl,
-        coverImageUrl,
+        coverImageUrl
       );
 
       showSuccessToast(t("custom_game_modal_success"));

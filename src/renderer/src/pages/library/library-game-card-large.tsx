@@ -217,7 +217,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 <span className="library-game-card-large__achievement-percentage">
                   {Math.round(
                     (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
-                    100
+                      100
                   )}
                   %
                 </span>

@@ -9,8 +9,18 @@ const collectAssetPathsToDelete = (game: Game): string[] => {
 
   const assetUrls =
     game.shop === "custom"
-      ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl, game.coverImageUrl]
-      : [game.customIconUrl, game.customLogoImageUrl, game.customHeroImageUrl, game.customCoverImageUrl];
+      ? [
+          game.iconUrl,
+          game.logoImageUrl,
+          game.libraryHeroImageUrl,
+          game.coverImageUrl,
+        ]
+      : [
+          game.customIconUrl,
+          game.customLogoImageUrl,
+          game.customHeroImageUrl,
+          game.customCoverImageUrl,
+        ];
 
   for (const url of assetUrls) {
     if (url?.startsWith("local:")) {
@@ -86,7 +96,7 @@ const removeGameFromLibrary = async (
   }
 
   if (game.remoteId) {
-    HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => { });
+    HydraApi.delete(`/profile/games/${game.remoteId}`).catch(() => {});
   }
 
   await deleteAssetFiles(assetPathsToDelete);

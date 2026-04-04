@@ -18,11 +18,11 @@ type ProfileGame = {
 const getLocalCollectionIds = (
   localGame:
     | {
-      collectionIds?: string[];
-    }
+        collectionIds?: string[];
+      }
     | {
-      collectionId?: string | null;
-    }
+        collectionId?: string | null;
+      }
     | null
     | undefined
 ): string[] => {
@@ -66,8 +66,8 @@ export const mergeWithRemoteGames = async () => {
         if (localGame) {
           const updatedLastTimePlayed =
             localGame.lastTimePlayed == null ||
-              (game.lastTimePlayed &&
-                new Date(game.lastTimePlayed) >
+            (game.lastTimePlayed &&
+              new Date(game.lastTimePlayed) >
                 new Date(localGame.lastTimePlayed))
               ? game.lastTimePlayed
               : localGame.lastTimePlayed;
@@ -136,5 +136,5 @@ export const mergeWithRemoteGames = async () => {
         });
       }
     })
-    .catch(() => { });
+    .catch(() => {});
 };

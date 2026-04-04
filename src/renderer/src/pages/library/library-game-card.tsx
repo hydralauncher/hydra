@@ -138,7 +138,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 {Math.round(
                   ((game.unlockedAchievementCount ?? 0) /
                     (game.achievementCount ?? 1)) *
-                  100
+                    100
                 )}
                 %
               </span>
