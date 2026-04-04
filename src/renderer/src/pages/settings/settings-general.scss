@@ -3,104 +3,114 @@
 .settings-general {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: 28px;
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
   &__section-title {
     margin: 0;
-    margin-top: calc(globals.$spacing-unit);
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.4);
+    color: #fff;
   }
 
   &__section-description {
-    font-size: 13px;
-    color: globals.$muted-color;
+    font-size: 12px;
+    color: globals.$body-color;
+    opacity: 0.6;
     margin: 0;
-    margin-top: calc(globals.$spacing-unit * -1);
+    line-height: 1.4;
   }
 
-  &__section-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: globals.$spacing-unit * 2;
-  }
-
-  &__section-content {
+  &__toggles {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit * 2;
+    gap: 6px;
   }
 
-  &__custom-notification-options {
+  &__hint {
+    font-size: 12px;
+    color: globals.$warning-color;
+    margin: 0;
+    opacity: 0.8;
+    font-style: italic;
+  }
+
+  &__notification-options {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit * 2;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  &__custom-notification-position-select {
+  &__position-select {
     max-width: 300px;
   }
 
   &__test-buttons {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: 8px;
   }
 
-  &__test-buttons-label {
-    font-size: 14px;
-    color: globals.$muted-color;
+  &__test-label {
+    font-size: 13px;
+    color: globals.$body-color;
+    opacity: 0.7;
   }
 
-  &__test-buttons-row {
+  &__test-row {
     display: flex;
-    gap: globals.$spacing-unit;
+    gap: 8px;
   }
 
-  &__common-redist-button {
+  &__action-button {
     align-self: flex-start;
   }
 
-  &__disabled-hint {
+  &__result-text {
     font-size: 13px;
-    color: globals.$muted-color;
-    margin-top: calc(globals.$spacing-unit * -1);
-    font-style: italic;
+    color: globals.$success-color;
+    margin: 0;
   }
 
-  &__volume-control {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    label {
-      font-size: 14px;
-      color: globals.$muted-color;
-    }
-  }
-
+  /* Volume Slider */
   &__volume-slider-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 200px;
-    position: relative;
+    gap: 10px;
+    width: 240px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     --volume-percent: 0%;
   }
 
   &__volume-icon {
-    color: globals.$muted-color;
+    color: globals.$body-color;
+    opacity: 0.6;
     flex-shrink: 0;
   }
 
   &__volume-value {
-    font-size: 14px;
-    color: globals.$body-color;
+    font-size: 13px;
+    color: globals.$muted-color;
     font-weight: 500;
-    min-width: 40px;
+    min-width: 36px;
     text-align: right;
     flex-shrink: 0;
   }
@@ -114,49 +124,37 @@
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
-    transition: background 0.2s;
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: globals.$muted-color;
+      background: #fff;
       cursor: pointer;
-      border: 2px solid globals.$background-color;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
-      margin-top: -6px;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease;
+      margin-top: -5px;
 
       &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 2px 6px rgba(255, 255, 255, 0.4);
-      }
-
-      &:active {
-        transform: scale(1.05);
+        transform: scale(1.15);
       }
     }
 
     &::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: globals.$muted-color;
+      background: #fff;
       cursor: pointer;
-      border: 2px solid globals.$background-color;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
-      margin-top: -6px;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease;
 
       &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 2px 6px rgba(255, 255, 255, 0.4);
-      }
-
-      &:active {
-        transform: scale(1.05);
+        transform: scale(1.15);
       }
     }
 
@@ -166,10 +164,10 @@
       border-radius: 3px;
       background: linear-gradient(
         to right,
-        globals.$muted-color 0%,
-        globals.$muted-color var(--volume-percent),
-        globals.$dark-background-color var(--volume-percent),
-        globals.$dark-background-color 100%
+        globals.$brand-teal 0%,
+        globals.$brand-teal var(--volume-percent),
+        rgba(255, 255, 255, 0.1) var(--volume-percent),
+        rgba(255, 255, 255, 0.1) 100%
       );
     }
 
@@ -177,34 +175,26 @@
       width: 100%;
       height: 6px;
       border-radius: 3px;
-      background: globals.$dark-background-color;
+      background: rgba(255, 255, 255, 0.1);
     }
 
     &::-moz-range-progress {
       height: 6px;
       border-radius: 3px;
-      background: globals.$muted-color;
+      background: globals.$brand-teal;
     }
 
     &:focus {
       outline: none;
-
-      &::-webkit-slider-thumb {
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-      }
-
-      &::-moz-range-thumb {
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-      }
     }
 
     &::-ms-thumb {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
-      background: globals.$muted-color;
+      background: #fff;
       cursor: pointer;
-      border: 2px solid globals.$background-color;
+      border: none;
     }
 
     &::-ms-track {
@@ -216,12 +206,12 @@
     }
 
     &::-ms-fill-lower {
-      background: globals.$muted-color;
+      background: globals.$brand-teal;
       border-radius: 3px;
     }
 
     &::-ms-fill-upper {
-      background: globals.$dark-background-color;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 3px;
     }
   }
