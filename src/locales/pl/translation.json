@@ -762,8 +762,6 @@
     "autoplay_trailers_on_game_page": "Automatycznie odtwarzaj zwiastuny na stronie gry",
     "hide_to_tray_on_game_start": "Ukryj Hydrę do zasobnika przy uruchomieniu gry",
     "downloads": "Pobieranie",
-    "use_native_http_downloader": "Użyj natywnego downloadera HTTP (eksperymentalny)",
-    "cannot_change_downloader_while_downloading": "Nie można zmienić tego ustawienia podczas trwającego pobierania",
     "create_shortcuts_on_download": "Twórz skróty na pulpicie i w menu Start po zakończeniu pobierania gry",
     "default_proton_version": "Domyślna wersja Proton",
     "default_proton_version_description": "Wybierz wersję Proton używaną w trybie Auto, gdy gra nie ma niestandardowego nadpisania",

@@ -2,11 +2,10 @@ import { registerEvent } from "../register-event";
 import { logger, Wine } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
-import { PythonRPC } from "@main/services/python-rpc";
-import { ProcessPayload } from "@main/services/download/types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import path from "node:path";
+import { NativeAddon } from "@main/services/native-addon";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -21,9 +20,7 @@ const closeGame = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const processes =
-    (await PythonRPC.rpc.get<ProcessPayload[] | null>("/process-list")).data ||
-    [];
+  const processes = NativeAddon.listProcesses();
 
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 

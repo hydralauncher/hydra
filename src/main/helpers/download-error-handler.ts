@@ -114,6 +114,34 @@ const handleHostSpecificError = (
   return null;
 };
 
+const mapTorrentErrorCode = (code: string): DownloadErrorResult | null => {
+  if (code === "invalid_magnet") {
+    return { ok: false, error: DownloadError.InvalidMagnet };
+  }
+
+  if (code === "metadata_timeout") {
+    return { ok: false, error: DownloadError.TorrentMetadataTimeout };
+  }
+
+  if (code === "metadata_incomplete") {
+    return { ok: false, error: DownloadError.TorrentMetadataIncomplete };
+  }
+
+  if (code === "empty_selection") {
+    return { ok: false, error: DownloadError.TorrentNoFilesSelected };
+  }
+
+  if (code === "invalid_file_indices") {
+    return { ok: false, error: DownloadError.TorrentInvalidFileSelection };
+  }
+
+  if (code === "too_many_files") {
+    return { ok: false, error: DownloadError.TorrentTooManyFiles };
+  }
+
+  return null;
+};
+
 export const handleDownloadError = (
   err: unknown,
   downloader: Downloader
@@ -124,6 +152,11 @@ export const handleDownloadError = (
   }
 
   if (err instanceof Error) {
+    if (downloader === Downloader.Torrent) {
+      const mapped = mapTorrentErrorCode(err.message);
+      if (mapped) return mapped;
+    }
+
     const hostResult = handleHostSpecificError(err.message, downloader);
     if (hostResult) return hostResult;
 
