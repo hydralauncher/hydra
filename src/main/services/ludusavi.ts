@@ -49,13 +49,68 @@ export class Ludusavi {
     }
   }
 
+  private static async withSavesOnlyFilter<T>(
+    objectId: string,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    const config = await this.getConfig();
+
+    if (config.customGames.some((g) => g.name === objectId)) {
+      return fn();
+    }
+
+    const response = await fetch("https://cdn.losbroxas.org/manifest.yaml");
+    const text = await response.text();
+    const manifest = YAML.parse(text) as Record<
+      string,
+      { files?: Record<string, { tags?: string[] }> }
+    >;
+
+    const gameEntry = manifest[objectId];
+    const savePaths = gameEntry?.files
+      ? Object.entries(gameEntry.files)
+          .filter(([, entry]) => entry?.tags?.includes("save"))
+          .map(([p]) => p)
+      : [];
+
+    if (savePaths.length === 0) {
+      return fn();
+    }
+
+    config.customGames.push({ name: objectId, files: savePaths, registry: [] });
+    fs.writeFileSync(
+      path.join(this.configPath, "config.yaml"),
+      YAML.stringify(config)
+    );
+
+    try {
+      return await fn();
+    } finally {
+      const currentConfig = await this.getConfig();
+      currentConfig.customGames = currentConfig.customGames.filter(
+        (g) => g.name !== objectId
+      );
+      fs.writeFileSync(
+        path.join(this.configPath, "config.yaml"),
+        YAML.stringify(currentConfig)
+      );
+    }
+  }
+
   public static async backupGame(
     _shop: GameShop,
     objectId: string,
     backupPath?: string | null,
     winePrefix?: string | null,
-    preview?: boolean
+    preview?: boolean,
+    savesOnly?: boolean
   ): Promise<LudusaviBackup> {
+    if (savesOnly) {
+      return this.withSavesOnlyFilter(objectId, () =>
+        this.backupGame(_shop, objectId, backupPath, winePrefix, preview)
+      );
+    }
+
     return new Promise((resolve, reject) => {
       const args = [
         "--config",
@@ -87,7 +142,8 @@ export class Ludusavi {
   public static async getBackupPreview(
     _shop: GameShop,
     objectId: string,
-    winePrefix?: string | null
+    winePrefix?: string | null,
+    savesOnly?: boolean
   ): Promise<LudusaviBackup | null> {
     const config = await this.getConfig();
 
@@ -96,7 +152,8 @@ export class Ludusavi {
       objectId,
       null,
       winePrefix,
-      true
+      true,
+      savesOnly
     );
 
     const customGame = config.customGames.find(
