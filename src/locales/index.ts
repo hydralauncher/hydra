@@ -29,10 +29,12 @@ import uz from "./uz/translation.json";
 import fi from "./fi/translation.json";
 import sv from "./sv/translation.json";
 import lv from "./lv/translation.json";
+import cria from "./pt-cria/translation.json";
 
 export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
+  cria: cria,
   en,
   de,
   es,
