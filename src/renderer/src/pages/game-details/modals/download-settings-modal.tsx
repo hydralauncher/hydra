@@ -1,12 +1,13 @@
 import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Trans, useTranslation } from "react-i18next";
+  CheckCircleFillIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  FileDirectoryIcon,
+  FileIcon,
+  PlusIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
 import {
   Badge,
   Button,
@@ -16,23 +17,6 @@ import {
   SelectField,
   TextField,
 } from "@renderer/components";
-import {
-  DownloadIcon,
-  SyncIcon,
-  CheckCircleFillIcon,
-  CheckIcon,
-  PlusIcon,
-  ChevronDownIcon,
-  FileDirectoryIcon,
-  FileIcon,
-} from "@primer/octicons-react";
-import {
-  DownloadError,
-  Downloader,
-  formatBytes,
-  getDownloadersForUri,
-} from "@shared";
-import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { DOWNLOADER_NAME } from "@renderer/constants";
 import {
   useAppSelector,
@@ -40,10 +24,26 @@ import {
   useFeature,
   useToast,
 } from "@renderer/hooks";
+import {
+  DownloadError,
+  Downloader,
+  formatBytes,
+  getDownloadersForUri,
+} from "@shared";
+import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { motion } from "framer-motion";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
-import { RealDebridInfoModal } from "./real-debrid-info-modal";
 import "./download-settings-modal.scss";
+import { RealDebridInfoModal } from "./real-debrid-info-modal";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -55,7 +55,8 @@ export interface DownloadSettingsModalProps {
     automaticallyExtract: boolean,
     addToQueueOnly?: boolean,
     fileIndices?: number[],
-    selectedFilesSize?: number | null
+    selectedFilesSize?: number | null,
+    automaticallyDeleteArchiveFiles?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -249,6 +250,12 @@ export function DownloadSettingsModal({
   const [downloadStarting, setDownloadStarting] = useState(false);
   const [automaticExtractionEnabled, setAutomaticExtractionEnabled] = useState(
     userPreferences?.extractFilesByDefault ?? true
+  );
+  const [
+    deleteArchiveFilesAfterExtraction,
+    setDeleteArchiveFilesAfterExtraction,
+  ] = useState(
+    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
   );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
@@ -464,6 +471,15 @@ export function DownloadSettingsModal({
 
     setSelectedDownloader(getDefaultDownloader(availableDownloaders));
   }, [getDefaultDownloader, userPreferences?.downloadsPath, downloadOptions]);
+
+  useEffect(() => {
+    if (visible) {
+      setDeleteArchiveFilesAfterExtraction(
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const torrentFilesByIndex = useMemo(() => {
     const fileMap = new Map<number, TorrentFile>();
@@ -765,6 +781,9 @@ export function DownloadSettingsModal({
     if (!visible) {
       setShowTorrentStepModal(false);
     }
+    if (userPreferences?.extractFilesByDefault) {
+      setAutomaticExtractionEnabled(true);
+    }
   }, [visible]);
 
   useEffect(() => {
@@ -900,7 +919,8 @@ export function DownloadSettingsModal({
           automaticExtractionEnabled,
           hasActiveDownload,
           selectedFileIndices,
-          totalSelectedSize
+          totalSelectedSize,
+          deleteArchiveFilesAfterExtraction
         );
 
         if (response.ok) {
@@ -1322,6 +1342,16 @@ export function DownloadSettingsModal({
           checked={automaticExtractionEnabled}
           onChange={() =>
             setAutomaticExtractionEnabled(!automaticExtractionEnabled)
+          }
+        />
+
+        <CheckboxField
+          label={t("delete_archive_files_after_extraction")}
+          checked={deleteArchiveFilesAfterExtraction}
+          onChange={() =>
+            setDeleteArchiveFilesAfterExtraction(
+              !deleteArchiveFilesAfterExtraction
+            )
           }
         />
 
