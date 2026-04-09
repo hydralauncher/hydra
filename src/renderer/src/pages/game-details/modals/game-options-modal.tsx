@@ -88,6 +88,9 @@ export function GameOptionsModal({
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     game.automaticCloudSync ?? false
   );
+  const [cloudSyncSavesOnly, setCloudSyncSavesOnly] = useState(
+    game.cloudSyncSavesOnly ?? false
+  );
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
@@ -657,6 +660,24 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleToggleCloudSyncSavesOnly = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCloudSyncSavesOnly(event.target.checked);
+
+    const gameKey = getGameKey(game.shop, game.objectId);
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
+    if (gameData) {
+      const updated = { ...gameData, cloudSyncSavesOnly: event.target.checked };
+      await levelDBService.put(gameKey, updated, "games");
+    }
+
+    updateGame();
+  };
+
   return (
     <>
       <DeleteGameModal
@@ -750,7 +771,9 @@ export function GameOptionsModal({
               <HydraCloudSettingsSection
                 game={game}
                 automaticCloudSync={automaticCloudSync}
+                cloudSyncSavesOnly={cloudSyncSavesOnly}
                 onToggleAutomaticCloudSync={handleToggleAutomaticCloudSync}
+                onToggleCloudSyncSavesOnly={handleToggleCloudSyncSavesOnly}
               />
             )}
 

@@ -49,6 +49,7 @@ export function SettingsContextGeneral({
     startMinimized: false,
     hideToTrayOnGameStart: false,
     enableAutoInstall: false,
+    cloudSyncSavesOnly: false,
   });
 
   useEffect(() => {
@@ -93,6 +94,7 @@ export function SettingsContextGeneral({
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+      cloudSyncSavesOnly: userPreferences.cloudSyncSavesOnly ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
 
@@ -216,6 +218,18 @@ export function SettingsContextGeneral({
           />
         </div>
       )}
+
+      <div className="settings-context-panel__group">
+        <h3>{t("cloud_sync")}</h3>
+
+        <CheckboxField
+          label={t("cloud_sync_saves_only")}
+          checked={form.cloudSyncSavesOnly}
+          onChange={() =>
+            handleChange({ cloudSyncSavesOnly: !form.cloudSyncSavesOnly })
+          }
+        />
+      </div>
 
       <div className="settings-context-panel__group">
         <h3>{t("appearance")}</h3>

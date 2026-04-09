@@ -4,7 +4,7 @@ import * as tar from "tar";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
-import type { GameShop, User } from "@types";
+import type { GameShop, User, UserPreferences } from "@types";
 import { backupsPath } from "@main/constants";
 import { HydraApi } from "./hydra-api";
 import { normalizePath, parseRegFile } from "@main/helpers";
@@ -72,7 +72,8 @@ export class CloudSync {
   private static async bundleBackup(
     shop: GameShop,
     objectId: string,
-    winePrefix: string | null
+    winePrefix: string | null,
+    savesOnly: boolean
   ) {
     const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
@@ -85,7 +86,14 @@ export class CloudSync {
       }
     }
 
-    await Ludusavi.backupGame(shop, objectId, backupPath, winePrefix);
+    await Ludusavi.backupGame(
+      shop,
+      objectId,
+      backupPath,
+      winePrefix,
+      false,
+      savesOnly
+    );
 
     const tarLocation = path.join(backupsPath, `${crypto.randomUUID()}.tar`);
 
@@ -124,10 +132,19 @@ export class CloudSync {
       objectId
     );
 
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    const savesOnly =
+      game?.cloudSyncSavesOnly ?? userPreferences?.cloudSyncSavesOnly ?? false;
+
     const bundleLocation = await this.bundleBackup(
       shop,
       objectId,
-      effectiveWinePrefixPath
+      effectiveWinePrefixPath,
+      savesOnly
     );
 
     const stat = await fs.promises.stat(bundleLocation);
