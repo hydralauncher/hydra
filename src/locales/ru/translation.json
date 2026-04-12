@@ -153,7 +153,9 @@
     "deck_verified_only": "Только подтверждено",
     "result_count": "{{resultCount}} результатов",
     "filter_count": "{{filterCount}} доступных",
-    "clear_filters": "Очистить {{filterCount}} выбранных"
+    "clear_filters": "Очистить",
+    "release_year": "Год выпуска",
+    "filter_by_release_year": "Фильтровать по году выпуска"
   },
   "game_details": {
     "open_download_options": "Открыть источники",
