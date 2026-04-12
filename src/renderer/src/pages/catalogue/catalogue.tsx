@@ -1,6 +1,6 @@
 import type {
-  CatalogueSearchResult,
   CatalogueSearchPayload,
+  CatalogueSearchResult,
   DownloadSource,
 } from "@types";
 
@@ -17,21 +17,28 @@ import {
 
 import "./catalogue.scss";
 
-import { FilterSection } from "./filter-section";
+import { Button } from "@renderer/components/button/button";
 import { setFilters, setPage } from "@renderer/features";
+import { useCatalogue } from "@renderer/hooks/use-catalogue";
+import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import { Pagination } from "./pagination";
-import { useCatalogue } from "@renderer/hooks/use-catalogue";
-import { GameItem } from "./game-item";
 import { FilterItem } from "./filter-item";
-import { debounce } from "lodash-es";
-import { Button } from "@renderer/components/button/button";
+import { FilterSection } from "./filter-section";
+import { GameItem } from "./game-item";
+import { Pagination } from "./pagination";
 
 const ProtonCompatibilitySection = lazy(async () => {
   const mod = await import("./proton-compatibility-section");
   return { default: mod.ProtonCompatibilitySection };
 });
+
+const ReleaseYearSection = lazy(async () => {
+  const mod = await import("./release-year-section");
+  return { default: mod.ReleaseYearSection };
+});
+
+const MIN_RELEASE_YEAR = 1970;
 
 type CompatibilityThreshold<Value extends string> = {
   value: string;
@@ -48,6 +55,7 @@ const filterCategoryColors = {
   publishers: "hsl(200deg 50% 30%)",
   protondbSupportBadges: "#F50057",
   deckCompatibility: "#F50057",
+  releaseYear: "hsl(38deg 50% 40%)",
 };
 
 const PAGE_SIZE = 20;
@@ -60,6 +68,7 @@ const clearAllCategoryFilters = {
   publishers: [],
   protondbSupportBadges: [],
   deckCompatibility: [],
+  releaseYear: undefined,
 };
 
 const protonCompatibilityThresholds: CompatibilityThreshold<
@@ -306,6 +315,18 @@ export default function Catalogue() {
             },
           ]
         : []),
+
+      ...(filters.releaseYear
+        ? [
+            {
+              label: `${filters.releaseYear.gte ?? MIN_RELEASE_YEAR} – ${filters.releaseYear.lte ?? new Date().getFullYear()}`,
+              filterType: t("release_year"),
+              orbColor: filterCategoryColors.releaseYear,
+              key: "releaseYear",
+              value: "range",
+            },
+          ]
+        : []),
     ];
   }, [
     filters,
@@ -396,6 +417,11 @@ export default function Catalogue() {
                   filterType={filter.filterType}
                   orbColor={filter.orbColor}
                   onRemove={() => {
+                    if (filter.value === "range") {
+                      dispatch(setFilters({ releaseYear: undefined }));
+                      return;
+                    }
+
                     if (filter.value === "threshold") {
                       dispatch(setFilters({ [filter.key]: [] }));
                       return;
@@ -509,6 +535,17 @@ export default function Catalogue() {
                 />
               </Suspense>
             )}
+
+            <Suspense fallback={null}>
+              <ReleaseYearSection
+                title={t("release_year")}
+                color={filterCategoryColors.releaseYear}
+                value={filters.releaseYear}
+                onChange={(value) =>
+                  dispatch(setFilters({ releaseYear: value }))
+                }
+              />
+            </Suspense>
 
             {filterSections.map((section) => (
               <FilterSection
