@@ -1,0 +1,86 @@
+@use "../../scss/globals.scss";
+
+.release-year-section {
+  &__labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.86);
+    font-weight: 600;
+  }
+
+  &__slider-container {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  &__track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  &__range {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    appearance: none;
+    background: transparent;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+
+    &::-webkit-slider-runnable-track {
+      appearance: none;
+      background: transparent;
+      height: 4px;
+    }
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      pointer-events: all;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+      margin-top: -6px;
+    }
+
+    &::-moz-range-track {
+      background: transparent;
+      height: 4px;
+    }
+
+    &::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      pointer-events: all;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    &:focus-visible {
+      outline: none;
+
+      &::-webkit-slider-thumb {
+        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline-offset: 2px;
+      }
+
+      &::-moz-range-thumb {
+        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline-offset: 2px;
+      }
+    }
+  }
+}
