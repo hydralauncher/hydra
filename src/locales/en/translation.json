@@ -172,7 +172,9 @@
     "deck_verified_only": "Verified only",
     "result_count": "{{resultCount}} results",
     "filter_count": "{{filterCount}} available",
-    "clear_filters": "Clear {{filterCount}} selected"
+    "clear_filters": "Clear",
+    "release_year": "Release Year",
+    "filter_by_release_year": "Filter by release year"
   },
   "game_details": {
     "open_download_options": "Open download options",
