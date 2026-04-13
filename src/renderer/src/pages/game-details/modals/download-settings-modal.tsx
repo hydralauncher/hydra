@@ -781,9 +781,6 @@ export function DownloadSettingsModal({
     if (!visible) {
       setShowTorrentStepModal(false);
     }
-    if (userPreferences?.extractFilesByDefault) {
-      setAutomaticExtractionEnabled(true);
-    }
   }, [visible]);
 
   useEffect(() => {
