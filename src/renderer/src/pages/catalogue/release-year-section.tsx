@@ -131,6 +131,7 @@ export function ReleaseYearSection({
               onChange={(e) => handleGteChange(Number(e.target.value))}
               className="release-year-section__range"
               style={{ zIndex: gte === MAX_YEAR ? 2 : 1 }}
+              aria-label={t("release_year_gte")}
             />
             <input
               type="range"
@@ -140,6 +141,7 @@ export function ReleaseYearSection({
               onChange={(e) => handleLteChange(Number(e.target.value))}
               className="release-year-section__range"
               style={{ zIndex: gte === MAX_YEAR ? 1 : 2 }}
+              aria-label={t("release_year_lte")}
             />
           </div>
         </div>
