@@ -200,7 +200,10 @@ export class GameFilesManager {
 
       if (shouldDelete) {
         for (const archivePath of archivePaths) {
-          fs.unlink(archivePath, () => {});
+          WindowManager.mainWindow?.webContents.send(
+            "deleteArchive",
+            archivePath
+          );
         }
       } else {
         WindowManager.mainWindow?.webContents.send(
@@ -685,7 +688,10 @@ export class GameFilesManager {
             false;
 
           if (shouldDelete) {
-            fs.unlink(filePath, () => {});
+            WindowManager.mainWindow?.webContents.send(
+              "deleteArchive",
+              filePath
+            );
           } else {
             WindowManager.mainWindow?.webContents.send(
               "on-archive-deletion-prompt",
