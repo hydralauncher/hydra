@@ -54,6 +54,7 @@ export interface DownloadSettingsModalProps {
     downloadPath: string,
     automaticallyExtract: boolean,
     addToQueueOnly?: boolean,
+    addToDebridThenDownload?: boolean,
     fileIndices?: number[],
     selectedFilesSize?: number | null
   ) => Promise<{ ok: boolean; error?: string }>;
@@ -256,6 +257,7 @@ export function DownloadSettingsModal({
     null
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
+  const [addToDebridThenDownload, setAddToDebridThenDownload] = useState(true);
   const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
   const [torrentFilesLoading, setTorrentFilesLoading] = useState(false);
   const [torrentFilesError, setTorrentFilesError] = useState<string | null>(
@@ -278,6 +280,10 @@ export function DownloadSettingsModal({
   );
 
   const { isFeatureEnabled, Feature } = useFeature();
+
+  const isDebridDownloader =
+    selectedDownloader === Downloader.RealDebrid ||
+    selectedDownloader === Downloader.TorBox;
 
   const selectedUri = useMemo(() => {
     if (!repack || selectedDownloader === null) return null;
@@ -899,6 +905,7 @@ export function DownloadSettingsModal({
           selectedPath,
           automaticExtractionEnabled,
           hasActiveDownload,
+          addToDebridThenDownload,
           selectedFileIndices,
           totalSelectedSize
         );
@@ -1324,6 +1331,16 @@ export function DownloadSettingsModal({
             setAutomaticExtractionEnabled(!automaticExtractionEnabled)
           }
         />
+
+        {isDebridDownloader && (
+          <CheckboxField
+            label={t("add_to_debrid_then_download")}
+            checked={addToDebridThenDownload}
+            onChange={() =>
+              setAddToDebridThenDownload(!addToDebridThenDownload)
+            }
+          />
+        )}
 
         <Button
           onClick={handlePrimaryButtonClick}

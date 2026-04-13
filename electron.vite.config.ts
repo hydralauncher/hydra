@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
       build: {
         sourcemap: true,
       },
+      server: {
+        host: true,
+      },
       css: {
         preprocessorOptions: {
           scss: {
