@@ -9,7 +9,8 @@ const addCustomGameToLibrary = async (
   executablePath: string,
   iconUrl?: string,
   logoImageUrl?: string,
-  libraryHeroImageUrl?: string
+  libraryHeroImageUrl?: string,
+  coverImageUrl?: string
 ) => {
   const objectId = randomUUID();
   const shop: GameShop = "custom";
@@ -36,7 +37,7 @@ const addCustomGameToLibrary = async (
     libraryImageUrl: iconUrl || "",
     logoImageUrl: logoImageUrl || "",
     logoPosition: null,
-    coverImageUrl: iconUrl || "",
+    coverImageUrl: coverImageUrl || "",
     downloadSources: [],
   };
   await gamesShopAssetsSublevel.put(gameKey, assets);
@@ -46,6 +47,7 @@ const addCustomGameToLibrary = async (
     iconUrl: iconUrl || null,
     logoImageUrl: logoImageUrl || null,
     libraryHeroImageUrl: libraryHeroImageUrl || null,
+    coverImageUrl: coverImageUrl || null,
     objectId,
     shop,
     remoteId: null,

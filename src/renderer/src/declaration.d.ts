@@ -128,7 +128,8 @@ declare global {
       executablePath: string,
       iconUrl?: string,
       logoImageUrl?: string,
-      libraryHeroImageUrl?: string
+      libraryHeroImageUrl?: string,
+      coverImageUrl?: string
     ) => Promise<Game>;
     updateCustomGame: (params: {
       shop: GameShop;
@@ -137,13 +138,15 @@ declare global {
       iconUrl?: string;
       logoImageUrl?: string;
       libraryHeroImageUrl?: string;
+      coverImageUrl?: string;
       originalIconPath?: string;
       originalLogoPath?: string;
       originalHeroPath?: string;
+      originalCoverPath?: string;
     }) => Promise<Game>;
     copyCustomGameAsset: (
       sourcePath: string,
-      assetType: "icon" | "logo" | "hero"
+      assetType: "icon" | "logo" | "hero" | "cover"
     ) => Promise<string>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
@@ -156,9 +159,11 @@ declare global {
       customIconUrl?: string | null;
       customLogoImageUrl?: string | null;
       customHeroImageUrl?: string | null;
+      customCoverImageUrl?: string | null;
       customOriginalIconPath?: string | null;
       customOriginalLogoPath?: string | null;
       customOriginalHeroPath?: string | null;
+      customOriginalCoverPath?: string | null;
     }) => Promise<Game>;
     createGameShortcut: (
       shop: GameShop,
