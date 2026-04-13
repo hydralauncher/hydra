@@ -155,7 +155,9 @@
     "filter_count": "{{filterCount}} доступных",
     "clear_filters": "Очистить",
     "release_year": "Год выпуска",
-    "filter_by_release_year": "Фильтровать по году выпуска"
+    "filter_by_release_year": "Фильтровать по году выпуска",
+    "release_year_gte": "Год выпуска от",
+    "release_year_lte": "Год выпуска до"
   },
   "game_details": {
     "open_download_options": "Открыть источники",
