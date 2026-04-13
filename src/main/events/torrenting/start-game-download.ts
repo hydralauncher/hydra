@@ -70,8 +70,9 @@ const startGameDownload = async (
   };
 
   try {
-    await downloadsSublevel.put(gameKey, download);
-    await DownloadManager.startDownload(download);
+    await DownloadManager.startDownload(download).then(() => {
+      return downloadsSublevel.put(gameKey, download);
+    });
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
