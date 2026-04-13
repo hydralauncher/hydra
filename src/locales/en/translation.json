@@ -174,7 +174,9 @@
     "filter_count": "{{filterCount}} available",
     "clear_filters": "Clear",
     "release_year": "Release Year",
-    "filter_by_release_year": "Filter by release year"
+    "filter_by_release_year": "Filter by release year",
+    "release_year_gte": "Release year from",
+    "release_year_lte": "Release year to"
   },
   "game_details": {
     "open_download_options": "Open download options",
