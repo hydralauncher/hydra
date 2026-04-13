@@ -477,6 +477,9 @@ export function DownloadSettingsModal({
       setDeleteArchiveFilesAfterExtraction(
         userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
       );
+      setAutomaticExtractionEnabled(
+        userPreferences?.extractFilesByDefault ?? true
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
