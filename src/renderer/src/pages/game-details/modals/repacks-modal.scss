@@ -32,6 +32,24 @@
     flex-direction: column;
   }
 
+  &__shared-source-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+    border-radius: 8px;
+    background: var(--color-background-light);
+    border: 1px solid rgba(globals.$warning-color, 0.35);
+  }
+
+  &__shared-source-warning-text {
+    margin: 0;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+  }
+
   &__repack-button {
     display: flex;
     text-align: left;

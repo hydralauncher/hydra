@@ -7,6 +7,7 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
+  ShareIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
@@ -41,6 +42,7 @@ export function HeroPanelActions() {
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
+    getDownloadSourceById,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -50,7 +52,7 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { t } = useTranslation("game_details");
 
@@ -155,6 +157,48 @@ export function HeroPanelActions() {
 
       updateLibrary();
       updateGame();
+    } finally {
+      setToggleLibraryGameDisabled(false);
+    }
+  };
+
+  const toggleShareGame = async () => {
+    if (!game?.download?.uri) return;
+
+    const downloadUri = game.download.uri;
+    setToggleLibraryGameDisabled(true);
+
+    try {
+      const downloadedRepack = repacks.find((repack) =>
+        repack.uris.some((uri) => uri.includes(downloadUri))
+      );
+
+      if (!downloadedRepack) {
+        showErrorToast(t("try_again"));
+        return;
+      }
+
+      const source = getDownloadSourceById(downloadedRepack.downloadSourceId);
+      const sourceUrl = source?.url;
+
+      if (!sourceUrl) {
+        showErrorToast(t("shared_download_source_missing"));
+        return;
+      }
+
+      const params = new URLSearchParams({
+        shop: game.shop,
+        objectId: game.objectId,
+        repackId: downloadedRepack.id,
+        sourceUrl: sourceUrl,
+      });
+
+      await navigator.clipboard.writeText(
+        `hydralauncher://game?${params.toString()}`
+      );
+      showSuccessToast(t("game_shared_to_clipboard"));
+    } catch {
+      showErrorToast(t("try_again"));
     } finally {
       setToggleLibraryGameDisabled(false);
     }
@@ -276,15 +320,29 @@ export function HeroPanelActions() {
           {game.favorite ? <HeartFillIcon /> : <HeartIcon />}
         </Button>
 
-        {userDetails && game.shop !== "custom" && (
-          <Button
-            onClick={toggleGamePinned}
-            theme="outline"
-            disabled={deleting}
-            className="hero-panel-actions__action"
-          >
-            {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
-          </Button>
+        {game.shop !== "custom" && (
+          <>
+            {userDetails && (
+              <Button
+                onClick={toggleGamePinned}
+                theme="outline"
+                disabled={deleting}
+                className="hero-panel-actions__action"
+              >
+                {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
+              </Button>
+            )}
+            {game.download && (
+              <Button
+                onClick={toggleShareGame}
+                theme="outline"
+                disabled={deleting}
+                className="hero-panel-actions__action"
+              >
+                <ShareIcon />
+              </Button>
+            )}
+          </>
         )}
 
         <Button

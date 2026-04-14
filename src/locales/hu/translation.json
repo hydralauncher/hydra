@@ -260,6 +260,7 @@
     "download_paused": "Letöltés szüneteltetve",
     "extracting": "Kicsomagolás",
     "last_downloaded_option": "Utoljára letöltött",
+    "friend_shared_download_option": "Barát osztotta meg",
     "new_download_option": "Új",
     "create_steam_shortcut": "Steam parancsikon létrehozása",
     "create_shortcut_success": "A parancsikon létrehozása sikeres",
@@ -381,6 +382,7 @@
     "download_error_not_cached_on_torbox": "Ez a letöltés nem elérhető a TorBoxon, és lekérdezni letöltési állapotot még nem lehet.",
     "download_error_not_cached_on_hydra": "Ez a letöltés nem elérhető a Nimbuson.",
     "game_removed_from_favorites": "Játék eltávolítva a kedvencek közül",
+    "game_shared_to_clipboard": "A játék linkje a vágólapra másolva",
     "game_added_to_favorites": "Játék hozzáadva a kedvencekhez",
     "game_removed_from_pinned": "Játék eltávolítva a kitűzöttek közül",
     "game_added_to_pinned": "Játék sikeresen kitűzve",
@@ -511,7 +513,8 @@
     "download_error_alldebrid_unavailable": "AllDebrid is temporarily unavailable. Please try again later.",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Ehhez a megosztott letoltési lehetoseghez olyan forras kell, amellyel meg nem rendelkezel."
   },
   "activation": {
     "title": "Hydra Aktiválása",

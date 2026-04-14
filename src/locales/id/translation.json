@@ -294,6 +294,7 @@
     "download_paused": "Unduhan dijeda",
     "extracting": "Mengekstrak",
     "last_downloaded_option": "Opsi unduhan terakhir",
+    "friend_shared_download_option": "Dibagikan oleh teman",
     "new_download_option": "Baru",
     "create_steam_shortcut": "Buat pintasan Steam",
     "create_shortcut_success": "Pintasan berhasil dibuat",
@@ -474,6 +475,7 @@
     "download_error_not_cached_on_torbox": "Unduhan ini tidak tersedia di TorBox dan pemantauan status unduhan dari TorBox belum tersedia.",
     "download_error_not_cached_on_hydra": "Unduhan ini tidak tersedia di Nimbus.",
     "game_removed_from_favorites": "Game dihapus dari favorit",
+    "game_shared_to_clipboard": "Tautan game disalin ke clipboard",
     "game_added_to_favorites": "Game ditambahkan ke favorit",
     "game_removed_from_pinned": "Game dihapus dari yang disematkan",
     "game_added_to_pinned": "Game ditambahkan ke yang disematkan",
@@ -534,7 +536,8 @@
     "create_steam_shortcut_modal_cancel_button": "Batal",
     "delete_shortcut_success": "Pintasan Steam berhasil dihapus",
     "delete_shortcut_error": "Gagal menghapus pintasan Steam",
-    "delete_steam_shortcut": "Hapus pintasan Steam"
+    "delete_steam_shortcut": "Hapus pintasan Steam",
+    "shared_download_source_missing": "Opsi unduhan bersama ini memerlukan sumber yang belum kamu miliki."
   },
   "activation": {
     "title": "Aktifkan Hydra",

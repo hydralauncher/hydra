@@ -247,6 +247,7 @@
     "download_in_progress": "Notiek lejupielāde",
     "download_paused": "Lejupielāde apturēta",
     "last_downloaded_option": "Pēdējais lejupielādes variants",
+    "friend_shared_download_option": "Drauga kopīgota",
     "create_steam_shortcut": "Izveidot Steam īsceļu",
     "create_shortcut_success": "Īsceļš izveidots",
     "you_might_need_to_restart_steam": "Iespējams, jums būs jāpārstartē Steam, lai redzētu izmaiņas",
@@ -376,6 +377,7 @@
     "download_error_not_cached_on_torbox": "Šī lejupielāde nav pieejama TorBox, un TorBox lejupielādes statusu pagaidām nav iespējams iegūt.",
     "download_error_not_cached_on_hydra": "Šī lejupielāde nav pieejama Nimbus.",
     "game_removed_from_favorites": "Spēle dzēsta no izlases",
+    "game_shared_to_clipboard": "Spēles saite nokopēta starpliktuvē",
     "game_added_to_favorites": "Spēle pievienota izlasei",
     "game_removed_from_pinned": "Spēle dzēsta no piespraustajiem",
     "game_added_to_pinned": "Spēle pievienota piespraustajiem",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Sai koplietotajai lejupielades opcijai ir vajadigs avots, kura jums vel nav."
   },
   "activation": {
     "title": "Aktivizēt Hydra",

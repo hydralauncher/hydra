@@ -1,4 +1,5 @@
 import type {
+  DownloadSource,
   GameRepack,
   GameShop,
   GameStats,
@@ -39,4 +40,5 @@ export interface GameDetailsContext {
     React.SetStateAction<GameOptionsCategoryId>
   >;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
+  getDownloadSourceById: (downloadSourceId: string) => DownloadSource | null;
 }

@@ -277,6 +277,7 @@
     "download_paused": "Download paused",
     "extracting": "Extracting",
     "last_downloaded_option": "Last downloaded option",
+    "friend_shared_download_option": "Partajată de un prieten",
     "new_download_option": "New",
     "create_steam_shortcut": "Create Steam shortcut",
     "create_shortcut_success": "Shortcut created successfully",
@@ -451,6 +452,7 @@
     "download_error_not_cached_on_torbox": "This download is not available on TorBox and polling download status from TorBox is not yet available.",
     "download_error_not_cached_on_hydra": "This download is not available on Nimbus.",
     "game_removed_from_favorites": "Game removed from favorites",
+    "game_shared_to_clipboard": "Linkul jocului a fost copiat în clipboard",
     "game_added_to_favorites": "Game added to favorites",
     "game_removed_from_pinned": "Game removed from pinned",
     "game_added_to_pinned": "Game added to pinned",
@@ -508,7 +510,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Aceasta optiune de descarcare partajata are nevoie de o sursa pe care inca nu o ai."
   },
   "activation": {
     "title": "Activează Hydra",

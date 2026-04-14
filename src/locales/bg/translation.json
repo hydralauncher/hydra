@@ -244,6 +244,7 @@
     "download_in_progress": "Изтеглянето е в ход",
     "download_paused": "Изтеглянето е на пауза",
     "last_downloaded_option": "Последно изтеглена опция",
+    "friend_shared_download_option": "Споделено от приятел",
     "create_steam_shortcut": "Създай пряк път за Steam",
     "create_shortcut_success": "Прекият път е създаден успешно",
     "you_might_need_to_restart_steam": "Може да е необходимо да рестартирате Steam, за да видите промените",
@@ -313,6 +314,7 @@
     "download_error_not_cached_on_torbox": "Това изтегляне не е налично в TorBox и не може да се следи статуса.",
     "download_error_not_cached_on_hydra": "Това изтегляне не е налично в Nimbus.",
     "game_removed_from_favorites": "Играта е премахната от любими",
+    "game_shared_to_clipboard": "Връзката към играта е копирана в клипборда",
     "game_added_to_favorites": "Играта е добавена в любими",
     "automatically_extract_downloaded_files": "Автоматично извличане на изтеглени файлове",
     "create_start_menu_shortcut": "Създай пряк път в старт менюто",
@@ -511,7 +513,8 @@
     "hide": "Hide",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Тази споделена опция за изтегляне изисква източник, който все още нямате."
   },
   "activation": {
     "title": "Активирай Hydra",

@@ -244,6 +244,7 @@
     "download_in_progress": "İndirme sürüyor",
     "download_paused": "İndirme duraklatıldı",
     "last_downloaded_option": "Son indirilen seçenek",
+    "friend_shared_download_option": "Arkadaş tarafından paylaşıldı",
     "create_steam_shortcut": "Steam kısayolu oluştur",
     "create_shortcut_success": "Kısayol başarıyla oluşturuldu",
     "you_might_need_to_restart_steam": "Değişiklikleri görmek için Steam'i yeniden başlatmanız gerekebilir",
@@ -313,6 +314,7 @@
     "download_error_not_cached_on_torbox": "Bu indirme TorBox üzerinde mevcut değil ve durum sorgulanamıyor.",
     "download_error_not_cached_on_hydra": "Bu indirme Nimbus üzerinde mevcut değil.",
     "game_removed_from_favorites": "Oyun favorilerden kaldırıldı",
+    "game_shared_to_clipboard": "Oyun bağlantısı panoya kopyalandı",
     "game_added_to_favorites": "Oyun favorilere eklendi",
     "automatically_extract_downloaded_files": "İndirilen dosyaları otomatik çıkart",
     "create_start_menu_shortcut": "Başlat Menüsüne kısayol oluştur",
@@ -511,7 +513,8 @@
     "source_offline": "Source is offline",
     "create_steam_shortcut_modal_vr_flag": "VR Game (In Steam: update the VR flag or delete/recreate the shortcut)",
     "create_steam_shortcut_modal_create_button": "Create",
-    "create_steam_shortcut_modal_cancel_button": "Cancel"
+    "create_steam_shortcut_modal_cancel_button": "Cancel",
+    "shared_download_source_missing": "Bu paylasilan indirme secenegi, henuz sahip olmadiginiz bir kaynak gerektiriyor."
   },
   "activation": {
     "title": "Hydra'yı Etkinleştir",

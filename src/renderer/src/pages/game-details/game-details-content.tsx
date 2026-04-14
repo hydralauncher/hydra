@@ -65,6 +65,7 @@ export function GameDetailsContent() {
     shop,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
+    setShowRepacksModal,
   } = useContext(gameDetailsContext);
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
@@ -140,6 +141,14 @@ export function GameDetailsContent() {
       setTimeout(() => {
         reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 500);
+    }
+  }, [searchParams, objectId]);
+
+  // Open repacks modal if repackId was passed to this page in URL
+  useEffect(() => {
+    const repackId = searchParams.get("repackId");
+    if (repackId) {
+      setShowRepacksModal(true);
     }
   }, [searchParams, objectId]);
 
