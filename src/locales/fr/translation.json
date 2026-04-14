@@ -771,8 +771,6 @@
     "debrid_description": "Les services Debrid sont des téléchargeurs premium non restreints qui permettent de télécharger rapidement des fichiers hébergés sur différents services, limités uniquement par la vitesse de votre connexion internet.",
     "enable_new_download_options_badges": "Afficher les badges des nouvelles options de téléchargement",
     "downloads": "Téléchargements",
-    "use_native_http_downloader": "Utiliser le téléchargeur HTTP natif (expérimental)",
-    "cannot_change_downloader_while_downloading": "Impossible de modifier ce paramètre pendant qu’un téléchargement est en cours",
     "create_shortcuts_on_download": "Créer un raccourci dans le menu Démarrer à la fin du téléchargement du jeu",
     "launch_hydra_in_library_page": "Lancer Hydra sur la page Bibliothèque",
     "enable_premiumize": "Activer Premiumize",

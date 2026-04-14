@@ -764,8 +764,6 @@
     "autoplay_trailers_on_game_page": "Samodejno predvajaj napovednike na strani igre",
     "hide_to_tray_on_game_start": "Skrij Hydreo v sistemsko vrstico ob zagonu igre",
     "downloads": "Prenosi",
-    "use_native_http_downloader": "Uporabi izvorni HTTP prenašalnik (eksperimentalno)",
-    "cannot_change_downloader_while_downloading": "Nastavitve ni mogoče spremeniti med prenosom",
     "system_tray": {
       "open": "Odpri Hydreo",
       "quit": "Izhod"

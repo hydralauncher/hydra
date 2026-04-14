@@ -153,7 +153,11 @@
     "deck_verified_only": "Только подтверждено",
     "result_count": "{{resultCount}} результатов",
     "filter_count": "{{filterCount}} доступных",
-    "clear_filters": "Очистить {{filterCount}} выбранных"
+    "clear_filters": "Очистить",
+    "release_year": "Год выпуска",
+    "filter_by_release_year": "Фильтровать по году выпуска",
+    "release_year_gte": "Год выпуска от",
+    "release_year_lte": "Год выпуска до"
   },
   "game_details": {
     "open_download_options": "Открыть источники",
@@ -724,8 +728,6 @@
     "autoplay_trailers_on_game_page": "Автоматически начинать воспроизведение трейлеров на странице игры",
     "hide_to_tray_on_game_start": "Скрывать Hydra в трей при запуске игры",
     "downloads": "Загрузки",
-    "use_native_http_downloader": "Использовать встроенный HTTP-загрузчик (экспериментально)",
-    "cannot_change_downloader_while_downloading": "Нельзя изменить эту настройку во время загрузки",
     "create_shortcuts_on_download": "Создавать ярлыки на рабочем столе и в меню «Пуск» после завершения загрузки игры",
     "default_proton_version": "Версия Proton по умолчанию",
     "default_proton_version_description": "Выберите версию Proton, которую использует автоматический режим, если для игры не задана отдельная настройка",

@@ -787,8 +787,6 @@
     "autoplay_trailers_on_game_page": "Putar trailer secara otomatis di halaman game",
     "hide_to_tray_on_game_start": "Sembunyikan Hydra ke tray saat game dimulai",
     "downloads": "Unduhan",
-    "use_native_http_downloader": "Gunakan pengunduh HTTP bawaan (eksperimental)",
-    "cannot_change_downloader_while_downloading": "Tidak dapat mengubah pengaturan ini saat unduhan sedang berjalan",
     "create_shortcuts_on_download": "Buat pintasan desktop dan Start Menu saat game selesai diunduh",
     "default_proton_version": "Versi Proton default",
     "default_proton_version_description": "Pilih versi Proton yang digunakan oleh mode Otomatis saat game tidak memiliki pengaturan kustom"

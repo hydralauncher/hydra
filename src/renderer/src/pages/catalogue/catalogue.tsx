@@ -1,29 +1,44 @@
 import type {
-  CatalogueSearchResult,
   CatalogueSearchPayload,
+  CatalogueSearchResult,
   DownloadSource,
 } from "@types";
 
 import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import "./catalogue.scss";
 
-import { FilterSection } from "./filter-section";
+import { Button } from "@renderer/components/button/button";
 import { setFilters, setPage } from "@renderer/features";
+import { useCatalogue } from "@renderer/hooks/use-catalogue";
+import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import { Pagination } from "./pagination";
-import { useCatalogue } from "@renderer/hooks/use-catalogue";
-import { GameItem } from "./game-item";
 import { FilterItem } from "./filter-item";
-import { debounce } from "lodash-es";
-import { Button } from "@renderer/components/button/button";
+import { FilterSection } from "./filter-section";
+import { GameItem } from "./game-item";
+import { Pagination } from "./pagination";
 
 const ProtonCompatibilitySection = lazy(async () => {
   const mod = await import("./proton-compatibility-section");
   return { default: mod.ProtonCompatibilitySection };
 });
+
+const ReleaseYearSection = lazy(async () => {
+  const mod = await import("./release-year-section");
+  return { default: mod.ReleaseYearSection };
+});
+
+const MIN_RELEASE_YEAR = 1970;
 
 type CompatibilityThreshold<Value extends string> = {
   value: string;
@@ -40,6 +55,7 @@ const filterCategoryColors = {
   publishers: "hsl(200deg 50% 30%)",
   protondbSupportBadges: "#F50057",
   deckCompatibility: "#F50057",
+  releaseYear: "hsl(38deg 50% 40%)",
 };
 
 const PAGE_SIZE = 20;
@@ -52,6 +68,7 @@ const clearAllCategoryFilters = {
   publishers: [],
   protondbSupportBadges: [],
   deckCompatibility: [],
+  releaseYear: undefined,
 };
 
 const protonCompatibilityThresholds: CompatibilityThreshold<
@@ -82,7 +99,8 @@ const areSameValues = (first: string[], second: string[]) =>
   first.every((item) => second.includes(item));
 
 export default function Catalogue() {
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestSequenceRef = useRef(0);
+  const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
@@ -90,8 +108,17 @@ export default function Catalogue() {
   const { steamGenres, steamUserTags, filters, page } = useAppSelector(
     (state) => state.catalogueSearch
   );
+  const deferredTitleFilter = useDeferredValue(filters.title);
+
+  const effectiveFilters = useMemo(() => {
+    return {
+      ...filters,
+      title: deferredTitleFilter,
+    };
+  }, [filters, deferredTitleFilter]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
 
@@ -110,11 +137,9 @@ export default function Catalogue() {
         filters: CatalogueSearchPayload,
         downloadSources: DownloadSource[],
         pageSize: number,
-        offset: number
+        offset: number,
+        requestId: number
       ) => {
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
         const requestData = {
           ...filters,
           take: pageSize,
@@ -124,19 +149,25 @@ export default function Catalogue() {
           ),
         };
 
-        const response = await window.electron.hydraApi.post<{
-          edges: CatalogueSearchResult[];
-          count: number;
-        }>("/catalogue/search", {
-          data: requestData,
-          needsAuth: false,
-        });
+        try {
+          const response = await window.electron.hydraApi.post<{
+            edges: CatalogueSearchResult[];
+            count: number;
+          }>("/catalogue/search", {
+            data: requestData,
+            needsAuth: false,
+          });
 
-        if (abortController.signal.aborted) return;
+          if (requestId !== requestSequenceRef.current) return;
 
-        setResults(response.edges);
-        setItemsCount(response.count);
-        setIsLoading(false);
+          setResults(response.edges);
+          setItemsCount(response.count);
+          setIsLoading(false);
+        } finally {
+          if (requestId === requestSequenceRef.current) {
+            setIsFetching(false);
+          }
+        }
       },
       500
     )
@@ -146,21 +177,29 @@ export default function Catalogue() {
     s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
 
   useEffect(() => {
-    setResults([]);
-    setIsLoading(true);
-    abortControllerRef.current?.abort();
+    hasResultsRef.current = results.length > 0;
+  }, [results.length]);
+
+  useEffect(() => {
+    const requestId = ++requestSequenceRef.current;
+    setIsFetching(true);
+
+    if (!hasResultsRef.current) {
+      setIsLoading(true);
+    }
 
     debouncedSearch(
-      filters,
+      effectiveFilters,
       downloadSources,
       PAGE_SIZE,
-      (page - 1) * PAGE_SIZE
+      (page - 1) * PAGE_SIZE,
+      requestId
     );
 
     return () => {
       debouncedSearch.cancel();
     };
-  }, [filters, downloadSources, page, debouncedSearch]);
+  }, [effectiveFilters, downloadSources, page, debouncedSearch]);
 
   const language = i18n.language.split("-")[0];
 
@@ -276,6 +315,18 @@ export default function Catalogue() {
             },
           ]
         : []),
+
+      ...(filters.releaseYear
+        ? [
+            {
+              label: `${filters.releaseYear.gte ?? MIN_RELEASE_YEAR} – ${filters.releaseYear.lte ?? new Date().getFullYear()}`,
+              filterType: t("release_year"),
+              orbColor: filterCategoryColors.releaseYear,
+              key: "releaseYear",
+              value: "range",
+            },
+          ]
+        : []),
     ];
   }, [
     filters,
@@ -366,6 +417,11 @@ export default function Catalogue() {
                   filterType={filter.filterType}
                   orbColor={filter.orbColor}
                   onRemove={() => {
+                    if (filter.value === "range") {
+                      dispatch(setFilters({ releaseYear: undefined }));
+                      return;
+                    }
+
                     if (filter.value === "threshold") {
                       dispatch(setFilters({ [filter.key]: [] }));
                       return;
@@ -409,6 +465,10 @@ export default function Catalogue() {
             </SkeletonTheme>
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
+          )}
+
+          {isFetching && !isLoading && (
+            <span className="catalogue__result-count">{t("loading")}</span>
           )}
 
           <div className="catalogue__pagination-container">
@@ -475,6 +535,17 @@ export default function Catalogue() {
                 />
               </Suspense>
             )}
+
+            <Suspense fallback={null}>
+              <ReleaseYearSection
+                title={t("release_year")}
+                color={filterCategoryColors.releaseYear}
+                value={filters.releaseYear}
+                onChange={(value) =>
+                  dispatch(setFilters({ releaseYear: value }))
+                }
+              />
+            </Suspense>
 
             {filterSections.map((section) => (
               <FilterSection

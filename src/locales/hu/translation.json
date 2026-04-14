@@ -732,8 +732,6 @@
     "autoplay_trailers_on_game_page": "Játékelőzetes automatikus lejátszása a játék oldalán",
     "hide_to_tray_on_game_start": "Hydra elrejtése játék indításakor a tálcára",
     "downloads": "Letöltések",
-    "use_native_http_downloader": "Natív HTTP letöltő használata (kísérleti)",
-    "cannot_change_downloader_while_downloading": "Ez a beállítás nem változtatható letöltés közben.",
     "create_start_menu_shortcut_on_download": "Start Menü parancsikon létrehozása letöltés után",
     "content_gameplay": "Content & gameplay",
     "integrations": "Integrations",
