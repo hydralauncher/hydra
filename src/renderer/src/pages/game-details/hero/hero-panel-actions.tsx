@@ -52,7 +52,7 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { t } = useTranslation("game_details");
 
@@ -170,15 +170,21 @@ export function HeroPanelActions() {
 
     try {
       const downloadedRepack = repacks.find((repack) =>
-        repack.uris.includes(downloadUri)
+        repack.uris.some((uri) => uri.includes(downloadUri))
       );
 
-      if (!downloadedRepack) return;
+      if (!downloadedRepack) {
+        showErrorToast(t("try_again"));
+        return;
+      }
 
       const source = getDownloadSourceById(downloadedRepack.downloadSourceId);
       const sourceUrl = source?.url;
 
-      if (!sourceUrl) return;
+      if (!sourceUrl) {
+        showErrorToast(t("shared_download_source_missing"));
+        return;
+      }
 
       const params = new URLSearchParams({
         shop: game.shop,
@@ -191,6 +197,8 @@ export function HeroPanelActions() {
         `hydralauncher://game?${params.toString()}`
       );
       showSuccessToast(t("game_shared_to_clipboard"));
+    } catch {
+      showErrorToast(t("try_again"));
     } finally {
       setToggleLibraryGameDisabled(false);
     }
@@ -314,16 +322,16 @@ export function HeroPanelActions() {
 
         {game.shop !== "custom" && (
           <>
-            {
-              userDetails && (<Button
+            {userDetails && (
+              <Button
                 onClick={toggleGamePinned}
                 theme="outline"
                 disabled={deleting}
                 className="hero-panel-actions__action"
               >
                 {game.isPinned ? <PinSlashIcon /> : <PinIcon />}
-              </Button>)
-            }
+              </Button>
+            )}
             {game.download && (
               <Button
                 onClick={toggleShareGame}

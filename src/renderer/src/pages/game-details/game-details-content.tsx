@@ -65,7 +65,7 @@ export function GameDetailsContent() {
     shop,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
-    setShowRepacksModal
+    setShowRepacksModal,
   } = useContext(gameDetailsContext);
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
@@ -148,7 +148,7 @@ export function GameDetailsContent() {
   useEffect(() => {
     const repackId = searchParams.get("repackId");
     if (repackId) {
-      setShowRepacksModal(true)
+      setShowRepacksModal(true);
     }
   }, [searchParams, objectId]);
 
