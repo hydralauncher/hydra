@@ -584,7 +584,7 @@ export function Sidebar() {
                   onClick={handleOpenBigPictureWindow}
                 >
                   <VideoIcon />
-                  <span>Big Picture</span>
+                  <span>{t("big_picture")}</span>
                 </button>
               </li>
 
