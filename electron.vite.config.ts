@@ -29,6 +29,22 @@ export default defineConfig(({ mode }) => {
     preload: {
       plugins: [externalizeDepsPlugin()],
     },
+    bigPicture: {
+      root: "src/big-picture",
+      build: {
+        outDir: "out/big-picture",
+        rollupOptions: {
+          input: resolve("src/big-picture/index.html"),
+        },
+      },
+      resolve: {
+        alias: {
+          "@locales": resolve("src/locales"),
+          "@shared": resolve("src/shared"),
+        },
+      },
+      plugins: [react()],
+    },
     renderer: {
       build: {
         sourcemap: true,
