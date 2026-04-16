@@ -1,3 +1,14 @@
+import { is } from "@electron-toolkit/utils";
+import { isStaging } from "@main/constants";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import icon from "@resources/icon.png?asset";
+import trayIcon from "@resources/tray-icon.png?asset";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import type {
+  AchievementCustomNotificationPosition,
+  ScreenState,
+  UserPreferences,
+} from "@types";
 import {
   BrowserWindow,
   Menu,
@@ -9,28 +20,18 @@ import {
   screen,
   shell,
 } from "electron";
-import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
-import path from "node:path";
-import icon from "@resources/icon.png?asset";
-import trayIcon from "@resources/tray-icon.png?asset";
-import { HydraApi } from "./hydra-api";
-import UserAgent from "user-agents";
-import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
-import type {
-  AchievementCustomNotificationPosition,
-  ScreenState,
-  UserPreferences,
-} from "@types";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { isStaging } from "@main/constants";
+import path from "node:path";
+import UserAgent from "user-agents";
+import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
+  public static bigPicture: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -259,6 +260,47 @@ export class WindowManager {
     this.mainWindow.webContents.setWindowOpenHandler((handler) => {
       shell.openExternal(handler.url);
       return { action: "deny" };
+    });
+  }
+
+  public static async openBigPictureWindow() {
+    if (this.bigPicture) {
+      this.bigPicture.focus();
+      return;
+    }
+
+    this.bigPicture = new BrowserWindow({
+      fullscreen: true,
+      backgroundColor: "#0a0a0a",
+      icon,
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.bigPicture.removeMenu();
+
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      this.bigPicture.loadURL(
+        `${process.env["ELECTRON_RENDERER_URL"]}#/big-picture`
+      );
+    } else {
+      this.bigPicture.loadFile(
+        path.join(__dirname, "../big-picture/index.html")
+      );
+    }
+
+    this.bigPicture.once("ready-to-show", () => {
+      this.mainWindow?.hide();
+      this.bigPicture?.show();
+    });
+
+    this.bigPicture.on("closed", () => {
+      this.bigPicture = null;
+      this.mainWindow?.show();
+      this.mainWindow?.focus();
     });
   }
 
