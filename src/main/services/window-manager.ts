@@ -282,15 +282,11 @@ export class WindowManager {
 
     this.bigPicture.removeMenu();
 
-    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-      this.bigPicture.loadURL(
-        `${process.env["ELECTRON_RENDERER_URL"]}#/big-picture`
-      );
-    } else {
-      this.bigPicture.loadFile(
-        path.join(__dirname, "../big-picture/index.html")
-      );
+    if (!app.isPackaged || isStaging) {
+      this.bigPicture.webContents.openDevTools();
     }
+
+    this.loadWindowURL(this.bigPicture, "big-picture");
 
     this.bigPicture.once("ready-to-show", () => {
       this.mainWindow?.hide();
