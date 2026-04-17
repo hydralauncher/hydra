@@ -35,6 +35,7 @@ import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import GameLauncher from "./pages/game-launcher/game-launcher";
+import BigPictureApp from "../../big-picture/src/app";
 
 console.log = logger.log;
 
@@ -108,6 +109,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={<AchievementNotification />}
           />
           <Route path="/game-launcher" element={<GameLauncher />} />
+          <Route path="/big-picture" element={<BigPictureApp />} />
         </Routes>
       </HashRouter>
     </Provider>
