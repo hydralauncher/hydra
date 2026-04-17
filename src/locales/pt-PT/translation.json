@@ -638,6 +638,7 @@
     "installing_common_redist": "A instalar…",
     "show_download_speed_in_megabytes": "Mostrar velocidade de transferência em megabytes por segundo",
     "extract_files_by_default": "Extrair ficheiros por defeito após a transferência",
+    "auto_delete_archive_after_extraction": "Eliminar ficheiros transferidos automaticamente após a extração",
     "enable_steam_achievements": "Ativar pesquisa de conquistas Steam",
     "enable_new_download_options_badges": "Mostrar badges de novas opções de transferência",
     "achievement_custom_notification_position": "Posição de notificação personalizada de conquista",

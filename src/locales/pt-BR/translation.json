@@ -673,6 +673,7 @@
     "max_download_speed_unit_megabits": "Mbps",
     "max_download_speed_unlimited": "Ilimitada",
     "extract_files_by_default": "Extrair arquivos automaticamente após o download",
+    "auto_delete_archive_after_extraction": "Excluir arquivos transferidos automaticamente após extração",
     "enable_steam_achievements": "Habilitar busca por conquistas da Steam",
     "enable_new_download_options_badges": "Mostrar badges de novas opções de download",
     "enable_achievement_custom_notifications": "Habilitar notificações customizadas de conquistas",
