@@ -13,6 +13,7 @@ import {
 import { SevenZip, ExtractionProgress } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
+import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { logger } from "./logger";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { GameExecutables } from "./game-executables";
@@ -186,10 +187,21 @@ export class GameFilesManager {
       .filter((archivePath) => fs.existsSync(archivePath));
 
     if (archivePaths.length > 0) {
-      WindowManager.mainWindow?.webContents.send(
-        "on-archive-deletion-prompt",
-        archivePaths
+      const userPreferences = await db.get<string, UserPreferences | null>(
+        levelKeys.userPreferences,
+        { valueEncoding: "json" }
       );
+
+      if (userPreferences?.autoDeleteArchiveAfterExtraction) {
+        for (const archivePath of archivePaths) {
+          await deleteArchiveFile(archivePath);
+        }
+      } else {
+        WindowManager.mainWindow?.webContents.send(
+          "on-archive-deletion-prompt",
+          archivePaths
+        );
+      }
     }
 
     return true;
@@ -656,10 +668,19 @@ export class GameFilesManager {
         }
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          WindowManager.mainWindow?.webContents.send(
-            "on-archive-deletion-prompt",
-            [filePath]
+          const userPreferences = await db.get<string, UserPreferences | null>(
+            levelKeys.userPreferences,
+            { valueEncoding: "json" }
           );
+
+          if (userPreferences?.autoDeleteArchiveAfterExtraction) {
+            await deleteArchiveFile(filePath);
+          } else {
+            WindowManager.mainWindow?.webContents.send(
+              "on-archive-deletion-prompt",
+              [filePath]
+            );
+          }
         }
 
         await downloadsSublevel.put(this.gameKey, {

@@ -47,6 +47,7 @@ export function SettingsContextDownloads() {
     seedAfterDownloadComplete: false,
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
+    autoDeleteArchiveAfterExtraction: false,
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
   });
@@ -60,6 +61,8 @@ export function SettingsContextDownloads() {
       showDownloadSpeedInMegabytes:
         userPreferences.showDownloadSpeedInMegabytes ?? false,
       extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
+      autoDeleteArchiveAfterExtraction:
+        userPreferences.autoDeleteArchiveAfterExtraction ?? false,
       createStartMenuShortcut: userPreferences.createStartMenuShortcut ?? true,
       maxDownloadSpeedMegabytes:
         typeof userPreferences.maxDownloadSpeedBytesPerSecond === "number" &&
@@ -172,6 +175,17 @@ export function SettingsContextDownloads() {
           onChange={() =>
             handleChange({
               extractFilesByDefault: !form.extractFilesByDefault,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("auto_delete_archive_after_extraction")}
+          checked={form.autoDeleteArchiveAfterExtraction}
+          onChange={() =>
+            handleChange({
+              autoDeleteArchiveAfterExtraction:
+                !form.autoDeleteArchiveAfterExtraction,
             })
           }
         />
