@@ -36,6 +36,9 @@ import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import BigPictureApp from "../../big-picture/src/app";
+import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
+import BigPictureDownloads from "../../big-picture/src/pages/downloads/downloads";
+import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
 
 console.log = logger.log;
 
@@ -109,7 +112,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={<AchievementNotification />}
           />
           <Route path="/game-launcher" element={<GameLauncher />} />
-          <Route path="/big-picture" element={<BigPictureApp />} />
+
+          <Route path="/big-picture" element={<BigPictureApp />}>
+            <Route path="catalogue" element={<BigPictureCatalogue />} />
+            <Route path="downloads" element={<BigPictureDownloads />} />
+            <Route path="settings" element={<BigPictureSettings />} />
+          </Route>
         </Routes>
       </HashRouter>
     </Provider>
