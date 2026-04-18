@@ -1,14 +1,15 @@
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./layout";
+import "./app.scss";
+
 export default function App() {
   return (
-    <div>
-      <button
-        type="button"
-        style={{ color: "white" }}
-        onClick={() => window.close()}
-      >
-        close
-      </button>
-      <h1 style={{ color: "white" }}>Big Picture</h1>
+    <div id="big-picture" style={{ width: "100%", display: "flex" }}>
+      <Sidebar />
+
+      <article style={{ width: "100%", height: "100%" }}>
+        <Outlet />
+      </article>
     </div>
   );
 }
