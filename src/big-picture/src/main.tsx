@@ -5,6 +5,7 @@ import App from "./app";
 import Catalogue from "./pages/catalogue/catalogue";
 import Downloads from "./pages/downloads/downloads";
 import Settings from "./pages/settings/settings";
+import LibraryPage from "./pages/library/page";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="catalogue" element={<Catalogue />} />
           <Route path="downloads" element={<Downloads />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="library" element={<LibraryPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

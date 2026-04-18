@@ -1,4 +1,5 @@
 import {
+  BookOpenIcon,
   DownloadSimpleIcon,
   GearIcon,
   HouseIcon,
@@ -23,6 +24,11 @@ function SidebarRouter() {
       label: "Catalogue",
       path: `${basePath}/catalogue`,
       icon: SquaresFourIcon,
+    },
+    {
+      label: "Library",
+      path: `${basePath}/library`,
+      icon: BookOpenIcon,
     },
     {
       label: "Download",
