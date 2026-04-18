@@ -31,7 +31,6 @@
     "build:mac": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux",
     "dev:big-picture": "vite dev src/big-picture",
-    "build:big-picture": "vite build --config src/big-picture/vite.config.ts",
     "prepare": "husky",
     "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
   },
