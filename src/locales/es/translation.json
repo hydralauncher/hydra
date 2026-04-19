@@ -297,7 +297,7 @@
     "scan_games_no_results": "No hemos podido encontrar ningún juego instalado.",
     "scan_games_in_progress": "Escaneando tus discos en busca de juegos instalados...",
     "scan_games_close": "Cerrar",
-    "scan_games_scan_again": "Escanear Nuevamente",
+    "scan_games_scan_again": "Escanear nuevamente",
     "playing_for_time": "Jugando desde hace {{hours}}h {{minutes}}m",
     "playing_for_minutes": "Jugando desde hace {{minutes}}m",
     "friends": "Amigos",

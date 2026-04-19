@@ -1,0 +1,236 @@
+@use "../../scss/globals.scss";
+
+.catalogue-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid globals.$border-color;
+    background: rgba(255, 255, 255, 0.04);
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+  }
+
+  &__viewport {
+    overflow: hidden;
+  }
+
+  &__container {
+    display: flex;
+    gap: 12px;
+    backface-visibility: hidden;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  &__slide {
+    flex: 0 0 calc(100% / 3 - 8px);
+    min-width: 0;
+
+    @media (min-width: 900px) {
+      flex: 0 0 calc(100% / 4 - 9px);
+    }
+
+    @media (min-width: 1250px) {
+      flex: 0 0 calc(100% / 5 - 10px);
+    }
+
+    @media (min-width: 1600px) {
+      flex: 0 0 calc(100% / 6 - 10px);
+    }
+  }
+
+  &__card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid globals.$border-color;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: catalogue-card-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--stagger-delay, 0ms);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+      .catalogue-section__card-image {
+        transform: scale(1.06);
+      }
+
+      .catalogue-section__card-overlay {
+        opacity: 1;
+      }
+
+      .catalogue-section__card-stats {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    &:active {
+      transform: translateY(-2px);
+      opacity: globals.$active-opacity;
+    }
+
+    &--unavailable {
+      opacity: 0.45;
+
+      &:hover {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  &__card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 460 / 215;
+    overflow: hidden;
+  }
+
+  &__card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &__card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  &__card-stats {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &__card-stat {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+
+    .star-rating {
+      align-items: center;
+    }
+  }
+
+  &__card-info {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+
+  &__card-availability {
+    font-size: 11px;
+    color: globals.$body-color;
+    opacity: 0.6;
+    text-align: left;
+
+    &--available {
+      color: globals.$success-color;
+      opacity: 1;
+    }
+  }
+
+  &__card-skeleton {
+    width: 100%;
+    aspect-ratio: 460 / 280;
+    border-radius: 8px;
+  }
+}
+
+@keyframes catalogue-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -3,49 +3,68 @@
 .settings-behavior {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
+  gap: 28px;
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
   &__section-title {
     margin: 0;
-    margin-top: calc(globals.$spacing-unit);
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.4);
+    color: #fff;
   }
 
   &__section-description {
-    font-size: 13px;
-    color: globals.$muted-color;
+    font-size: 12px;
+    color: globals.$body-color;
+    opacity: 0.6;
     margin: 0;
-    margin-top: calc(globals.$spacing-unit * -1);
+    line-height: 1.4;
   }
 
-  &__section-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: globals.$spacing-unit * 2;
+  &__toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  &__checkbox-container {
-    opacity: globals.$disabled-opacity;
-    cursor: not-allowed;
+  &__toggle-with-help {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-    &--enabled {
-      opacity: 1;
-      cursor: pointer;
+    .toggle-switch {
+      flex: 1;
     }
+  }
 
-    &--with-tooltip {
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      align-items: center;
-    }
+  &__help-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid globals.$border-color;
+    background: rgba(255, 255, 255, 0.03);
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
 
-    &--tooltip {
-      cursor: pointer;
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
     }
   }
 }
