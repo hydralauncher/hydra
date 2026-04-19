@@ -1,7 +1,7 @@
 .library-page {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing-unit) * 4);
+  gap: calc(var(--spacing-unit) * 6);
   padding: calc(var(--spacing-unit) * 6);
   width: 100%;
   height: 100%;
@@ -9,102 +9,21 @@
 
   &__toolbar {
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: calc(var(--spacing-unit) * 4);
-    flex-wrap: wrap;
+    width: 100%;
   }
 
-  &__search {
-    background-color: var(--secondary);
-    border: 1px solid var(--secondary-border);
-    border-radius: var(--spacing-unit);
-    color: var(--text);
-    font-family: var(--font-space-grotesk), sans-serif;
-    font-size: 14px;
-    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
-    width: 260px;
-    outline: none;
-
-    &::placeholder {
-      color: var(--text-secondary);
-    }
-
-    &:focus {
-      border-color: var(--primary);
-    }
-  }
-
-  &__sort-options {
-    display: flex;
-    gap: calc(var(--spacing-unit) * 2);
-  }
-
-  &__sort-btn {
-    background-color: var(--secondary);
-    border: 1px solid var(--secondary-border);
-    border-radius: var(--spacing-unit);
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-family: var(--font-space-grotesk), sans-serif;
-    font-size: 13px;
-    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
-    transition: color 0.15s ease, border-color 0.15s ease;
-
-    &:hover {
-      color: var(--text);
-    }
-
-    &--active {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
+  &__toolbar__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
   }
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: calc(var(--spacing-unit) * 4);
-  }
-
-  &__game-card {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--spacing-unit) * 2);
-    cursor: pointer;
-
-    &__cover {
-      aspect-ratio: 3 / 4;
-      border-radius: calc(var(--spacing-unit) * 2);
-      overflow: hidden;
-      background-color: var(--surface);
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.2s ease;
-      }
-
-      &--placeholder {
-        width: 100%;
-        height: 100%;
-        background-color: var(--secondary);
-      }
-    }
-
-    &:hover &__cover img {
-      transform: scale(1.04);
-    }
-
-    &__title {
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.3;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    grid-template-columns: repeat(6, 1fr);
+    gap: calc(var(--spacing-unit) * 6);
   }
 
   &__empty {
