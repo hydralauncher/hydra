@@ -441,6 +441,7 @@ export interface CatalogueSearchPayload {
     | "platinum"
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
+  releaseYear?: { gte?: number; lte?: number };
 }
 
 export interface ProtonDBData {
@@ -459,6 +460,7 @@ export type CatalogueSearchResult = {
   title: string;
   shop: GameShop;
   genres: string[];
+  releaseYear: number | null;
   tier?: string | null;
   bestReportedTier?: string | null;
   protondbSupportBadge?: string | null;
