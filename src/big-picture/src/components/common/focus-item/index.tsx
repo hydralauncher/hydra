@@ -62,6 +62,7 @@ export function FocusItem({
       layerId,
       navigationState: initialNavigationStateRef.current,
       navigationOverrides: initialNavigationOverridesRef.current,
+      getElement: () => ref.current,
     });
   }, [layerId, navigation, regionId, resolvedId]);
 

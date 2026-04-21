@@ -1,6 +1,7 @@
 export type FocusDirection = "up" | "down" | "left" | "right";
-export type FocusOrientation = "vertical" | "horizontal";
+export type FocusOrientation = "vertical" | "horizontal" | "grid";
 export type NavigationNodeState = "active" | "disabled" | "hidden";
+export type FocusElementGetter = () => HTMLElement | null;
 export type FocusOverrideTarget =
   | {
       type: "item";
@@ -23,6 +24,7 @@ export interface FocusNode {
   layerId: string;
   navigationState: NavigationNodeState;
   navigationOverrides?: FocusOverrides;
+  getElement: FocusElementGetter;
 }
 
 export interface FocusRegion {
@@ -31,6 +33,7 @@ export interface FocusRegion {
   orientation: FocusOrientation;
   layerId: string;
   navigationOverrides?: FocusOverrides;
+  getElement: FocusElementGetter;
 }
 
 export interface FocusLayer {
@@ -315,7 +318,7 @@ export class NavigationService {
 
   public updateRegion(
     regionId: string,
-    updates: Partial<Pick<FocusRegion, "navigationOverrides">>
+    updates: Partial<Pick<FocusRegion, "navigationOverrides" | "getElement">>
   ) {
     const registeredRegion = this.regions.get(regionId);
 
@@ -324,11 +327,14 @@ export class NavigationService {
     const nextNavigationOverrides =
       updates.navigationOverrides ?? registeredRegion.navigationOverrides;
 
+    const nextGetElement = updates.getElement ?? registeredRegion.getElement;
+
     if (
       this.areFocusOverridesEqual(
         registeredRegion.navigationOverrides,
         nextNavigationOverrides
-      )
+      ) &&
+      nextGetElement === registeredRegion.getElement
     ) {
       return;
     }
@@ -336,6 +342,7 @@ export class NavigationService {
     this.regions.set(regionId, {
       ...registeredRegion,
       navigationOverrides: nextNavigationOverrides,
+      getElement: nextGetElement,
     });
 
     this.notify();
@@ -372,6 +379,7 @@ export class NavigationService {
       layerId,
       navigationState: node.navigationState ?? "active",
       navigationOverrides: node.navigationOverrides,
+      getElement: node.getElement,
     });
     this.ensureRegionChildren(node.regionId);
     this.appendChildTarget(node.regionId, {
@@ -507,6 +515,7 @@ export class NavigationService {
       orientation: region.orientation,
       layerId: region.layerId,
       navigationOverrides: region.navigationOverrides,
+      getElement: region.getElement,
     }));
   }
 
@@ -1030,6 +1039,11 @@ export class NavigationService {
 
     if (!region) return null;
     if (region.layerId !== this.getActiveLayerId()) return null;
+
+    if (region.orientation === "grid") {
+      return this.getNextNodeInGridRegion(regionId, currentNodeId, direction);
+    }
+
     if (!this.doesDirectionMatchOrientation(direction, region.orientation)) {
       return null;
     }
@@ -1067,6 +1081,115 @@ export class NavigationService {
     }
 
     return null;
+  }
+
+  private getNextNodeInGridRegion(
+    regionId: string,
+    currentNodeId: string,
+    direction: FocusDirection
+  ): string | null {
+    const children = this.regionChildren.get(regionId) ?? [];
+    const currentTarget = this.getDirectChildTargetForNode(
+      regionId,
+      currentNodeId
+    );
+
+    if (!currentTarget) return null;
+
+    const currentRect = this.getTargetRect(currentTarget);
+
+    if (!currentRect) return null;
+
+    const candidates = children
+      .filter(
+        (child) =>
+          !(child.type === currentTarget.type && child.id === currentTarget.id)
+      )
+      .map((child) => {
+        const nodeId = this.resolveTargetToNode(child, direction);
+        const rect = this.getTargetRect(child);
+
+        if (!nodeId || !rect) {
+          return null;
+        }
+
+        return {
+          nodeId,
+          rect,
+          score: this.getGridCandidateScore(currentRect, rect, direction),
+        };
+      })
+      .filter(
+        (
+          candidate
+        ): candidate is {
+          nodeId: string;
+          rect: DOMRect;
+          score: { primary: number; cross: number };
+        } => candidate !== null && candidate.score.primary > 0
+      )
+      .sort((a, b) => {
+        if (a.score.primary !== b.score.primary) {
+          return a.score.primary - b.score.primary;
+        }
+
+        return a.score.cross - b.score.cross;
+      });
+
+    return candidates[0]?.nodeId ?? null;
+  }
+
+  private getTargetRect(target: FocusTarget): DOMRect | null {
+    const element = this.getTargetElement(target);
+
+    return element?.getBoundingClientRect() ?? null;
+  }
+
+  private getTargetElement(target: FocusTarget): HTMLElement | null {
+    if (target.type === "node") {
+      return this.nodes.get(target.id)?.getElement?.() ?? null;
+    }
+
+    const regionElement = this.regions.get(target.id)?.getElement?.() ?? null;
+
+    if (regionElement) {
+      return regionElement;
+    }
+
+    const fallbackNodeId = this.getBoundaryNodeInRegion(target.id, "first");
+
+    return fallbackNodeId
+      ? (this.nodes.get(fallbackNodeId)?.getElement?.() ?? null)
+      : null;
+  }
+
+  private getGridCandidateScore(
+    currentRect: DOMRect,
+    candidateRect: DOMRect,
+    direction: FocusDirection
+  ) {
+    const currentCenter = this.getRectCenter(currentRect);
+    const candidateCenter = this.getRectCenter(candidateRect);
+    const deltaX = candidateCenter.x - currentCenter.x;
+    const deltaY = candidateCenter.y - currentCenter.y;
+
+    switch (direction) {
+      case "left":
+        return { primary: -deltaX, cross: Math.abs(deltaY) };
+      case "right":
+        return { primary: deltaX, cross: Math.abs(deltaY) };
+      case "up":
+        return { primary: -deltaY, cross: Math.abs(deltaX) };
+      case "down":
+        return { primary: deltaY, cross: Math.abs(deltaX) };
+    }
+  }
+
+  private getRectCenter(rect: DOMRect) {
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
   }
 
   private resolveTargetToNode(

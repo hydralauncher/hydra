@@ -20,6 +20,7 @@ export function VerticalFocusGroup({
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
   const initialNavigationOverridesRef = useRef(navigationOverrides);
+  const ref = useRef<HTMLDivElement | null>(null);
   const resolvedRegionId =
     regionId ?? `focus-region-${generatedId.replace(/:/g, "")}`;
 
@@ -31,6 +32,7 @@ export function VerticalFocusGroup({
       layerId,
       navigationOverrides: initialNavigationOverridesRef.current,
       isPersistent: Boolean(regionId),
+      getElement: () => ref.current,
     });
   }, [layerId, navigation, parentRegionId, regionId, resolvedRegionId]);
 
@@ -43,6 +45,7 @@ export function VerticalFocusGroup({
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
       <div
+        ref={ref}
         data-focus-region-id={resolvedRegionId}
         style={{
           display: "flex",
