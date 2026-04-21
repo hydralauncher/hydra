@@ -34,10 +34,7 @@ export function useNavigationActions() {
   }, []);
 
   const setFocusRegion = useCallback(
-    (
-      regionId: string,
-      entryDirection: FocusDirection = "right"
-    ) => {
+    (regionId: string, entryDirection: FocusDirection = "right") => {
       return navigation.setFocusRegion(regionId, entryDirection);
     },
     []
@@ -77,14 +74,22 @@ export function useNavigationActions() {
 
   const triggerScreenPress = useCallback(
     (button: NavigationActionButton, originalEvent: Event | null = null) => {
-      return navigationScreenActions.triggerAction("press", button, originalEvent);
+      return navigationScreenActions.triggerAction(
+        "press",
+        button,
+        originalEvent
+      );
     },
     []
   );
 
   const triggerScreenHold = useCallback(
     (button: NavigationActionButton, originalEvent: Event | null = null) => {
-      return navigationScreenActions.triggerAction("hold", button, originalEvent);
+      return navigationScreenActions.triggerAction(
+        "hold",
+        button,
+        originalEvent
+      );
     },
     []
   );
