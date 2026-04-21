@@ -1,4 +1,4 @@
-import type { FocusItemActionsMeta } from "./focus-item-actions.types";
+import type { FocusItemActionsMeta } from "../../types";
 import { createContext, useContext } from "react";
 
 const defaultFocusItemActionsMeta: FocusItemActionsMeta = {

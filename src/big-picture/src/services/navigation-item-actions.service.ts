@@ -3,8 +3,8 @@ import type {
   FocusItemHoldButton,
   FocusItemPressButton,
   NavigationActionContext,
-} from "@/components/common/navigation/focus-item-actions.types";
-import { NavigationService } from "@/services/navigation.service";
+} from "../types";
+import { NavigationService } from "./navigation.service";
 
 interface RegisteredFocusItemActions {
   itemId: string;
