@@ -100,6 +100,7 @@ export function FocusItem({
         data-has-hold-b={actionsMeta.hasHoldB || undefined}
         data-has-hold-x={actionsMeta.hasHoldX || undefined}
         data-navigation-state={navigationState}
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}
         style={{
           outline: isFocused ? "1px solid white" : "none",
