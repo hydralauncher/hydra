@@ -589,8 +589,7 @@ function GamepadVisualizer({
   );
 }
 
-export function NavigationDiagnostics() {
-  const [isOpen, setIsOpen] = useState(true);
+function NavigationDiagnosticsPanel() {
   const [now, setNow] = useState(Date.now());
   const {
     isButtonPressed,
@@ -777,6 +776,199 @@ export function NavigationDiagnostics() {
   return (
     <div
       style={{
+        flex: "1 1 auto",
+        minWidth: 400,
+        minHeight: 0,
+        width: "max-content",
+        maxWidth: "min(520px, calc(100vw - calc(var(--spacing-unit) * 12)))",
+        overflow: "auto",
+        display: "grid",
+        gap: "calc(var(--spacing-unit) * 4)",
+        padding: "calc(var(--spacing-unit) * 4)",
+        borderRadius: "calc(var(--spacing-unit) * 3)",
+        border: "1px solid var(--secondary-border)",
+        backgroundColor: "var(--surface)",
+        color: "var(--text)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "calc(var(--spacing-unit) * 3)",
+          alignItems: "center",
+        }}
+      >
+        <strong style={{ color: "var(--primary)" }}>Diagnostics</strong>
+
+        <button
+          type="button"
+          onClick={handleLogSnapshot}
+          style={{
+            color: "var(--text)",
+            border: "1px solid var(--secondary-border)",
+            borderRadius: "calc(var(--spacing-unit) * 2)",
+            padding:
+              "calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3)",
+            cursor: "pointer",
+          }}
+        >
+          Log snapshot
+        </button>
+      </div>
+
+      <Section title="Input / Gamepad">
+        <Row
+          label="activeGamepad"
+          value={
+            activeGamepad
+              ? `#${activeGamepad.index} ${activeGamepad.name}`
+              : "None"
+          }
+        />
+        <Row label="connected" value={connectedGamepads.length} />
+        <Row label="layout" value={activeGamepad?.layout ?? "None"} />
+        <Row
+          label="pads"
+          value={
+            connectedGamepads.length === 0
+              ? "None"
+              : connectedGamepads
+                  .map((g) => `#${g.index}: ${g.layout}`)
+                  .join(" · ")
+          }
+        />
+        <Row
+          label="pressedButtons"
+          value={pressedButtons.join(", ") || "None"}
+        />
+        <Row
+          label="leftStick"
+          value={`${leftStickDirection} (${leftStickX.toFixed(
+            2
+          )}, ${leftStickY.toFixed(2)})`}
+        />
+        <Row
+          label="inputRepeat"
+          value={
+            activeInput && now - activeInput.startedAt >= 400
+              ? "held"
+              : lastInput
+                ? "single"
+                : "None"
+          }
+        />
+        <Row
+          label="holdProgress"
+          value={
+            activeInput
+              ? `${activeInput.label} ${formatMs(now - activeInput.startedAt)}`
+              : "None"
+          }
+        />
+      </Section>
+
+      <Section title="Focus">
+        <Row label="currentFocusId" value={currentFocusId ?? "None"} />
+        <Row label="currentRegionId" value={currentRegion?.id ?? "None"} />
+        <Row
+          label="regionPath"
+          value={regionPath.length > 0 ? regionPath.join(" > ") : "None"}
+        />
+        <Row label="orientation" value={currentRegion?.orientation ?? "None"} />
+        <Row
+          label="itemState"
+          value={
+            currentNode?.navigationState ??
+            focusedDataset?.navigationState ??
+            "None"
+          }
+        />
+        <Row
+          label="remembered"
+          value={
+            currentRegion
+              ? (debugSnapshot.lastFocusedByRegionId[currentRegion.id] ??
+                "None")
+              : "None"
+          }
+        />
+      </Section>
+
+      <Section title="Movement">
+        <Row
+          label="lastInput"
+          value={lastInput ? `${lastInput.source}.${lastInput.label}` : "None"}
+        />
+        <Row label="moveResult" value="Not tracked by isolated debug" />
+      </Section>
+
+      <Section title="Actions">
+        <Row label="lastAction" value="Not tracked by isolated debug" />
+        <Row
+          label="focusedActions"
+          value={
+            focusedDataset
+              ? [
+                  focusedDataset.hasPrimary && "primary",
+                  focusedDataset.hasSecondary && "secondary",
+                  focusedDataset.hasPressX && "press.x",
+                  focusedDataset.hasPressY && "press.y",
+                  focusedDataset.hasHoldA && "hold.a",
+                  focusedDataset.hasHoldB && "hold.b",
+                  focusedDataset.hasHoldX && "hold.x",
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "None"
+              : "None"
+          }
+        />
+      </Section>
+
+      <Section title="Layers">
+        <Row
+          label="activeLayerId"
+          value={debugSnapshot.activeLayerId ?? "None"}
+        />
+        <Row
+          label="layerStack"
+          value={debugSnapshot.layerIds.join(" > ") || "None"}
+        />
+      </Section>
+
+      <Section title="Counts">
+        <Row label="nodes" value={debugSnapshot.nodeCount} />
+        <Row label="regions" value={debugSnapshot.regionCount} />
+        <Row label="layers" value={debugSnapshot.layerCount} />
+        <Row label="listeners" value={debugSnapshot.listenerCount} />
+      </Section>
+
+      <Section title="Gamepad Visualizer">
+        <GamepadVisualizer
+          isButtonPressed={isButtonPressed}
+          leftStickX={leftStickX}
+          leftStickY={leftStickY}
+          rightStickX={rightStickX}
+          rightStickY={rightStickY}
+          leftTriggerValue={leftTriggerValue}
+          rightTriggerValue={rightTriggerValue}
+          isInfiniteVibrationEnabled={isInfiniteVibrationEnabled}
+          onTestVibration={handleTestVibration}
+          onToggleInfiniteVibration={() => {
+            setIsInfiniteVibrationEnabled((prev) => !prev);
+          }}
+        />
+      </Section>
+    </div>
+  );
+}
+
+export function NavigationDiagnostics() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div
+      style={{
         position: "fixed",
         right: "calc(var(--spacing-unit) * 6)",
         top: "calc(var(--spacing-unit) * 6)",
@@ -800,205 +992,7 @@ export function NavigationDiagnostics() {
           width: "max-content",
         }}
       >
-        {isOpen && (
-          <div
-            style={{
-              flex: "1 1 auto",
-              minWidth: 400,
-              minHeight: 0,
-              width: "max-content",
-              maxWidth:
-                "min(520px, calc(100vw - calc(var(--spacing-unit) * 12)))",
-              overflow: "auto",
-              display: "grid",
-              gap: "calc(var(--spacing-unit) * 4)",
-              padding: "calc(var(--spacing-unit) * 4)",
-              borderRadius: "calc(var(--spacing-unit) * 3)",
-              border: "1px solid var(--secondary-border)",
-              backgroundColor: "var(--surface)",
-              color: "var(--text)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "calc(var(--spacing-unit) * 3)",
-                alignItems: "center",
-              }}
-            >
-              <strong style={{ color: "var(--primary)" }}>Diagnostics</strong>
-
-              <button
-                type="button"
-                onClick={handleLogSnapshot}
-                style={{
-                  color: "var(--text)",
-                  border: "1px solid var(--secondary-border)",
-                  borderRadius: "calc(var(--spacing-unit) * 2)",
-                  padding:
-                    "calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3)",
-                  cursor: "pointer",
-                }}
-              >
-                Log snapshot
-              </button>
-            </div>
-
-            <Section title="Input / Gamepad">
-              <Row
-                label="activeGamepad"
-                value={
-                  activeGamepad
-                    ? `#${activeGamepad.index} ${activeGamepad.name}`
-                    : "None"
-                }
-              />
-              <Row label="connected" value={connectedGamepads.length} />
-              <Row label="layout" value={activeGamepad?.layout ?? "None"} />
-              <Row
-                label="pads"
-                value={
-                  connectedGamepads.length === 0
-                    ? "None"
-                    : connectedGamepads
-                        .map((g) => `#${g.index}: ${g.layout}`)
-                        .join(" · ")
-                }
-              />
-              <Row
-                label="pressedButtons"
-                value={pressedButtons.join(", ") || "None"}
-              />
-              <Row
-                label="leftStick"
-                value={`${leftStickDirection} (${leftStickX.toFixed(
-                  2
-                )}, ${leftStickY.toFixed(2)})`}
-              />
-              <Row
-                label="inputRepeat"
-                value={
-                  activeInput && now - activeInput.startedAt >= 400
-                    ? "held"
-                    : lastInput
-                      ? "single"
-                      : "None"
-                }
-              />
-              <Row
-                label="holdProgress"
-                value={
-                  activeInput
-                    ? `${activeInput.label} ${formatMs(
-                        now - activeInput.startedAt
-                      )}`
-                    : "None"
-                }
-              />
-            </Section>
-
-            <Section title="Focus">
-              <Row label="currentFocusId" value={currentFocusId ?? "None"} />
-              <Row
-                label="currentRegionId"
-                value={currentRegion?.id ?? "None"}
-              />
-              <Row
-                label="regionPath"
-                value={regionPath.length > 0 ? regionPath.join(" > ") : "None"}
-              />
-              <Row
-                label="orientation"
-                value={currentRegion?.orientation ?? "None"}
-              />
-              <Row
-                label="itemState"
-                value={
-                  currentNode?.navigationState ??
-                  focusedDataset?.navigationState ??
-                  "None"
-                }
-              />
-              <Row
-                label="remembered"
-                value={
-                  currentRegion
-                    ? (debugSnapshot.lastFocusedByRegionId[currentRegion.id] ??
-                      "None")
-                    : "None"
-                }
-              />
-            </Section>
-
-            <Section title="Movement">
-              <Row
-                label="lastInput"
-                value={
-                  lastInput ? `${lastInput.source}.${lastInput.label}` : "None"
-                }
-              />
-              <Row label="moveResult" value="Not tracked by isolated debug" />
-            </Section>
-
-            <Section title="Actions">
-              <Row label="lastAction" value="Not tracked by isolated debug" />
-              <Row
-                label="focusedActions"
-                value={
-                  focusedDataset
-                    ? [
-                        focusedDataset.hasPrimary && "primary",
-                        focusedDataset.hasSecondary && "secondary",
-                        focusedDataset.hasPressX && "press.x",
-                        focusedDataset.hasPressY && "press.y",
-                        focusedDataset.hasHoldA && "hold.a",
-                        focusedDataset.hasHoldB && "hold.b",
-                        focusedDataset.hasHoldX && "hold.x",
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "None"
-                    : "None"
-                }
-              />
-            </Section>
-
-            <Section title="Layers">
-              <Row
-                label="activeLayerId"
-                value={debugSnapshot.activeLayerId ?? "None"}
-              />
-              <Row
-                label="layerStack"
-                value={debugSnapshot.layerIds.join(" > ") || "None"}
-              />
-            </Section>
-
-            <Section title="Counts">
-              <Row label="nodes" value={debugSnapshot.nodeCount} />
-              <Row label="regions" value={debugSnapshot.regionCount} />
-              <Row label="layers" value={debugSnapshot.layerCount} />
-              <Row label="listeners" value={debugSnapshot.listenerCount} />
-            </Section>
-
-            <Section title="Gamepad Visualizer">
-              <GamepadVisualizer
-                isButtonPressed={isButtonPressed}
-                leftStickX={leftStickX}
-                leftStickY={leftStickY}
-                rightStickX={rightStickX}
-                rightStickY={rightStickY}
-                leftTriggerValue={leftTriggerValue}
-                rightTriggerValue={rightTriggerValue}
-                isInfiniteVibrationEnabled={isInfiniteVibrationEnabled}
-                onTestVibration={handleTestVibration}
-                onToggleInfiniteVibration={() => {
-                  setIsInfiniteVibrationEnabled((prev) => !prev);
-                }}
-              />
-            </Section>
-          </div>
-        )}
+        {isOpen && <NavigationDiagnosticsPanel />}
 
         <button
           type="button"
