@@ -855,6 +855,17 @@ export function NavigationDiagnostics() {
                 }
               />
               <Row label="connected" value={connectedGamepads.length} />
+              <Row label="layout" value={activeGamepad?.layout ?? "None"} />
+              <Row
+                label="pads"
+                value={
+                  connectedGamepads.length === 0
+                    ? "None"
+                    : connectedGamepads
+                        .map((g) => `#${g.index}: ${g.layout}`)
+                        .join(" · ")
+                }
+              />
               <Row
                 label="pressedButtons"
                 value={pressedButtons.join(", ") || "None"}
