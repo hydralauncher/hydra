@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { IS_DESKTOP } from "../../constants";
 import { useLibrary } from "../../hooks";
 import "./page.scss";
-import { GameCard } from "../../components";
+import { FocusItem, GameCard, GridFocusGroup } from "../../components";
 
 export default function LibraryPage() {
   const { library, updateLibrary } = useLibrary();
@@ -44,15 +44,17 @@ export default function LibraryPage() {
       <div className="library-page__toolbar">
         <h1 className="library-page__toolbar__title">Library</h1>
       </div>
-      <div className="library-page__grid">
+
+      <GridFocusGroup className="library-page__grid">
         {filteredLibrary.map((game) => (
-          <GameCard
-            key={game.objectId}
-            coverImageUrl={game.coverImageUrl}
-            gameTitle={game.title}
-          />
+          <FocusItem id={game.objectId} key={game.objectId}>
+            <GameCard
+              coverImageUrl={game.coverImageUrl}
+              gameTitle={game.title}
+            />
+          </FocusItem>
         ))}
-      </div>
+      </GridFocusGroup>
     </section>
   );
 }
