@@ -1,4 +1,4 @@
-import "./game-card.scss";
+import "./styles.scss";
 
 interface GameCardProps {
   coverImageUrl?: string | null;
