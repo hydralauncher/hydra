@@ -4,17 +4,21 @@ import { type FocusOverrides, NavigationService } from "../../../services";
 import { useEffect, useId, useRef } from "react";
 import React from "react";
 
-interface HorizontalFocusGroupProps {
+interface GridFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
+  className?: string;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
-export function HorizontalFocusGroup({
+export function GridFocusGroup({
   regionId,
   navigationOverrides,
+  className,
+  style,
   children,
-}: HorizontalFocusGroupProps) {
+}: GridFocusGroupProps) {
   const generatedId = useId();
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
@@ -28,7 +32,7 @@ export function HorizontalFocusGroup({
     return navigation.registerRegion({
       id: resolvedRegionId,
       parentRegionId,
-      orientation: "horizontal",
+      orientation: "grid",
       layerId,
       navigationOverrides: initialNavigationOverridesRef.current,
       isPersistent: Boolean(regionId),
@@ -47,11 +51,8 @@ export function HorizontalFocusGroup({
       <div
         ref={ref}
         data-focus-region-id={resolvedRegionId}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
+        className={className}
+        style={style}
       >
         {children}
       </div>
