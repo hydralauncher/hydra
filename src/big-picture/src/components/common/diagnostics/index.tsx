@@ -590,7 +590,7 @@ function GamepadVisualizer({
 }
 
 export function NavigationDiagnostics() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [now, setNow] = useState(Date.now());
   const {
     isButtonPressed,
@@ -729,31 +729,49 @@ export function NavigationDiagnostics() {
   };
 
   const handleLogSnapshot = () => {
-    console.group("[navigation-diagnostics]");
-    console.log("gamepad", {
-      hasGamepadConnected,
-      connectedGamepads,
-      activeGamepad,
-      pressedButtons,
-      leftStick: {
-        x: leftStickX,
-        y: leftStickY,
-        direction: leftStickDirection,
+    const snapshot = {
+      gamepad: {
+        hasGamepadConnected,
+        connectedGamepads,
+        activeGamepad,
+        pressedButtons,
+        leftStick: {
+          x: leftStickX,
+          y: leftStickY,
+          direction: leftStickDirection,
+        },
       },
-    });
-    console.log("input", {
-      lastInput,
-      activeInput,
-    });
-    console.log("navigation", {
-      currentFocusId,
-      currentNode,
-      currentRegion,
-      regionPath,
-      layers,
-      debugSnapshot,
-    });
+      input: {
+        lastInput,
+        activeInput,
+      },
+      navigation: {
+        currentFocusId,
+        currentNode,
+        currentRegion,
+        regionPath,
+        layers,
+        debugSnapshot,
+      },
+    };
+
+    console.group("[navigation-diagnostics]");
+    console.log("gamepad", snapshot.gamepad);
+    console.log("input", snapshot.input);
+    console.log("navigation", snapshot.navigation);
     console.groupEnd();
+
+    let text: string;
+    try {
+      text = JSON.stringify(snapshot, null, 2);
+    } catch (error) {
+      console.warn("[navigation-diagnostics] snapshot JSON failed", error);
+      text = `[navigation-diagnostics] JSON.stringify failed: ${String(error)}`;
+    }
+
+    void navigator.clipboard.writeText(text).catch((err) => {
+      console.warn("[navigation-diagnostics] clipboard copy failed", err);
+    });
   };
 
   return (
@@ -976,6 +994,7 @@ export function NavigationDiagnostics() {
           onClick={() => setIsOpen((prev) => !prev)}
           style={{
             flexShrink: 0,
+            marginTop: "auto",
             color: "var(--primary)",
             border: "1px solid var(--secondary-border)",
             borderRadius: 999,
