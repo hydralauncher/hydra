@@ -6,8 +6,9 @@ import {
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { IS_DESKTOP } from "../constants";
-import "./sidebar.scss";
+import { IS_DESKTOP } from "../../constants";
+
+import "./styles.scss";
 
 function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
