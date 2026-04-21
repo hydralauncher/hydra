@@ -1,10 +1,10 @@
-import { GamepadLayout, getGamepadLayout } from "@/helpers";
+import { GamepadLayout, getGamepadLayout } from "../helpers";
 import {
   GamepadAxisType,
   GamepadButtonType,
   GamepadAxisDirection,
   GamepadStickSide,
-} from "@/types";
+} from "../types";
 
 export interface ButtonRawState {
   pressed: boolean;

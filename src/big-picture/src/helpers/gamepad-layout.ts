@@ -1,4 +1,4 @@
-import { GamepadAxisType, GamepadButtonType } from "@/types";
+import { GamepadAxisType, GamepadButtonType } from "../types";
 
 export interface GamepadButtonMapping {
   index: number;
