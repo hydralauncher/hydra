@@ -93,6 +93,17 @@
     border: 1px solid rgba(34, 197, 94, 0.5);
   }
 
+  &__hypervisor-badge {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: rgb(254, 202, 202);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 9px;
+    text-align: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+  }
+
   &__no-results {
     width: 100%;
     padding: calc(globals.$spacing-unit * 4) 0;

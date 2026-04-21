@@ -94,6 +94,10 @@ export function RepacksModal({
     return match ? match[1].toLowerCase() : null;
   };
 
+  const hasHypervisorInUris = (uris: string[]): boolean => {
+    return uris.some((uri) => uri.toLowerCase().includes("hypervisor"));
+  };
+
   const { isFeatureEnabled, Feature } = useFeature();
 
   useEffect(() => {
@@ -400,6 +404,11 @@ export function RepacksModal({
 
                   <p className="repacks-modal__repack-title">
                     {repack.title}
+                    {hasHypervisorInUris(repack.uris) && (
+                      <span className="repacks-modal__hypervisor-badge">
+                        Hypervisor
+                      </span>
+                    )}
                     {userPreferences?.enableNewDownloadOptionsBadges !==
                       false &&
                       isNewRepack(repack) && (
