@@ -189,27 +189,27 @@ export class GamepadService {
     }
   }
 
-  private updateAxisState(
-    gamepadState: GamepadRawState,
-    type: GamepadAxisType,
-    axisState: number,
-    gamepadIndex: number,
-    now: number
-  ): boolean {
-    const prevState = gamepadState.axes.get(type);
+  // private updateAxisState(
+  //   gamepadState: GamepadRawState,
+  //   type: GamepadAxisType,
+  //   axisState: number,
+  //   gamepadIndex: number,
+  //   now: number
+  // ): boolean {
+  //   const prevState = gamepadState.axes.get(type);
 
-    if (prevState?.value === axisState) return false;
+  //   if (prevState?.value === axisState) return false;
 
-    gamepadState.axes.set(type, {
-      value: axisState,
-      lastUpdated: now,
-    });
+  //   gamepadState.axes.set(type, {
+  //     value: axisState,
+  //     lastUpdated: now,
+  //   });
 
-    if (axisState !== 0 && gamepadIndex !== this.lastActiveGamepad)
-      this.lastActiveGamepad = gamepadIndex;
+  //   if (axisState !== 0 && gamepadIndex !== this.lastActiveGamepad)
+  //     this.lastActiveGamepad = gamepadIndex;
 
-    return true;
-  }
+  //   return true;
+  // }
 
   private triggerButtonPressCallbacks(type: GamepadButtonType): void {
     const callbacks = this.buttonPressCallbacks.get(type);
