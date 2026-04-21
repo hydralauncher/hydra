@@ -4,3 +4,4 @@ export * from "./vertical-focus-group";
 export * from "./grid-focus-group";
 export * from "./navigation-layer";
 export * from "./focus-item";
+export * from "./diagnostics";
