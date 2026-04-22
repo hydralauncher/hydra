@@ -22,6 +22,8 @@ interface GamepadEventDebug {
   status: GamepadInputStatus;
   accepted: boolean;
   activeGamepadIndex: number | null;
+  echoOfGamepadIndex?: number | null;
+  echoSuppressionMs?: number | null;
   startedAt: number;
 }
 
@@ -715,6 +717,8 @@ function NavigationDiagnosticsPanel() {
             status: event.status,
             accepted: event.accepted,
             activeGamepadIndex: event.activeGamepadIndex,
+            echoOfGamepadIndex: event.echoOfGamepadIndex,
+            echoSuppressionMs: event.echoSuppressionMs,
             startedAt,
           });
           setNow(startedAt);
@@ -736,6 +740,8 @@ function NavigationDiagnosticsPanel() {
             status: event.status,
             accepted: event.accepted,
             activeGamepadIndex: event.activeGamepadIndex,
+            echoOfGamepadIndex: event.echoOfGamepadIndex,
+            echoSuppressionMs: event.echoSuppressionMs,
             startedAt,
           });
           setNow(startedAt);
@@ -954,6 +960,17 @@ function NavigationDiagnosticsPanel() {
               ? `${lastGamepadEvent.status} -> active #${
                   lastGamepadEvent.activeGamepadIndex ?? "none"
                 }`
+              : "None"
+          }
+        />
+        <Row
+          label="eventEcho"
+          value={
+            lastGamepadEvent?.echoOfGamepadIndex !== undefined &&
+            lastGamepadEvent.echoOfGamepadIndex !== null
+              ? `of #${lastGamepadEvent.echoOfGamepadIndex} (${formatMs(
+                  lastGamepadEvent.echoSuppressionMs ?? 0
+                )})`
               : "None"
           }
         />
