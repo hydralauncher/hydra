@@ -36,12 +36,24 @@ export enum GamepadAxisDirection {
 
 export type GamepadStickSide = "left" | "right";
 
-export interface GamepadButtonPressEvent {
+export type GamepadInputStatus =
+  | "accepted"
+  | "ignored-duplicate-window"
+  | "ignored-inactive";
+
+export interface GamepadInputEventMeta {
+  status: GamepadInputStatus;
+  accepted: boolean;
+  activeGamepadIndex: number | null;
+  previousActiveGamepadIndex: number | null;
+}
+
+export interface GamepadButtonPressEvent extends GamepadInputEventMeta {
   gamepadIndex: number;
   button: GamepadButtonType;
 }
 
-export interface GamepadStickMoveEvent {
+export interface GamepadStickMoveEvent extends GamepadInputEventMeta {
   gamepadIndex: number;
   side: GamepadStickSide;
   direction: GamepadAxisDirection;
