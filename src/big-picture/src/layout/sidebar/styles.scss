@@ -22,6 +22,7 @@
 }
 
 .big-picture__router-container {
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -29,6 +30,52 @@
   align-self: stretch;
   gap: calc(var(--spacing-unit) / 2);
   padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3) 0;
+}
+
+.library-container {
+  flex: 1;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: calc(var(--spacing-unit) * 3);
+  padding: 0 calc(var(--spacing-unit) * 3);
+
+  &__header {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+
+    > button:hover {
+      .library-container__header__icon {
+        color: var(--text-primary);
+      }
+    }
+
+    &__icon {
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.library-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-unit);
+
+  &__item {
+    width: 100%;
+  }
+}
+
+.bp-sidebar-profile {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .big-picture__sidebar-drawer-overlay {
@@ -60,6 +107,34 @@
   .state-wrapper,
   .route-anchor {
     width: 48px;
+  }
+
+  .route-anchor__label,
+  .route-anchor__favorite {
+    display: none;
+  }
+
+  .bp-input {
+    padding-left: 0;
+    padding-right: 0;
+    width: 44px;
+    background-color: var(--secondary);
+    border-color: transparent;
+    color: transparent;
+
+    &::placeholder {
+      color: transparent;
+    }
+  }
+
+  .library-container__header > button {
+    display: none;
+  }
+
+  .bp-user-profile-content__info,
+  .bp-user-profile__actions__notification,
+  .bp-user-profile__actions__friends__count__text {
+    display: none;
   }
 }
 
@@ -124,4 +199,8 @@
   &--active {
     pointer-events: none;
   }
+}
+
+.divider-container {
+  padding: 32px calc(var(--spacing-unit) * 3.5);
 }
