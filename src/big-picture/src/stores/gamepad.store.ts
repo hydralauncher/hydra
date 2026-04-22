@@ -13,6 +13,7 @@ export interface GamepadState {
   states: Map<number, GamepadRawState>;
   connectedGamepads: GamepadInfo[];
   hasGamepadConnected: boolean;
+  activeGamepadIndex: number | null;
 
   sync: () => void;
   getActiveGamepad: () => GamepadInfo | null;
@@ -39,6 +40,7 @@ export const useGamepadStore = create<GamepadState>((set, get) => {
     states: new Map(),
     connectedGamepads: [],
     hasGamepadConnected: false,
+    activeGamepadIndex: null,
 
     sync: () => {
       ensureInitialized();
@@ -46,6 +48,7 @@ export const useGamepadStore = create<GamepadState>((set, get) => {
       const service = GamepadService.getInstance();
       const rawStates = service.getCurrentState() as GamepadStateMap;
       const hasGamepadConnected = rawStates.size > 0;
+      const activeGamepadIndex = service.getActiveGamepadIndex();
 
       let connectedGamepads = cachedConnectedGamepads;
 
@@ -66,12 +69,12 @@ export const useGamepadStore = create<GamepadState>((set, get) => {
         states: rawStates,
         hasGamepadConnected,
         connectedGamepads,
+        activeGamepadIndex,
       });
     },
 
     getActiveGamepad: () => {
-      const service = GamepadService.getInstance();
-      const activeGamepadIndex = service.getLastActiveGamepad();
+      const activeGamepadIndex = get().activeGamepadIndex;
 
       if (activeGamepadIndex === null) return null;
 
