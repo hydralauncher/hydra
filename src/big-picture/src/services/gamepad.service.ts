@@ -1,4 +1,9 @@
 import { GamepadLayout, getGamepadLayout } from "../helpers";
+import type {
+  GamepadAxisButtonMapping,
+  GamepadAxisTriggerMapping,
+  GamepadPhysicalAxisMapping,
+} from "../helpers";
 import {
   GamepadAxisType,
   GamepadButtonType,
@@ -70,6 +75,8 @@ export class GamepadService {
   private readonly gamepadSwitchDuplicateWindow = 250;
   private readonly buttonEchoSuppressionWindow = 220;
   private readonly stickEchoSuppressionWindow = 320;
+  private readonly axisButtonThreshold = 0.5;
+  private readonly axisTriggerThreshold = 0.5;
 
   private isPolling = false;
   private animationFrameId: number | null = null;
@@ -219,7 +226,7 @@ export class GamepadService {
   private updateButtonState(
     gamepadState: GamepadRawState,
     type: GamepadButtonType,
-    buttonState: GamepadButton,
+    buttonState: Pick<GamepadButton, "pressed" | "value">,
     index: number,
     now: number
   ) {
@@ -249,6 +256,70 @@ export class GamepadService {
 
       this.triggerButtonPressCallbacks(index, type, inputMeta);
     }
+  }
+
+  private normalizeAxisValue(value: number, min: number, max: number): number {
+    if (max === min) return 0;
+
+    const normalized = (value - min) / (max - min);
+    return Math.max(0, Math.min(1, normalized));
+  }
+
+  private getAxisButtonState(
+    gamepad: Gamepad,
+    mapping: GamepadAxisButtonMapping
+  ): Pick<GamepadButton, "pressed" | "value"> | null {
+    const axisState = gamepad.axes[mapping.axis];
+
+    if (axisState === undefined) return null;
+
+    const threshold = mapping.threshold ?? this.axisButtonThreshold;
+    const directionalValue =
+      mapping.direction === "negative" ? -axisState : axisState;
+    const value = Math.max(0, Math.min(1, directionalValue));
+
+    return {
+      pressed: directionalValue >= threshold,
+      value,
+    };
+  }
+
+  private getAxisTriggerState(
+    gamepad: Gamepad,
+    mapping: GamepadAxisTriggerMapping
+  ): Pick<GamepadButton, "pressed" | "value"> | null {
+    const axisState = gamepad.axes[mapping.axis];
+
+    if (axisState === undefined) return null;
+
+    const min = mapping.min ?? -1;
+    const max = mapping.max ?? 1;
+    const threshold = mapping.threshold ?? this.axisTriggerThreshold;
+    const value = this.normalizeAxisValue(axisState, min, max);
+
+    return {
+      pressed: value >= threshold,
+      value,
+    };
+  }
+
+  private getPhysicalAxisValue(
+    gamepad: Gamepad,
+    mapping: GamepadPhysicalAxisMapping
+  ): number | null {
+    let axisState = gamepad.axes[mapping.index];
+
+    if (axisState === undefined) return null;
+
+    if (mapping.invert) {
+      axisState = -axisState;
+    }
+
+    if (Math.abs(axisState) < this.sticksDeadzone) {
+      axisState = 0;
+    }
+
+    return axisState;
   }
 
   // private updateAxisState(
@@ -343,71 +414,116 @@ export class GamepadService {
 
     let hasStateChanged = false;
 
-    for (const mapping of layout.buttons) {
-      const { index, type } = mapping;
-      const buttonState = gamepad.buttons[index];
-
-      if (!buttonState) continue;
-
-      const prevState = gamepadState.buttons.get(type);
-
-      if (
-        prevState?.pressed !== buttonState.pressed ||
-        prevState?.value !== buttonState.value
-      ) {
-        hasStateChanged = true;
-
-        this.updateButtonState(
-          gamepadState,
-          type,
-          buttonState,
-          gamepadIndex,
-          now
-        );
-      }
-    }
-
     const leftStickPosition = { x: 0, y: 0 };
     const rightStickPosition = { x: 0, y: 0 };
 
-    for (const mapping of layout.axes) {
-      const { index, type } = mapping;
-      let axisState = gamepad.axes[index];
+    for (const mapping of layout.mappings) {
+      switch (mapping.source) {
+        case "button": {
+          const buttonState = gamepad.buttons[mapping.index];
 
-      if (axisState === undefined) continue;
+          if (!buttonState) break;
 
-      if (mapping.invert) {
-        axisState = -axisState;
-      }
+          const prevState = gamepadState.buttons.get(mapping.type);
 
-      if (Math.abs(axisState) < this.sticksDeadzone) {
-        axisState = 0;
-      }
+          if (
+            prevState?.pressed !== buttonState.pressed ||
+            prevState?.value !== buttonState.value
+          ) {
+            hasStateChanged = true;
 
-      const prevState = gamepadState.axes.get(type);
+            this.updateButtonState(
+              gamepadState,
+              mapping.type,
+              buttonState,
+              gamepadIndex,
+              now
+            );
+          }
 
-      if (!prevState || Math.abs(prevState.value - axisState) > 0.01) {
-        hasStateChanged = true;
-
-        gamepadState.axes.set(type, {
-          value: axisState,
-          lastUpdated: now,
-        });
-      }
-
-      switch (type) {
-        case GamepadAxisType.LEFT_STICK_X:
-          leftStickPosition.x = axisState;
           break;
-        case GamepadAxisType.LEFT_STICK_Y:
-          leftStickPosition.y = axisState;
+        }
+        case "axis-button": {
+          const buttonState = this.getAxisButtonState(gamepad, mapping);
+
+          if (!buttonState) break;
+
+          const prevState = gamepadState.buttons.get(mapping.type);
+
+          if (
+            prevState?.pressed !== buttonState.pressed ||
+            prevState?.value !== buttonState.value
+          ) {
+            hasStateChanged = true;
+
+            this.updateButtonState(
+              gamepadState,
+              mapping.type,
+              buttonState,
+              gamepadIndex,
+              now
+            );
+          }
+
           break;
-        case GamepadAxisType.RIGHT_STICK_X:
-          rightStickPosition.x = axisState;
+        }
+        case "axis-trigger": {
+          const buttonState = this.getAxisTriggerState(gamepad, mapping);
+
+          if (!buttonState) break;
+
+          const prevState = gamepadState.buttons.get(mapping.type);
+
+          if (
+            prevState?.pressed !== buttonState.pressed ||
+            prevState?.value !== buttonState.value
+          ) {
+            hasStateChanged = true;
+
+            this.updateButtonState(
+              gamepadState,
+              mapping.type,
+              buttonState,
+              gamepadIndex,
+              now
+            );
+          }
+
           break;
-        case GamepadAxisType.RIGHT_STICK_Y:
-          rightStickPosition.y = axisState;
+        }
+        case "axis": {
+          const axisState = this.getPhysicalAxisValue(gamepad, mapping);
+
+          if (axisState === null) break;
+
+          const prevState = gamepadState.axes.get(mapping.type);
+
+          if (!prevState || Math.abs(prevState.value - axisState) > 0.01) {
+            hasStateChanged = true;
+
+            gamepadState.axes.set(mapping.type, {
+              value: axisState,
+              lastUpdated: now,
+            });
+          }
+
+          switch (mapping.type) {
+            case GamepadAxisType.LEFT_STICK_X:
+              leftStickPosition.x = axisState;
+              break;
+            case GamepadAxisType.LEFT_STICK_Y:
+              leftStickPosition.y = axisState;
+              break;
+            case GamepadAxisType.RIGHT_STICK_X:
+              rightStickPosition.x = axisState;
+              break;
+            case GamepadAxisType.RIGHT_STICK_Y:
+              rightStickPosition.y = axisState;
+              break;
+          }
+
           break;
+        }
       }
     }
 
