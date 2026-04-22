@@ -4,6 +4,8 @@ import {
   GamepadButtonType,
   GamepadAxisDirection,
   GamepadStickSide,
+  GamepadButtonPressEvent,
+  GamepadStickMoveEvent,
 } from "../types";
 
 export interface ButtonRawState {
@@ -32,8 +34,8 @@ interface GamepadStickState {
 }
 
 type GamepadRegistry = Map<number, globalThis.Gamepad>;
-type ButtonPressCallback = () => void;
-type StickMoveCallback = () => void;
+type ButtonPressCallback = (event: GamepadButtonPressEvent) => void;
+type StickMoveCallback = (event: GamepadStickMoveEvent) => void;
 type ButtonPressCallbacks = Map<GamepadButtonType, Set<ButtonPressCallback>>;
 type StickMoveCallbacks = Map<
   GamepadStickSide,
@@ -185,7 +187,7 @@ export class GamepadService {
       this.lastActiveGamepad = index;
 
     if (buttonState.pressed && !prevState?.pressed) {
-      this.triggerButtonPressCallbacks(type);
+      this.triggerButtonPressCallbacks(index, type);
     }
   }
 
@@ -211,13 +213,19 @@ export class GamepadService {
   //   return true;
   // }
 
-  private triggerButtonPressCallbacks(type: GamepadButtonType): void {
+  private triggerButtonPressCallbacks(
+    gamepadIndex: number,
+    type: GamepadButtonType
+  ): void {
     const callbacks = this.buttonPressCallbacks.get(type);
     if (!callbacks) return;
 
     callbacks.forEach((callback) => {
       try {
-        callback();
+        callback({
+          gamepadIndex,
+          button: type,
+        });
       } catch (error) {
         console.error(`Error in button press callback for ${type}:`, error);
       }
@@ -226,7 +234,7 @@ export class GamepadService {
 
   public onButtonPress(
     type: GamepadButtonType,
-    callback: () => void
+    callback: ButtonPressCallback
   ): () => void {
     if (!this.buttonPressCallbacks.has(type)) {
       this.buttonPressCallbacks.set(type, new Set());
@@ -350,11 +358,13 @@ export class GamepadService {
     }
 
     this.updateStickState(
+      gamepadIndex,
       "left",
       new Vector2D(leftStickPosition.x, leftStickPosition.y),
       now
     );
     this.updateStickState(
+      gamepadIndex,
       "right",
       new Vector2D(rightStickPosition.x, rightStickPosition.y),
       now
@@ -366,6 +376,7 @@ export class GamepadService {
   }
 
   private updateStickState(
+    gamepadIndex: number,
     side: GamepadStickSide,
     position: Vector2D,
     now: number
@@ -395,12 +406,13 @@ export class GamepadService {
     stickState.direction = newDirection;
 
     if (newDirection) {
-      this.triggerStickCallbacks(side, newDirection);
-      this.setupStickRepeat(side, newDirection);
+      this.triggerStickCallbacks(gamepadIndex, side, newDirection);
+      this.setupStickRepeat(gamepadIndex, side, newDirection);
     }
   }
 
   private setupStickRepeat(
+    gamepadIndex: number,
     side: GamepadStickSide,
     direction: GamepadAxisDirection
   ) {
@@ -409,8 +421,8 @@ export class GamepadService {
 
     stickState.repeatTimer = window.setTimeout(() => {
       if (stickState.direction === direction) {
-        this.triggerStickCallbacks(side, direction);
-        this.repeatStickCallback(side, direction);
+        this.triggerStickCallbacks(gamepadIndex, side, direction);
+        this.repeatStickCallback(gamepadIndex, side, direction);
       } else {
         stickState.repeatTimer = null;
       }
@@ -418,6 +430,7 @@ export class GamepadService {
   }
 
   private repeatStickCallback(
+    gamepadIndex: number,
     side: GamepadStickSide,
     direction: GamepadAxisDirection
   ) {
@@ -430,7 +443,7 @@ export class GamepadService {
         return;
       }
 
-      this.triggerStickCallbacks(side, direction);
+      this.triggerStickCallbacks(gamepadIndex, side, direction);
 
       stickState.repeatTimer = window.setTimeout(
         repeat,
@@ -460,6 +473,7 @@ export class GamepadService {
   }
 
   private triggerStickCallbacks(
+    gamepadIndex: number,
     side: GamepadStickSide,
     direction: GamepadAxisDirection
   ) {
@@ -471,7 +485,11 @@ export class GamepadService {
 
     callbacks.forEach((callback) => {
       try {
-        callback();
+        callback({
+          gamepadIndex,
+          side,
+          direction,
+        });
       } catch (error) {
         console.error(
           `Error in stick move callback for ${side} ${direction}:`,
@@ -524,7 +542,7 @@ export class GamepadService {
   public onStickMove(
     side: GamepadStickSide,
     direction: GamepadAxisDirection,
-    callback: () => void
+    callback: StickMoveCallback
   ): () => void {
     if (!this.stickMoveCallbacks.has(side)) {
       this.stickMoveCallbacks.set(side, new Map());
