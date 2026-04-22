@@ -5,6 +5,7 @@ import {
   resolveFocusItemActions,
   type FocusItemActions,
 } from "../../../types";
+import { scrollFocusedElementIntoView } from "../../../helpers";
 import { useFocusRegionId } from "../../context";
 import { NavigationItemActionsService } from "../../../services";
 import {
@@ -84,7 +85,17 @@ export function FocusItem({
   useEffect(() => {
     if (!isFocused) return;
 
-    ref.current?.focus();
+    const element = ref.current;
+
+    if (!element) return;
+
+    try {
+      element.focus({ preventScroll: true });
+    } catch {
+      element.focus();
+    }
+
+    scrollFocusedElementIntoView(element);
   }, [isFocused]);
 
   return (
