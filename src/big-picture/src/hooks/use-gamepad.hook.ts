@@ -4,6 +4,8 @@ import {
   GamepadStickSide,
   GamepadAxisType,
   GamepadVibrationOptions,
+  GamepadButtonPressEvent,
+  GamepadStickMoveEvent,
 } from "../types";
 import { useGamepadStore } from "../stores";
 import { useEffect, useRef, useCallback } from "react";
@@ -22,13 +24,13 @@ export interface UseGamepadReturn {
 
   onButtonPressed: (
     button: GamepadButtonType,
-    callback: () => void
+    callback: (event: GamepadButtonPressEvent) => void
   ) => () => void;
 
   onStickMove: (
     side: GamepadStickSide,
     direction: GamepadAxisDirection,
-    callback: () => void
+    callback: (event: GamepadStickMoveEvent) => void
   ) => () => void;
 }
 
@@ -118,7 +120,10 @@ export function useGamepad(): UseGamepadReturn {
   );
 
   const onButtonPressed = useCallback(
-    (button: GamepadButtonType, callback: () => void) => {
+    (
+      button: GamepadButtonType,
+      callback: (event: GamepadButtonPressEvent) => void
+    ) => {
       const service = getService();
       const removeCallback = service.onButtonPress(button, callback);
 
@@ -136,7 +141,7 @@ export function useGamepad(): UseGamepadReturn {
     (
       side: GamepadStickSide,
       direction: GamepadAxisDirection,
-      callback: () => void
+      callback: (event: GamepadStickMoveEvent) => void
     ) => {
       const service = getService();
       const removeCallback = service.onStickMove(side, direction, callback);
