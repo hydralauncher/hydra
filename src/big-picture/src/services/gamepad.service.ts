@@ -34,6 +34,7 @@ interface GamepadStickState {
   lastMoveTime: number;
 }
 
+type GamepadStickStateSet = Record<GamepadStickSide, GamepadStickState>;
 type GamepadRegistry = Map<number, globalThis.Gamepad>;
 type ButtonPressCallback = (event: GamepadButtonPressEvent) => void;
 type StickMoveCallback = (event: GamepadStickMoveEvent) => void;
@@ -64,9 +65,10 @@ export class GamepadService {
   private readonly stickMoveCallbacks: StickMoveCallbacks = new Map();
   private readonly layoutCache = new Map<string, GamepadLayout>();
   private readonly stateChangeCallbacks = new Set<() => void>();
-
-  private leftStickState: GamepadStickState = this.createInitialStickState();
-  private rightStickState: GamepadStickState = this.createInitialStickState();
+  private readonly stickStatesByGamepad = new Map<
+    number,
+    GamepadStickStateSet
+  >();
 
   public static getInstance(): GamepadService {
     if (!GamepadService.instance) {
@@ -107,6 +109,27 @@ export class GamepadService {
     };
   }
 
+  private createInitialStickStateSet(): GamepadStickStateSet {
+    return {
+      left: this.createInitialStickState(),
+      right: this.createInitialStickState(),
+    };
+  }
+
+  private getStickState(
+    gamepadIndex: number,
+    side: GamepadStickSide
+  ): GamepadStickState {
+    let stickStateSet = this.stickStatesByGamepad.get(gamepadIndex);
+
+    if (!stickStateSet) {
+      stickStateSet = this.createInitialStickStateSet();
+      this.stickStatesByGamepad.set(gamepadIndex, stickStateSet);
+    }
+
+    return stickStateSet[side];
+  }
+
   private readonly handleNewGamepadConnection = (event: GamepadEvent) => {
     const gamepad = event.gamepad;
 
@@ -129,7 +152,8 @@ export class GamepadService {
       this.activeGamepadIndex = null;
     }
 
-    this.clearAllTimers();
+    this.clearTimersForGamepad(gamepad.index);
+    this.stickStatesByGamepad.delete(gamepad.index);
 
     if (this.gamepads.size === 0) {
       this.stopPolling();
@@ -386,8 +410,7 @@ export class GamepadService {
     position: Vector2D,
     now: number
   ) {
-    const stickState =
-      side === "left" ? this.leftStickState : this.rightStickState;
+    const stickState = this.getStickState(gamepadIndex, side);
 
     const prevDirection = stickState.direction;
 
@@ -429,8 +452,7 @@ export class GamepadService {
     side: GamepadStickSide,
     direction: GamepadAxisDirection
   ) {
-    const stickState =
-      side === "left" ? this.leftStickState : this.rightStickState;
+    const stickState = this.getStickState(gamepadIndex, side);
 
     stickState.repeatTimer = window.setTimeout(() => {
       if (stickState.direction === direction) {
@@ -457,8 +479,7 @@ export class GamepadService {
     side: GamepadStickSide,
     direction: GamepadAxisDirection
   ) {
-    const stickState =
-      side === "left" ? this.leftStickState : this.rightStickState;
+    const stickState = this.getStickState(gamepadIndex, side);
 
     const repeat = () => {
       if (stickState.direction !== direction) {
@@ -498,11 +519,20 @@ export class GamepadService {
   }
 
   private clearAllTimers() {
-    this.clearStickTimer(this.leftStickState);
-    this.clearStickTimer(this.rightStickState);
+    this.stickStatesByGamepad.forEach((stickStateSet) => {
+      this.clearStickTimer(stickStateSet.left);
+      this.clearStickTimer(stickStateSet.right);
+    });
+    this.stickStatesByGamepad.clear();
+  }
 
-    this.leftStickState = this.createInitialStickState();
-    this.rightStickState = this.createInitialStickState();
+  private clearTimersForGamepad(gamepadIndex: number) {
+    const stickStateSet = this.stickStatesByGamepad.get(gamepadIndex);
+
+    if (!stickStateSet) return;
+
+    this.clearStickTimer(stickStateSet.left);
+    this.clearStickTimer(stickStateSet.right);
   }
 
   private triggerStickCallbacks(
