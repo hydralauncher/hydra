@@ -91,7 +91,13 @@ export function NavigationInputProvider({
     hasScreenPressAction,
     hasScreenHoldAction,
   } = useNavigationActions();
-  const { onButtonPressed, onStickMove, isButtonPressed } = useGamepad();
+  const {
+    onButtonPressed,
+    onStickMove,
+    isButtonPressed,
+    isActiveGamepadEvent,
+    activeGamepadIndex,
+  } = useGamepad();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const holdSessionsRef = useRef(createInitialHoldSessions());
   const warnedConflictsRef = useRef(new Set<string>());
@@ -187,30 +193,55 @@ export function NavigationInputProvider({
   }, [moveFocus, triggerPrimary, triggerScreenPress]);
 
   useEffect(() => {
-    const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, () => {
+    const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
+      if (!isActiveGamepadEvent(event)) return;
+
       moveFocus("up");
     });
 
-    const unsubDpadLeft = onButtonPressed(GamepadButtonType.DPAD_LEFT, () => {
-      moveFocus("left");
-    });
+    const unsubDpadLeft = onButtonPressed(
+      GamepadButtonType.DPAD_LEFT,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
 
-    const unsubDpadDown = onButtonPressed(GamepadButtonType.DPAD_DOWN, () => {
-      moveFocus("down");
-    });
+        moveFocus("left");
+      }
+    );
 
-    const unsubDpadRight = onButtonPressed(GamepadButtonType.DPAD_RIGHT, () => {
-      moveFocus("right");
-    });
+    const unsubDpadDown = onButtonPressed(
+      GamepadButtonType.DPAD_DOWN,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
 
-    const unsubStickUp = onStickMove("left", GamepadAxisDirection.UP, () => {
-      moveFocus("up");
-    });
+        moveFocus("down");
+      }
+    );
+
+    const unsubDpadRight = onButtonPressed(
+      GamepadButtonType.DPAD_RIGHT,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        moveFocus("right");
+      }
+    );
+
+    const unsubStickUp = onStickMove(
+      "left",
+      GamepadAxisDirection.UP,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        moveFocus("up");
+      }
+    );
 
     const unsubStickLeft = onStickMove(
       "left",
       GamepadAxisDirection.LEFT,
-      () => {
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
         moveFocus("left");
       }
     );
@@ -218,7 +249,9 @@ export function NavigationInputProvider({
     const unsubStickDown = onStickMove(
       "left",
       GamepadAxisDirection.DOWN,
-      () => {
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
         moveFocus("down");
       }
     );
@@ -226,7 +259,9 @@ export function NavigationInputProvider({
     const unsubStickRight = onStickMove(
       "left",
       GamepadAxisDirection.RIGHT,
-      () => {
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
         moveFocus("right");
       }
     );
@@ -241,7 +276,11 @@ export function NavigationInputProvider({
       unsubStickLeft();
       unsubStickRight();
     };
-  }, [moveFocus, onButtonPressed, onStickMove]);
+  }, [isActiveGamepadEvent, moveFocus, onButtonPressed, onStickMove]);
+
+  useEffect(() => {
+    resetHoldSessions();
+  }, [activeGamepadIndex, resetHoldSessions]);
 
   const isAPressed = isButtonPressed(GamepadButtonType.BUTTON_A);
   const isBPressed = isButtonPressed(GamepadButtonType.BUTTON_B);
