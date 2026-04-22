@@ -36,6 +36,17 @@ export enum GamepadAxisDirection {
 
 export type GamepadStickSide = "left" | "right";
 
+export interface GamepadButtonPressEvent {
+  gamepadIndex: number;
+  button: GamepadButtonType;
+}
+
+export interface GamepadStickMoveEvent {
+  gamepadIndex: number;
+  side: GamepadStickSide;
+  direction: GamepadAxisDirection;
+}
+
 export interface GamepadVibrationOptions {
   duration?: number;
   weakMagnitude?: number;
