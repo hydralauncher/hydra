@@ -6,6 +6,7 @@ import {
   GamepadStickSide,
   GamepadButtonPressEvent,
   GamepadStickMoveEvent,
+  GamepadInputEventMeta,
 } from "../types";
 
 export interface ButtonRawState {
@@ -49,10 +50,13 @@ export class GamepadService {
   private readonly sticksDirectionThreshold = 0.5;
   private readonly sticksInitialRepeatDelay = 400;
   private readonly sticksRepeatInterval = 150;
+  private readonly gamepadSwitchDuplicateWindow = 120;
 
   private isPolling = false;
   private animationFrameId: number | null = null;
-  private lastActiveGamepad: number | null = null;
+  private activeGamepadIndex: number | null = null;
+  private lastActiveGamepadSwitchTime = 0;
+  private hasPendingActiveGamepadChange = false;
 
   private readonly gamepads: GamepadRegistry = new Map();
   private readonly gamepadStates = new Map<number, GamepadRawState>();
@@ -121,6 +125,10 @@ export class GamepadService {
     this.gamepads.delete(gamepad.index);
     this.gamepadStates.delete(gamepad.index);
 
+    if (this.activeGamepadIndex === gamepad.index) {
+      this.activeGamepadIndex = null;
+    }
+
     this.clearAllTimers();
 
     if (this.gamepads.size === 0) {
@@ -183,11 +191,13 @@ export class GamepadService {
       lastUpdated: now,
     });
 
-    if (buttonState.pressed && index !== this.lastActiveGamepad)
-      this.lastActiveGamepad = index;
-
     if (buttonState.pressed && !prevState?.pressed) {
-      this.triggerButtonPressCallbacks(index, type);
+      const inputMeta = this.resolveGamepadInput(index, {
+        allowSwitch: true,
+        now,
+      });
+
+      this.triggerButtonPressCallbacks(index, type, inputMeta);
     }
   }
 
@@ -207,15 +217,13 @@ export class GamepadService {
   //     lastUpdated: now,
   //   });
 
-  //   if (axisState !== 0 && gamepadIndex !== this.lastActiveGamepad)
-  //     this.lastActiveGamepad = gamepadIndex;
-
   //   return true;
   // }
 
   private triggerButtonPressCallbacks(
     gamepadIndex: number,
-    type: GamepadButtonType
+    type: GamepadButtonType,
+    meta: GamepadInputEventMeta
   ): void {
     const callbacks = this.buttonPressCallbacks.get(type);
     if (!callbacks) return;
@@ -225,6 +233,7 @@ export class GamepadService {
         callback({
           gamepadIndex,
           button: type,
+          ...meta,
         });
       } catch (error) {
         console.error(`Error in button press callback for ${type}:`, error);
@@ -276,7 +285,6 @@ export class GamepadService {
         axes: new Map(),
       });
 
-      this.lastActiveGamepad ??= index;
       this.notifyStateChange();
     }
 
@@ -351,10 +359,6 @@ export class GamepadService {
           rightStickPosition.y = axisState;
           break;
       }
-
-      if (axisState !== 0 && gamepadIndex !== this.lastActiveGamepad) {
-        this.lastActiveGamepad = gamepadIndex;
-      }
     }
 
     this.updateStickState(
@@ -370,7 +374,8 @@ export class GamepadService {
       now
     );
 
-    if (hasStateChanged) {
+    if (hasStateChanged || this.hasPendingActiveGamepadChange) {
+      this.hasPendingActiveGamepadChange = false;
       this.notifyStateChange();
     }
   }
@@ -406,8 +411,16 @@ export class GamepadService {
     stickState.direction = newDirection;
 
     if (newDirection) {
-      this.triggerStickCallbacks(gamepadIndex, side, newDirection);
-      this.setupStickRepeat(gamepadIndex, side, newDirection);
+      const inputMeta = this.resolveGamepadInput(gamepadIndex, {
+        allowSwitch: true,
+        now,
+      });
+
+      this.triggerStickCallbacks(gamepadIndex, side, newDirection, inputMeta);
+
+      if (inputMeta.accepted) {
+        this.setupStickRepeat(gamepadIndex, side, newDirection);
+      }
     }
   }
 
@@ -421,8 +434,18 @@ export class GamepadService {
 
     stickState.repeatTimer = window.setTimeout(() => {
       if (stickState.direction === direction) {
-        this.triggerStickCallbacks(gamepadIndex, side, direction);
-        this.repeatStickCallback(gamepadIndex, side, direction);
+        const inputMeta = this.resolveGamepadInput(gamepadIndex, {
+          allowSwitch: false,
+          now: Date.now(),
+        });
+
+        this.triggerStickCallbacks(gamepadIndex, side, direction, inputMeta);
+
+        if (inputMeta.accepted) {
+          this.repeatStickCallback(gamepadIndex, side, direction);
+        } else {
+          stickState.repeatTimer = null;
+        }
       } else {
         stickState.repeatTimer = null;
       }
@@ -443,7 +466,17 @@ export class GamepadService {
         return;
       }
 
-      this.triggerStickCallbacks(gamepadIndex, side, direction);
+      const inputMeta = this.resolveGamepadInput(gamepadIndex, {
+        allowSwitch: false,
+        now: Date.now(),
+      });
+
+      this.triggerStickCallbacks(gamepadIndex, side, direction, inputMeta);
+
+      if (!inputMeta.accepted) {
+        stickState.repeatTimer = null;
+        return;
+      }
 
       stickState.repeatTimer = window.setTimeout(
         repeat,
@@ -475,7 +508,8 @@ export class GamepadService {
   private triggerStickCallbacks(
     gamepadIndex: number,
     side: GamepadStickSide,
-    direction: GamepadAxisDirection
+    direction: GamepadAxisDirection,
+    meta: GamepadInputEventMeta
   ) {
     const sideCallbacks = this.stickMoveCallbacks.get(side);
     if (!sideCallbacks) return;
@@ -489,6 +523,7 @@ export class GamepadService {
           gamepadIndex,
           side,
           direction,
+          ...meta,
         });
       } catch (error) {
         console.error(
@@ -527,8 +562,21 @@ export class GamepadService {
     return states;
   }
 
+  public getActiveGamepadIndex(): number | null {
+    return this.activeGamepadIndex;
+  }
+
   public getLastActiveGamepad(): number | null {
-    return this.lastActiveGamepad;
+    return this.getActiveGamepadIndex();
+  }
+
+  public setActiveGamepadIndex(index: number | null): void {
+    if (this.activeGamepadIndex === index) return;
+
+    this.activeGamepadIndex = index;
+    this.lastActiveGamepadSwitchTime = Date.now();
+    this.hasPendingActiveGamepadChange = false;
+    this.notifyStateChange();
   }
 
   public onStateChange(callback: () => void): () => void {
@@ -611,6 +659,9 @@ export class GamepadService {
     this.buttonPressCallbacks.clear();
     this.stickMoveCallbacks.clear();
     this.stateChangeCallbacks.clear();
+    this.activeGamepadIndex = null;
+    this.lastActiveGamepadSwitchTime = 0;
+    this.hasPendingActiveGamepadChange = false;
     this.clearAllTimers();
   }
 
@@ -622,6 +673,59 @@ export class GamepadService {
     }
 
     return this.layoutCache.get(gamepad.id)!;
+  }
+
+  private resolveGamepadInput(
+    gamepadIndex: number,
+    options: {
+      allowSwitch: boolean;
+      now: number;
+    }
+  ): GamepadInputEventMeta {
+    const previousActiveGamepadIndex = this.activeGamepadIndex;
+
+    if (previousActiveGamepadIndex === gamepadIndex) {
+      return {
+        status: "accepted",
+        accepted: true,
+        activeGamepadIndex: this.activeGamepadIndex,
+        previousActiveGamepadIndex,
+      };
+    }
+
+    if (!options.allowSwitch) {
+      return {
+        status: "ignored-inactive",
+        accepted: false,
+        activeGamepadIndex: this.activeGamepadIndex,
+        previousActiveGamepadIndex,
+      };
+    }
+
+    const isWithinDuplicateWindow =
+      previousActiveGamepadIndex !== null &&
+      options.now - this.lastActiveGamepadSwitchTime <
+        this.gamepadSwitchDuplicateWindow;
+
+    if (isWithinDuplicateWindow) {
+      return {
+        status: "ignored-duplicate-window",
+        accepted: false,
+        activeGamepadIndex: this.activeGamepadIndex,
+        previousActiveGamepadIndex,
+      };
+    }
+
+    this.activeGamepadIndex = gamepadIndex;
+    this.lastActiveGamepadSwitchTime = options.now;
+    this.hasPendingActiveGamepadChange = true;
+
+    return {
+      status: "accepted",
+      accepted: true,
+      activeGamepadIndex: this.activeGamepadIndex,
+      previousActiveGamepadIndex,
+    };
   }
 }
 
