@@ -14,6 +14,13 @@ interface LocalInputDebug {
   startedAt: number;
 }
 
+interface GamepadEventDebug {
+  gamepadIndex: number;
+  label: string;
+  source: "gamepad-button" | "left-stick";
+  startedAt: number;
+}
+
 const DEBUG_BUTTONS = [
   ["A", GamepadButtonType.BUTTON_A],
   ["B", GamepadButtonType.BUTTON_B],
@@ -595,6 +602,8 @@ function NavigationDiagnosticsPanel() {
     isButtonPressed,
     getButtonValue,
     getAxisValue,
+    onButtonPressed,
+    onStickMove,
     vibrate,
     connectedGamepads,
     hasGamepadConnected,
@@ -604,6 +613,8 @@ function NavigationDiagnosticsPanel() {
     useNavigationSnapshot();
   const [lastInput, setLastInput] = useState<LocalInputDebug | null>(null);
   const [activeInput, setActiveInput] = useState<LocalInputDebug | null>(null);
+  const [lastGamepadEvent, setLastGamepadEvent] =
+    useState<GamepadEventDebug | null>(null);
   const [isInfiniteVibrationEnabled, setIsInfiniteVibrationEnabled] =
     useState(false);
   const activeGamepad = getActiveGamepad();
@@ -687,6 +698,46 @@ function NavigationDiagnosticsPanel() {
   }, [activeInputLabel, activeInputSource]);
 
   useEffect(() => {
+    const unsubscribers = [
+      ...DEBUG_BUTTONS.map(([label, button]) =>
+        onButtonPressed(button, (event) => {
+          const startedAt = Date.now();
+
+          setLastGamepadEvent({
+            gamepadIndex: event.gamepadIndex,
+            label,
+            source: "gamepad-button",
+            startedAt,
+          });
+          setNow(startedAt);
+        })
+      ),
+      ...[
+        GamepadAxisDirection.UP,
+        GamepadAxisDirection.DOWN,
+        GamepadAxisDirection.LEFT,
+        GamepadAxisDirection.RIGHT,
+      ].map((direction) =>
+        onStickMove("left", direction, (event) => {
+          const startedAt = Date.now();
+
+          setLastGamepadEvent({
+            gamepadIndex: event.gamepadIndex,
+            label: `${event.side}-stick.${event.direction}`,
+            source: "left-stick",
+            startedAt,
+          });
+          setNow(startedAt);
+        })
+      ),
+    ];
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [onButtonPressed, onStickMove]);
+
+  useEffect(() => {
     setFocusedDataset(getFocusedElementDataset(currentFocusId));
   }, [currentFocusId, currentNode?.navigationState]);
 
@@ -743,6 +794,7 @@ function NavigationDiagnosticsPanel() {
       input: {
         lastInput,
         activeInput,
+        lastGamepadEvent,
       },
       navigation: {
         currentFocusId,
@@ -863,6 +915,22 @@ function NavigationDiagnosticsPanel() {
           value={
             activeInput
               ? `${activeInput.label} ${formatMs(now - activeInput.startedAt)}`
+              : "None"
+          }
+        />
+        <Row
+          label="lastEventPad"
+          value={
+            lastGamepadEvent
+              ? `#${lastGamepadEvent.gamepadIndex} ${lastGamepadEvent.source}.${lastGamepadEvent.label}`
+              : "None"
+          }
+        />
+        <Row
+          label="eventAge"
+          value={
+            lastGamepadEvent
+              ? formatMs(now - lastGamepadEvent.startedAt)
               : "None"
           }
         />
