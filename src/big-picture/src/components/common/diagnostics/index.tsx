@@ -5,6 +5,7 @@ import {
   GamepadAxisDirection,
   GamepadAxisType,
   GamepadButtonType,
+  GamepadInputStatus,
 } from "../../../types";
 import { useEffect, useMemo, useState } from "react";
 
@@ -18,6 +19,9 @@ interface GamepadEventDebug {
   gamepadIndex: number;
   label: string;
   source: "gamepad-button" | "left-stick";
+  status: GamepadInputStatus;
+  accepted: boolean;
+  activeGamepadIndex: number | null;
   startedAt: number;
 }
 
@@ -605,6 +609,7 @@ function NavigationDiagnosticsPanel() {
     onButtonPressed,
     onStickMove,
     vibrate,
+    activeGamepadIndex,
     connectedGamepads,
     hasGamepadConnected,
   } = useGamepad();
@@ -707,6 +712,9 @@ function NavigationDiagnosticsPanel() {
             gamepadIndex: event.gamepadIndex,
             label,
             source: "gamepad-button",
+            status: event.status,
+            accepted: event.accepted,
+            activeGamepadIndex: event.activeGamepadIndex,
             startedAt,
           });
           setNow(startedAt);
@@ -725,6 +733,9 @@ function NavigationDiagnosticsPanel() {
             gamepadIndex: event.gamepadIndex,
             label: `${event.side}-stick.${event.direction}`,
             source: "left-stick",
+            status: event.status,
+            accepted: event.accepted,
+            activeGamepadIndex: event.activeGamepadIndex,
             startedAt,
           });
           setNow(startedAt);
@@ -784,6 +795,7 @@ function NavigationDiagnosticsPanel() {
         hasGamepadConnected,
         connectedGamepads,
         activeGamepad,
+        activeGamepadIndex,
         pressedButtons,
         leftStick: {
           x: leftStickX,
@@ -879,6 +891,7 @@ function NavigationDiagnosticsPanel() {
           }
         />
         <Row label="connected" value={connectedGamepads.length} />
+        <Row label="activeIndex" value={activeGamepadIndex ?? "None"} />
         <Row label="layout" value={activeGamepad?.layout ?? "None"} />
         <Row
           label="pads"
@@ -931,6 +944,16 @@ function NavigationDiagnosticsPanel() {
           value={
             lastGamepadEvent
               ? formatMs(now - lastGamepadEvent.startedAt)
+              : "None"
+          }
+        />
+        <Row
+          label="eventStatus"
+          value={
+            lastGamepadEvent
+              ? `${lastGamepadEvent.status} -> active #${
+                  lastGamepadEvent.activeGamepadIndex ?? "none"
+                }`
               : "None"
           }
         />
