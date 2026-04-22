@@ -19,8 +19,13 @@ export interface UseGamepadReturn {
   getButtonValue: (button: GamepadButtonType) => number;
   getAxisValue: (axis: GamepadAxisType) => number;
   vibrate: (options: GamepadVibrationOptions) => void;
+  activeGamepad: { index: number; name: string; layout: string } | null;
+  activeGamepadIndex: number | null;
   connectedGamepads: { index: number; name: string; layout: string }[];
   hasGamepadConnected: boolean;
+  isActiveGamepadEvent: (
+    event: GamepadButtonPressEvent | GamepadStickMoveEvent
+  ) => boolean;
 
   onButtonPressed: (
     button: GamepadButtonType,
@@ -38,6 +43,7 @@ export function useGamepad(): UseGamepadReturn {
   const {
     states,
     hasGamepadConnected,
+    activeGamepadIndex,
     connectedGamepads,
     getActiveGamepad,
     getService,
@@ -45,6 +51,7 @@ export function useGamepad(): UseGamepadReturn {
   } = useGamepadStore();
 
   const callbackRefs = useRef<Set<() => void>>(new Set());
+  const activeGamepad = getActiveGamepad();
 
   useEffect(() => {
     sync();
@@ -171,6 +178,13 @@ export function useGamepad(): UseGamepadReturn {
     [getService, getActiveGamepad]
   );
 
+  const isActiveGamepadEvent = useCallback(
+    (event: GamepadButtonPressEvent | GamepadStickMoveEvent) => {
+      return event.accepted && event.gamepadIndex === event.activeGamepadIndex;
+    },
+    []
+  );
+
   return {
     isButtonPressed,
     getButtonValue,
@@ -178,7 +192,10 @@ export function useGamepad(): UseGamepadReturn {
     onButtonPressed,
     onStickMove,
     vibrate,
+    activeGamepad,
+    activeGamepadIndex,
     hasGamepadConnected,
     connectedGamepads,
+    isActiveGamepadEvent,
   };
 }
