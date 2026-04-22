@@ -799,4 +799,24 @@ contextBridge.exposeInMainWorld("electron", {
     iterator: (sublevelName: string) =>
       ipcRenderer.invoke("leveldbIterator", sublevelName),
   },
+
+  //UPDATEDD
+  this is a commit tes
+  pauseGameTransfer: (shop: GameShop, objectId: string) => 
+    ipcRenderer.invoke("pauseGameTransfer", shop, objectId),
+  resumeGameTransfer: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("resumeGameTransfer", shop, objectId),
+  cancelGameTransfer: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("cancelGameTransfer", shop, objectId),
+
+  // Add these to the electron object in contextBridge.exposeInMainWorld
+  on: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.on(channel, listener);
+  },
+  off: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.off(channel, listener);
+  },
+  getAvailableDrives: () => ipcRenderer.invoke("getAvailableDrives"),
+  transferGameFiles: (shop: GameShop, objectId: string, destParent: string) =>
+    ipcRenderer.invoke("transferGameFiles", shop, objectId, destParent),
 });

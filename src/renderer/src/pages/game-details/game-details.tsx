@@ -96,6 +96,7 @@ export default function GameDetails() {
           setShowRepacksModal,
           setShowGameOptionsModal,
           setGameOptionsInitialCategory,
+          isTransferring, // ADD THIS
         }) => {
           const handleStartDownload = async (
             repack: GameRepack,
@@ -192,6 +193,7 @@ export default function GameDetails() {
                     }}
                     initialCategory={gameOptionsInitialCategory}
                     onNavigateHome={() => navigate("/")}
+                    isTransferring={isTransferring} // ADD THIS
                   />
                 )}
 

@@ -1,0 +1,296 @@
+.game-options-modal__executable-field-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.game-options-modal__executable-field {
+  width: 100%;
+}
+
+// ── Drive Selector ────────────────────────────────────────────────────────────
+.drive-selector {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 210px;
+    overflow-y: auto;
+    padding-right: 2px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 2px;
+    }
+  }
+
+  &__custom {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__or {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.38;
+  }
+
+  &__path-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    > *:first-child {
+      flex: 1;
+    }
+  }
+
+  &__error {
+    margin: 0;
+    font-size: 12px;
+    color: #fca5a5;
+    padding: 8px 10px;
+    background: rgba(248, 113, 113, 0.07);
+    border: 1px solid rgba(248, 113, 113, 0.18);
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}
+
+// ── Drive Card ────────────────────────────────────────────────────────────────
+.drive-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 7px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition:
+    border-color 0.13s,
+    background 0.13s;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.065);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  &--selected {
+    border-color: rgba(255, 255, 255, 0.38) !important;
+    background: rgba(255, 255, 255, 0.075) !important;
+  }
+
+  &--nospace {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    opacity: 0.55;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__space {
+    font-size: 11px;
+    opacity: 0.45;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  // Usage bar
+  &__bar {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__bar-used {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 2px;
+  }
+
+  // Red overlay showing how much space game will use
+  &__bar-game {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: #ef4444;
+    opacity: 0.7;
+    border-radius: 0 2px 2px 0;
+  }
+
+  &__tag {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #fca5a5;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.18);
+  }
+}
+
+// ── Transfer Progress ─────────────────────────────────────────────────────────
+.transfer-progress {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.65;
+  }
+
+  &__pct {
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__track {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.65);
+    transition: width 0.25s ease;
+    position: relative;
+    overflow: hidden;
+
+    &:not(.transfer-progress__fill--paused)::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.28) 50%,
+        transparent 100%
+      );
+      animation: shimmer 1.8s infinite;
+    }
+
+    &--paused {
+      background: rgba(255, 255, 255, 0.28);
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__size {
+    font-size: 11px;
+    opacity: 0.4;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 7px;
+    margin-left: auto;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}

@@ -31,6 +31,7 @@ export interface GameDetailsContext {
   achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   lastDownloadedOption: GameRepack | null;
+  isTransferring: boolean; // ADD THIS
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;

@@ -41,6 +41,7 @@ export function HeroPanelActions() {
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
+    isTransferring, // Add this to context
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -213,6 +214,22 @@ export function HeroPanelActions() {
   );
 
   const gameActionButton = () => {
+    // Check if game is transferring
+    if (isTransferring) {
+      return (
+        <Button
+          theme="outline"
+          className="hero-panel-actions__action"
+          onClick={() => {
+            setGameOptionsInitialCategory("general");
+            setShowGameOptionsModal(true);
+          }}
+        >
+          {t("transferring")} — {t("view_progress")}
+        </Button>
+      );
+    }
+
     if (isGameRunning) {
       return (
         <Button
