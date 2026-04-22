@@ -72,7 +72,11 @@ export class GamepadService {
   private readonly sticksDeadzone = 0.1;
   private readonly sticksDirectionThreshold = 0.5;
   private readonly sticksInitialRepeatDelay = 400;
-  private readonly sticksRepeatInterval = 150;
+  private readonly repeatWarmupInterval = 200;
+  private readonly repeatWarmupTicks = 3;
+  private readonly repeatAcceleratedStartInterval = 135;
+  private readonly repeatMinInterval = 75;
+  private readonly repeatAccelerationStep = 15;
   private readonly gamepadSwitchDuplicateWindow = 250;
   private readonly buttonEchoSuppressionWindow = 220;
   private readonly stickEchoSuppressionWindow = 320;
@@ -300,6 +304,19 @@ export class GamepadService {
     return timers;
   }
 
+  private getAcceleratedRepeatInterval(repeatCount: number): number {
+    if (repeatCount < this.repeatWarmupTicks) {
+      return this.repeatWarmupInterval;
+    }
+
+    const accelerationTick = repeatCount - this.repeatWarmupTicks;
+    const interval =
+      this.repeatAcceleratedStartInterval -
+      accelerationTick * this.repeatAccelerationStep;
+
+    return Math.max(this.repeatMinInterval, interval);
+  }
+
   private setupDpadRepeat(gamepadIndex: number, type: GamepadButtonType): void {
     if (!this.isDpadButton(type)) return;
 
@@ -338,6 +355,17 @@ export class GamepadService {
     type: GamepadButtonType
   ): void {
     const timers = this.getDpadRepeatTimers(gamepadIndex);
+    let repeatCount = 0;
+
+    const scheduleRepeat = (callback: () => void) => {
+      const timer = window.setTimeout(
+        callback,
+        this.getAcceleratedRepeatInterval(repeatCount)
+      );
+
+      repeatCount += 1;
+      timers.set(type, timer);
+    };
 
     const repeat = () => {
       if (!this.isDpadPressed(gamepadIndex, type)) {
@@ -361,10 +389,10 @@ export class GamepadService {
         return;
       }
 
-      timers.set(type, window.setTimeout(repeat, this.sticksRepeatInterval));
+      scheduleRepeat(repeat);
     };
 
-    timers.set(type, window.setTimeout(repeat, this.sticksRepeatInterval));
+    scheduleRepeat(repeat);
   }
 
   private normalizeAxisValue(value: number, min: number, max: number): number {
@@ -741,6 +769,16 @@ export class GamepadService {
     direction: GamepadAxisDirection
   ) {
     const stickState = this.getStickState(gamepadIndex, side);
+    let repeatCount = 0;
+
+    const scheduleRepeat = (callback: () => void) => {
+      stickState.repeatTimer = window.setTimeout(
+        callback,
+        this.getAcceleratedRepeatInterval(repeatCount)
+      );
+
+      repeatCount += 1;
+    };
 
     const repeat = () => {
       if (stickState.direction !== direction) {
@@ -765,16 +803,10 @@ export class GamepadService {
         return;
       }
 
-      stickState.repeatTimer = window.setTimeout(
-        repeat,
-        this.sticksRepeatInterval
-      );
+      scheduleRepeat(repeat);
     };
 
-    stickState.repeatTimer = window.setTimeout(
-      repeat,
-      this.sticksRepeatInterval
-    );
+    scheduleRepeat(repeat);
   }
 
   private clearStickTimer(stickState: GamepadStickState) {
