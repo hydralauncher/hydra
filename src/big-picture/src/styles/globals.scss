@@ -35,6 +35,10 @@
   font-family: var(--font-space-grotesk), sans-serif;
 }
 
+#big-picture input {
+  color: inherit;
+}
+
 h1,
 h2,
 h3,
@@ -50,6 +54,7 @@ button {
   background-color: transparent;
   border: none;
   font-family: inherit;
+  color: inherit;
 }
 
 a {
