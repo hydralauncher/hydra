@@ -27,6 +27,32 @@ interface GamepadEventDebug {
   startedAt: number;
 }
 
+interface RawButtonDebug {
+  index: number;
+  pressed: boolean;
+  value: number;
+}
+
+interface RawAxisDebug {
+  index: number;
+  value: number;
+}
+
+interface RawGamepadDebug {
+  index: number;
+  id: string;
+  mapping: string;
+  connected: boolean;
+  vendorId: string | null;
+  productId: string | null;
+  buttonsLength: number;
+  axesLength: number;
+  buttons: RawButtonDebug[];
+  axes: RawAxisDebug[];
+  pressedButtons: RawButtonDebug[];
+  activeAxes: RawAxisDebug[];
+}
+
 const DEBUG_BUTTONS = [
   ["A", GamepadButtonType.BUTTON_A],
   ["B", GamepadButtonType.BUTTON_B],
@@ -86,6 +112,85 @@ function getFocusedElementDataset(currentFocusId: string | null) {
 
 function formatMs(value: number) {
   return `${Math.max(0, Math.round(value))}ms`;
+}
+
+function getRuntimePlatform() {
+  if (typeof navigator === "undefined") {
+    return "unknown";
+  }
+
+  const platform = navigator.platform.toLowerCase();
+  const userAgent = navigator.userAgent.toLowerCase();
+  const platformText = `${platform} ${userAgent}`;
+
+  if (platformText.includes("linux")) return "linux";
+  if (platformText.includes("mac")) return "mac";
+  if (platformText.includes("win")) return "windows";
+
+  return "unknown";
+}
+
+function getVendorProduct(id: string) {
+  const match = id.match(/Vendor:\s*([0-9a-f]{4})\s+Product:\s*([0-9a-f]{4})/i);
+
+  return {
+    vendorId: match?.[1]?.toLowerCase() ?? null,
+    productId: match?.[2]?.toLowerCase() ?? null,
+  };
+}
+
+function getRawGamepadsDebug(): RawGamepadDebug[] {
+  if (typeof navigator === "undefined" || !navigator.getGamepads) {
+    return [];
+  }
+
+  return Array.from(navigator.getGamepads())
+    .filter((gamepad): gamepad is Gamepad => Boolean(gamepad))
+    .map((gamepad) => {
+      const { vendorId, productId } = getVendorProduct(gamepad.id);
+      const buttons = gamepad.buttons.map((button, index) => ({
+        index,
+        pressed: button.pressed,
+        value: button.value,
+      }));
+      const axes = gamepad.axes.map((value, index) => ({
+        index,
+        value,
+      }));
+
+      return {
+        index: gamepad.index,
+        id: gamepad.id,
+        mapping: gamepad.mapping || "none",
+        connected: gamepad.connected,
+        vendorId,
+        productId,
+        buttonsLength: gamepad.buttons.length,
+        axesLength: gamepad.axes.length,
+        buttons,
+        axes,
+        pressedButtons: buttons.filter(
+          (button) => button.pressed || button.value > 0.01
+        ),
+        activeAxes: axes.filter((axis) => Math.abs(axis.value) > 0.01),
+      };
+    });
+}
+
+function formatRawButtons(buttons: RawButtonDebug[]) {
+  if (buttons.length === 0) return "None";
+
+  return buttons
+    .map((button) => `b${button.index}:${button.value.toFixed(2)}`)
+    .join(", ");
+}
+
+function formatRawAxes(axes: RawAxisDebug[]) {
+  if (axes.length === 0) return "None";
+
+  return axes
+    .map((axis) => `a${axis.index}:${axis.value.toFixed(2)}`)
+    .join(", ");
 }
 
 function Section({
@@ -632,6 +737,10 @@ function NavigationDiagnosticsPanel() {
   const leftTriggerValue = getButtonValue(GamepadButtonType.LEFT_TRIGGER);
   const rightTriggerValue = getButtonValue(GamepadButtonType.RIGHT_TRIGGER);
   const leftStickDirection = getStickDirection(leftStickX, leftStickY);
+  const runtimePlatform = getRuntimePlatform();
+  const rawGamepads = getRawGamepadsDebug();
+  const activeRawGamepad =
+    rawGamepads.find((gamepad) => gamepad.index === activeGamepadIndex) ?? null;
   const pressedButtons = DEBUG_BUTTONS.filter(([, button]) =>
     isButtonPressed(button)
   ).map(([label]) => label);
@@ -802,6 +911,8 @@ function NavigationDiagnosticsPanel() {
         connectedGamepads,
         activeGamepad,
         activeGamepadIndex,
+        runtimePlatform,
+        rawGamepads,
         pressedButtons,
         leftStick: {
           x: leftStickX,
@@ -899,13 +1010,44 @@ function NavigationDiagnosticsPanel() {
         <Row label="connected" value={connectedGamepads.length} />
         <Row label="activeIndex" value={activeGamepadIndex ?? "None"} />
         <Row label="layout" value={activeGamepad?.layout ?? "None"} />
+        <Row label="platform" value={runtimePlatform} />
+        <Row label="browserMap" value={activeRawGamepad?.mapping ?? "None"} />
+        <Row
+          label="vid/pid"
+          value={
+            activeRawGamepad?.vendorId && activeRawGamepad.productId
+              ? `${activeRawGamepad.vendorId}:${activeRawGamepad.productId}`
+              : "None"
+          }
+        />
+        <Row
+          label="rawCounts"
+          value={
+            activeRawGamepad
+              ? `${activeRawGamepad.buttonsLength} buttons / ${activeRawGamepad.axesLength} axes`
+              : "None"
+          }
+        />
         <Row
           label="pads"
           value={
             connectedGamepads.length === 0
               ? "None"
               : connectedGamepads
-                  .map((g) => `#${g.index}: ${g.layout}`)
+                  .map((g) => {
+                    const rawGamepad = rawGamepads.find(
+                      (raw) => raw.index === g.index
+                    );
+                    const vendorProduct =
+                      rawGamepad?.vendorId && rawGamepad.productId
+                        ? ` ${rawGamepad.vendorId}:${rawGamepad.productId}`
+                        : "";
+                    const browserMapping = rawGamepad
+                      ? ` ${rawGamepad.mapping}`
+                      : "";
+
+                    return `#${g.index}: ${g.layout}${browserMapping}${vendorProduct}`;
+                  })
                   .join(" · ")
           }
         />
@@ -918,6 +1060,22 @@ function NavigationDiagnosticsPanel() {
           value={`${leftStickDirection} (${leftStickX.toFixed(
             2
           )}, ${leftStickY.toFixed(2)})`}
+        />
+        <Row
+          label="rawButtons"
+          value={
+            activeRawGamepad
+              ? formatRawButtons(activeRawGamepad.pressedButtons)
+              : "None"
+          }
+        />
+        <Row
+          label="rawAxes"
+          value={
+            activeRawGamepad
+              ? formatRawAxes(activeRawGamepad.activeAxes)
+              : "None"
+          }
         />
         <Row
           label="inputRepeat"
