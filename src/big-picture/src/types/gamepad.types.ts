@@ -39,6 +39,7 @@ export type GamepadStickSide = "left" | "right";
 export type GamepadInputStatus =
   | "accepted"
   | "ignored-duplicate-window"
+  | "ignored-echo"
   | "ignored-inactive";
 
 export interface GamepadInputEventMeta {
@@ -46,6 +47,8 @@ export interface GamepadInputEventMeta {
   accepted: boolean;
   activeGamepadIndex: number | null;
   previousActiveGamepadIndex: number | null;
+  echoOfGamepadIndex?: number | null;
+  echoSuppressionMs?: number | null;
 }
 
 export interface GamepadButtonPressEvent extends GamepadInputEventMeta {

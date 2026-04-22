@@ -43,6 +43,22 @@ type StickMoveCallbacks = Map<
   GamepadStickSide,
   Map<GamepadAxisDirection, Set<StickMoveCallback>>
 >;
+type GamepadInputDescriptor =
+  | {
+      kind: "button";
+      button: GamepadButtonType;
+    }
+  | {
+      kind: "stick";
+      side: GamepadStickSide;
+      direction: GamepadAxisDirection;
+    };
+type GamepadEchoRecord = {
+  gamepadIndex: number;
+  hardwareKey: string;
+  signatureKey: string;
+  acceptedAt: number;
+};
 
 export class GamepadService {
   private static instance: GamepadService;
@@ -51,7 +67,9 @@ export class GamepadService {
   private readonly sticksDirectionThreshold = 0.5;
   private readonly sticksInitialRepeatDelay = 400;
   private readonly sticksRepeatInterval = 150;
-  private readonly gamepadSwitchDuplicateWindow = 120;
+  private readonly gamepadSwitchDuplicateWindow = 250;
+  private readonly buttonEchoSuppressionWindow = 220;
+  private readonly stickEchoSuppressionWindow = 320;
 
   private isPolling = false;
   private animationFrameId: number | null = null;
@@ -69,6 +87,7 @@ export class GamepadService {
     number,
     GamepadStickStateSet
   >();
+  private recentAcceptedInputs: GamepadEchoRecord[] = [];
 
   public static getInstance(): GamepadService {
     if (!GamepadService.instance) {
@@ -154,6 +173,9 @@ export class GamepadService {
 
     this.clearTimersForGamepad(gamepad.index);
     this.stickStatesByGamepad.delete(gamepad.index);
+    this.recentAcceptedInputs = this.recentAcceptedInputs.filter(
+      (input) => input.gamepadIndex !== gamepad.index
+    );
 
     if (this.gamepads.size === 0) {
       this.stopPolling();
@@ -218,6 +240,10 @@ export class GamepadService {
     if (buttonState.pressed && !prevState?.pressed) {
       const inputMeta = this.resolveGamepadInput(index, {
         allowSwitch: true,
+        input: {
+          kind: "button",
+          button: type,
+        },
         now,
       });
 
@@ -436,6 +462,11 @@ export class GamepadService {
     if (newDirection) {
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: true,
+        input: {
+          kind: "stick",
+          side,
+          direction: newDirection,
+        },
         now,
       });
 
@@ -458,6 +489,11 @@ export class GamepadService {
       if (stickState.direction === direction) {
         const inputMeta = this.resolveGamepadInput(gamepadIndex, {
           allowSwitch: false,
+          input: {
+            kind: "stick",
+            side,
+            direction,
+          },
           now: Date.now(),
         });
 
@@ -489,6 +525,11 @@ export class GamepadService {
 
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: false,
+        input: {
+          kind: "stick",
+          side,
+          direction,
+        },
         now: Date.now(),
       });
 
@@ -692,6 +733,7 @@ export class GamepadService {
     this.activeGamepadIndex = null;
     this.lastActiveGamepadSwitchTime = 0;
     this.hasPendingActiveGamepadChange = false;
+    this.recentAcceptedInputs = [];
     this.clearAllTimers();
   }
 
@@ -705,16 +747,107 @@ export class GamepadService {
     return this.layoutCache.get(gamepad.id)!;
   }
 
+  private getGamepadHardwareKey(gamepadIndex: number): string | null {
+    const id =
+      this.gamepads.get(gamepadIndex)?.id ??
+      this.gamepadStates.get(gamepadIndex)?.name;
+    const match = id?.match(
+      /Vendor:\s*([0-9a-f]{4})\s+Product:\s*([0-9a-f]{4})/i
+    );
+
+    if (!match) return null;
+
+    return `${match[1].toLowerCase()}:${match[2].toLowerCase()}`;
+  }
+
+  private getInputSignatureKey(input: GamepadInputDescriptor): string {
+    if (input.kind === "button") {
+      return `button:${input.button}`;
+    }
+
+    return `stick:${input.side}:${input.direction}`;
+  }
+
+  private getEchoSuppressionWindow(input: GamepadInputDescriptor): number {
+    return input.kind === "button"
+      ? this.buttonEchoSuppressionWindow
+      : this.stickEchoSuppressionWindow;
+  }
+
+  private pruneRecentAcceptedInputs(now: number): void {
+    const maxWindow = Math.max(
+      this.buttonEchoSuppressionWindow,
+      this.stickEchoSuppressionWindow
+    );
+
+    this.recentAcceptedInputs = this.recentAcceptedInputs.filter(
+      (input) => now - input.acceptedAt <= maxWindow
+    );
+  }
+
+  private recordAcceptedInput(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor,
+    now: number
+  ): void {
+    const hardwareKey = this.getGamepadHardwareKey(gamepadIndex);
+    if (!hardwareKey) return;
+
+    this.pruneRecentAcceptedInputs(now);
+    this.recentAcceptedInputs.push({
+      gamepadIndex,
+      hardwareKey,
+      signatureKey: this.getInputSignatureKey(input),
+      acceptedAt: now,
+    });
+  }
+
+  private findEchoInput(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor,
+    now: number
+  ): { gamepadIndex: number; elapsedMs: number } | null {
+    const hardwareKey = this.getGamepadHardwareKey(gamepadIndex);
+    if (!hardwareKey) return null;
+
+    this.pruneRecentAcceptedInputs(now);
+
+    const signatureKey = this.getInputSignatureKey(input);
+    const suppressionWindow = this.getEchoSuppressionWindow(input);
+
+    for (let i = this.recentAcceptedInputs.length - 1; i >= 0; i -= 1) {
+      const recentInput = this.recentAcceptedInputs[i];
+      const elapsedMs = now - recentInput.acceptedAt;
+
+      if (
+        recentInput.gamepadIndex !== gamepadIndex &&
+        recentInput.hardwareKey === hardwareKey &&
+        recentInput.signatureKey === signatureKey &&
+        elapsedMs <= suppressionWindow
+      ) {
+        return {
+          gamepadIndex: recentInput.gamepadIndex,
+          elapsedMs,
+        };
+      }
+    }
+
+    return null;
+  }
+
   private resolveGamepadInput(
     gamepadIndex: number,
     options: {
       allowSwitch: boolean;
+      input: GamepadInputDescriptor;
       now: number;
     }
   ): GamepadInputEventMeta {
     const previousActiveGamepadIndex = this.activeGamepadIndex;
 
     if (previousActiveGamepadIndex === gamepadIndex) {
+      this.recordAcceptedInput(gamepadIndex, options.input, options.now);
+
       return {
         status: "accepted",
         accepted: true,
@@ -746,9 +879,26 @@ export class GamepadService {
       };
     }
 
+    const echoInput =
+      previousActiveGamepadIndex !== null
+        ? this.findEchoInput(gamepadIndex, options.input, options.now)
+        : null;
+
+    if (echoInput) {
+      return {
+        status: "ignored-echo",
+        accepted: false,
+        activeGamepadIndex: this.activeGamepadIndex,
+        previousActiveGamepadIndex,
+        echoOfGamepadIndex: echoInput.gamepadIndex,
+        echoSuppressionMs: echoInput.elapsedMs,
+      };
+    }
+
     this.activeGamepadIndex = gamepadIndex;
     this.lastActiveGamepadSwitchTime = options.now;
     this.hasPendingActiveGamepadChange = true;
+    this.recordAcceptedInput(gamepadIndex, options.input, options.now);
 
     return {
       status: "accepted",
