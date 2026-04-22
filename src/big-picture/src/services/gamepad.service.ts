@@ -64,6 +64,7 @@ type GamepadEchoRecord = {
   signatureKey: string;
   acceptedAt: number;
 };
+type DpadRepeatTimers = Map<GamepadButtonType, number>;
 
 export class GamepadService {
   private static instance: GamepadService;
@@ -93,6 +94,10 @@ export class GamepadService {
   private readonly stickStatesByGamepad = new Map<
     number,
     GamepadStickStateSet
+  >();
+  private readonly dpadRepeatTimersByGamepad = new Map<
+    number,
+    DpadRepeatTimers
   >();
   private recentAcceptedInputs: GamepadEchoRecord[] = [];
 
@@ -255,7 +260,111 @@ export class GamepadService {
       });
 
       this.triggerButtonPressCallbacks(index, type, inputMeta);
+
+      if (inputMeta.accepted) {
+        this.setupDpadRepeat(index, type);
+      }
     }
+
+    if (!buttonState.pressed && prevState?.pressed) {
+      this.clearDpadRepeatTimer(index, type);
+    }
+  }
+
+  private isDpadButton(type: GamepadButtonType): boolean {
+    return (
+      type === GamepadButtonType.DPAD_UP ||
+      type === GamepadButtonType.DPAD_DOWN ||
+      type === GamepadButtonType.DPAD_LEFT ||
+      type === GamepadButtonType.DPAD_RIGHT
+    );
+  }
+
+  private isDpadPressed(
+    gamepadIndex: number,
+    type: GamepadButtonType
+  ): boolean {
+    return (
+      this.gamepadStates.get(gamepadIndex)?.buttons.get(type)?.pressed === true
+    );
+  }
+
+  private getDpadRepeatTimers(gamepadIndex: number): DpadRepeatTimers {
+    let timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+
+    if (!timers) {
+      timers = new Map();
+      this.dpadRepeatTimersByGamepad.set(gamepadIndex, timers);
+    }
+
+    return timers;
+  }
+
+  private setupDpadRepeat(gamepadIndex: number, type: GamepadButtonType): void {
+    if (!this.isDpadButton(type)) return;
+
+    this.clearDpadRepeatTimer(gamepadIndex, type);
+
+    const timers = this.getDpadRepeatTimers(gamepadIndex);
+    const timer = window.setTimeout(() => {
+      if (!this.isDpadPressed(gamepadIndex, type)) {
+        this.clearDpadRepeatTimer(gamepadIndex, type);
+        return;
+      }
+
+      const inputMeta = this.resolveGamepadInput(gamepadIndex, {
+        allowSwitch: false,
+        input: {
+          kind: "button",
+          button: type,
+        },
+        now: Date.now(),
+      });
+
+      this.triggerButtonPressCallbacks(gamepadIndex, type, inputMeta);
+
+      if (inputMeta.accepted) {
+        this.repeatDpadCallback(gamepadIndex, type);
+      } else {
+        this.clearDpadRepeatTimer(gamepadIndex, type);
+      }
+    }, this.sticksInitialRepeatDelay);
+
+    timers.set(type, timer);
+  }
+
+  private repeatDpadCallback(
+    gamepadIndex: number,
+    type: GamepadButtonType
+  ): void {
+    const timers = this.getDpadRepeatTimers(gamepadIndex);
+
+    const repeat = () => {
+      if (!this.isDpadPressed(gamepadIndex, type)) {
+        this.clearDpadRepeatTimer(gamepadIndex, type);
+        return;
+      }
+
+      const inputMeta = this.resolveGamepadInput(gamepadIndex, {
+        allowSwitch: false,
+        input: {
+          kind: "button",
+          button: type,
+        },
+        now: Date.now(),
+      });
+
+      this.triggerButtonPressCallbacks(gamepadIndex, type, inputMeta);
+
+      if (!inputMeta.accepted) {
+        this.clearDpadRepeatTimer(gamepadIndex, type);
+        return;
+      }
+
+      timers.set(type, window.setTimeout(repeat, this.sticksRepeatInterval));
+    };
+
+    timers.set(type, window.setTimeout(repeat, this.sticksRepeatInterval));
   }
 
   private normalizeAxisValue(value: number, min: number, max: number): number {
@@ -675,21 +784,60 @@ export class GamepadService {
     }
   }
 
+  private clearDpadRepeatTimer(
+    gamepadIndex: number,
+    type: GamepadButtonType
+  ): void {
+    const timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+
+    if (!timers) return;
+
+    const timer = timers.get(type);
+
+    if (timer === undefined) return;
+
+    window.clearTimeout(timer);
+    timers.delete(type);
+
+    if (timers.size === 0) {
+      this.dpadRepeatTimersByGamepad.delete(gamepadIndex);
+    }
+  }
+
+  private clearDpadRepeatTimersForGamepad(gamepadIndex: number): void {
+    const timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+
+    if (!timers) return;
+
+    timers.forEach((timer) => window.clearTimeout(timer));
+    this.dpadRepeatTimersByGamepad.delete(gamepadIndex);
+  }
+
+  private clearAllDpadRepeatTimers(): void {
+    this.dpadRepeatTimersByGamepad.forEach((timers) => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    });
+    this.dpadRepeatTimersByGamepad.clear();
+  }
+
   private clearAllTimers() {
     this.stickStatesByGamepad.forEach((stickStateSet) => {
       this.clearStickTimer(stickStateSet.left);
       this.clearStickTimer(stickStateSet.right);
     });
     this.stickStatesByGamepad.clear();
+    this.clearAllDpadRepeatTimers();
   }
 
   private clearTimersForGamepad(gamepadIndex: number) {
     const stickStateSet = this.stickStatesByGamepad.get(gamepadIndex);
 
-    if (!stickStateSet) return;
+    if (stickStateSet) {
+      this.clearStickTimer(stickStateSet.left);
+      this.clearStickTimer(stickStateSet.right);
+    }
 
-    this.clearStickTimer(stickStateSet.left);
-    this.clearStickTimer(stickStateSet.right);
+    this.clearDpadRepeatTimersForGamepad(gamepadIndex);
   }
 
   private triggerStickCallbacks(
