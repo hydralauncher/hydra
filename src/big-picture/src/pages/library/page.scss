@@ -1,4 +1,6 @@
 .library-page {
+  --library-card-width: 260px;
+
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
@@ -22,8 +24,15 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(auto-fill, var(--library-card-width));
     gap: calc(var(--spacing-unit) * 6);
+    align-items: start;
+    justify-content: start;
+  }
+
+  &__grid > [data-navigation-state] {
+    width: var(--library-card-width);
+    min-width: 0;
   }
 
   &__empty {
