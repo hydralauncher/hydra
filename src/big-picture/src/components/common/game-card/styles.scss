@@ -2,9 +2,12 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 2);
+  width: 100%;
+  min-width: 0;
   cursor: pointer;
 
   &__cover {
+    width: 100%;
     aspect-ratio: 3 / 4;
     border-radius: calc(var(--spacing-unit) * 2);
     overflow: hidden;
