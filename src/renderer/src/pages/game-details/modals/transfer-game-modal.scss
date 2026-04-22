@@ -1,0 +1,125 @@
+.transfer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 480px;
+  padding: 4px 0;
+
+  &__subtitle {
+    margin: 0;
+    opacity: 0.75;
+    font-size: 13px;
+  }
+  &__size {
+    margin: 0;
+    font-size: 13px;
+  }
+  &__or {
+    margin: 0 0 8px;
+    opacity: 0.5;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__drives {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__drive-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+    text-align: left;
+
+    &:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    &--selected {
+      border-color: var(--color-muted-foreground, #7c8494) !important;
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+    &--no-space {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__drive-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__drive-label {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  &__drive-space {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+  &__drive-ok {
+    color: #4ade80;
+  }
+  &__drive-nospace {
+    color: #f87171;
+  }
+
+  &__custom-path {
+    display: flex;
+    flex-direction: column;
+  }
+  &__path-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__error {
+    margin: 0;
+    color: #f87171;
+    font-size: 13px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__progress-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 0;
+    text-align: center;
+  }
+
+  &__bar-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--color-muted-foreground, #7c8494);
+    transition: width 0.25s ease;
+  }
+}

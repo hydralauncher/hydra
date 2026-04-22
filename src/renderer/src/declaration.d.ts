@@ -41,6 +41,13 @@ import type {
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
+export interface DriveInfo {
+  root: string;
+  label: string;
+  free: number;
+  total: number;
+}
+
 declare global {
   declare module "*.svg" {
     const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
@@ -563,6 +570,22 @@ declare global {
       values: (sublevelName: string) => Promise<unknown[]>;
       iterator: (sublevelName: string) => Promise<[string, unknown][]>;
     };
+    /* Transfer Game */
+    getAvailableDrives: () => Promise<DriveInfo[]>;
+    transferGameFiles: (
+      shop: GameShop,
+      objectId: string,
+      destParent: string
+    ) => Promise<{
+      ok: boolean;
+      error?: string;
+      needed?: number;
+      available?: number;
+      newExePath?: string;
+    }>;
+    /* Event listeners for transfer progress */
+    on: (channel: string, listener: (...args: any[]) => void) => void;
+    off: (channel: string, listener: (...args: any[]) => void) => void;
   }
 
   interface Window {

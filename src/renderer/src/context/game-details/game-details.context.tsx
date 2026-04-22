@@ -45,6 +45,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   achievements: null,
   hasNSFWContentBlocked: false,
   lastDownloadedOption: null,
+  isTransferring: false,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
@@ -78,6 +79,7 @@ export function GameDetailsContextProvider({
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -113,6 +115,42 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     updateGame();
   }, [updateGame, isGameDownloading, lastPacket?.gameId]);
+
+  // Listen for transfer events - MOVED HERE (before other effects)
+  useEffect(() => {
+    const onTransferProgress = (
+      _: unknown,
+      shop: string,
+      objectId: string,
+      progress: number
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(progress > 0 && progress < 1);
+      }
+    };
+
+    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+      }
+    };
+
+    const onTransferError = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+      }
+    };
+
+    window.electron.on("on-game-transfer-progress", onTransferProgress);
+    window.electron.on("on-game-transfer-complete", onTransferComplete);
+    window.electron.on("on-game-transfer-error", onTransferError);
+
+    return () => {
+      window.electron.off("on-game-transfer-progress", onTransferProgress);
+      window.electron.off("on-game-transfer-complete", onTransferComplete);
+      window.electron.off("on-game-transfer-error", onTransferError);
+    };
+  }, [game]);
 
   useEffect(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -394,6 +432,7 @@ export function GameDetailsContextProvider({
         achievements,
         hasNSFWContentBlocked,
         lastDownloadedOption: null,
+        isTransferring,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,
