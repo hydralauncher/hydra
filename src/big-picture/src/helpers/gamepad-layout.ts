@@ -264,6 +264,12 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
     mappings: STANDARD_GAMEPAD_MAPPINGS,
   },
   {
+    name: "Linux Standard Gamepad",
+    platforms: ["linux"],
+    idPatterns: [],
+    mappings: LINUX_XINPUT_MAPPINGS,
+  },
+  {
     name: "Xbox Controller",
     idPatterns: [/xbox/i, /xinput/i, /microsoft/i, /xbox 360/i],
     mappings: STANDARD_GAMEPAD_MAPPINGS,
@@ -317,6 +323,10 @@ const STANDARD_GAMEPAD_LAYOUT = GAMEPAD_LAYOUTS.find(
   (layout) => layout.name === "Standard Gamepad"
 )!;
 
+const LINUX_STANDARD_GAMEPAD_LAYOUT = GAMEPAD_LAYOUTS.find(
+  (layout) => layout.name === "Linux Standard Gamepad"
+)!;
+
 export const getGamepadLayout = (gamepad: globalThis.Gamepad) => {
   console.log("getGamepadLayout", gamepad.id);
   const platform = getGamepadPlatform();
@@ -330,5 +340,7 @@ export const getGamepadLayout = (gamepad: globalThis.Gamepad) => {
     }
   }
 
-  return STANDARD_GAMEPAD_LAYOUT;
+  return platform === "linux"
+    ? LINUX_STANDARD_GAMEPAD_LAYOUT
+    : STANDARD_GAMEPAD_LAYOUT;
 };
