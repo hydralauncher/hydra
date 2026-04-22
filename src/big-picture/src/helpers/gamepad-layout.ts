@@ -231,10 +231,12 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
     platforms: ["linux"],
     idPatterns: [
       /xinput/i,
+      /x[-\s]?box/i,
       /xbox/i,
       /xbox 360/i,
       /Vendor:\s*045e\s+Product:\s*(028e|028f|0719)/i,
       /Vendor:\s*046d\s+Product:\s*(c21d|c21e|c21f)/i,
+      /Vendor:\s*3537\s+Product:\s*100b/i,
     ],
     mappings: LINUX_XINPUT_MAPPINGS,
   },
