@@ -145,7 +145,7 @@ function SidebarContainer({
 
 function Sidebar() {
   return (
-    <VerticalFocusGroup regionId="sidebar">
+    <VerticalFocusGroup regionId="sidebar" asChild>
       <SidebarContainer>
         <SidebarRouter />
         <Divider />
