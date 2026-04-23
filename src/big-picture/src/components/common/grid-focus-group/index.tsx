@@ -1,15 +1,23 @@
-import { useFocusLayerId } from "../../context";
-import { FocusRegionContext, useFocusRegionId } from "../../context";
+import {
+  FocusRegionContext,
+  useFocusLayerId,
+  useFocusRegionId,
+} from "../../context";
 import { type FocusOverrides, NavigationService } from "../../../services";
-import { useEffect, useId, useRef } from "react";
-import React from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+} from "react";
 
 interface GridFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
   className?: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
+  style?: CSSProperties;
+  children: ReactNode;
 }
 
 export function GridFocusGroup({
@@ -18,7 +26,7 @@ export function GridFocusGroup({
   className,
   style,
   children,
-}: GridFocusGroupProps) {
+}: Readonly<GridFocusGroupProps>) {
   const generatedId = useId();
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
@@ -26,7 +34,7 @@ export function GridFocusGroup({
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const ref = useRef<HTMLDivElement | null>(null);
   const resolvedRegionId =
-    regionId ?? `focus-region-${generatedId.replace(/:/g, "")}`;
+    regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
   useEffect(() => {
     return navigation.registerRegion({

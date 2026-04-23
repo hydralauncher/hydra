@@ -6,7 +6,7 @@ export default function Settings() {
 
   const handleCloseBigPicture = () => {
     if (IS_DESKTOP) {
-      window.close();
+      globalThis.close();
     } else {
       navigate("/");
     }
