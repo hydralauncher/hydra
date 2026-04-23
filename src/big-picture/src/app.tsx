@@ -24,7 +24,6 @@ export default function App() {
   return (
     <Fragment>
       <NavigationStateBridge />
-      {showNavigationDiagnostics && <NavigationDiagnostics />}
 
       <NavigationInputProvider>
         <div id="big-picture">
@@ -33,6 +32,8 @@ export default function App() {
           <article className="big-picture__content">
             <Outlet />
           </article>
+
+          {showNavigationDiagnostics && <NavigationDiagnostics />}
         </div>
       </NavigationInputProvider>
     </Fragment>

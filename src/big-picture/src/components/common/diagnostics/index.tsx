@@ -1147,11 +1147,8 @@ function NavigationDiagnosticsPanel() {
   return (
     <div
       style={{
-        flex: "1 1 auto",
-        minWidth: 400,
-        minHeight: 0,
-        width: "max-content",
-        maxWidth: "min(520px, calc(100vw - calc(var(--spacing-unit) * 12)))",
+        width: "min(520px, calc(100vw - calc(var(--spacing-unit) * 12)))",
+        maxHeight: "min(72vh, calc(100vh - calc(var(--spacing-unit) * 24)))",
         overflow: "auto",
         display: "grid",
         gap: "calc(var(--spacing-unit) * 4)",
@@ -1311,49 +1308,35 @@ export function NavigationDiagnostics() {
   return (
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         right: "calc(var(--spacing-unit) * 6)",
-        top: "calc(var(--spacing-unit) * 6)",
         bottom: "calc(var(--spacing-unit) * 6)",
         zIndex: 1000,
-        display: "grid",
-        gridTemplateRows: "minmax(0, 1fr)",
-        alignContent: "end",
-        justifyItems: "end",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: "calc(var(--spacing-unit) * 3)",
         fontSize: 12,
       }}
     >
-      <div
+      {isOpen && <NavigationDiagnosticsPanel />}
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "calc(var(--spacing-unit) * 3)",
-          minHeight: 0,
-          maxHeight: "100%",
-          width: "max-content",
+          flexShrink: 0,
+          color: "var(--primary)",
+          border: "1px solid var(--secondary-border)",
+          borderRadius: 999,
+          padding:
+            "calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 4)",
+          backgroundColor: "var(--surface)",
+          cursor: "pointer",
         }}
       >
-        {isOpen && <NavigationDiagnosticsPanel />}
-
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          style={{
-            flexShrink: 0,
-            marginTop: "auto",
-            color: "var(--primary)",
-            border: "1px solid var(--secondary-border)",
-            borderRadius: 999,
-            padding:
-              "calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 4)",
-            backgroundColor: "var(--surface)",
-            cursor: "pointer",
-          }}
-        >
-          {isOpen ? "Close diagnostics" : "Open diagnostics"}
-        </button>
-      </div>
+        {isOpen ? "Close diagnostics" : "Open diagnostics"}
+      </button>
     </div>
   );
 }
