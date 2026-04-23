@@ -2,11 +2,18 @@
   display: flex;
   flex-direction: row;
   padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 2);
-  background-color: var(--surface);
   justify-content: center;
   align-items: center;
   gap: calc(var(--spacing-unit) * 1);
   border-radius: calc(var(--spacing-unit) * 2);
+
+  &--solid {
+    background-color: var(--surface);
+  }
+
+  &--ghost {
+    background-color: transparent;
+  }
 }
 
 .chips__content {
@@ -38,10 +45,14 @@
   margin-top: calc(var(--spacing-unit) * 0.5);
   padding: var(--spacing-unit);
   border-radius: var(--spacing-unit);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition:
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
 
   &:hover {
     background-color: var(--secondary);
+    color: var(--primary);
   }
 }
