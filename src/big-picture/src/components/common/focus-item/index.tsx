@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import {
   FocusItemActionsMetaContext,
   useFocusLayerId,
@@ -23,6 +24,7 @@ interface FocusItemProps {
   actions?: FocusItemActions;
   navigationState?: NavigationNodeState;
   navigationOverrides?: FocusOverrides;
+  asChild?: boolean;
   children: ReactNode;
 }
 
@@ -31,6 +33,7 @@ export function FocusItem({
   actions,
   navigationState = "active",
   navigationOverrides,
+  asChild = false,
   children,
 }: Readonly<FocusItemProps>) {
   const generatedId = useId();
@@ -100,9 +103,11 @@ export function FocusItem({
     scrollFocusedElementIntoView(element);
   }, [isFocused]);
 
+  const Component = asChild ? Slot : "div";
+
   return (
     <FocusItemActionsMetaContext.Provider value={actionsMeta}>
-      <div
+      <Component
         id={resolvedId}
         ref={ref}
         data-focused={isFocused}
@@ -122,7 +127,7 @@ export function FocusItem({
         }}
       >
         {children}
-      </div>
+      </Component>
     </FocusItemActionsMetaContext.Provider>
   );
 }
