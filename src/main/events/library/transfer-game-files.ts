@@ -10,6 +10,7 @@ import { WindowManager } from "@main/services/window-manager";
 import type { GameShop } from "@types";
 
 const execPromise = promisify(exec);
+const THROTTLE_MS = 200;
 
 const activeTransfers = new Map<
   string,
@@ -35,6 +36,7 @@ async function waitIfPaused(id: string) {
 }
 
 async function moveFile(src: string, dest: string) {
+  // Use PowerShell Move-Item (reliable, handles locked files)
   await execPromise(`powershell -Command "Move-Item -LiteralPath '${src}' -Destination '${dest}' -Force"`);
 }
 
@@ -42,6 +44,9 @@ async function moveDir(
   src: string,
   dest: string,
   id: string,
+  counter: { value: number },
+  total: number,
+  lastSent: { ts: number },
   shop: GameShop,
   objectId: string
 ) {
@@ -57,18 +62,48 @@ async function moveDir(
     const d = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await moveDir(s, d, id, shop, objectId);
-      await fs.rmdir(s).catch(() => {});
+      await moveDir(s, d, id, counter, total, lastSent, shop, objectId);
+      try {
+        await fs.rmdir(s);
+      } catch {
+        /* not empty yet */
+      }
     } else {
       await moveFile(s, d);
+      counter.value++;
+
+      const now = Date.now();
+      if (now - lastSent.ts >= THROTTLE_MS) {
+        lastSent.ts = now;
+        send(
+          "on-game-transfer-progress",
+          shop,
+          objectId,
+          counter.value / Math.max(total, 1)
+        );
+      }
     }
   }
 }
 
-// ── TRANSFER ──────────────────────────────────────────────────────────────────
+async function countFiles(dir: string): Promise<number> {
+  let n = 0;
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const e of entries)
+      n += e.isDirectory() ? await countFiles(path.join(dir, e.name)) : 1;
+  } catch {
+    /* skip unreadable */
+  }
+  return n;
+}
+
 registerEvent(
   "transferGameFiles",
   async (_event, shop: GameShop, objectId: string, destParent: string) => {
+    // Send 0% IMMEDIATELY
+    send("on-game-transfer-progress", shop, objectId, 0);
+
     const id = `${shop}:${objectId}`;
     activeTransfers.set(id, { paused: false, cancelled: false });
 
@@ -106,16 +141,30 @@ registerEvent(
       return { ok: false, error: "dest_inside_source" };
     }
 
-    // Start instantly
-    send("on-game-transfer-progress", shop, objectId, 0);
+    const total = await countFiles(gameRoot);
+    const counter = { value: 0 };
+    const lastSent = { ts: 0 };
 
     try {
       await fs.mkdir(destParent, { recursive: true });
-      await moveDir(gameRoot, targetRoot, id, shop, objectId);
+      await moveDir(
+        gameRoot,
+        targetRoot,
+        id,
+        counter,
+        total,
+        lastSent,
+        shop,
+        objectId
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown";
-      await fs.rm(targetRoot, { recursive: true, force: true }).catch(() => {});
+      // DON'T delete partial transfer - leave it for recovery
       activeTransfers.delete(id);
+      if (msg === "cancelled") {
+        send("on-game-transfer-cancelled", shop, objectId);
+        return { ok: false, error: "cancelled" };
+      }
       send("on-game-transfer-error", shop, objectId, msg);
       return { ok: false, error: msg };
     }
@@ -146,7 +195,10 @@ registerEvent(
       return { ok: false, error: "db_update_failed" };
     }
 
-    await fs.rm(gameRoot, { recursive: true, force: true }).catch(() => {});
+    await fs
+      .rm(gameRoot, { recursive: true, force: true })
+      .catch((e) => console.error("[transfer] failed to delete source:", e));
+
     activeTransfers.delete(id);
     send("on-game-transfer-complete", shop, objectId, newExePath);
     return { ok: true, newExePath };

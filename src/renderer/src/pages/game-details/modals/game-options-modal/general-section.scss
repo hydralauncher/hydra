@@ -1,39 +1,49 @@
 .game-options-modal__executable-field-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .game-options-modal__executable-field {
   width: 100%;
 }
 
-// ── Drive Selector ────────────────────────────────────────────────────────────
+// Drive Selector
 .drive-selector {
-  margin-top: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 
-  &__title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+
+    h3 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+
+  &__subtitle {
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    opacity: 0.6;
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    max-height: 210px;
+    gap: 4px;
+    max-height: 200px;
     overflow-y: auto;
     padding-right: 2px;
+    margin-bottom: 6px;
 
     &::-webkit-scrollbar {
       width: 4px;
@@ -47,22 +57,28 @@
     }
   }
 
+  &__list-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+
   &__custom {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    margin-top: 6px;
   }
 
   &__or {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    opacity: 0.38;
+    text-align: center;
+    margin: 6px 0;
+    opacity: 0.3;
+    font-size: 9px;
   }
 
   &__path-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     > *:first-child {
       flex: 1;
@@ -70,38 +86,39 @@
   }
 
   &__error {
-    margin: 0;
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 5px;
+    font-size: 11px;
     color: #fca5a5;
-    padding: 8px 10px;
-    background: rgba(248, 113, 113, 0.07);
-    border: 1px solid rgba(248, 113, 113, 0.18);
-    border-radius: 6px;
-    line-height: 1.4;
+    margin-top: 6px;
   }
 
   &__actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
+    margin-top: 8px;
   }
 }
 
-// ── Drive Card ────────────────────────────────────────────────────────────────
+// Drive Card
 .drive-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  gap: 8px;
+  padding: 5px 8px;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(255, 255, 255, 0.065);
-  border-radius: 7px;
+  border-radius: 5px;
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition:
-    border-color 0.13s,
-    background 0.13s;
+  transition: all 0.13s;
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.065);
@@ -109,25 +126,26 @@
   }
 
   &--selected {
-    border-color: rgba(255, 255, 255, 0.38) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
     background: rgba(255, 255, 255, 0.075) !important;
   }
 
   &--nospace {
-    opacity: 0.38;
+    opacity: 0.7;
     cursor: not-allowed;
   }
 
   &__icon {
     flex-shrink: 0;
-    opacity: 0.55;
+    opacity: 0.7;
+    color: #fff;
   }
 
   &__body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
     min-width: 0;
   }
 
@@ -135,31 +153,40 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
   }
 
   &__label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
+    color: #fff;
+    opacity: 0.9;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__space {
-    font-size: 11px;
-    opacity: 0.45;
+    font-size: 10px;
     white-space: nowrap;
     flex-shrink: 0;
+    color: #fff;
+    opacity: 0.8;
+  }
+
+  // Red text when drive doesn't have enough space
+  &--nospace &__space {
+    color: #f87171;
+    opacity: 1;
   }
 
   // Usage bar
   &__bar {
     position: relative;
     width: 100%;
-    height: 3px;
+    height: 2px;
     background: rgba(255, 255, 255, 0.07);
-    border-radius: 2px;
+    border-radius: 1px;
     overflow: hidden;
   }
 
@@ -169,148 +196,103 @@
     top: 0;
     bottom: 0;
     background: rgba(255, 255, 255, 0.22);
-    border-radius: 2px;
+    border-radius: 1px;
   }
 
-  // Red overlay showing how much space game will use
   &__bar-game {
     position: absolute;
     top: 0;
     bottom: 0;
     background: #ef4444;
-    opacity: 0.7;
-    border-radius: 0 2px 2px 0;
+    opacity: 0.8;
+    border-radius: 0 1px 1px 0;
   }
 
   &__tag {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 500;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: #fca5a5;
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.18);
+    padding: 2px 5px;
+    border-radius: 3px;
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.25);
   }
 }
 
-// ── Transfer Progress ─────────────────────────────────────────────────────────
+// Transfer Progress
 .transfer-progress {
-  margin-top: 12px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(74, 222, 128, 0.05);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 8px;
 
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 6px;
   }
 
-  &__label {
-    font-size: 12px;
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-weight: 500;
-    opacity: 0.65;
+    font-size: 11px;
   }
 
   &__pct {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
-    opacity: 0.9;
-    font-variant-numeric: tabular-nums;
+    color: #4ade80;
   }
 
   &__track {
     width: 100%;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 3px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
     overflow: hidden;
+    margin-bottom: 6px;
   }
 
   &__fill {
     height: 100%;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.65);
-    transition: width 0.25s ease;
-    position: relative;
-    overflow: hidden;
-
-    &:not(.transfer-progress__fill--paused)::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.28) 50%,
-        transparent 100%
-      );
-      animation: shimmer 1.8s infinite;
-    }
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    border-radius: 2px;
+    transition: width 0.3s ease;
 
     &--paused {
-      background: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.3);
     }
   }
 
-  &__footer {
+  &__stats {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  &__size {
-    font-size: 11px;
-    opacity: 0.4;
-    font-variant-numeric: tabular-nums;
+    margin-bottom: 8px;
+    font-size: 10px;
+    opacity: 0.6;
   }
 
   &__actions {
     display: flex;
-    gap: 7px;
-    margin-left: auto;
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-    }
+    justify-content: flex-end;
+    gap: 6px;
   }
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
+// Global spacing reduction
+.game-options-modal__section {
+  margin-bottom: 10px;
 }
-.drive-selector__preview {
-  margin: 12px 0;
-  padding: 8px 12px;
-  background: rgba(74, 222, 128, 0.1);
-  border: 1px solid rgba(74, 222, 128, 0.2);
-  border-radius: 6px;
-  font-size: 12px;
-  
-  span {
-    opacity: 0.7;
-    display: block;
-    margin-bottom: 4px;
-  }
-  
-  code {
-    font-family: monospace;
-    font-size: 12px;
-    color: #4ade80;
-  }
+
+.game-options-modal__header {
+  margin-bottom: 4px;
+}
+
+.game-options-modal__row {
+  gap: 6px;
 }

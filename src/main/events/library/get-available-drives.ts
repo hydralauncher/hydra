@@ -10,21 +10,21 @@ interface DriveInfo {
 
 const getAvailableDrives = async (): Promise<DriveInfo[]> => {
   console.log("getAvailableDrives called, platform:", process.platform);
-  
+
   if (process.platform === "win32") {
     try {
       // Simpler PowerShell command
       const psCommand = `Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | Format-List DeviceID, VolumeName, FreeSpace, Size`;
-      const out = execSync(`powershell -Command "${psCommand}"`, { 
+      const out = execSync(`powershell -Command "${psCommand}"`, {
         encoding: "utf8",
-        shell: "powershell.exe"
+        shell: "powershell.exe",
       });
-      
+
       console.log("Raw output:", out);
-      
+
       const drives: DriveInfo[] = [];
       let currentDrive: Partial<DriveInfo> = {};
-      
+
       const lines = out.split(/\r?\n/);
       for (const line of lines) {
         if (line.includes("DeviceID")) {
@@ -36,17 +36,21 @@ const getAvailableDrives = async (): Promise<DriveInfo[]> => {
         } else if (line.includes("Size")) {
           const match = line.match(/Size\s+:\s+(\d+)/);
           if (match) currentDrive.total = parseInt(match[1]);
-        } else if (line.trim() === "" && currentDrive.root && currentDrive.total) {
+        } else if (
+          line.trim() === "" &&
+          currentDrive.root &&
+          currentDrive.total
+        ) {
           drives.push({
             root: currentDrive.root,
             label: currentDrive.root,
             free: currentDrive.free || 0,
-            total: currentDrive.total
+            total: currentDrive.total,
           });
           currentDrive = {};
         }
       }
-      
+
       console.log("Parsed drives:", drives);
       return drives;
     } catch (error) {
@@ -54,7 +58,7 @@ const getAvailableDrives = async (): Promise<DriveInfo[]> => {
       return [];
     }
   }
-  
+
   return [];
 };
 
