@@ -1,7 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { createReadStream, createWriteStream } from "node:fs";
-import { pipeline } from "node:stream/promises";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import { findGameRootFromExe } from "../helpers/find-game-root";
@@ -9,7 +9,7 @@ import { getDirectorySize } from "../helpers/get-directory-size";
 import { WindowManager } from "@main/services/window-manager";
 import type { GameShop } from "@types";
 
-const THROTTLE_MS = 200;
+const execPromise = promisify(exec);
 
 const activeTransfers = new Map<
   string,
@@ -35,22 +35,13 @@ async function waitIfPaused(id: string) {
 }
 
 async function moveFile(src: string, dest: string) {
-  try {
-    await fs.rename(src, dest);
-  } catch {
-    // Cross-drive: copy then delete
-    await pipeline(createReadStream(src), createWriteStream(dest));
-    await fs.unlink(src);
-  }
+  await execPromise(`powershell -Command "Move-Item -LiteralPath '${src}' -Destination '${dest}' -Force"`);
 }
 
 async function moveDir(
   src: string,
   dest: string,
   id: string,
-  counter: { value: number },
-  total: number,
-  lastSent: { ts: number },
   shop: GameShop,
   objectId: string
 ) {
@@ -60,46 +51,18 @@ async function moveDir(
   const entries = await fs.readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
-    await waitIfPaused(id); // re-check on every entry
+    await waitIfPaused(id);
 
     const s = path.join(src, entry.name);
     const d = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await moveDir(s, d, id, counter, total, lastSent, shop, objectId);
-      try {
-        await fs.rmdir(s);
-      } catch {
-        /* not empty yet — rmdir at cleanup */
-      }
+      await moveDir(s, d, id, shop, objectId);
+      await fs.rmdir(s).catch(() => {});
     } else {
       await moveFile(s, d);
-      counter.value++;
-
-      const now = Date.now();
-      if (now - lastSent.ts >= THROTTLE_MS) {
-        lastSent.ts = now;
-        send(
-          "on-game-transfer-progress",
-          shop,
-          objectId,
-          counter.value / Math.max(total, 1)
-        );
-      }
     }
   }
-}
-
-async function countFiles(dir: string): Promise<number> {
-  let n = 0;
-  try {
-    const entries = await fs.readdir(dir, { withFileTypes: true });
-    for (const e of entries)
-      n += e.isDirectory() ? await countFiles(path.join(dir, e.name)) : 1;
-  } catch {
-    /* skip unreadable */
-  }
-  return n;
 }
 
 // ── TRANSFER ──────────────────────────────────────────────────────────────────
@@ -143,73 +106,24 @@ registerEvent(
       return { ok: false, error: "dest_inside_source" };
     }
 
-    // Space check
-    const gameSize = await getDirectorySize(gameRoot);
-    try {
-      const { execSync } = await import("node:child_process");
-      if (process.platform === "win32") {
-        const drive = path.parse(destParent).root.replace(/\\/g, "");
-        const out = execSync(
-          `wmic logicaldisk where "DeviceID='${drive}'" get FreeSpace /format:value`,
-          { encoding: "utf8" }
-        );
-        const match = out.match(/FreeSpace=(\d+)/);
-        if (match && parseInt(match[1]) < gameSize) {
-          activeTransfers.delete(id);
-          return {
-            ok: false,
-            error: "not_enough_space",
-            needed: gameSize,
-            available: parseInt(match[1]),
-          };
-        }
-      }
-    } catch {
-      /* proceed if check fails */
-    }
-
-    const total = await countFiles(gameRoot);
-    const counter = { value: 0 };
-    const lastSent = { ts: 0 };
-
+    // Start instantly
     send("on-game-transfer-progress", shop, objectId, 0);
 
     try {
       await fs.mkdir(destParent, { recursive: true });
-      await moveDir(
-        gameRoot,
-        targetRoot,
-        id,
-        counter,
-        total,
-        lastSent,
-        shop,
-        objectId
-      );
+      await moveDir(gameRoot, targetRoot, id, shop, objectId);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown";
-
-      // Clean up partial destination
       await fs.rm(targetRoot, { recursive: true, force: true }).catch(() => {});
-
       activeTransfers.delete(id);
-
-      if (msg === "cancelled") {
-        send("on-game-transfer-cancelled", shop, objectId);
-        return { ok: false, error: "cancelled" };
-      }
-
       send("on-game-transfer-error", shop, objectId, msg);
       return { ok: false, error: msg };
     }
 
-    // 100%
     send("on-game-transfer-progress", shop, objectId, 1);
 
-    // New exe path preserves relative structure (e.g. bin/game.exe)
     const relExe = path.relative(gameRoot, exePath);
     const newExePath = path.join(targetRoot, relExe);
-
     const installedSizeInBytes = await getDirectorySize(targetRoot);
 
     try {
@@ -232,18 +146,13 @@ registerEvent(
       return { ok: false, error: "db_update_failed" };
     }
 
-    // Delete original source folder
-    await fs
-      .rm(gameRoot, { recursive: true, force: true })
-      .catch((e) => console.error("[transfer] failed to delete source:", e));
-
+    await fs.rm(gameRoot, { recursive: true, force: true }).catch(() => {});
     activeTransfers.delete(id);
     send("on-game-transfer-complete", shop, objectId, newExePath);
     return { ok: true, newExePath };
   }
 );
 
-// ── PAUSE / RESUME / CANCEL ───────────────────────────────────────────────────
 registerEvent(
   "pauseGameTransfer",
   async (_e, shop: GameShop, objectId: string) => {

@@ -294,3 +294,23 @@
     transform: translateX(200%);
   }
 }
+.drive-selector__preview {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  
+  span {
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 4px;
+  }
+  
+  code {
+    font-family: monospace;
+    font-size: 12px;
+    color: #4ade80;
+  }
+}
