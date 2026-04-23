@@ -23,7 +23,7 @@ export * from "./navigation-layer";
 export * from "./focus-item";
 export * from "./diagnostics";
 export * from "./scroll-area";
-export * from "./router-anchor";
+export * from "./route-anchor";
 export * from "./button";
 export * from "./input";
 export * from "./typography";
