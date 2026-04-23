@@ -47,12 +47,11 @@ function Header() {
   const debouncedSearch = useMemo(
     () =>
       debounce((value: string) => {
-        if (pathname !== `${basePath}/catalogue`) {
-          navigate(
-            `${basePath}/catalogue${value ? `?title=${encodeURIComponent(value)}` : ""}`
-          );
-        } else {
+        if (pathname === `${basePath}/catalogue`) {
           setSearchParams(value ? { title: value } : {});
+        } else {
+          const query = value ? `?title=${encodeURIComponent(value)}` : "";
+          navigate(`${basePath}/catalogue${query}`);
         }
       }, 300),
     [pathname, navigate, setSearchParams]

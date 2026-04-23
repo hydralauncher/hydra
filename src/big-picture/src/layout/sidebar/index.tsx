@@ -134,7 +134,11 @@ function SidebarContainer({
 
   return (
     <>
-      <div className="sidebar-container" onMouseLeave={handleMouseLeave}>
+      <div
+        role="presentation"
+        className="sidebar-container"
+        onMouseLeave={handleMouseLeave}
+      >
         {children}
       </div>
       <div className="sidebar-spacer" />
