@@ -27,10 +27,10 @@ export default function App() {
       {showNavigationDiagnostics && <NavigationDiagnostics />}
 
       <NavigationInputProvider>
-        <div id="big-picture" style={{ width: "100%", display: "flex" }}>
+        <div id="big-picture">
           <Sidebar />
 
-          <article style={{ width: "100%", height: "100%" }}>
+          <article className="big-picture__content">
             <Outlet />
           </article>
         </div>
