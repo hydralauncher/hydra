@@ -46,6 +46,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   hasNSFWContentBlocked: false,
   lastDownloadedOption: null,
   isTransferring: false,
+  transferProgress: 0,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
@@ -80,6 +81,7 @@ export function GameDetailsContextProvider({
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [transferProgress, setTransferProgress] = useState(0);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -116,7 +118,7 @@ export function GameDetailsContextProvider({
     updateGame();
   }, [updateGame, isGameDownloading, lastPacket?.gameId]);
 
-  // Listen for transfer events - MOVED HERE (before other effects)
+  // Listen for transfer events
   useEffect(() => {
     const onTransferProgress = (
       _: unknown,
@@ -126,18 +128,21 @@ export function GameDetailsContextProvider({
     ) => {
       if (shop === game?.shop && objectId === game?.objectId) {
         setIsTransferring(progress > 0 && progress < 1);
+        setTransferProgress(progress);
       }
     };
 
     const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
       if (shop === game?.shop && objectId === game?.objectId) {
         setIsTransferring(false);
+        setTransferProgress(0);
       }
     };
 
     const onTransferError = (_: unknown, shop: string, objectId: string) => {
       if (shop === game?.shop && objectId === game?.objectId) {
         setIsTransferring(false);
+        setTransferProgress(0);
       }
     };
 
@@ -433,6 +438,7 @@ export function GameDetailsContextProvider({
         hasNSFWContentBlocked,
         lastDownloadedOption: null,
         isTransferring,
+        transferProgress,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,

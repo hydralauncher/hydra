@@ -257,7 +257,7 @@ export function GeneralSettingsSection({
           </div>
           
           <p className="drive-selector__subtitle">
-            Choose where to move <strong>{game.title}</strong>
+            Choose where to move <strong>{game.title} <span className="drive-selector__game-size">({fmt(gameSize)})</span></strong>
           </p>
 
           {drives.length > 0 && (
