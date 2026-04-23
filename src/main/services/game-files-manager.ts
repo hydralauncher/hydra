@@ -19,6 +19,7 @@ import { ExtractionProgress, SevenZip } from "./7zip";
 import { getPathType } from "./extraction-path";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
+import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
@@ -200,10 +201,7 @@ export class GameFilesManager {
 
       if (shouldDelete) {
         for (const archivePath of archivePaths) {
-          WindowManager.mainWindow?.webContents.send(
-            "deleteArchive",
-            archivePath
-          );
+          await deleteArchiveFile(archivePath);
         }
       } else {
         WindowManager.mainWindow?.webContents.send(
@@ -688,10 +686,7 @@ export class GameFilesManager {
             false;
 
           if (shouldDelete) {
-            WindowManager.mainWindow?.webContents.send(
-              "deleteArchive",
-              filePath
-            );
+            await deleteArchiveFile(filePath);
           } else {
             WindowManager.mainWindow?.webContents.send(
               "on-archive-deletion-prompt",
