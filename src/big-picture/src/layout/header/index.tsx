@@ -11,8 +11,11 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
+import { IS_DESKTOP } from "../../constants";
 import { useNavigationIsFocused } from "../../stores";
 import "./styles.scss";
+
+const basePath = IS_DESKTOP ? "/big-picture" : "";
 
 const capitalize = (word: string) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
@@ -25,7 +28,8 @@ const usePageTitle = () => {
     return slug ? slug.split("-").map(capitalize).join(" ") : "Game Details";
   }
 
-  const firstSegment = pathname.split("/")[1];
+  const relativePath = basePath ? pathname.replace(basePath, "") : pathname;
+  const firstSegment = relativePath.split("/")[1];
   return firstSegment ? capitalize(firstSegment) : "Home";
 };
 
@@ -43,9 +47,9 @@ function Header() {
   const debouncedSearch = useMemo(
     () =>
       debounce((value: string) => {
-        if (pathname !== "/big-picture/catalogue") {
+        if (pathname !== `${basePath}/catalogue`) {
           navigate(
-            `/big-picture/catalogue${value ? `?title=${encodeURIComponent(value)}` : ""}`
+            `${basePath}/catalogue${value ? `?title=${encodeURIComponent(value)}` : ""}`
           );
         } else {
           setSearchParams(value ? { title: value } : {});
@@ -55,8 +59,8 @@ function Header() {
   );
 
   const handleInputFocus = () => {
-    if (pathname !== "/big-picture/catalogue") {
-      navigate("/big-picture/catalogue");
+    if (pathname !== `${basePath}/catalogue`) {
+      navigate(`${basePath}/catalogue`);
     }
 
     if (!isSearchOpen) setIsSearchOpen(true);
