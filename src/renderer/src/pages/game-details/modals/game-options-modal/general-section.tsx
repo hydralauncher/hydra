@@ -42,7 +42,6 @@ interface GeneralSettingsSectionProps {
   isPaused: boolean;
   onPauseTransfer: () => void;
   onResumeTransfer: () => void;
-  onCancelTransfer: () => void;
   drives: DriveInfo[];
   onStartTransfer: (destPath: string) => Promise<void>;
   onCancelDriveSelection: () => void;
@@ -88,7 +87,6 @@ export function GeneralSettingsSection({
   isPaused,
   onPauseTransfer,
   onResumeTransfer,
-  _onCancelTransfer,
   drives,
   onStartTransfer,
   onCancelDriveSelection,
@@ -115,10 +113,9 @@ export function GeneralSettingsSection({
     if (isTransferring) setShowDriveSelector(false);
   }, [isTransferring]);
 
-  const _getDriveRoot = (p: string) => {
-    const m = p.match(/^[A-Za-z]:\\/);
-    return m ? m[0] : null;
-  };
+  useEffect(() => {
+  console.log("📊 PROGRESS UPDATE:", transferProgress * 100, "%");
+  }, [transferProgress]);
 
   const handleStartTransfer = async () => {
     let fullDest: string;
