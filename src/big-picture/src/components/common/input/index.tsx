@@ -1,6 +1,7 @@
 import { Typography } from "../typography";
 import cn from "classnames";
 import "./style.scss";
+import { FocusItem } from "..";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -23,41 +24,43 @@ export function Input({
   ...props
 }: Readonly<InputProps>) {
   return (
-    <div className="bp-input-container">
+    <div className="input-container">
       {label && (
         <Typography
           variant="label"
           // htmlFor="input"
-          className="bp-input-label"
+          className="input-label"
         >
           {label}
         </Typography>
       )}
-      <div className="bp-input-wrapper">
-        <input
-          id="input"
-          type={type}
-          placeholder={placeholder}
-          disabled={disabled}
-          data-icon-left={iconLeft ? "true" : undefined}
-          data-icon-right={iconRight ? "true" : undefined}
-          className={cn("bp-input", {
-            "bp-input--error": error,
-            "bp-input--disabled": disabled,
-          })}
-          {...props}
-        />
+      <div className="input-wrapper">
+        <FocusItem>
+          <input
+            id="input"
+            type={type}
+            placeholder={placeholder}
+            disabled={disabled}
+            data-icon-left={iconLeft ? "true" : undefined}
+            data-icon-right={iconRight ? "true" : undefined}
+            className={cn("input", {
+              "input--error": error,
+              "input--disabled": disabled,
+            })}
+            {...props}
+          />
+        </FocusItem>
         {iconLeft && (
-          <div className="bp-input-icon bp-input-icon--left">{iconLeft}</div>
+          <div className="input-icon input-icon--left">{iconLeft}</div>
         )}
         {iconRight && (
-          <div className="bp-input-icon bp-input-icon--right">{iconRight}</div>
+          <div className="input-icon input-icon--right">{iconRight}</div>
         )}
       </div>
       {hint && (
         <p
-          className={cn("bp-input-hint", {
-            "bp-input-hint--error": error,
+          className={cn("input-hint", {
+            "input-hint--error": error,
           })}
         >
           {hint}

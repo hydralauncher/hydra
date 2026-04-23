@@ -1,22 +1,24 @@
 import { SpinnerIcon } from "@phosphor-icons/react";
 import { Link } from "@renderer/components";
+import { FocusItem } from "../focus-item";
 
 import cn from "classnames";
 import "./style.scss";
+import type { NavigationNodeState } from "../../../services/navigation.service";
 
 const variants = {
-  primary: "bp-button--primary",
-  secondary: "bp-button--secondary",
-  rounded: "bp-button--rounded",
-  danger: "bp-button--danger",
-  link: "bp-button--link",
+  primary: "button--primary",
+  secondary: "button--secondary",
+  rounded: "button--rounded",
+  danger: "button--danger",
+  link: "button--link",
 };
 
 const sizes = {
-  icon: "bp-button--icon",
-  small: "bp-button--small",
-  medium: "bp-button--medium",
-  large: "bp-button--large",
+  icon: "button--icon",
+  small: "button--small",
+  medium: "button--medium",
+  large: "button--large",
 };
 
 export interface ButtonProps
@@ -30,6 +32,7 @@ export interface ButtonProps
   iconPosition?: "left" | "right";
   target?: "_blank" | "_self" | "_parent" | "_top";
   className?: string;
+  navigationState?: NavigationNodeState;
 }
 
 export function Button({
@@ -44,61 +47,66 @@ export function Button({
   children,
   target,
   "aria-label": ariaLabel,
+  navigationState = "active",
   ...props
 }: Readonly<ButtonProps>) {
   if (!href) {
     return (
-      <button
-        onClick={onClick}
-        disabled={disabled || loading}
-        aria-busy={loading}
-        aria-label={size === "icon" ? ariaLabel : undefined}
-        className={`bp-button ${variants[variant]} ${sizes[size]} ${
-          disabled || loading ? "bp-button--disabled" : ""
-        }`}
-        {...props}
-      >
-        {loading && (
-          <div
-            className={`bp-button__icon-container--${iconPosition} bp-button__icon-container`}
-          >
-            <SpinnerIcon size={20} className="bp-button__loading-icon" />
-          </div>
-        )}
+      <FocusItem navigationState={navigationState}>
+        <button
+          onClick={onClick}
+          disabled={disabled || loading}
+          aria-busy={loading}
+          aria-label={size === "icon" ? ariaLabel : undefined}
+          className={`button ${variants[variant]} ${sizes[size]} ${
+            disabled || loading ? "button--disabled" : ""
+          }`}
+          {...props}
+        >
+          {loading && (
+            <div
+              className={`button__icon-container--${iconPosition} button__icon-container`}
+            >
+              <SpinnerIcon size={20} className="button__loading-icon" />
+            </div>
+          )}
 
-        {icon && !loading && (
+          {icon && !loading && (
+            <div
+              className={`button__icon-container--${iconPosition} button__icon-container`}
+            >
+              {icon}
+            </div>
+          )}
+
+          {children && (!loading || typeof children === "string") && (
+            <p className="button__text">{children}</p>
+          )}
+        </button>
+      </FocusItem>
+    );
+  }
+
+  return (
+    <FocusItem>
+      <Link
+        to={href ?? ""}
+        target={target}
+        aria-label={size === "icon" ? ariaLabel : undefined}
+        className={cn("button", variants[variant], sizes[size], {
+          "button--disabled": disabled,
+        })}
+      >
+        {icon && (
           <div
-            className={`bp-button__icon-container--${iconPosition} bp-button__icon-container`}
+            className={`button__icon-container--${iconPosition} button__icon-container`}
           >
             {icon}
           </div>
         )}
 
-        {children && (!loading || typeof children === "string") && (
-          <p className="bp-button__text">{children}</p>
-        )}
-      </button>
-    );
-  }
-
-  return (
-    <Link
-      to={href ?? ""}
-      target={target}
-      aria-label={size === "icon" ? ariaLabel : undefined}
-      className={cn("bp-button", variants[variant], sizes[size], {
-        "bp-button--disabled": disabled,
-      })}
-    >
-      {icon && (
-        <div
-          className={`bp-button__icon-container--${iconPosition} bp-button__icon-container`}
-        >
-          {icon}
-        </div>
-      )}
-
-      {children && <p className="bp-button__text">{children}</p>}
-    </Link>
+        {children && <p className="button__text">{children}</p>}
+      </Link>
+    </FocusItem>
   );
 }
