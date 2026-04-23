@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IS_DESKTOP } from "../constants";
 import type { LibraryGame } from "@types";
 
@@ -10,6 +10,20 @@ export function useLibrary() {
     const updatedLibrary = await window.electron.getLibrary();
     setLibrary(updatedLibrary);
   }, []);
+
+  useEffect(() => {
+    void updateLibrary();
+
+    if (!IS_DESKTOP) return;
+
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+      void updateLibrary();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [updateLibrary]);
 
   return { library, updateLibrary };
 }
