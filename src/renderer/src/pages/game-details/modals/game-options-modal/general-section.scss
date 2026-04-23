@@ -304,3 +304,45 @@
   color: #4ade80;
   opacity: 0.9;
 }
+
+// Cancel Confirmation Modal
+.cancel-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.cancel-confirm-modal {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 340px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0 0 24px 0;
+    font-size: 13px;
+    opacity: 0.7;
+    line-height: 1.5;
+  }
+}
+
+.cancel-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

@@ -47,6 +47,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   lastDownloadedOption: null,
   isTransferring: false,
   transferProgress: 0,
+  isTransferPaused: false,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
@@ -82,6 +83,7 @@ export function GameDetailsContextProvider({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferProgress, setTransferProgress] = useState(0);
+  const [isTransferPaused, setIsTransferPaused] = useState(false);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -439,6 +441,7 @@ export function GameDetailsContextProvider({
         lastDownloadedOption: null,
         isTransferring,
         transferProgress,
+        isTransferPaused,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,

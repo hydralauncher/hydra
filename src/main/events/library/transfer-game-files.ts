@@ -36,8 +36,8 @@ async function waitIfPaused(id: string) {
 }
 
 async function moveFile(src: string, dest: string) {
-  // Use PowerShell Move-Item (reliable, handles locked files)
-  await execPromise(`powershell -Command "Move-Item -LiteralPath '${src}' -Destination '${dest}' -Force"`);
+  // Use CMD move command - handles spaces, parentheses, and special characters
+  await execPromise(`cmd /c move /Y "${src}" "${dest}"`);
 }
 
 async function moveDir(
@@ -48,7 +48,10 @@ async function moveDir(
   total: number,
   lastSent: { ts: number },
   shop: GameShop,
-  objectId: string
+  objectId: string,
+  bytesMoved: { value: number },
+  gameSize: number,
+  startTime: number
 ) {
   await waitIfPaused(id);
   await fs.mkdir(dest, { recursive: true });
@@ -62,24 +65,40 @@ async function moveDir(
     const d = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await moveDir(s, d, id, counter, total, lastSent, shop, objectId);
+      await moveDir(s, d, id, counter, total, lastSent, shop, objectId, bytesMoved, gameSize, startTime);
       try {
         await fs.rmdir(s);
       } catch {
         /* not empty yet */
       }
     } else {
+      const stats = await fs.stat(s);
+      bytesMoved.value += stats.size;
+      
       await moveFile(s, d);
       counter.value++;
 
       const now = Date.now();
       if (now - lastSent.ts >= THROTTLE_MS) {
         lastSent.ts = now;
+        
+        const progress = counter.value / Math.max(total, 1);
+        const elapsedSeconds = (now - startTime) / 1000;
+        const speedMBps = elapsedSeconds > 0 ? (bytesMoved.value / elapsedSeconds) / (1024 * 1024) : 0;
+        const remainingBytes = gameSize - bytesMoved.value;
+        const etaSeconds = speedMBps > 0 ? remainingBytes / (speedMBps * 1024 * 1024) : 0;
+        
         send(
           "on-game-transfer-progress",
           shop,
           objectId,
-          counter.value / Math.max(total, 1)
+          progress,
+          {
+            speed: Math.max(0, speedMBps),
+            eta: Math.ceil(etaSeconds),
+            transferred: bytesMoved.value,
+            total: gameSize
+          }
         );
       }
     }
@@ -101,7 +120,8 @@ async function countFiles(dir: string): Promise<number> {
 registerEvent(
   "transferGameFiles",
   async (_event, shop: GameShop, objectId: string, destParent: string) => {
-    // Send 0% IMMEDIATELY
+    const startTime = Date.now();
+    
     send("on-game-transfer-progress", shop, objectId, 0);
 
     const id = `${shop}:${objectId}`;
@@ -131,6 +151,7 @@ registerEvent(
 
     const folderName = path.basename(gameRoot);
     const targetRoot = path.join(destParent, folderName);
+    const gameSize = await getDirectorySize(gameRoot);
 
     if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
       activeTransfers.delete(id);
@@ -144,6 +165,7 @@ registerEvent(
     const total = await countFiles(gameRoot);
     const counter = { value: 0 };
     const lastSent = { ts: 0 };
+    const bytesMoved = { value: 0 };
 
     try {
       await fs.mkdir(destParent, { recursive: true });
@@ -155,11 +177,13 @@ registerEvent(
         total,
         lastSent,
         shop,
-        objectId
+        objectId,
+        bytesMoved,
+        gameSize,
+        startTime
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown";
-      // DON'T delete partial transfer - leave it for recovery
       activeTransfers.delete(id);
       if (msg === "cancelled") {
         send("on-game-transfer-cancelled", shop, objectId);
