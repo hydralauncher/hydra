@@ -151,19 +151,19 @@ export function GameOptionsModal({
 
   // ========== NEW EFFECTS ==========
   // Load drives when modal becomes visible
-  useEffect(() =>{
-  if (visible) {
-    console.log("🟢 Modal visible, fetching drives...");
-    window.electron
-      .getAvailableDrives?.()
-      .then((result) => {
-        console.log("✅ Drives fetched:", result);
-        setDrives(result);
-      })
-      .catch((err) => {
-        console.error("❌ Failed to fetch drives:", err);
-      });
-  }
+  useEffect(() => {
+    if (visible) {
+      console.log("🟢 Modal visible, fetching drives...");
+      window.electron
+        .getAvailableDrives?.()
+        .then((result) => {
+          console.log("✅ Drives fetched:", result);
+          setDrives(result);
+        })
+        .catch((err) => {
+          console.error("❌ Failed to fetch drives:", err);
+        });
+    }
   }, [visible]);
 
   // Listen for transfer progress
@@ -341,24 +341,20 @@ export function GameOptionsModal({
     setIsTransferPaused(false);
   };
 
-  const handleStartTransfer = async (destPath: string) => {
-    console.log("🎯 handleStartTransfer called with:", destPath);
-    
-    const result = await window.electron.transferGameFiles(
-      game.shop,
-      game.objectId,
-      destPath
-    );
-    
-    console.log("🎯 Transfer result:", result);
-    
-    if (!result.ok) {
-      showErrorToast(result.error || "Transfer failed");
-    } else {
-      showSuccessToast("Transfer completed successfully!");
-      await updateGame();
-    }
-  };
+const handleStartTransfer = async (destPath: string) => {
+  const result = await window.electron.transferGameFiles(
+    game.shop,
+    game.objectId,
+    destPath
+  );
+  if (!result.ok) {
+    showErrorToast(result.error || "Transfer failed");
+    throw new Error(result.error); // This prevents parent from closing
+  } else {
+    showSuccessToast("Transfer completed successfully!");
+    await updateGame();
+  }
+};
   // =================================
 
   const handleChangeExecutableLocation = async () => {

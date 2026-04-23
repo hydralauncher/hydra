@@ -801,7 +801,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   //UPDATEDD
-  pauseGameTransfer: (shop: GameShop, objectId: string) => 
+  pauseGameTransfer: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("pauseGameTransfer", shop, objectId),
   resumeGameTransfer: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resumeGameTransfer", shop, objectId),
