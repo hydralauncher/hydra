@@ -32,8 +32,7 @@ export function useSearch<T>(items: T[], fieldsToSearch: (keyof T)[]) {
     const searchLower = search.toLowerCase();
     const result: T[] = [];
 
-    for (let i = 0; i < indexedItems.length; i++) {
-      const { item, searchText } = indexedItems[i];
+    for (const { item, searchText } of indexedItems) {
       if (searchText.includes(searchLower)) {
         result.push(item);
       }
