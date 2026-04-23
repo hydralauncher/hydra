@@ -609,7 +609,7 @@ export class NavigationService {
     while (currentRegionId) {
       const currentRegion = this.regions.get(currentRegionId);
 
-      if (!currentRegion || currentRegion.layerId !== this.getActiveLayerId()) {
+      if (currentRegion?.layerId !== this.getActiveLayerId()) {
         break;
       }
       const regionOverride = currentRegion.navigationOverrides?.[direction];
@@ -943,7 +943,7 @@ export class NavigationService {
     while (currentRegionId) {
       const region = this.regions.get(currentRegionId);
 
-      if (!region || region.layerId !== this.getActiveLayerId()) {
+      if (region?.layerId !== this.getActiveLayerId()) {
         return null;
       }
 
@@ -1010,7 +1010,7 @@ export class NavigationService {
     while (currentRegionId) {
       const currentRegion = this.regions.get(currentRegionId);
 
-      if (!currentRegion || currentRegion.layerId !== this.getActiveLayerId()) {
+      if (currentRegion?.layerId !== this.getActiveLayerId()) {
         break;
       }
 
@@ -1282,7 +1282,7 @@ export class NavigationService {
   ): string | null {
     const region = this.regions.get(regionId);
 
-    if (!region || region.layerId !== this.getActiveLayerId()) {
+    if (region?.layerId !== this.getActiveLayerId()) {
       return null;
     }
 
