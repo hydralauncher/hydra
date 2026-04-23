@@ -94,7 +94,8 @@ async function moveDir(
       if (now - lastSent.ts >= THROTTLE_MS) {
         lastSent.ts = now;
 
-        const progress = counter.value / Math.max(total, 1);
+        //BYTE-BASED progress for accuracy (handles different file sizes)
+        const sizeProgress = bytesMoved.value / Math.max(gameSize, 1);
         const elapsedSeconds = (now - startTime) / 1000;
         const speedMBps =
           elapsedSeconds > 0
@@ -104,7 +105,7 @@ async function moveDir(
         const etaSeconds =
           speedMBps > 0 ? remainingBytes / (speedMBps * 1024 * 1024) : 0;
 
-        send("on-game-transfer-progress", shop, objectId, progress, {
+        send("on-game-transfer-progress", shop, objectId, sizeProgress, {
           speed: Math.max(0, speedMBps),
           eta: Math.ceil(etaSeconds),
           transferred: bytesMoved.value,

@@ -570,6 +570,7 @@ declare global {
       values: (sublevelName: string) => Promise<unknown[]>;
       iterator: (sublevelName: string) => Promise<[string, unknown][]>;
     };
+
     /* Transfer Game */
     getAvailableDrives: () => Promise<DriveInfo[]>;
     transferGameFiles: (
@@ -583,6 +584,12 @@ declare global {
       available?: number;
       newExePath?: string;
     }>;
+
+    // Pause/Resume/Cancel for game transfers
+    pauseGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+    cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+
     /* Event listeners for transfer progress */
     on: (channel: string, listener: (...args: any[]) => void) => void;
     off: (channel: string, listener: (...args: any[]) => void) => void;
