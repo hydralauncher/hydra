@@ -114,7 +114,7 @@ export function GeneralSettingsSection({
   }, [isTransferring]);
 
   useEffect(() => {
-  console.log("📊 PROGRESS UPDATE:", transferProgress * 100, "%");
+    console.log("📊 PROGRESS UPDATE:", transferProgress * 100, "%");
   }, [transferProgress]);
 
   const handleStartTransfer = async () => {
