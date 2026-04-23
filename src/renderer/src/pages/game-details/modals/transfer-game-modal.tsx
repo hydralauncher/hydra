@@ -137,7 +137,7 @@ export function TransferGameModal({
     <Modal
       visible={visible}
       title={t("transfer_game")}
-      onClose={transferring ? undefined : onClose}
+      onClose={transferring ? () => {} : onClose}
     >
       <div className="transfer-modal">
         {/* Drive picker */}
