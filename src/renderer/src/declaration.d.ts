@@ -540,6 +540,9 @@ declare global {
     openMainWindow: () => Promise<void>;
     isMainWindowOpen: () => Promise<boolean>;
 
+    /* Big Picture Window */
+    openBigPictureWindow: () => Promise<void>;
+
     /* Download Options */
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void

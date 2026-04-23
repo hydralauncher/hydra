@@ -1,0 +1,127 @@
+.big-picture__sidebar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  box-shadow: 4px 0px 16px 0px rgba(0, 0, 0, 0.6);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: var(--background);
+  z-index: 100;
+
+  &:hover {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+  }
+}
+
+.big-picture__router-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  align-self: stretch;
+  gap: calc(var(--spacing-unit) / 2);
+  padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3) 0;
+}
+
+.big-picture__sidebar-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s ease-in-out;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.big-picture__sidebar-container:hover ~ .big-picture__sidebar-drawer-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.big-picture__sidebar-spacer {
+  position: relative;
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  margin-right: calc(var(--spacing-unit) * 4);
+}
+
+.big-picture__sidebar-container:not(:hover) {
+  .state-wrapper,
+  .route-anchor {
+    width: 48px;
+  }
+}
+
+.route-anchor {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 2);
+  border-radius: var(--spacing-unit);
+  transition: background-color 0.2s ease-in-out;
+  width: 100%;
+  color: var(--text);
+  user-select: none;
+
+  &--extra-padding {
+    padding: calc(var(--spacing-unit) * 3);
+  }
+
+  &--active {
+    color: var(--primary);
+    background-color: var(--secondary-hover);
+  }
+
+  &:not(&--active):hover {
+    background-color: var(--secondary);
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--spacing-unit) / 2);
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &--small-size {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  &__label {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.state-wrapper {
+  width: 100%;
+
+  &--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &--active {
+    pointer-events: none;
+  }
+}
