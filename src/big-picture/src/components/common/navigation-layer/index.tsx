@@ -1,13 +1,13 @@
-import { FocusLayerContext } from "../../context";
 import { NavigationService } from "../../../services";
-import { useEffect, useId } from "react";
+import { FocusLayerContext } from "../../context";
+import { type ReactNode, useEffect, useId } from "react";
 
 interface NavigationLayerProps {
   layerId?: string;
   rootRegionId?: string;
   initialFocusId?: string;
   initialFocusRegionId?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function NavigationLayer({
@@ -16,11 +16,11 @@ export function NavigationLayer({
   initialFocusId,
   initialFocusRegionId,
   children,
-}: NavigationLayerProps) {
+}: Readonly<NavigationLayerProps>) {
   const generatedId = useId();
   const navigation = NavigationService.getInstance();
   const resolvedLayerId =
-    layerId ?? `navigation-layer-${generatedId.replace(/:/g, "")}`;
+    layerId ?? `navigation-layer-${generatedId.replaceAll(":", "")}`;
 
   useEffect(() => {
     const unregisterLayer = navigation.registerLayer({

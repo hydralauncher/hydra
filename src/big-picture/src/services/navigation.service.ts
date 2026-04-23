@@ -80,17 +80,17 @@ export interface NavigationDebugSnapshot {
 export class NavigationService {
   private static instance: NavigationService;
 
-  private nodes = new Map<string, FocusNode>();
-  private regions = new Map<string, FocusRegionRecord>();
-  private layers = new Map<string, FocusLayerRecord>();
+  private readonly nodes = new Map<string, FocusNode>();
+  private readonly regions = new Map<string, FocusRegionRecord>();
+  private readonly layers = new Map<string, FocusLayerRecord>();
   private layerStack: string[] = [ROOT_NAVIGATION_LAYER_ID];
-  private regionChildren = new Map<string, FocusTarget[]>();
-  private regionChildOrder = new Map<string, Map<string, number>>();
-  private regionChildOrderCounter = new Map<string, number>();
+  private readonly regionChildren = new Map<string, FocusTarget[]>();
+  private readonly regionChildOrder = new Map<string, Map<string, number>>();
+  private readonly regionChildOrderCounter = new Map<string, number>();
   private currentFocusId: string | null = null;
-  private listeners = new Set<Listener>();
-  private lastFocusedByRegionId = new Map<string, string>();
-  private pendingInitialFocusByLayerId = new Map<
+  private readonly listeners = new Set<Listener>();
+  private readonly lastFocusedByRegionId = new Map<string, string>();
+  private readonly pendingInitialFocusByLayerId = new Map<
     string,
     PendingInitialFocusRequest
   >();
@@ -501,7 +501,7 @@ export class NavigationService {
   }
 
   public getActiveLayerId(): string | null {
-    return this.layerStack[this.layerStack.length - 1] ?? null;
+    return this.layerStack.at(-1) ?? null;
   }
 
   public getNodes(): FocusNode[] {

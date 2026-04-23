@@ -12,7 +12,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function isScrollableElement(element: HTMLElement): boolean {
-  const style = window.getComputedStyle(element);
+  const style = globalThis.getComputedStyle(element);
   const overflow = `${style.overflow} ${style.overflowX} ${style.overflowY}`;
   const canScroll = /(auto|scroll|overlay)/.test(overflow);
 
@@ -39,7 +39,7 @@ function getScrollContainer(element: HTMLElement): HTMLElement {
 
 function getContainerRect(container: HTMLElement): DOMRect {
   if (container === document.scrollingElement) {
-    return new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+    return new DOMRect(0, 0, globalThis.innerWidth, globalThis.innerHeight);
   }
 
   return container.getBoundingClientRect();
@@ -91,7 +91,7 @@ function cancelScrollAnimation(container: HTMLElement): void {
 
   if (animationFrame === undefined) return;
 
-  window.cancelAnimationFrame(animationFrame);
+  globalThis.cancelAnimationFrame(animationFrame);
   scrollAnimationFrames.delete(container);
 }
 
@@ -119,7 +119,10 @@ function animateScroll(
     container.scrollTop = startTop + distanceTop * easedProgress;
 
     if (progress < 1) {
-      scrollAnimationFrames.set(container, window.requestAnimationFrame(step));
+      scrollAnimationFrames.set(
+        container,
+        globalThis.requestAnimationFrame(step)
+      );
       return;
     }
 
@@ -128,7 +131,7 @@ function animateScroll(
     scrollAnimationFrames.delete(container);
   };
 
-  scrollAnimationFrames.set(container, window.requestAnimationFrame(step));
+  scrollAnimationFrames.set(container, globalThis.requestAnimationFrame(step));
 }
 
 export function scrollFocusedElementIntoView(element: HTMLElement): void {

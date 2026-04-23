@@ -1,27 +1,29 @@
-import { FocusItemActionsMetaContext } from "../../context";
-import { useFocusLayerId } from "../../context";
+import {
+  FocusItemActionsMetaContext,
+  useFocusLayerId,
+  useFocusRegionId,
+} from "../../context";
 import {
   getFocusItemActionsMeta,
   resolveFocusItemActions,
   type FocusItemActions,
 } from "../../../types";
 import { scrollFocusedElementIntoView } from "../../../helpers";
-import { useFocusRegionId } from "../../context";
-import { NavigationItemActionsService } from "../../../services";
 import {
   type FocusOverrides,
+  NavigationItemActionsService,
   NavigationService,
   type NavigationNodeState,
 } from "../../../services";
 import { useNavigationIsFocused } from "../../../stores";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
 
 interface FocusItemProps {
   id?: string;
   actions?: FocusItemActions;
   navigationState?: NavigationNodeState;
   navigationOverrides?: FocusOverrides;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function FocusItem({
@@ -30,7 +32,7 @@ export function FocusItem({
   navigationState = "active",
   navigationOverrides,
   children,
-}: FocusItemProps) {
+}: Readonly<FocusItemProps>) {
   const generatedId = useId();
   const regionId = useFocusRegionId();
   const layerId = useFocusLayerId();
@@ -39,7 +41,7 @@ export function FocusItem({
   const ref = useRef<HTMLDivElement | null>(null);
   const initialNavigationStateRef = useRef(navigationState);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
-  const resolvedId = id ?? `focus-item-${generatedId.replace(/:/g, "")}`;
+  const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
 
   const resolvedActions = useMemo(

@@ -8,13 +8,15 @@ export default function LibraryPage() {
   const { library, updateLibrary } = useLibrary();
 
   useEffect(() => {
-    void updateLibrary();
+    updateLibrary();
 
     if (!IS_DESKTOP) return;
 
-    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
-      void updateLibrary();
-    });
+    const unsubscribe = globalThis.window.electron.onLibraryBatchComplete(
+      () => {
+        updateLibrary();
+      }
+    );
 
     return () => {
       unsubscribe();
