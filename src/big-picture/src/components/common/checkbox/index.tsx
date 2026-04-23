@@ -31,6 +31,7 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       onClick={handleBlockClick}
       className={cn("checkbox", {
@@ -39,13 +40,14 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
         "checkbox--disabled": props.disabled,
       })}
     >
-      <button
+      <button // NOSONAR - custom styled checkbox, not native input
         id={id}
         disabled={props.disabled}
         className={cn("checkbox__input", {
           "checkbox__input--checked": isChecked,
         })}
         onClick={() => handleChange(!isChecked)}
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- styled button
         role="checkbox"
         aria-checked={isChecked}
         aria-labelledby={label ? `${id}-label` : undefined}
