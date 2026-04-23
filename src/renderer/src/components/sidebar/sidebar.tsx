@@ -537,7 +537,7 @@ export function Sidebar() {
   }, [collections, favoritesCount, t]);
 
   const handleOpenBigPictureWindow = () => {
-    window.electron.openBigPictureWindow();
+    globalThis.window.electron.openBigPictureWindow();
   };
 
   return (

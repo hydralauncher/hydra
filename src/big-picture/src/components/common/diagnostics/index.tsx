@@ -294,21 +294,23 @@ function getRegionPath(
   currentRegionId: string | null | undefined,
   regions: Array<{ id: string; parentRegionId: string | null }>
 ) {
-  if (!currentRegionId) return [];
+  if (currentRegionId) {
+    const path: string[] = [];
+    let regionId: string | null = currentRegionId;
 
-  const path: string[] = [];
-  let regionId: string | null = currentRegionId;
+    while (regionId) {
+      const region = regions.find((candidate) => candidate.id === regionId);
 
-  while (regionId) {
-    const region = regions.find((candidate) => candidate.id === regionId);
+      if (!region) break;
 
-    if (!region) break;
+      path.unshift(region.id);
+      regionId = region.parentRegionId;
+    }
 
-    path.unshift(region.id);
-    regionId = region.parentRegionId;
+    return path;
   }
 
-  return path;
+  return [];
 }
 
 function getActiveInputLabel(
@@ -317,7 +319,7 @@ function getActiveInputLabel(
 ) {
   return (
     pressedButtons[0] ??
-    (leftStickDirection !== "none" ? `left-stick.${leftStickDirection}` : null)
+    (leftStickDirection === "none" ? null : `left-stick.${leftStickDirection}`)
   );
 }
 

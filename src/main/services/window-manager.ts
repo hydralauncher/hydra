@@ -31,7 +31,7 @@ export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
-  public static bigPicture: Electron.BrowserWindow | null = null;
+  private static bigPicture: Electron.BrowserWindow | null = null;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 

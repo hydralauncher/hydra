@@ -123,7 +123,7 @@ export class GamepadService {
   }
 
   private isWindowAvailable() {
-    return typeof globalThis.window !== "undefined";
+    return globalThis.window !== undefined;
   }
 
   private setupListeners() {
