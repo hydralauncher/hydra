@@ -1,13 +1,20 @@
 import "./styles.scss";
 
+import cn from "classnames";
 import { Typography } from "../typography";
 import { XIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+
+const variants = {
+  solid: "chips--solid",
+  ghost: "chips--ghost",
+};
 
 export interface ChipProps {
   label: string;
   color: string;
   icon?: ReactNode;
+  variant?: keyof typeof variants;
   onRemove?: () => void;
 }
 
@@ -21,9 +28,15 @@ export function ColorDot({ color }: Readonly<ColorDotProps>) {
   );
 }
 
-export function Chip({ label, color, icon, onRemove }: Readonly<ChipProps>) {
+export function Chip({
+  label,
+  color,
+  icon,
+  variant = "solid",
+  onRemove,
+}: Readonly<ChipProps>) {
   return (
-    <div className="chips">
+    <div className={cn("chips", variants[variant])}>
       <div className="chips__content">
         {icon && <div className="chips__content__icon">{icon}</div>}
 
