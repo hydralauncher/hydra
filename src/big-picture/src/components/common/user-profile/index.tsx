@@ -1,3 +1,5 @@
+import "./styles.scss";
+
 import {
   BellIcon,
   CheckIcon,
@@ -7,7 +9,6 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@renderer/components";
 import { useState } from "react";
-import "./style.scss";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "..";
 
