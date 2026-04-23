@@ -12,7 +12,11 @@ export function Divider({
   color,
 }: Readonly<DividerProps>) {
   return (
-    <div className="divider-container">
+    <div
+      className={cn("divider-container", {
+        [`divider-container--${orientation}`]: true,
+      })}
+    >
       <div
         className={cn("divider", {
           [`divider--${orientation}`]: true,
