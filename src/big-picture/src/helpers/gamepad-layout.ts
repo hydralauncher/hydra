@@ -297,13 +297,7 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
 export const gamepadLayouts = GAMEPAD_LAYOUTS;
 
 function getGamepadPlatform(): GamepadPlatform {
-  if (typeof navigator === "undefined") {
-    return "unknown";
-  }
-
-  const platform = navigator.platform.toLowerCase();
-  const userAgent = navigator.userAgent.toLowerCase();
-  const platformText = `${platform} ${userAgent}`;
+  const platformText = getNavigatorPlatformText();
 
   if (platformText.includes("linux")) return "linux";
   if (platformText.includes("mac")) return "mac";
@@ -321,14 +315,25 @@ function isLayoutAvailableForPlatform(
 
 const STANDARD_GAMEPAD_LAYOUT = GAMEPAD_LAYOUTS.find(
   (layout) => layout.name === "Standard Gamepad"
-)!;
+);
 
 const LINUX_STANDARD_GAMEPAD_LAYOUT = GAMEPAD_LAYOUTS.find(
   (layout) => layout.name === "Linux Standard Gamepad"
-)!;
+);
+
+function getNavigatorPlatformText() {
+  if (typeof navigator === "undefined") return "";
+
+  const userAgentDataPlatform =
+    "userAgentData" in navigator
+      ? (navigator as Navigator & { userAgentData?: { platform?: string } })
+          .userAgentData?.platform
+      : undefined;
+
+  return `${userAgentDataPlatform ?? ""} ${navigator.userAgent}`.toLowerCase();
+}
 
 export const getGamepadLayout = (gamepad: globalThis.Gamepad) => {
-  console.log("getGamepadLayout", gamepad.id);
   const platform = getGamepadPlatform();
 
   for (const layout of GAMEPAD_LAYOUTS) {
@@ -340,7 +345,9 @@ export const getGamepadLayout = (gamepad: globalThis.Gamepad) => {
     }
   }
 
-  return platform === "linux"
-    ? LINUX_STANDARD_GAMEPAD_LAYOUT
-    : STANDARD_GAMEPAD_LAYOUT;
+  if (platform === "linux" && LINUX_STANDARD_GAMEPAD_LAYOUT) {
+    return LINUX_STANDARD_GAMEPAD_LAYOUT;
+  }
+
+  return STANDARD_GAMEPAD_LAYOUT ?? GAMEPAD_LAYOUTS[0];
 };

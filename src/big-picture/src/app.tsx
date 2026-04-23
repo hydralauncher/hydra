@@ -1,5 +1,5 @@
 import { Fragment, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useSearchParams } from "react-router-dom";
 import { Sidebar } from "./layout";
 import { IS_DESKTOP } from "./constants";
 import {
@@ -12,6 +12,10 @@ import {
 import "./styles/globals.scss";
 
 export default function App() {
+  const [searchParams] = useSearchParams();
+  const showNavigationDiagnostics =
+    import.meta.env.DEV || searchParams.get("debugNavigation") === "1";
+
   useEffect(() => {
     if (!IS_DESKTOP) {
       document.documentElement.style.colorScheme = "dark";
@@ -21,7 +25,7 @@ export default function App() {
   return (
     <Fragment>
       <NavigationStateBridge />
-      <NavigationDiagnostics />
+      {showNavigationDiagnostics && <NavigationDiagnostics />}
 
       <NavigationInputProvider>
         <HorizontalFocusGroup regionId="main-layout">

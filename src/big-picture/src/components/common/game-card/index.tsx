@@ -5,7 +5,7 @@ interface GameCardProps {
   gameTitle: string;
 }
 
-function GameCard({ coverImageUrl, gameTitle }: GameCardProps) {
+function GameCard({ coverImageUrl, gameTitle }: Readonly<GameCardProps>) {
   return (
     <div className="big-picture__game-card">
       <div className="big-picture__game-card__cover">

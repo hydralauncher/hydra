@@ -7,7 +7,7 @@ import {
   GamepadButtonType,
   GamepadInputStatus,
 } from "../../../types";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 interface LocalInputDebug {
   label: string;
@@ -119,9 +119,13 @@ function getRuntimePlatform() {
     return "unknown";
   }
 
-  const platform = navigator.platform.toLowerCase();
-  const userAgent = navigator.userAgent.toLowerCase();
-  const platformText = `${platform} ${userAgent}`;
+  const userAgentDataPlatform =
+    "userAgentData" in navigator
+      ? (navigator as Navigator & { userAgentData?: { platform?: string } })
+          .userAgentData?.platform
+      : undefined;
+  const platformText =
+    `${userAgentDataPlatform ?? ""} ${navigator.userAgent}`.toLowerCase();
 
   if (platformText.includes("linux")) return "linux";
   if (platformText.includes("mac")) return "mac";
@@ -131,7 +135,7 @@ function getRuntimePlatform() {
 }
 
 function getVendorProduct(id: string) {
-  const match = id.match(/Vendor:\s*([0-9a-f]{4})\s+Product:\s*([0-9a-f]{4})/i);
+  const match = /Vendor:\s*([0-9a-f]{4})\s+Product:\s*([0-9a-f]{4})/i.exec(id);
 
   return {
     vendorId: match?.[1]?.toLowerCase() ?? null,
@@ -193,12 +197,197 @@ function formatRawAxes(axes: RawAxisDebug[]) {
     .join(", ");
 }
 
+function getInputRepeatLabel(
+  activeInput: LocalInputDebug | null,
+  lastInput: LocalInputDebug | null,
+  now: number
+) {
+  if (activeInput && now - activeInput.startedAt >= 400) {
+    return "held";
+  }
+
+  if (lastInput) {
+    return "single";
+  }
+
+  return "None";
+}
+
+function getGamepadLabel(
+  gamepad: { index: number; name: string } | null | undefined
+) {
+  if (!gamepad) return "None";
+
+  return `#${gamepad.index} ${gamepad.name}`;
+}
+
+function getVendorProductLabel(gamepad: RawGamepadDebug | null) {
+  if (!gamepad?.vendorId || !gamepad.productId) return "None";
+
+  return `${gamepad.vendorId}:${gamepad.productId}`;
+}
+
+function getRawCountsLabel(gamepad: RawGamepadDebug | null) {
+  if (!gamepad) return "None";
+
+  return `${gamepad.buttonsLength} buttons / ${gamepad.axesLength} axes`;
+}
+
+function getActiveRawButtonsLabel(gamepad: RawGamepadDebug | null) {
+  if (!gamepad) return "None";
+
+  return formatRawButtons(gamepad.pressedButtons);
+}
+
+function getActiveRawAxesLabel(gamepad: RawGamepadDebug | null) {
+  if (!gamepad) return "None";
+
+  return formatRawAxes(gamepad.activeAxes);
+}
+
+function getLastEventLabel(event: GamepadEventDebug | null) {
+  if (!event) return "None";
+
+  return `#${event.gamepadIndex} ${event.source}.${event.label}`;
+}
+
+function getEventAgeLabel(event: GamepadEventDebug | null, now: number) {
+  if (!event) return "None";
+
+  return formatMs(now - event.startedAt);
+}
+
+function getEventStatusLabel(event: GamepadEventDebug | null) {
+  if (!event) return "None";
+
+  return `${event.status} -> active #${event.activeGamepadIndex ?? "none"}`;
+}
+
+function getEventEchoLabel(event: GamepadEventDebug | null) {
+  if (event?.echoOfGamepadIndex === undefined) return "None";
+  if (event.echoOfGamepadIndex === null) return "None";
+
+  return `of #${event.echoOfGamepadIndex} (${formatMs(
+    event.echoSuppressionMs ?? 0
+  )})`;
+}
+
+function getFocusedActionsLabel(
+  focusedDataset: ReturnType<typeof getFocusedElementDataset>
+) {
+  if (!focusedDataset) return "None";
+
+  const actions = [
+    focusedDataset.hasPrimary && "primary",
+    focusedDataset.hasSecondary && "secondary",
+    focusedDataset.hasPressX && "press.x",
+    focusedDataset.hasPressY && "press.y",
+    focusedDataset.hasHoldA && "hold.a",
+    focusedDataset.hasHoldB && "hold.b",
+    focusedDataset.hasHoldX && "hold.x",
+  ].filter(Boolean);
+
+  return actions.join(", ") || "None";
+}
+
+function getRegionPath(
+  currentRegionId: string | null | undefined,
+  regions: Array<{ id: string; parentRegionId: string | null }>
+) {
+  if (currentRegionId) {
+    const path: string[] = [];
+    let regionId: string | null = currentRegionId;
+
+    while (regionId) {
+      const region = regions.find((candidate) => candidate.id === regionId);
+
+      if (!region) break;
+
+      path.unshift(region.id);
+      regionId = region.parentRegionId;
+    }
+
+    return path;
+  }
+
+  return [];
+}
+
+function getActiveInputLabel(
+  pressedButtons: string[],
+  leftStickDirection: GamepadAxisDirection | "none"
+) {
+  return (
+    pressedButtons[0] ??
+    (leftStickDirection === "none" ? null : `left-stick.${leftStickDirection}`)
+  );
+}
+
+function getActiveInputSource(
+  pressedButtons: string[]
+): LocalInputDebug["source"] {
+  return pressedButtons[0] ? "gamepad-button" : "left-stick";
+}
+
+function getHoldProgressLabel(
+  activeInput: LocalInputDebug | null,
+  now: number
+) {
+  if (!activeInput) return "None";
+
+  return `${activeInput.label} ${formatMs(now - activeInput.startedAt)}`;
+}
+
+function getLastInputLabel(lastInput: LocalInputDebug | null) {
+  if (!lastInput) return "None";
+
+  return `${lastInput.source}.${lastInput.label}`;
+}
+
+function getItemStateLabel(
+  currentNode: { navigationState: string } | null,
+  focusedDataset: ReturnType<typeof getFocusedElementDataset>
+) {
+  return (
+    currentNode?.navigationState ?? focusedDataset?.navigationState ?? "None"
+  );
+}
+
+function getRememberedFocusLabel(
+  currentRegionId: string | null | undefined,
+  rememberedByRegionId: Record<string, string>
+) {
+  if (!currentRegionId) return "None";
+
+  return rememberedByRegionId[currentRegionId] ?? "None";
+}
+
+function getConnectedGamepadsLabel(
+  connectedGamepads: Array<{ index: number; layout: string }>,
+  rawGamepads: RawGamepadDebug[]
+) {
+  if (connectedGamepads.length === 0) return "None";
+
+  return connectedGamepads
+    .map((gamepad) => {
+      const rawGamepad = rawGamepads.find((raw) => raw.index === gamepad.index);
+      const vendorProduct =
+        rawGamepad?.vendorId && rawGamepad.productId
+          ? ` ${rawGamepad.vendorId}:${rawGamepad.productId}`
+          : "";
+      const browserMapping = rawGamepad ? ` ${rawGamepad.mapping}` : "";
+
+      return `#${gamepad.index}: ${gamepad.layout}${browserMapping}${vendorProduct}`;
+    })
+    .join(" · ");
+}
+
 function Section({
   title,
   children,
 }: {
-  title: string;
-  children: React.ReactNode;
+  readonly title: string;
+  readonly children: ReactNode;
 }) {
   return (
     <section style={{ display: "grid", gap: 6 }}>
@@ -208,7 +397,13 @@ function Section({
   );
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -226,7 +421,13 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function AxisValue({ label, value }: { label: string; value: number }) {
+function AxisValue({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: number;
+}) {
   const normalized = Math.max(0, Math.min(1, (value + 1) / 2));
   const height = `${Math.abs(value) * 50}%`;
   const top = value < 0 ? `${normalized * 100}%` : "50%";
@@ -272,7 +473,7 @@ function AxisValue({ label, value }: { label: string; value: number }) {
   );
 }
 
-function StickCircle({ x, y }: { x: number; y: number }) {
+function StickCircle({ x, y }: { readonly x: number; readonly y: number }) {
   const clampedX = Math.max(-1, Math.min(1, x));
   const clampedY = Math.max(-1, Math.min(1, y));
   const dotX = 56 + clampedX * 48;
@@ -314,11 +515,11 @@ function StickPanel({
   xAxisLabel,
   yAxisLabel,
 }: {
-  title: string;
-  x: number;
-  y: number;
-  xAxisLabel: string;
-  yAxisLabel: string;
+  readonly title: string;
+  readonly x: number;
+  readonly y: number;
+  readonly xAxisLabel: string;
+  readonly yAxisLabel: string;
 }) {
   return (
     <div
@@ -342,7 +543,13 @@ function StickPanel({
   );
 }
 
-function TriggerMeter({ label, value }: { label: string; value: number }) {
+function TriggerMeter({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: number;
+}) {
   const normalized = Math.max(0, Math.min(1, value));
 
   return (
@@ -390,16 +597,16 @@ function GamepadVisualizer({
   onTestVibration,
   onToggleInfiniteVibration,
 }: {
-  isButtonPressed: (button: GamepadButtonType) => boolean;
-  leftStickX: number;
-  leftStickY: number;
-  rightStickX: number;
-  rightStickY: number;
-  leftTriggerValue: number;
-  rightTriggerValue: number;
-  isInfiniteVibrationEnabled: boolean;
-  onTestVibration: () => void;
-  onToggleInfiniteVibration: () => void;
+  readonly isButtonPressed: (button: GamepadButtonType) => boolean;
+  readonly leftStickX: number;
+  readonly leftStickY: number;
+  readonly rightStickX: number;
+  readonly rightStickY: number;
+  readonly leftTriggerValue: number;
+  readonly rightTriggerValue: number;
+  readonly isInfiniteVibrationEnabled: boolean;
+  readonly onTestVibration: () => void;
+  readonly onToggleInfiniteVibration: () => void;
 }) {
   const activeFill = "#ffffff";
   const bodyFill = "var(--secondary)";
@@ -750,31 +957,14 @@ function NavigationDiagnosticsPanel() {
     : null;
   const [focusedDataset, setFocusedDataset] =
     useState<ReturnType<typeof getFocusedElementDataset>>(null);
-  const activeInputLabel =
-    pressedButtons[0] ??
-    (leftStickDirection !== "none" ? `left-stick.${leftStickDirection}` : null);
-  const activeInputSource: LocalInputDebug["source"] = pressedButtons[0]
-    ? "gamepad-button"
-    : "left-stick";
+  const activeInputLabel = getActiveInputLabel(
+    pressedButtons,
+    leftStickDirection
+  );
+  const activeInputSource = getActiveInputSource(pressedButtons);
 
   const regionPath = useMemo(() => {
-    if (!currentRegion) {
-      return [];
-    }
-
-    const path: string[] = [];
-    let regionId: string | null = currentRegion.id;
-
-    while (regionId) {
-      const region = regions.find((candidate) => candidate.id === regionId);
-
-      if (!region) break;
-
-      path.unshift(region.id);
-      regionId = region.parentRegionId;
-    }
-
-    return path;
+    return getRegionPath(currentRegion?.id, regions);
   }, [currentRegion, regions]);
 
   useEffect(() => {
@@ -782,12 +972,12 @@ function NavigationDiagnosticsPanel() {
       return;
     }
 
-    const intervalId = window.setInterval(() => {
+    const intervalId = globalThis.setInterval(() => {
       setNow(Date.now());
     }, 100);
 
     return () => {
-      window.clearInterval(intervalId);
+      globalThis.clearInterval(intervalId);
     };
   }, [activeInput]);
 
@@ -878,7 +1068,7 @@ function NavigationDiagnosticsPanel() {
       strongMagnitude: 0.85,
     });
 
-    const intervalId = window.setInterval(() => {
+    const intervalId = globalThis.setInterval(() => {
       vibrate({
         duration: 700,
         weakMagnitude: 0.45,
@@ -887,7 +1077,7 @@ function NavigationDiagnosticsPanel() {
     }, 650);
 
     return () => {
-      window.clearInterval(intervalId);
+      globalThis.clearInterval(intervalId);
       vibrate({
         duration: 1,
         weakMagnitude: 0,
@@ -949,7 +1139,7 @@ function NavigationDiagnosticsPanel() {
       text = `[navigation-diagnostics] JSON.stringify failed: ${String(error)}`;
     }
 
-    void navigator.clipboard.writeText(text).catch((err) => {
+    navigator.clipboard.writeText(text).catch((err) => {
       console.warn("[navigation-diagnostics] clipboard copy failed", err);
     });
   };
@@ -999,57 +1189,17 @@ function NavigationDiagnosticsPanel() {
       </div>
 
       <Section title="Input / Gamepad">
-        <Row
-          label="activeGamepad"
-          value={
-            activeGamepad
-              ? `#${activeGamepad.index} ${activeGamepad.name}`
-              : "None"
-          }
-        />
+        <Row label="activeGamepad" value={getGamepadLabel(activeGamepad)} />
         <Row label="connected" value={connectedGamepads.length} />
         <Row label="activeIndex" value={activeGamepadIndex ?? "None"} />
         <Row label="layout" value={activeGamepad?.layout ?? "None"} />
         <Row label="platform" value={runtimePlatform} />
         <Row label="browserMap" value={activeRawGamepad?.mapping ?? "None"} />
-        <Row
-          label="vid/pid"
-          value={
-            activeRawGamepad?.vendorId && activeRawGamepad.productId
-              ? `${activeRawGamepad.vendorId}:${activeRawGamepad.productId}`
-              : "None"
-          }
-        />
-        <Row
-          label="rawCounts"
-          value={
-            activeRawGamepad
-              ? `${activeRawGamepad.buttonsLength} buttons / ${activeRawGamepad.axesLength} axes`
-              : "None"
-          }
-        />
+        <Row label="vid/pid" value={getVendorProductLabel(activeRawGamepad)} />
+        <Row label="rawCounts" value={getRawCountsLabel(activeRawGamepad)} />
         <Row
           label="pads"
-          value={
-            connectedGamepads.length === 0
-              ? "None"
-              : connectedGamepads
-                  .map((g) => {
-                    const rawGamepad = rawGamepads.find(
-                      (raw) => raw.index === g.index
-                    );
-                    const vendorProduct =
-                      rawGamepad?.vendorId && rawGamepad.productId
-                        ? ` ${rawGamepad.vendorId}:${rawGamepad.productId}`
-                        : "";
-                    const browserMapping = rawGamepad
-                      ? ` ${rawGamepad.mapping}`
-                      : "";
-
-                    return `#${g.index}: ${g.layout}${browserMapping}${vendorProduct}`;
-                  })
-                  .join(" · ")
-          }
+          value={getConnectedGamepadsLabel(connectedGamepads, rawGamepads)}
         />
         <Row
           label="pressedButtons"
@@ -1063,75 +1213,24 @@ function NavigationDiagnosticsPanel() {
         />
         <Row
           label="rawButtons"
-          value={
-            activeRawGamepad
-              ? formatRawButtons(activeRawGamepad.pressedButtons)
-              : "None"
-          }
+          value={getActiveRawButtonsLabel(activeRawGamepad)}
         />
-        <Row
-          label="rawAxes"
-          value={
-            activeRawGamepad
-              ? formatRawAxes(activeRawGamepad.activeAxes)
-              : "None"
-          }
-        />
+        <Row label="rawAxes" value={getActiveRawAxesLabel(activeRawGamepad)} />
         <Row
           label="inputRepeat"
-          value={
-            activeInput && now - activeInput.startedAt >= 400
-              ? "held"
-              : lastInput
-                ? "single"
-                : "None"
-          }
+          value={getInputRepeatLabel(activeInput, lastInput, now)}
         />
         <Row
           label="holdProgress"
-          value={
-            activeInput
-              ? `${activeInput.label} ${formatMs(now - activeInput.startedAt)}`
-              : "None"
-          }
+          value={getHoldProgressLabel(activeInput, now)}
         />
-        <Row
-          label="lastEventPad"
-          value={
-            lastGamepadEvent
-              ? `#${lastGamepadEvent.gamepadIndex} ${lastGamepadEvent.source}.${lastGamepadEvent.label}`
-              : "None"
-          }
-        />
-        <Row
-          label="eventAge"
-          value={
-            lastGamepadEvent
-              ? formatMs(now - lastGamepadEvent.startedAt)
-              : "None"
-          }
-        />
+        <Row label="lastEventPad" value={getLastEventLabel(lastGamepadEvent)} />
+        <Row label="eventAge" value={getEventAgeLabel(lastGamepadEvent, now)} />
         <Row
           label="eventStatus"
-          value={
-            lastGamepadEvent
-              ? `${lastGamepadEvent.status} -> active #${
-                  lastGamepadEvent.activeGamepadIndex ?? "none"
-                }`
-              : "None"
-          }
+          value={getEventStatusLabel(lastGamepadEvent)}
         />
-        <Row
-          label="eventEcho"
-          value={
-            lastGamepadEvent?.echoOfGamepadIndex !== undefined &&
-            lastGamepadEvent.echoOfGamepadIndex !== null
-              ? `of #${lastGamepadEvent.echoOfGamepadIndex} (${formatMs(
-                  lastGamepadEvent.echoSuppressionMs ?? 0
-                )})`
-              : "None"
-          }
-        />
+        <Row label="eventEcho" value={getEventEchoLabel(lastGamepadEvent)} />
       </Section>
 
       <Section title="Focus">
@@ -1144,28 +1243,19 @@ function NavigationDiagnosticsPanel() {
         <Row label="orientation" value={currentRegion?.orientation ?? "None"} />
         <Row
           label="itemState"
-          value={
-            currentNode?.navigationState ??
-            focusedDataset?.navigationState ??
-            "None"
-          }
+          value={getItemStateLabel(currentNode, focusedDataset)}
         />
         <Row
           label="remembered"
-          value={
-            currentRegion
-              ? (debugSnapshot.lastFocusedByRegionId[currentRegion.id] ??
-                "None")
-              : "None"
-          }
+          value={getRememberedFocusLabel(
+            currentRegion?.id,
+            debugSnapshot.lastFocusedByRegionId
+          )}
         />
       </Section>
 
       <Section title="Movement">
-        <Row
-          label="lastInput"
-          value={lastInput ? `${lastInput.source}.${lastInput.label}` : "None"}
-        />
+        <Row label="lastInput" value={getLastInputLabel(lastInput)} />
         <Row label="moveResult" value="Not tracked by isolated debug" />
       </Section>
 
@@ -1173,21 +1263,7 @@ function NavigationDiagnosticsPanel() {
         <Row label="lastAction" value="Not tracked by isolated debug" />
         <Row
           label="focusedActions"
-          value={
-            focusedDataset
-              ? [
-                  focusedDataset.hasPrimary && "primary",
-                  focusedDataset.hasSecondary && "secondary",
-                  focusedDataset.hasPressX && "press.x",
-                  focusedDataset.hasPressY && "press.y",
-                  focusedDataset.hasHoldA && "hold.a",
-                  focusedDataset.hasHoldB && "hold.b",
-                  focusedDataset.hasHoldX && "hold.x",
-                ]
-                  .filter(Boolean)
-                  .join(", ") || "None"
-              : "None"
-          }
+          value={getFocusedActionsLabel(focusedDataset)}
         />
       </Section>
 

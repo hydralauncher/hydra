@@ -7,7 +7,7 @@ export function useLibrary() {
 
   const updateLibrary = useCallback(async () => {
     if (!IS_DESKTOP) return;
-    const updatedLibrary = await window.electron.getLibrary();
+    const updatedLibrary = await globalThis.window.electron.getLibrary();
     setLibrary(updatedLibrary);
   }, []);
 

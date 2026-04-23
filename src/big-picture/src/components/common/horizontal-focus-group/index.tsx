@@ -1,20 +1,22 @@
-import { useFocusLayerId } from "../../context";
-import { FocusRegionContext, useFocusRegionId } from "../../context";
+import {
+  FocusRegionContext,
+  useFocusLayerId,
+  useFocusRegionId,
+} from "../../context";
 import { type FocusOverrides, NavigationService } from "../../../services";
-import { useEffect, useId, useRef } from "react";
-import React from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 
 interface HorizontalFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function HorizontalFocusGroup({
   regionId,
   navigationOverrides,
   children,
-}: HorizontalFocusGroupProps) {
+}: Readonly<HorizontalFocusGroupProps>) {
   const generatedId = useId();
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
@@ -22,7 +24,7 @@ export function HorizontalFocusGroup({
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const ref = useRef<HTMLDivElement | null>(null);
   const resolvedRegionId =
-    regionId ?? `focus-region-${generatedId.replace(/:/g, "")}`;
+    regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
   useEffect(() => {
     return navigation.registerRegion({
