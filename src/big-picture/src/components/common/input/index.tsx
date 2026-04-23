@@ -32,7 +32,7 @@ export function Input({
         </Typography>
       )}
       <div className="input-wrapper">
-        <FocusItem>
+        <FocusItem asChild>
           <input
             id="input"
             type={type}
