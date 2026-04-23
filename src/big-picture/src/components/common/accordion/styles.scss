@@ -1,0 +1,52 @@
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit);
+}
+.accordion__header {
+  display: flex;
+  flex-direction: row;
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+  background-color: var(--surface);
+  transition: border-radius 0.05s ease-in-out;
+  border-radius: calc(var(--spacing-unit) * 2);
+
+  &.accordion__header--open {
+    border-radius: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2)
+      var(--spacing-unit) var(--spacing-unit);
+  }
+}
+
+.accordion__header__label,
+.accordion__header__indicators {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+  text-transform: capitalize;
+}
+
+.accordion__header__indicators__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > svg {
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.accordion__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  background-color: var(--surface);
+  padding: calc(var(--spacing-unit) * 4);
+  border-radius: var(--spacing-unit) var(--spacing-unit)
+    calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2);
+}
