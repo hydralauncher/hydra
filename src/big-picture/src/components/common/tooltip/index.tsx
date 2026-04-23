@@ -1,15 +1,6 @@
 import "./styles.scss";
 
-import {
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
-import { createPortal } from "react-dom";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 export interface TooltipProps {
   children: ReactNode;
@@ -35,120 +26,36 @@ export function Tooltip({
   style,
 }: Readonly<TooltipProps>) {
   const [isHovering, setIsHovering] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<number | null>(null);
-
-  const calculatePosition = useCallback(() => {
-    if (!triggerRef.current) return;
-
-    const rect = triggerRef.current.getBoundingClientRect();
-    const scrollX = globalThis.window.scrollX;
-    const scrollY = globalThis.window.scrollY;
-
-    let x = 0,
-      y = 0;
-
-    switch (position) {
-      case "top":
-        x = rect.left + scrollX + rect.width / 2;
-        y = rect.top + scrollY - offset;
-        break;
-      case "bottom":
-        x = rect.left + scrollX + rect.width / 2;
-        y = rect.bottom + scrollY + offset;
-        break;
-      case "left":
-        x = rect.left + scrollX - offset;
-        y = rect.top + scrollY + rect.height / 2;
-        break;
-      case "right":
-        x = rect.right + scrollX + offset;
-        y = rect.top + scrollY + rect.height / 2;
-        break;
-    }
-
-    setTooltipPosition({ x, y });
-  }, [position, offset]);
-
-  const handleMouseEnter = () => {
-    if (scrollTimeoutRef.current) {
-      globalThis.window.clearTimeout(scrollTimeoutRef.current);
-    }
-    setIsHovering(true);
-    calculatePosition();
-  };
-
-  const handleMouseLeave = () => setIsHovering(false);
-
-  const handleScroll = useCallback(() => {
-    setIsHovering(false);
-
-    scrollTimeoutRef.current = globalThis.window.setTimeout(() => {
-      if (triggerRef.current?.matches(":hover")) {
-        setIsHovering(true);
-        calculatePosition();
-      }
-      scrollTimeoutRef.current = null;
-    }, 100);
-  }, [calculatePosition]);
-
-  useEffect(() => {
-    const currentTimeout = scrollTimeoutRef.current;
-
-    if (isHovering) {
-      globalThis.window.addEventListener("scroll", handleScroll, true);
-      globalThis.window.addEventListener("resize", handleScroll);
-    }
-
-    return () => {
-      globalThis.window.removeEventListener("scroll", handleScroll, true);
-      globalThis.window.removeEventListener("resize", handleScroll);
-      if (currentTimeout) {
-        globalThis.window.clearTimeout(currentTimeout);
-      }
-    };
-  }, [isHovering, handleScroll]);
-
-  const tooltipContent = useMemo(
-    () => (
-      <div
-        ref={tooltipRef}
-        className={`tooltip__portal tooltip__content--${position} ${className}`}
-        data-offset={offset}
-        data-show-arrow={showArrow}
-        style={{
-          left: tooltipPosition.x,
-          top: tooltipPosition.y,
-        }}
-        role="tooltip"
-        id={id}
-      >
-        {content}
-      </div>
-    ),
-    [tooltipPosition, position, offset, showArrow, content, className, id]
-  );
 
   if (!active) return children;
 
-  const portalTarget = document.getElementById("root") ?? document.body;
+  const tooltipStyle = {
+    "--tooltip-offset": `${offset}px`,
+  } as CSSProperties;
 
   return (
-    <>
-      <div
-        ref={triggerRef}
-        className="tooltip"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        role="tooltip"
-        aria-hidden={!isHovering}
-        style={style}
-      >
-        {children}
-      </div>
-      {isHovering && createPortal(tooltipContent, portalTarget)}
-    </>
+    // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div
+      className="tooltip"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onFocus={() => setIsHovering(true)}
+      onBlur={() => setIsHovering(false)}
+      style={style}
+    >
+      {children}
+      {isHovering && (
+        <div
+          className={`tooltip__portal tooltip__content--${position} ${className}`}
+          data-offset={offset}
+          data-show-arrow={showArrow}
+          style={tooltipStyle}
+          role="tooltip"
+          id={id}
+        >
+          {content}
+        </div>
+      )}
+    </div>
   );
 }
