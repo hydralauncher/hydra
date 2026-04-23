@@ -1,5 +1,6 @@
+import "./styles.scss";
+
 import cn from "classnames";
-import "./style.scss";
 
 export interface DividerProps {
   orientation?: "horizontal" | "vertical";
@@ -11,7 +12,11 @@ export function Divider({
   color,
 }: Readonly<DividerProps>) {
   return (
-    <div className="divider-container">
+    <div
+      className={cn("divider-container", {
+        [`divider-container--${orientation}`]: true,
+      })}
+    >
       <div
         className={cn("divider", {
           [`divider--${orientation}`]: true,

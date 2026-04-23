@@ -1,10 +1,10 @@
-import { SpinnerIcon } from "@phosphor-icons/react";
-import { Link } from "@renderer/components";
-import { FocusItem } from "../focus-item";
+import "./styles.scss";
 
+import { SpinnerIcon } from "@phosphor-icons/react";
 import cn from "classnames";
-import "./style.scss";
-import type { NavigationNodeState } from "../../../services/navigation.service";
+import { Link } from "react-router-dom";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { FocusItem } from "..";
 
 const variants = {
   primary: "button--primary",
@@ -22,17 +22,22 @@ const sizes = {
 };
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   loading?: boolean;
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
-  children: React.ReactNode;
-  icon?: React.ReactNode;
+  children: ReactNode;
+  icon?: ReactNode;
   href?: string;
   iconPosition?: "left" | "right";
   target?: "_blank" | "_self" | "_parent" | "_top";
   className?: string;
-  navigationState?: NavigationNodeState;
+}
+
+function isExternalHref(href: string) {
+  return (
+    /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(href) || href.startsWith("mailto:")
+  );
 }
 
 export function Button({
@@ -46,21 +51,29 @@ export function Button({
   onClick,
   children,
   target,
+  className,
   "aria-label": ariaLabel,
-  navigationState = "active",
   ...props
 }: Readonly<ButtonProps>) {
+  const buttonClassName = cn(
+    "button",
+    variants[variant],
+    sizes[size],
+    className,
+    {
+      "button--disabled": disabled || loading,
+    }
+  );
+
   if (!href) {
     return (
-      <FocusItem navigationState={navigationState}>
+      <FocusItem>
         <button
           onClick={onClick}
           disabled={disabled || loading}
           aria-busy={loading}
           aria-label={size === "icon" ? ariaLabel : undefined}
-          className={`button ${variants[variant]} ${sizes[size]} ${
-            disabled || loading ? "button--disabled" : ""
-          }`}
+          className={buttonClassName}
           {...props}
         >
           {loading && (
@@ -87,25 +100,46 @@ export function Button({
     );
   }
 
+  const linkContent = (
+    <>
+      {icon && (
+        <div
+          className={`button__icon-container--${iconPosition} button__icon-container`}
+        >
+          {icon}
+        </div>
+      )}
+
+      {children && <p className="button__text">{children}</p>}
+    </>
+  );
+
+  if (target === "_blank" || isExternalHref(href)) {
+    return (
+      <FocusItem>
+        <a
+          href={href}
+          target={target}
+          rel={target === "_blank" ? "noreferrer" : undefined}
+          aria-label={size === "icon" ? ariaLabel : undefined}
+          className={buttonClassName}
+          onClick={onClick as never}
+        >
+          {linkContent}
+        </a>
+      </FocusItem>
+    );
+  }
+
   return (
     <FocusItem>
       <Link
-        to={href ?? ""}
-        target={target}
+        to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
-        className={cn("button", variants[variant], sizes[size], {
-          "button--disabled": disabled,
-        })}
+        className={buttonClassName}
+        onClick={onClick as never}
       >
-        {icon && (
-          <div
-            className={`button__icon-container--${iconPosition} button__icon-container`}
-          >
-            {icon}
-          </div>
-        )}
-
-        {children && <p className="button__text">{children}</p>}
+        {linkContent}
       </Link>
     </FocusItem>
   );

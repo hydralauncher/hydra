@@ -1,15 +1,16 @@
-import { Typography } from "../typography";
+import "./styles.scss";
+
 import cn from "classnames";
-import "./style.scss";
+import { Typography } from "../typography";
+import type { InputHTMLAttributes, ReactNode } from "react";
 import { FocusItem } from "..";
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   hint?: string;
   error?: boolean;
-  iconLeft?: React.ReactNode;
-  iconRight?: React.ReactNode;
+  iconLeft?: ReactNode;
+  iconRight?: ReactNode;
 }
 
 export function Input({
@@ -26,11 +27,7 @@ export function Input({
   return (
     <div className="input-container">
       {label && (
-        <Typography
-          variant="label"
-          // htmlFor="input"
-          className="input-label"
-        >
+        <Typography variant="label" className="input-label">
           {label}
         </Typography>
       )}
@@ -43,10 +40,9 @@ export function Input({
             disabled={disabled}
             data-icon-left={iconLeft ? "true" : undefined}
             data-icon-right={iconRight ? "true" : undefined}
-            className={cn("input", {
-              "input--error": error,
-              "input--disabled": disabled,
-            })}
+            className={`input ${error ? "input--error" : ""} ${
+              disabled ? "input--disabled" : ""
+            }`}
             {...props}
           />
         </FocusItem>
@@ -58,11 +54,7 @@ export function Input({
         )}
       </div>
       {hint && (
-        <p
-          className={cn("input-hint", {
-            "input-hint--error": error,
-          })}
-        >
+        <p className={cn("input-hint", { "input-hint--error": error })}>
           {hint}
         </p>
       )}
