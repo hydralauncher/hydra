@@ -11,6 +11,8 @@
   align-items: center;
   align-self: stretch;
   background-color: var(--surface);
+  color: var(--text);
+  cursor: pointer;
   transition: border-radius 0.05s ease-in-out;
   border-radius: calc(var(--spacing-unit) * 2);
 
@@ -27,16 +29,26 @@
   align-items: center;
   gap: calc(var(--spacing-unit) * 2);
   text-transform: capitalize;
+
+  > svg {
+    color: currentColor;
+  }
+}
+
+.accordion__header__indicators {
+  color: var(--text-secondary);
 }
 
 .accordion__header__indicators__icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: currentColor;
 
   > svg {
     align-items: center;
     justify-content: center;
+    color: currentColor;
   }
 }
 
