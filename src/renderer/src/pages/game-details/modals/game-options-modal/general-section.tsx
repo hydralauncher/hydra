@@ -93,7 +93,7 @@ export function GeneralSettingsSection({
   const [selectedDrive, setSelectedDrive] = useState<string | null>(null);
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [checkingSpace, setCheckingSpace] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
@@ -115,30 +115,31 @@ export function GeneralSettingsSection({
       return;
     }
 
-    setCheckingSpace(true);
+    // Only create "Hydra Games" folder if a drive was selected (not custom path)
+    let fullDest: string;
+    const isDriveSelected = selectedDrive !== null;
+    
+    if (isDriveSelected) {
+      // Drive selected: create Hydra Games folder
+      const hydraFolder = "Hydra Games";
+      fullDest = `${dest}\\${hydraFolder}`;
+    } else {
+      // Custom path: use exactly as entered
+      fullDest = dest;
+    }
+
     setError(null);
+    setIsPreparing(true);
 
     try {
-      const root =
-        selectedDrive ?? (customPath ? getDriveRoot(customPath) : null);
-      if (root) {
-        const disk = await window.electron.getDiskFreeSpace(root);
-        const free = typeof disk === "number" ? disk : disk.free;
-        if (free < gameSize) {
-          setError(
-            t("not_enough_space_detail", {
-              needed: fmt(gameSize),
-              available: fmt(free),
-            })
-          );
-          return;
-        }
-      }
-      await onStartTransfer(dest);
+      await onStartTransfer(fullDest);
+      setShowDriveSelector(false);
+      setSelectedDrive(null);
+      setCustomPath("");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("transfer_failed"));
     } finally {
-      setCheckingSpace(false);
+      setIsPreparing(false);
     }
   };
 
@@ -362,9 +363,9 @@ export function GeneralSettingsSection({
                   type="button"
                   theme="danger"
                   onClick={handleStartTransfer}
-                  disabled={!effectiveDest || checkingSpace}
+                  disabled={!effectiveDest || isPreparing}
                 >
-                  {checkingSpace ? t("checking_space") : t("start_transfer")}
+                  {isPreparing ? "Preparing..." : t("start_transfer")}
                 </Button>
               </div>
             </div>

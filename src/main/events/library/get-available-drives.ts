@@ -9,46 +9,53 @@ interface DriveInfo {
 }
 
 const getAvailableDrives = async (): Promise<DriveInfo[]> => {
+  console.log("getAvailableDrives called, platform:", process.platform);
+  
   if (process.platform === "win32") {
     try {
-      const out = execSync(
-        "wmic logicaldisk get DeviceID,FreeSpace,Size,VolumeName /format:csv",
-        { encoding: "utf8" }
-      );
-      const lines = out.trim().split(/\r?\n/).filter(Boolean).slice(1);
-      return lines
-        .map((line) => {
-          const [, deviceId, free, size, label] = line.split(",");
-          return {
-            root: deviceId?.trim() + "\\",
-            label: label?.trim() || deviceId?.trim(),
-            free: parseInt(free?.trim() || "0") || 0,
-            total: parseInt(size?.trim() || "0") || 0,
-          };
-        })
-        .filter((d) => d.total > 0);
-    } catch {
+      // Simpler PowerShell command
+      const psCommand = `Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | Format-List DeviceID, VolumeName, FreeSpace, Size`;
+      const out = execSync(`powershell -Command "${psCommand}"`, { 
+        encoding: "utf8",
+        shell: "powershell.exe"
+      });
+      
+      console.log("Raw output:", out);
+      
+      const drives: DriveInfo[] = [];
+      let currentDrive: Partial<DriveInfo> = {};
+      
+      const lines = out.split(/\r?\n/);
+      for (const line of lines) {
+        if (line.includes("DeviceID")) {
+          const match = line.match(/DeviceID\s+:\s+(.+)/);
+          if (match) currentDrive.root = match[1].trim() + "\\";
+        } else if (line.includes("FreeSpace")) {
+          const match = line.match(/FreeSpace\s+:\s+(\d+)/);
+          if (match) currentDrive.free = parseInt(match[1]);
+        } else if (line.includes("Size")) {
+          const match = line.match(/Size\s+:\s+(\d+)/);
+          if (match) currentDrive.total = parseInt(match[1]);
+        } else if (line.trim() === "" && currentDrive.root && currentDrive.total) {
+          drives.push({
+            root: currentDrive.root,
+            label: currentDrive.root,
+            free: currentDrive.free || 0,
+            total: currentDrive.total
+          });
+          currentDrive = {};
+        }
+      }
+      
+      console.log("Parsed drives:", drives);
+      return drives;
+    } catch (error) {
+      console.error("PowerShell failed:", error);
       return [];
     }
   }
-  // Linux/macOS — parse df output
-  try {
-    const { execSync } = await import("node:child_process");
-    const out = execSync("df -Pk", { encoding: "utf8" });
-    const lines = out.trim().split("\n").slice(1);
-    return lines
-      .map((line) => {
-        const parts = line.trim().split(/\s+/);
-        const mountpoint = parts[parts.length - 1];
-        const total = parseInt(parts[1]) * 1024;
-        const free = parseInt(parts[3]) * 1024;
-        return { root: mountpoint, label: mountpoint, free, total };
-      })
-      .filter((d) => d.root.startsWith("/") && d.total > 0)
-      .slice(0, 8);
-  } catch {
-    return [];
-  }
+  
+  return [];
 };
 
 registerEvent("getAvailableDrives", getAvailableDrives);

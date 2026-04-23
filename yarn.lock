@@ -4669,6 +4669,11 @@ delayed-stream@~1.0.0:
   resolved "https://registry.yarnpkg.com/delayed-stream/-/delayed-stream-1.0.0.tgz#df3ae199acadfb7d440aaae0b29e2272b24ec619"
   integrity sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==
 
+detect-drives@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/detect-drives/-/detect-drives-1.3.0.tgz#e3b7afeaacf276855317792c92cb0c89099dd05f"
+  integrity sha512-YjAd1wfY5TIB8LqPABHlJNeNBYSI5jOyouhn95kGmKD3L//1QE55zuXvbhFs9ngBP3rWXmDuCqMNXZHI0GWcWg==
+
 detect-libc@^1.0.3:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/detect-libc/-/detect-libc-1.0.3.tgz#fa137c4bd698edf55cd5cd02ac559f91a4c4ba9b"
