@@ -199,11 +199,12 @@
     border-radius: 1px;
   }
 
+  // Game space overlay - changed to green
   &__bar-game {
     position: absolute;
     top: 0;
     bottom: 0;
-    background: #ef4444;
+    background: #4ade80;
     opacity: 0.8;
     border-radius: 0 1px 1px 0;
   }
@@ -295,4 +296,11 @@
 
 .game-options-modal__row {
   gap: 6px;
+}
+
+.drive-selector__game-size {
+  font-size: 10px;
+  font-weight: normal;
+  color: #4ade80;
+  opacity: 0.9;
 }
