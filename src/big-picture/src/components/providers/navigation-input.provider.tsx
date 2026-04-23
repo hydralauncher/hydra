@@ -1,11 +1,10 @@
-import { useGamepad } from "../../hooks";
-import { useNavigationActions } from "../../hooks";
+import { useGamepad, useNavigationActions } from "../../hooks";
 import { useNavigationStore } from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
-import { useCallback, useEffect, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useRef } from "react";
 
 interface NavigationInputProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 type HoldManagedButton = "a" | "b" | "x" | "y" | "start" | "select";
@@ -75,7 +74,7 @@ function shouldIgnoreKeyboardNavigation(event: KeyboardEvent) {
 
 export function NavigationInputProvider({
   children,
-}: NavigationInputProviderProps) {
+}: Readonly<NavigationInputProviderProps>) {
   const {
     moveFocus,
     triggerPrimary,
@@ -132,7 +131,7 @@ export function NavigationInputProvider({
       const session = holdSessions[button];
 
       if (session.timerId !== null) {
-        window.clearTimeout(session.timerId);
+        globalThis.window.clearTimeout(session.timerId);
       }
 
       session.isPressed = false;
@@ -185,10 +184,10 @@ export function NavigationInputProvider({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      globalThis.removeEventListener("keydown", handleKeyDown);
     };
   }, [moveFocus, triggerPrimary, triggerScreenPress]);
 
@@ -355,7 +354,7 @@ export function NavigationInputProvider({
       if (isPressed && !session.isPressed) {
         session.isPressed = true;
         session.holdTriggered = false;
-        session.timerId = window.setTimeout(() => {
+        session.timerId = globalThis.window.setTimeout(() => {
           const wasHandled = dispatchHold(button);
 
           if (wasHandled) {
@@ -370,7 +369,7 @@ export function NavigationInputProvider({
 
       if (!isPressed && session.isPressed) {
         if (session.timerId !== null) {
-          window.clearTimeout(session.timerId);
+          globalThis.window.clearTimeout(session.timerId);
         }
 
         if (!session.holdTriggered) {

@@ -4,7 +4,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
@@ -115,6 +115,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/game-launcher" element={<GameLauncher />} />
 
           <Route path="/big-picture" element={<BigPictureApp />}>
+            <Route index element={<Navigate to="library" replace />} />
             <Route path="catalogue" element={<BigPictureCatalogue />} />
             <Route path="downloads" element={<BigPictureDownloads />} />
             <Route path="settings" element={<BigPictureSettings />} />
