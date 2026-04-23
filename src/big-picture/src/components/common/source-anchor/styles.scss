@@ -1,0 +1,30 @@
+.source-anchor {
+  background-color: var(--surface);
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  border-radius: var(--spacing-unit);
+  transition: background-color 0.15s ease-in-out;
+
+  .source-anchor__title {
+    color: var(--primary-hover);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 400;
+  }
+}
+
+.source-anchor--link {
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--secondary);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: var(--spacing-unit);
+  }
+}

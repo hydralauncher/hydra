@@ -1,5 +1,8 @@
-import { ReactNode, useRef, useEffect } from "react";
+import "./styles.scss";
+
+import { type ReactNode, useRef, useEffect } from "react";
 import cn from "classnames";
+
 export interface ScrollAreaProps {
   children: ReactNode;
   className?: string;
