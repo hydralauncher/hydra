@@ -27,7 +27,7 @@ function send(
 }
 
 async function waitIfPaused(id: string) {
-  while (true) {
+  while (activeTransfers.has(id)) {
     const s = activeTransfers.get(id);
     if (!s || s.cancelled) throw new Error("cancelled");
     if (!s.paused) return;

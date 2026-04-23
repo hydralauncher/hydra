@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { LibraryGame } from "@types";
@@ -40,9 +40,7 @@ export function TransferGameModal({
   const [progress, setProgress] = useState<number | null>(null);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [gameSize, setGameSize] = useState<number>(
-    game.installedSizeInBytes ?? 0
-  );
+  const gameSize = game.installedSizeInBytes ?? 0;
   const transferring = progress !== null && !done;
 
   useEffect(() => {
