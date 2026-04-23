@@ -5,21 +5,18 @@ import {
   CheckIcon,
   CopyIcon,
   UsersIcon,
-  UserIcon,
 } from "@phosphor-icons/react";
-import { Link } from "@renderer/components";
 import { useState } from "react";
-import { FocusItem } from "../focus-item";
-import { HorizontalFocusGroup } from "..";
+import { Link } from "react-router-dom";
 
 export interface UserProfileProps {
-  image?: string | null;
+  image: string;
   name: string;
   friendCode: string;
 }
 
 interface UserProfileContentProps {
-  image?: string | null;
+  image: string;
   name: string;
   friendCode: string;
 }
@@ -35,35 +32,26 @@ function UserProfileActions({
 
   return (
     <div className="user-profile__actions">
-      <HorizontalFocusGroup>
-        <FocusItem>
-          <Link to="/friends" className="user-profile__actions__friends">
-            <UsersIcon
-              size={20}
-              className="user-profile__actions__friends__icon"
-            />
+      <Link to="/friends" className="user-profile__actions__friends">
+        <UsersIcon size={20} className="user-profile__actions__friends__icon" />
 
-            <p className="user-profile__actions__friends__count">
-              <span className="user-profile__actions__friends__count__number">
-                {friendsCount}
-              </span>{" "}
-              <span className="user-profile__actions__friends__count__text">
-                friends online
-              </span>
-            </p>
-          </Link>
-        </FocusItem>
+        <p className="user-profile__actions__friends__count">
+          <span className="user-profile__actions__friends__count__number">
+            {friendsCount}
+          </span>{" "}
+          <span className="user-profile__actions__friends__count__text">
+            friends online
+          </span>
+        </p>
+      </Link>
 
-        <FocusItem>
-          <button
-            className="user-profile__actions__notification"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            <BellIcon size={20} weight={isHovering ? "fill" : "regular"} />
-          </button>
-        </FocusItem>
-      </HorizontalFocusGroup>
+      <button
+        className="user-profile__actions__notification"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <BellIcon size={20} weight={isHovering ? "fill" : "regular"} />
+      </button>
     </div>
   );
 }
@@ -87,43 +75,34 @@ function UserProfileContent({
 
   return (
     <div className="user-profile-content">
-      {image ? (
-        <img
-          src={image}
-          alt={name}
-          className="user-profile-content__image"
-          width={48}
-          height={48}
-        />
-      ) : (
-        <UserIcon
-          className="user-profile-content__image"
-          width={48}
-          height={48}
-        />
-      )}
+      <img
+        src={image}
+        alt={name}
+        className="user-profile-content__image"
+        width={48}
+        height={48}
+        draggable={false}
+      />
 
       <div className="user-profile-content__info">
         <p className="user-profile-content__info__name">{name}</p>
-        <FocusItem>
-          <button
-            className="user-profile-content__info__friend-code"
-            onClick={handleCopy}
-          >
-            {friendCode}
-            {isCopied ? (
-              <CheckIcon
-                size={14}
-                className="user-profile-content__info__friend-code__icon"
-              />
-            ) : (
-              <CopyIcon
-                size={14}
-                className="user-profile-content__info__friend-code__icon"
-              />
-            )}
-          </button>
-        </FocusItem>
+        <button
+          className="user-profile-content__info__friend-code"
+          onClick={handleCopy}
+        >
+          {friendCode}
+          {isCopied ? (
+            <CheckIcon
+              size={14}
+              className="user-profile-content__info__friend-code__icon"
+            />
+          ) : (
+            <CopyIcon
+              size={14}
+              className="user-profile-content__info__friend-code__icon"
+            />
+          )}
+        </button>
       </div>
     </div>
   );
