@@ -86,9 +86,9 @@ export function GameOptionsModal({
   const [drives, setDrives] = useState<any[]>([]);
   // =========================================
   // Add with other state variables
-const [transferSpeed, setTransferSpeed] = useState(0);
-const [transferETA, setTransferETA] = useState(0);
-const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [transferSpeed, setTransferSpeed] = useState(0);
+  const [transferETA, setTransferETA] = useState(0);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -297,7 +297,12 @@ const [showCancelConfirm, setShowCancelConfirm] = useState(false);
       shop: string,
       oid: string,
       progress: number,
-      details?: { speed: number; eta: number; transferred: number; total: number }
+      details?: {
+        speed: number;
+        eta: number;
+        transferred: number;
+        total: number;
+      }
     ) => {
       if (shop === game.shop && oid === game.objectId) {
         setTransferProgress(progress);
@@ -369,20 +374,20 @@ const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     setShowCancelConfirm(false);
   };
 
-const handleStartTransfer = async (destPath: string) => {
-  const result = await window.electron.transferGameFiles(
-    game.shop,
-    game.objectId,
-    destPath
-  );
-  if (!result.ok) {
-    showErrorToast(result.error || "Transfer failed");
-    throw new Error(result.error); // This prevents parent from closing
-  } else {
-    showSuccessToast("Transfer completed successfully!");
-    await updateGame();
-  }
-};
+  const handleStartTransfer = async (destPath: string) => {
+    const result = await window.electron.transferGameFiles(
+      game.shop,
+      game.objectId,
+      destPath
+    );
+    if (!result.ok) {
+      showErrorToast(result.error || "Transfer failed");
+      throw new Error(result.error); // This prevents parent from closing
+    } else {
+      showSuccessToast("Transfer completed successfully!");
+      await updateGame();
+    }
+  };
   // =================================
 
   const handleChangeExecutableLocation = async () => {

@@ -4,7 +4,7 @@ import { Button, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
-import { HardDrive, Pause, Play, X, FolderOpen} from "lucide-react";
+import { HardDrive, Pause, Play, X, FolderOpen } from "lucide-react";
 import "./general-section.scss";
 
 interface DriveInfo {
@@ -123,7 +123,7 @@ export function GeneralSettingsSection({
   const handleStartTransfer = async () => {
     let fullDest: string;
     const isDriveSelected = selectedDrive !== null;
-    
+
     if (isDriveSelected) {
       fullDest = `${selectedDrive}\\Hydra Games`;
     } else if (customPath.trim()) {
@@ -263,13 +263,24 @@ export function GeneralSettingsSection({
         <div className="drive-selector">
           <div className="drive-selector__header">
             <h3>Move Game Location</h3>
-            <Button type="button" theme="outline" size="small" onClick={handleCancelSelector}>
+            <Button
+              type="button"
+              theme="outline"
+              size="small"
+              onClick={handleCancelSelector}
+            >
               ✕
             </Button>
           </div>
-          
+
           <p className="drive-selector__subtitle">
-            Choose where to move <strong>{game.title} <span className="drive-selector__game-size">({fmt(gameSize)})</span></strong>
+            Choose where to move{" "}
+            <strong>
+              {game.title}{" "}
+              <span className="drive-selector__game-size">
+                ({fmt(gameSize)})
+              </span>
+            </strong>
           </p>
 
           {drives.length > 0 && (
@@ -278,8 +289,13 @@ export function GeneralSettingsSection({
               {drives.map((drive) => {
                 const hasSpace = drive.free >= gameSize;
                 const isSelected = selectedDrive === drive.root && !customPath;
-                const usedPct = Math.round(((drive.total - drive.free) / drive.total) * 100);
-                const gamePct = gameSize > 0 ? Math.min((gameSize / drive.total) * 100, 100 - usedPct) : 0;
+                const usedPct = Math.round(
+                  ((drive.total - drive.free) / drive.total) * 100
+                );
+                const gamePct =
+                  gameSize > 0
+                    ? Math.min((gameSize / drive.total) * 100, 100 - usedPct)
+                    : 0;
 
                 return (
                   <button
@@ -297,17 +313,36 @@ export function GeneralSettingsSection({
                     <HardDrive size={18} className="drive-card__icon" />
                     <div className="drive-card__body">
                       <div className="drive-card__top">
-                        <span className="drive-card__label">{drive.label || drive.root}</span>
-                        <span className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}>
+                        <span className="drive-card__label">
+                          {drive.label || drive.root}
+                        </span>
+                        <span
+                          className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}
+                        >
                           {fmt(drive.free)} free / {fmt(drive.total)}
                         </span>
                       </div>
                       <div className="drive-card__bar">
-                        <div className="drive-card__bar-used" style={{ width: `${usedPct}%` }} />
-                        {gamePct > 0 && <div className="drive-card__bar-game" style={{ width: `${gamePct}%`, left: `${usedPct}%` }} />}
+                        <div
+                          className="drive-card__bar-used"
+                          style={{ width: `${usedPct}%` }}
+                        />
+                        {gamePct > 0 && (
+                          <div
+                            className="drive-card__bar-game"
+                            style={{
+                              width: `${gamePct}%`,
+                              left: `${usedPct}%`,
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
-                    {!hasSpace && <span className="drive-card__tag">Insufficient Space</span>}
+                    {!hasSpace && (
+                      <span className="drive-card__tag">
+                        Insufficient Space
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -336,10 +371,12 @@ export function GeneralSettingsSection({
             </div>
           </div>
 
-          
-
           <div className="drive-selector__actions">
-            <Button type="button" theme="outline" onClick={handleCancelSelector}>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={handleCancelSelector}
+            >
               Cancel
             </Button>
             <Button
@@ -355,66 +392,74 @@ export function GeneralSettingsSection({
       )}
 
       {/* Transfer Progress */}
-    {isTransferring && (
-      <div className="transfer-progress">
-        <div className="transfer-progress__header">
-          <div className="transfer-progress__title">
-            <span>{isPaused ? "Transfer Paused" : "Moving Files..."}</span>
+      {isTransferring && (
+        <div className="transfer-progress">
+          <div className="transfer-progress__header">
+            <div className="transfer-progress__title">
+              <span>{isPaused ? "Transfer Paused" : "Moving Files..."}</span>
+            </div>
+            <span className="transfer-progress__pct">{progressPercent}%</span>
           </div>
-          <span className="transfer-progress__pct">{progressPercent}%</span>
-        </div>
 
-        <div className="transfer-progress__track">
-          <div
-            className={`transfer-progress__fill ${isPaused ? "transfer-progress__fill--paused" : ""}`}
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+          <div className="transfer-progress__track">
+            <div
+              className={`transfer-progress__fill ${isPaused ? "transfer-progress__fill--paused" : ""}`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
 
-        <div className="transfer-progress__stats">
-          <span className="transfer-progress__size">
-            {fmt(transferredBytes)} / {fmt(gameSize)}
-          </span>
-          <span className="transfer-progress__speed">
-            {!isPaused && transferSpeed && transferSpeed > 0 ? (
-              <>
-                {transferSpeed.toFixed(1)} MB/s
-                {transferETA > 0 && ` • ETA: ${transferETA}s`}
-              </>
-            ) : isPaused ? "Paused" : "Calculating..."}
-          </span>
-        </div>
+          <div className="transfer-progress__stats">
+            <span className="transfer-progress__size">
+              {fmt(transferredBytes)} / {fmt(gameSize)}
+            </span>
+            <span className="transfer-progress__speed">
+              {!isPaused && transferSpeed && transferSpeed > 0 ? (
+                <>
+                  {transferSpeed.toFixed(1)} MB/s
+                  {transferETA > 0 && ` • ETA: ${transferETA}s`}
+                </>
+              ) : isPaused ? (
+                "Paused"
+              ) : (
+                "Calculating..."
+              )}
+            </span>
+          </div>
 
-        <div className="transfer-progress__actions">
-          <Button type="button" theme="outline" onClick={isPaused ? onResumeTransfer : onPauseTransfer}>
-            {isPaused ? <Play size={12} /> : <Pause size={12} />}
-            {isPaused ? "Resume" : "Pause"}
-          </Button>
-          <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
-            <X size={12} />
-            Cancel
-          </Button>
-        </div>
-      </div>
-    )}
-
-    {/* Cancel Confirmation Modal */}
-    {showCancelConfirm && (
-      <div className="cancel-confirm-overlay">
-        <div className="cancel-confirm-modal">
-          <h4>Cancel Transfer?</h4>
-          <p>Files moved so far will be deleted. This cannot be undone.</p>
-          <div className="cancel-confirm-actions">
-            <Button theme="outline" onClick={onHideCancelConfirm}>
-              Continue Transfer
+          <div className="transfer-progress__actions">
+            <Button
+              type="button"
+              theme="outline"
+              onClick={isPaused ? onResumeTransfer : onPauseTransfer}
+            >
+              {isPaused ? <Play size={12} /> : <Pause size={12} />}
+              {isPaused ? "Resume" : "Pause"}
             </Button>
-            <Button theme="danger" onClick={onConfirmCancelTransfer}>
-              Yes, Cancel
+            <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
+              <X size={12} />
+              Cancel
             </Button>
           </div>
         </div>
-      </div>
-)}
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="cancel-confirm-overlay">
+          <div className="cancel-confirm-modal">
+            <h4>Cancel Transfer?</h4>
+            <p>Files moved so far will be deleted. This cannot be undone.</p>
+            <div className="cancel-confirm-actions">
+              <Button theme="outline" onClick={onHideCancelConfirm}>
+                Continue Transfer
+              </Button>
+              <Button theme="danger" onClick={onConfirmCancelTransfer}>
+                Yes, Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shortcuts */}
       {game.executablePath && (
@@ -431,18 +476,29 @@ export function GeneralSettingsSection({
             </Button>
             {game.shop !== "custom" &&
               (steamShortcutExists ? (
-                <Button onClick={onDeleteSteamShortcut} theme="danger" disabled={creatingSteamShortcut}>
+                <Button
+                  onClick={onDeleteSteamShortcut}
+                  theme="danger"
+                  disabled={creatingSteamShortcut}
+                >
                   <SteamLogo />
                   {t("delete_steam_shortcut")}
                 </Button>
               ) : (
-                <Button onClick={onCreateSteamShortcut} theme="outline" disabled={creatingSteamShortcut}>
+                <Button
+                  onClick={onCreateSteamShortcut}
+                  theme="outline"
+                  disabled={creatingSteamShortcut}
+                >
                   <SteamLogo />
                   {t("create_steam_shortcut")}
                 </Button>
               ))}
             {shouldShowCreateStartMenuShortcut && (
-              <Button onClick={() => onCreateShortcut("start_menu")} theme="outline">
+              <Button
+                onClick={() => onCreateShortcut("start_menu")}
+                theme="outline"
+              >
                 {t("create_start_menu_shortcut")}
               </Button>
             )}
@@ -460,7 +516,9 @@ export function GeneralSettingsSection({
                 i18nKey="launch_options_description_linux"
                 ns="game_details"
                 defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
-                components={{ code: <code className="game-options-modal__inline-code" /> }}
+                components={{
+                  code: <code className="game-options-modal__inline-code" />,
+                }}
               />
             ) : (
               t("launch_options_description")
