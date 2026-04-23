@@ -68,7 +68,8 @@ export function Modal({
     };
 
     globalThis.window.addEventListener("mousedown", onMouseDown);
-    return () => globalThis.window.removeEventListener("mousedown", onMouseDown);
+    return () =>
+      globalThis.window.removeEventListener("mousedown", onMouseDown);
   }, [clickOutsideToClose, visible, handleCloseClick]);
 
   if (!IS_BROWSER) return null;
