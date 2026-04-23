@@ -860,7 +860,6 @@ export function GameOptionsModal({
                 isPaused={isTransferPaused}
                 onPauseTransfer={handlePauseTransfer}
                 onResumeTransfer={handleResumeTransfer}
-                onCancelTransfer={handleCancelTransfer}
                 drives={drives}
                 onStartTransfer={handleStartTransfer}
                 onCancelDriveSelection={() => {}}
