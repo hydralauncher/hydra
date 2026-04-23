@@ -72,7 +72,7 @@ function SidebarLibrary() {
   const { library } = useLibrary();
 
   const sortedLibrary = useMemo(() => {
-    return library.sort(
+    return [...library].sort(
       (a, b) =>
         (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
     );
@@ -104,25 +104,30 @@ function SidebarLibrary() {
         </HorizontalFocusGroup>
       </div>
 
-      <ScrollArea>
-        <ul className="library-list">
-          {filteredItems.map((game) => (
-            <li key={game.id} className="library-list__item">
-              <RouteAnchor
-                key={game.id}
-                label={game.title}
-                href={`/game/${game.objectId}/${toSlug(game.title)}`}
-                icon={game.iconUrl}
-                isFavorite={game.favorite}
-              />
-            </li>
-          ))}
-        </ul>
-      </ScrollArea>
+      <div className="library-container__list-focus-region">
+        <VerticalFocusGroup regionId="sidebar-library-list">
+          <ScrollArea>
+            <ul className="library-list">
+              {filteredItems.map((game) => (
+                <li key={game.id} className="library-list__item">
+                  <RouteAnchor
+                    key={game.id}
+                    label={game.title}
+                    href={`/game/${game.objectId}/${toSlug(game.title)}`}
+                    icon={game.iconUrl}
+                    isFavorite={game.favorite}
+                  />
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        </VerticalFocusGroup>
+      </div>
     </div>
   );
 }
 
+// TODO: Add sidebar profile
 function SidebarProfile() {
   const { userDetails } = useUserDetails();
 
@@ -164,7 +169,7 @@ function Sidebar() {
         <SidebarRouter />
         <Divider />
         <SidebarLibrary />
-        <SidebarProfile />
+        {/* <SidebarProfile /> */}
       </SidebarContainer>
     </VerticalFocusGroup>
   );
