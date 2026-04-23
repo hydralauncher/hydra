@@ -15,12 +15,16 @@ import {
   Input,
   RouteAnchor,
   ScrollArea,
-  UserProfile,
+  // UserProfile,
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import { toSlug } from "../../helpers";
-import { useLibrary, useSearch, useUserDetails } from "../../hooks";
+import {
+  useLibrary,
+  useSearch,
+  // useUserDetails
+} from "../../hooks";
 import "./styles.scss";
 
 function SidebarRouter() {
@@ -128,19 +132,18 @@ function SidebarLibrary() {
 }
 
 // TODO: Add sidebar profile
-function SidebarProfile() {
-  const { userDetails } = useUserDetails();
-
-  return (
-    <div className="sidebar-profile">
-      <UserProfile
-        name={userDetails?.displayName ?? ""}
-        image={userDetails?.profileImageUrl}
-        friendCode={userDetails?.id ?? ""}
-      />
-    </div>
-  );
-}
+// function SidebarProfile() {
+//   const { userDetails } = useUserDetails();
+//   return (
+//     <div className="sidebar-profile">
+//       <UserProfile
+//         name={userDetails?.displayName ?? ""}
+//         image={userDetails?.profileImageUrl}
+//         friendCode={userDetails?.id ?? ""}
+//       />
+//     </div>
+//   );
+// }
 
 function SidebarContainer({
   children,
