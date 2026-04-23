@@ -12,7 +12,7 @@ import {
 } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { useNavigationIsFocused } from "../../stores";
-import "./style.scss";
+import "./styles.scss";
 
 const capitalize = (word: string) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
