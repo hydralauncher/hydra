@@ -1,12 +1,13 @@
 import { Fragment, useEffect } from "react";
 import { Outlet, useSearchParams } from "react-router-dom";
-import { Sidebar } from "./layout";
+import { Header, Sidebar } from "./layout";
 import { IS_DESKTOP } from "./constants";
 import {
   NavigationInputProvider,
   NavigationStateBridge,
   NavigationDiagnostics,
   HorizontalFocusGroup,
+  VerticalFocusGroup,
 } from "./components";
 
 import "./styles/globals.scss";
@@ -28,13 +29,27 @@ export default function App() {
       {showNavigationDiagnostics && <NavigationDiagnostics />}
 
       <NavigationInputProvider>
-        <HorizontalFocusGroup regionId="main-layout">
+        <HorizontalFocusGroup regionId="main-layout" asChild>
           <div id="big-picture" style={{ width: "100%", display: "flex" }}>
             <Sidebar />
 
-            <article style={{ width: "100%", height: "100%" }}>
-              <Outlet />
-            </article>
+            <VerticalFocusGroup asChild>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 0,
+                }}
+              >
+                <Header />
+
+                <article style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+                  <Outlet />
+                </article>
+              </div>
+            </VerticalFocusGroup>
           </div>
         </HorizontalFocusGroup>
       </NavigationInputProvider>
