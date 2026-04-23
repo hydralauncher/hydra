@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import {
   FocusRegionContext,
   useFocusLayerId,
@@ -9,12 +10,14 @@ import { type ReactNode, useEffect, useId, useRef } from "react";
 interface VerticalFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
+  asChild?: boolean;
   children: ReactNode;
 }
 
 export function VerticalFocusGroup({
   regionId,
   navigationOverrides,
+  asChild = false,
   children,
 }: Readonly<VerticalFocusGroupProps>) {
   const generatedId = useId();
@@ -44,19 +47,23 @@ export function VerticalFocusGroup({
     });
   }, [navigation, navigationOverrides, resolvedRegionId]);
 
+  const Component = asChild ? Slot : "div";
+
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
-      <div
+      <Component
         ref={ref}
         data-focus-region-id={resolvedRegionId}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
+        {...(!asChild && {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          },
+        })}
       >
         {children}
-      </div>
+      </Component>
     </FocusRegionContext.Provider>
   );
 }
