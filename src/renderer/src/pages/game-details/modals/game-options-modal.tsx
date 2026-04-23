@@ -365,7 +365,6 @@ const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     setTransferProgress(0);
     setTransferSpeed(0);
     setTransferETA(0);
-    setIsTransferring(false);
     setIsTransferPaused(false);
     setShowCancelConfirm(false);
   };

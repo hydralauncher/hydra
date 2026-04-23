@@ -1,29 +1,37 @@
-@use "../../../scss/globals.scss";
-
-.hero-panel-actions {
-  &__action {
-    border: solid 1px globals.$muted-color;
-
-    &--disabled {
-      opacity: 0.5;
-    }
-  }
-
-  &__container {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__separator {
-    width: 1px;
-    background-color: globals.$muted-color;
-    opacity: 0.2;
-  }
+.hero-panel-actions__container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.hero-panel-actions__transferring {
-  color: #4ade80;
+.hero-panel-actions__separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 4px;
 }
+
+.hero-panel-actions__action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-panel-actions__button-group {
+  display: flex;
+  gap: 4px;
+}
+
+.hero-panel-actions__icon-btn {
+  padding: 0 10px;
+  min-width: 36px;
+}
+
 .hero-panel-actions__transfer-percent {
   color: #4ade80;
+}
+
+.hero-panel-actions__action--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

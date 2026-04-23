@@ -42,4 +42,6 @@ export interface GameDetailsContext {
     React.SetStateAction<GameOptionsCategoryId>
   >;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
+  onPauseTransfer: () => void;
+  onResumeTransfer: () => void;
 }
