@@ -43,6 +43,7 @@ export function HeroPanelActions() {
     selectGameExecutable,
     isTransferring,
     transferProgress,
+    isTransferPaused,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -217,21 +218,21 @@ export function HeroPanelActions() {
   const gameActionButton = () => {
     // Check if game is transferring
     if (isTransferring) {
-    const percent = Math.round(transferProgress * 100);
-    return (
-      <Button
-        theme="outline"
-        className="hero-panel-actions__action"
-        onClick={() => {
-          setGameOptionsInitialCategory("general");
-          setShowGameOptionsModal(true);
-        }}
-      >
-        Transferring <span className="hero-panel-actions__transfer-percent">{percent}%</span>
-      </Button>
-    );
-  }
-  
+      const percent = Math.round(transferProgress * 100);
+      return (
+        <Button
+          theme="outline"
+          className="hero-panel-actions__action"
+          onClick={() => {
+            setGameOptionsInitialCategory("general");
+            setShowGameOptionsModal(true);
+          }}
+        >
+          {isTransferPaused ? "Transfer Paused" : `Transferring ${percent}%`}
+        </Button>
+      );
+    }
+
     if (isGameRunning) {
       return (
         <Button

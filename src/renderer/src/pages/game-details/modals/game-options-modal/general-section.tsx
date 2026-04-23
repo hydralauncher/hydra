@@ -4,7 +4,7 @@ import { Button, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
-import { HardDrive, Pause, Play, X, FolderOpen, AlertCircle } from "lucide-react";
+import { HardDrive, Pause, Play, X, FolderOpen} from "lucide-react";
 import "./general-section.scss";
 
 interface DriveInfo {
@@ -46,6 +46,12 @@ interface GeneralSettingsSectionProps {
   drives: DriveInfo[];
   onStartTransfer: (destPath: string) => Promise<void>;
   onCancelDriveSelection: () => void;
+  transferSpeed?: number;
+  transferETA?: number;
+  showCancelConfirm?: boolean;
+  onShowCancelConfirm?: () => void;
+  onHideCancelConfirm?: () => void;
+  onConfirmCancelTransfer?: () => void;
 }
 
 function fmt(b: number) {
@@ -86,6 +92,12 @@ export function GeneralSettingsSection({
   drives,
   onStartTransfer,
   onCancelDriveSelection,
+  transferSpeed = 0,
+  transferETA = 0,
+  showCancelConfirm = false,
+  onShowCancelConfirm = () => {},
+  onHideCancelConfirm = () => {},
+  onConfirmCancelTransfer = () => {},
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -324,12 +336,7 @@ export function GeneralSettingsSection({
             </div>
           </div>
 
-          {error && (
-            <div className="drive-selector__error">
-              <AlertCircle size={12} />
-              <span>{error}</span>
-            </div>
-          )}
+          
 
           <div className="drive-selector__actions">
             <Button type="button" theme="outline" onClick={handleCancelSelector}>
@@ -348,43 +355,66 @@ export function GeneralSettingsSection({
       )}
 
       {/* Transfer Progress */}
-      {isTransferring && (
-        <div className="transfer-progress">
-          <div className="transfer-progress__header">
-            <div className="transfer-progress__title">
-              <span>{isPaused ? "Transfer Paused" : "Moving Files..."}</span>
-            </div>
-            <span className="transfer-progress__pct">{progressPercent}%</span>
+    {isTransferring && (
+      <div className="transfer-progress">
+        <div className="transfer-progress__header">
+          <div className="transfer-progress__title">
+            <span>{isPaused ? "Transfer Paused" : "Moving Files..."}</span>
           </div>
+          <span className="transfer-progress__pct">{progressPercent}%</span>
+        </div>
 
-          <div className="transfer-progress__track">
-            <div
-              className={`transfer-progress__fill ${isPaused ? "transfer-progress__fill--paused" : ""}`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+        <div className="transfer-progress__track">
+          <div
+            className={`transfer-progress__fill ${isPaused ? "transfer-progress__fill--paused" : ""}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
 
-          <div className="transfer-progress__stats">
-            <span className="transfer-progress__size">
-              {fmt(transferredBytes)} / {fmt(gameSize)}
-            </span>
-            <span className="transfer-progress__speed">
-              {isPaused ? "Paused" : `${progressPercent}% complete`}
-            </span>
-          </div>
+        <div className="transfer-progress__stats">
+          <span className="transfer-progress__size">
+            {fmt(transferredBytes)} / {fmt(gameSize)}
+          </span>
+          <span className="transfer-progress__speed">
+            {!isPaused && transferSpeed && transferSpeed > 0 ? (
+              <>
+                {transferSpeed.toFixed(1)} MB/s
+                {transferETA > 0 && ` • ETA: ${transferETA}s`}
+              </>
+            ) : isPaused ? "Paused" : "Calculating..."}
+          </span>
+        </div>
 
-          <div className="transfer-progress__actions">
-            <Button type="button" theme="outline" onClick={isPaused ? onResumeTransfer : onPauseTransfer}>
-              {isPaused ? <Play size={12} /> : <Pause size={12} />}
-              {isPaused ? "Resume" : "Pause"}
+        <div className="transfer-progress__actions">
+          <Button type="button" theme="outline" onClick={isPaused ? onResumeTransfer : onPauseTransfer}>
+            {isPaused ? <Play size={12} /> : <Pause size={12} />}
+            {isPaused ? "Resume" : "Pause"}
+          </Button>
+          <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
+            <X size={12} />
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )}
+
+    {/* Cancel Confirmation Modal */}
+    {showCancelConfirm && (
+      <div className="cancel-confirm-overlay">
+        <div className="cancel-confirm-modal">
+          <h4>Cancel Transfer?</h4>
+          <p>Files moved so far will be deleted. This cannot be undone.</p>
+          <div className="cancel-confirm-actions">
+            <Button theme="outline" onClick={onHideCancelConfirm}>
+              Continue Transfer
             </Button>
-            <Button type="button" theme="danger" onClick={onCancelTransfer}>
-              <X size={12} />
-              Cancel
+            <Button theme="danger" onClick={onConfirmCancelTransfer}>
+              Yes, Cancel
             </Button>
           </div>
         </div>
-      )}
+      </div>
+)}
 
       {/* Shortcuts */}
       {game.executablePath && (

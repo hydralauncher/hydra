@@ -85,6 +85,10 @@ export function GameOptionsModal({
   const [isTransferPaused, setIsTransferPaused] = useState(false);
   const [drives, setDrives] = useState<any[]>([]);
   // =========================================
+  // Add with other state variables
+const [transferSpeed, setTransferSpeed] = useState(0);
+const [transferETA, setTransferETA] = useState(0);
+const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -286,6 +290,28 @@ export function GameOptionsModal({
     }
   }, [game.shop, game.objectId]);
 
+  // Listen for transfer progress
+  useEffect(() => {
+    const onProgress = (
+      _: unknown,
+      shop: string,
+      oid: string,
+      progress: number,
+      details?: { speed: number; eta: number; transferred: number; total: number }
+    ) => {
+      if (shop === game.shop && oid === game.objectId) {
+        setTransferProgress(progress);
+        if (details) {
+          setTransferSpeed(details.speed);
+          setTransferETA(details.eta);
+        }
+      }
+    };
+
+    window.electron.on("on-game-transfer-progress", onProgress);
+    return () => window.electron.off("on-game-transfer-progress", onProgress);
+  }, [game]);
+
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
       const gameKey = getGameKey(game.shop, game.objectId);
@@ -337,8 +363,11 @@ export function GameOptionsModal({
   const handleCancelTransfer = () => {
     window.electron.cancelGameTransfer?.(game.shop, game.objectId);
     setTransferProgress(0);
+    setTransferSpeed(0);
+    setTransferETA(0);
     setIsTransferring(false);
     setIsTransferPaused(false);
+    setShowCancelConfirm(false);
   };
 
 const handleStartTransfer = async (destPath: string) => {
@@ -831,6 +860,12 @@ const handleStartTransfer = async (destPath: string) => {
                 drives={drives}
                 onStartTransfer={handleStartTransfer}
                 onCancelDriveSelection={() => {}}
+                transferSpeed={transferSpeed}
+                transferETA={transferETA}
+                showCancelConfirm={showCancelConfirm}
+                onShowCancelConfirm={() => setShowCancelConfirm(true)}
+                onHideCancelConfirm={() => setShowCancelConfirm(false)}
+                onConfirmCancelTransfer={handleCancelTransfer}
               />
             )}
 
