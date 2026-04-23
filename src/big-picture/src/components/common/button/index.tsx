@@ -34,7 +34,9 @@ export interface ButtonProps
 }
 
 function isExternalHref(href: string) {
-  return /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(href) || href.startsWith("mailto:");
+  return (
+    /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(href) || href.startsWith("mailto:")
+  );
 }
 
 export function Button({
@@ -52,9 +54,15 @@ export function Button({
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
-  const buttonClassName = cn("button", variants[variant], sizes[size], className, {
-    "button--disabled": disabled || loading,
-  });
+  const buttonClassName = cn(
+    "button",
+    variants[variant],
+    sizes[size],
+    className,
+    {
+      "button--disabled": disabled || loading,
+    }
+  );
 
   if (!href) {
     return (
