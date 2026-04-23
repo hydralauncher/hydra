@@ -6,6 +6,7 @@ import {
   NavigationInputProvider,
   NavigationStateBridge,
   NavigationDiagnostics,
+  HorizontalFocusGroup,
 } from "./components";
 
 import "./styles/globals.scss";
@@ -23,13 +24,15 @@ export default function App() {
       <NavigationDiagnostics />
 
       <NavigationInputProvider>
-        <div id="big-picture" style={{ width: "100%", display: "flex" }}>
-          <Sidebar />
+        <HorizontalFocusGroup regionId="main-layout">
+          <div id="big-picture" style={{ width: "100%", display: "flex" }}>
+            <Sidebar />
 
-          <article style={{ width: "100%", height: "100%" }}>
-            <Outlet />
-          </article>
-        </div>
+            <article style={{ width: "100%", height: "100%" }}>
+              <Outlet />
+            </article>
+          </div>
+        </HorizontalFocusGroup>
       </NavigationInputProvider>
     </Fragment>
   );
