@@ -1,5 +1,6 @@
 import { HeartStraightIcon } from "@phosphor-icons/react";
 import { Link } from "@renderer/components";
+import { FocusItem } from "../focus-item";
 
 export interface RouteAnchorProps
   extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -26,32 +27,34 @@ export const RouteAnchor = ({
     <div
       className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
     >
-      <Link to={href} {...props}>
-        <div
-          className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}
-        >
+      <FocusItem>
+        <Link to={href} {...props}>
           <div
-            className={`route-anchor__icon ${isGameIcon ? "route-anchor__icon--large-size" : "route-anchor__icon--small-size"}`}
+            className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}
           >
-            {isGameIcon ? (
-              <img src={icon} alt={label} width={32} height={32} />
-            ) : (
-              icon
+            <div
+              className={`route-anchor__icon ${isGameIcon ? "route-anchor__icon--large-size" : "route-anchor__icon--small-size"}`}
+            >
+              {isGameIcon ? (
+                <img src={icon} alt={label} width={32} height={32} />
+              ) : (
+                icon
+              )}
+            </div>
+            <div className="route-anchor__label">{label}</div>
+
+            {isFavorite && (
+              <div className="route-anchor__favorite">
+                <HeartStraightIcon
+                  size={18}
+                  weight="fill"
+                  className="route-anchor__favorite__icon"
+                />
+              </div>
             )}
           </div>
-          <div className="route-anchor__label">{label}</div>
-
-          {isFavorite && (
-            <div className="route-anchor__favorite">
-              <HeartStraightIcon
-                size={18}
-                weight="fill"
-                className="route-anchor__favorite__icon"
-              />
-            </div>
-          )}
-        </div>
-      </Link>
+        </Link>
+      </FocusItem>
     </div>
   );
 };

@@ -8,6 +8,8 @@ import {
 import { Link } from "@renderer/components";
 import { useState } from "react";
 import "./style.scss";
+import { FocusItem } from "../focus-item";
+import { HorizontalFocusGroup } from "..";
 
 export interface UserProfileProps {
   image?: string | null;
@@ -31,30 +33,36 @@ function UserProfileActions({
   const [isHovering, setIsHovering] = useState(false);
 
   return (
-    <div className="bp-user-profile__actions">
-      <Link to="/friends" className="bp-user-profile__actions__friends">
-        <UsersIcon
-          size={20}
-          className="bp-user-profile__actions__friends__icon"
-        />
+    <div className="user-profile__actions">
+      <HorizontalFocusGroup>
+        <FocusItem>
+          <Link to="/friends" className="user-profile__actions__friends">
+            <UsersIcon
+              size={20}
+              className="user-profile__actions__friends__icon"
+            />
 
-        <p className="bp-user-profile__actions__friends__count">
-          <span className="bp-user-profile__actions__friends__count__number">
-            {friendsCount}
-          </span>{" "}
-          <span className="bp-user-profile__actions__friends__count__text">
-            friends online
-          </span>
-        </p>
-      </Link>
+            <p className="user-profile__actions__friends__count">
+              <span className="user-profile__actions__friends__count__number">
+                {friendsCount}
+              </span>{" "}
+              <span className="user-profile__actions__friends__count__text">
+                friends online
+              </span>
+            </p>
+          </Link>
+        </FocusItem>
 
-      <button
-        className="bp-user-profile__actions__notification"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        <BellIcon size={20} weight={isHovering ? "fill" : "regular"} />
-      </button>
+        <FocusItem>
+          <button
+            className="user-profile__actions__notification"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            <BellIcon size={20} weight={isHovering ? "fill" : "regular"} />
+          </button>
+        </FocusItem>
+      </HorizontalFocusGroup>
     </div>
   );
 }
@@ -77,42 +85,44 @@ function UserProfileContent({
   };
 
   return (
-    <div className="bp-user-profile-content">
+    <div className="user-profile-content">
       {image ? (
         <img
           src={image}
           alt={name}
-          className="bp-user-profile-content__image"
+          className="user-profile-content__image"
           width={48}
           height={48}
         />
       ) : (
         <UserIcon
-          className="bp-user-profile-content__image"
+          className="user-profile-content__image"
           width={48}
           height={48}
         />
       )}
 
-      <div className="bp-user-profile-content__info">
-        <p className="bp-user-profile-content__info__name">{name}</p>
-        <button
-          className="bp-user-profile-content__info__friend-code"
-          onClick={handleCopy}
-        >
-          {friendCode}
-          {isCopied ? (
-            <CheckIcon
-              size={14}
-              className="bp-user-profile-content__info__friend-code__icon"
-            />
-          ) : (
-            <CopyIcon
-              size={14}
-              className="bp-user-profile-content__info__friend-code__icon"
-            />
-          )}
-        </button>
+      <div className="user-profile-content__info">
+        <p className="user-profile-content__info__name">{name}</p>
+        <FocusItem>
+          <button
+            className="user-profile-content__info__friend-code"
+            onClick={handleCopy}
+          >
+            {friendCode}
+            {isCopied ? (
+              <CheckIcon
+                size={14}
+                className="user-profile-content__info__friend-code__icon"
+              />
+            ) : (
+              <CopyIcon
+                size={14}
+                className="user-profile-content__info__friend-code__icon"
+              />
+            )}
+          </button>
+        </FocusItem>
       </div>
     </div>
   );
@@ -124,7 +134,7 @@ export function UserProfile({
   friendCode,
 }: Readonly<UserProfileProps>) {
   return (
-    <div className="bp-user-profile-container">
+    <div className="user-profile-container">
       <UserProfileContent image={image} name={name} friendCode={friendCode} />
       <UserProfileActions friendsCount={8} />
     </div>
