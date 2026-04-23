@@ -19,6 +19,7 @@
     "my_library": "My library",
     "collections": "Collections",
     "games": "Games",
+    "big_picture": "Big Picture",
     "downloading_metadata": "{{title}} (Downloading metadata…)",
     "paused": "{{title}} (Paused)",
     "downloading": "{{title}} ({{percentage}} - Downloading…)",

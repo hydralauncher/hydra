@@ -17,6 +17,7 @@
     "downloads": "Загрузки",
     "settings": "Настройки",
     "my_library": "Библиотека",
+    "big_picture": "Big Picture",
     "downloading_metadata": "{{title}} (Загрузка метаданных…)",
     "paused": "{{title}} (Приостановлено)",
     "downloading": "{{title}} ({{percentage}} - Загрузка…)",

@@ -4,7 +4,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import "@fontsource/noto-sans/400.css";
 import "@fontsource/noto-sans/500.css";
@@ -35,6 +35,11 @@ import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import GameLauncher from "./pages/game-launcher/game-launcher";
+import BigPictureApp from "../../big-picture/src/app";
+import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
+import BigPictureDownloads from "../../big-picture/src/pages/downloads/downloads";
+import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
+import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 
 console.log = logger.log;
 
@@ -108,6 +113,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={<AchievementNotification />}
           />
           <Route path="/game-launcher" element={<GameLauncher />} />
+
+          <Route path="/big-picture" element={<BigPictureApp />}>
+            <Route index element={<Navigate to="library" replace />} />
+            <Route path="catalogue" element={<BigPictureCatalogue />} />
+            <Route path="downloads" element={<BigPictureDownloads />} />
+            <Route path="settings" element={<BigPictureSettings />} />
+            <Route path="library" element={<BigPictureLibrary />} />
+          </Route>
         </Routes>
       </HashRouter>
     </Provider>

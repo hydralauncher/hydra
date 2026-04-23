@@ -30,6 +30,7 @@
     "build:win": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --win",
     "build:mac": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:native && npm run build:python-rpc && electron-vite build && electron-builder --linux",
+    "dev:big-picture": "vite dev src/big-picture",
     "prepare": "husky",
     "protoc": "npx protoc --ts_out src/main/generated --proto_path proto proto/*.proto"
   },
@@ -37,8 +38,10 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@fontsource/noto-sans": "^5.2.10",
+    "@fontsource/space-grotesk": "^5.2.10",
     "@hookform/resolvers": "^5.2.2",
     "@monaco-editor/react": "^4.6.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@primer/octicons-react": "^19.9.0",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@reduxjs/toolkit": "^2.2.3",
@@ -100,7 +103,8 @@
     "workwonders-sdk": "0.4.2",
     "ws": "^8.18.1",
     "yaml": "^2.8.3",
-    "yup": "^1.5.0"
+    "yup": "^1.5.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.705.0",
