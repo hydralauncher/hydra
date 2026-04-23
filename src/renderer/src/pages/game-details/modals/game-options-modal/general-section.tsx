@@ -266,7 +266,6 @@ export function GeneralSettingsSection({
             <Button
               type="button"
               theme="outline"
-              size="small"
               onClick={handleCancelSelector}
             >
               ✕
