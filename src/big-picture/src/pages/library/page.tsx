@@ -1,27 +1,10 @@
-import { useEffect, useMemo } from "react";
-import { IS_DESKTOP } from "../../constants";
+import { useMemo } from "react";
+import { FocusItem, GameCard, GridFocusGroup } from "../../components";
 import { useLibrary } from "../../hooks";
 import "./page.scss";
-import { FocusItem, GameCard, GridFocusGroup } from "../../components";
 
 export default function LibraryPage() {
-  const { library, updateLibrary } = useLibrary();
-
-  useEffect(() => {
-    updateLibrary();
-
-    if (!IS_DESKTOP) return;
-
-    const unsubscribe = globalThis.window.electron.onLibraryBatchComplete(
-      () => {
-        updateLibrary();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [updateLibrary]);
+  const { library } = useLibrary();
 
   const sortedLibrary = useMemo(() => {
     return [...library].sort((a, b) => {

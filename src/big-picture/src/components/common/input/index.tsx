@@ -3,6 +3,7 @@ import "./styles.scss";
 import cn from "classnames";
 import { Typography } from "../typography";
 import type { InputHTMLAttributes, ReactNode } from "react";
+import { FocusItem } from "..";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -31,18 +32,20 @@ export function Input({
         </Typography>
       )}
       <div className="input-wrapper">
-        <input
-          id="input"
-          type={type}
-          placeholder={placeholder}
-          disabled={disabled}
-          data-icon-left={iconLeft ? "true" : undefined}
-          data-icon-right={iconRight ? "true" : undefined}
-          className={`input ${error ? "input--error" : ""} ${
-            disabled ? "input--disabled" : ""
-          }`}
-          {...props}
-        />
+        <FocusItem asChild>
+          <input
+            id="input"
+            type={type}
+            placeholder={placeholder}
+            disabled={disabled}
+            data-icon-left={iconLeft ? "true" : undefined}
+            data-icon-right={iconRight ? "true" : undefined}
+            className={`input ${error ? "input--error" : ""} ${
+              disabled ? "input--disabled" : ""
+            }`}
+            {...props}
+          />
+        </FocusItem>
         {iconLeft && (
           <div className="input-icon input-icon--left">{iconLeft}</div>
         )}

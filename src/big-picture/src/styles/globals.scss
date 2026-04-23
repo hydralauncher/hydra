@@ -35,6 +35,24 @@
   box-sizing: border-box;
 }
 
+::-webkit-scrollbar {
+  width: 9px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
 html,
 body,
 #root {
@@ -53,6 +71,14 @@ body {
   min-height: 0;
   display: flex;
   font-family: var(--font-space-grotesk), sans-serif;
+}
+
+.big-picture__layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .big-picture__content {
@@ -78,9 +104,26 @@ button {
   background-color: transparent;
   border: none;
   font-family: inherit;
+  color: inherit;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+input {
+  font-family: inherit;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  margin: 0;
+  padding: 0;
 }
