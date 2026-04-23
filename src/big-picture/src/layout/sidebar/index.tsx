@@ -81,7 +81,6 @@ function SidebarLibrary() {
   return (
     <div className="library-container">
       <div className="library-container__header">
-        {/* <HorizontalFocusGroup regionId="sidebar-library-search"> */}
         <Input
           placeholder="Search"
           iconLeft={<MagnifyingGlassIcon size={24} />}
@@ -97,7 +96,6 @@ function SidebarLibrary() {
               className="library-container__header__icon"
             />
           </Button> */}
-        {/* </HorizontalFocusGroup> */}
       </div>
 
       <div className="library-container__list-focus-region">
