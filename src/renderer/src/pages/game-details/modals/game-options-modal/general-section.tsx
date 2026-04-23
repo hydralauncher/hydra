@@ -88,7 +88,7 @@ export function GeneralSettingsSection({
   isPaused,
   onPauseTransfer,
   onResumeTransfer,
-  onCancelTransfer,
+  _onCancelTransfer,
   drives,
   onStartTransfer,
   onCancelDriveSelection,
@@ -104,7 +104,7 @@ export function GeneralSettingsSection({
   const [showDriveSelector, setShowDriveSelector] = useState(false);
   const [selectedDrive, setSelectedDrive] = useState<string | null>(null);
   const [customPath, setCustomPath] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
   const gameSize = game.installedSizeInBytes ?? 0;
@@ -115,7 +115,7 @@ export function GeneralSettingsSection({
     if (isTransferring) setShowDriveSelector(false);
   }, [isTransferring]);
 
-  const getDriveRoot = (p: string) => {
+  const _getDriveRoot = (p: string) => {
     const m = p.match(/^[A-Za-z]:\\/);
     return m ? m[0] : null;
   };

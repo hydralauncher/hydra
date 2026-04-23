@@ -350,7 +350,7 @@ export function GameOptionsModal({
     }
   };
 
-  const handleTransferComplete = async (newExePath: string) => {
+  const handleTransferComplete = async (_newExePath: string) => {
     await updateGame();
   };
 
