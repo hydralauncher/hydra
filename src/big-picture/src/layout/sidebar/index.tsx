@@ -1,7 +1,6 @@
 import {
   BookOpenIcon,
   DownloadSimpleIcon,
-  FunnelSimpleIcon,
   GearIcon,
   HouseIcon,
   MagnifyingGlassIcon,
@@ -9,22 +8,15 @@ import {
 } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import {
-  Button,
   Divider,
-  HorizontalFocusGroup,
   Input,
   RouteAnchor,
   ScrollArea,
-  // UserProfile,
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import { toSlug } from "../../helpers";
-import {
-  useLibrary,
-  useSearch,
-  // useUserDetails
-} from "../../hooks";
+import { useLibrary, useSearch } from "../../hooks";
 import "./styles.scss";
 
 function SidebarRouter() {
@@ -89,23 +81,23 @@ function SidebarLibrary() {
   return (
     <div className="library-container">
       <div className="library-container__header">
-        <HorizontalFocusGroup regionId="sidebar-library-search">
-          <Input
-            placeholder="Search"
-            iconLeft={<MagnifyingGlassIcon size={24} />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            spellCheck={false}
-            autoComplete="off"
-          />
+        {/* <HorizontalFocusGroup regionId="sidebar-library-search"> */}
+        <Input
+          placeholder="Search"
+          iconLeft={<MagnifyingGlassIcon size={24} />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
+        />
 
-          <Button variant="rounded" size="icon">
+        {/* <Button variant="rounded" size="icon">
             <FunnelSimpleIcon
               size={24}
               className="library-container__header__icon"
             />
-          </Button>
-        </HorizontalFocusGroup>
+          </Button> */}
+        {/* </HorizontalFocusGroup> */}
       </div>
 
       <div className="library-container__list-focus-region">
@@ -130,20 +122,6 @@ function SidebarLibrary() {
     </div>
   );
 }
-
-// TODO: Add sidebar profile
-// function SidebarProfile() {
-//   const { userDetails } = useUserDetails();
-//   return (
-//     <div className="sidebar-profile">
-//       <UserProfile
-//         name={userDetails?.displayName ?? ""}
-//         image={userDetails?.profileImageUrl}
-//         friendCode={userDetails?.id ?? ""}
-//       />
-//     </div>
-//   );
-// }
 
 function SidebarContainer({
   children,
@@ -172,7 +150,6 @@ function Sidebar() {
         <SidebarRouter />
         <Divider />
         <SidebarLibrary />
-        {/* <SidebarProfile /> */}
       </SidebarContainer>
     </VerticalFocusGroup>
   );
