@@ -29,10 +29,10 @@ export default function App() {
 
       <NavigationInputProvider>
         <HorizontalFocusGroup regionId="main-layout">
-          <div id="big-picture" style={{ width: "100%", display: "flex" }}>
+          <div id="big-picture">
             <Sidebar />
 
-            <article style={{ width: "100%", height: "100%" }}>
+            <article className="big-picture__content">
               <Outlet />
             </article>
           </div>
