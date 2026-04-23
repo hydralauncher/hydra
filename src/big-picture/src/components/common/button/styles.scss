@@ -1,11 +1,10 @@
 .button {
   appearance: none;
-  cursor: pointer;
   height: 44px;
   padding: 0px calc(var(--spacing-unit) * 4);
+  border: none;
   border-radius: var(--spacing-unit);
   border-width: 1px;
-  border: none;
   font-family: var(--font-space-grotesk);
   font-weight: 400;
   font-size: 14px;

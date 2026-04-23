@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import {
   FocusRegionContext,
   useFocusLayerId,
@@ -9,12 +10,14 @@ import { type ReactNode, useEffect, useId, useRef } from "react";
 interface HorizontalFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
+  asChild?: boolean;
   children: ReactNode;
 }
 
 export function HorizontalFocusGroup({
   regionId,
   navigationOverrides,
+  asChild = false,
   children,
 }: Readonly<HorizontalFocusGroupProps>) {
   const generatedId = useId();
@@ -44,19 +47,23 @@ export function HorizontalFocusGroup({
     });
   }, [navigation, navigationOverrides, resolvedRegionId]);
 
+  const Component = asChild ? Slot : "div";
+
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
-      <div
+      <Component
         ref={ref}
         data-focus-region-id={resolvedRegionId}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
+        {...(!asChild && {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+          },
+        })}
       >
         {children}
-      </div>
+      </Component>
     </FocusRegionContext.Provider>
   );
 }
