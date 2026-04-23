@@ -1,3 +1,4 @@
+import { Button } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import { useNavigate } from "react-router-dom";
 
@@ -22,19 +23,7 @@ export default function Settings() {
         justifyContent: "center",
       }}
     >
-      <button
-        onClick={handleCloseBigPicture}
-        style={{
-          backgroundColor: "red",
-          color: "white",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        Close big picture
-      </button>
+      <Button onClick={handleCloseBigPicture}>Close big picture</Button>
     </div>
   );
 }
