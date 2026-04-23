@@ -54,6 +54,8 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   setGameOptionsInitialCategory: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
+  onPauseTransfer: () => {},
+  onResumeTransfer: () => {},
 });
 
 const { Provider } = gameDetailsContext;
@@ -421,6 +423,21 @@ export function GameDetailsContextProvider({
       });
   };
 
+  // Handlers for pause/resume
+  const onPauseTransfer = () => {
+    if (game) {
+      window.electron.pauseGameTransfer?.(game.shop, game.objectId);
+      setIsTransferPaused(true);
+    }
+  };
+
+  const onResumeTransfer = () => {
+    if (game) {
+      window.electron.resumeGameTransfer?.(game.shop, game.objectId);
+      setIsTransferPaused(false);
+    }
+  };
+
   return (
     <Provider
       value={{
@@ -448,6 +465,8 @@ export function GameDetailsContextProvider({
         setShowRepacksModal,
         setShowGameOptionsModal,
         setGameOptionsInitialCategory,
+        onPauseTransfer,
+        onResumeTransfer,
       }}
     >
       {children}

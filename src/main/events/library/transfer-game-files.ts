@@ -134,19 +134,19 @@ registerEvent(
       game = await gamesSublevel.get(gameKey);
     } catch {
       activeTransfers.delete(id);
-      return { ok: false, error: "game_not_found" };
+      return { ok: false, error: "Game not found" };
     }
 
     if (!game?.executablePath) {
       activeTransfers.delete(id);
-      return { ok: false, error: "no_executable" };
+      return { ok: false, error: "No executable selected" };
     }
 
     const exePath = game.executablePath;
     const gameRoot = await findGameRootFromExe(exePath).catch(() => null);
     if (!gameRoot) {
       activeTransfers.delete(id);
-      return { ok: false, error: "cannot_determine_root" };
+      return { ok: false, error: "Cannot determine game root folder" };
     }
 
     const folderName = path.basename(gameRoot);
@@ -155,11 +155,11 @@ registerEvent(
 
     if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
       activeTransfers.delete(id);
-      return { ok: false, error: "same_folder" };
+      return { ok: false, error: "Same folder - game is already in this location" };
     }
     if (targetRoot.startsWith(gameRoot + path.sep)) {
       activeTransfers.delete(id);
-      return { ok: false, error: "dest_inside_source" };
+      return { ok: false, error: "Destination is inside source folder" };
     }
 
     const total = await countFiles(gameRoot);
@@ -183,11 +183,11 @@ registerEvent(
         startTime
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "unknown";
+      const msg = err instanceof Error ? err.message : "Unknown error";
       activeTransfers.delete(id);
       if (msg === "cancelled") {
         send("on-game-transfer-cancelled", shop, objectId);
-        return { ok: false, error: "cancelled" };
+        return { ok: false, error: "Transfer cancelled" };
       }
       send("on-game-transfer-error", shop, objectId, msg);
       return { ok: false, error: msg };
@@ -216,7 +216,7 @@ registerEvent(
       }
     } catch {
       activeTransfers.delete(id);
-      return { ok: false, error: "db_update_failed" };
+      return { ok: false, error: "Failed to update database" };
     }
 
     await fs
