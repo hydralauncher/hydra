@@ -12,7 +12,7 @@ export function useLibrary() {
   }, []);
 
   useEffect(() => {
-    void updateLibrary();
+    updateLibrary();
 
     if (!IS_DESKTOP) return;
 
