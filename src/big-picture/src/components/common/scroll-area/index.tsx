@@ -1,6 +1,5 @@
 import { ReactNode, useRef, useEffect } from "react";
-import clsx from "clsx";
-
+import cn from "classnames";
 export interface ScrollAreaProps {
   children: ReactNode;
   className?: string;
@@ -38,7 +37,7 @@ export function ScrollArea({
   return (
     <div
       ref={ref}
-      className={clsx(
+      className={cn(
         "scroll-area",
         className,
         !showScrollbar && "scroll-area--hide-scrollbar"
