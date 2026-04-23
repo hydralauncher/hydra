@@ -65,7 +65,19 @@ async function moveDir(
     const d = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await moveDir(s, d, id, counter, total, lastSent, shop, objectId, bytesMoved, gameSize, startTime);
+      await moveDir(
+        s,
+        d,
+        id,
+        counter,
+        total,
+        lastSent,
+        shop,
+        objectId,
+        bytesMoved,
+        gameSize,
+        startTime
+      );
       try {
         await fs.rmdir(s);
       } catch {
@@ -74,32 +86,30 @@ async function moveDir(
     } else {
       const stats = await fs.stat(s);
       bytesMoved.value += stats.size;
-      
+
       await moveFile(s, d);
       counter.value++;
 
       const now = Date.now();
       if (now - lastSent.ts >= THROTTLE_MS) {
         lastSent.ts = now;
-        
+
         const progress = counter.value / Math.max(total, 1);
         const elapsedSeconds = (now - startTime) / 1000;
-        const speedMBps = elapsedSeconds > 0 ? (bytesMoved.value / elapsedSeconds) / (1024 * 1024) : 0;
+        const speedMBps =
+          elapsedSeconds > 0
+            ? bytesMoved.value / elapsedSeconds / (1024 * 1024)
+            : 0;
         const remainingBytes = gameSize - bytesMoved.value;
-        const etaSeconds = speedMBps > 0 ? remainingBytes / (speedMBps * 1024 * 1024) : 0;
-        
-        send(
-          "on-game-transfer-progress",
-          shop,
-          objectId,
-          progress,
-          {
-            speed: Math.max(0, speedMBps),
-            eta: Math.ceil(etaSeconds),
-            transferred: bytesMoved.value,
-            total: gameSize
-          }
-        );
+        const etaSeconds =
+          speedMBps > 0 ? remainingBytes / (speedMBps * 1024 * 1024) : 0;
+
+        send("on-game-transfer-progress", shop, objectId, progress, {
+          speed: Math.max(0, speedMBps),
+          eta: Math.ceil(etaSeconds),
+          transferred: bytesMoved.value,
+          total: gameSize,
+        });
       }
     }
   }
@@ -121,7 +131,7 @@ registerEvent(
   "transferGameFiles",
   async (_event, shop: GameShop, objectId: string, destParent: string) => {
     const startTime = Date.now();
-    
+
     send("on-game-transfer-progress", shop, objectId, 0);
 
     const id = `${shop}:${objectId}`;
@@ -155,7 +165,10 @@ registerEvent(
 
     if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
       activeTransfers.delete(id);
-      return { ok: false, error: "Same folder - game is already in this location" };
+      return {
+        ok: false,
+        error: "Same folder - game is already in this location",
+      };
     }
     if (targetRoot.startsWith(gameRoot + path.sep)) {
       activeTransfers.delete(id);
