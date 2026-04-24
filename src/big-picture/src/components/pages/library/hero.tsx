@@ -7,16 +7,24 @@ import {
   TrophyIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Button, AnimatedHeroImage, Divider } from "../../common";
+import {
+  Button,
+  AnimatedHeroImage,
+  Divider,
+  HorizontalFocusGroup,
+} from "../../common";
 import {
   formatRelativeDate,
   getDominantColorFromImage,
 } from "../../../helpers";
+import { type FocusOverrides } from "../../../services";
+import { LIBRARY_HERO_ACTIONS_REGION_ID } from "./navigation";
 
 import "./hero.scss";
 
 interface LibraryHeroProps {
   lastPlayedGames: LibraryGame[];
+  firstGridItemId?: string | null;
 }
 
 interface HeroBackgroundLayer {
@@ -46,7 +54,10 @@ function formatPlaytime(playTimeInMilliseconds?: number | null) {
   return `${totalHours}h`;
 }
 
-export function LibraryHero({ lastPlayedGames }: Readonly<LibraryHeroProps>) {
+export function LibraryHero({
+  lastPlayedGames,
+  firstGridItemId = null,
+}: Readonly<LibraryHeroProps>) {
   const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
   const [dominantColor, setDominantColor] = useState<string | null>(null);
   const [backgroundLayers, setBackgroundLayers] = useState<
@@ -175,6 +186,16 @@ export function LibraryHero({ lastPlayedGames }: Readonly<LibraryHeroProps>) {
     });
   };
 
+  const heroActionsNavigationOverrides: FocusOverrides | undefined =
+    firstGridItemId
+      ? {
+          down: {
+            type: "item",
+            itemId: firstGridItemId,
+          },
+        }
+      : undefined;
+
   return (
     <section className="hero">
       {backgroundLayers.map((layer) => (
@@ -227,30 +248,35 @@ export function LibraryHero({ lastPlayedGames }: Readonly<LibraryHeroProps>) {
           </div>
 
           <div className="hero__actions">
-            <Button
-              variant="primary"
-              icon={<PlayIcon size={24} />}
-              color={dominantColor ?? undefined}
-              onClick={() => {}}
+            <HorizontalFocusGroup
+              regionId={LIBRARY_HERO_ACTIONS_REGION_ID}
+              navigationOverrides={heroActionsNavigationOverrides}
             >
-              Launch Game
-            </Button>
+              <Button
+                variant="primary"
+                icon={<PlayIcon size={24} />}
+                color={dominantColor ?? undefined}
+                onClick={() => {}}
+              >
+                Launch Game
+              </Button>
 
-            <div className="hero__action__divider">
-              <Divider orientation="vertical" />
-            </div>
+              <div className="hero__action__divider">
+                <Divider orientation="vertical" />
+              </div>
 
-            <Button
-              variant="secondary"
-              icon={<GearIcon size={24} />}
-              onClick={() => {}}
-            >
-              Options
-            </Button>
+              <Button
+                variant="secondary"
+                icon={<GearIcon size={24} />}
+                onClick={() => {}}
+              >
+                Options
+              </Button>
 
-            <Button variant="secondary" size="icon" onClick={() => {}}>
-              <HeartIcon size={24} />
-            </Button>
+              <Button variant="secondary" size="icon" onClick={() => {}}>
+                <HeartIcon size={24} />
+              </Button>
+            </HorizontalFocusGroup>
           </div>
         </div>
 
