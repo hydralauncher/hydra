@@ -22,7 +22,6 @@ function send(
 const activeTransfers = new Map<
   string,
   {
-    paused: boolean;
     cancelled: boolean;
     currentStream?: { destroy(): void };
   }
@@ -34,9 +33,9 @@ class SteamCopyEngine {
   private totalSize: number;
   private startTime: number;
   private lastReportTime = 0;
-  private readonly REPORT_INTERVAL = 100; // 100ms = ~10 updates/sec (smooth)
-  private readonly BLOCK_SIZE = 1024 * 1024; // 1MB blocks for progress
-  private readonly CONCURRENCY = 4; // parallel file copies (4 = safe for any drive)
+  private readonly REPORT_INTERVAL = 100;
+  private readonly BLOCK_SIZE = 1024 * 1024;
+  private readonly CONCURRENCY = 4;
 
   constructor(
     private id: string,
@@ -74,11 +73,8 @@ class SteamCopyEngine {
   }
 
   async moveGame(src: string, dest: string): Promise<void> {
-    // ── Same method for both drives: copy then delete ───────────────────
     await fs.mkdir(dest, { recursive: true });
     await this.copyDirectory(src, dest);
-
-    // Delete source after successful copy
     await fs.rm(src, { recursive: true, force: true }).catch(() => {});
   }
 
@@ -88,7 +84,6 @@ class SteamCopyEngine {
     const files = entries.filter((e) => e.isFile());
     const dirs = entries.filter((e) => e.isDirectory());
 
-    // Copy files in parallel batches
     for (let i = 0; i < files.length; i += this.CONCURRENCY) {
       const batch = files.slice(i, i + this.CONCURRENCY);
       await Promise.all(
@@ -101,7 +96,6 @@ class SteamCopyEngine {
       );
     }
 
-    // Recursively copy subdirectories
     for (const dir of dirs) {
       const srcPath = path.join(srcDir, dir.name);
       const destPath = path.join(destDir, dir.name);
@@ -135,7 +129,6 @@ class SteamCopyEngine {
         };
       }
 
-      // Block‑level progress
       readStream.on("data", (chunk: string | Buffer) => {
         this.addBytes(Buffer.byteLength(chunk));
       });
@@ -154,7 +147,7 @@ registerEvent(
   "transferGameFiles",
   async (_event, shop: GameShop, objectId: string, destParent: string) => {
     const id = `${shop}:${objectId}`;
-    activeTransfers.set(id, { paused: false, cancelled: false });
+    activeTransfers.set(id, { cancelled: false });
 
     send("on-game-transfer-progress", shop, objectId, 0, {
       speed: 0,
@@ -199,7 +192,6 @@ registerEvent(
 
     const gameSize = await getDirectorySize(gameRoot);
 
-    // Space check
     try {
       if (typeof (fs as any).statfs === "function") {
         const stats = await (fs as any).statfs(destParent);
@@ -236,7 +228,6 @@ registerEvent(
       return { ok: false, error: msg };
     }
 
-    // Update database
     const relExe = path.relative(gameRoot, exePath);
     const newExePath = path.join(targetRoot, relExe);
     const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
@@ -273,9 +264,7 @@ registerEvent(
     const s = activeTransfers.get(`${shop}:${objectId}`);
     if (s) {
       s.cancelled = true;
-      s.paused = false;
       s.currentStream?.destroy();
     }
   }
 );
-
