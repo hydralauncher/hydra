@@ -1,10 +1,12 @@
 .button {
+  --button-custom-color: var(--primary);
+  --button-custom-hover-color: var(--primary-hover);
+  --button-custom-text-color: var(--background);
   appearance: none;
   cursor: pointer;
   height: 44px;
   padding: 0px calc(var(--spacing-unit) * 4);
   border-radius: var(--spacing-unit);
-  border-width: 1px;
   border: none;
   font-family: var(--font-space-grotesk);
   font-weight: 400;
@@ -17,16 +19,17 @@
   justify-content: center;
   gap: calc(var(--spacing-unit) * 8);
   position: relative;
-  transition: background-color 0.2s ease-in-out;
+  transition:
+    background-color 0.25s ease-in-out,
+    color 0.25s ease-in-out;
   flex-shrink: 0;
-  cursor: pointer;
 
   &--primary {
-    color: var(--background);
-    background-color: var(--primary);
+    color: var(--button-custom-text-color);
+    background-color: var(--button-custom-color);
 
     &:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--button-custom-hover-color);
     }
 
     &:focus-visible {
