@@ -4,7 +4,7 @@ import { Button, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
-import { HardDrive, Pause, Play, X, FolderOpen } from "lucide-react";
+import { HardDrive, X, FolderOpen } from "lucide-react";
 import "./general-section.scss";
 
 interface DriveInfo {
@@ -39,9 +39,6 @@ interface GeneralSettingsSectionProps {
   onTransferGame: (destPath: string) => void | Promise<void>;
   isTransferring: boolean;
   transferProgress: number;
-  isPaused: boolean;
-  onPauseTransfer: () => void;
-  onResumeTransfer: () => void;
   drives: DriveInfo[];
   onStartTransfer: (destPath: string) => Promise<void>;
   onCancelDriveSelection: () => void;
@@ -84,9 +81,6 @@ export function GeneralSettingsSection({
   onClearLaunchOptions,
   isTransferring,
   transferProgress,
-  isPaused,
-  onPauseTransfer,
-  onResumeTransfer,
   drives,
   onStartTransfer,
   onCancelDriveSelection,
@@ -392,14 +386,14 @@ export function GeneralSettingsSection({
         <div className="transfer-progress">
           <div className="transfer-progress__header">
             <div className="transfer-progress__title">
-              <span>{isPaused ? "Transfer Paused" : "Moving Files..."}</span>
+              <span>Moving Files...</span>
             </div>
             <span className="transfer-progress__pct">{progressPercent}%</span>
           </div>
 
           <div className="transfer-progress__track">
             <div
-              className={`transfer-progress__fill ${isPaused ? "transfer-progress__fill--paused" : ""}`}
+              className="transfer-progress__fill"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -409,13 +403,11 @@ export function GeneralSettingsSection({
               {fmt(transferredBytes)} / {fmt(gameSize)}
             </span>
             <span className="transfer-progress__speed">
-              {!isPaused && transferSpeed && transferSpeed > 0 ? (
+              {transferSpeed > 0 ? (
                 <>
                   {transferSpeed.toFixed(1)} MB/s
                   {transferETA > 0 && ` • ETA: ${transferETA}s`}
                 </>
-              ) : isPaused ? (
-                "Paused"
               ) : (
                 "Calculating..."
               )}
@@ -423,17 +415,9 @@ export function GeneralSettingsSection({
           </div>
 
           <div className="transfer-progress__actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={isPaused ? onResumeTransfer : onPauseTransfer}
-            >
-              {isPaused ? <Play size={12} /> : <Pause size={12} />}
-              {isPaused ? "Resume" : "Pause"}
-            </Button>
             <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
               <X size={12} />
-              Cancel
+              Cancel Transfer
             </Button>
           </div>
         </div>

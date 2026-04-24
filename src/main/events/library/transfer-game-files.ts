@@ -257,17 +257,7 @@ registerEvent(
   }
 );
 
-// ── PAUSE / RESUME / CANCEL ─────────────────────────────────────────────────
-registerEvent("pauseGameTransfer", async (_e, shop: GameShop, objectId: string) => {
-  const s = activeTransfers.get(`${shop}:${objectId}`);
-  if (s) s.paused = true;
-});
-
-registerEvent("resumeGameTransfer", async (_e, shop: GameShop, objectId: string) => {
-  const s = activeTransfers.get(`${shop}:${objectId}`);
-  if (s) s.paused = false;
-});
-
+// ── CANCEL ────────────────────────────────────────────────────────────────────
 registerEvent("cancelGameTransfer", async (_e, shop: GameShop, objectId: string) => {
   const s = activeTransfers.get(`${shop}:${objectId}`);
   if (s) {
