@@ -218,29 +218,22 @@ export function HeroPanelActions() {
 
   const gameActionButton = () => {
     if (isTransferring) {
-      const percent = Math.round(transferProgress * 100);
-      return (
-        <div className="hero-panel-actions__button-group">
-          <Button
-            theme="outline"
-            className="hero-panel-actions__action"
-            onClick={() => {
-              setGameOptionsInitialCategory("general");
-              setShowGameOptionsModal(true);
-            }}
-          >
-            {`Transferring ${percent}%`}
-          </Button>
-          <Button
-            theme="outline"
-            className="hero-panel-actions__action hero-panel-actions__icon-btn"
-            onClick={cancelTransfer}
-          >
-            <X size={14} />
-          </Button>
-        </div>
-      );
-    }
+    const percent = Math.round(transferProgress * 100);
+    return (
+      <div className="hero-panel-actions__button-group">
+        <Button
+          theme="outline"
+          className="hero-panel-actions__action"
+          onClick={() => {
+            setGameOptionsInitialCategory("general");
+            setShowGameOptionsModal(true);
+          }}
+        >
+          {`Transferring ${percent}%`}
+        </Button>
+      </div>
+    );
+  }
 
     if (isGameRunning) {
       return (
