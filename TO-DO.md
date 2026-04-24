@@ -1,1 +1,1 @@
-transfer {game} completed
+fix playingnow/close state
