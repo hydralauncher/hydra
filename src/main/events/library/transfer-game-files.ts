@@ -36,7 +36,7 @@ class SteamCopyEngine {
   private lastReportTime = 0;
   private readonly REPORT_INTERVAL = 100;
   private readonly BLOCK_SIZE = 1024 * 1024;
-  private readonly CONCURRENCY = 4;
+  private readonly CONCURRENCY = 8;  //4 is the default ,8 is for max performance
 
   constructor(
     private id: string,
