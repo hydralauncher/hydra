@@ -16,16 +16,19 @@ import {
   Tooltip,
   Typography,
   UserProfile,
+  VerticalGameCard,
 } from "../../components";
 import {
   Books,
   CheckCircle,
   CloudArrowDown,
   DownloadSimple,
+  DotsThreeVertical,
   GameController,
   House,
   MagnifyingGlass,
   Play,
+  PlusCircle,
   Plus,
   Star,
   XCircle,
@@ -38,6 +41,10 @@ const ALT_CARD_IMAGE =
   "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=700&q=80";
 const PROFILE_IMAGE =
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80";
+const POSTER_IMAGE =
+  "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80";
+const HOVER_POSTER_IMAGE =
+  "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80";
 
 interface ShowcaseSectionProps {
   title: string;
@@ -311,9 +318,37 @@ export default function Catalogue() {
 
         <ShowcaseSection
           title="Cards"
-          description="Cards horizontais, cards de lista e perfil."
+          description="Cards horizontais, cards de lista, perfil e o novo card vertical."
         >
           <div className="catalogue-page__cards">
+            <VerticalGameCard
+              coverImageUrl={POSTER_IMAGE}
+              gameTitle="Kingdom Come Deliverance II"
+              subtitle="12 hours played"
+              progressLabel="48/50"
+              progressValue={0.89}
+              action={
+                <Button size="icon" variant="secondary" aria-label="Add game">
+                  <PlusCircle size={24} />
+                </Button>
+              }
+            />
+
+            <VerticalGameCard
+              coverImageUrl={HOVER_POSTER_IMAGE}
+              gameTitle="Elden Ring"
+              subtitle="103 hours played"
+              progressLabel="48/50"
+              progressValue={0.89}
+              progressColor="#325750"
+              forceHovered
+              action={
+                <Button size="icon" variant="secondary" aria-label="Open menu">
+                  <DotsThreeVertical size={24} />
+                </Button>
+              }
+            />
+
             <HorizontalCard
               image={CARD_IMAGE}
               title="HorizontalCard"
