@@ -5,9 +5,17 @@ const TIMEZONE_OFFSET_REGEX = /(?:Z|[+-]\d{2}:\d{2})$/i;
 const ISO_WITHOUT_TIMEZONE_REGEX = /^\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+)?$/;
 
 export function formatPlayedTime(
-  valueInMilliseconds: number | null | undefined
+  valueInMilliseconds: number | null | undefined,
+  options?: {
+    zeroFallback?: string;
+  }
 ) {
   const safeValue = Math.max(0, valueInMilliseconds ?? 0);
+
+  if (safeValue === 0 && options?.zeroFallback) {
+    return options.zeroFallback;
+  }
+
   const totalSeconds = Math.floor(safeValue / 1000);
 
   if (totalSeconds < 60) {
