@@ -3,18 +3,26 @@ import {
   useFocusLayerId,
   useFocusRegionId,
 } from "../../context";
-import { type FocusOverrides, NavigationService } from "../../../services";
+import {
+  type FocusAutoScrollMode,
+  type FocusOverrides,
+  NavigationService,
+} from "../../../services";
 import { type ReactNode, useEffect, useId, useRef } from "react";
 
 interface HorizontalFocusGroupProps {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
+  autoScrollMode?: FocusAutoScrollMode;
+  getScrollAnchor?: () => HTMLElement | null;
   children: ReactNode;
 }
 
 export function HorizontalFocusGroup({
   regionId,
   navigationOverrides,
+  autoScrollMode = "region",
+  getScrollAnchor,
   children,
 }: Readonly<HorizontalFocusGroupProps>) {
   const generatedId = useId();
@@ -22,6 +30,7 @@ export function HorizontalFocusGroup({
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
   const initialNavigationOverridesRef = useRef(navigationOverrides);
+  const initialGetScrollAnchorRef = useRef(getScrollAnchor);
   const ref = useRef<HTMLDivElement | null>(null);
   const resolvedRegionId =
     regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
@@ -33,16 +42,33 @@ export function HorizontalFocusGroup({
       orientation: "horizontal",
       layerId,
       navigationOverrides: initialNavigationOverridesRef.current,
+      autoScrollMode,
       isPersistent: Boolean(regionId),
       getElement: () => ref.current,
+      getScrollAnchor: initialGetScrollAnchorRef.current,
     });
-  }, [layerId, navigation, parentRegionId, regionId, resolvedRegionId]);
+  }, [
+    autoScrollMode,
+    layerId,
+    navigation,
+    parentRegionId,
+    regionId,
+    resolvedRegionId,
+  ]);
 
   useEffect(() => {
     navigation.updateRegion(resolvedRegionId, {
+      autoScrollMode,
+      getScrollAnchor,
       navigationOverrides,
     });
-  }, [navigation, navigationOverrides, resolvedRegionId]);
+  }, [
+    autoScrollMode,
+    getScrollAnchor,
+    navigation,
+    navigationOverrides,
+    resolvedRegionId,
+  ]);
 
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
