@@ -164,7 +164,7 @@
   &__cards {
     align-items: stretch;
 
-    > * {
+    > :not(.vertical-game-card) {
       width: min(420px, 100%);
     }
 
