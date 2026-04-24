@@ -1,6 +1,6 @@
 import "./styles.scss";
 
-import { TrophyIcon } from "@phosphor-icons/react";
+import { SparkleIcon, TrophyIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -40,15 +40,18 @@ export function VerticalGameCard({
     progressValue != null &&
     !Number.isNaN(progressValue);
   const normalizedProgress = hasProgress ? clampProgress(progressValue) : 0;
+  const isCompleted = hasProgress && normalizedProgress === 1;
 
   const customProperties = {
     "--vertical-game-card-progress-color": progressColor,
     "--vertical-game-card-progress-value": normalizedProgress,
   } as CSSProperties;
+  const ProgressIcon = isCompleted ? SparkleIcon : TrophyIcon;
 
   return (
     <article
       className={cn("vertical-game-card", className, {
+        "vertical-game-card--completed": isCompleted,
         "vertical-game-card--force-hovered": forceHovered,
       })}
       style={customProperties}
@@ -76,16 +79,19 @@ export function VerticalGameCard({
             <p className="vertical-game-card__subtitle">{subtitle}</p>
           </div>
 
-          {hasProgress && (
-            <div className="vertical-game-card__progress">
-              <div className="vertical-game-card__progress-label">
-                <TrophyIcon size={16} />
-                <span>{progressLabel}</span>
-              </div>
-
-              <div className="vertical-game-card__progress-track" />
+          <div
+            className={cn("vertical-game-card__progress", {
+              "vertical-game-card__progress--placeholder": !hasProgress,
+            })}
+            aria-hidden={!hasProgress || undefined}
+          >
+            <div className="vertical-game-card__progress-label">
+              <ProgressIcon size={16} weight="fill" />
+              <span>{progressLabel ?? "0/0"}</span>
             </div>
-          )}
+
+            <div className="vertical-game-card__progress-track" />
+          </div>
         </div>
 
         {action && <div className="vertical-game-card__action">{action}</div>}
