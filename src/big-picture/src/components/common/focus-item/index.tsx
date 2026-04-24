@@ -9,7 +9,6 @@ import {
   resolveFocusItemActions,
   type FocusItemActions,
 } from "../../../types";
-import { scrollFocusedElementIntoView } from "../../../helpers";
 import {
   type FocusOverrides,
   NavigationItemActionsService,
@@ -99,8 +98,6 @@ export function FocusItem({
     } catch {
       element.focus();
     }
-
-    scrollFocusedElementIntoView(element);
   }, [isFocused]);
 
   const Component = asChild ? Slot : "div";
