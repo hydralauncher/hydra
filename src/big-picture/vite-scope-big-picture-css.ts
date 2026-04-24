@@ -27,6 +27,17 @@ const shouldSkipRule = (rule: Rule): boolean => {
   );
 };
 
+const shouldSkipExclusion = (selector: string): boolean => {
+  const trimmed = selector.trim();
+
+  if (!trimmed) return true;
+  if (trimmed === "*") return true;
+  if (ROOT_SELECTOR_ALIASES.has(trimmed)) return true;
+  if (trimmed.includes("::")) return true;
+
+  return false;
+};
+
 const scopeSelector = (selector: string): string => {
   const trimmedSelector = selector.trim();
 
@@ -48,11 +59,7 @@ const scopeSelector = (selector: string): string => {
 };
 
 const excludeFromBigPicture = (selector: string): string => {
-  const trimmedSelector = selector.trim();
-
-  if (!trimmedSelector) return selector;
-
-  if (ROOT_SELECTOR_ALIASES.has(trimmedSelector)) {
+  if (shouldSkipExclusion(selector)) {
     return selector;
   }
 
