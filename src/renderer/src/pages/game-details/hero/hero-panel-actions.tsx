@@ -18,7 +18,6 @@ import {
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
-import { X } from "lucide-react";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -44,7 +43,6 @@ export function HeroPanelActions() {
     selectGameExecutable,
     isTransferring,
     transferProgress,
-    cancelTransfer,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -238,10 +236,10 @@ export function HeroPanelActions() {
     if (isGameRunning) {
       return (
         <Button
+          className="hero-panel-actions__action hero-panel-actions__action--transfer"
           onClick={closeGame}
           theme="outline"
           disabled={deleting}
-          className="hero-panel-actions__action"
         >
           <PlayIcon />
           {t("playing_now")}
