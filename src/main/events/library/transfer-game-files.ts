@@ -185,13 +185,6 @@ registerEvent(
       pendingRejects: [],
     });
 
-    send("on-game-transfer-progress", shop, objectId, 0, {
-      speed: 0,
-      eta: 0,
-      transferred: 0,
-      total: 0,
-    });
-
     const gameKey = levelKeys.game(shop, objectId);
 
     let game;
@@ -226,6 +219,13 @@ registerEvent(
       return { ok: false, error: "Destination is inside source folder" };
     }
 
+    send("on-game-transfer-progress", shop, objectId, 0, {
+      speed: 0,
+      eta: 0,
+      transferred: 0,
+      total: 0,
+    });
+    
     const gameSize = await getDirectorySize(gameRoot);
 
     try {
