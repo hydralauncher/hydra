@@ -5,37 +5,13 @@
 
 .library-focus-grid__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, 268px);
+  grid-template-columns: repeat(auto-fit, 315px);
   row-gap: calc(var(--spacing-unit) * 16);
   justify-content: space-between;
+}
 
-  > * {
-    transition: transform 0.2s ease-in-out;
-  }
-
-  > [data-focused="true"] {
-    transform: translateY(calc(var(--spacing-unit) * -1));
-  }
-
-  > [data-focused="true"] .vertical-game-card {
-    background-color: var(--surface);
-    border-color: var(--secondary-border);
-  }
-
-  > [data-focused="true"] .vertical-game-card__cover::before {
-    opacity: 1;
-    transform: translateY(-20%);
-  }
-
-  > [data-focused="true"] .vertical-game-card__body {
-    padding-inline: calc(var(--spacing-unit) * 2);
-  }
-
-  > [data-focused="true"] .vertical-game-card__action {
-    max-width: calc(var(--spacing-unit) * 11);
-    opacity: 1;
-    pointer-events: auto;
-  }
+.vertical-library-game-card__action-button {
+  pointer-events: none;
 }
 
 @media (max-width: 720px) {
@@ -44,7 +20,7 @@
   }
 
   .library-focus-grid__grid {
-    grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(315px, 1fr));
     justify-content: initial;
   }
 }
