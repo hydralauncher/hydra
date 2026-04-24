@@ -333,11 +333,10 @@ export function GameOptionsModal({
       destPath
     );
     if (!result.ok) {
-      showErrorToast(result.error || "Transfer failed");
+      showErrorToast(result.error || `Transfer failed for ${game.title}`);
       throw new Error(result.error);
     } else {
-      showSuccessToast("Transfer completed successfully!");
-      await updateGame();
+      showSuccessToast(`${game.title} moved successfully!`);
     }
   };
 
