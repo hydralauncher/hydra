@@ -431,7 +431,7 @@ export function GeneralSettingsSection({
           <div className="transfer-progress__actions">
             <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
               <X size={12} />
-              Cancel Transfer
+              Cancel
             </Button>
           </div>
         </div>
