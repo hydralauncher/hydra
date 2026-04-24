@@ -267,4 +267,6 @@ registerEvent(
       s.currentStream?.destroy();
     }
   }
+  
 );
+
