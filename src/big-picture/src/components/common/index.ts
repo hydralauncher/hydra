@@ -1,4 +1,5 @@
 export * from "./accordion";
+export * from "./animated-hero-image";
 export * from "./backdrop";
 export * from "./button";
 export * from "./checkbox";
