@@ -1,7 +1,12 @@
 import { useEffect, useMemo } from "react";
 import { IS_DESKTOP } from "../../constants";
 import { useLibrary } from "../../hooks";
-import { LibraryHero } from "../../components";
+import {
+  LibraryFocusGrid,
+  LibraryHero,
+  VerticalFocusGroup,
+} from "../../components";
+import { getFirstLibraryFocusGridItemId } from "../../components/pages/library/navigation";
 
 import "./page.scss";
 
@@ -28,6 +33,12 @@ export default function LibraryPage() {
 
   const sortedLibrary = useMemo(() => {
     return [...library].sort((a, b) => {
+      const playtimeDiff =
+        (new Date(b.lastTimePlayed as Date).getTime() ?? 0) -
+        (new Date(a.lastTimePlayed as Date).getTime() ?? 0);
+
+      if (playtimeDiff !== 0) return playtimeDiff;
+
       return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
     });
   }, [library]);
@@ -48,6 +59,10 @@ export default function LibraryPage() {
       .slice(0, LAST_PLAYED_GAMES_COUNT);
   }, [filteredLibrary]);
 
+  const firstGridItemId = useMemo(() => {
+    return getFirstLibraryFocusGridItemId(filteredLibrary[0]?.id);
+  }, [filteredLibrary]);
+
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
       <div className="library-page__empty">
@@ -58,7 +73,13 @@ export default function LibraryPage() {
 
   return (
     <section className="library-page">
-      <LibraryHero lastPlayedGames={lastPlayedGames} />
+      <VerticalFocusGroup>
+        <LibraryHero
+          lastPlayedGames={lastPlayedGames}
+          firstGridItemId={firstGridItemId}
+        />
+        <LibraryFocusGrid games={filteredLibrary} />
+      </VerticalFocusGroup>
     </section>
   );
 }
