@@ -281,7 +281,8 @@ export function GameOptionsModal({
     };
 
     (window.electron as any).on("on-game-transfer-progress", onProgress);
-    return () => (window.electron as any).off("on-game-transfer-progress", onProgress);
+    return () =>
+      (window.electron as any).off("on-game-transfer-progress", onProgress);
   }, [game]);
 
   const debounceUpdateLaunchOptions = useRef(
