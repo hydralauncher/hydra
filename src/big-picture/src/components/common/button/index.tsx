@@ -1,9 +1,10 @@
 import "./styles.scss";
 
-import { Spinner } from "@phosphor-icons/react";
+import { SpinnerIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { Link } from "react-router-dom";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import { getContrastTextColor } from "../../../helpers";
 
 const variants = {
   primary: "button--primary",
@@ -31,6 +32,7 @@ export interface ButtonProps
   iconPosition?: "left" | "right";
   target?: "_blank" | "_self" | "_parent" | "_top";
   className?: string;
+  color?: string;
 }
 
 function isExternalHref(href: string) {
@@ -51,6 +53,8 @@ export function Button({
   children,
   target,
   className,
+  color,
+  style,
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
@@ -64,6 +68,17 @@ export function Button({
     }
   );
 
+  const buttonStyle = {
+    ...style,
+    ...(color
+      ? {
+          "--button-custom-color": color,
+          "--button-custom-hover-color": `color-mix(in srgb, ${color} 80%, white)`,
+          "--button-custom-text-color": getContrastTextColor(color),
+        }
+      : {}),
+  } as CSSProperties;
+
   if (!href) {
     return (
       <button
@@ -72,13 +87,14 @@ export function Button({
         aria-busy={loading}
         aria-label={size === "icon" ? ariaLabel : undefined}
         className={buttonClassName}
+        style={buttonStyle}
         {...props}
       >
         {loading && (
           <div
             className={`button__icon-container--${iconPosition} button__icon-container`}
           >
-            <Spinner size={20} className="button__loading-icon" />
+            <SpinnerIcon size={20} className="button__loading-icon" />
           </div>
         )}
 
@@ -119,6 +135,7 @@ export function Button({
         rel={target === "_blank" ? "noreferrer" : undefined}
         aria-label={size === "icon" ? ariaLabel : undefined}
         className={buttonClassName}
+        style={buttonStyle}
         onClick={onClick as never}
       >
         {linkContent}
@@ -131,6 +148,7 @@ export function Button({
       to={href}
       aria-label={size === "icon" ? ariaLabel : undefined}
       className={buttonClassName}
+      style={buttonStyle}
       onClick={onClick as never}
     >
       {linkContent}
