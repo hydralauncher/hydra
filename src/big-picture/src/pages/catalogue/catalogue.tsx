@@ -33,6 +33,7 @@ import {
   Star,
   XCircle,
 } from "@phosphor-icons/react";
+import { formatPlayedTime } from "../../helpers";
 import "./page.scss";
 
 const CARD_IMAGE =
@@ -324,7 +325,7 @@ export default function Catalogue() {
             <VerticalGameCard
               coverImageUrl={POSTER_IMAGE}
               gameTitle="Kingdom Come Deliverance II"
-              subtitle="12 hours played"
+              subtitle={formatPlayedTime(12 * 3_600_000)}
               progressLabel="48/50"
               progressValue={0.89}
               action={
@@ -337,7 +338,7 @@ export default function Catalogue() {
             <VerticalGameCard
               coverImageUrl={HOVER_POSTER_IMAGE}
               gameTitle="Elden Ring"
-              subtitle="103 hours played"
+              subtitle={formatPlayedTime(103 * 3_600_000)}
               progressLabel="48/50"
               progressValue={0.89}
               progressColor="#325750"
