@@ -62,14 +62,22 @@ export class GameMover extends EventEmitter {
     const fs = await import("node:fs/promises");
 
     this.emit("progress", {
-      transferred: 0, total: 0, speed: 0, eta: 0, progress: 0,
+      transferred: 0,
+      total: 0,
+      speed: 0,
+      eta: 0,
+      progress: 0,
     });
 
     await fs.cp(src, dest, { recursive: true });
     await fs.rm(src, { recursive: true, force: true });
 
     this.emit("progress", {
-      transferred: 1, total: 1, speed: 0, eta: 0, progress: 1.0,
+      transferred: 1,
+      total: 1,
+      speed: 0,
+      eta: 0,
+      progress: 1.0,
     });
   }
 

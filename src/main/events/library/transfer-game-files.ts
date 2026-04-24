@@ -9,7 +9,12 @@ import { WindowManager } from "@main/services/window-manager";
 import type { GameShop } from "@types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function send(event: string, shop: GameShop, objectId: string, ...args: unknown[]) {
+function send(
+  event: string,
+  shop: GameShop,
+  objectId: string,
+  ...args: unknown[]
+) {
   WindowManager.mainWindow?.webContents.send(event, shop, objectId, ...args);
 }
 
@@ -49,7 +54,8 @@ class SteamCopyEngine {
     this.lastReportTime = now;
 
     const elapsedSec = (now - this.startTime) / 1000;
-    const speedMBps = elapsedSec > 0 ? this.bytesCopied / elapsedSec / 1_048_576 : 0;
+    const speedMBps =
+      elapsedSec > 0 ? this.bytesCopied / elapsedSec / 1_048_576 : 0;
     const remaining = this.totalSize - this.bytesCopied;
     const etaSeconds = speedMBps > 0 ? remaining / (speedMBps * 1_048_576) : 0;
     const progress = this.bytesCopied / Math.max(this.totalSize, 1);
@@ -71,7 +77,7 @@ class SteamCopyEngine {
     // ── Same method for both drives: copy then delete ───────────────────
     await fs.mkdir(dest, { recursive: true });
     await this.copyDirectory(src, dest);
-    
+
     // Delete source after successful copy
     await fs.rm(src, { recursive: true, force: true }).catch(() => {});
   }
@@ -79,14 +85,14 @@ class SteamCopyEngine {
   private async copyDirectory(srcDir: string, destDir: string): Promise<void> {
     const entries = await fs.readdir(srcDir, { withFileTypes: true });
 
-    const files = entries.filter(e => e.isFile());
-    const dirs = entries.filter(e => e.isDirectory());
+    const files = entries.filter((e) => e.isFile());
+    const dirs = entries.filter((e) => e.isDirectory());
 
     // Copy files in parallel batches
     for (let i = 0; i < files.length; i += this.CONCURRENCY) {
       const batch = files.slice(i, i + this.CONCURRENCY);
       await Promise.all(
-        batch.map(file =>
+        batch.map((file) =>
           this.copyFileWithProgress(
             path.join(srcDir, file.name),
             path.join(destDir, file.name)
@@ -104,10 +110,13 @@ class SteamCopyEngine {
     }
   }
 
-  private copyFileWithProgress(srcFile: string, destFile: string): Promise<void> {
+  private copyFileWithProgress(
+    srcFile: string,
+    destFile: string
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const state = activeTransfers.get(this.id);
-      
+
       if (!state || state.cancelled) {
         return reject(new Error("cancelled"));
       }
@@ -130,7 +139,7 @@ class SteamCopyEngine {
       readStream.on("data", (chunk: string | Buffer) => {
         this.addBytes(Buffer.byteLength(chunk));
       });
-      
+
       readStream.on("error", reject);
       writeStream.on("error", reject);
       writeStream.on("finish", resolve);
@@ -258,11 +267,14 @@ registerEvent(
 );
 
 // ── CANCEL ────────────────────────────────────────────────────────────────────
-registerEvent("cancelGameTransfer", async (_e, shop: GameShop, objectId: string) => {
-  const s = activeTransfers.get(`${shop}:${objectId}`);
-  if (s) {
-    s.cancelled = true;
-    s.paused = false;
-    s.currentStream?.destroy();
+registerEvent(
+  "cancelGameTransfer",
+  async (_e, shop: GameShop, objectId: string) => {
+    const s = activeTransfers.get(`${shop}:${objectId}`);
+    if (s) {
+      s.cancelled = true;
+      s.paused = false;
+      s.currentStream?.destroy();
+    }
   }
-});
+);
