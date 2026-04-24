@@ -3,6 +3,7 @@ import { Outlet, useSearchParams } from "react-router-dom";
 import { Sidebar } from "./layout";
 import { IS_DESKTOP } from "./constants";
 import {
+  NavigationAutoScrollBridge,
   NavigationInputProvider,
   NavigationStateBridge,
   NavigationDiagnostics,
@@ -24,6 +25,7 @@ export default function App() {
   return (
     <Fragment>
       <NavigationStateBridge />
+      <NavigationAutoScrollBridge />
 
       <NavigationInputProvider>
         <div id="big-picture">
