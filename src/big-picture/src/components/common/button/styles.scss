@@ -32,7 +32,8 @@
       background-color: var(--button-custom-hover-color);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
       outline-offset: 2px;
     }
@@ -47,7 +48,8 @@
       background-color: var(--secondary-hover);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
       outline-offset: 2px;
     }
@@ -63,7 +65,8 @@
       background-color: var(--secondary);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
       outline-offset: 2px;
     }
@@ -78,7 +81,8 @@
       background-color: var(--error-hover);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--error);
       outline-offset: 2px;
     }
@@ -104,7 +108,8 @@
       opacity: 1;
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       text-underline-offset: 2px;
       opacity: 1;
       outline: none;

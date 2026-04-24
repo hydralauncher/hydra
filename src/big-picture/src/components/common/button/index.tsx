@@ -132,7 +132,7 @@ export function Button({
 
   if (target === "_blank" || isExternalHref(href)) {
     return (
-      <FocusItem>
+      <FocusItem asChild>
         <a
           href={href}
           target={target}
@@ -149,7 +149,7 @@ export function Button({
   }
 
   return (
-    <FocusItem>
+    <FocusItem asChild>
       <Link
         to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
