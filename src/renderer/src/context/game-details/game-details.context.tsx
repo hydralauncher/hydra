@@ -137,6 +137,7 @@ export function GameDetailsContextProvider({
       if (shop === game?.shop && objectId === game?.objectId) {
         setIsTransferring(false);
         setTransferProgress(0);
+        updateGame();
       }
     };
 
