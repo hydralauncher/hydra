@@ -128,7 +128,7 @@ export function GameDetailsContextProvider({
       progress: number
     ) => {
       if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(progress > 0 && progress < 1);
+        setIsTransferring(progress >= 0 && progress < 1);
         setTransferProgress(progress);
       }
     };
@@ -142,7 +142,9 @@ export function GameDetailsContextProvider({
     };
 
     const onTransferCancelled = (_: unknown, shop: string, objectId: string) => {
+      console.log("onTransferCancelled received", shop, objectId, "current:", game?.shop, game?.objectId);
       if (shop === game?.shop && objectId === game?.objectId) {
+        console.log("Setting isTransferring to false");
         setIsTransferring(false);
         setTransferProgress(0);
       }
@@ -433,6 +435,8 @@ export function GameDetailsContextProvider({
   // Handlers for cancel
   const cancelTransfer = () => {
     window.electron.cancelGameTransfer?.(shop, objectId);
+    setIsTransferring(false);
+    setTransferProgress(0);
   };
 
   return (
