@@ -23,7 +23,8 @@ const activeTransfers = new Map<
   string,
   {
     cancelled: boolean;
-    currentStream?: { destroy(): void };
+    currentStreams: Set<{ destroy(): void }>;
+    pendingRejects: Array<(error: Error) => void>;
   }
 >();
 
@@ -85,6 +86,9 @@ class SteamCopyEngine {
     const dirs = entries.filter((e) => e.isDirectory());
 
     for (let i = 0; i < files.length; i += this.CONCURRENCY) {
+      const state = activeTransfers.get(this.id);
+      if (state?.cancelled) throw new Error("cancelled");
+
       const batch = files.slice(i, i + this.CONCURRENCY);
       await Promise.all(
         batch.map((file) =>
@@ -97,6 +101,9 @@ class SteamCopyEngine {
     }
 
     for (const dir of dirs) {
+      const state = activeTransfers.get(this.id);
+      if (state?.cancelled) throw new Error("cancelled");
+
       const srcPath = path.join(srcDir, dir.name);
       const destPath = path.join(destDir, dir.name);
       await fs.mkdir(destPath, { recursive: true });
@@ -115,27 +122,52 @@ class SteamCopyEngine {
         return reject(new Error("cancelled"));
       }
 
+      // Register reject so cancel can immediately reject this copy
+      state.pendingRejects.push(reject);
+
       const readStream = createReadStream(srcFile, {
         highWaterMark: this.BLOCK_SIZE,
       });
       const writeStream = createWriteStream(destFile);
 
-      if (state) {
-        state.currentStream = {
-          destroy() {
-            readStream.destroy();
-            writeStream.destroy();
-          },
-        };
-      }
+      const streamRef = {
+        destroy() {
+          readStream.destroy();
+          writeStream.destroy();
+        },
+      };
+      state.currentStreams.add(streamRef);
+
+      const cleanup = () => {
+        // Remove reject from array when promise settles
+        const idx = state.pendingRejects.indexOf(reject);
+        if (idx !== -1) state.pendingRejects.splice(idx, 1);
+        state.currentStreams.delete(streamRef);
+      };
 
       readStream.on("data", (chunk: string | Buffer) => {
         this.addBytes(Buffer.byteLength(chunk));
       });
 
-      readStream.on("error", reject);
-      writeStream.on("error", reject);
-      writeStream.on("finish", resolve);
+      // Destroy stream will trigger 'close' or 'error'. We reject on 'close' as well.
+      readStream.on("close", () => {
+        if (!state.cancelled) return; // only treat as error if cancelled
+        cleanup();
+        reject(new Error("cancelled"));
+      });
+
+      readStream.on("error", (err) => {
+        cleanup();
+        reject(err);
+      });
+      writeStream.on("error", (err) => {
+        cleanup();
+        reject(err);
+      });
+      writeStream.on("finish", () => {
+        cleanup();
+        resolve();
+      });
 
       readStream.pipe(writeStream);
     });
@@ -147,7 +179,11 @@ registerEvent(
   "transferGameFiles",
   async (_event, shop: GameShop, objectId: string, destParent: string) => {
     const id = `${shop}:${objectId}`;
-    activeTransfers.set(id, { cancelled: false });
+    activeTransfers.set(id, {
+      cancelled: false,
+      currentStreams: new Set(),
+      pendingRejects: [],
+    });
 
     send("on-game-transfer-progress", shop, objectId, 0, {
       speed: 0,
@@ -264,9 +300,12 @@ registerEvent(
     const s = activeTransfers.get(`${shop}:${objectId}`);
     if (s) {
       s.cancelled = true;
-      s.currentStream?.destroy();
+      // Destroy all active streams
+      s.currentStreams.forEach((stream) => stream.destroy());
+      s.currentStreams.clear();
+      // Immediately reject every pending file copy
+      s.pendingRejects.forEach((reject) => reject(new Error("cancelled")));
+      s.pendingRejects = [];
     }
   }
-  
 );
-
