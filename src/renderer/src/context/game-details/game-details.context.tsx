@@ -141,6 +141,13 @@ export function GameDetailsContextProvider({
       }
     };
 
+    const onTransferCancelled = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
     const onTransferError = (_: unknown, shop: string, objectId: string) => {
       if (shop === game?.shop && objectId === game?.objectId) {
         setIsTransferring(false);
@@ -150,11 +157,13 @@ export function GameDetailsContextProvider({
 
     window.electron.on("on-game-transfer-progress", onTransferProgress);
     window.electron.on("on-game-transfer-complete", onTransferComplete);
+    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
     window.electron.on("on-game-transfer-error", onTransferError);
 
     return () => {
       window.electron.off("on-game-transfer-progress", onTransferProgress);
       window.electron.off("on-game-transfer-complete", onTransferComplete);
+      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
       window.electron.off("on-game-transfer-error", onTransferError);
     };
   }, [game]);
