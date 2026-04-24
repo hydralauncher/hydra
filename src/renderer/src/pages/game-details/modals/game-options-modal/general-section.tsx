@@ -49,6 +49,21 @@ interface GeneralSettingsSectionProps {
   onConfirmCancelTransfer?: () => void;
 }
 
+// 
+function formatETA(seconds: number) {
+  if (seconds <= 0) return "";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  if (seconds < 86400) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}h ${m}m`;
+  }
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  return `${d}d ${h}h`;
+}
+
 function fmt(b: number) {
   if (b >= 1e12) return (b / 1e12).toFixed(1) + " TB";
   if (b >= 1e9) return (b / 1e9).toFixed(1) + " GB";
@@ -405,7 +420,7 @@ export function GeneralSettingsSection({
               {transferSpeed > 0 ? (
                 <>
                   {transferSpeed.toFixed(1)} MB/s
-                  {transferETA > 0 && ` • ETA: ${transferETA}s`}
+                  {transferETA > 0 && ` • ETA: ${formatETA(transferETA)}`}
                 </>
               ) : (
                 "Calculating..."
