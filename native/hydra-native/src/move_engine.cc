@@ -23,23 +23,16 @@ public:
 
 private:
     Napi::Value MoveFolder(const Napi::CallbackInfo& info);
-    void Pause(const Napi::CallbackInfo& info);
-    void Resume(const Napi::CallbackInfo& info);
     void Cancel(const Napi::CallbackInfo& info);
     void Cleanup(const Napi::CallbackInfo& info);
 
     std::atomic<bool> m_cancelled{false};
-    std::atomic<bool> m_paused{false};
-    std::mutex m_pauseMutex;
-    std::condition_variable m_pauseCV;
     Napi::ThreadSafeFunction m_tsfn;
 };
 
 Napi::Object MoveEngine::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function func = DefineClass(env, "MoveEngine", {
         InstanceMethod("moveFolder", &MoveEngine::MoveFolder),
-        InstanceMethod("pause", &MoveEngine::Pause),
-        InstanceMethod("resume", &MoveEngine::Resume),
         InstanceMethod("cancel", &MoveEngine::Cancel),
         InstanceMethod("cleanup", &MoveEngine::Cleanup),
     });
@@ -56,19 +49,8 @@ MoveEngine::MoveEngine(const Napi::CallbackInfo& info)
     : Napi::ObjectWrap<MoveEngine>(info) {
 }
 
-void MoveEngine::Pause(const Napi::CallbackInfo& info) {
-    m_paused = true;
-}
-
-void MoveEngine::Resume(const Napi::CallbackInfo& info) {
-    m_paused = false;
-    m_pauseCV.notify_all();
-}
-
 void MoveEngine::Cancel(const Napi::CallbackInfo& info) {
     m_cancelled = true;
-    m_paused = false;
-    m_pauseCV.notify_all();
 }
 
 void MoveEngine::Cleanup(const Napi::CallbackInfo& info) {
@@ -108,8 +90,7 @@ uint64_t GetDirectorySize(const std::wstring& path) {
 // Copy file with progress
 bool CopyFileWithProgress(const std::wstring& src, const std::wstring& dest, 
                          uint64_t& bytesCopied, uint64_t totalSize,
-                         std::atomic<bool>& cancelled, std::atomic<bool>& paused,
-                         std::mutex& pauseMutex, std::condition_variable& pauseCV,
+                         std::atomic<bool>& cancelled,
                          double& speedMBps, uint32_t& etaSeconds,
                          Napi::ThreadSafeFunction& tsfn,
                          std::chrono::steady_clock::time_point& startTime) {
@@ -129,7 +110,6 @@ bool CopyFileWithProgress(const std::wstring& src, const std::wstring& dest,
     std::vector<BYTE> buffer(bufferSize);
     DWORD bytesRead, bytesWritten;
     auto lastProgressTime = std::chrono::steady_clock::now();
-    uint64_t lastBytes = 0;
     
     while (ReadFile(hSrc, buffer.data(), bufferSize, &bytesRead, NULL) && bytesRead > 0) {
         // Check cancel
@@ -138,19 +118,6 @@ bool CopyFileWithProgress(const std::wstring& src, const std::wstring& dest,
             CloseHandle(hDest);
             DeleteFileW(dest.c_str());
             return false;
-        }
-        
-        // Check pause
-        if (paused) {
-            std::unique_lock<std::mutex> lock(pauseMutex);
-            pauseCV.wait(lock, [&paused] { return !paused.load(); });
-            
-            if (cancelled) {
-                CloseHandle(hSrc);
-                CloseHandle(hDest);
-                DeleteFileW(dest.c_str());
-                return false;
-            }
         }
         
         if (!WriteFile(hDest, buffer.data(), bytesRead, &bytesWritten, NULL)) {
@@ -184,7 +151,6 @@ bool CopyFileWithProgress(const std::wstring& src, const std::wstring& dest,
             tsfn.BlockingCall(data.release());
             
             lastProgressTime = now;
-            lastBytes = bytesCopied;
         }
     }
     
@@ -196,8 +162,7 @@ bool CopyFileWithProgress(const std::wstring& src, const std::wstring& dest,
 // Copy directory recursively
 bool CopyDirectory(const std::wstring& src, const std::wstring& dest,
                   uint64_t& bytesCopied, uint64_t totalSize,
-                  std::atomic<bool>& cancelled, std::atomic<bool>& paused,
-                  std::mutex& pauseMutex, std::condition_variable& pauseCV,
+                  std::atomic<bool>& cancelled,
                   double& speedMBps, uint32_t& etaSeconds,
                   Napi::ThreadSafeFunction& tsfn,
                   std::chrono::steady_clock::time_point& startTime) {
@@ -225,15 +190,13 @@ bool CopyDirectory(const std::wstring& src, const std::wstring& dest,
         
         if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             if (!CopyDirectory(srcPath, destPath, bytesCopied, totalSize, 
-                              cancelled, paused, pauseMutex, pauseCV, 
-                              speedMBps, etaSeconds, tsfn, startTime)) {
+                              cancelled, speedMBps, etaSeconds, tsfn, startTime)) {
                 FindClose(hFind);
                 return false;
             }
         } else {
             if (!CopyFileWithProgress(srcPath, destPath, bytesCopied, totalSize,
-                                     cancelled, paused, pauseMutex, pauseCV,
-                                     speedMBps, etaSeconds, tsfn, startTime)) {
+                                     cancelled, speedMBps, etaSeconds, tsfn, startTime)) {
                 FindClose(hFind);
                 return false;
             }
@@ -272,121 +235,6 @@ void DeleteDirectory(const std::wstring& path) {
     RemoveDirectoryW(path.c_str());
 }
 
-// Progress callback
-static void ProgressCallback(Napi::Env env, Napi::Function jsCallback, ProgressData* data) {
-    if (data == nullptr) return;
-    
-    try {
-        Napi::Object progress = Napi::Object::New(env);
-        progress.Set("transferred", Napi::Number::New(env, static_cast<double>(data->transferredBytes)));
-        progress.Set("total", Napi::Number::New(env, static_cast<double>(data->totalBytes)));
-        progress.Set("speed", Napi::Number::New(env, data->speedMBps));
-        progress.Set("eta", Napi::Number::New(env, data->etaSeconds));
-        progress.Set("progress", Napi::Number::New(env, data->progress));
-        
-        jsCallback.Call({progress});
-    } catch (const std::exception& e) {
-        // Silently handle callback errors
-    }
-    
-    delete data;
-}
-
-// Move thread function
-static void MoveThreadFunc(std::string src, std::string dest, 
-                          std::shared_ptr<MoveEngine> engine,
-                          Napi::ThreadSafeFunction tsfn) {
-    // Convert paths to wide strings
-    int srcLen = MultiByteToWideChar(CP_UTF8, 0, src.c_str(), -1, nullptr, 0);
-    int destLen = MultiByteToWideChar(CP_UTF8, 0, dest.c_str(), -1, nullptr, 0);
-    
-    std::wstring wSrc(srcLen, 0);
-    std::wstring wDest(destLen, 0);
-    
-    MultiByteToWideChar(CP_UTF8, 0, src.c_str(), -1, &wSrc[0], srcLen);
-    MultiByteToWideChar(CP_UTF8, 0, dest.c_str(), -1, &wDest[0], destLen);
-    
-    // Remove null terminators from wstring
-    wSrc.resize(srcLen - 1);
-    wDest.resize(destLen - 1);
-    
-    // Create parent directory
-    std::wstring parentPath = wDest.substr(0, wDest.find_last_of(L'\\'));
-    CreateDirectoryW(parentPath.c_str(), NULL);
-    
-    // Try instant rename first
-    if (MoveFileExW(wSrc.c_str(), wDest.c_str(), MOVEFILE_WRITE_THROUGH)) {
-        // Same drive - instant
-        auto data = std::make_unique<ProgressData>();
-        data->totalBytes = 100;
-        data->transferredBytes = 100;
-        data->speedMBps = 0;
-        data->etaSeconds = 0;
-        data->progress = 1.0;
-        
-        tsfn.BlockingCall(data.release());
-        tsfn.Release();
-        return;
-    }
-    
-    DWORD error = GetLastError();
-    if (error != ERROR_NOT_SAME_DEVICE) {
-        // Real error
-        tsfn.Release();
-        return;
-    }
-    
-    // Cross-drive: calculate total size
-    uint64_t totalSize = GetDirectorySize(wSrc);
-    
-    if (totalSize == 0) {
-        tsfn.Release();
-        return;
-    }
-    
-    // Send initial progress
-    auto initData = std::make_unique<ProgressData>();
-    initData->totalBytes = totalSize;
-    initData->transferredBytes = 0;
-    initData->speedMBps = 0;
-    initData->etaSeconds = 0;
-    initData->progress = 0.0;
-    
-    tsfn.BlockingCall(initData.release());
-    
-    // Copy with progress
-    uint64_t bytesCopied = 0;
-    double speedMBps = 0;
-    uint32_t etaSeconds = 0;
-    auto startTime = std::chrono::steady_clock::now();
-    
-    bool success = CopyDirectory(wSrc, wDest, bytesCopied, totalSize,
-                                engine->m_cancelled, engine->m_paused,
-                                engine->m_pauseMutex, engine->m_pauseCV,
-                                speedMBps, etaSeconds, tsfn, startTime);
-    
-    if (!success) {
-        // Cleanup partial destination
-        DeleteDirectory(wDest);
-        tsfn.Release();
-        return;
-    }
-    
-    // Delete source
-    DeleteDirectory(wSrc);
-    
-    // Send completion
-    auto finalData = std::make_unique<ProgressData>();
-    finalData->totalBytes = totalSize;
-    finalData->transferredBytes = totalSize;
-    finalData->speedMBps = 0;
-    finalData->etaSeconds = 0;
-    finalData->progress = 1.0;
-    
-    tsfn.BlockingCall(finalData.release());
-    tsfn.Release();
-}
-
 Napi::Value MoveEngine::MoveFolder(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     
@@ -399,27 +247,94 @@ Napi::Value MoveEngine::MoveFolder(const Napi::CallbackInfo& info) {
     std::string dest = info[1].As<Napi::String>().Utf8Value();
     Napi::Function callback = info[2].As<Napi::Function>();
     
-    // Create thread-safe function
     m_tsfn = Napi::ThreadSafeFunction::New(
-        env,
-        callback,
-        "ProgressCallback",
-        0,
-        1,
+        env, callback, "ProgressCallback", 0, 1,
         [](Napi::Env, void*, ProgressData*) {}
     );
     
-    // Reset state
     m_cancelled = false;
-    m_paused = false;
     
-    // Create engine pointer
     auto engine = std::shared_ptr<MoveEngine>(this, [](MoveEngine*){});
     
-    // Start move thread
     std::thread([src, dest, engine, tsfn = m_tsfn]() {
-        MoveThreadFunc(src, dest, engine, tsfn);
+        int srcLen = MultiByteToWideChar(CP_UTF8, 0, src.c_str(), -1, nullptr, 0);
+        int destLen = MultiByteToWideChar(CP_UTF8, 0, dest.c_str(), -1, nullptr, 0);
+        
+        std::wstring wSrc(srcLen, 0);
+        std::wstring wDest(destLen, 0);
+        
+        MultiByteToWideChar(CP_UTF8, 0, src.c_str(), -1, &wSrc[0], srcLen);
+        MultiByteToWideChar(CP_UTF8, 0, dest.c_str(), -1, &wDest[0], destLen);
+        
+        wSrc.resize(srcLen - 1);
+        wDest.resize(destLen - 1);
+        
+        std::wstring parentPath = wDest.substr(0, wDest.find_last_of(L'\\'));
+        CreateDirectoryW(parentPath.c_str(), NULL);
+        
+        // Try instant rename first (same drive)
+        if (MoveFileExW(wSrc.c_str(), wDest.c_str(), MOVEFILE_WRITE_THROUGH)) {
+            auto data = std::make_unique<ProgressData>();
+            data->totalBytes = 100;
+            data->transferredBytes = 100;
+            data->speedMBps = 0;
+            data->etaSeconds = 0;
+            data->progress = 1.0;
+            tsfn.BlockingCall(data.release());
+            tsfn.Release();
+            return;
+        }
+        
+        DWORD error = GetLastError();
+        if (error != ERROR_NOT_SAME_DEVICE) {
+            tsfn.Release();
+            return;
+        }
+        
+        uint64_t totalSize = GetDirectorySize(wSrc);
+        if (totalSize == 0) {
+            tsfn.Release();
+            return;
+        }
+        
+        auto initData = std::make_unique<ProgressData>();
+        initData->totalBytes = totalSize;
+        initData->transferredBytes = 0;
+        initData->speedMBps = 0;
+        initData->etaSeconds = 0;
+        initData->progress = 0.0;
+        tsfn.BlockingCall(initData.release());
+        
+        uint64_t bytesCopied = 0;
+        double speedMBps = 0;
+        uint32_t etaSeconds = 0;
+        auto startTime = std::chrono::steady_clock::now();
+        
+        bool success = CopyDirectory(wSrc, wDest, bytesCopied, totalSize,
+                                    engine->m_cancelled,
+                                    speedMBps, etaSeconds, tsfn, startTime);
+        
+        if (!success) {
+            DeleteDirectory(wDest);
+            tsfn.Release();
+            return;
+        }
+        
+        DeleteDirectory(wSrc);
+        
+        auto finalData = std::make_unique<ProgressData>();
+        finalData->totalBytes = totalSize;
+        finalData->transferredBytes = totalSize;
+        finalData->speedMBps = 0;
+        finalData->etaSeconds = 0;
+        finalData->progress = 1.0;
+        tsfn.BlockingCall(finalData.release());
+        tsfn.Release();
     }).detach();
     
     return env.Undefined();
+}
+
+NAPI_MODULE_INIT() {
+    return MoveEngine::Init(env, exports);
 }

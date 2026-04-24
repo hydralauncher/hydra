@@ -61,37 +61,16 @@ export class GameMover extends EventEmitter {
   private async jsFallbackMove(src: string, dest: string): Promise<void> {
     const fs = await import("node:fs/promises");
 
-    // Emit start
     this.emit("progress", {
-      transferred: 0,
-      total: 0,
-      speed: 0,
-      eta: 0,
-      progress: 0,
+      transferred: 0, total: 0, speed: 0, eta: 0, progress: 0,
     });
 
-    // Simple copy
     await fs.cp(src, dest, { recursive: true });
-
-    // Delete source
     await fs.rm(src, { recursive: true, force: true });
 
-    // Emit complete
     this.emit("progress", {
-      transferred: 1,
-      total: 1,
-      speed: 0,
-      eta: 0,
-      progress: 1.0,
+      transferred: 1, total: 1, speed: 0, eta: 0, progress: 1.0,
     });
-  }
-
-  pause(): void {
-    this.engine?.pause();
-  }
-
-  resume(): void {
-    this.engine?.resume();
   }
 
   cancel(): void {

@@ -585,9 +585,7 @@ declare global {
       newExePath?: string;
     }>;
 
-    // Pause/Resume/Cancel for game transfers
-    pauseGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
-    resumeGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+    // Cancel for game transfers
     cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Event listeners for transfer progress */
