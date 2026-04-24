@@ -1,6 +1,6 @@
 import "./styles.scss";
 
-import { PlayIcon, TrophyIcon } from "@phosphor-icons/react";
+import { TrophyIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -12,9 +12,9 @@ export interface VerticalGameCardProps {
   progressValue?: number;
   progressColor?: string;
   action?: ReactNode;
-  hoverIndicator?: ReactNode;
   forceHovered?: boolean;
   className?: string;
+  onCoverImageError?: () => void;
 }
 
 const DEFAULT_PROGRESS_COLOR = "var(--alert)";
@@ -31,9 +31,9 @@ export function VerticalGameCard({
   progressValue,
   progressColor = DEFAULT_PROGRESS_COLOR,
   action,
-  hoverIndicator = <PlayIcon size={24} weight="fill" />,
   forceHovered = false,
   className,
+  onCoverImageError,
 }: Readonly<VerticalGameCardProps>) {
   const hasProgress =
     progressLabel != null &&
@@ -55,19 +55,18 @@ export function VerticalGameCard({
     >
       <div className="vertical-game-card__cover">
         {coverImageUrl ? (
-          <img src={coverImageUrl} alt={gameTitle} draggable={false} />
+          <img
+            src={coverImageUrl}
+            alt={gameTitle}
+            draggable={false}
+            onError={onCoverImageError}
+          />
         ) : (
           <div
             className="vertical-game-card__cover-placeholder"
             aria-hidden="true"
           />
         )}
-
-        <div className="vertical-game-card__cover-overlay" aria-hidden="true" />
-
-        <div className="vertical-game-card__hover-indicator" aria-hidden="true">
-          {hoverIndicator}
-        </div>
       </div>
 
       <div className="vertical-game-card__body">

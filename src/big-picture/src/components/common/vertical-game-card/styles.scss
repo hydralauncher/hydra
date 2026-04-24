@@ -1,16 +1,19 @@
 .vertical-game-card {
   --vertical-game-card-progress-color: var(--alert);
   --vertical-game-card-progress-value: 0;
-  width: min(268px, 100%);
+  width: min(315px, 100%);
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 2);
   border: 1px solid transparent;
   border-radius: calc(var(--spacing-unit) * 2);
   background-color: transparent;
+  outline: none;
+  outline-offset: 3px;
   transition:
     background-color 0.2s ease-in-out,
-    border-color 0.2s ease-in-out;
+    border-color 0.2s ease-in-out,
+    outline-color 0.2s ease-in-out;
   overflow: hidden;
 
   &__cover {
@@ -31,6 +34,29 @@
     img {
       object-fit: cover;
     }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 64%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      transform: translateY(-36%);
+      opacity: 0.5;
+      transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
   }
 
   &__cover-placeholder {
@@ -41,27 +67,6 @@
         rgba(255, 255, 255, 0.02) 100%
       ),
       var(--secondary);
-  }
-
-  &__cover-overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    pointer-events: none;
-  }
-
-  &__hover-indicator {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary);
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    pointer-events: none;
   }
 
   &__body {
@@ -126,7 +131,11 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-unit);
-    color: rgba(255, 255, 255, 0.5);
+    color: color-mix(
+      in srgb,
+      var(--vertical-game-card-progress-color) 70%,
+      white
+    );
     font-weight: 400;
   }
 
@@ -166,13 +175,15 @@
 
   &:hover,
   &:focus-within,
-  &--force-hovered {
+  &--force-hovered,
+  [data-focused="true"] > &,
+  [data-focus-visible="true"] > & {
     background-color: var(--surface);
     border-color: var(--secondary-border);
 
-    .vertical-game-card__cover-overlay,
-    .vertical-game-card__hover-indicator {
+    .vertical-game-card__cover::before {
       opacity: 1;
+      transform: translateY(-20%);
     }
 
     .vertical-game-card__body {
@@ -184,5 +195,9 @@
       opacity: 1;
       pointer-events: auto;
     }
+  }
+
+  [data-focus-visible="true"] > & {
+    outline: 2px solid var(--primary);
   }
 }
