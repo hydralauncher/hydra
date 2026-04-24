@@ -1,0 +1,1 @@
+transfer {game} completed
