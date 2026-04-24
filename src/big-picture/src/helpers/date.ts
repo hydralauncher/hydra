@@ -4,6 +4,26 @@ const UTC_SUFFIX = "Z";
 const TIMEZONE_OFFSET_REGEX = /(?:Z|[+-]\d{2}:\d{2})$/i;
 const ISO_WITHOUT_TIMEZONE_REGEX = /^\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+)?$/;
 
+export function formatPlayedTime(
+  valueInMilliseconds: number | null | undefined
+) {
+  const safeValue = Math.max(0, valueInMilliseconds ?? 0);
+  const totalSeconds = Math.floor(safeValue / 1000);
+
+  if (totalSeconds < 60) {
+    const seconds = Math.max(1, totalSeconds);
+    return `${seconds} ${seconds === 1 ? "second" : "seconds"} played`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes} ${totalMinutes === 1 ? "minute" : "minutes"} played`;
+  }
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  return `${totalHours} ${totalHours === 1 ? "hour" : "hours"} played`;
+}
+
 export function formatRelativeDate(
   value: Date | string | number | null | undefined,
   options?: {

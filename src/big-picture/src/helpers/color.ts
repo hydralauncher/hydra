@@ -21,6 +21,19 @@ interface ColorBucket {
   b: number;
 }
 
+interface HSLColor {
+  h: number;
+  s: number;
+  l: number;
+}
+
+interface ColorMetrics {
+  saturation: number;
+  lightness: number;
+  chroma: number;
+  value: number;
+}
+
 const LIGHT_TEXT_COLOR = "var(--primary)";
 const DARK_TEXT_COLOR = "var(--background)";
 
@@ -34,6 +47,103 @@ const toHex = (value: number) => {
 
 const rgbToHex = ({ r, g, b }: RGBColor) => {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const rgbToHsl = ({ r, g, b }: RGBColor): HSLColor => {
+  const normalizedRed = r / 255;
+  const normalizedGreen = g / 255;
+  const normalizedBlue = b / 255;
+  const maxChannel = Math.max(normalizedRed, normalizedGreen, normalizedBlue);
+  const minChannel = Math.min(normalizedRed, normalizedGreen, normalizedBlue);
+  const delta = maxChannel - minChannel;
+  const lightness = (maxChannel + minChannel) / 2;
+
+  if (delta === 0) {
+    return { h: 0, s: 0, l: lightness };
+  }
+
+  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+
+  let hue = 0;
+
+  switch (maxChannel) {
+    case normalizedRed:
+      hue = ((normalizedGreen - normalizedBlue) / delta) % 6;
+      break;
+    case normalizedGreen:
+      hue = (normalizedBlue - normalizedRed) / delta + 2;
+      break;
+    default:
+      hue = (normalizedRed - normalizedGreen) / delta + 4;
+      break;
+  }
+
+  return {
+    h: (hue * 60 + 360) % 360,
+    s: saturation,
+    l: lightness,
+  };
+};
+
+const hslToRgb = ({ h, s, l }: HSLColor): RGBColor => {
+  const chroma = (1 - Math.abs(2 * l - 1)) * s;
+  const hueSegment = h / 60;
+  const x = chroma * (1 - Math.abs((hueSegment % 2) - 1));
+
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (hueSegment >= 0 && hueSegment < 1) {
+    red = chroma;
+    green = x;
+  } else if (hueSegment < 2) {
+    red = x;
+    green = chroma;
+  } else if (hueSegment < 3) {
+    green = chroma;
+    blue = x;
+  } else if (hueSegment < 4) {
+    green = x;
+    blue = chroma;
+  } else if (hueSegment < 5) {
+    red = x;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = x;
+  }
+
+  const match = l - chroma / 2;
+
+  return {
+    r: (red + match) * 255,
+    g: (green + match) * 255,
+    b: (blue + match) * 255,
+  };
+};
+
+const getColorMetrics = (color: RGBColor): ColorMetrics => {
+  const hsl = rgbToHsl(color);
+  const maxChannel = Math.max(color.r, color.g, color.b) / 255;
+  const minChannel = Math.min(color.r, color.g, color.b) / 255;
+
+  return {
+    saturation: hsl.s,
+    lightness: hsl.l,
+    chroma: (maxChannel - minChannel) * 255,
+    value: maxChannel,
+  };
+};
+
+const boostAccentColor = (color: RGBColor): RGBColor => {
+  const hsl = rgbToHsl(color);
+
+  return hslToRgb({
+    h: hsl.h,
+    s: Math.min(1, Math.max(hsl.s, 0.68)),
+    l: Math.max(0.42, Math.min(0.62, hsl.l)),
+  });
 };
 
 const quantizeChannel = (value: number, step: number) => {
@@ -184,17 +294,77 @@ export async function getDominantColorFromImage(
       });
     }
 
-    const dominantBucket = Array.from(buckets.values()).sort((a, b) => {
-      return b.count - a.count;
+    const bucketEntries = Array.from(buckets.values()).map((bucket) => {
+      const color = {
+        r: bucket.r / bucket.count,
+        g: bucket.g / bucket.count,
+        b: bucket.b / bucket.count,
+      };
+      const metrics = getColorMetrics(color);
+
+      return {
+        bucket,
+        color,
+        metrics,
+        population: bucket.count / (sampleSize * sampleSize),
+      };
+    });
+
+    const dominantBucket = bucketEntries.sort((a, b) => {
+      return b.bucket.count - a.bucket.count;
     })[0];
 
     if (!dominantBucket) return null;
 
-    return rgbToHex({
-      r: dominantBucket.r / dominantBucket.count,
-      g: dominantBucket.g / dominantBucket.count,
-      b: dominantBucket.b / dominantBucket.count,
+    const accentCandidates = bucketEntries.filter((entry) => {
+      return (
+        entry.population >= 0.015 &&
+        entry.metrics.saturation >= 0.22 &&
+        entry.metrics.chroma >= 32 &&
+        entry.metrics.lightness >= 0.12 &&
+        entry.metrics.lightness <= 0.82 &&
+        entry.metrics.value >= 0.18
+      );
     });
+
+    const accentSafeCandidates = bucketEntries.filter((entry) => {
+      return (
+        entry.population >= 0.008 &&
+        entry.metrics.saturation >= 0.12 &&
+        entry.metrics.chroma >= 18 &&
+        entry.metrics.lightness >= 0.08 &&
+        entry.metrics.lightness <= 0.88
+      );
+    });
+
+    const sortByVibrancy = (candidates: typeof bucketEntries) => {
+      return [...candidates].sort((a, b) => {
+        const aLightnessPenalty = Math.abs(a.metrics.lightness - 0.52);
+        const bLightnessPenalty = Math.abs(b.metrics.lightness - 0.52);
+        const aScore =
+          a.metrics.saturation * 4.2 +
+          (a.metrics.chroma / 255) * 3.4 +
+          a.population * 1.8 -
+          aLightnessPenalty * 1.4;
+        const bScore =
+          b.metrics.saturation * 4.2 +
+          (b.metrics.chroma / 255) * 3.4 +
+          b.population * 1.8 -
+          bLightnessPenalty * 1.4;
+
+        if (bScore !== aScore) return bScore - aScore;
+        if (b.population !== a.population) return b.population - a.population;
+
+        return aLightnessPenalty - bLightnessPenalty;
+      });
+    };
+
+    const selectedEntry =
+      sortByVibrancy(accentCandidates)[0] ??
+      sortByVibrancy(accentSafeCandidates)[0] ??
+      dominantBucket;
+
+    return rgbToHex(boostAccentColor(selectedEntry.color));
   } catch {
     return null;
   }
