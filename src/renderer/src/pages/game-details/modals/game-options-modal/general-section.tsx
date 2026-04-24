@@ -36,7 +36,6 @@ interface GeneralSettingsSectionProps {
   onBlurGameTitle: () => Promise<void>;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
-  onTransferGame: (destPath: string) => void | Promise<void>;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];

@@ -1,7 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { TransferGameModal } from "./transfer-game-modal";
 
 import type {
   CreateSteamShortcutOptions,
@@ -80,17 +79,12 @@ export function GameOptionsModal({
     shopDetails,
   } = useContext(gameDetailsContext);
 
-  // ========== NEW STATE VARIABLES ==========
   const [transferProgress, setTransferProgress] = useState(0);
-  const [isTransferPaused, setIsTransferPaused] = useState(false);
   const [drives, setDrives] = useState<any[]>([]);
-  // =========================================
-  // Add with other state variables
   const [transferSpeed, setTransferSpeed] = useState(0);
   const [transferETA, setTransferETA] = useState(0);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const [showTransferModal, setShowTransferModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRemoveGameModal, setShowRemoveGameModal] = useState(false);
   const [gameTitle, setGameTitle] = useState(game.title ?? "");
@@ -153,15 +147,11 @@ export function GameOptionsModal({
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
 
-  // ========== NEW EFFECTS ==========
-  // Load drives when modal becomes visible
   useEffect(() => {
     if (visible) {
-      console.log("🟢 Modal visible, fetching drives...");
       window.electron
         .getAvailableDrives?.()
         .then((result) => {
-          console.log("✅ Drives fetched:", result);
           setDrives(result);
         })
         .catch((err) => {
@@ -169,24 +159,6 @@ export function GameOptionsModal({
         });
     }
   }, [visible]);
-
-  // Listen for transfer progress
-  useEffect(() => {
-    const onProgress = (
-      _: unknown,
-      shop: string,
-      oid: string,
-      progress: number
-    ) => {
-      if (shop === game.shop && oid === game.objectId) {
-        setTransferProgress(progress);
-      }
-    };
-
-    window.electron.on("on-game-transfer-progress", onProgress);
-    return () => window.electron.off("on-game-transfer-progress", onProgress);
-  }, [game]);
-  // =================================
 
   useEffect(() => {
     if (
@@ -279,10 +251,6 @@ export function GameOptionsModal({
 
   useEffect(() => {
     if (game.shop !== "custom") {
-      console.log(
-        "Checking Steam shortcut existence for",
-        window.electron.checkSteamShortcut(game.shop, game.objectId)
-      );
       window.electron
         .checkSteamShortcut(game.shop, game.objectId)
         .then(setSteamShortcutExists)
@@ -290,7 +258,6 @@ export function GameOptionsModal({
     }
   }, [game.shop, game.objectId]);
 
-  // Listen for transfer progress
   useEffect(() => {
     const onProgress = (
       _: unknown,
@@ -313,8 +280,8 @@ export function GameOptionsModal({
       }
     };
 
-    window.electron.on("on-game-transfer-progress", onProgress);
-    return () => window.electron.off("on-game-transfer-progress", onProgress);
+    (window.electron as any).on("on-game-transfer-progress", onProgress);
+    return () => (window.electron as any).off("on-game-transfer-progress", onProgress);
   }, [game]);
 
   const debounceUpdateLaunchOptions = useRef(
@@ -350,27 +317,11 @@ export function GameOptionsModal({
     }
   };
 
-  const handleTransferComplete = async (_newExePath: string) => {
-    await updateGame();
-  };
-
-  // ========== NEW HANDLERS ==========
-  const handlePauseTransfer = () => {
-    window.electron.pauseGameTransfer?.(game.shop, game.objectId);
-    setIsTransferPaused(true);
-  };
-
-  const handleResumeTransfer = () => {
-    window.electron.resumeGameTransfer?.(game.shop, game.objectId);
-    setIsTransferPaused(false);
-  };
-
   const handleCancelTransfer = () => {
     window.electron.cancelGameTransfer?.(game.shop, game.objectId);
     setTransferProgress(0);
     setTransferSpeed(0);
     setTransferETA(0);
-    setIsTransferPaused(false);
     setShowCancelConfirm(false);
   };
 
@@ -382,13 +333,12 @@ export function GameOptionsModal({
     );
     if (!result.ok) {
       showErrorToast(result.error || "Transfer failed");
-      throw new Error(result.error); // This prevents parent from closing
+      throw new Error(result.error);
     } else {
       showSuccessToast("Transfer completed successfully!");
       await updateGame();
     }
   };
-  // =================================
 
   const handleChangeExecutableLocation = async () => {
     const path = await selectGameExecutable();
@@ -777,13 +727,6 @@ export function GameOptionsModal({
         deleteGame={handleDeleteGame}
       />
 
-      <TransferGameModal
-        visible={showTransferModal}
-        game={game}
-        onClose={() => setShowTransferModal(false)}
-        onTransferComplete={handleTransferComplete}
-      />
-
       <RemoveGameFromLibraryModal
         visible={showRemoveGameModal}
         onClose={() => setShowRemoveGameModal(false)}
@@ -854,12 +797,8 @@ export function GameOptionsModal({
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
-                onTransferGame={() => {}}
                 isTransferring={isTransferring}
                 transferProgress={transferProgress}
-                isPaused={isTransferPaused}
-                onPauseTransfer={handlePauseTransfer}
-                onResumeTransfer={handleResumeTransfer}
                 drives={drives}
                 onStartTransfer={handleStartTransfer}
                 onCancelDriveSelection={() => {}}
