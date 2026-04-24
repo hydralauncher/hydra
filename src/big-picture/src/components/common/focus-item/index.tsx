@@ -123,7 +123,7 @@ export function FocusItem({
         data-navigation-state={navigationState}
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}
-        style={!asChild ? { outline: "none" } : undefined}
+        style={asChild ? undefined : { outline: "none" }}
       >
         {children}
       </Component>
