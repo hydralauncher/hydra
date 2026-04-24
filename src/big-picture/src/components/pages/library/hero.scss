@@ -1,0 +1,30 @@
+.hero {
+  position: relative;
+  width: 100%;
+  height: 720px;
+  overflow: hidden;
+  border: none;
+  background: var(--background);
+  box-shadow: 0px 0px 0px 0px transparent;
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, #080808 0%, #08080800 25% 75%, #080808 99.53%),
+    linear-gradient(#08080800 0%, #080808 97%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+}
