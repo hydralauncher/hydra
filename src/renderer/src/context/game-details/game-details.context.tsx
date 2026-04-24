@@ -47,15 +47,13 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   lastDownloadedOption: null,
   isTransferring: false,
   transferProgress: 0,
-  isTransferPaused: false,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
   setGameOptionsInitialCategory: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
-  onPauseTransfer: () => {},
-  onResumeTransfer: () => {},
+  cancelTransfer: () => {},
 });
 
 const { Provider } = gameDetailsContext;
@@ -85,7 +83,6 @@ export function GameDetailsContextProvider({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferProgress, setTransferProgress] = useState(0);
-  const [isTransferPaused, setIsTransferPaused] = useState(false);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -423,19 +420,9 @@ export function GameDetailsContextProvider({
       });
   };
 
-  // Handlers for pause/resume
-  const onPauseTransfer = () => {
-    if (game) {
-      window.electron.pauseGameTransfer?.(game.shop, game.objectId);
-      setIsTransferPaused(true);
-    }
-  };
-
-  const onResumeTransfer = () => {
-    if (game) {
-      window.electron.resumeGameTransfer?.(game.shop, game.objectId);
-      setIsTransferPaused(false);
-    }
+  // Handlers for cancel
+  const cancelTransfer = () => {
+    window.electron.cancelGameTransfer?.(shop, objectId);
   };
 
   return (
@@ -458,15 +445,13 @@ export function GameDetailsContextProvider({
         lastDownloadedOption: null,
         isTransferring,
         transferProgress,
-        isTransferPaused,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,
         setShowRepacksModal,
         setShowGameOptionsModal,
         setGameOptionsInitialCategory,
-        onPauseTransfer,
-        onResumeTransfer,
+        cancelTransfer,
       }}
     >
       {children}
