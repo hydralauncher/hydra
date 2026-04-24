@@ -5,6 +5,7 @@ import cn from "classnames";
 import { Link } from "react-router-dom";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { getContrastTextColor } from "../../../helpers";
+import { FocusItem } from "..";
 
 const variants = {
   primary: "button--primary",
@@ -81,35 +82,37 @@ export function Button({
 
   if (!href) {
     return (
-      <button
-        onClick={onClick}
-        disabled={disabled || loading}
-        aria-busy={loading}
-        aria-label={size === "icon" ? ariaLabel : undefined}
-        className={buttonClassName}
-        style={buttonStyle}
-        {...props}
-      >
-        {loading && (
-          <div
-            className={`button__icon-container--${iconPosition} button__icon-container`}
-          >
-            <SpinnerIcon size={20} className="button__loading-icon" />
-          </div>
-        )}
+      <FocusItem asChild>
+        <button
+          onClick={onClick}
+          disabled={disabled || loading}
+          aria-busy={loading}
+          aria-label={size === "icon" ? ariaLabel : undefined}
+          className={buttonClassName}
+          style={buttonStyle}
+          {...props}
+        >
+          {loading && (
+            <div
+              className={`button__icon-container--${iconPosition} button__icon-container`}
+            >
+              <SpinnerIcon size={20} className="button__loading-icon" />
+            </div>
+          )}
 
-        {icon && !loading && (
-          <div
-            className={`button__icon-container--${iconPosition} button__icon-container`}
-          >
-            {icon}
-          </div>
-        )}
+          {icon && !loading && (
+            <div
+              className={`button__icon-container--${iconPosition} button__icon-container`}
+            >
+              {icon}
+            </div>
+          )}
 
-        {children && (!loading || typeof children === "string") && (
-          <p className="button__text">{children}</p>
-        )}
-      </button>
+          {children && (!loading || typeof children === "string") && (
+            <p className="button__text">{children}</p>
+          )}
+        </button>
+      </FocusItem>
     );
   }
 
@@ -129,29 +132,33 @@ export function Button({
 
   if (target === "_blank" || isExternalHref(href)) {
     return (
-      <a
-        href={href}
-        target={target}
-        rel={target === "_blank" ? "noreferrer" : undefined}
+      <FocusItem>
+        <a
+          href={href}
+          target={target}
+          rel={target === "_blank" ? "noreferrer" : undefined}
+          aria-label={size === "icon" ? ariaLabel : undefined}
+          className={buttonClassName}
+          style={buttonStyle}
+          onClick={onClick as never}
+        >
+          {linkContent}
+        </a>
+      </FocusItem>
+    );
+  }
+
+  return (
+    <FocusItem>
+      <Link
+        to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
         className={buttonClassName}
         style={buttonStyle}
         onClick={onClick as never}
       >
         {linkContent}
-      </a>
-    );
-  }
-
-  return (
-    <Link
-      to={href}
-      aria-label={size === "icon" ? ariaLabel : undefined}
-      className={buttonClassName}
-      style={buttonStyle}
-      onClick={onClick as never}
-    >
-      {linkContent}
-    </Link>
+      </Link>
+    </FocusItem>
   );
 }
