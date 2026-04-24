@@ -1,5 +1,6 @@
 export type FocusDirection = "up" | "down" | "left" | "right";
 export type FocusOrientation = "vertical" | "horizontal" | "grid";
+export type FocusAutoScrollMode = "item" | "region" | "row" | "auto";
 export type NavigationNodeState = "active" | "disabled" | "hidden";
 export type FocusElementGetter = () => HTMLElement | null;
 export type FocusOverrideTarget =
@@ -36,7 +37,9 @@ export interface FocusRegion {
   orientation: FocusOrientation;
   layerId: string;
   navigationOverrides?: FocusOverrides;
+  autoScrollMode?: FocusAutoScrollMode;
   getElement: FocusElementGetter;
+  getScrollAnchor?: FocusElementGetter;
 }
 
 export interface FocusLayer {
@@ -321,7 +324,15 @@ export class NavigationService {
 
   public updateRegion(
     regionId: string,
-    updates: Partial<Pick<FocusRegion, "navigationOverrides" | "getElement">>
+    updates: Partial<
+      Pick<
+        FocusRegion,
+        | "navigationOverrides"
+        | "getElement"
+        | "autoScrollMode"
+        | "getScrollAnchor"
+      >
+    >
   ) {
     const registeredRegion = this.regions.get(regionId);
 
@@ -331,13 +342,19 @@ export class NavigationService {
       updates.navigationOverrides ?? registeredRegion.navigationOverrides;
 
     const nextGetElement = updates.getElement ?? registeredRegion.getElement;
+    const nextAutoScrollMode =
+      updates.autoScrollMode ?? registeredRegion.autoScrollMode;
+    const nextGetScrollAnchor =
+      updates.getScrollAnchor ?? registeredRegion.getScrollAnchor;
 
     if (
       this.areFocusOverridesEqual(
         registeredRegion.navigationOverrides,
         nextNavigationOverrides
       ) &&
-      nextGetElement === registeredRegion.getElement
+      nextGetElement === registeredRegion.getElement &&
+      nextAutoScrollMode === registeredRegion.autoScrollMode &&
+      nextGetScrollAnchor === registeredRegion.getScrollAnchor
     ) {
       return;
     }
@@ -345,7 +362,9 @@ export class NavigationService {
     this.regions.set(regionId, {
       ...registeredRegion,
       navigationOverrides: nextNavigationOverrides,
+      autoScrollMode: nextAutoScrollMode,
       getElement: nextGetElement,
+      getScrollAnchor: nextGetScrollAnchor,
     });
 
     this.notify();
@@ -518,7 +537,9 @@ export class NavigationService {
       orientation: region.orientation,
       layerId: region.layerId,
       navigationOverrides: region.navigationOverrides,
+      autoScrollMode: region.autoScrollMode,
       getElement: region.getElement,
+      getScrollAnchor: region.getScrollAnchor,
     }));
   }
 
