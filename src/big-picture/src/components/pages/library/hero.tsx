@@ -6,7 +6,8 @@ import {
   PlayIcon,
   TrophyIcon,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import cn from "classnames";
 import {
   Button,
   AnimatedHeroImage,
@@ -32,6 +33,20 @@ interface HeroBackgroundLayer {
   imageUrl: string;
   role: "base" | "incoming";
   isVisible: boolean;
+}
+
+function onIncomingLayerKey(
+  layer: HeroBackgroundLayer,
+  run: (layerKey: number) => void
+) {
+  return function handle() {
+    if (layer.role !== "incoming") return;
+    run(layer.key);
+  };
+}
+
+function noOp() {
+  return undefined;
 }
 
 const FEATURED_GAME_INTERVAL = 60000;
@@ -63,7 +78,9 @@ export function LibraryHero({
   const [backgroundLayers, setBackgroundLayers] = useState<
     HeroBackgroundLayer[]
   >([]);
+  const heroRef = useRef<HTMLElement | null>(null);
   const featuredGame = lastPlayedGames[featuredGameIndex] ?? null;
+  const getHeroScrollAnchor = useCallback(() => heroRef.current, []);
 
   useEffect(() => {
     if (lastPlayedGames.length <= 1) {
@@ -197,29 +214,24 @@ export function LibraryHero({
       : undefined;
 
   return (
-    <section className="hero">
+    <section ref={heroRef} className="hero">
       {backgroundLayers.map((layer) => (
         <div
           key={layer.key}
-          className={`hero__bg-layer hero__bg-layer--${layer.role} ${
-            layer.isVisible ? "hero__bg-layer--visible" : ""
-          }`.trim()}
-          onTransitionEnd={() => {
-            if (layer.role !== "incoming") return;
-            handleIncomingTransitionEnd(layer.key);
-          }}
+          className={cn(
+            `hero__bg-layer hero__bg-layer--${layer.role}`,
+            layer.isVisible && "hero__bg-layer--visible"
+          )}
+          onTransitionEnd={onIncomingLayerKey(
+            layer,
+            handleIncomingTransitionEnd
+          )}
         >
           <AnimatedHeroImage
             className="hero__bg"
             imageUrl={layer.imageUrl}
-            onLoad={() => {
-              if (layer.role !== "incoming") return;
-              handleIncomingImageLoad(layer.key);
-            }}
-            onError={() => {
-              if (layer.role !== "incoming") return;
-              handleIncomingImageError(layer.key);
-            }}
+            onLoad={onIncomingLayerKey(layer, handleIncomingImageLoad)}
+            onError={onIncomingLayerKey(layer, handleIncomingImageError)}
           />
         </div>
       ))}
@@ -251,12 +263,13 @@ export function LibraryHero({
             <HorizontalFocusGroup
               regionId={LIBRARY_HERO_ACTIONS_REGION_ID}
               navigationOverrides={heroActionsNavigationOverrides}
+              getScrollAnchor={getHeroScrollAnchor}
             >
               <Button
                 variant="primary"
                 icon={<PlayIcon size={24} />}
                 color={dominantColor ?? undefined}
-                onClick={() => {}}
+                onClick={noOp}
               >
                 Launch Game
               </Button>
@@ -268,12 +281,12 @@ export function LibraryHero({
               <Button
                 variant="secondary"
                 icon={<GearIcon size={24} />}
-                onClick={() => {}}
+                onClick={noOp}
               >
                 Options
               </Button>
 
-              <Button variant="secondary" size="icon" onClick={() => {}}>
+              <Button variant="secondary" size="icon" onClick={noOp}>
                 <HeartIcon size={24} />
               </Button>
             </HorizontalFocusGroup>
