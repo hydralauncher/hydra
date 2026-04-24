@@ -33,7 +33,6 @@ export interface GameDetailsContext {
   lastDownloadedOption: GameRepack | null;
   isTransferring: boolean;
   transferProgress: number;
-  isTransferPaused: boolean;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -42,6 +41,5 @@ export interface GameDetailsContext {
     React.SetStateAction<GameOptionsCategoryId>
   >;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
-  onPauseTransfer: () => void;
-  onResumeTransfer: () => void;
+  cancelTransfer: () => void;
 }

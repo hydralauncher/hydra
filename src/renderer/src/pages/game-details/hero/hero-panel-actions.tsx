@@ -7,7 +7,6 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
-  PauseIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import {
@@ -19,6 +18,7 @@ import {
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { gameDetailsContext } from "@renderer/context";
+import { X } from "lucide-react";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -44,9 +44,7 @@ export function HeroPanelActions() {
     selectGameExecutable,
     isTransferring,
     transferProgress,
-    isTransferPaused,
-    onPauseTransfer,
-    onResumeTransfer,
+    cancelTransfer,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -219,7 +217,6 @@ export function HeroPanelActions() {
   );
 
   const gameActionButton = () => {
-    // Check if game is transferring
     if (isTransferring) {
       const percent = Math.round(transferProgress * 100);
       return (
@@ -232,14 +229,14 @@ export function HeroPanelActions() {
               setShowGameOptionsModal(true);
             }}
           >
-            {isTransferPaused ? "Transfer Paused" : `Transferring ${percent}%`}
+            {`Transferring ${percent}%`}
           </Button>
           <Button
             theme="outline"
             className="hero-panel-actions__action hero-panel-actions__icon-btn"
-            onClick={isTransferPaused ? onResumeTransfer : onPauseTransfer}
+            onClick={cancelTransfer}
           >
-            {isTransferPaused ? <PlayIcon /> : <PauseIcon />}
+            <X size={14} />
           </Button>
         </div>
       );
@@ -247,24 +244,15 @@ export function HeroPanelActions() {
 
     if (isGameRunning) {
       return (
-        <div className="hero-panel-actions__button-group">
-          <Button
-            onClick={closeGame}
-            theme="outline"
-            disabled={deleting}
-            className="hero-panel-actions__action"
-          >
-            <PlayIcon />
-            {t("playing_now")}
-          </Button>
-          <Button
-            theme="outline"
-            className="hero-panel-actions__action hero-panel-actions__icon-btn"
-            onClick={closeGame}
-          >
-            <PauseIcon />
-          </Button>
-        </div>
+        <Button
+          onClick={closeGame}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          <PlayIcon />
+          {t("playing_now")}
+        </Button>
       );
     }
 
