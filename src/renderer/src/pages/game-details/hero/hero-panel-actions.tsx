@@ -9,6 +9,7 @@ import {
   PlusCircleIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
+import { XCircle } from "lucide-react";
 import {
   useDownload,
   useLibrary,
@@ -41,8 +42,6 @@ export function HeroPanelActions() {
     setShowRepacksModal,
     updateGame,
     selectGameExecutable,
-    isTransferring,
-    transferProgress,
   } = useContext(gameDetailsContext);
 
   const { lastPacket } = useDownload();
@@ -215,35 +214,16 @@ export function HeroPanelActions() {
   );
 
   const gameActionButton = () => {
-    if (isTransferring) {
-    const percent = Math.round(transferProgress * 100);
-    return (
-      <div className="hero-panel-actions__button-group">
-        <Button
-          theme="outline"
-          className="hero-panel-actions__action"
-          onClick={() => {
-            setGameOptionsInitialCategory("general");
-            setShowGameOptionsModal(true);
-          }}
-        >
-          {`Transferring ${percent}%`}
-        </Button>
-      </div>
-    );
-  }
-
     if (isGameRunning) {
       return (
-        <Button
-          className="hero-panel-actions__action hero-panel-actions__action--transfer"
-          onClick={closeGame}
-          theme="outline"
-          disabled={deleting}
-        >
-          <PlayIcon />
-          {t("playing_now")}
-        </Button>
+      <Button
+        onClick={closeGame}
+        theme="outline"
+        disabled={deleting}
+        className="hero-panel-actions__action">
+        <XCircle size={18} />
+        {t("close")}
+      </Button>
       );
     }
 
