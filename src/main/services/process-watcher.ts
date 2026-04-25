@@ -331,11 +331,7 @@ function onOpenGame(game: Game) {
       syncTimestamp: syncTimestamp.toISOString(),
     });
 
-    trackGamePlaytime(
-      game,
-      deltaToSync,
-      syncTimestamp
-    )
+    trackGamePlaytime(game, deltaToSync, syncTimestamp)
       .then(() => {
         logPlaytimeTrace("open-sync-track-success", game, {
           deltaToSync,

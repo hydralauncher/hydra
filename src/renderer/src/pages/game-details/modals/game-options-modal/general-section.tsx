@@ -270,7 +270,8 @@ export function GeneralSettingsSection({
                 </div>
                 {drives.map((drive) => {
                   const hasSpace = drive.free >= gameSize;
-                  const isSelected = selectedDrive === drive.root && !customPath;
+                  const isSelected =
+                    selectedDrive === drive.root && !customPath;
                   const usedPct = Math.round(
                     ((drive.total - drive.free) / drive.total) * 100
                   );
@@ -301,7 +302,8 @@ export function GeneralSettingsSection({
                           <span
                             className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}
                           >
-                            {fmt(drive.free)} {t("transfer_free")} / {fmt(drive.total)}
+                            {fmt(drive.free)} {t("transfer_free")} /{" "}
+                            {fmt(drive.total)}
                           </span>
                         </div>
                         <div className="drive-card__bar">
@@ -364,9 +366,7 @@ export function GeneralSettingsSection({
                 onClick={handleStartTransfer}
                 disabled={!effectiveDest || isPreparing}
               >
-                {isPreparing
-                  ? t("transfer_preparing")
-                  : t("start_transfer")}
+                {isPreparing ? t("transfer_preparing") : t("start_transfer")}
               </Button>
             </div>
           </div>
