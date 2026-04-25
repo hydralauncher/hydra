@@ -769,7 +769,11 @@
     "deck_verified_only": "Somente verificado",
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponíveis",
-    "clear_filters": "Limpar {{filterCount}} selecionados"
+    "clear_filters": "Limpar",
+    "release_year": "Ano de lançamento",
+    "filter_by_release_year": "Filtrar por ano de lançamento",
+    "release_year_gte": "Ano de lançamento a partir de",
+    "release_year_lte": "Ano de lançamento até"
   },
   "modal": {
     "close": "Botão de fechar"
