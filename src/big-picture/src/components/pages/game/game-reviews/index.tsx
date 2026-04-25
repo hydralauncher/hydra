@@ -17,6 +17,7 @@ import {
   Typography,
 } from "../../../common";
 import {
+  GAME_REVIEWS_LOAD_MORE_ID,
   GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
   GAME_REVIEWS_REGION_ID,
   GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
@@ -26,7 +27,10 @@ import {
   getGameReviewVoteButtonUpvoteId,
   getGameReviewVotesRegionId,
 } from "../navigation";
-import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
+import {
+  FocusOverrides,
+  NavigationService,
+} from "../../../../services/navigation.service";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 
 type ReviewSortOption =
@@ -55,6 +59,7 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   const { formatDistance } = useDate();
   const { formatNumber, formatPlayTime } = useFormat();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const prevHasMoreRef = useRef(true);
 
   const loadReviews = useCallback(
     async (reset = false) => {
@@ -218,6 +223,17 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   }, [page, loadReviews]);
 
   useEffect(() => {
+    if (prevHasMoreRef.current && !hasMore && reviews.length > 0) {
+      const lastReview = reviews[reviews.length - 1];
+      const targetId = getGameReviewVoteButtonUpvoteId(lastReview.id);
+      requestAnimationFrame(() => {
+        NavigationService.getInstance().setFocus(targetId);
+      });
+    }
+    prevHasMoreRef.current = hasMore;
+  }, [hasMore, reviews]);
+
+  useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
     };
@@ -298,6 +314,9 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
 
   const loadMoreNavigationOverrides: FocusOverrides = {
     right: {
+      type: "block",
+    },
+    down: {
       type: "block",
     },
   };
@@ -479,10 +498,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         })
       )}
 
-      {hasMore && !reviewsLoading && reviews.length > 0 && (
+      {hasMore && reviews.length > 0 && (
         <Button
+          focusId={GAME_REVIEWS_LOAD_MORE_ID}
           variant="rounded"
           onClick={loadMore}
+          disabled={reviewsLoading}
+          loading={reviewsLoading}
           focusNavigationOverrides={loadMoreNavigationOverrides}
         >
           Load More
