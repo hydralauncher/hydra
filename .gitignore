@@ -3,6 +3,7 @@ node_modules/
 __pycache__
 dist
 out
+build/
 .DS_Store
 *.log*
 .env
@@ -20,3 +21,20 @@ native/hydra-native/target/
 *storybook.log
 Future-updates.md
 TO-DO.md
+
+# Build artifacts
+release/
+electron-builder/
+.electron-builder/
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# VS Code history
+.history/
+
+# Windows
+desktop.ini
+Thumbs.db

@@ -278,7 +278,13 @@ export function GeneralSettingsSection({
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
             <h4 className="game-options-modal__header-description">
-              {t("transfer_game_description", { game: transferGameLabel })}
+              <span>
+                Move {transferGameLabel.replace(`(${fmt(gameSize)})`, '')}
+                {' '}
+                <span style={{ color: '#4caf50', fontWeight: 500 }}>({fmt(gameSize)})</span>
+                {' '}
+                to a new drive or folder.
+              </span>
             </h4>
           </div>
 
