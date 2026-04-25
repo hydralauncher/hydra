@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import {
   FocusRegionContext,
   useFocusLayerId,
@@ -21,6 +22,7 @@ interface VerticalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getScrollAnchor?: () => HTMLElement | null;
+  asChild?: boolean;
   children: ReactNode;
 }
 
@@ -29,6 +31,7 @@ export function VerticalFocusGroup({
   navigationOverrides,
   autoScrollMode = "auto",
   getScrollAnchor,
+  asChild = false,
   className,
   style,
   children,
@@ -79,22 +82,28 @@ export function VerticalFocusGroup({
     resolvedRegionId,
   ]);
 
+  const Component = asChild ? Slot : "div";
+
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
-      <div
+      <Component
         ref={ref}
         className={className}
         data-focus-region-id={resolvedRegionId}
+        style={
+          asChild
+            ? style
+            : {
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                ...style,
+              }
+        }
         {...props}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          ...style,
-        }}
       >
         {children}
-      </div>
+      </Component>
     </FocusRegionContext.Provider>
   );
 }
