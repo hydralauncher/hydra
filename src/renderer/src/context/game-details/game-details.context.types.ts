@@ -9,6 +9,7 @@ import type {
 
 export type GameOptionsCategoryId =
   | "general"
+  | "locations"
   | "assets"
   | "hydra_cloud"
   | "compatibility"
@@ -31,6 +32,8 @@ export interface GameDetailsContext {
   achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   lastDownloadedOption: GameRepack | null;
+  isTransferring: boolean;
+  transferProgress: number;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -39,4 +42,5 @@ export interface GameDetailsContext {
     React.SetStateAction<GameOptionsCategoryId>
   >;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
+  cancelTransfer: () => void;
 }
