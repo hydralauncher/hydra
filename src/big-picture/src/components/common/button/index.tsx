@@ -9,6 +9,7 @@ import { FocusItem } from "..";
 const variants = {
   primary: "button--primary",
   secondary: "button--secondary",
+  tertiary: "button--tertiary",
   rounded: "button--rounded",
   danger: "button--danger",
   link: "button--link",
