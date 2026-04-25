@@ -219,6 +219,107 @@
     > *:not(:first-child):not(:last-child) {
       border-radius: 0;
     }
+
+    #game-stats-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-screenshot-carousel-prev-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-screenshot-carousel-next-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-how-long-to-beat-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-achievements-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-achievements-view-all {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-requirements-to-play-minimum-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fbbf24 !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-requirements-to-play-recommended-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-supported-languages-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-supported-languages-last-row {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-primary-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-secondary-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-third-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    [id^="game-review-vote-button-upvote-"][data-focused="true"] {
+      outline: 2px solid #fbbf24 !important;
+      outline-offset: -2px;
+    }
+
+    [id^="game-review-vote-button-downvote-"][data-focused="true"] {
+      outline: 2px solid #f87171 !important;
+      outline-offset: -2px;
+    }
   }
 
   &__requirements {

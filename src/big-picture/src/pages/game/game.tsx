@@ -14,12 +14,20 @@ import {
   GameReviews,
   Hero,
   HowLongToBeatBox,
-  SupportedLanguages,
   PlaytimeBar,
   RequirementsToPlay,
   ScreenshotCarousel,
+  SupportedLanguages,
 } from "../../components/pages/game";
+import {
+  GAME_HERO_TOGGLE_FAVORITE_ID,
+  GAME_HOW_LONG_TO_BEAT_TITLE_ID,
+  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+  GAME_STATS_REGION_ID,
+  GAME_STATS_TITLE_ID,
+} from "../../components/pages/game/navigation";
 import { useGameDetails } from "../../hooks";
+import { FocusOverrides } from "../../services/navigation.service";
 import "./game.scss";
 
 export default function Game() {
@@ -44,6 +52,24 @@ export default function Game() {
       </div>
     );
   }
+
+  const statsNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
+    },
+    left: {
+      type: "item",
+      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+    },
+    right: {
+      type: "block",
+    },
+    down: {
+      type: "item",
+      itemId: GAME_HOW_LONG_TO_BEAT_TITLE_ID,
+    },
+  };
 
   return (
     <div className="game-page">
@@ -84,26 +110,30 @@ export default function Game() {
 
             <VerticalFocusGroup regionId="sidebar-actions" asChild>
               <div className="game-page__sidebar">
-                <HorizontalFocusGroup asChild>
-                  <div className="game-page__sidebar-stats">
-                    <div className="game-page__box-group">
-                      <FocusItem>
-                        <TitleBox title="Stats" />
-                      </FocusItem>
+                <HorizontalFocusGroup
+                  className="game-page__sidebar-stats"
+                  regionId={GAME_STATS_REGION_ID}
+                >
+                  <div className="game-page__box-group">
+                    <FocusItem
+                      id={GAME_STATS_TITLE_ID}
+                      navigationOverrides={statsNavigationOverrides}
+                    >
+                      <TitleBox title="Stats" />
+                    </FocusItem>
 
-                      <SingleLineBox
-                        title="Rating"
-                        value={formatNumber(stats?.averageScore ?? 0)}
-                      />
-                      <SingleLineBox
-                        title="Downloads"
-                        value={formatNumber(stats?.downloadCount ?? 0)}
-                      />
-                      <SingleLineBox
-                        title="Playing Now"
-                        value={formatNumber(stats?.playerCount ?? 0)}
-                      />
-                    </div>
+                    <SingleLineBox
+                      title="Rating"
+                      value={formatNumber(stats?.averageScore ?? 0)}
+                    />
+                    <SingleLineBox
+                      title="Downloads"
+                      value={formatNumber(stats?.downloadCount ?? 0)}
+                    />
+                    <SingleLineBox
+                      title="Playing Now"
+                      value={formatNumber(stats?.playerCount ?? 0)}
+                    />
                   </div>
                 </HorizontalFocusGroup>
 
