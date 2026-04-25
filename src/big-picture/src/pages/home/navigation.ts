@@ -1,6 +1,7 @@
 import type { ShopAssets } from "@types";
 
 export const HOME_HERO_ADD_TO_LIBRARY_ID = "home-hero-add-to-library";
+export const HOME_HERO_OPEN_GAME_PAGE_ID = "home-hero-open-game-page";
 export const HOME_HERO_DOWNLOAD_ID = "home-hero-download";
 export const HOME_HERO_ACTIONS_REGION_ID = "home-hero-actions";
 export const HOME_POPULAR_GAMES_ROW_REGION_ID = "home-popular-games-row";
