@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import fs from "node:fs/promises";
 import { registerEvent } from "../register-event";
 
 interface DriveInfo {
@@ -9,98 +9,128 @@ interface DriveInfo {
 }
 
 const DRIVE_SEPARATOR = String.fromCharCode(92);
-const WINDOWS_DEFAULT_ROOT = ["C:", "Windows"].join(DRIVE_SEPARATOR);
-const WINDOWS_POWERSHELL_PATH = [
-  "System32",
-  "WindowsPowerShell",
-  "v1.0",
-  "powershell.exe",
-].join(DRIVE_SEPARATOR);
-const POWERSHELL_TIMEOUT_MS = 10_000;
-const POWERSHELL_DRIVES_COMMAND =
-  'Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3" | Select-Object DeviceID, FreeSpace, Size | ConvertTo-Csv -NoTypeInformation';
+const DRIVE_LETTERS = Array.from({ length: 26 }, (_, i) =>
+  String.fromCharCode(65 + i)
+);
+const LINUX_IGNORED_FS_TYPES = new Set([
+  "proc",
+  "sysfs",
+  "tmpfs",
+  "devtmpfs",
+  "devpts",
+  "overlay",
+  "squashfs",
+  "nsfs",
+  "cgroup",
+  "cgroup2",
+  "pstore",
+  "bpf",
+  "tracefs",
+  "securityfs",
+  "configfs",
+  "debugfs",
+  "mqueue",
+  "hugetlbfs",
+  "fusectl",
+  "ramfs",
+  "autofs",
+  "binfmt_misc",
+]);
 
-function toInteger(value: string): number {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? 0 : parsed;
+function getDriveRoot(letter: string): string {
+  return `${letter}:${DRIVE_SEPARATOR}`;
 }
 
-function parseDriveLine(line: string): DriveInfo | null {
-  if (!line.trim()) return null;
+async function getDriveInfo(root: string): Promise<DriveInfo | null> {
+  if (typeof (fs as any).statfs !== "function") return null;
 
-  const [deviceId = "", freeSpace = "", size = ""] = line
-    .split(",")
-    .map((value) => value.replaceAll('"', "").trim());
+  try {
+    const stats = await (fs as any).statfs(root);
+    const total = stats.blocks * stats.bsize;
+    const free = stats.bavail * stats.bsize;
 
-  const total = toInteger(size);
-  if (!deviceId || total <= 0) return null;
+    if (total <= 0) return null;
 
-  return {
-    root: `${deviceId}${DRIVE_SEPARATOR}`,
-    label: deviceId,
-    free: toInteger(freeSpace),
-    total,
-  };
+    return {
+      root,
+      label: root.slice(0, 2),
+      free: Math.max(0, free),
+      total,
+    };
+  } catch {
+    return null;
+  }
 }
 
-function parseDriveCsv(output: string): DriveInfo[] {
-  const lines = output.split(/\r?\n/);
-  if (lines.length < 2) return [];
-
-  return lines
-    .slice(1)
-    .map(parseDriveLine)
-    .filter((drive): drive is DriveInfo => drive !== null);
-}
-
-function getPowerShellPath(): string {
-  const systemRoot = process.env.SystemRoot ?? WINDOWS_DEFAULT_ROOT;
-  const normalizedRoot = systemRoot.endsWith(DRIVE_SEPARATOR)
-    ? systemRoot.slice(0, -1)
-    : systemRoot;
-  return `${normalizedRoot}${DRIVE_SEPARATOR}${WINDOWS_POWERSHELL_PATH}`;
-}
-
-function queryWindowsDrives(): DriveInfo[] {
-  const result = spawnSync(
-    getPowerShellPath(),
-    ["-NoProfile", "-Command", POWERSHELL_DRIVES_COMMAND],
-    {
-      encoding: "utf8",
-      shell: false,
-      timeout: POWERSHELL_TIMEOUT_MS,
-    }
+async function queryWindowsDrives(): Promise<DriveInfo[]> {
+  const driveChecks = DRIVE_LETTERS.map((letter) =>
+    getDriveInfo(getDriveRoot(letter))
   );
+  const drives = await Promise.all(driveChecks);
 
-  if (result.error) {
-    console.error("PowerShell spawn error:", result.error);
-    throw result.error;
+  return drives.filter((drive): drive is DriveInfo => drive !== null);
+}
+
+function decodeLinuxMountPath(value: string): string {
+  return value
+    .replaceAll("\\040", " ")
+    .replaceAll("\\011", "\t")
+    .replaceAll("\\012", "\n")
+    .replaceAll("\\134", DRIVE_SEPARATOR);
+}
+
+async function getLinuxMountPoints(): Promise<string[]> {
+  const mounts = await fs.readFile("/proc/mounts", "utf8").catch(() => "");
+  if (!mounts.trim()) return ["/"];
+
+  const mountPoints = new Set<string>();
+
+  for (const line of mounts.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+
+    const [source = "", target = "", fsType = ""] = line.split(" ");
+    if (!target || LINUX_IGNORED_FS_TYPES.has(fsType)) continue;
+
+    const isDeviceMount = source.startsWith("/dev/");
+    const isUserSpaceFs = fsType.startsWith("fuse.");
+    if (!isDeviceMount && !isUserSpaceFs) continue;
+
+    mountPoints.add(decodeLinuxMountPath(target));
   }
 
-  if (result.status !== 0) {
-    console.error(
-      "PowerShell exit code:",
-      result.status,
-      "stderr:",
-      result.stderr
-    );
-    throw new Error(`PowerShell exited with code ${result.status}`);
-  }
+  if (mountPoints.size === 0) mountPoints.add("/");
+  return Array.from(mountPoints);
+}
 
-  console.log("Raw output length:", result.stdout.length);
-  return parseDriveCsv(result.stdout);
+async function queryLinuxDrives(): Promise<DriveInfo[]> {
+  const mountPoints = await getLinuxMountPoints();
+  const driveChecks = mountPoints.map((mountPoint) => getDriveInfo(mountPoint));
+  const drives = await Promise.all(driveChecks);
+
+  return drives
+    .filter((drive): drive is DriveInfo => drive !== null)
+    .map((drive) => ({ ...drive, label: drive.root }));
 }
 
 const getAvailableDrives = async (): Promise<DriveInfo[]> => {
   console.log("getAvailableDrives called, platform:", process.platform);
-  if (process.platform !== "win32") return [];
 
   try {
-    const drives = queryWindowsDrives();
-    console.log("Parsed drives:", drives.length, "drives found");
-    return drives;
+    if (process.platform === "win32") {
+      const drives = await queryWindowsDrives();
+      console.log("Parsed drives:", drives.length, "drives found");
+      return drives;
+    }
+
+    if (process.platform === "linux") {
+      const drives = await queryLinuxDrives();
+      console.log("Parsed drives:", drives.length, "drives found");
+      return drives;
+    }
+
+    return [];
   } catch (error) {
-    console.error("PowerShell failed:", error);
+    console.error("Failed to fetch drives:", error);
     return [];
   }
 };
