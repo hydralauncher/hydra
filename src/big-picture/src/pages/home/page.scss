@@ -11,8 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
-  padding: 0 calc(var(--spacing-unit) * 16)
-    calc(var(--spacing-unit) * 16);
+  padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
 }
 
 .home-page__popular-games-title {
@@ -42,8 +41,7 @@
 
 @media (max-width: 720px) {
   .home-page__popular-games {
-    padding: 0 calc(var(--spacing-unit) * 6)
-      calc(var(--spacing-unit) * 8);
+    padding: 0 calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 8);
   }
 
   .home-page__popular-games-title {
