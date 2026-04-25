@@ -6,7 +6,7 @@ import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { WindowManager } from "@main/services/window-manager";
-import type { GameShop } from "@types";
+import type { GameShop, LibraryGame } from "@types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function send(
@@ -31,17 +31,17 @@ const activeTransfers = new Map<
 // ── Steam‑style copy engine ─────────────────────────────────────────────────
 class SteamCopyEngine {
   private bytesCopied = 0;
-  private totalSize: number;
+  private readonly totalSize: number;
   private startTime: number;
   private lastReportTime = 0;
   private readonly REPORT_INTERVAL = 100;
   private readonly BLOCK_SIZE = 1024 * 1024;
-  private readonly CONCURRENCY = 8;  //4 is the default ,8 is for max performance
+  private readonly CONCURRENCY = 8;
 
   constructor(
-    private id: string,
-    private shop: GameShop,
-    private objectId: string,
+    private readonly id: string,
+    private readonly shop: GameShop,
+    private readonly objectId: string,
     totalSize: number
   ) {
     this.totalSize = totalSize;
@@ -86,9 +86,8 @@ class SteamCopyEngine {
     const dirs = entries.filter((e) => e.isDirectory());
 
     for (let i = 0; i < files.length; i += this.CONCURRENCY) {
-      const state = activeTransfers.get(this.id);
-      if (state?.cancelled) throw new Error("cancelled");
-
+      await this.checkCancelled();
+      
       const batch = files.slice(i, i + this.CONCURRENCY);
       await Promise.all(
         batch.map((file) =>
@@ -101,14 +100,18 @@ class SteamCopyEngine {
     }
 
     for (const dir of dirs) {
-      const state = activeTransfers.get(this.id);
-      if (state?.cancelled) throw new Error("cancelled");
-
+      await this.checkCancelled();
+      
       const srcPath = path.join(srcDir, dir.name);
       const destPath = path.join(destDir, dir.name);
       await fs.mkdir(destPath, { recursive: true });
       await this.copyDirectory(srcPath, destPath);
     }
+  }
+
+  private async checkCancelled(): Promise<void> {
+    const state = activeTransfers.get(this.id);
+    if (state?.cancelled) throw new Error("cancelled");
   }
 
   private copyFileWithProgress(
@@ -122,7 +125,6 @@ class SteamCopyEngine {
         return reject(new Error("cancelled"));
       }
 
-      // Register reject so cancel can immediately reject this copy
       state.pendingRejects.push(reject);
 
       const readStream = createReadStream(srcFile, {
@@ -139,7 +141,6 @@ class SteamCopyEngine {
       state.currentStreams.add(streamRef);
 
       const cleanup = () => {
-        // Remove reject from array when promise settles
         const idx = state.pendingRejects.indexOf(reject);
         if (idx !== -1) state.pendingRejects.splice(idx, 1);
         state.currentStreams.delete(streamRef);
@@ -149,9 +150,8 @@ class SteamCopyEngine {
         this.addBytes(Buffer.byteLength(chunk));
       });
 
-      // Destroy stream will trigger 'close' or 'error'. We reject on 'close' as well.
       readStream.on("close", () => {
-        if (!state.cancelled) return; // only treat as error if cancelled
+        if (!state.cancelled) return;
         cleanup();
         reject(new Error("cancelled"));
       });
@@ -174,6 +174,95 @@ class SteamCopyEngine {
   }
 }
 
+// ── Helper functions for transfer validation ────────────────────────────────
+interface GameWithExecutable extends LibraryGame {
+  executablePath: string;
+}
+
+async function validateGameExists(shop: GameShop, objectId: string): Promise<GameWithExecutable | null> {
+  const gameKey = levelKeys.game(shop, objectId);
+  try {
+    const game = await gamesSublevel.get(gameKey) as LibraryGame | undefined;
+    if (game?.executablePath) {
+      return game as GameWithExecutable;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function validateGameRoot(game: GameWithExecutable): Promise<{ valid: true; gameRoot: string } | { valid: false; error: string }> {
+  const gameRoot = await findGameRootFromExe(game.executablePath).catch(() => null);
+  if (!gameRoot) {
+    return { valid: false, error: "Cannot determine game root folder" };
+  }
+  
+  return { valid: true, gameRoot };
+}
+
+async function validateDestination(gameRoot: string, _destParent: string, targetRoot: string) {
+  if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
+    return { valid: false, error: "Game is already in this location" };
+  }
+  
+  if (targetRoot.startsWith(gameRoot + path.sep)) {
+    return { valid: false, error: "Destination is inside source folder" };
+  }
+  
+  return { valid: true };
+}
+
+async function checkDiskSpace(destParent: string, requiredSize: number) {
+  try {
+    if (typeof (fs as any).statfs === "function") {
+      const stats = await (fs as any).statfs(destParent);
+      const available = stats.bfree * stats.bsize;
+      if (available < requiredSize) {
+        return {
+          hasSpace: false,
+          error: "not_enough_space" as const,
+          needed: requiredSize,
+          available,
+        };
+      }
+    }
+  } catch {
+    // Proceed without check if unavailable
+  }
+  
+  return { hasSpace: true };
+}
+
+async function updateDatabaseAfterTransfer(
+  game: GameWithExecutable,
+  gameKey: string,
+  newExePath: string,
+  gameSize: number
+) {
+  const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
+  
+  await gamesSublevel.put(gameKey, {
+    ...game,
+    executablePath: newExePath,
+    installedSizeInBytes,
+  });
+  
+  const download = await downloadsSublevel.get(gameKey).catch(() => null);
+  if (download) {
+    await downloadsSublevel.put(gameKey, {
+      ...download,
+      downloadPath: path.dirname(newExePath),
+      folderName: path.basename(path.dirname(newExePath)),
+    });
+  }
+}
+
+async function cleanupOnError(id: string, targetRoot: string) {
+  await fs.rm(targetRoot, { recursive: true, force: true }).catch(() => {});
+  activeTransfers.delete(id);
+}
+
 // ── MAIN TRANSFER EVENT ─────────────────────────────────────────────────────
 registerEvent(
   "transferGameFiles",
@@ -185,40 +274,32 @@ registerEvent(
       pendingRejects: [],
     });
 
-    const gameKey = levelKeys.game(shop, objectId);
-
-    let game;
-    try {
-      game = await gamesSublevel.get(gameKey);
-    } catch {
+    // Validate game exists and has executable path
+    const game = await validateGameExists(shop, objectId);
+    if (!game) {
       activeTransfers.delete(id);
-      return { ok: false, error: "Game not found" };
+      return { ok: false, error: "Game not found or has no executable path" };
     }
 
-    if (!game?.executablePath) {
+    // Validate game root
+    const rootValidation = await validateGameRoot(game);
+    if (!rootValidation.valid) {
       activeTransfers.delete(id);
-      return { ok: false, error: "No executable selected" };
+      return { ok: false, error: rootValidation.error };
     }
-
-    const exePath = game.executablePath;
-    const gameRoot = await findGameRootFromExe(exePath).catch(() => null);
-    if (!gameRoot) {
-      activeTransfers.delete(id);
-      return { ok: false, error: "Cannot determine game root folder" };
-    }
+    const gameRoot: string = rootValidation.gameRoot;
 
     const folderName = path.basename(gameRoot);
     const targetRoot = path.join(destParent, folderName);
 
-    if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
+    // Validate destination
+    const destValidation = await validateDestination(gameRoot, destParent, targetRoot);
+    if (!destValidation.valid) {
       activeTransfers.delete(id);
-      return { ok: false, error: "Game is already in this location" };
-    }
-    if (targetRoot.startsWith(gameRoot + path.sep)) {
-      activeTransfers.delete(id);
-      return { ok: false, error: "Destination is inside source folder" };
+      return { ok: false, error: destValidation.error };
     }
 
+    // Send initial progress
     send("on-game-transfer-progress", shop, objectId, 0, {
       speed: 0,
       eta: 0,
@@ -228,22 +309,16 @@ registerEvent(
     
     const gameSize = await getDirectorySize(gameRoot);
 
-    try {
-      if (typeof (fs as any).statfs === "function") {
-        const stats = await (fs as any).statfs(destParent);
-        const available = stats.bfree * stats.bsize;
-        if (available < gameSize) {
-          activeTransfers.delete(id);
-          return {
-            ok: false,
-            error: "not_enough_space",
-            needed: gameSize,
-            available,
-          };
-        }
-      }
-    } catch {
-      // Proceed without check if unavailable
+    // Check disk space
+    const spaceCheck = await checkDiskSpace(destParent, gameSize);
+    if (!spaceCheck.hasSpace) {
+      activeTransfers.delete(id);
+      return {
+        ok: false,
+        error: spaceCheck.error,
+        needed: spaceCheck.needed,
+        available: spaceCheck.available,
+      };
     }
 
     await fs.mkdir(destParent, { recursive: true });
@@ -254,36 +329,30 @@ registerEvent(
       await engine.moveGame(gameRoot, targetRoot);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      await fs.rm(targetRoot, { recursive: true, force: true }).catch(() => {});
-      activeTransfers.delete(id);
+      await cleanupOnError(id, targetRoot);
+      
       if (msg === "cancelled") {
         send("on-game-transfer-cancelled", shop, objectId);
         return { ok: false, error: "Transfer cancelled" };
       }
+      
       send("on-game-transfer-error", shop, objectId, msg);
       return { ok: false, error: msg };
     }
 
-    const relExe = path.relative(gameRoot, exePath);
+    const relExe = path.relative(gameRoot, game.executablePath);
     const newExePath = path.join(targetRoot, relExe);
-    const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
+    const gameKey = levelKeys.game(shop, objectId);
 
     try {
-      await gamesSublevel.put(gameKey, {
-        ...game,
-        executablePath: newExePath,
-        installedSizeInBytes,
-      });
-      const download = await downloadsSublevel.get(gameKey).catch(() => null);
-      if (download) {
-        await downloadsSublevel.put(gameKey, {
-          ...download,
-          downloadPath: destParent,
-          folderName,
-        });
-      }
+      await updateDatabaseAfterTransfer(
+        game,
+        gameKey,
+        newExePath,
+        gameSize
+      );
     } catch {
-      activeTransfers.delete(id);
+      await cleanupOnError(id, targetRoot);
       return { ok: false, error: "Failed to update database" };
     }
 
@@ -300,10 +369,8 @@ registerEvent(
     const s = activeTransfers.get(`${shop}:${objectId}`);
     if (s) {
       s.cancelled = true;
-      // Destroy all active streams
       s.currentStreams.forEach((stream) => stream.destroy());
       s.currentStreams.clear();
-      // Immediately reject every pending file copy
       s.pendingRejects.forEach((reject) => reject(new Error("cancelled")));
       s.pendingRejects = [];
     }
