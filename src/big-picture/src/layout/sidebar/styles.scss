@@ -44,9 +44,6 @@
   padding: 0 calc(var(--spacing-unit) * 3);
 
   &__header {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
     width: 100%;
 
     > button:hover {

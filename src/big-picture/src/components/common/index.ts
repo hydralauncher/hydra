@@ -33,3 +33,4 @@ export * from "./input";
 export * from "./typography";
 export * from "./divider";
 export * from "./user-profile";
+export * from "./box";

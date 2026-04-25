@@ -1,5 +1,5 @@
-import { useRef } from "react";
 import { useHlsVideo } from "@shared";
+import { useRef } from "react";
 
 interface VideoPlayerProps {
   videoSrc?: string;
@@ -9,8 +9,8 @@ interface VideoPlayerProps {
   muted?: boolean;
   loop?: boolean;
   controls?: boolean;
-  tabIndex?: number;
-  className?: string;
+  style?: React.CSSProperties;
+  videoRef?: (el: HTMLVideoElement | null) => void;
 }
 
 export function VideoPlayer({
@@ -21,13 +21,13 @@ export function VideoPlayer({
   muted = true,
   loop = false,
   controls = true,
-  tabIndex = -1,
-  className,
+  style,
+  videoRef,
 }: Readonly<VideoPlayerProps>) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const internalRef = useRef<HTMLVideoElement>(null);
   const isHls = videoType === "application/x-mpegURL";
 
-  useHlsVideo(videoRef, {
+  useHlsVideo(internalRef, {
     videoSrc,
     videoType,
     autoplay,
@@ -35,17 +35,23 @@ export function VideoPlayer({
     loop,
   });
 
+  const setRef = (el: HTMLVideoElement | null) => {
+    (internalRef as React.MutableRefObject<HTMLVideoElement | null>).current =
+      el;
+    videoRef?.(el);
+  };
+
   if (isHls) {
     return (
       <video
-        ref={videoRef}
+        ref={setRef}
         controls={controls}
-        className={className}
         poster={poster}
         loop={loop}
         muted={muted}
         autoPlay={autoplay}
-        tabIndex={tabIndex}
+        playsInline
+        style={style}
       >
         <track kind="captions" />
       </video>
@@ -54,14 +60,14 @@ export function VideoPlayer({
 
   return (
     <video
-      ref={videoRef}
+      ref={setRef}
       controls={controls}
-      className={className}
       poster={poster}
       loop={loop}
       muted={muted}
       autoPlay={autoplay}
-      tabIndex={tabIndex}
+      playsInline
+      style={style}
     >
       {videoSrc && <source src={videoSrc} type={videoType} />}
       <track kind="captions" />

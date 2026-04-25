@@ -8,6 +8,7 @@
   --font-space-grotesk: "Space Grotesk";
   --primary: rgba(255, 255, 255, 1);
   --secondary: rgba(20, 20, 20, 1);
+  --tertiary: rgba(185, 2, 2, 1);
   --success: rgba(138, 235, 19, 1);
   --alert: rgba(243, 198, 17, 1);
   --error: rgba(225, 29, 72, 1);
@@ -24,9 +25,11 @@
   --text-error: rgba(225, 29, 72, 1);
   --border: rgba(8, 8, 8, 0.1);
   --secondary-border: rgba(255, 255, 255, 0.1);
+  --tertiary-border: rgba(185, 2, 2, 0.1);
   --error-border: rgba(225, 29, 72, 0.1);
   --primary-hover: rgba(255, 255, 255, 0.8);
   --secondary-hover: rgba(255, 255, 255, 0.15);
+  --tertiary-hover: rgba(185, 2, 2, 0.5);
   --error-hover: rgba(225, 29, 72, 0.2);
   --spacing-unit: 0.25rem;
 }
@@ -111,6 +114,11 @@ button {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+input {
+  font-family: inherit;
+  color: inherit;
 }
 
 ul {

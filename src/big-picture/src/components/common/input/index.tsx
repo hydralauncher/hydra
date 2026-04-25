@@ -1,12 +1,13 @@
 import "./styles.scss";
 
 import cn from "classnames";
+import { Typography } from "../typography";
 import {
   forwardRef,
   type InputHTMLAttributes,
   type ReactNode,
-  useId,
 } from "react";
+import { FocusItem } from "..";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -26,43 +27,33 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     disabled = false,
     iconLeft,
     iconRight,
-    className,
     ...props
   },
   ref
 ) {
-  const generatedId = useId();
-  const inputId = props.id ?? generatedId;
-
   return (
     <div className="input-container">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="typography typography--body input-label"
-        >
+        <Typography variant="label" className="input-label">
           {label}
-        </label>
+        </Typography>
       )}
       <div className="input-wrapper">
-        <input
-          ref={ref}
-          id={inputId}
-          type={type}
-          placeholder={placeholder}
-          disabled={disabled}
-          data-icon-left={iconLeft ? "true" : undefined}
-          data-icon-right={iconRight ? "true" : undefined}
-          className={cn(
-            "input",
-            {
-              "input--error": error,
-              "input--disabled": disabled,
-            },
-            className
-          )}
-          {...props}
-        />
+        <FocusItem asChild>
+          <input
+            ref={ref}
+            id="input"
+            type={type}
+            placeholder={placeholder}
+            disabled={disabled}
+            data-icon-left={iconLeft ? "true" : undefined}
+            data-icon-right={iconRight ? "true" : undefined}
+            className={`input ${error ? "input--error" : ""} ${
+              disabled ? "input--disabled" : ""
+            }`}
+            {...props}
+          />
+        </FocusItem>
         {iconLeft && (
           <div className="input-icon input-icon--left">{iconLeft}</div>
         )}
