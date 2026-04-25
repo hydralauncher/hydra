@@ -198,15 +198,15 @@
     border-radius: 2px;
   }
 
-&__bar-game {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-  opacity: 0.9;
-  border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
-}
+  &__bar-game {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    opacity: 0.9;
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
+  }
 
   &__tag {
     flex-shrink: 0;
