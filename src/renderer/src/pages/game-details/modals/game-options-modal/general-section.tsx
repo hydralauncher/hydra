@@ -108,7 +108,7 @@ export function GeneralSettingsSection({
 
   const [selectedDrive, setSelectedDrive] = useState<string | null>(null);
   const [customPath, setCustomPath] = useState("");
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
   const gameSize = game.installedSizeInBytes ?? 0;
@@ -127,10 +127,13 @@ export function GeneralSettingsSection({
 
   const handleStartTransfer = async () => {
     let fullDest: string;
-    const isDriveSelected = selectedDrive !== null;
 
-    if (isDriveSelected) {
-      fullDest = `${selectedDrive}\\Hydra Games`;
+    if (selectedDrive !== null) {
+      const slash = String.fromCharCode(92);
+      const normalizedDrive = selectedDrive.endsWith(slash)
+        ? selectedDrive.slice(0, -1)
+        : selectedDrive;
+      fullDest = `${normalizedDrive}${slash}Hydra Games`;
     } else if (customPath.trim()) {
       fullDest = customPath.trim();
     } else {
@@ -269,7 +272,8 @@ export function GeneralSettingsSection({
                   {t("transfer_available_drives")}
                 </div>
                 {drives.map((drive) => {
-                  const hasSpace = drive.free >= gameSize;
+                  const hasSufficientSpace = drive.free >= gameSize;
+                  const hasInsufficientSpace = !hasSufficientSpace;
                   const isSelected =
                     selectedDrive === drive.root && !customPath;
                   const usedPct = Math.round(
@@ -284,14 +288,14 @@ export function GeneralSettingsSection({
                     <button
                       key={drive.root}
                       type="button"
-                      className={`drive-card ${isSelected ? "drive-card--selected" : ""} ${!hasSpace ? "drive-card--nospace" : ""}`}
+                      className={`drive-card ${isSelected ? "drive-card--selected" : ""} ${hasInsufficientSpace ? "drive-card--nospace" : ""}`}
                       onClick={() => {
-                        if (!hasSpace) return;
+                        if (hasInsufficientSpace) return;
                         setSelectedDrive(drive.root);
                         setCustomPath("");
                         setError(null);
                       }}
-                      disabled={!hasSpace}
+                      disabled={hasInsufficientSpace}
                     >
                       <HardDrive size={18} className="drive-card__icon" />
                       <div className="drive-card__body">
@@ -300,7 +304,7 @@ export function GeneralSettingsSection({
                             {drive.label || drive.root}
                           </span>
                           <span
-                            className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}
+                            className={`drive-card__space ${hasInsufficientSpace ? "drive-card__space--error" : ""}`}
                           >
                             {fmt(drive.free)} {t("transfer_free")} /{" "}
                             {fmt(drive.total)}
@@ -322,7 +326,7 @@ export function GeneralSettingsSection({
                           )}
                         </div>
                       </div>
-                      {!hasSpace && (
+                      {hasInsufficientSpace && (
                         <span className="drive-card__tag">
                           {t("transfer_insufficient_space")}
                         </span>
@@ -350,6 +354,7 @@ export function GeneralSettingsSection({
                   {t("transfer_browse")}
                 </Button>
               </div>
+              {error && <p className="drive-selector__error">{error}</p>}
             </div>
 
             <div className="drive-selector__actions">

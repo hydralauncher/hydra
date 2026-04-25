@@ -286,6 +286,12 @@
     margin-top: calc(globals.$spacing-unit / 2);
   }
 
+  &__error {
+    margin: calc(globals.$spacing-unit / 2) 0 0;
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+  }
+
   &__path-row {
     display: flex;
     gap: 8px;
