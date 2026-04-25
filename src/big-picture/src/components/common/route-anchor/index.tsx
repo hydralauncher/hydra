@@ -4,6 +4,7 @@ import { HeartStraightIcon } from "@phosphor-icons/react";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { FocusItem } from "..";
+import type { FocusOverrides } from "../../../services";
 
 export interface RouteAnchorProps
   extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
@@ -13,6 +14,8 @@ export interface RouteAnchorProps
   active?: boolean;
   disabled?: boolean;
   isFavorite?: boolean;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
 }
 
 export const RouteAnchor = ({
@@ -22,6 +25,8 @@ export const RouteAnchor = ({
   active = false,
   disabled = false,
   isFavorite = false,
+  focusId,
+  focusNavigationOverrides,
   ...props
 }: Readonly<RouteAnchorProps>) => {
   const isGameIcon = typeof icon === "string";
@@ -30,7 +35,7 @@ export const RouteAnchor = ({
     <div
       className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
     >
-      <FocusItem>
+      <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
         <Link to={href} {...props}>
           <div
             className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}

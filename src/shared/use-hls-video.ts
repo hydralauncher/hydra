@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
-import { logger } from "@renderer/logger";
 
 interface UseHlsVideoOptions {
   videoSrc: string | undefined;
@@ -10,9 +9,20 @@ interface UseHlsVideoOptions {
   loop?: boolean;
 }
 
+interface HlsVideoLogger {
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+}
+
+const defaultLogger: HlsVideoLogger = {
+  warn: console.warn,
+  error: console.error,
+};
+
 export function useHlsVideo(
   videoRef: React.RefObject<HTMLVideoElement>,
-  { videoSrc, videoType, autoplay, muted, loop }: UseHlsVideoOptions
+  { videoSrc, videoType, autoplay, muted, loop }: UseHlsVideoOptions,
+  log: HlsVideoLogger = defaultLogger
 ) {
   const hlsRef = useRef<Hls | null>(null);
 
@@ -40,7 +50,7 @@ export function useHlsVideo(
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (autoplay) {
           video.play().catch((err) => {
-            logger.warn("Failed to autoplay HLS video:", err);
+            log.warn("Failed to autoplay HLS video:", err);
           });
         }
       });
@@ -49,15 +59,15 @@ export function useHlsVideo(
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              logger.error("HLS network error, trying to recover");
+              log.error("HLS network error, trying to recover");
               hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              logger.error("HLS media error, trying to recover");
+              log.error("HLS media error, trying to recover");
               hls.recoverMediaError();
               break;
             default:
-              logger.error("HLS fatal error, destroying instance");
+              log.error("HLS fatal error, destroying instance");
               hls.destroy();
               break;
           }
@@ -73,18 +83,18 @@ export function useHlsVideo(
       video.load();
       if (autoplay) {
         video.play().catch((err) => {
-          logger.warn("Failed to autoplay HLS video:", err);
+          log.warn("Failed to autoplay HLS video:", err);
         });
       }
 
       return () => {
         video.src = "";
       };
-    } else {
-      logger.warn("HLS playback is not supported in this browser");
-      return undefined;
     }
-  }, [videoRef, videoSrc, videoType, autoplay, muted, loop]);
+
+    log.warn("HLS playback is not supported in this browser");
+    return undefined;
+  }, [videoRef, videoSrc, videoType, autoplay, muted, loop, log]);
 
   useEffect(() => {
     const video = videoRef.current;
