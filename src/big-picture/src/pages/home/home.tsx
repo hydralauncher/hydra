@@ -5,12 +5,14 @@ import {
   getPopularGameFocusId,
   getWeeklyGameFocusId,
   HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID,
-  HOME_HERO_OPEN_GAME_PAGE_ID,
+  HOME_HERO_ACTIONS_REGION_ID,
+  HOME_PAGE_REGION_ID,
   HOME_POPULAR_GAMES_ROW_REGION_ID,
   HOME_WEEKLY_GAMES_ROW_REGION_ID,
 } from "./navigation";
 import { PopularGames } from "./popular-games";
 import { usePopularGames } from "./use-popular-games";
+import { VerticalFocusGroup } from "../../components";
 
 import "./page.scss";
 
@@ -34,39 +36,45 @@ export default function Home() {
   };
 
   return (
-    <section className="home-page">
-      <HomePageHero featuredGame={featuredGame} />
-      {!isFeaturedLoading && (
-        <>
-          <PopularGames
-            title="Popular Games"
-            games={popularGames}
-            rowId={HOME_POPULAR_GAMES_ROW_REGION_ID}
-            getFocusId={getPopularGameFocusId}
-            getDownFocusId={getWeeklyGameIdByIndex}
-            firstRowUpTarget={
-              featuredGame
-                ? { type: "item", itemId: HOME_HERO_OPEN_GAME_PAGE_ID }
-                : { type: "block" }
-            }
-          />
-          <PopularGames
-            title="Games of the Week"
-            games={gamesOfTheWeek}
-            rowId={HOME_WEEKLY_GAMES_ROW_REGION_ID}
-            getFocusId={getWeeklyGameFocusId}
-            getUpFocusId={getPopularGameIdByIndex}
-            getDownFocusId={getAchievementsGameIdByIndex}
-          />
-          <PopularGames
-            title="Games to Beat"
-            games={gamesToBeat}
-            rowId={HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID}
-            getFocusId={getAchievementsGameFocusId}
-            getUpFocusId={getWeeklyGameIdByIndex}
-          />
-        </>
-      )}
-    </section>
+    <VerticalFocusGroup regionId={HOME_PAGE_REGION_ID} asChild>
+      <section className="home-page">
+        <HomePageHero featuredGame={featuredGame} />
+        {!isFeaturedLoading && (
+          <>
+            <PopularGames
+              title="Popular Games"
+              games={popularGames}
+              rowId={HOME_POPULAR_GAMES_ROW_REGION_ID}
+              getFocusId={getPopularGameFocusId}
+              getDownFocusId={getWeeklyGameIdByIndex}
+              firstRowUpTarget={
+                featuredGame
+                  ? {
+                      type: "region",
+                      regionId: HOME_HERO_ACTIONS_REGION_ID,
+                      entryDirection: "right",
+                    }
+                  : { type: "block" }
+              }
+            />
+            <PopularGames
+              title="Games of the Week"
+              games={gamesOfTheWeek}
+              rowId={HOME_WEEKLY_GAMES_ROW_REGION_ID}
+              getFocusId={getWeeklyGameFocusId}
+              getUpFocusId={getPopularGameIdByIndex}
+              getDownFocusId={getAchievementsGameIdByIndex}
+            />
+            <PopularGames
+              title="Games to Beat"
+              games={gamesToBeat}
+              rowId={HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID}
+              getFocusId={getAchievementsGameFocusId}
+              getUpFocusId={getWeeklyGameIdByIndex}
+            />
+          </>
+        )}
+      </section>
+    </VerticalFocusGroup>
   );
 }
