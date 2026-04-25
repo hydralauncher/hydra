@@ -1,6 +1,12 @@
 import { ClockIcon } from "@phosphor-icons/react";
 import { Typography, Box, TitleBox, FocusItem } from "../../../common";
 import type { HowLongToBeatCategory } from "@types";
+import {
+  GAME_HOW_LONG_TO_BEAT_TITLE_ID,
+  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+  GAME_STATS_TITLE_ID,
+} from "../navigation";
+import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
 
 export interface HowLongToBeatBoxProps {
   howLongToBeat: HowLongToBeatCategory[];
@@ -9,9 +15,26 @@ export interface HowLongToBeatBoxProps {
 export function HowLongToBeatBox({
   howLongToBeat,
 }: Readonly<HowLongToBeatBoxProps>) {
+  const howLongToBeatNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_STATS_TITLE_ID,
+    },
+    right: {
+      type: "block",
+    },
+    left: {
+      type: "item",
+      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+    },
+  };
+
   return (
     <div className="game-page__box-group">
-      <FocusItem>
+      <FocusItem
+        id={GAME_HOW_LONG_TO_BEAT_TITLE_ID}
+        navigationOverrides={howLongToBeatNavigationOverrides}
+      >
         <TitleBox title="How Long to Beat" />
       </FocusItem>
 
