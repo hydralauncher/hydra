@@ -14,9 +14,11 @@ import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import type { FocusOverrides } from "../../../services";
 
 export interface TabsItem<TValue extends string = string> {
+  id?: string;
   value: TValue;
   label: ReactNode;
   disabled?: boolean;
+  navigationOverrides?: FocusOverrides;
 }
 
 export interface TabsProps<TValue extends string = string> {
@@ -86,8 +88,10 @@ export function Tabs<TValue extends string = string>({
             return (
               <FocusItem
                 key={item.value}
+                id={item.id}
                 asChild
                 navigationState={item.disabled ? "disabled" : "active"}
+                navigationOverrides={item.navigationOverrides}
               >
                 <button
                   type="button"
