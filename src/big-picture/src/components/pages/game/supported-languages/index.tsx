@@ -1,7 +1,14 @@
-import { useMemo } from "react";
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { ShopDetails } from "@types";
+import { useMemo } from "react";
+import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
 import { Box, FocusItem, Typography } from "../../../common";
+import {
+  GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
+  GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
+  GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+  GAME_SUPPORTED_LANGUAGES_TITLE_ID,
+} from "../navigation";
 
 export interface SupportedLanguagesProps {
   shopDetails: ShopDetails;
@@ -26,6 +33,40 @@ export function SupportedLanguages({
   if (languages.length === 0) {
     return null;
   }
+
+  const supportedLanguagesNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
+    },
+    down: {
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+    },
+    left: {
+      type: "block",
+    },
+    right: {
+      type: "block",
+    },
+  };
+
+  const lastRowNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_TITLE_ID,
+    },
+    left: {
+      type: "block",
+    },
+    right: {
+      type: "block",
+    },
+    down: {
+      type: "item",
+      itemId: GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
+    },
+  };
 
   const renderRow = (
     lang: { language: string; hasAudio: boolean },
@@ -55,7 +96,12 @@ export function SupportedLanguages({
 
     if (index === languages.length - 1) {
       return (
-        <FocusItem key={lang.language} asChild>
+        <FocusItem
+          key={lang.language}
+          id={GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID}
+          navigationOverrides={lastRowNavigationOverrides}
+          asChild
+        >
           {row}
         </FocusItem>
       );
@@ -66,7 +112,11 @@ export function SupportedLanguages({
 
   return (
     <div className="game-page__box-group">
-      <FocusItem asChild>
+      <FocusItem
+        id={GAME_SUPPORTED_LANGUAGES_TITLE_ID}
+        navigationOverrides={supportedLanguagesNavigationOverrides}
+        asChild
+      >
         <div className="game-page__languages-title">
           <Typography>Languages</Typography>
 
