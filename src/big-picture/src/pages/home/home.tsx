@@ -1,9 +1,11 @@
 import { HomePageHero } from "./hero";
+import { useFeaturedGame } from "./hero/use-featured-game";
 import {
   getAchievementsGameFocusId,
   getPopularGameFocusId,
   getWeeklyGameFocusId,
   HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID,
+  HOME_HERO_OPEN_GAME_PAGE_ID,
   HOME_POPULAR_GAMES_ROW_REGION_ID,
   HOME_WEEKLY_GAMES_ROW_REGION_ID,
 } from "./navigation";
@@ -13,6 +15,7 @@ import { usePopularGames } from "./use-popular-games";
 import "./page.scss";
 
 export default function Home() {
+  const { featuredGame, isLoading: isFeaturedLoading } = useFeaturedGame();
   const { popularGames, gamesOfTheWeek, gamesToBeat } = usePopularGames();
   const getPopularGameIdByIndex = (gameIndex: number) => {
     const game = popularGames[Math.min(gameIndex, popularGames.length - 1)];
@@ -32,29 +35,38 @@ export default function Home() {
 
   return (
     <section className="home-page">
-      <HomePageHero />
-      <PopularGames
-        title="Popular Games"
-        games={popularGames}
-        rowId={HOME_POPULAR_GAMES_ROW_REGION_ID}
-        getFocusId={getPopularGameFocusId}
-        getDownFocusId={getWeeklyGameIdByIndex}
-      />
-      <PopularGames
-        title="Games of the Week"
-        games={gamesOfTheWeek}
-        rowId={HOME_WEEKLY_GAMES_ROW_REGION_ID}
-        getFocusId={getWeeklyGameFocusId}
-        getUpFocusId={getPopularGameIdByIndex}
-        getDownFocusId={getAchievementsGameIdByIndex}
-      />
-      <PopularGames
-        title="Games to Beat"
-        games={gamesToBeat}
-        rowId={HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID}
-        getFocusId={getAchievementsGameFocusId}
-        getUpFocusId={getWeeklyGameIdByIndex}
-      />
+      <HomePageHero featuredGame={featuredGame} />
+      {!isFeaturedLoading && (
+        <>
+          <PopularGames
+            title="Popular Games"
+            games={popularGames}
+            rowId={HOME_POPULAR_GAMES_ROW_REGION_ID}
+            getFocusId={getPopularGameFocusId}
+            getDownFocusId={getWeeklyGameIdByIndex}
+            firstRowUpTarget={
+              featuredGame
+                ? { type: "item", itemId: HOME_HERO_OPEN_GAME_PAGE_ID }
+                : { type: "block" }
+            }
+          />
+          <PopularGames
+            title="Games of the Week"
+            games={gamesOfTheWeek}
+            rowId={HOME_WEEKLY_GAMES_ROW_REGION_ID}
+            getFocusId={getWeeklyGameFocusId}
+            getUpFocusId={getPopularGameIdByIndex}
+            getDownFocusId={getAchievementsGameIdByIndex}
+          />
+          <PopularGames
+            title="Games to Beat"
+            games={gamesToBeat}
+            rowId={HOME_ACHIEVEMENTS_GAMES_ROW_REGION_ID}
+            getFocusId={getAchievementsGameFocusId}
+            getUpFocusId={getWeeklyGameIdByIndex}
+          />
+        </>
+      )}
     </section>
   );
 }
