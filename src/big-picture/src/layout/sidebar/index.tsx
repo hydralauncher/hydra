@@ -42,43 +42,48 @@ function SidebarRouter() {
     },
   };
 
-  const routes = [
-    {
-      key: "home",
-      label: "Home",
-      path: basePath,
-      icon: HouseIcon,
-    },
-    {
-      key: "catalogue",
-      label: "Catalogue",
-      path: `${basePath}/catalogue`,
-      icon: SquaresFourIcon,
-    },
-    {
-      key: "library",
-      label: "Library",
-      path: `${basePath}/library`,
-      icon: BookOpenIcon,
-    },
-    {
-      key: "downloads",
-      label: "Download",
-      path: `${basePath}/downloads`,
-      icon: DownloadSimpleIcon,
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      path: `${basePath}/settings`,
-      icon: GearIcon,
-    },
-  ] satisfies Array<{
-    key: BigPictureSidebarRouteKey;
-    label: string;
-    path: string;
-    icon: typeof HouseIcon;
-  }>;
+  const routes = (
+    [
+      {
+        key: "home",
+        label: "Home",
+        path: basePath,
+        icon: HouseIcon,
+      },
+      {
+        key: "catalogue",
+        label: "Catalogue",
+        path: `${basePath}/catalogue`,
+        icon: SquaresFourIcon,
+      },
+      {
+        key: "library",
+        label: "Library",
+        path: `${basePath}/library`,
+        icon: BookOpenIcon,
+      },
+      {
+        key: "downloads",
+        label: "Download",
+        path: `${basePath}/downloads`,
+        icon: DownloadSimpleIcon,
+      },
+      {
+        key: "settings",
+        label: "Settings",
+        path: `${basePath}/settings`,
+        icon: GearIcon,
+      },
+    ] satisfies Array<{
+      key: BigPictureSidebarRouteKey;
+      label: string;
+      path: string;
+      icon: typeof HouseIcon;
+    }>
+  ).filter((route) => {
+    if (import.meta.env.DEV) return true;
+    return route.key !== "catalogue" && route.key !== "downloads";
+  });
 
   return (
     <div className="sidebar-router-container">

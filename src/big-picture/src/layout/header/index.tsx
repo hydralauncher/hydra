@@ -2,14 +2,8 @@ import { ArrowLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 
 import cn from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
-import debounce from "lodash-es/debounce";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import type { FocusOverrides } from "../../services";
@@ -39,8 +33,6 @@ const usePageTitle = () => {
 
 function Header() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const [, setSearchParams] = useSearchParams();
   const pageTitle = usePageTitle();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,24 +46,7 @@ function Header() {
     },
   };
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (pathname === `${basePath}/catalogue`) {
-          setSearchParams(value ? { title: value } : {});
-        } else {
-          const query = value ? `?title=${encodeURIComponent(value)}` : "";
-          navigate(`${basePath}/catalogue${query}`);
-        }
-      }, 300),
-    [pathname, navigate, setSearchParams]
-  );
-
-  const handleInputFocus = () => {
-    if (pathname !== `${basePath}/catalogue`) {
-      navigate(`${basePath}/catalogue`);
-    }
-
+  const handleSearchToggle = () => {
     if (!isSearchOpen) setIsSearchOpen(true);
   };
 
@@ -128,7 +103,7 @@ function Header() {
               className={cn("header__search", {
                 "header__search--open": isSearchOpen,
               })}
-              onClick={handleInputFocus}
+              onClick={handleSearchToggle}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
@@ -172,7 +147,6 @@ function Header() {
                 className="header__search-input typography typography--body"
                 spellCheck={false}
                 placeholder="Looking for anything in particular?"
-                onChange={(e) => debouncedSearch(e.target.value)}
               />
             </button>
           </FocusItem>

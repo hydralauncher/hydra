@@ -1,5 +1,5 @@
 import { Fragment, useEffect } from "react";
-import { Outlet, useLocation, useSearchParams } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import {
   BIG_PICTURE_APP_LAYER_ID,
   BIG_PICTURE_CONTENT_REGION_ID,
@@ -23,10 +23,8 @@ import type { FocusOverrides } from "./services";
 import "./styles/globals.scss";
 
 export default function App() {
-  const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const showNavigationDiagnostics =
-    import.meta.env.DEV || searchParams.get("debugNavigation") === "1";
+  const showNavigationDiagnostics = import.meta.env.DEV;
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const contentNavigationOverrides: FocusOverrides = {
     left: {
