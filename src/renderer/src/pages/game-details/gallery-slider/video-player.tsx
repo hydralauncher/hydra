@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useHlsVideo } from "@renderer/hooks";
+import { useHlsVideo } from "@shared";
 
 interface VideoPlayerProps {
   videoSrc?: string;
@@ -23,7 +23,7 @@ export function VideoPlayer({
   controls = true,
   tabIndex = -1,
   className,
-}: VideoPlayerProps) {
+}: Readonly<VideoPlayerProps>) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isHls = videoType === "application/x-mpegURL";
 
