@@ -146,16 +146,7 @@ export function GameDetailsContextProvider({
       shop: string,
       objectId: string
     ) => {
-      console.log(
-        "Transfer cancelled event received:",
-        shop,
-        objectId,
-        "current:",
-        game?.shop,
-        game?.objectId
-      );
       if (shop === game?.shop && objectId === game?.objectId) {
-        console.log("Transfer state reset after cancellation");
         setIsTransferring(false);
         setTransferProgress(0);
       }
