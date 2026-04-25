@@ -40,6 +40,7 @@ import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue
 import BigPictureDownloads from "../../big-picture/src/pages/downloads/downloads";
 import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
 import BigPictureLibrary from "../../big-picture/src/pages/library/page";
+import BigPictureGame from "../../big-picture/src/pages/game/game";
 
 console.log = logger.log;
 
@@ -120,6 +121,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="downloads" element={<BigPictureDownloads />} />
             <Route path="settings" element={<BigPictureSettings />} />
             <Route path="library" element={<BigPictureLibrary />} />
+            <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
           </Route>
         </Routes>
       </HashRouter>
