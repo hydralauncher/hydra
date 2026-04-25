@@ -5,6 +5,7 @@ import {
   BIG_PICTURE_CONTENT_REGION_ID,
   BIG_PICTURE_SHELL_REGION_ID,
   getBigPictureSidebarItemIdFromPathname,
+  Header,
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
@@ -52,24 +53,30 @@ export default function App() {
           initialFocusRegionId={BIG_PICTURE_CONTENT_REGION_ID}
         >
           <HorizontalFocusGroup
-            id="big-picture"
             regionId={BIG_PICTURE_SHELL_REGION_ID}
             autoScrollMode="auto"
-            style={{ alignItems: "stretch", gap: 0 }}
+            asChild
           >
-            <Sidebar />
+            <div id="big-picture">
+              <Sidebar />
 
-            <VerticalFocusGroup
-              className="big-picture__content"
-              regionId={BIG_PICTURE_CONTENT_REGION_ID}
-              navigationOverrides={contentNavigationOverrides}
-              autoScrollMode="auto"
-              style={{ gap: 0 }}
-            >
-              <Outlet />
-            </VerticalFocusGroup>
+              <VerticalFocusGroup
+                regionId={BIG_PICTURE_CONTENT_REGION_ID}
+                navigationOverrides={contentNavigationOverrides}
+                autoScrollMode="auto"
+                asChild
+              >
+                <div className="big-picture__layout">
+                  <Header />
 
-            {showNavigationDiagnostics && <NavigationDiagnostics />}
+                  <article className="big-picture__content">
+                    <Outlet />
+                  </article>
+                </div>
+              </VerticalFocusGroup>
+
+              {showNavigationDiagnostics && <NavigationDiagnostics />}
+            </div>
           </HorizontalFocusGroup>
         </NavigationLayer>
       </NavigationInputProvider>

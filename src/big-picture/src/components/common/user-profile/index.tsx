@@ -1,8 +1,13 @@
 import "./styles.scss";
 
-import { Users, Bell, Copy, Check } from "@phosphor-icons/react";
-import { Link } from "react-router-dom";
+import {
+  BellIcon,
+  CheckIcon,
+  CopyIcon,
+  UsersIcon,
+} from "@phosphor-icons/react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export interface UserProfileProps {
   image: string;
@@ -28,7 +33,7 @@ function UserProfileActions({
   return (
     <div className="user-profile__actions">
       <Link to="/friends" className="user-profile__actions__friends">
-        <Users size={20} className="user-profile__actions__friends__icon" />
+        <UsersIcon size={20} className="user-profile__actions__friends__icon" />
 
         <p className="user-profile__actions__friends__count">
           <span className="user-profile__actions__friends__count__number">
@@ -45,7 +50,7 @@ function UserProfileActions({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Bell size={20} weight={isHovering ? "fill" : "regular"} />
+        <BellIcon size={20} weight={isHovering ? "fill" : "regular"} />
       </button>
     </div>
   );
@@ -87,12 +92,12 @@ function UserProfileContent({
         >
           {friendCode}
           {isCopied ? (
-            <Check
+            <CheckIcon
               size={14}
               className="user-profile-content__info__friend-code__icon"
             />
           ) : (
-            <Copy
+            <CopyIcon
               size={14}
               className="user-profile-content__info__friend-code__icon"
             />
