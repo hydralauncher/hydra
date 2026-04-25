@@ -7,7 +7,6 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import type { FocusOverrides } from "../../services";
-import { useNavigationIsFocused } from "../../stores";
 import "./styles.scss";
 
 const basePath = IS_DESKTOP ? "/big-picture" : "";
@@ -38,7 +37,6 @@ function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLButtonElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const isSearchFocused = useNavigationIsFocused(HEADER_SEARCH_INPUT_ID);
   const searchNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
@@ -47,7 +45,13 @@ function Header() {
   };
 
   const handleSearchToggle = () => {
-    if (!isSearchOpen) setIsSearchOpen(true);
+    setIsSearchOpen((open) => {
+      if (open) {
+        inputRef.current?.blur();
+        return false;
+      }
+      return true;
+    });
   };
 
   useEffect(() => {
@@ -108,7 +112,7 @@ function Header() {
               onMouseLeave={() => setIsHovered(false)}
             >
               <AnimatePresence>
-                {isSearchOpen || isHovered || isSearchFocused ? (
+                {isSearchOpen || isHovered ? (
                   <motion.div
                     key="left"
                     initial={{ x: 24, opacity: 0 }}

@@ -98,8 +98,7 @@
     }
   }
 
-  &--open,
-  &[data-focused="true"] {
+  &--open {
     background-color: var(--surface);
     box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.6);
 
@@ -107,6 +106,11 @@
       width: 100%;
       opacity: 1;
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--secondary-border);
+    outline-offset: 2px;
   }
 }
 
@@ -135,8 +139,7 @@
     transition: all 0.2s ease-in-out;
   }
 
-  .header__search--open &::placeholder,
-  .header__search[data-focused="true"] &::placeholder {
+  .header__search--open &::placeholder {
     opacity: 1;
   }
 
