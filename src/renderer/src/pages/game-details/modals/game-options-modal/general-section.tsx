@@ -284,7 +284,10 @@ export function GeneralSettingsSection({
             <h4 className="game-options-modal__header-description">
               {t("transfer_game_description", { game: transferGameLabel })}
               {transferGameSize && (
-                <> (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)</>
+                <>
+                  {" "}
+                  (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)
+                </>
               )}
             </h4>
           </div>
@@ -313,6 +316,14 @@ export function GeneralSettingsSection({
                       key={drive.root}
                       type="button"
                       className={`drive-card ${isSelected ? "drive-card--selected" : ""} ${hasInsufficientSpace ? "drive-card--nospace" : ""}`}
+                      style={
+                        gameRoot === drive.root
+                          ? {
+                              border: "1px solid #4ade80",
+                              position: "relative",
+                            }
+                          : { position: "relative" }
+                      }
                       onClick={() => {
                         if (hasInsufficientSpace) return;
                         setSelectedDrive(drive.root);
@@ -321,28 +332,20 @@ export function GeneralSettingsSection({
                       }}
                       disabled={hasInsufficientSpace}
                     >
-                      <HardDrive size={18} className="drive-card__icon" />
+                      <HardDrive
+                        size={18}
+                        className="drive-card__icon"
+                        color={gameRoot === drive.root ? "#4ade80" : undefined}
+                      />
                       <div className="drive-card__body">
                         <div className="drive-card__top">
                           <span className="drive-card__label">
                             {drive.label || drive.root}
                           </span>
-                          {gameRoot === drive.root && (
-                            <span style={{
-                              fontSize: "11px",
-                              color: "#4ade80",
-                              border: "1px solid #4ade80",
-                              borderRadius: "4px",
-                              padding: "1px 6px",
-                              marginLeft: "8px",
-                            }}>
-                              {t("transfer_current_drive")}
-                            </span>
-                          )}
                           <span
                             className={`drive-card__space ${hasInsufficientSpace ? "drive-card__space--error" : ""}`}
                           >
-                            {fmt(drive.free)} {t("transfer_free")} /{" "}
+                            {fmt(drive.free)} {t("transfer_free")}{" "}
                             {fmt(drive.total)}
                           </span>
                         </div>
