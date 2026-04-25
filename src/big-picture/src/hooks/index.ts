@@ -1,5 +1,6 @@
 export * from "./use-game-details.hook";
 export * from "./use-library.hook";
+export * from "./use-library-game-state";
 export * from "./use-dominant-color.hook";
 export * from "./use-user-details.hook";
 export * from "./use-gamepad.hook";

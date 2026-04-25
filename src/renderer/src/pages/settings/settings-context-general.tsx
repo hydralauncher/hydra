@@ -48,6 +48,8 @@ export function SettingsContextGeneral({
     runAtStartup: false,
     startMinimized: false,
     hideToTrayOnGameStart: false,
+    launchToLibraryPage: false,
+    launchInBigPicture: false,
     enableAutoInstall: false,
   });
 
@@ -92,6 +94,8 @@ export function SettingsContextGeneral({
       runAtStartup: userPreferences.runAtStartup ?? false,
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
+      launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
+      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
@@ -201,6 +205,26 @@ export function SettingsContextGeneral({
             }}
           />
         )}
+
+        <CheckboxField
+          label={t("launch_hydra_in_library_page")}
+          checked={form.launchToLibraryPage}
+          onChange={() =>
+            handleChange({
+              launchToLibraryPage: !form.launchToLibraryPage,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("launch_hydra_in_big_picture")}
+          checked={form.launchInBigPicture}
+          onChange={() =>
+            handleChange({
+              launchInBigPicture: !form.launchInBigPicture,
+            })
+          }
+        />
       </div>
 
       {window.electron.platform === "linux" && (
