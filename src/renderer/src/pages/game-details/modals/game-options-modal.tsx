@@ -367,9 +367,7 @@ export function GameOptionsModal({
     if (!result.ok) {
       const transferErrorToast = getTransferErrorToast(result);
       showErrorToast(transferErrorToast.title, transferErrorToast.message);
-      throw new Error(
-        transferErrorToast.message ?? transferErrorToast.title
-      );
+      throw new Error(transferErrorToast.message ?? transferErrorToast.title);
     }
     showSuccessToast(
       t("transfer_complete"),
