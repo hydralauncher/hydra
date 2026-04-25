@@ -15,7 +15,9 @@ export type BigPictureSidebarRouteKey =
   keyof typeof BIG_PICTURE_SIDEBAR_ITEM_IDS;
 
 function normalizePathname(pathname: string) {
-  const withoutTrailingSlash = pathname.replace(/\/+$/, "") || "/";
+  let end = pathname.length;
+  while (end > 0 && pathname[end - 1] === "/") end--;
+  const withoutTrailingSlash = end === 0 ? "/" : pathname.slice(0, end);
 
   if (withoutTrailingSlash === "/big-picture") return "/";
 
