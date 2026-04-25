@@ -1,6 +1,7 @@
 import "./styles.scss";
 
 import cn from "classnames";
+import type { KeyboardEvent } from "react";
 
 export interface VerticalStoreGameCardProps {
   coverImageUrl?: string | null;
@@ -28,12 +29,23 @@ export function VerticalStoreGameCard({
   onClick,
   onCoverImageError,
 }: Readonly<VerticalStoreGameCardProps>) {
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (onClick == null) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <article
+    <div
       className={cn("vertical-store-game-card", className, {
         "vertical-store-game-card--force-hovered": forceHovered,
       })}
       onClick={onClick}
+      onKeyDown={onClick != null ? handleCardKeyDown : undefined}
+      role={onClick != null ? "button" : undefined}
+      tabIndex={onClick != null ? 0 : undefined}
     >
       <div className="vertical-store-game-card__cover">
         {coverImageUrl ? (
@@ -57,6 +69,6 @@ export function VerticalStoreGameCard({
           {getDownloadSourcesLabel(downloadSourceCount)}
         </p>
       </div>
-    </article>
+    </div>
   );
 }
