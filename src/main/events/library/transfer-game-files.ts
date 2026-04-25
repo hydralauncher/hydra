@@ -395,7 +395,12 @@ registerEvent(
       );
     } catch {
       activeTransfers.delete(id);
-      send("on-game-transfer-error", shop, objectId, "Failed to update database");
+      send(
+        "on-game-transfer-error",
+        shop,
+        objectId,
+        "Failed to update database"
+      );
       return { ok: false, error: "Failed to update database" };
     }
 
