@@ -22,8 +22,15 @@ export function useLibrary() {
       }
     );
 
+    const handleLibraryUpdate = () => updateLibrary();
+    globalThis.window.addEventListener("library-update", handleLibraryUpdate);
+
     return () => {
       unsubscribe();
+      globalThis.window.removeEventListener(
+        "library-update",
+        handleLibraryUpdate
+      );
     };
   }, [updateLibrary]);
 
