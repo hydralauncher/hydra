@@ -19,6 +19,7 @@ export * from "./tooltip";
 export * from "./typography";
 export * from "./user-profile";
 export * from "./vertical-game-card";
+export * from "./vertical-store-game-card";
 export * from "./horizontal-focus-group";
 export * from "./vertical-focus-group";
 export * from "./grid-focus-group";
