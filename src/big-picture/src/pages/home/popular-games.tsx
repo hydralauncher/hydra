@@ -5,17 +5,10 @@ import {
   HorizontalFocusGroup,
   VerticalStoreGameCard,
 } from "../../components";
+import { getBigPictureGameDetailsPath } from "../../helpers";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import { HOME_HERO_ADD_TO_LIBRARY_ID } from "./navigation";
-
-function getGameDetailsPath(
-  game: Pick<ShopAssets, "shop" | "objectId" | "title">
-) {
-  const searchParams = new URLSearchParams({ title: game.title });
-
-  return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
-}
 
 function getGameCover(game: ShopAssets) {
   return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
@@ -56,6 +49,7 @@ export function PopularGames({
           const upFocusId =
             getUpFocusId?.(index) ?? HOME_HERO_ADD_TO_LIBRARY_ID;
           const downFocusId = getDownFocusId?.(index) ?? null;
+          const gameDetailsPath = getBigPictureGameDetailsPath(game);
           const navigationOverrides: FocusOverrides = {
             left: previousGame
               ? { type: "item", itemId: getFocusId(previousGame) }
@@ -80,13 +74,14 @@ export function PopularGames({
               id={getFocusId(game)}
               navigationOverrides={navigationOverrides}
               actions={{
-                primary: () => navigate(getGameDetailsPath(game)),
+                primary: () => navigate(gameDetailsPath),
               }}
             >
               <VerticalStoreGameCard
                 coverImageUrl={getGameCover(game)}
                 gameTitle={game.title}
                 downloadSourceCount={game.downloadSources.length}
+                onClick={() => navigate(gameDetailsPath)}
               />
             </FocusItem>
           );

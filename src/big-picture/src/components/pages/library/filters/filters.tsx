@@ -6,10 +6,13 @@ import {
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import type { FocusOverrides } from "../../../../services";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
   LIBRARY_FILTERS_ALL_TAB_ID,
   LIBRARY_FILTERS_COMPLETED_TAB_ID,
   LIBRARY_FILTERS_FAVORITES_TAB_ID,
+  LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
+  LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
@@ -48,12 +51,17 @@ export function LibraryFilters({
     regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
     entryDirection: "up",
   } as const;
+  const sidebarLibraryOverride = {
+    type: "item",
+    itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.library,
+  } as const;
   const tabs = [
     {
       id: LIBRARY_FILTERS_ALL_TAB_ID,
       value: "all",
       label: `All (${counts.all})`,
       navigationOverrides: {
+        left: sidebarLibraryOverride,
         right: {
           type: "item",
           itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
@@ -105,6 +113,47 @@ export function LibraryFilters({
       itemId: LIBRARY_FILTERS_ALL_TAB_ID,
     },
   };
+  const toolbarUpOverride = {
+    type: "region",
+    regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
+    entryDirection: "up",
+  } as const;
+  const toolbarDownOverride = {
+    type: "item",
+    itemId: LIBRARY_FILTERS_ALL_TAB_ID,
+  } as const;
+  const searchNavigationOverrides: FocusOverrides = {
+    left: sidebarLibraryOverride,
+    right: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
+  const listViewNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
+    },
+    right: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
+  const gridViewNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
+    },
+    right: {
+      type: "block",
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
   const tabsNavigationOverrides: FocusOverrides = {
     up: tabUpOverride,
     down: tabDownOverride,
@@ -124,6 +173,7 @@ export function LibraryFilters({
         <div className="library-filters__search">
           <Input
             focusId={LIBRARY_FILTERS_SEARCH_INPUT_ID}
+            focusNavigationOverrides={searchNavigationOverrides}
             type="text"
             placeholder="Search library"
             iconLeft={<MagnifyingGlassIcon size={24} />}
@@ -134,6 +184,8 @@ export function LibraryFilters({
 
         <div className="library-filters__view-actions">
           <Button
+            focusId={LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID}
+            focusNavigationOverrides={listViewNavigationOverrides}
             className="library-filters__view-button library-filters__view-button--list"
             variant="secondary"
             size="icon"
@@ -145,6 +197,8 @@ export function LibraryFilters({
           </Button>
 
           <Button
+            focusId={LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID}
+            focusNavigationOverrides={gridViewNavigationOverrides}
             className="library-filters__view-button library-filters__view-button--grid"
             variant="secondary"
             size="icon"

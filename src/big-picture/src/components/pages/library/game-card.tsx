@@ -3,12 +3,14 @@ import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { FocusItem, VerticalGameCard } from "../../common";
 import {
   formatPlayedTime,
+  getBigPictureGameDetailsPath,
   getGameAchievementProgress,
   getGameImageSources,
 } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
 import { useDominantColor } from "../../../hooks";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getLibraryFocusGridItemId } from "./navigation";
 
 export interface VerticalLibraryGameCardProps {
@@ -20,6 +22,7 @@ export function VerticalLibraryGameCard({
   game,
   navigationOverrides,
 }: Readonly<VerticalLibraryGameCardProps>) {
+  const navigate = useNavigate();
   const imageSources = useMemo(() => getGameImageSources(game), [game]);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
   const [imageExhausted, setImageExhausted] = useState(false);
@@ -35,6 +38,7 @@ export function VerticalLibraryGameCard({
 
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
+  const gameDetailsPath = getBigPictureGameDetailsPath(game);
 
   const handleCoverImageError = () => {
     if (imageSourceIndex < imageSources.length - 1) {
@@ -48,7 +52,10 @@ export function VerticalLibraryGameCard({
   return (
     <FocusItem
       id={getLibraryFocusGridItemId(game.id)}
-      actions={{ primary: "off", secondary: "off" }}
+      actions={{
+        primary: () => navigate(gameDetailsPath),
+        secondary: "off",
+      }}
       navigationOverrides={navigationOverrides}
     >
       <VerticalGameCard
@@ -61,6 +68,7 @@ export function VerticalLibraryGameCard({
         progressLabel={achievementProgress.label}
         progressValue={achievementProgress.value}
         progressColor={dominantColor ?? undefined}
+        onClick={() => navigate(gameDetailsPath)}
         action={
           <div
             className="vertical-library-game-card__action-button button button--secondary button--icon"
