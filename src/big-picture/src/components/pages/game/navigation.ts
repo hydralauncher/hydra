@@ -30,6 +30,7 @@ export const GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID =
   "game-reviews-secondary-filter-button";
 export const GAME_REVIEWS_THIRD_FILTER_BUTTON_ID =
   "game-reviews-third-filter-button";
+export const GAME_REVIEWS_LOAD_MORE_ID = "game-reviews-load-more";
 
 export function getGameReviewVotesRegionId(reviewId: string) {
   return `game-review-votes-${reviewId}`;
