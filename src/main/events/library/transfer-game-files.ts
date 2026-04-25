@@ -32,7 +32,7 @@ const activeTransfers = new Map<
 class SteamCopyEngine {
   private bytesCopied = 0;
   private readonly totalSize: number;
-  private startTime: number;
+  private readonly startTime: number;
   private lastReportTime = 0;
   private readonly REPORT_INTERVAL = 100;
   private readonly BLOCK_SIZE = 1024 * 1024;
