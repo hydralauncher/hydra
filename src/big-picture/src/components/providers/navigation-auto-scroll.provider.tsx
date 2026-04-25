@@ -12,7 +12,7 @@ export function NavigationAutoScrollBridge() {
       return;
     }
 
-    let animationFrameId = globalThis.requestAnimationFrame(() => {
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
       scrollNavigationIntoView({
         currentFocusId,
         previousFocusId: previousFocusIdRef.current,
