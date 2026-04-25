@@ -9,7 +9,6 @@ import {
   resolveFocusItemActions,
   type FocusItemActions,
 } from "../../../types";
-import { scrollFocusedElementIntoView } from "../../../helpers";
 import {
   type FocusOverrides,
   NavigationItemActionsService,
@@ -99,8 +98,6 @@ export function FocusItem({
     } catch {
       element.focus();
     }
-
-    scrollFocusedElementIntoView(element);
   }, [isFocused]);
 
   const Component = asChild ? Slot : "div";
@@ -111,6 +108,8 @@ export function FocusItem({
         id={resolvedId}
         ref={ref}
         data-focused={isFocused}
+        data-focus-visible={isFocused || undefined}
+        data-focus-wrapper={!asChild || undefined}
         data-has-primary={actionsMeta.hasPrimary || undefined}
         data-has-secondary={actionsMeta.hasSecondary || undefined}
         data-has-press-x={actionsMeta.hasPressX || undefined}
@@ -121,10 +120,7 @@ export function FocusItem({
         data-navigation-state={navigationState}
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}
-        style={{
-          outline: isFocused ? "1px solid white" : "none",
-          outlineOffset: isFocused ? "2px" : "0px",
-        }}
+        style={asChild ? undefined : { outline: "none" }}
       >
         {children}
       </Component>

@@ -2,16 +2,11 @@ import { ArrowLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 
 import cn from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
-import debounce from "lodash-es/debounce";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { IS_DESKTOP } from "../../constants";
+import type { FocusOverrides } from "../../services";
 import { useNavigationIsFocused } from "../../stores";
 import "./styles.scss";
 
@@ -19,6 +14,9 @@ const basePath = IS_DESKTOP ? "/big-picture" : "";
 
 const capitalize = (word: string) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+const HEADER_BACK_BUTTON_ID = "header-back-button";
+const HEADER_SEARCH_INPUT_ID = "header-search-input";
 
 const usePageTitle = () => {
   const { pathname } = useLocation();
@@ -35,33 +33,20 @@ const usePageTitle = () => {
 
 function Header() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const [, setSearchParams] = useSearchParams();
   const pageTitle = usePageTitle();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLButtonElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-  const isSearchFocused = useNavigationIsFocused("header-search-input");
+  const isSearchFocused = useNavigationIsFocused(HEADER_SEARCH_INPUT_ID);
+  const searchNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: HEADER_BACK_BUTTON_ID,
+    },
+  };
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (pathname === `${basePath}/catalogue`) {
-          setSearchParams(value ? { title: value } : {});
-        } else {
-          const query = value ? `?title=${encodeURIComponent(value)}` : "";
-          navigate(`${basePath}/catalogue${query}`);
-        }
-      }, 300),
-    [pathname, navigate, setSearchParams]
-  );
-
-  const handleInputFocus = () => {
-    if (pathname !== `${basePath}/catalogue`) {
-      navigate(`${basePath}/catalogue`);
-    }
-
+  const handleSearchToggle = () => {
     if (!isSearchOpen) setIsSearchOpen(true);
   };
 
@@ -99,7 +84,7 @@ function Header() {
     <div className="header">
       <HorizontalFocusGroup regionId="header" asChild>
         <header className="header__container">
-          <FocusItem id="header-back-button" asChild>
+          <FocusItem id={HEADER_BACK_BUTTON_ID} asChild>
             <button className="header__action" onClick={() => navigate(-1)}>
               <ArrowLeftIcon size={24} weight="bold" />
               <Typography variant="label" className="header__title">
@@ -108,13 +93,17 @@ function Header() {
             </button>
           </FocusItem>
 
-          <FocusItem id="header-search-input" asChild>
+          <FocusItem
+            id={HEADER_SEARCH_INPUT_ID}
+            navigationOverrides={searchNavigationOverrides}
+            asChild
+          >
             <button
               ref={searchRef}
               className={cn("header__search", {
                 "header__search--open": isSearchOpen,
               })}
-              onClick={handleInputFocus}
+              onClick={handleSearchToggle}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
             >
@@ -158,7 +147,6 @@ function Header() {
                 className="header__search-input typography typography--body"
                 spellCheck={false}
                 placeholder="Looking for anything in particular?"
-                onChange={(e) => debouncedSearch(e.target.value)}
               />
             </button>
           </FocusItem>

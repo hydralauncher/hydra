@@ -163,7 +163,10 @@
   gap: calc(var(--spacing-unit) * 3);
   padding: calc(var(--spacing-unit) * 2);
   border-radius: var(--spacing-unit);
-  transition: background-color 0.2s ease-in-out;
+  outline: none;
+  transition:
+    background-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   width: 100%;
   color: var(--text);
   user-select: none;
@@ -177,8 +180,13 @@
     background-color: var(--secondary-hover);
   }
 
-  &:not(&--active):hover {
+  &:not(&--active):hover,
+  &:not(&--active)[data-focus-visible="true"] {
     background-color: var(--secondary);
+  }
+
+  &[data-focus-visible="true"] {
+    box-shadow: inset 0 0 0 1px var(--text-secondary);
   }
 
   &__icon {

@@ -4,12 +4,24 @@ import {
   useFocusLayerId,
   useFocusRegionId,
 } from "../../context";
-import { type FocusOverrides, NavigationService } from "../../../services";
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import {
+  type FocusAutoScrollMode,
+  type FocusOverrides,
+  NavigationService,
+} from "../../../services";
+import {
+  type HTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+} from "react";
 
-interface VerticalFocusGroupProps {
+interface VerticalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
+  autoScrollMode?: FocusAutoScrollMode;
+  getScrollAnchor?: () => HTMLElement | null;
   asChild?: boolean;
   children: ReactNode;
 }
@@ -17,14 +29,20 @@ interface VerticalFocusGroupProps {
 export function VerticalFocusGroup({
   regionId,
   navigationOverrides,
+  autoScrollMode = "auto",
+  getScrollAnchor,
   asChild = false,
+  className,
+  style,
   children,
+  ...props
 }: Readonly<VerticalFocusGroupProps>) {
   const generatedId = useId();
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
   const initialNavigationOverridesRef = useRef(navigationOverrides);
+  const initialGetScrollAnchorRef = useRef(getScrollAnchor);
   const ref = useRef<HTMLDivElement | null>(null);
   const resolvedRegionId =
     regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
@@ -36,16 +54,33 @@ export function VerticalFocusGroup({
       orientation: "vertical",
       layerId,
       navigationOverrides: initialNavigationOverridesRef.current,
+      autoScrollMode,
       isPersistent: Boolean(regionId),
       getElement: () => ref.current,
+      getScrollAnchor: initialGetScrollAnchorRef.current,
     });
-  }, [layerId, navigation, parentRegionId, regionId, resolvedRegionId]);
+  }, [
+    autoScrollMode,
+    layerId,
+    navigation,
+    parentRegionId,
+    regionId,
+    resolvedRegionId,
+  ]);
 
   useEffect(() => {
     navigation.updateRegion(resolvedRegionId, {
+      autoScrollMode,
+      getScrollAnchor,
       navigationOverrides,
     });
-  }, [navigation, navigationOverrides, resolvedRegionId]);
+  }, [
+    autoScrollMode,
+    getScrollAnchor,
+    navigation,
+    navigationOverrides,
+    resolvedRegionId,
+  ]);
 
   const Component = asChild ? Slot : "div";
 
@@ -53,14 +88,19 @@ export function VerticalFocusGroup({
     <FocusRegionContext.Provider value={resolvedRegionId}>
       <Component
         ref={ref}
+        className={className}
         data-focus-region-id={resolvedRegionId}
-        {...(!asChild && {
-          style: {
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          },
-        })}
+        style={
+          asChild
+            ? style
+            : {
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+                ...style,
+              }
+        }
+        {...props}
       >
         {children}
       </Component>

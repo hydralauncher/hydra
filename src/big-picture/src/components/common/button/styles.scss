@@ -1,10 +1,13 @@
 .button {
+  --button-custom-color: var(--primary);
+  --button-custom-hover-color: var(--primary-hover);
+  --button-custom-text-color: var(--background);
   appearance: none;
+  cursor: pointer;
   height: 44px;
   padding: 0px calc(var(--spacing-unit) * 4);
-  border: none;
   border-radius: var(--spacing-unit);
-  border-width: 1px;
+  border: none;
   font-family: var(--font-space-grotesk);
   font-weight: 400;
   font-size: 14px;
@@ -16,19 +19,21 @@
   justify-content: center;
   gap: calc(var(--spacing-unit) * 8);
   position: relative;
-  transition: background-color 0.2s ease-in-out;
+  transition:
+    background-color 0.25s ease-in-out,
+    color 0.25s ease-in-out;
   flex-shrink: 0;
-  cursor: pointer;
 
   &--primary {
-    color: var(--background);
-    background-color: var(--primary);
+    color: var(--button-custom-text-color);
+    background-color: var(--button-custom-color);
 
     &:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--button-custom-hover-color);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
       outline-offset: 2px;
     }
@@ -43,8 +48,24 @@
       background-color: var(--secondary-hover);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
+      outline-offset: 2px;
+    }
+  }
+
+  &--tertiary {
+    color: var(--text);
+    background-color: var(--tertiary);
+    border: 1px solid var(--tertiary-border);
+
+    &:hover {
+      background-color: var(--tertiary-hover);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--tertiary-border);
       outline-offset: 2px;
     }
   }
@@ -59,7 +80,8 @@
       background-color: var(--secondary);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--primary);
       outline-offset: 2px;
     }
@@ -74,7 +96,8 @@
       background-color: var(--error-hover);
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       outline: 1px solid var(--error);
       outline-offset: 2px;
     }
@@ -100,7 +123,8 @@
       opacity: 1;
     }
 
-    &:focus-visible {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
       text-underline-offset: 2px;
       opacity: 1;
       outline: none;
@@ -155,7 +179,7 @@
       height: 100%;
       width: 1px;
       background-color: currentColor;
-      opacity: 0.1;
+      opacity: 0.2;
     }
 
     &--right::before {
@@ -167,7 +191,7 @@
       height: 100%;
       width: 1px;
       background-color: currentColor;
-      opacity: 0.1;
+      opacity: 0.2;
     }
 
     &--right {

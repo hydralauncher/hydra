@@ -22,6 +22,14 @@
     background-color: var(--secondary);
   }
 
+  [data-focus-visible="true"] & {
+    box-shadow: inset 0 0 0 1px var(--text-secondary);
+  }
+
+  [data-focus-visible="true"] &:not(&--active) {
+    background-color: var(--secondary);
+  }
+
   &__icon {
     display: flex;
     align-items: center;
