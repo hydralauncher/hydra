@@ -3,9 +3,9 @@ import {
   DownloadSimpleIcon,
   PlusCircleIcon,
 } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import cn from "classnames";
+import { logger } from "@renderer/logger";
 import {
   AnimatedHeroImage,
   Button,
@@ -26,7 +26,6 @@ import { useFeaturedGame } from "./use-featured-game";
 import "./styles.scss";
 
 export function HomePageHero() {
-  const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
   const { featuredGame } = useFeaturedGame();
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
@@ -50,12 +49,6 @@ export function HomePageHero() {
   useEffect(() => {
     setShouldShowLogoFallback(false);
   }, [featuredGame?.logoImageUrl]);
-
-  const handleOpenFeaturedGame = () => {
-    if (!featuredGame) return;
-
-    navigate(featuredGame.uri);
-  };
 
   const handleAddToLibrary = async () => {
     if (!featuredGame || isInLibrary || isAddingToLibrary) return;
@@ -181,7 +174,9 @@ export function HomePageHero() {
               focusId={HOME_HERO_DOWNLOAD_ID}
               focusNavigationOverrides={downloadNavigationOverrides}
               icon={<DownloadSimpleIcon size={24} />}
-              onClick={handleOpenFeaturedGame}
+              onClick={() => {
+                logger.log("[home-hero] Download Game clicked");
+              }}
               size="large"
             >
               Download Game
