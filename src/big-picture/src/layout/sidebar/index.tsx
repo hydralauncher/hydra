@@ -15,7 +15,6 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
-import { toSlug } from "../../helpers";
 import { useLibrary, useSearch } from "../../hooks";
 import "./styles.scss";
 
@@ -102,17 +101,21 @@ function SidebarLibrary() {
         <VerticalFocusGroup regionId="sidebar-library-list">
           <ScrollArea>
             <ul className="library-list">
-              {filteredItems.map((game) => (
-                <li key={game.id} className="library-list__item">
-                  <RouteAnchor
-                    key={game.id}
-                    label={game.title}
-                    href={`/game/${game.objectId}/${toSlug(game.title)}`}
-                    icon={game.iconUrl}
-                    isFavorite={game.favorite}
-                  />
-                </li>
-              ))}
+              {filteredItems.map((game) => {
+                const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
+
+                return (
+                  <li key={game.id} className="library-list__item">
+                    <RouteAnchor
+                      key={game.id}
+                      label={game.title}
+                      href={desktopPath}
+                      icon={game.iconUrl}
+                      isFavorite={game.favorite}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </ScrollArea>
         </VerticalFocusGroup>
