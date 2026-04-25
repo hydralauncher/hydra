@@ -26,6 +26,7 @@ import {
   AlertIcon,
   CloudIcon,
   DownloadIcon,
+  FileDirectoryIcon,
   GearIcon,
   ImageIcon,
 } from "@primer/octicons-react";
@@ -560,6 +561,11 @@ export function GameOptionsModal({
         icon: <GearIcon size={16} />,
       },
       {
+        id: "locations" as const,
+        label: t("settings_category_locations", { defaultValue: "Locations" }),
+        icon: <FileDirectoryIcon size={16} />,
+      },
+      {
         id: "assets" as const,
         label: t("settings_category_assets"),
         icon: <ImageIcon size={16} />,
@@ -723,6 +729,51 @@ export function GameOptionsModal({
                 onShowCancelConfirm={() => setShowCancelConfirm(true)}
                 onHideCancelConfirm={() => setShowCancelConfirm(false)}
                 onConfirmCancelTransfer={handleCancelTransfer}
+                showExecutableSection={false}
+                showTransferSection={false}
+              />
+            )}
+            {selectedCategory === "locations" && (
+              <GeneralSettingsSection
+                game={game}
+                gameTitle={gameTitle}
+                launchOptions={launchOptions}
+                updatingGameTitle={updatingGameTitle}
+                creatingSteamShortcut={creatingSteamShortcut}
+                shouldShowCreateStartMenuShortcut={
+                  shouldShowCreateStartMenuShortcut
+                }
+                shouldShowWinePrefixConfiguration={
+                  shouldShowWinePrefixConfiguration
+                }
+                loadingSaveFolder={loadingSaveFolder}
+                saveFolderPath={saveFolderPath}
+                steamShortcutExists={steamShortcutExists}
+                onChangeExecutableLocation={handleChangeExecutableLocation}
+                onClearExecutablePath={handleClearExecutablePath}
+                onOpenGameExecutablePath={handleOpenGameExecutablePath}
+                onOpenSaveFolder={handleOpenSaveFolder}
+                onCreateShortcut={handleCreateShortcut}
+                onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
+                onDeleteSteamShortcut={handleDeleteSteamShortcut}
+                onChangeGameTitle={handleChangeGameTitle}
+                onBlurGameTitle={handleBlurGameTitle}
+                onChangeLaunchOptions={handleChangeLaunchOptions}
+                onClearLaunchOptions={handleClearLaunchOptions}
+                isTransferring={isTransferring}
+                transferProgress={transferProgress}
+                drives={drives}
+                onStartTransfer={handleStartTransfer}
+                onCancelDriveSelection={() => {}}
+                transferSpeed={transferSpeed}
+                transferETA={transferETA}
+                showCancelConfirm={showCancelConfirm}
+                onShowCancelConfirm={() => setShowCancelConfirm(true)}
+                onHideCancelConfirm={() => setShowCancelConfirm(false)}
+                onConfirmCancelTransfer={handleCancelTransfer}
+                showTitleSection={false}
+                showShortcutsSection={false}
+                showLaunchOptionsSection={false}
               />
             )}
             {selectedCategory === "assets" && (

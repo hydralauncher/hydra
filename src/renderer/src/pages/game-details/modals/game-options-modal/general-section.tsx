@@ -46,6 +46,11 @@ interface GeneralSettingsSectionProps {
   onShowCancelConfirm?: () => void;
   onHideCancelConfirm?: () => void;
   onConfirmCancelTransfer?: () => void;
+  showTitleSection?: boolean;
+  showExecutableSection?: boolean;
+  showTransferSection?: boolean;
+  showShortcutsSection?: boolean;
+  showLaunchOptionsSection?: boolean;
 }
 
 //
@@ -103,6 +108,11 @@ export function GeneralSettingsSection({
   onShowCancelConfirm = () => {},
   onHideCancelConfirm = () => {},
   onConfirmCancelTransfer = () => {},
+  showTitleSection = true,
+  showExecutableSection = true,
+  showTransferSection = true,
+  showShortcutsSection = true,
+  showLaunchOptionsSection = true,
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -127,13 +137,15 @@ export function GeneralSettingsSection({
 
   const handleStartTransfer = async () => {
     let fullDest: string;
+    const platform = window.electron.platform;
+    const pathSeparator = platform === "win32" ? String.fromCharCode(92) : "/";
 
     if (selectedDrive !== null) {
-      const slash = String.fromCharCode(92);
-      const normalizedDrive = selectedDrive.endsWith(slash)
-        ? selectedDrive.slice(0, -1)
-        : selectedDrive;
-      fullDest = `${normalizedDrive}${slash}Hydra Games`;
+      const normalizedDrive =
+        selectedDrive.length > 1 && selectedDrive.endsWith(pathSeparator)
+          ? selectedDrive.slice(0, -1)
+          : selectedDrive;
+      fullDest = `${normalizedDrive}${pathSeparator}Hydra Games`;
     } else if (customPath.trim()) {
       fullDest = customPath.trim();
     } else {
@@ -178,85 +190,90 @@ export function GeneralSettingsSection({
   return (
     <>
       {/* Title */}
-      <div className="game-options-modal__section">
-        <TextField
-          label={t("edit_game_modal_title")}
-          placeholder={t("edit_game_modal_enter_title")}
-          value={gameTitle}
-          onChange={onChangeGameTitle}
-          onBlur={() => void onBlurGameTitle()}
-          theme="dark"
-          disabled={updatingGameTitle}
-        />
-      </div>
+      {showTitleSection && (
+        <div className="game-options-modal__section">
+          <TextField
+            label={t("edit_game_modal_title")}
+            placeholder={t("edit_game_modal_enter_title")}
+            value={gameTitle}
+            onChange={onChangeGameTitle}
+            onBlur={() => void onBlurGameTitle()}
+            theme="dark"
+            disabled={updatingGameTitle}
+          />
+        </div>
+      )}
 
       {/* Executable */}
-      <div className="game-options-modal__section">
-        <div className="game-options-modal__header">
-          <h2>{t("executable_section_title")}</h2>
-          <h4 className="game-options-modal__header-description">
-            {t("executable_section_description")}
-          </h4>
-        </div>
+      {showExecutableSection && (
+        <div className="game-options-modal__section">
+          <div className="game-options-modal__header">
+            <h2>{t("executable_section_title")}</h2>
+            <h4 className="game-options-modal__header-description">
+              {t("executable_section_description")}
+            </h4>
+          </div>
 
-        <div className="game-options-modal__executable-field">
-          <TextField
-            value={game.executablePath || ""}
-            readOnly
-            theme="dark"
-            disabled
-            placeholder={t("no_executable_selected")}
-            rightContent={
-              <>
+          <div className="game-options-modal__executable-field">
+            <TextField
+              value={game.executablePath || ""}
+              readOnly
+              theme="dark"
+              disabled
+              placeholder={t("no_executable_selected")}
+              rightContent={
+                <>
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={onChangeExecutableLocation}
+                  >
+                    <FileIcon />
+                    {t("select_executable")}
+                  </Button>
+                  {game.executablePath && (
+                    <Button onClick={onClearExecutablePath} theme="outline">
+                      {t("clear")}
+                    </Button>
+                  )}
+                </>
+              }
+            />
+
+            <div className="game-options-modal__executable-field-buttons">
+              {game.executablePath && (
                 <Button
                   type="button"
                   theme="outline"
-                  onClick={onChangeExecutableLocation}
+                  onClick={onOpenGameExecutablePath}
                 >
-                  <FileIcon />
-                  {t("select_executable")}
+                  <FolderOpen size={14} />
+                  {t("open_folder")}
                 </Button>
-                {game.executablePath && (
-                  <Button onClick={onClearExecutablePath} theme="outline">
-                    {t("clear")}
+              )}
+              {game.shop !== "custom" &&
+                window.electron.platform === "win32" && (
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={onOpenSaveFolder}
+                    disabled={loadingSaveFolder || !saveFolderPath}
+                  >
+                    <HardDrive size={14} />
+                    {loadingSaveFolder
+                      ? t("searching_save_folder")
+                      : saveFolderPath
+                        ? t("open_save_folder")
+                        : t("no_save_folder_found")}
                   </Button>
                 )}
-              </>
-            }
-          />
-
-          <div className="game-options-modal__executable-field-buttons">
-            {game.executablePath && (
-              <Button
-                type="button"
-                theme="outline"
-                onClick={onOpenGameExecutablePath}
-              >
-                <FolderOpen size={14} />
-                {t("open_folder")}
-              </Button>
-            )}
-            {game.shop !== "custom" && window.electron.platform === "win32" && (
-              <Button
-                type="button"
-                theme="outline"
-                onClick={onOpenSaveFolder}
-                disabled={loadingSaveFolder || !saveFolderPath}
-              >
-                <HardDrive size={14} />
-                {loadingSaveFolder
-                  ? t("searching_save_folder")
-                  : saveFolderPath
-                    ? t("open_save_folder")
-                    : t("no_save_folder_found")}
-              </Button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Drive Selector */}
-      {game.executablePath && !isTransferring && (
+      {showTransferSection && game.executablePath && !isTransferring && (
         <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
@@ -379,7 +396,7 @@ export function GeneralSettingsSection({
       )}
 
       {/* Transfer Progress */}
-      {isTransferring && (
+      {showTransferSection && isTransferring && (
         <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
@@ -432,7 +449,7 @@ export function GeneralSettingsSection({
       )}
 
       {/* Cancel Confirmation Modal */}
-      {showCancelConfirm && (
+      {showTransferSection && showCancelConfirm && (
         <div className="cancel-confirm-overlay">
           <div className="cancel-confirm-modal">
             <h4>{t("transfer_cancel_title")}</h4>
@@ -450,7 +467,7 @@ export function GeneralSettingsSection({
       )}
 
       {/* Shortcuts */}
-      {game.executablePath && (
+      {showShortcutsSection && game.executablePath && (
         <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("shortcuts_section_title")}</h2>
@@ -495,7 +512,8 @@ export function GeneralSettingsSection({
       )}
 
       {/* Launch options */}
-      <div className="game-options-modal__launch-options">
+      {showLaunchOptionsSection && (
+        <div className="game-options-modal__launch-options">
         <div className="game-options-modal__header">
           <h2>{t("launch_options")}</h2>
           <h4 className="game-options-modal__header-description">
@@ -526,7 +544,8 @@ export function GeneralSettingsSection({
             )
           }
         />
-      </div>
+        </div>
+      )}
     </>
   );
 }
