@@ -95,7 +95,7 @@ export default function GameDetails() {
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
-          setGameOptionsInitialCategory,// ADD THIS
+          setGameOptionsInitialCategory, // ADD THIS
         }) => {
           const handleStartDownload = async (
             repack: GameRepack,
