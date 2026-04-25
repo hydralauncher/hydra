@@ -2,7 +2,7 @@ import "./styles.scss";
 
 import { SparkleIcon, TrophyIcon } from "@phosphor-icons/react";
 import cn from "classnames";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 export interface VerticalGameCardProps {
   coverImageUrl?: string | null;
@@ -50,14 +50,25 @@ export function VerticalGameCard({
   } as CSSProperties;
   const ProgressIcon = isCompleted ? SparkleIcon : TrophyIcon;
 
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (onClick == null) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <article
+    <div
       className={cn("vertical-game-card", className, {
         "vertical-game-card--completed": isCompleted,
         "vertical-game-card--force-hovered": forceHovered,
       })}
       style={customProperties}
       onClick={onClick}
+      onKeyDown={onClick != null ? handleCardKeyDown : undefined}
+      role={onClick != null ? "button" : undefined}
+      tabIndex={onClick != null ? 0 : undefined}
     >
       <div className="vertical-game-card__cover">
         {coverImageUrl ? (
@@ -99,6 +110,6 @@ export function VerticalGameCard({
 
         {action && <div className="vertical-game-card__action">{action}</div>}
       </div>
-    </article>
+    </div>
   );
 }
