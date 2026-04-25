@@ -215,12 +215,33 @@ async function validateDestination(
   _destParent: string,
   targetRoot: string
 ) {
-  if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
+  const normalizePath = (value: string) =>
+    process.platform === "win32" ? value.toLowerCase() : value;
+
+  const resolvedGameRoot = normalizePath(path.resolve(gameRoot));
+  const resolvedTargetRoot = normalizePath(path.resolve(targetRoot));
+
+  if (resolvedGameRoot === resolvedTargetRoot) {
     return { valid: false, error: "Game is already in this location" };
   }
 
-  if (targetRoot.startsWith(gameRoot + path.sep)) {
+  if (resolvedTargetRoot.startsWith(`${resolvedGameRoot}${path.sep}`)) {
     return { valid: false, error: "Destination is inside source folder" };
+  }
+
+  try {
+    await fs.stat(targetRoot);
+    return {
+      valid: false,
+      error: "Destination folder already exists",
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      return {
+        valid: false,
+        error: "Cannot access destination folder",
+      };
+    }
   }
 
   return { valid: true };
@@ -251,7 +272,8 @@ async function updateDatabaseAfterTransfer(
   game: GameWithExecutable,
   gameKey: string,
   newExePath: string,
-  gameSize: number
+  gameSize: number,
+  targetRoot: string
 ) {
   const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
 
@@ -263,11 +285,13 @@ async function updateDatabaseAfterTransfer(
 
   const download = await downloadsSublevel.get(gameKey).catch(() => null);
   if (download) {
-    await downloadsSublevel.put(gameKey, {
-      ...download,
-      downloadPath: path.dirname(newExePath),
-      folderName: path.basename(path.dirname(newExePath)),
-    });
+    await downloadsSublevel
+      .put(gameKey, {
+        ...download,
+        downloadPath: path.dirname(targetRoot),
+        folderName: path.basename(targetRoot),
+      })
+      .catch(() => {});
   }
 }
 
@@ -362,9 +386,16 @@ registerEvent(
     const gameKey = levelKeys.game(shop, objectId);
 
     try {
-      await updateDatabaseAfterTransfer(game, gameKey, newExePath, gameSize);
+      await updateDatabaseAfterTransfer(
+        game,
+        gameKey,
+        newExePath,
+        gameSize,
+        targetRoot
+      );
     } catch {
-      await cleanupOnError(id, targetRoot);
+      activeTransfers.delete(id);
+      send("on-game-transfer-error", shop, objectId, "Failed to update database");
       return { ok: false, error: "Failed to update database" };
     }
 
