@@ -13,12 +13,16 @@ import {
 } from "@phosphor-icons/react";
 import type { FocusOverrides } from "../../../../services";
 import {
+  LIBRARY_FILTERS_ALL_TAB_ID,
+  LIBRARY_FILTERS_COMPLETED_TAB_ID,
+  LIBRARY_FILTERS_FAVORITES_TAB_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
 } from "../navigation";
 import type { LibraryFilterCounts, LibraryFilterTab } from "../library-data";
+import type { TabsItem } from "../../../common";
 
 export interface LibraryFiltersProps {
   selectedTab: LibraryFilterTab;
@@ -37,11 +41,66 @@ export function LibraryFilters({
   counts,
   firstGridItemId = null,
 }: Readonly<LibraryFiltersProps>) {
+  const tabDownOverride = firstGridItemId
+    ? ({
+        type: "item",
+        itemId: firstGridItemId,
+      } as const)
+    : ({
+        type: "block",
+      } as const);
+  const tabUpOverride = {
+    type: "region",
+    regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
+    entryDirection: "up",
+  } as const;
   const tabs = [
-    { value: "all", label: `All (${counts.all})` },
-    { value: "favorites", label: `Favorites (${counts.favorites})` },
-    { value: "completed", label: `Completed (${counts.completed})` },
-  ] satisfies Array<{ value: LibraryFilterTab; label: string }>;
+    {
+      id: LIBRARY_FILTERS_ALL_TAB_ID,
+      value: "all",
+      label: `All (${counts.all})`,
+      navigationOverrides: {
+        left: { type: "block" },
+        right: {
+          type: "item",
+          itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
+        },
+        up: tabUpOverride,
+        down: tabDownOverride,
+      },
+    },
+    {
+      id: LIBRARY_FILTERS_FAVORITES_TAB_ID,
+      value: "favorites",
+      label: `Favorites (${counts.favorites})`,
+      navigationOverrides: {
+        left: {
+          type: "item",
+          itemId: LIBRARY_FILTERS_ALL_TAB_ID,
+        },
+        right: {
+          type: "item",
+          itemId: LIBRARY_FILTERS_COMPLETED_TAB_ID,
+        },
+        up: tabUpOverride,
+        down: tabDownOverride,
+      },
+    },
+    {
+      id: LIBRARY_FILTERS_COMPLETED_TAB_ID,
+      value: "completed",
+      label: `Completed (${counts.completed})`,
+      navigationOverrides: {
+        left: {
+          type: "item",
+          itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
+        },
+        right: { type: "block" },
+        up: tabUpOverride,
+        down: tabDownOverride,
+      },
+    },
+  ] satisfies Array<TabsItem<LibraryFilterTab>>;
   const toolbarNavigationOverrides: FocusOverrides = {
     up: {
       type: "region",
@@ -49,25 +108,13 @@ export function LibraryFilters({
       entryDirection: "up",
     },
     down: {
-      type: "region",
-      regionId: LIBRARY_FILTERS_TABS_REGION_ID,
-      entryDirection: "down",
+      type: "item",
+      itemId: LIBRARY_FILTERS_ALL_TAB_ID,
     },
   };
   const tabsNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "region",
-      regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
-      entryDirection: "up",
-    },
-    down: firstGridItemId
-      ? {
-          type: "item",
-          itemId: firstGridItemId,
-        }
-      : {
-          type: "block",
-        },
+    up: tabUpOverride,
+    down: tabDownOverride,
   };
 
   return (
