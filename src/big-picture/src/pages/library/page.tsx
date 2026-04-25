@@ -10,7 +10,6 @@ import {
   VerticalFocusGroup,
   type LibraryFilterTab,
   useLibraryFavorite,
-  useLibraryLaunchGame,
   useLibraryPageData,
 } from "../../components";
 
@@ -24,7 +23,6 @@ export default function LibraryPage() {
   const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
-  const launchGame = useLibraryLaunchGame(setSettingsGame);
   const { filteredLibrary, filterCounts, firstGridItemId, lastPlayedGames } =
     useLibraryPageData(library, selectedFilterTab, search);
 
@@ -57,8 +55,12 @@ export default function LibraryPage() {
       <VerticalFocusGroup>
         <LibraryHero
           lastPlayedGames={lastPlayedGames}
-          onOpenGameSettings={setSettingsGame}
-          onLaunchGame={launchGame}
+          onOpenGameSettings={(game) => {
+            console.log("Library hero options clicked", game);
+          }}
+          onLaunchGame={(game) => {
+            console.log("Library hero launch clicked", game);
+          }}
           onToggleFavorite={toggleFavorite}
           favoriteLoadingGameId={favoriteLoadingGameId}
         />

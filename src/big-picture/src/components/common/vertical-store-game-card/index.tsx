@@ -8,6 +8,7 @@ export interface VerticalStoreGameCardProps {
   downloadSourceCount: number;
   forceHovered?: boolean;
   className?: string;
+  onClick?: () => void;
   onCoverImageError?: () => void;
 }
 
@@ -24,6 +25,7 @@ export function VerticalStoreGameCard({
   downloadSourceCount,
   forceHovered = false,
   className,
+  onClick,
   onCoverImageError,
 }: Readonly<VerticalStoreGameCardProps>) {
   return (
@@ -31,6 +33,7 @@ export function VerticalStoreGameCard({
       className={cn("vertical-store-game-card", className, {
         "vertical-store-game-card--force-hovered": forceHovered,
       })}
+      onClick={onClick}
     >
       <div className="vertical-store-game-card__cover">
         {coverImageUrl ? (

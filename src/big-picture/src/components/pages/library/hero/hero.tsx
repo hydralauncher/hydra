@@ -17,9 +17,13 @@ import {
 import { formatRelativeDate } from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { type FocusOverrides } from "../../../../services";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
+  LIBRARY_HERO_FAVORITE_BUTTON_ID,
+  LIBRARY_HERO_LAUNCH_BUTTON_ID,
+  LIBRARY_HERO_OPTIONS_BUTTON_ID,
 } from "../navigation";
 import { getHeroPlaytimeLabel } from "../library-data";
 import { useHeroBackgroundLayers } from "./use-hero-background-layers";
@@ -94,6 +98,25 @@ export function LibraryHero({
       itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
     },
   };
+  const sidebarLibraryOverride = {
+    type: "item",
+    itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.library,
+  } as const;
+  const launchNavigationOverrides: FocusOverrides = {
+    left: sidebarLibraryOverride,
+    right: { type: "item", itemId: LIBRARY_HERO_OPTIONS_BUTTON_ID },
+    down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
+  };
+  const optionsNavigationOverrides: FocusOverrides = {
+    left: { type: "item", itemId: LIBRARY_HERO_LAUNCH_BUTTON_ID },
+    right: { type: "item", itemId: LIBRARY_HERO_FAVORITE_BUTTON_ID },
+    down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
+  };
+  const favoriteNavigationOverrides: FocusOverrides = {
+    left: { type: "item", itemId: LIBRARY_HERO_OPTIONS_BUTTON_ID },
+    right: { type: "block" },
+    down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
+  };
 
   return (
     <section ref={heroRef} className="hero">
@@ -152,6 +175,8 @@ export function LibraryHero({
                 variant="primary"
                 icon={<PlayIcon size={24} />}
                 color={dominantColor ?? undefined}
+                focusId={LIBRARY_HERO_LAUNCH_BUTTON_ID}
+                focusNavigationOverrides={launchNavigationOverrides}
                 disabled={!featuredGame}
                 onClick={() => {
                   if (featuredGame) void onLaunchGame?.(featuredGame);
@@ -161,12 +186,14 @@ export function LibraryHero({
               </Button>
 
               <div className="hero__action__divider">
-                <Divider orientation="vertical" />
+                <Divider orientation="vertical" color="var(--text-secondary)" />
               </div>
 
               <Button
                 variant="secondary"
                 icon={<GearIcon size={24} />}
+                focusId={LIBRARY_HERO_OPTIONS_BUTTON_ID}
+                focusNavigationOverrides={optionsNavigationOverrides}
                 onClick={() => {
                   if (featuredGame) {
                     onOpenGameSettings?.(featuredGame);
@@ -179,6 +206,8 @@ export function LibraryHero({
               <Button
                 variant="secondary"
                 size="icon"
+                focusId={LIBRARY_HERO_FAVORITE_BUTTON_ID}
+                focusNavigationOverrides={favoriteNavigationOverrides}
                 aria-label={
                   featuredGame?.favorite
                     ? "Remove from favorites"

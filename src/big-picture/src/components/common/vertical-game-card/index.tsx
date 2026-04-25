@@ -14,6 +14,7 @@ export interface VerticalGameCardProps {
   action?: ReactNode;
   forceHovered?: boolean;
   className?: string;
+  onClick?: () => void;
   onCoverImageError?: () => void;
 }
 
@@ -33,6 +34,7 @@ export function VerticalGameCard({
   action,
   forceHovered = false,
   className,
+  onClick,
   onCoverImageError,
 }: Readonly<VerticalGameCardProps>) {
   const hasProgress =
@@ -55,6 +57,7 @@ export function VerticalGameCard({
         "vertical-game-card--force-hovered": forceHovered,
       })}
       style={customProperties}
+      onClick={onClick}
     >
       <div className="vertical-game-card__cover">
         {coverImageUrl ? (

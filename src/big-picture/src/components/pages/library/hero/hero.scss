@@ -126,7 +126,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 1px;
+  width: 1px;
   height: 28px;
+  pointer-events: none;
+}
+
+.hero__action__divider .divider-container--vertical {
+  width: 1px;
+  height: 28px;
+  flex-basis: 1px;
+}
+
+.hero__action__divider .divider--vertical {
+  width: 1px;
+  height: 28px;
+  min-height: 28px;
+  background-color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .hero__stats {
