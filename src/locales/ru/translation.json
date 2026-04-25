@@ -798,8 +798,7 @@
     "proton_version_auto": "Авто (глобальное значение по умолчанию или значение umu по умолчанию)",
     "proton_source_umu_default": "выбор umu по умолчанию",
     "proton_source_steam": "Установлено через Steam",
-    "proton_source_compatibility_tools": "Установлено в Steam compatibilitytools.d",
-    "resume_seeding": "Возобновить раздачу"
+    "proton_source_compatibility_tools": "Установлено в Steam compatibilitytools.d"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
