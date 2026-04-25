@@ -7,8 +7,8 @@ import {
 } from "../../components";
 import { getBigPictureGameDetailsPath } from "../../helpers";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
-import type { FocusOverrides } from "../../services";
-import { HOME_HERO_ADD_TO_LIBRARY_ID } from "./navigation";
+import type { FocusOverrideTarget, FocusOverrides } from "../../services";
+import { HOME_HERO_ACTIONS_REGION_ID } from "./navigation";
 
 function getGameCover(game: ShopAssets) {
   return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
@@ -46,8 +46,17 @@ export function PopularGames({
         {games.map((game, index) => {
           const previousGame = games[index - 1];
           const nextGame = games[index + 1];
-          const upFocusId =
-            getUpFocusId?.(index) ?? HOME_HERO_ADD_TO_LIBRARY_ID;
+          const upFromParent = getUpFocusId?.(index);
+          const upTarget: FocusOverrideTarget =
+            getUpFocusId === undefined
+              ? {
+                  type: "region",
+                  regionId: HOME_HERO_ACTIONS_REGION_ID,
+                  entryDirection: "right",
+                }
+              : upFromParent
+                ? { type: "item", itemId: upFromParent }
+                : { type: "block" };
           const downFocusId = getDownFocusId?.(index) ?? null;
           const gameDetailsPath = getBigPictureGameDetailsPath(game);
           const navigationOverrides: FocusOverrides = {
@@ -60,9 +69,7 @@ export function PopularGames({
             right: nextGame
               ? { type: "item", itemId: getFocusId(nextGame) }
               : { type: "block" },
-            up: upFocusId
-              ? { type: "item", itemId: upFocusId }
-              : { type: "block" },
+            up: upTarget,
             down: downFocusId
               ? { type: "item", itemId: downFocusId }
               : { type: "block" },
