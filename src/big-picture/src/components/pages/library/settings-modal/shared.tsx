@@ -1,6 +1,6 @@
 import cn from "classnames";
-import { useRef, type ReactNode } from "react";
-import { Button, FocusItem, Input } from "../../../common";
+import { type ReactNode } from "react";
+import { Button, Input } from "../../../common";
 
 export function SettingsSection({
   title,
@@ -43,25 +43,15 @@ export function FocusableInput({
   disabled?: boolean;
   type?: string;
 }>) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
   return (
-    <FocusItem
-      actions={{
-        primary: () => inputRef.current?.focus(),
-      }}
-      navigationState={disabled ? "disabled" : "active"}
-    >
-      <Input
-        ref={inputRef}
-        label={label}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </FocusItem>
+    <Input
+      label={label}
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 

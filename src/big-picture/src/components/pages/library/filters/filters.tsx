@@ -1,11 +1,5 @@
 import "./filters.scss";
-import {
-  Button,
-  FocusItem,
-  HorizontalFocusGroup,
-  Input,
-  Tabs,
-} from "../../../common";
+import { Button, HorizontalFocusGroup, Input, Tabs } from "../../../common";
 import {
   ListDashesIcon,
   MagnifyingGlassIcon,
@@ -128,15 +122,14 @@ export function LibraryFilters({
         navigationOverrides={toolbarNavigationOverrides}
       >
         <div className="library-filters__search">
-          <FocusItem id={LIBRARY_FILTERS_SEARCH_INPUT_ID}>
-            <Input
-              type="text"
-              placeholder="Search library"
-              iconLeft={<MagnifyingGlassIcon size={24} />}
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </FocusItem>
+          <Input
+            focusId={LIBRARY_FILTERS_SEARCH_INPUT_ID}
+            type="text"
+            placeholder="Search library"
+            iconLeft={<MagnifyingGlassIcon size={24} />}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
         </div>
 
         <div className="library-filters__view-actions">
