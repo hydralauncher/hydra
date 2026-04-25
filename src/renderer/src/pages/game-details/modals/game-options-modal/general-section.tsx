@@ -5,7 +5,6 @@ import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen } from "lucide-react";
-import "./general-section.scss";
 
 interface DriveInfo {
   root: string;
@@ -107,7 +106,6 @@ export function GeneralSettingsSection({
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
-  const [showDriveSelector, setShowDriveSelector] = useState(false);
   const [selectedDrive, setSelectedDrive] = useState<string | null>(null);
   const [customPath, setCustomPath] = useState("");
   const [_error, setError] = useState<string | null>(null);
@@ -116,14 +114,16 @@ export function GeneralSettingsSection({
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
+  const transferGameLabel =
+    gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
 
   useEffect(() => {
-    if (isTransferring) setShowDriveSelector(false);
-  }, [isTransferring]);
-
-  useEffect(() => {
-    console.log("📊 PROGRESS UPDATE:", transferProgress * 100, "%");
-  }, [transferProgress]);
+    if (!isTransferring) return;
+    console.log(
+      "Transfer progress update:",
+      `${Math.round(transferProgress * 100)}%`
+    );
+  }, [isTransferring, transferProgress]);
 
   const handleStartTransfer = async () => {
     let fullDest: string;
@@ -143,7 +143,6 @@ export function GeneralSettingsSection({
 
     try {
       await onStartTransfer(fullDest);
-      setShowDriveSelector(false);
       setSelectedDrive(null);
       setCustomPath("");
     } catch (err: unknown) {
@@ -165,7 +164,6 @@ export function GeneralSettingsSection({
   };
 
   const handleCancelSelector = () => {
-    setShowDriveSelector(false);
     setSelectedDrive(null);
     setCustomPath("");
     setError(null);
@@ -250,189 +248,180 @@ export function GeneralSettingsSection({
                     : t("no_save_folder_found")}
               </Button>
             )}
-            {game.executablePath && !isTransferring && !showDriveSelector && (
-              <Button
-                type="button"
-                theme="danger"
-                onClick={() => setShowDriveSelector(true)}
-              >
-                {t("transfer_game")}
-              </Button>
-            )}
           </div>
         </div>
       </div>
 
       {/* Drive Selector */}
-      {showDriveSelector && !isTransferring && (
-        <div className="drive-selector">
-          <div className="drive-selector__header">
-            <h3>Move Game Location</h3>
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleCancelSelector}
-            >
-              ✕
-            </Button>
+      {game.executablePath && !isTransferring && (
+        <div className="game-options-modal__section">
+          <div className="game-options-modal__header">
+            <h2>{t("transfer_game")}</h2>
+            <h4 className="game-options-modal__header-description">
+              {t("transfer_game_description", { game: transferGameLabel })}
+            </h4>
           </div>
 
-          <p className="drive-selector__subtitle">
-            Choose where to move{" "}
-            <strong>
-              {game.title}{" "}
-              <span className="drive-selector__game-size">
-                ({fmt(gameSize)})
-              </span>
-            </strong>
-          </p>
+          <div className="drive-selector">
+            {drives.length > 0 && (
+              <div className="drive-selector__list">
+                <div className="drive-selector__list-title">
+                  {t("transfer_available_drives")}
+                </div>
+                {drives.map((drive) => {
+                  const hasSpace = drive.free >= gameSize;
+                  const isSelected = selectedDrive === drive.root && !customPath;
+                  const usedPct = Math.round(
+                    ((drive.total - drive.free) / drive.total) * 100
+                  );
+                  const gamePct =
+                    gameSize > 0
+                      ? Math.min((gameSize / drive.total) * 100, 100 - usedPct)
+                      : 0;
 
-          {drives.length > 0 && (
-            <div className="drive-selector__list">
-              <div className="drive-selector__list-title">Available Drives</div>
-              {drives.map((drive) => {
-                const hasSpace = drive.free >= gameSize;
-                const isSelected = selectedDrive === drive.root && !customPath;
-                const usedPct = Math.round(
-                  ((drive.total - drive.free) / drive.total) * 100
-                );
-                const gamePct =
-                  gameSize > 0
-                    ? Math.min((gameSize / drive.total) * 100, 100 - usedPct)
-                    : 0;
-
-                return (
-                  <button
-                    key={drive.root}
-                    type="button"
-                    className={`drive-card ${isSelected ? "drive-card--selected" : ""} ${!hasSpace ? "drive-card--nospace" : ""}`}
-                    onClick={() => {
-                      if (!hasSpace) return;
-                      setSelectedDrive(drive.root);
-                      setCustomPath("");
-                      setError(null);
-                    }}
-                    disabled={!hasSpace}
-                  >
-                    <HardDrive size={18} className="drive-card__icon" />
-                    <div className="drive-card__body">
-                      <div className="drive-card__top">
-                        <span className="drive-card__label">
-                          {drive.label || drive.root}
-                        </span>
-                        <span
-                          className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}
-                        >
-                          {fmt(drive.free)} free / {fmt(drive.total)}
-                        </span>
-                      </div>
-                      <div className="drive-card__bar">
-                        <div
-                          className="drive-card__bar-used"
-                          style={{ width: `${usedPct}%` }}
-                        />
-                        {gamePct > 0 && (
+                  return (
+                    <button
+                      key={drive.root}
+                      type="button"
+                      className={`drive-card ${isSelected ? "drive-card--selected" : ""} ${!hasSpace ? "drive-card--nospace" : ""}`}
+                      onClick={() => {
+                        if (!hasSpace) return;
+                        setSelectedDrive(drive.root);
+                        setCustomPath("");
+                        setError(null);
+                      }}
+                      disabled={!hasSpace}
+                    >
+                      <HardDrive size={18} className="drive-card__icon" />
+                      <div className="drive-card__body">
+                        <div className="drive-card__top">
+                          <span className="drive-card__label">
+                            {drive.label || drive.root}
+                          </span>
+                          <span
+                            className={`drive-card__space ${!hasSpace ? "drive-card__space--error" : ""}`}
+                          >
+                            {fmt(drive.free)} {t("transfer_free")} / {fmt(drive.total)}
+                          </span>
+                        </div>
+                        <div className="drive-card__bar">
                           <div
-                            className="drive-card__bar-game"
-                            style={{
-                              width: `${gamePct}%`,
-                              left: `${usedPct}%`,
-                            }}
+                            className="drive-card__bar-used"
+                            style={{ width: `${usedPct}%` }}
                           />
-                        )}
+                          {gamePct > 0 && (
+                            <div
+                              className="drive-card__bar-game"
+                              style={{
+                                width: `${gamePct}%`,
+                                left: `${usedPct}%`,
+                              }}
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {!hasSpace && (
-                      <span className="drive-card__tag">
-                        Insufficient Space
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      {!hasSpace && (
+                        <span className="drive-card__tag">
+                          {t("transfer_insufficient_space")}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-          <div className="drive-selector__custom">
-            <div className="drive-selector__or">
-              <span>───────── OR ─────────</span>
+            <div className="drive-selector__custom">
+              <div className="drive-selector__path-row">
+                <TextField
+                  value={customPath}
+                  onChange={(e) => {
+                    setCustomPath(e.target.value);
+                    setSelectedDrive(null);
+                    setError(null);
+                  }}
+                  placeholder={t("transfer_destination_placeholder")}
+                  theme="dark"
+                />
+                <Button type="button" theme="outline" onClick={handleBrowse}>
+                  <FolderOpen size={14} />
+                  {t("transfer_browse")}
+                </Button>
+              </div>
             </div>
-            <div className="drive-selector__path-row">
-              <TextField
-                value={customPath}
-                onChange={(e) => {
-                  setCustomPath(e.target.value);
-                  setSelectedDrive(null);
-                  setError(null);
-                }}
-                placeholder="Enter custom folder path (e.g., D:\Games)"
-                theme="dark"
-              />
-              <Button type="button" theme="outline" onClick={handleBrowse}>
-                <FolderOpen size={14} />
-                Browse
+
+            <div className="drive-selector__actions">
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleCancelSelector}
+              >
+                {t("clear")}
+              </Button>
+              <Button
+                type="button"
+                theme="danger"
+                onClick={handleStartTransfer}
+                disabled={!effectiveDest || isPreparing}
+              >
+                {isPreparing
+                  ? t("transfer_preparing")
+                  : t("start_transfer")}
               </Button>
             </div>
-          </div>
-
-          <div className="drive-selector__actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleCancelSelector}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              theme="danger"
-              onClick={handleStartTransfer}
-              disabled={!effectiveDest || isPreparing}
-            >
-              {isPreparing ? "Preparing..." : "Start Transfer"}
-            </Button>
           </div>
         </div>
       )}
 
       {/* Transfer Progress */}
       {isTransferring && (
-        <div className="transfer-progress">
-          <div className="transfer-progress__header">
-            <div className="transfer-progress__title">
-              <span>Moving Files...</span>
+        <div className="game-options-modal__section">
+          <div className="game-options-modal__header">
+            <h2>{t("transfer_game")}</h2>
+          </div>
+
+          <div className="transfer-progress">
+            <div className="transfer-progress__header">
+              <div className="transfer-progress__title">
+                <span>{t("transfer_moving_files")}</span>
+              </div>
+              <span className="transfer-progress__pct">{progressPercent}%</span>
             </div>
-            <span className="transfer-progress__pct">{progressPercent}%</span>
-          </div>
 
-          <div className="transfer-progress__track">
-            <div
-              className="transfer-progress__fill"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+            <div className="transfer-progress__track">
+              <div
+                className="transfer-progress__fill"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
 
-          <div className="transfer-progress__stats">
-            <span className="transfer-progress__size">
-              {fmt(transferredBytes)} / {fmt(gameSize)}
-            </span>
-            <span className="transfer-progress__speed">
-              {transferSpeed > 0 ? (
-                <>
-                  {transferSpeed.toFixed(1)} MB/s
-                  {transferETA > 0 && ` • ETA: ${formatETA(transferETA)}`}
-                </>
-              ) : (
-                "Calculating..."
-              )}
-            </span>
-          </div>
+            <div className="transfer-progress__stats">
+              <span className="transfer-progress__size">
+                {fmt(transferredBytes)} / {fmt(gameSize)}
+              </span>
+              <span className="transfer-progress__speed">
+                {transferSpeed > 0 ? (
+                  <>
+                    {transferSpeed.toFixed(1)} {t("transfer_speed_unit")}
+                    {transferETA > 0 &&
+                      ` • ${t("transfer_eta_label", { eta: formatETA(transferETA) })}`}
+                  </>
+                ) : (
+                  t("transfer_calculating")
+                )}
+              </span>
+            </div>
 
-          <div className="transfer-progress__actions">
-            <Button type="button" theme="danger" onClick={onShowCancelConfirm}>
-              <X size={12} />
-              Cancel
-            </Button>
+            <div className="transfer-progress__actions">
+              <Button
+                type="button"
+                theme="danger"
+                onClick={onShowCancelConfirm}
+              >
+                <X size={12} />
+                {t("transfer_cancel_button")}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -441,14 +430,14 @@ export function GeneralSettingsSection({
       {showCancelConfirm && (
         <div className="cancel-confirm-overlay">
           <div className="cancel-confirm-modal">
-            <h4>Cancel Transfer?</h4>
-            <p>Files moved so far will be deleted. This cannot be undone.</p>
+            <h4>{t("transfer_cancel_title")}</h4>
+            <p>{t("transfer_cancel_description")}</p>
             <div className="cancel-confirm-actions">
               <Button theme="outline" onClick={onHideCancelConfirm}>
-                Continue Transfer
+                {t("transfer_continue")}
               </Button>
               <Button theme="danger" onClick={onConfirmCancelTransfer}>
-                Yes, Cancel
+                {t("transfer_cancel_confirm")}
               </Button>
             </div>
           </div>
