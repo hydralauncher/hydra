@@ -32,6 +32,7 @@ export class WindowManager {
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
+  private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -123,6 +124,12 @@ export class WindowManager {
   public static async createMainWindow() {
     if (this.mainWindow) return;
 
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
@@ -132,7 +139,15 @@ export class WindowManager {
       this.initialConfigInitializationMainWindow
     );
 
-    if (isMaximized) {
+    this.deferredMainMaximize = false;
+
+    if (userPreferences?.launchInBigPicture) {
+      this.mainWindow.setOpacity(0);
+      this.mainWindow.setSkipTaskbar(true);
+      if (isMaximized) {
+        this.deferredMainMaximize = true;
+      }
+    } else if (isMaximized) {
       this.mainWindow.maximize();
     }
 
@@ -205,12 +220,6 @@ export class WindowManager {
         });
       }
     );
-
-    const userPreferences = await db
-      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-        valueEncoding: "json",
-      })
-      .catch(() => null);
 
     const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
 
@@ -293,14 +302,26 @@ export class WindowManager {
     this.loadWindowURL(this.bigPicture, "big-picture");
 
     this.bigPicture.once("ready-to-show", () => {
-      this.mainWindow?.hide();
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        main.setOpacity(1);
+        main.hide();
+      }
       this.bigPicture?.show();
     });
 
     this.bigPicture.on("closed", () => {
       this.bigPicture = null;
-      this.mainWindow?.show();
-      this.mainWindow?.focus();
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        if (WindowManager.deferredMainMaximize) {
+          main.maximize();
+          WindowManager.deferredMainMaximize = false;
+        }
+        main.setSkipTaskbar(false);
+        main.show();
+        main.focus();
+      }
     });
   }
 
