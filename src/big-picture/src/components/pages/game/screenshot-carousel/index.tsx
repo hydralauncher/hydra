@@ -1,10 +1,19 @@
-import { useRef, useCallback, useState, useEffect, useMemo } from "react";
-import useEmblaCarousel from "embla-carousel-react";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import type { SteamMovie, SteamScreenshot } from "@types";
+import useEmblaCarousel from "embla-carousel-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
+import { useNavigationIsFocused } from "../../../../stores";
 import { FocusItem, HorizontalFocusGroup } from "../../../common";
+import {
+  GAME_HERO_ACTIONS_REGION_ID,
+  GAME_SCREENSHOT_CAROUSEL_DOTS_REGION_ID,
+  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+  GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
+  GAME_STATS_TITLE_ID,
+} from "../navigation";
 import { VideoPlayer } from "./video-player";
-
 interface ScreenshotCarouselProps {
   screenshots: SteamScreenshot[];
   videos: SteamMovie[];
@@ -25,8 +34,25 @@ export function ScreenshotCarousel({
 }: Readonly<ScreenshotCarouselProps>) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const carouselContainerRef = useRef<HTMLDivElement | null>(null);
 
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+
+  const isPrevFocused = useNavigationIsFocused(
+    GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID
+  );
+  const isNextFocused = useNavigationIsFocused(
+    GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID
+  );
+
+  useEffect(() => {
+    if ((isPrevFocused || isNextFocused) && carouselContainerRef.current) {
+      carouselContainerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [isPrevFocused, isNextFocused]);
 
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
@@ -153,8 +179,47 @@ export function ScreenshotCarousel({
     );
   };
 
+  const prevButtonNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
+    },
+    up: {
+      type: "region",
+      regionId: GAME_HERO_ACTIONS_REGION_ID,
+    },
+    down: {
+      type: "block",
+    },
+    right: {
+      type: "item",
+      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
+    },
+  };
+
+  const nextButtonNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
+    },
+    right: {
+      type: "item",
+      itemId: GAME_STATS_TITLE_ID,
+    },
+    up: {
+      type: "region",
+      regionId: GAME_HERO_ACTIONS_REGION_ID,
+    },
+    down: {
+      type: "block",
+    },
+  };
+
   return (
-    <div style={{ overflow: "hidden", width: "100%", marginBottom: 32 }}>
+    <div
+      ref={carouselContainerRef}
+      style={{ overflow: "hidden", width: "100%", marginBottom: 32 }}
+    >
       <div className="embla" ref={emblaRef} style={{ overflow: "hidden" }}>
         <div
           className="embla__container"
@@ -175,7 +240,10 @@ export function ScreenshotCarousel({
         </div>
       </div>
 
-      <HorizontalFocusGroup regionId="screenshot-carousel-dots" asChild>
+      <HorizontalFocusGroup
+        regionId={GAME_SCREENSHOT_CAROUSEL_DOTS_REGION_ID}
+        asChild
+      >
         <div
           style={{
             display: "flex",
@@ -185,7 +253,11 @@ export function ScreenshotCarousel({
             marginTop: 8,
           }}
         >
-          <FocusItem asChild>
+          <FocusItem
+            id={GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID}
+            navigationOverrides={prevButtonNavigationOverrides}
+            asChild
+          >
             <button
               onClick={scrollPrev}
               style={{
@@ -221,7 +293,11 @@ export function ScreenshotCarousel({
             ))}
           </div>
 
-          <FocusItem asChild>
+          <FocusItem
+            id={GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID}
+            navigationOverrides={nextButtonNavigationOverrides}
+            asChild
+          >
             <button
               onClick={scrollNext}
               style={{
