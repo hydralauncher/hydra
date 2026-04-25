@@ -14,9 +14,6 @@ import "./page.scss";
 
 export default function Home() {
   const { popularGames, gamesOfTheWeek, gamesToBeat } = usePopularGames();
-  const firstPopularGameId = popularGames[0]
-    ? getPopularGameFocusId(popularGames[0])
-    : null;
   const getPopularGameIdByIndex = (gameIndex: number) => {
     const game = popularGames[Math.min(gameIndex, popularGames.length - 1)];
 
@@ -35,7 +32,7 @@ export default function Home() {
 
   return (
     <section className="home-page">
-      <HomePageHero firstPopularGameId={firstPopularGameId} />
+      <HomePageHero />
       <PopularGames
         title="Popular Games"
         games={popularGames}

@@ -14,23 +14,18 @@ import {
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import { useLibrary } from "../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../layout";
-import type { FocusOverrides } from "../../../services";
+import type { FocusOverrideTarget, FocusOverrides } from "../../../services";
 import {
   HOME_HERO_ACTIONS_REGION_ID,
   HOME_HERO_ADD_TO_LIBRARY_ID,
   HOME_HERO_DOWNLOAD_ID,
+  HOME_POPULAR_GAMES_ROW_REGION_ID,
 } from "../navigation";
 import { useFeaturedGame } from "./use-featured-game";
 
 import "./styles.scss";
 
-interface HomePageHeroProps {
-  firstPopularGameId?: string | null;
-}
-
-export function HomePageHero({
-  firstPopularGameId,
-}: Readonly<HomePageHeroProps>) {
+export function HomePageHero() {
   const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
   const { featuredGame } = useFeaturedGame();
@@ -81,9 +76,11 @@ export function HomePageHero({
 
   if (!featuredGame) return null;
 
-  const heroDownNavigationTarget = firstPopularGameId
-    ? ({ type: "item", itemId: firstPopularGameId } as const)
-    : ({ type: "block" } as const);
+  const heroDownNavigationTarget: FocusOverrideTarget = {
+    type: "region",
+    regionId: HOME_POPULAR_GAMES_ROW_REGION_ID,
+    entryDirection: "right",
+  };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
     left: {
