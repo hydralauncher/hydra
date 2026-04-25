@@ -20,7 +20,6 @@ export interface HeroProps {
   isGameRunning: boolean;
   isFavorite: boolean;
   toggleFavorite: () => void;
-  setIsModalOpen: (isOpen: boolean) => void;
   onPlay: () => void;
   onClose: () => void;
 }
@@ -31,7 +30,6 @@ export function Hero({
   isGameRunning,
   isFavorite,
   toggleFavorite,
-  setIsModalOpen,
   onPlay,
   onClose,
 }: Readonly<HeroProps>) {
@@ -76,14 +74,9 @@ export function Hero({
     }
 
     return (
-      <>
-        <Button variant="secondary" icon={<PlusCircleIcon size={24} />}>
-          Add to Library
-        </Button>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
-          Open Download Options
-        </Button>
-      </>
+      <Button variant="secondary" icon={<PlusCircleIcon size={24} />}>
+        Add to Library
+      </Button>
     );
   };
 
