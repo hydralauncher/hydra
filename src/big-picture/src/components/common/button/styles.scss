@@ -49,6 +49,21 @@
     }
   }
 
+  &--tertiary {
+    color: var(--text);
+    background-color: var(--tertiary);
+    border: 1px solid var(--tertiary-border);
+
+    &:hover {
+      background-color: var(--tertiary-hover);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--tertiary-border);
+      outline-offset: 2px;
+    }
+  }
+
   &--rounded {
     color: var(--text);
     background-color: transparent;
@@ -155,7 +170,7 @@
       height: 100%;
       width: 1px;
       background-color: currentColor;
-      opacity: 0.1;
+      opacity: 0.2;
     }
 
     &--right::before {
@@ -167,7 +182,7 @@
       height: 100%;
       width: 1px;
       background-color: currentColor;
-      opacity: 0.1;
+      opacity: 0.2;
     }
 
     &--right {
