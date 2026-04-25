@@ -9,9 +9,20 @@ interface UseHlsVideoOptions {
   loop?: boolean;
 }
 
+interface HlsVideoLogger {
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+}
+
+const defaultLogger: HlsVideoLogger = {
+  warn: console.warn,
+  error: console.error,
+};
+
 export function useHlsVideo(
   videoRef: React.RefObject<HTMLVideoElement>,
-  { videoSrc, videoType, autoplay, muted, loop }: UseHlsVideoOptions
+  { videoSrc, videoType, autoplay, muted, loop }: UseHlsVideoOptions,
+  log: HlsVideoLogger = defaultLogger
 ) {
   const hlsRef = useRef<Hls | null>(null);
 
@@ -38,7 +49,9 @@ export function useHlsVideo(
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (autoplay) {
-          video.play().catch(() => {});
+          video.play().catch((err) => {
+            log.warn("Failed to autoplay HLS video:", err);
+          });
         }
       });
 
@@ -46,12 +59,15 @@ export function useHlsVideo(
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              log.error("HLS network error, trying to recover");
               hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
+              log.error("HLS media error, trying to recover");
               hls.recoverMediaError();
               break;
             default:
+              log.error("HLS fatal error, destroying instance");
               hls.destroy();
               break;
           }
@@ -66,7 +82,9 @@ export function useHlsVideo(
       video.src = videoSrc;
       video.load();
       if (autoplay) {
-        video.play().catch(() => {});
+        video.play().catch((err) => {
+          log.warn("Failed to autoplay HLS video:", err);
+        });
       }
 
       return () => {
@@ -74,8 +92,9 @@ export function useHlsVideo(
       };
     }
 
+    log.warn("HLS playback is not supported in this browser");
     return undefined;
-  }, [videoRef, videoSrc, videoType, autoplay, muted, loop]);
+  }, [videoRef, videoSrc, videoType, autoplay, muted, loop, log]);
 
   useEffect(() => {
     const video = videoRef.current;
