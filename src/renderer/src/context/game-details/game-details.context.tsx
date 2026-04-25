@@ -141,8 +141,19 @@ export function GameDetailsContextProvider({
       }
     };
 
-    const onTransferCancelled = (_: unknown, shop: string, objectId: string) => {
-      console.log("onTransferCancelled received", shop, objectId, "current:", game?.shop, game?.objectId);
+    const onTransferCancelled = (
+      _: unknown,
+      shop: string,
+      objectId: string
+    ) => {
+      console.log(
+        "onTransferCancelled received",
+        shop,
+        objectId,
+        "current:",
+        game?.shop,
+        game?.objectId
+      );
       if (shop === game?.shop && objectId === game?.objectId) {
         console.log("Setting isTransferring to false");
         setIsTransferring(false);

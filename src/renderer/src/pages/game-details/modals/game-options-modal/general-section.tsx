@@ -49,7 +49,7 @@ interface GeneralSettingsSectionProps {
   onConfirmCancelTransfer?: () => void;
 }
 
-// 
+//
 function formatETA(seconds: number) {
   if (seconds <= 0) return "";
   if (seconds < 60) return `${seconds}s`;

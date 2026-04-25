@@ -36,7 +36,7 @@ class SteamCopyEngine {
   private lastReportTime = 0;
   private readonly REPORT_INTERVAL = 100;
   private readonly BLOCK_SIZE = 1024 * 1024;
-  private readonly CONCURRENCY = 8;
+  private readonly CONCURRENCY = 8; //4 default - 8 performance/faster 
 
   constructor(
     private readonly id: string,
@@ -87,7 +87,7 @@ class SteamCopyEngine {
 
     for (let i = 0; i < files.length; i += this.CONCURRENCY) {
       await this.checkCancelled();
-      
+
       const batch = files.slice(i, i + this.CONCURRENCY);
       await Promise.all(
         batch.map((file) =>
@@ -101,7 +101,7 @@ class SteamCopyEngine {
 
     for (const dir of dirs) {
       await this.checkCancelled();
-      
+
       const srcPath = path.join(srcDir, dir.name);
       const destPath = path.join(destDir, dir.name);
       await fs.mkdir(destPath, { recursive: true });
@@ -179,10 +179,13 @@ interface GameWithExecutable extends LibraryGame {
   executablePath: string;
 }
 
-async function validateGameExists(shop: GameShop, objectId: string): Promise<GameWithExecutable | null> {
+async function validateGameExists(
+  shop: GameShop,
+  objectId: string
+): Promise<GameWithExecutable | null> {
   const gameKey = levelKeys.game(shop, objectId);
   try {
-    const game = await gamesSublevel.get(gameKey) as LibraryGame | undefined;
+    const game = (await gamesSublevel.get(gameKey)) as LibraryGame | undefined;
     if (game?.executablePath) {
       return game as GameWithExecutable;
     }
@@ -192,24 +195,34 @@ async function validateGameExists(shop: GameShop, objectId: string): Promise<Gam
   }
 }
 
-async function validateGameRoot(game: GameWithExecutable): Promise<{ valid: true; gameRoot: string } | { valid: false; error: string }> {
-  const gameRoot = await findGameRootFromExe(game.executablePath).catch(() => null);
+async function validateGameRoot(
+  game: GameWithExecutable
+): Promise<
+  { valid: true; gameRoot: string } | { valid: false; error: string }
+> {
+  const gameRoot = await findGameRootFromExe(game.executablePath).catch(
+    () => null
+  );
   if (!gameRoot) {
     return { valid: false, error: "Cannot determine game root folder" };
   }
-  
+
   return { valid: true, gameRoot };
 }
 
-async function validateDestination(gameRoot: string, _destParent: string, targetRoot: string) {
+async function validateDestination(
+  gameRoot: string,
+  _destParent: string,
+  targetRoot: string
+) {
   if (path.resolve(gameRoot) === path.resolve(targetRoot)) {
     return { valid: false, error: "Game is already in this location" };
   }
-  
+
   if (targetRoot.startsWith(gameRoot + path.sep)) {
     return { valid: false, error: "Destination is inside source folder" };
   }
-  
+
   return { valid: true };
 }
 
@@ -230,7 +243,7 @@ async function checkDiskSpace(destParent: string, requiredSize: number) {
   } catch {
     // Proceed without check if unavailable
   }
-  
+
   return { hasSpace: true };
 }
 
@@ -241,13 +254,13 @@ async function updateDatabaseAfterTransfer(
   gameSize: number
 ) {
   const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
-  
+
   await gamesSublevel.put(gameKey, {
     ...game,
     executablePath: newExePath,
     installedSizeInBytes,
   });
-  
+
   const download = await downloadsSublevel.get(gameKey).catch(() => null);
   if (download) {
     await downloadsSublevel.put(gameKey, {
@@ -293,7 +306,11 @@ registerEvent(
     const targetRoot = path.join(destParent, folderName);
 
     // Validate destination
-    const destValidation = await validateDestination(gameRoot, destParent, targetRoot);
+    const destValidation = await validateDestination(
+      gameRoot,
+      destParent,
+      targetRoot
+    );
     if (!destValidation.valid) {
       activeTransfers.delete(id);
       return { ok: false, error: destValidation.error };
@@ -306,7 +323,7 @@ registerEvent(
       transferred: 0,
       total: 0,
     });
-    
+
     const gameSize = await getDirectorySize(gameRoot);
 
     // Check disk space
@@ -330,12 +347,12 @@ registerEvent(
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       await cleanupOnError(id, targetRoot);
-      
+
       if (msg === "cancelled") {
         send("on-game-transfer-cancelled", shop, objectId);
         return { ok: false, error: "Transfer cancelled" };
       }
-      
+
       send("on-game-transfer-error", shop, objectId, msg);
       return { ok: false, error: msg };
     }
@@ -345,12 +362,7 @@ registerEvent(
     const gameKey = levelKeys.game(shop, objectId);
 
     try {
-      await updateDatabaseAfterTransfer(
-        game,
-        gameKey,
-        newExePath,
-        gameSize
-      );
+      await updateDatabaseAfterTransfer(game, gameKey, newExePath, gameSize);
     } catch {
       await cleanupOnError(id, targetRoot);
       return { ok: false, error: "Failed to update database" };
