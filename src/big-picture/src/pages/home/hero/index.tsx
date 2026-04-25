@@ -4,6 +4,7 @@ import {
   PlusCircleIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
+import type { TrendingGame } from "@types";
 import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 import {
@@ -24,13 +25,15 @@ import {
   HOME_HERO_OPEN_GAME_PAGE_ID,
   HOME_POPULAR_GAMES_ROW_REGION_ID,
 } from "../navigation";
-import { useFeaturedGame } from "./use-featured-game";
 
 import "./styles.scss";
 
-export function HomePageHero() {
+interface HomePageHeroProps {
+  featuredGame: TrendingGame | null;
+}
+
+export function HomePageHero({ featuredGame }: Readonly<HomePageHeroProps>) {
   const navigate = useNavigate();
-  const { featuredGame } = useFeaturedGame();
   const { updateLibrary, ...gameState } = useLibraryGameState(
     featuredGame?.shop,
     featuredGame?.objectId
