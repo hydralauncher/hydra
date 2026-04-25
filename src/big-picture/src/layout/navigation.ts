@@ -28,13 +28,18 @@ function normalizePathname(pathname: string) {
 
 export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
   const normalizedPathname = normalizePathname(pathname);
+  const isDev = import.meta.env.DEV;
 
   if (normalizedPathname.startsWith("/catalogue")) {
-    return BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue;
+    return isDev
+      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue
+      : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
   }
 
   if (normalizedPathname.startsWith("/downloads")) {
-    return BIG_PICTURE_SIDEBAR_ITEM_IDS.downloads;
+    return isDev
+      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.downloads
+      : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
   }
 
   if (normalizedPathname.startsWith("/settings")) {
