@@ -223,7 +223,7 @@ export function HeroPanelActions() {
           theme="outline"
           className="hero-panel-actions__action"
           onClick={() => {
-            setGameOptionsInitialCategory("general");
+            setGameOptionsInitialCategory("locations");
             setShowGameOptionsModal(true);
           }}
         >
