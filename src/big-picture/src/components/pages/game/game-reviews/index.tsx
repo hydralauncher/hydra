@@ -16,6 +16,18 @@ import {
   HorizontalFocusGroup,
   Typography,
 } from "../../../common";
+import {
+  GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
+  GAME_REVIEWS_REGION_ID,
+  GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
+  GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
+  GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+  getGameReviewVoteButtonDownvoteId,
+  getGameReviewVoteButtonUpvoteId,
+  getGameReviewVotesRegionId,
+} from "../navigation";
+import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 
 type ReviewSortOption =
   | "newest"
@@ -215,6 +227,81 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
     return null;
   }
 
+  const primaryFilterNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+    },
+    left: {
+      type: "item",
+      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
+    },
+    right: {
+      type: "item",
+      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
+    },
+  };
+
+  const secondaryFilterNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+    },
+    left: {
+      type: "item",
+      itemId: GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
+    },
+    right: {
+      type: "item",
+      itemId: GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
+    },
+  };
+
+  const thirdFilterNavigationOverrides: FocusOverrides = {
+    up: {
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+    },
+    left: {
+      type: "item",
+      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
+    },
+    right: {
+      type: "block",
+    },
+  };
+
+  const upvoteButtonNavigationOverrides = (
+    reviewId: string
+  ): FocusOverrides => ({
+    left: {
+      type: "item",
+      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
+    },
+    right: {
+      type: "item",
+      itemId: getGameReviewVoteButtonDownvoteId(reviewId),
+    },
+  });
+
+  const downvoteButtonNavigationOverrides = (
+    reviewId: string
+  ): FocusOverrides => ({
+    left: {
+      type: "item",
+      itemId: getGameReviewVoteButtonUpvoteId(reviewId),
+    },
+    right: {
+      type: "block",
+    },
+  });
+
+  const loadMoreNavigationOverrides: FocusOverrides = {
+    right: {
+      type: "block",
+    },
+  };
+
   return (
     <div className="game-page__box-group">
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -232,9 +319,11 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         </div>
       </div>
 
-      <HorizontalFocusGroup regionId="game-page__review-sort-options" asChild>
+      <HorizontalFocusGroup regionId={GAME_REVIEWS_REGION_ID} asChild>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Button
+            focusId={GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID}
+            focusNavigationOverrides={primaryFilterNavigationOverrides}
             variant="link"
             size="small"
             onClick={() =>
@@ -245,6 +334,8 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
           </Button>
 
           <Button
+            focusId={GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID}
+            focusNavigationOverrides={secondaryFilterNavigationOverrides}
             variant="link"
             size="small"
             onClick={() =>
@@ -257,6 +348,8 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
           </Button>
 
           <Button
+            focusId={GAME_REVIEWS_THIRD_FILTER_BUTTON_ID}
+            focusNavigationOverrides={thirdFilterNavigationOverrides}
             variant="link"
             size="small"
             onClick={() => handleSortChange("most_voted")}
@@ -332,11 +425,17 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
               />
 
               <HorizontalFocusGroup
-                regionId={`review-votes-${review.id}`}
+                regionId={getGameReviewVotesRegionId(review.id)}
                 asChild
               >
                 <div className="game-page__review-votes">
-                  <FocusItem asChild>
+                  <FocusItem
+                    id={getGameReviewVoteButtonUpvoteId(review.id)}
+                    navigationOverrides={upvoteButtonNavigationOverrides(
+                      review.id
+                    )}
+                    asChild
+                  >
                     <button
                       className={`game-page__review-vote-button ${review.hasUpvoted ? "game-page__review-vote-button--active" : ""}`}
                       onClick={() => handleVote(review.id, "upvote")}
@@ -351,7 +450,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
                     </button>
                   </FocusItem>
 
-                  <FocusItem asChild>
+                  <FocusItem
+                    id={getGameReviewVoteButtonDownvoteId(review.id)}
+                    navigationOverrides={downvoteButtonNavigationOverrides(
+                      review.id
+                    )}
+                    asChild
+                  >
                     <button
                       className={`game-page__review-vote-button ${review.hasDownvoted ? "game-page__review-vote-button--active-down" : ""}`}
                       onClick={() => handleVote(review.id, "downvote")}
@@ -375,7 +480,11 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       )}
 
       {hasMore && !reviewsLoading && reviews.length > 0 && (
-        <Button variant="rounded" onClick={loadMore}>
+        <Button
+          variant="rounded"
+          onClick={loadMore}
+          focusNavigationOverrides={loadMoreNavigationOverrides}
+        >
           Load More
         </Button>
       )}
