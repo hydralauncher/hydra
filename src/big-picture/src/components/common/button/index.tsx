@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { getContrastTextColor } from "../../../helpers";
 import { FocusItem } from "..";
+import type { FocusOverrides } from "../../../services";
 
 const variants = {
   primary: "button--primary",
@@ -34,6 +35,8 @@ export interface ButtonProps
   target?: "_blank" | "_self" | "_parent" | "_top";
   className?: string;
   color?: string;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
 }
 
 function isExternalHref(href: string) {
@@ -56,6 +59,8 @@ export function Button({
   className,
   color,
   style,
+  focusId,
+  focusNavigationOverrides,
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
@@ -82,7 +87,11 @@ export function Button({
 
   if (!href) {
     return (
-      <FocusItem asChild>
+      <FocusItem
+        id={focusId}
+        navigationOverrides={focusNavigationOverrides}
+        asChild
+      >
         <button
           onClick={onClick}
           disabled={disabled || loading}
@@ -132,7 +141,11 @@ export function Button({
 
   if (target === "_blank" || isExternalHref(href)) {
     return (
-      <FocusItem asChild>
+      <FocusItem
+        id={focusId}
+        navigationOverrides={focusNavigationOverrides}
+        asChild
+      >
         <a
           href={href}
           target={target}
@@ -149,7 +162,11 @@ export function Button({
   }
 
   return (
-    <FocusItem asChild>
+    <FocusItem
+      id={focusId}
+      navigationOverrides={focusNavigationOverrides}
+      asChild
+    >
       <Link
         to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}

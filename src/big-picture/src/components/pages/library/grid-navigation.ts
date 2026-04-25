@@ -73,11 +73,7 @@ function buildFocusOverridesForGridItem(
             itemId: leftItem.id,
           },
         }
-      : {
-          left: {
-            type: "block",
-          },
-        }),
+      : {}),
     ...(rightItem
       ? {
           right: {

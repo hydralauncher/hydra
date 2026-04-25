@@ -7,43 +7,74 @@ import {
 } from "@phosphor-icons/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
+import { FocusItem, VerticalFocusGroup } from "../../components";
+import type { FocusOverrides } from "../../services";
+import {
+  BIG_PICTURE_CONTENT_REGION_ID,
+  BIG_PICTURE_SIDEBAR_ITEM_IDS,
+  BIG_PICTURE_SIDEBAR_REGION_ID,
+  type BigPictureSidebarRouteKey,
+  getBigPictureSidebarItemIdFromPathname,
+} from "../navigation";
 
 import "./styles.scss";
 
-function SidebarRouter() {
+function getSidebarRoutePath(routeKey: BigPictureSidebarRouteKey) {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
 
+  if (routeKey === "home") return basePath || "/";
+
+  return `${basePath}/${routeKey}`;
+}
+
+function SidebarRouter() {
   const navigate = useNavigate();
 
   const routes = [
     {
+      key: "home",
       label: "Home",
-      path: basePath,
+      path: getSidebarRoutePath("home"),
       icon: HouseIcon,
     },
     {
+      key: "catalogue",
       label: "Catalogue",
-      path: `${basePath}/catalogue`,
+      path: getSidebarRoutePath("catalogue"),
       icon: SquaresFourIcon,
     },
     {
+      key: "library",
       label: "Library",
-      path: `${basePath}/library`,
+      path: getSidebarRoutePath("library"),
       icon: BookOpenIcon,
     },
     {
+      key: "downloads",
       label: "Download",
-      path: `${basePath}/downloads`,
+      path: getSidebarRoutePath("downloads"),
       icon: DownloadSimpleIcon,
     },
     {
+      key: "settings",
       label: "Settings",
-      path: `${basePath}/settings`,
+      path: getSidebarRoutePath("settings"),
       icon: GearIcon,
     },
-  ];
+  ] as const;
 
   const { pathname } = useLocation();
+  const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
+  const sidebarNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "block",
+    },
+    right: {
+      type: "region",
+      regionId: BIG_PICTURE_CONTENT_REGION_ID,
+      entryDirection: "right",
+    },
+  };
 
   const handleSidebarItemClick = (path: string) => {
     if (path !== pathname) {
@@ -52,28 +83,38 @@ function SidebarRouter() {
   };
 
   return (
-    <div className="big-picture__router-container">
+    <VerticalFocusGroup
+      className="big-picture__router-container"
+      regionId={BIG_PICTURE_SIDEBAR_REGION_ID}
+      navigationOverrides={sidebarNavigationOverrides}
+      autoScrollMode="region"
+      style={{ gap: "calc(var(--spacing-unit) / 2)" }}
+    >
       {routes.map((route) => {
-        const active = pathname === route.path;
+        const itemId = BIG_PICTURE_SIDEBAR_ITEM_IDS[route.key];
+        const active = activeSidebarItemId === itemId;
+
         return (
           <div
             key={route.path}
             className={`state-wrapper${active ? " state-wrapper--active" : ""}`}
           >
-            <button
-              type="button"
-              onClick={() => handleSidebarItemClick(route.path)}
-              className={`route-anchor route-anchor--extra-padding${active ? " route-anchor--active" : ""}`}
-            >
-              <div className="route-anchor__icon route-anchor__icon--small-size">
-                <route.icon size={24} />
-              </div>
-              <div className="route-anchor__label">{route.label}</div>
-            </button>
+            <FocusItem id={itemId} asChild>
+              <button
+                type="button"
+                onClick={() => handleSidebarItemClick(route.path)}
+                className={`route-anchor route-anchor--extra-padding${active ? " route-anchor--active" : ""}`}
+              >
+                <div className="route-anchor__icon route-anchor__icon--small-size">
+                  <route.icon size={24} />
+                </div>
+                <div className="route-anchor__label">{route.label}</div>
+              </button>
+            </FocusItem>
           </div>
         );
       })}
-    </div>
+    </VerticalFocusGroup>
   );
 }
 

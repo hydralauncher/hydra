@@ -60,7 +60,6 @@ export function LibraryFilters({
       value: "all",
       label: `All (${counts.all})`,
       navigationOverrides: {
-        left: { type: "block" },
         right: {
           type: "item",
           itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
