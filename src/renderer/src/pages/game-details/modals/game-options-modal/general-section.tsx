@@ -514,36 +514,36 @@ export function GeneralSettingsSection({
       {/* Launch options */}
       {showLaunchOptionsSection && (
         <div className="game-options-modal__launch-options">
-        <div className="game-options-modal__header">
-          <h2>{t("launch_options")}</h2>
-          <h4 className="game-options-modal__header-description">
-            {shouldShowWinePrefixConfiguration ? (
-              <Trans
-                i18nKey="launch_options_description_linux"
-                ns="game_details"
-                defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
-                components={{
-                  code: <code className="game-options-modal__inline-code" />,
-                }}
-              />
-            ) : (
-              t("launch_options_description")
-            )}
-          </h4>
-        </div>
-        <TextField
-          value={launchOptions}
-          theme="dark"
-          placeholder={t("launch_options_placeholder")}
-          onChange={onChangeLaunchOptions}
-          rightContent={
-            game.launchOptions && (
-              <Button onClick={onClearLaunchOptions} theme="outline">
-                {t("clear")}
-              </Button>
-            )
-          }
-        />
+          <div className="game-options-modal__header">
+            <h2>{t("launch_options")}</h2>
+            <h4 className="game-options-modal__header-description">
+              {shouldShowWinePrefixConfiguration ? (
+                <Trans
+                  i18nKey="launch_options_description_linux"
+                  ns="game_details"
+                  defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
+                  components={{
+                    code: <code className="game-options-modal__inline-code" />,
+                  }}
+                />
+              ) : (
+                t("launch_options_description")
+              )}
+            </h4>
+          </div>
+          <TextField
+            value={launchOptions}
+            theme="dark"
+            placeholder={t("launch_options_placeholder")}
+            onChange={onChangeLaunchOptions}
+            rightContent={
+              game.launchOptions && (
+                <Button onClick={onClearLaunchOptions} theme="outline">
+                  {t("clear")}
+                </Button>
+              )
+            }
+          />
         </div>
       )}
     </>
