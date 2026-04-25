@@ -14,6 +14,7 @@ export * from "./modal";
 export * from "./route-anchor";
 export * from "./scroll-area";
 export * from "./source-anchor";
+export * from "./tabs";
 export * from "./tooltip";
 export * from "./typography";
 export * from "./user-profile";

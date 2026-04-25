@@ -8,9 +8,15 @@ import {
   type FocusOverrides,
   NavigationService,
 } from "../../../services";
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import {
+  type HTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+} from "react";
 
-interface VerticalFocusGroupProps {
+interface VerticalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   regionId?: string;
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
@@ -23,7 +29,10 @@ export function VerticalFocusGroup({
   navigationOverrides,
   autoScrollMode = "auto",
   getScrollAnchor,
+  className,
+  style,
   children,
+  ...props
 }: Readonly<VerticalFocusGroupProps>) {
   const generatedId = useId();
   const parentRegionId = useFocusRegionId();
@@ -74,11 +83,14 @@ export function VerticalFocusGroup({
     <FocusRegionContext.Provider value={resolvedRegionId}>
       <div
         ref={ref}
+        className={className}
         data-focus-region-id={resolvedRegionId}
+        {...props}
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 16,
+          ...style,
         }}
       >
         {children}

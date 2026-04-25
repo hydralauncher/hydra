@@ -1,19 +1,32 @@
-import { useEffect, useMemo } from "react";
+import type { LibraryGame } from "@types";
+import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import { useLibrary } from "../../hooks";
 import {
   LibraryFocusGrid,
+  LibraryFilters,
+  GameSettingsModal,
   LibraryHero,
   VerticalFocusGroup,
+  type LibraryFilterTab,
+  useLibraryFavorite,
+  useLibraryLaunchGame,
+  useLibraryPageData,
 } from "../../components";
-import { getFirstLibraryFocusGridItemId } from "../../components/pages/library/navigation";
 
 import "./page.scss";
 
-const LAST_PLAYED_GAMES_COUNT = 3;
-
 export default function LibraryPage() {
   const { library, updateLibrary } = useLibrary();
+  const [selectedFilterTab, setSelectedFilterTab] =
+    useState<LibraryFilterTab>("all");
+  const [search, setSearch] = useState("");
+  const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
+  const { favoriteLoadingGameId, toggleFavorite } =
+    useLibraryFavorite(updateLibrary);
+  const launchGame = useLibraryLaunchGame(setSettingsGame);
+  const { filteredLibrary, filterCounts, firstGridItemId, lastPlayedGames } =
+    useLibraryPageData(library, selectedFilterTab, search);
 
   useEffect(() => {
     updateLibrary();
@@ -31,38 +44,6 @@ export default function LibraryPage() {
     };
   }, [updateLibrary]);
 
-  const sortedLibrary = useMemo(() => {
-    return [...library].sort((a, b) => {
-      const playtimeDiff =
-        (new Date(b.lastTimePlayed as Date).getTime() ?? 0) -
-        (new Date(a.lastTimePlayed as Date).getTime() ?? 0);
-
-      if (playtimeDiff !== 0) return playtimeDiff;
-
-      return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
-    });
-  }, [library]);
-
-  const filteredLibrary = useMemo(() => {
-    return sortedLibrary;
-  }, [sortedLibrary]);
-
-  const lastPlayedGames = useMemo(() => {
-    return [...filteredLibrary]
-      .filter((game) => game.lastTimePlayed != null)
-      .sort((a, b) => {
-        const aLastPlayed = new Date(a.lastTimePlayed as Date).getTime();
-        const bLastPlayed = new Date(b.lastTimePlayed as Date).getTime();
-
-        return bLastPlayed - aLastPlayed;
-      })
-      .slice(0, LAST_PLAYED_GAMES_COUNT);
-  }, [filteredLibrary]);
-
-  const firstGridItemId = useMemo(() => {
-    return getFirstLibraryFocusGridItemId(filteredLibrary[0]?.id);
-  }, [filteredLibrary]);
-
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
       <div className="library-page__empty">
@@ -76,10 +57,33 @@ export default function LibraryPage() {
       <VerticalFocusGroup>
         <LibraryHero
           lastPlayedGames={lastPlayedGames}
+          onOpenGameSettings={setSettingsGame}
+          onLaunchGame={launchGame}
+          onToggleFavorite={toggleFavorite}
+          favoriteLoadingGameId={favoriteLoadingGameId}
+        />
+
+        <LibraryFilters
+          selectedTab={selectedFilterTab}
+          onSelectedTabChange={setSelectedFilterTab}
+          search={search}
+          onSearchChange={setSearch}
+          counts={filterCounts}
           firstGridItemId={firstGridItemId}
         />
+
         <LibraryFocusGrid games={filteredLibrary} />
       </VerticalFocusGroup>
+
+      <GameSettingsModal
+        visible={settingsGame !== null}
+        game={settingsGame}
+        onClose={() => setSettingsGame(null)}
+        onGameUpdated={(updatedGame) => {
+          setSettingsGame(updatedGame);
+          updateLibrary();
+        }}
+      />
     </section>
   );
 }

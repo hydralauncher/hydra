@@ -1,8 +1,12 @@
 import "./styles.scss";
 
 import cn from "classnames";
-import { Typography } from "../typography";
-import type { InputHTMLAttributes, ReactNode } from "react";
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useId,
+} from "react";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -12,35 +16,51 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   iconRight?: ReactNode;
 }
 
-export function Input({
-  type = "text",
-  placeholder = "Placeholder",
-  label,
-  hint,
-  error = false,
-  disabled = false,
-  iconLeft,
-  iconRight,
-  ...props
-}: Readonly<InputProps>) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    type = "text",
+    placeholder = "Placeholder",
+    label,
+    hint,
+    error = false,
+    disabled = false,
+    iconLeft,
+    iconRight,
+    className,
+    ...props
+  },
+  ref
+) {
+  const generatedId = useId();
+  const inputId = props.id ?? generatedId;
+
   return (
     <div className="input-container">
       {label && (
-        <Typography variant="label" className="input-label">
+        <label
+          htmlFor={inputId}
+          className="typography typography--body input-label"
+        >
           {label}
-        </Typography>
+        </label>
       )}
       <div className="input-wrapper">
         <input
-          id="input"
+          ref={ref}
+          id={inputId}
           type={type}
           placeholder={placeholder}
           disabled={disabled}
           data-icon-left={iconLeft ? "true" : undefined}
           data-icon-right={iconRight ? "true" : undefined}
-          className={`input ${error ? "input--error" : ""} ${
-            disabled ? "input--disabled" : ""
-          }`}
+          className={cn(
+            "input",
+            {
+              "input--error": error,
+              "input--disabled": disabled,
+            },
+            className
+          )}
           {...props}
         />
         {iconLeft && (
@@ -57,4 +77,4 @@ export function Input({
       )}
     </div>
   );
-}
+});

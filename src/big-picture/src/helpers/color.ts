@@ -310,13 +310,14 @@ export async function getDominantColorFromImage(
       };
     });
 
-    const dominantBucket = bucketEntries.sort((a, b) => {
+    const sortedBucketEntries = bucketEntries.toSorted((a, b) => {
       return b.bucket.count - a.bucket.count;
-    })[0];
+    });
+    const dominantBucket = sortedBucketEntries[0];
 
     if (!dominantBucket) return null;
 
-    const accentCandidates = bucketEntries.filter((entry) => {
+    const accentCandidates = sortedBucketEntries.filter((entry) => {
       return (
         entry.population >= 0.015 &&
         entry.metrics.saturation >= 0.22 &&
@@ -327,7 +328,7 @@ export async function getDominantColorFromImage(
       );
     });
 
-    const accentSafeCandidates = bucketEntries.filter((entry) => {
+    const accentSafeCandidates = sortedBucketEntries.filter((entry) => {
       return (
         entry.population >= 0.008 &&
         entry.metrics.saturation >= 0.12 &&
