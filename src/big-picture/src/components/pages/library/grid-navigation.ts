@@ -3,8 +3,8 @@ import type { FocusOverrides } from "../../../services";
 import { useEffect, useMemo, useState } from "react";
 import {
   getLibraryFocusGridItemId,
+  LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FOCUS_GRID_REGION_ID,
-  LIBRARY_HERO_ACTIONS_REGION_ID,
 } from "./navigation";
 
 interface GridItemPosition {
@@ -100,7 +100,7 @@ function buildFocusOverridesForGridItem(
       : {
           up: {
             type: "region",
-            regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
+            regionId: LIBRARY_FILTERS_TABS_REGION_ID,
             entryDirection: "down",
           },
         }),

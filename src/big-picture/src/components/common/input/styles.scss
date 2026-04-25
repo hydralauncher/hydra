@@ -8,6 +8,7 @@
   line-height: 16.59px;
   border: 1px solid var(--secondary-border);
   background-color: var(--background);
+  color: var(--text);
   transition: border-color 0.2s ease-in-out;
 
   &[data-icon-left="true"] {
@@ -22,7 +23,8 @@
     border-color: var(--secondary-hover);
   }
 
-  &:focus-visible {
+  &:focus-visible,
+  [data-focus-visible="true"] & {
     outline: none;
     border-color: rgba(255, 255, 255, 0.6);
   }
@@ -30,6 +32,10 @@
   &:disabled {
     opacity: 0.5;
     pointer-events: none;
+  }
+
+  &::placeholder {
+    color: var(--text-secondary);
   }
 
   &--error {
