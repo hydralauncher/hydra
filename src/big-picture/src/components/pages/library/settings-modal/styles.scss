@@ -125,7 +125,11 @@
     font-size: 13px;
 
     &--success {
-      border-color: color-mix(in srgb, var(--success) 32%, var(--secondary-border));
+      border-color: color-mix(
+        in srgb,
+        var(--success) 32%,
+        var(--secondary-border)
+      );
       color: var(--success);
     }
 
