@@ -16,7 +16,7 @@ const getAvailableDrives = async (): Promise<DriveInfo[]> => {
       // Use absolute path to PowerShell (works on all Windows versions)
       const systemRoot = process.env.SystemRoot || "C:\\Windows";
       const powershellPath = `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
-      
+
       const result = spawnSync(
         powershellPath,
         [
@@ -37,7 +37,12 @@ const getAvailableDrives = async (): Promise<DriveInfo[]> => {
       }
 
       if (result.status !== 0) {
-        console.error("PowerShell exit code:", result.status, "stderr:", result.stderr);
+        console.error(
+          "PowerShell exit code:",
+          result.status,
+          "stderr:",
+          result.stderr
+        );
         throw new Error(`PowerShell exited with code ${result.status}`);
       }
 
