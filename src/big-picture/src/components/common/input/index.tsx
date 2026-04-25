@@ -2,8 +2,14 @@ import "./styles.scss";
 
 import cn from "classnames";
 import { Typography } from "../typography";
-import type { InputHTMLAttributes, ReactNode } from "react";
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useRef,
+} from "react";
 import { FocusItem } from "..";
+import type { FocusOverrides, NavigationNodeState } from "../../../services";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -11,19 +17,42 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
+  focusNavigationState?: NavigationNodeState;
 }
 
-export function Input({
-  type = "text",
-  placeholder = "Placeholder",
-  label,
-  hint,
-  error = false,
-  disabled = false,
-  iconLeft,
-  iconRight,
-  ...props
-}: Readonly<InputProps>) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    type = "text",
+    placeholder = "Placeholder",
+    label,
+    hint,
+    error = false,
+    disabled = false,
+    iconLeft,
+    iconRight,
+    focusId,
+    focusNavigationOverrides,
+    focusNavigationState,
+    ...props
+  },
+  ref
+) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const resolvedFocusNavigationState =
+    focusNavigationState ?? (disabled ? "disabled" : "active");
+
+  const setInputRef = (element: HTMLInputElement | null) => {
+    inputRef.current = element;
+
+    if (typeof ref === "function") {
+      ref(element);
+    } else if (ref) {
+      ref.current = element;
+    }
+  };
+
   return (
     <div className="input-container">
       {label && (
@@ -32,8 +61,14 @@ export function Input({
         </Typography>
       )}
       <div className="input-wrapper">
-        <FocusItem asChild>
+        <FocusItem
+          id={focusId}
+          actions={{ primary: () => inputRef.current?.focus() }}
+          navigationOverrides={focusNavigationOverrides}
+          navigationState={resolvedFocusNavigationState}
+        >
           <input
+            ref={setInputRef}
             id="input"
             type={type}
             placeholder={placeholder}
@@ -60,4 +95,4 @@ export function Input({
       )}
     </div>
   );
-}
+});

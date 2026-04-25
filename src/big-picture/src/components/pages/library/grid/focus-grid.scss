@@ -1,0 +1,37 @@
+.library-focus-grid {
+  width: 100%;
+  padding: 0 calc(var(--spacing-unit) * 16);
+}
+
+.library-focus-grid__grid {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--library-focus-grid-column-count, 1),
+    var(--library-focus-grid-card-width, 350px)
+  );
+  column-gap: var(
+    --library-focus-grid-column-gap,
+    calc(var(--spacing-unit) * 8)
+  );
+  row-gap: calc(var(--spacing-unit) * 16);
+  justify-content: start;
+}
+
+.vertical-library-game-card__action-button {
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .library-focus-grid {
+    padding: 0 calc(var(--spacing-unit) * 6);
+  }
+
+  .library-focus-grid__grid {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(var(--library-focus-grid-card-width, 350px), 1fr)
+    );
+    column-gap: calc(var(--spacing-unit) * 4);
+    justify-content: initial;
+  }
+}

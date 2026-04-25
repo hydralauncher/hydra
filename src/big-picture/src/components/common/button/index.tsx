@@ -3,12 +3,15 @@ import "./styles.scss";
 import { SpinnerIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { Link } from "react-router-dom";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import { getContrastTextColor } from "../../../helpers";
 import { FocusItem } from "..";
+import type { FocusOverrides } from "../../../services";
 
 const variants = {
   primary: "button--primary",
   secondary: "button--secondary",
+  tertiary: "button--tertiary",
   rounded: "button--rounded",
   danger: "button--danger",
   link: "button--link",
@@ -32,6 +35,9 @@ export interface ButtonProps
   iconPosition?: "left" | "right";
   target?: "_blank" | "_self" | "_parent" | "_top";
   className?: string;
+  color?: string;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
 }
 
 function isExternalHref(href: string) {
@@ -52,6 +58,10 @@ export function Button({
   children,
   target,
   className,
+  color,
+  style,
+  focusId,
+  focusNavigationOverrides,
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
@@ -65,15 +75,31 @@ export function Button({
     }
   );
 
+  const buttonStyle = {
+    ...style,
+    ...(color
+      ? {
+          "--button-custom-color": color,
+          "--button-custom-hover-color": `color-mix(in srgb, ${color} 80%, white)`,
+          "--button-custom-text-color": getContrastTextColor(color),
+        }
+      : {}),
+  } as CSSProperties;
+
   if (!href) {
     return (
-      <FocusItem>
+      <FocusItem
+        id={focusId}
+        navigationOverrides={focusNavigationOverrides}
+        asChild
+      >
         <button
           onClick={onClick}
           disabled={disabled || loading}
           aria-busy={loading}
           aria-label={size === "icon" ? ariaLabel : undefined}
           className={buttonClassName}
+          style={buttonStyle}
           {...props}
         >
           {loading && (
@@ -116,13 +142,18 @@ export function Button({
 
   if (target === "_blank" || isExternalHref(href)) {
     return (
-      <FocusItem>
+      <FocusItem
+        id={focusId}
+        navigationOverrides={focusNavigationOverrides}
+        asChild
+      >
         <a
           href={href}
           target={target}
           rel={target === "_blank" ? "noreferrer" : undefined}
           aria-label={size === "icon" ? ariaLabel : undefined}
           className={buttonClassName}
+          style={buttonStyle}
           onClick={onClick as never}
         >
           {linkContent}
@@ -132,11 +163,16 @@ export function Button({
   }
 
   return (
-    <FocusItem>
+    <FocusItem
+      id={focusId}
+      navigationOverrides={focusNavigationOverrides}
+      asChild
+    >
       <Link
         to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
         className={buttonClassName}
+        style={buttonStyle}
         onClick={onClick as never}
       >
         {linkContent}

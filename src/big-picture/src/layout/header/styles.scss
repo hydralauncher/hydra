@@ -1,10 +1,10 @@
 .header {
-  position: sticky;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 80;
-  min-height: 56px;
+  min-height: var(--big-picture-header-height);
 
   &::after {
     content: "";
@@ -12,7 +12,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 56px;
+    height: var(--big-picture-header-height);
     pointer-events: none;
     background: linear-gradient(
       180deg,
@@ -28,7 +28,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: var(--big-picture-header-height);
   background: linear-gradient(
     180deg,
     rgba(14, 14, 14, 0.5) 0%,

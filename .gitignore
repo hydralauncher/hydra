@@ -5,6 +5,7 @@ dist
 out
 .DS_Store
 *.log*
+*.tsbuildinfo
 .env
 .vite
 ludusavi/**

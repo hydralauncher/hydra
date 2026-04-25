@@ -1,0 +1,269 @@
+.vertical-game-card {
+  --vertical-game-card-progress-color: var(--alert);
+  --vertical-game-card-progress-value: 0;
+  width: min(350px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+  border: 1px solid transparent;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background-color: transparent;
+  outline: none;
+  outline-offset: 3px;
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out,
+    outline-color 0.2s ease-in-out;
+  overflow: hidden;
+
+  &__cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 268 / 400;
+    border-radius: var(--spacing-unit);
+    overflow: hidden;
+    background-color: var(--surface);
+
+    img,
+    &-placeholder {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    img {
+      object-fit: cover;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 172%;
+      background: linear-gradient(
+        35deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.07) 51.5%,
+        rgba(255, 255, 255, 0.15) 64%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      transform: translateY(-36%);
+      opacity: 0.5;
+      transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+
+  &__cover-placeholder {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      ),
+      var(--secondary);
+  }
+
+  &__body {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 2);
+    padding: 0 0 calc(var(--spacing-unit) * 2);
+    transition: padding 0.2s ease-in-out;
+  }
+
+  &__info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit);
+  }
+
+  &__title,
+  &__subtitle,
+  &__progress-label span {
+    margin: 0;
+    font-size: 14px;
+    line-height: normal;
+    letter-spacing: 0;
+  }
+
+  &__title,
+  &__subtitle,
+  &__progress-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  &__progress {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+
+    &--placeholder {
+      visibility: hidden;
+    }
+  }
+
+  &__progress-label {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-unit);
+    color: color-mix(
+      in srgb,
+      var(--vertical-game-card-progress-color) 70%,
+      white
+    );
+    font-weight: 400;
+  }
+
+  &__progress-track {
+    position: relative;
+    width: calc(var(--spacing-unit) * 25);
+    height: var(--spacing-unit);
+    border-radius: 999px;
+    background-color: color-mix(
+      in srgb,
+      var(--vertical-game-card-progress-color) 20%,
+      transparent
+    );
+    overflow: hidden;
+    flex-shrink: 0;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: calc(100% * var(--vertical-game-card-progress-value));
+      border-radius: inherit;
+      background-color: var(--vertical-game-card-progress-color);
+      z-index: 1;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+  }
+
+  &__action {
+    max-width: 0;
+    opacity: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition:
+      max-width 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
+  }
+
+  &:hover,
+  &:focus-within,
+  &--force-hovered,
+  [data-focused="true"] > &,
+  [data-focus-visible="true"] > & {
+    background-color: var(--surface);
+    border-color: var(--secondary-border);
+
+    .vertical-game-card__cover::before {
+      opacity: 1;
+      transform: translateY(-20%);
+    }
+
+    .vertical-game-card__body {
+      padding-inline: calc(var(--spacing-unit) * 2);
+    }
+
+    .vertical-game-card__action {
+      max-width: calc(var(--spacing-unit) * 11);
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  [data-focus-visible="true"] > & {
+    outline: 2px solid var(--primary);
+  }
+
+  &--completed {
+    .vertical-game-card__progress-track {
+      &::before {
+        opacity: 0;
+        inset: 0 auto 0 -62%;
+        width: 62%;
+        background: linear-gradient(
+          100deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.03) 10%,
+          rgba(255, 255, 255, 0.08) 26%,
+          rgba(255, 255, 255, 0.16) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.16) 60%,
+          rgba(255, 255, 255, 0.08) 74%,
+          rgba(255, 255, 255, 0.03) 90%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        animation: vertical-game-card-complete-shine 1.7s
+          cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+    }
+  }
+}
+
+@keyframes vertical-game-card-complete-shine {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+
+  14% {
+    opacity: 0.5;
+  }
+
+  82% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(262%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vertical-game-card--completed .vertical-game-card__progress-track::before {
+    animation: none;
+    opacity: 0;
+  }
+}

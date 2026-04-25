@@ -1,22 +1,48 @@
-import { useMemo } from "react";
-import { FocusItem, GameCard, GridFocusGroup } from "../../components";
+import type { LibraryGame } from "@types";
+import { useEffect, useState } from "react";
+import { IS_DESKTOP } from "../../constants";
 import { useLibrary } from "../../hooks";
+import {
+  LibraryFocusGrid,
+  LibraryFilters,
+  GameSettingsModal,
+  LibraryHero,
+  VerticalFocusGroup,
+  type LibraryFilterTab,
+  useLibraryFavorite,
+  useLibraryPageData,
+} from "../../components";
+
 import "./page.scss";
 
 export default function LibraryPage() {
-  const { library } = useLibrary();
+  const { library, updateLibrary } = useLibrary();
+  const [selectedFilterTab, setSelectedFilterTab] =
+    useState<LibraryFilterTab>("all");
+  const [search, setSearch] = useState("");
+  const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
+  const { favoriteLoadingGameId, toggleFavorite } =
+    useLibraryFavorite(updateLibrary);
+  const { filteredLibrary, filterCounts, firstGridItemId, lastPlayedGames } =
+    useLibraryPageData(library, selectedFilterTab, search);
 
-  const sortedLibrary = useMemo(() => {
-    return [...library].sort((a, b) => {
-      return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
-    });
-  }, [library]);
+  useEffect(() => {
+    updateLibrary();
 
-  const filteredLibrary = useMemo(() => {
-    return sortedLibrary;
-  }, [sortedLibrary]);
+    if (!IS_DESKTOP) return;
 
-  if (library.length === 0) {
+    const unsubscribe = globalThis.window.electron.onLibraryBatchComplete(
+      () => {
+        updateLibrary();
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [updateLibrary]);
+
+  if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
       <div className="library-page__empty">
         <p>No games in library</p>
@@ -26,20 +52,40 @@ export default function LibraryPage() {
 
   return (
     <section className="library-page">
-      <div className="library-page__toolbar">
-        <h1 className="library-page__toolbar__title">Library</h1>
-      </div>
+      <VerticalFocusGroup>
+        <LibraryHero
+          lastPlayedGames={lastPlayedGames}
+          onOpenGameSettings={(game) => {
+            console.log("Library hero options clicked", game);
+          }}
+          onLaunchGame={(game) => {
+            console.log("Library hero launch clicked", game);
+          }}
+          onToggleFavorite={toggleFavorite}
+          favoriteLoadingGameId={favoriteLoadingGameId}
+        />
 
-      <GridFocusGroup className="library-page__grid">
-        {filteredLibrary.map((game) => (
-          <FocusItem id={game.objectId} key={game.objectId}>
-            <GameCard
-              coverImageUrl={game.coverImageUrl}
-              gameTitle={game.title}
-            />
-          </FocusItem>
-        ))}
-      </GridFocusGroup>
+        <LibraryFilters
+          selectedTab={selectedFilterTab}
+          onSelectedTabChange={setSelectedFilterTab}
+          search={search}
+          onSearchChange={setSearch}
+          counts={filterCounts}
+          firstGridItemId={firstGridItemId}
+        />
+
+        <LibraryFocusGrid games={filteredLibrary} />
+      </VerticalFocusGroup>
+
+      <GameSettingsModal
+        visible={settingsGame !== null}
+        game={settingsGame}
+        onClose={() => setSettingsGame(null)}
+        onGameUpdated={(updatedGame) => {
+          setSettingsGame(updatedGame);
+          updateLibrary();
+        }}
+      />
     </section>
   );
 }

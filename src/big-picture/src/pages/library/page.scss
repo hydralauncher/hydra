@@ -1,46 +1,11 @@
 .library-page {
-  --library-card-width: 260px;
-
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow-y: auto;
+  background: var(--background);
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
-  padding: calc(var(--spacing-unit) * 6);
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
-
-  &__toolbar {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-  }
-
-  &__toolbar__title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, var(--library-card-width));
-    gap: calc(var(--spacing-unit) * 6);
-    align-items: start;
-    justify-content: start;
-  }
-
-  &__grid > [data-navigation-state] {
-    width: var(--library-card-width);
-    min-width: 0;
-  }
-
-  &__empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-secondary);
-    font-size: 16px;
-  }
+  padding-bottom: calc(var(--spacing-unit) * 8);
 }

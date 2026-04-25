@@ -3,6 +3,7 @@ import "./styles.scss";
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import cn from "classnames";
 
 import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
@@ -12,6 +13,7 @@ export interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   clickOutsideToClose?: boolean;
+  className?: string;
 }
 
 export function Modal({
@@ -19,6 +21,7 @@ export function Modal({
   onClose,
   children,
   clickOutsideToClose = true,
+  className,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,7 +87,7 @@ export function Modal({
             role="dialog"
             ref={modalContentRef}
             data-hydra-dialog
-            className="modal"
+            className={cn("modal", className)}
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}

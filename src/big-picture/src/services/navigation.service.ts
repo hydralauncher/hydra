@@ -1,5 +1,6 @@
 export type FocusDirection = "up" | "down" | "left" | "right";
 export type FocusOrientation = "vertical" | "horizontal" | "grid";
+export type FocusAutoScrollMode = "item" | "region" | "row" | "auto";
 export type NavigationNodeState = "active" | "disabled" | "hidden";
 export type FocusElementGetter = () => HTMLElement | null;
 export type FocusOverrideTarget =
@@ -11,6 +12,9 @@ export type FocusOverrideTarget =
       type: "region";
       regionId: string;
       entryDirection?: FocusDirection;
+    }
+  | {
+      type: "block";
     };
 export type FocusOverrides = Partial<
   Record<FocusDirection, FocusOverrideTarget>
@@ -33,7 +37,9 @@ export interface FocusRegion {
   orientation: FocusOrientation;
   layerId: string;
   navigationOverrides?: FocusOverrides;
+  autoScrollMode?: FocusAutoScrollMode;
   getElement: FocusElementGetter;
+  getScrollAnchor?: FocusElementGetter;
 }
 
 export interface FocusLayer {
@@ -318,7 +324,15 @@ export class NavigationService {
 
   public updateRegion(
     regionId: string,
-    updates: Partial<Pick<FocusRegion, "navigationOverrides" | "getElement">>
+    updates: Partial<
+      Pick<
+        FocusRegion,
+        | "navigationOverrides"
+        | "getElement"
+        | "autoScrollMode"
+        | "getScrollAnchor"
+      >
+    >
   ) {
     const registeredRegion = this.regions.get(regionId);
 
@@ -328,13 +342,19 @@ export class NavigationService {
       updates.navigationOverrides ?? registeredRegion.navigationOverrides;
 
     const nextGetElement = updates.getElement ?? registeredRegion.getElement;
+    const nextAutoScrollMode =
+      updates.autoScrollMode ?? registeredRegion.autoScrollMode;
+    const nextGetScrollAnchor =
+      updates.getScrollAnchor ?? registeredRegion.getScrollAnchor;
 
     if (
       this.areFocusOverridesEqual(
         registeredRegion.navigationOverrides,
         nextNavigationOverrides
       ) &&
-      nextGetElement === registeredRegion.getElement
+      nextGetElement === registeredRegion.getElement &&
+      nextAutoScrollMode === registeredRegion.autoScrollMode &&
+      nextGetScrollAnchor === registeredRegion.getScrollAnchor
     ) {
       return;
     }
@@ -342,7 +362,9 @@ export class NavigationService {
     this.regions.set(regionId, {
       ...registeredRegion,
       navigationOverrides: nextNavigationOverrides,
+      autoScrollMode: nextAutoScrollMode,
       getElement: nextGetElement,
+      getScrollAnchor: nextGetScrollAnchor,
     });
 
     this.notify();
@@ -515,7 +537,9 @@ export class NavigationService {
       orientation: region.orientation,
       layerId: region.layerId,
       navigationOverrides: region.navigationOverrides,
+      autoScrollMode: region.autoScrollMode,
       getElement: region.getElement,
+      getScrollAnchor: region.getScrollAnchor,
     }));
   }
 
@@ -585,6 +609,10 @@ export class NavigationService {
     const nodeOverride = currentNode.navigationOverrides?.[direction];
 
     if (nodeOverride) {
+      if (nodeOverride.type === "block") {
+        return currentNodeId;
+      }
+
       const overrideNodeId = this.resolveOverrideTargetToNode(
         nodeOverride,
         direction
@@ -615,6 +643,10 @@ export class NavigationService {
       const regionOverride = currentRegion.navigationOverrides?.[direction];
 
       if (regionOverride) {
+        if (regionOverride.type === "block") {
+          return currentNodeId;
+        }
+
         const overrideNodeId = this.resolveOverrideTargetToNode(
           regionOverride,
           direction
@@ -1125,10 +1157,14 @@ export class NavigationService {
         ): candidate is {
           nodeId: string;
           rect: DOMRect;
-          score: { primary: number; cross: number };
-        } => candidate !== null && candidate.score.primary > 0
+          score: { overlap: number; primary: number; cross: number };
+        } => candidate !== null
       )
       .sort((a, b) => {
+        if (a.score.overlap !== b.score.overlap) {
+          return b.score.overlap - a.score.overlap;
+        }
+
         if (a.score.primary !== b.score.primary) {
           return a.score.primary - b.score.primary;
         }
@@ -1168,21 +1204,93 @@ export class NavigationService {
     candidateRect: DOMRect,
     direction: FocusDirection
   ) {
-    const currentCenter = this.getRectCenter(currentRect);
-    const candidateCenter = this.getRectCenter(candidateRect);
-    const deltaX = candidateCenter.x - currentCenter.x;
-    const deltaY = candidateCenter.y - currentCenter.y;
-
     switch (direction) {
-      case "left":
-        return { primary: -deltaX, cross: Math.abs(deltaY) };
-      case "right":
-        return { primary: deltaX, cross: Math.abs(deltaY) };
-      case "up":
-        return { primary: -deltaY, cross: Math.abs(deltaX) };
-      case "down":
-        return { primary: deltaY, cross: Math.abs(deltaX) };
+      case "left": {
+        const primary = currentRect.left - candidateRect.right;
+
+        if (primary < 0) return null;
+
+        return {
+          overlap: this.getAxisOverlap(
+            currentRect.top,
+            currentRect.bottom,
+            candidateRect.top,
+            candidateRect.bottom
+          ),
+          primary,
+          cross: Math.abs(
+            this.getRectCenter(currentRect).y -
+              this.getRectCenter(candidateRect).y
+          ),
+        };
+      }
+      case "right": {
+        const primary = candidateRect.left - currentRect.right;
+
+        if (primary < 0) return null;
+
+        return {
+          overlap: this.getAxisOverlap(
+            currentRect.top,
+            currentRect.bottom,
+            candidateRect.top,
+            candidateRect.bottom
+          ),
+          primary,
+          cross: Math.abs(
+            this.getRectCenter(currentRect).y -
+              this.getRectCenter(candidateRect).y
+          ),
+        };
+      }
+      case "up": {
+        const primary = currentRect.top - candidateRect.bottom;
+
+        if (primary < 0) return null;
+
+        return {
+          overlap: this.getAxisOverlap(
+            currentRect.left,
+            currentRect.right,
+            candidateRect.left,
+            candidateRect.right
+          ),
+          primary,
+          cross: Math.abs(
+            this.getRectCenter(currentRect).x -
+              this.getRectCenter(candidateRect).x
+          ),
+        };
+      }
+      case "down": {
+        const primary = candidateRect.top - currentRect.bottom;
+
+        if (primary < 0) return null;
+
+        return {
+          overlap: this.getAxisOverlap(
+            currentRect.left,
+            currentRect.right,
+            candidateRect.left,
+            candidateRect.right
+          ),
+          primary,
+          cross: Math.abs(
+            this.getRectCenter(currentRect).x -
+              this.getRectCenter(candidateRect).x
+          ),
+        };
+      }
     }
+  }
+
+  private getAxisOverlap(
+    startA: number,
+    endA: number,
+    startB: number,
+    endB: number
+  ) {
+    return Math.max(0, Math.min(endA, endB) - Math.max(startA, startB));
   }
 
   private getRectCenter(rect: DOMRect) {
@@ -1211,6 +1319,10 @@ export class NavigationService {
   ): string | null {
     if (target.type === "item") {
       return this.resolveItemOverrideTarget(target.itemId);
+    }
+
+    if (target.type === "block") {
+      return null;
     }
 
     return this.resolveRegionOverrideTarget(
@@ -1449,6 +1561,10 @@ export class NavigationService {
       );
     }
 
+    if (left.type === "block" && right.type === "block") {
+      return true;
+    }
+
     return false;
   }
 
@@ -1484,6 +1600,10 @@ export class NavigationService {
     target: FocusOverrideTarget,
     direction: FocusDirection
   ) {
+    if (target.type === "block") {
+      return "direction is explicitly blocked";
+    }
+
     if (target.type === "item") {
       if (!this.nodes.has(target.itemId)) {
         return `item target "${target.itemId}" is not registered`;
