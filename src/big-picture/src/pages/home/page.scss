@@ -1,7 +1,9 @@
 .home-page {
   width: 100%;
+  min-width: 0;
   height: 100%;
   min-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   background: var(--background);
   color: var(--text);
@@ -11,6 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
+  min-width: 0;
   padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
 }
 
@@ -24,6 +27,7 @@
 
 .home-page__popular-games-row {
   width: calc(100% + 12px);
+  min-width: 0;
   margin: -6px;
   padding: 6px 6px calc(var(--spacing-unit) * 2);
   overflow-x: auto;
