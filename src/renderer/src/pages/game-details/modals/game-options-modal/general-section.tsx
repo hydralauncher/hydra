@@ -124,8 +124,12 @@ export function GeneralSettingsSection({
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
-  const transferGameLabel =
-    gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
+  const transferGameLabel = gameSize > 0 ? game.title : game.title;
+  const transferGameSize = gameSize > 0 ? fmt(gameSize) : null;
+  const pathSep = window.electron.platform === "win32" ? "\\" : "/";
+  const gameRoot = game.executablePath
+    ? game.executablePath.split(pathSep)[0] + pathSep
+    : null;
 
   useEffect(() => {
     if (!isTransferring) return;
@@ -278,13 +282,10 @@ export function GeneralSettingsSection({
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
             <h4 className="game-options-modal__header-description">
-              <span>
-                Move {transferGameLabel.replace(`(${fmt(gameSize)})`, '')}
-                {' '}
-                <span style={{ color: '#4caf50', fontWeight: 500 }}>({fmt(gameSize)})</span>
-                {' '}
-                to a new drive or folder.
-              </span>
+              {t("transfer_game_description", { game: transferGameLabel })}
+              {transferGameSize && (
+                <> (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)</>
+              )}
             </h4>
           </div>
 
@@ -326,6 +327,18 @@ export function GeneralSettingsSection({
                           <span className="drive-card__label">
                             {drive.label || drive.root}
                           </span>
+                          {gameRoot === drive.root && (
+                            <span style={{
+                              fontSize: "11px",
+                              color: "#4ade80",
+                              border: "1px solid #4ade80",
+                              borderRadius: "4px",
+                              padding: "1px 6px",
+                              marginLeft: "8px",
+                            }}>
+                              {t("transfer_current_drive")}
+                            </span>
+                          )}
                           <span
                             className={`drive-card__space ${hasInsufficientSpace ? "drive-card__space--error" : ""}`}
                           >
