@@ -23,16 +23,19 @@ import {
   HOME_HERO_ADD_TO_LIBRARY_ID,
   HOME_HERO_DOWNLOAD_ID,
   HOME_HERO_OPEN_GAME_PAGE_ID,
-  HOME_POPULAR_GAMES_ROW_REGION_ID,
 } from "../navigation";
 
 import "./styles.scss";
 
 interface HomePageHeroProps {
   featuredGame: TrendingGame | null;
+  downNavigationTarget?: FocusOverrideTarget;
 }
 
-export function HomePageHero({ featuredGame }: Readonly<HomePageHeroProps>) {
+export function HomePageHero({
+  featuredGame,
+  downNavigationTarget,
+}: Readonly<HomePageHeroProps>) {
   const navigate = useNavigate();
   const { updateLibrary, ...gameState } = useLibraryGameState(
     featuredGame?.shop,
@@ -102,11 +105,10 @@ export function HomePageHero({ featuredGame }: Readonly<HomePageHeroProps>) {
 
   if (!featuredGame) return null;
 
-  const heroDownNavigationTarget: FocusOverrideTarget = {
-    type: "region",
-    regionId: HOME_POPULAR_GAMES_ROW_REGION_ID,
-    entryDirection: "right",
-  };
+  const heroDownNavigationTarget: FocusOverrideTarget =
+    downNavigationTarget ?? {
+      type: "block",
+    };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
     left: {
