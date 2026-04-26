@@ -345,7 +345,8 @@ export function GeneralSettingsSection({
                           <span
                             className={`drive-card__space ${hasInsufficientSpace ? "drive-card__space--error" : ""}`}
                           >
-                            {fmt(drive.free)} {t("transfer_free")}{" "}
+                            {fmt(drive.free)} {t("transfer_free")}
+                            {" / "}
                             {fmt(drive.total)}
                           </span>
                         </div>
