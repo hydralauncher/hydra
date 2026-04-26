@@ -229,7 +229,7 @@ export function HomePageHero({
                 size="large"
                 variant="primary"
               >
-                Play
+                Launch Game
               </Button>
             ) : (
               <Button
@@ -240,7 +240,7 @@ export function HomePageHero({
                 size="large"
                 variant="primary"
               >
-                Download Game
+                Launch Game
               </Button>
             )}
           </HorizontalFocusGroup>

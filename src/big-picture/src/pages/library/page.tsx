@@ -58,9 +58,6 @@ export default function LibraryPage() {
           onOpenGameSettings={(game) => {
             console.log("Library hero options clicked", game);
           }}
-          onLaunchGame={(game) => {
-            console.log("Library hero launch clicked", game);
-          }}
           onToggleFavorite={toggleFavorite}
           favoriteLoadingGameId={favoriteLoadingGameId}
         />
