@@ -50,12 +50,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         game.libraryImageUrl,
         game.iconUrl,
       ].filter((url): url is string => !!url && url.trim() !== ""),
-    [
-      game.customIconUrl,
-      game.coverImageUrl,
-      game.libraryImageUrl,
-      game.iconUrl,
-    ]
+    [game.customIconUrl, game.coverImageUrl, game.libraryImageUrl, game.iconUrl]
   );
 
   const [fallbackIndex, setFallbackIndex] = useState(0);
