@@ -19,3 +19,5 @@ native/hydra-native/target/
 .env.sentry-build-plugin
 
 *storybook.log
+Future-updates.md
+TO-DO.md
