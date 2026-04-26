@@ -51,11 +51,21 @@
   align-items: center;
   gap: calc(var(--spacing-unit) * 4);
   padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 6);
+  border: none;
+  background: transparent;
+  color: inherit;
+  outline: none;
   transition: opacity 0.2s ease-in-out;
   cursor: pointer;
 
   &:hover {
     opacity: 0.8;
+  }
+
+  &:focus-visible,
+  &[data-focus-visible] {
+    outline: 2px solid var(--secondary-border);
+    outline-offset: 2px;
   }
 
   .header__title {
