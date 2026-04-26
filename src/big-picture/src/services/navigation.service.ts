@@ -68,6 +68,44 @@ type PendingInitialFocusRequest = {
   initialFocusRegionId?: string;
 };
 
+const NAVIGATION_DEBUG_STORAGE_KEY = "hydra:big-picture:navigation-debug";
+
+function isNavigationDebugEnabled() {
+  const env = import.meta.env as unknown as Record<
+    string,
+    string | boolean | undefined
+  >;
+
+  if (
+    env.RENDERER_VITE_BIG_PICTURE_NAV_DEBUG === "true" ||
+    env.RENDERER_VITE_BIG_PICTURE_NAV_DEBUG === true ||
+    env.VITE_BIG_PICTURE_NAV_DEBUG === "true" ||
+    env.VITE_BIG_PICTURE_NAV_DEBUG === true
+  ) {
+    return true;
+  }
+
+  if (typeof globalThis.window === "undefined") {
+    return false;
+  }
+
+  try {
+    const storageValue = globalThis.window.localStorage.getItem(
+      NAVIGATION_DEBUG_STORAGE_KEY
+    );
+    const locationValue = `${globalThis.window.location.search}${globalThis.window.location.hash}`;
+
+    return (
+      storageValue === "1" ||
+      storageValue === "true" ||
+      locationValue.includes("navigationDebug=1") ||
+      locationValue.includes("navigationDebug=true")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface NavigationDebugSnapshot {
   currentFocusId: string | null;
   activeLayerId: string | null;
@@ -618,6 +656,14 @@ export class NavigationService {
         direction
       );
 
+      this.logMoveFocusOverrideResolution({
+        sourceType: "item",
+        sourceId: currentNodeId,
+        direction,
+        target: nodeOverride,
+        resolvedNodeId: overrideNodeId,
+      });
+
       if (overrideNodeId) {
         return this.setFocus(overrideNodeId);
       }
@@ -651,6 +697,14 @@ export class NavigationService {
           regionOverride,
           direction
         );
+
+        this.logMoveFocusOverrideResolution({
+          sourceType: "region",
+          sourceId: currentRegionId,
+          direction,
+          target: regionOverride,
+          resolvedNodeId: overrideNodeId,
+        });
 
         if (overrideNodeId) {
           return this.setFocus(overrideNodeId);
@@ -1566,6 +1620,103 @@ export class NavigationService {
     }
 
     return false;
+  }
+
+  private getActiveNodeIdsWithinRegion(regionId: string) {
+    return Array.from(this.nodes.values())
+      .filter(
+        (node) =>
+          this.isNodeActive(node.id) &&
+          this.isNodeInActiveLayer(node.id) &&
+          this.isNodeWithinRegion(node.id, regionId)
+      )
+      .map((node) => node.id);
+  }
+
+  private getOverrideTargetDebugInfo(
+    target: FocusOverrideTarget,
+    direction: FocusDirection,
+    resolvedNodeId: string | null
+  ) {
+    if (target.type === "item") {
+      return {
+        type: "item",
+        itemId: target.itemId,
+        itemExists: this.nodes.has(target.itemId),
+        itemActive: this.isNodeActive(target.itemId),
+        itemInActiveLayer: this.isNodeInActiveLayer(target.itemId),
+        resolvedNodeId,
+        failureReason: resolvedNodeId
+          ? null
+          : this.getOverrideFailureReason(target, direction),
+      };
+    }
+
+    if (target.type === "region") {
+      const entryDirection = target.entryDirection ?? direction;
+
+      return {
+        type: "region",
+        regionId: target.regionId,
+        entryDirection,
+        regionExists: this.regions.has(target.regionId),
+        regionInActiveLayer: this.isRegionInActiveLayer(target.regionId),
+        rememberedNodeId:
+          this.lastFocusedByRegionId.get(target.regionId) ?? null,
+        activeNodeIds: this.getActiveNodeIdsWithinRegion(target.regionId),
+        resolvedNodeId,
+        failureReason: resolvedNodeId
+          ? null
+          : this.getOverrideFailureReason(target, direction),
+      };
+    }
+
+    return {
+      type: "block",
+      resolvedNodeId,
+      failureReason: this.getOverrideFailureReason(target, direction),
+    };
+  }
+
+  private logMoveFocusOverrideResolution(options: {
+    sourceType: "item" | "region";
+    sourceId: string;
+    direction: FocusDirection;
+    target: FocusOverrideTarget;
+    resolvedNodeId: string | null;
+  }) {
+    if (options.direction !== "up" || !isNavigationDebugEnabled()) {
+      return;
+    }
+
+    const currentFocusId = this.currentFocusId;
+    const currentNode = currentFocusId
+      ? (this.nodes.get(currentFocusId) ?? null)
+      : null;
+
+    console.info("[BigPictureNavigation] moveFocus override", {
+      direction: options.direction,
+      sourceType: options.sourceType,
+      sourceId: options.sourceId,
+      currentFocusId,
+      currentNode: currentNode
+        ? {
+            id: currentNode.id,
+            regionId: currentNode.regionId,
+            layerId: currentNode.layerId,
+            navigationState: currentNode.navigationState,
+            override: currentNode.navigationOverrides?.[options.direction],
+          }
+        : null,
+      activeLayerId: this.getActiveLayerId(),
+      target: this.getOverrideTargetDebugInfo(
+        options.target,
+        options.direction,
+        options.resolvedNodeId
+      ),
+      regionIds: Array.from(this.regions.keys()),
+      nodeIds: Array.from(this.nodes.keys()),
+    });
   }
 
   private warnInvalidOverride(options: {

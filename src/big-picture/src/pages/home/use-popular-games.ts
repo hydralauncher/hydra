@@ -1,6 +1,7 @@
 import type { DownloadSource, ShopAssets } from "@types";
 import { CatalogueCategory } from "@shared";
 import { useEffect, useState } from "react";
+import { normalizeShopAssetsList } from "./home-data";
 
 interface HomeGamesRows {
   popularGames: ShopAssets[];
@@ -18,7 +19,7 @@ async function getCatalogueGames(
   category: CatalogueCategory,
   downloadSourceIds: string[]
 ) {
-  return globalThis.window.electron.hydraApi.get<ShopAssets[]>(
+  const response = await globalThis.window.electron.hydraApi.get<unknown>(
     `/catalogue/${category}`,
     {
       params: {
@@ -29,6 +30,8 @@ async function getCatalogueGames(
       needsAuth: false,
     }
   );
+
+  return normalizeShopAssetsList(response);
 }
 
 export function usePopularGames() {
