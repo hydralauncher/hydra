@@ -43,7 +43,10 @@ export class RootzApi {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<RootzApiResponse>;
-        if (axiosError.response?.status === 404) {
+        if (
+          axiosError.response?.data?.error ||
+          axiosError.response?.status === 404
+        ) {
           const errorMessage =
             axiosError.response.data?.error || "File not found";
           logger.error(`[Rootz] ${errorMessage}`);

@@ -100,6 +100,13 @@ const handleHostSpecificError = (
   message: string,
   downloader: Downloader
 ): DownloadErrorResult | null => {
+  if (
+    downloader === Downloader.Gofile &&
+    (message.includes("RATE_LIMIT:") || message.includes("error-rateLimit"))
+  ) {
+    return { ok: false, error: DownloadError.GofileQuotaExceeded };
+  }
+
   const hostName = HOST_NAMES[downloader];
   if (!hostName) return null;
 
