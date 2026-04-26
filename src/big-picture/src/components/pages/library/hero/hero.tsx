@@ -1,6 +1,7 @@
 import type { LibraryGame } from "@types";
 import {
   ClockIcon,
+  DownloadSimpleIcon,
   GearIcon,
   HeartIcon,
   PlayIcon,
@@ -26,6 +27,7 @@ import {
   LIBRARY_HERO_OPTIONS_BUTTON_ID,
 } from "../navigation";
 import { getHeroPlaytimeLabel } from "../library-data";
+import { useLibraryLaunchGame } from "../use-library-launch-game";
 import { useHeroBackgroundLayers } from "./use-hero-background-layers";
 
 import "./hero.scss";
@@ -33,7 +35,6 @@ import "./hero.scss";
 interface LibraryHeroProps {
   lastPlayedGames: LibraryGame[];
   onOpenGameSettings?: (game: LibraryGame) => void;
-  onLaunchGame?: (game: LibraryGame) => Promise<void> | void;
   onToggleFavorite?: (game: LibraryGame) => Promise<void> | void;
   favoriteLoadingGameId?: string | null;
 }
@@ -51,13 +52,17 @@ function getLastPlayedLabel(lastTimePlayed: Date | string | null | undefined) {
 export function LibraryHero({
   lastPlayedGames,
   onOpenGameSettings,
-  onLaunchGame,
   onToggleFavorite,
   favoriteLoadingGameId = null,
 }: Readonly<LibraryHeroProps>) {
   const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
   const heroRef = useRef<HTMLElement | null>(null);
   const featuredGame = lastPlayedGames[featuredGameIndex] ?? null;
+  const launchGame = useLibraryLaunchGame(
+    useCallback(() => {
+      console.log("library-hero download");
+    }, [])
+  );
   const getHeroScrollAnchor = useCallback(() => heroRef.current, []);
   const dominantColor = useDominantColor(
     featuredGame?.libraryHeroImageUrl ?? null
@@ -91,6 +96,12 @@ export function LibraryHero({
   const lastPlayedLabel = getLastPlayedLabel(featuredGame?.lastTimePlayed);
   const isFavoriteLoading =
     Boolean(featuredGame) && favoriteLoadingGameId === featuredGame?.id;
+  const hasExecutable = Boolean(featuredGame?.executablePath);
+
+  const handlePlayOrDownloadClick = () => {
+    if (!featuredGame) return;
+    void launchGame(featuredGame);
+  };
 
   const heroActionsNavigationOverrides: FocusOverrides = {
     down: {
@@ -171,19 +182,31 @@ export function LibraryHero({
               navigationOverrides={heroActionsNavigationOverrides}
               getScrollAnchor={getHeroScrollAnchor}
             >
-              <Button
-                variant="primary"
-                icon={<PlayIcon size={24} />}
-                color={dominantColor ?? undefined}
-                focusId={LIBRARY_HERO_LAUNCH_BUTTON_ID}
-                focusNavigationOverrides={launchNavigationOverrides}
-                disabled={!featuredGame}
-                onClick={() => {
-                  if (featuredGame) void onLaunchGame?.(featuredGame);
-                }}
-              >
-                Launch Game
-              </Button>
+              {hasExecutable ? (
+                <Button
+                  variant="primary"
+                  icon={<PlayIcon size={24} weight="fill" />}
+                  color={dominantColor ?? undefined}
+                  focusId={LIBRARY_HERO_LAUNCH_BUTTON_ID}
+                  focusNavigationOverrides={launchNavigationOverrides}
+                  disabled={!featuredGame}
+                  onClick={handlePlayOrDownloadClick}
+                >
+                  Launch Game
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  icon={<DownloadSimpleIcon size={24} />}
+                  color={dominantColor ?? undefined}
+                  focusId={LIBRARY_HERO_LAUNCH_BUTTON_ID}
+                  focusNavigationOverrides={launchNavigationOverrides}
+                  disabled={!featuredGame}
+                  onClick={handlePlayOrDownloadClick}
+                >
+                  Launch Game
+                </Button>
+              )}
 
               <div className="hero__action__divider">
                 <Divider orientation="vertical" color="var(--text-secondary)" />
