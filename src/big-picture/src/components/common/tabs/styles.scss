@@ -56,7 +56,21 @@
   }
 
   &__tab-label {
-    display: block;
+    display: inline-block;
+    transform: scale(1);
+    transform-origin: center bottom;
+    transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+  }
+
+  &__tab:focus-visible &__tab-label,
+  &__tab[data-focus-visible="true"]:not(:hover) &__tab-label {
+    transform: scale(1.03);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__tab-label {
+      transition: none;
+    }
   }
 
   &__indicator {
