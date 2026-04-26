@@ -2,6 +2,7 @@ import type { TrendingGame } from "@types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../../../constants";
+import { normalizeTrendingGame } from "../home-data";
 
 export function useFeaturedGame() {
   const [featuredGame, setFeaturedGame] = useState<TrendingGame | null>(null);
@@ -20,14 +21,16 @@ export function useFeaturedGame() {
     setIsLoading(true);
 
     globalThis.window.electron.hydraApi
-      .get<TrendingGame[]>("/catalogue/featured", {
+      .get<unknown>("/catalogue/featured", {
         params: { language },
         needsAuth: false,
       })
-      .then((games) => {
+      .then((response) => {
         if (!isMounted) return;
 
-        setFeaturedGame(games[0] ?? null);
+        const games = Array.isArray(response) ? response : [];
+
+        setFeaturedGame(normalizeTrendingGame(games[0]));
       })
       .catch(() => {
         if (!isMounted) return;
