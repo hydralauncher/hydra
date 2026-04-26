@@ -1,0 +1,596 @@
+.game-page {
+  height: 100%;
+  overflow-y: auto;
+
+  &__how-long-to-beat-duration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    height: 91px;
+    min-height: 91px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &__content {
+    padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 24);
+  }
+
+  &__main-layout {
+    display: flex;
+    gap: 16px;
+    padding: 64px 0;
+
+    #game-screenshot-carousel-prev-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-screenshot-carousel-next-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  &__main-column {
+    flex: 1;
+  }
+
+  &__sidebar-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  &__sidebar {
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__how-long-to-beat-title {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  &__playtime-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0e0e0e;
+    height: 76px;
+    border-radius: 8px;
+    padding: calc(var(--spacing-unit) * 4);
+  }
+
+  &__hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform-origin: center;
+    z-index: 0;
+  }
+
+  &__hero-actions {
+    display: flex;
+    gap: 16px;
+
+    & .divider-container {
+      padding: 0;
+    }
+  }
+
+  &__hero-overlay {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    height: 100%;
+    background:
+      linear-gradient(
+        90deg,
+        #080808 0%,
+        rgba(8, 8, 8, 0) 25%,
+        rgba(8, 8, 8, 0) 75%,
+        #080808 99.53%
+      ),
+      linear-gradient(180deg, rgba(8, 8, 8, 0) 0%, #080808 97%);
+    padding: calc(var(--spacing-unit) * 12) calc(var(--spacing-unit) * 24);
+    gap: calc(var(--spacing-unit) * 6);
+  }
+
+  &__achievements-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0e0e0e;
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  &__achievement-icon-locked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-color: rgba(8, 8, 8, 1);
+    border-radius: 4px;
+  }
+
+  &__achievement-box {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 16px;
+
+    &-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    &-link {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      justify-content: start;
+      gap: 4px;
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 14px;
+    }
+  }
+
+  &__achievement {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__achievement-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+    box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  }
+
+  &__achievement-icon--locked {
+    filter: grayscale(100%);
+  }
+
+  &__achievement-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-unit);
+  }
+
+  &__detailed-description {
+    color: rgba(255, 255, 255, 0.8);
+
+    img,
+    video {
+      border-radius: 5px;
+      margin-top: calc(var(--spacing-unit) * 3);
+      margin-bottom: calc(var(--spacing-unit) * 3);
+      max-width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    a {
+      color: var(--body-color);
+    }
+
+    .bb_tag {
+      margin-top: calc(var(--spacing-unit) * 2);
+      margin-bottom: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  &__box-group {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+
+    > * {
+      border-radius: 8px;
+    }
+
+    > *:first-child:not(:last-child) {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    > *:last-child:not(:first-child) {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+
+    > *:not(:first-child):not(:last-child) {
+      border-radius: 0;
+    }
+
+    #game-stats-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-how-long-to-beat-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-achievements-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-achievements-view-all {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-requirements-to-play-minimum-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fbbf24 !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-requirements-to-play-recommended-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-supported-languages-title {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-supported-languages-last-row {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-primary-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-secondary-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-reviews-third-filter-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    [id^="game-review-vote-button-upvote-"][data-focused="true"] {
+      outline: 2px solid #fbbf24 !important;
+      outline-offset: -2px;
+    }
+
+    [id^="game-review-vote-button-downvote-"][data-focused="true"] {
+      outline: 2px solid #f87171 !important;
+      outline-offset: -2px;
+    }
+  }
+
+  &__requirements {
+    ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing-unit) * 4);
+    }
+  }
+
+  &__requirements-to-play-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  &__requirements-to-play-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0e0e0e;
+    border-top-left-radius: 8px;
+    padding: 8px;
+  }
+
+  &__requirements-to-play-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+
+    .button {
+      height: 100%;
+      border-radius: 0;
+    }
+
+    :last-child .button {
+      border-top-right-radius: 12px;
+    }
+  }
+
+  &__requirements-to-play-content {
+    > strong:first-child,
+    br {
+      display: none;
+    }
+
+    ul {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--spacing-unit) * 4);
+    }
+
+    > ul strong {
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: normal;
+    }
+
+    li {
+      display: list-item;
+    }
+  }
+
+  &__languages-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0e0e0e;
+    padding: 8px;
+  }
+
+  &__languages-labels {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__languages-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    background-color: #0e0e0e;
+    padding: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+  }
+
+  &__languages {
+    padding: 0;
+  }
+
+  &__languages-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__languages-row {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__languages-cell {
+    padding: 8px 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    flex: 1;
+
+    &--language {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &--center {
+      justify-content: center;
+      flex: 0 0 72px;
+    }
+  }
+
+  &__languages-cross {
+    opacity: 0.3;
+  }
+
+  &__reviews-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0e0e0e;
+    padding: 8px;
+  }
+
+  &__review-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  &__review-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__review-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+
+    &--placeholder {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__review-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__review-display-name {
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  &__review-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+  }
+
+  &__review-score {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #fbbf24;
+  }
+
+  &__review-playtime {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__review-date {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  &__review-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__reviews-sort {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  &__review-votes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__review-vote-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &--active {
+      color: #4ade80;
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    &--active-down {
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+  }
+
+  &__legal-notice {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+  }
+}

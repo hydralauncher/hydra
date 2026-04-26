@@ -603,6 +603,7 @@
     "enable_friend_request_notifications": "Quando um pedido de amizade é recebido",
     "launch_minimized": "Iniciar Hydra minimizado",
     "launch_hydra_in_library_page": "Iniciar o Hydra na página da Biblioteca",
+    "launch_hydra_in_big_picture": "Iniciar o Hydra no modo Big Picture (experimental)",
     "disable_nsfw_alert": "Desativar alertas NSFW",
     "seed_after_download_complete": "Semear após concluir o download",
     "show_hidden_achievement_description": "Mostrar descrição de conquistas ocultas antes de as desbloquear",

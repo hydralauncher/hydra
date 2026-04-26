@@ -19,6 +19,7 @@
     "my_library": "Библиотека",
     "collections": "Коллекции",
     "games": "Игры",
+    "big_picture": "Big Picture (beta)",
     "downloading_metadata": "{{title}} (Загрузка метаданных…)",
     "paused": "{{title}} (Приостановлено)",
     "downloading": "{{title}} ({{percentage}} - Загрузка…)",
@@ -712,6 +713,7 @@
     "enable_achievement_notifications": "Когда достижение разблокировано",
     "launch_minimized": "Запускать Hydra в свернутом виде",
     "launch_hydra_in_library_page": "Запускать Hydra на странице библиотеки",
+    "launch_hydra_in_big_picture": "Запускать Hydra в режиме Big Picture (экспериментальная функция)",
     "disable_nsfw_alert": "Отключить предупреждение о непристойном контенте",
     "seed_after_download_complete": "Раздавать после завершения загрузки",
     "show_hidden_achievement_description": "Показывать описание скрытых достижений перед их получением",
@@ -831,8 +833,7 @@
     "proton_version_auto": "Авто (глобальное значение по умолчанию или значение umu по умолчанию)",
     "proton_source_umu_default": "выбор umu по умолчанию",
     "proton_source_steam": "Установлено через Steam",
-    "proton_source_compatibility_tools": "Установлено в Steam compatibilitytools.d",
-    "resume_seeding": "Возобновить раздачу"
+    "proton_source_compatibility_tools": "Установлено в Steam compatibilitytools.d"
   },
   "notifications": {
     "download_complete": "Загрузка завершена",
