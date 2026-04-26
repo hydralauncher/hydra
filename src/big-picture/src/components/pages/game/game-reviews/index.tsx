@@ -9,6 +9,11 @@ import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
 import { useDate, useFormat } from "../../../../hooks";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
+import {
+  FocusOverrides,
+  NavigationService,
+} from "../../../../services/navigation.service";
 import {
   Box,
   Button,
@@ -22,16 +27,12 @@ import {
   GAME_REVIEWS_REGION_ID,
   GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
   GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
+  GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
   GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
   getGameReviewVoteButtonDownvoteId,
   getGameReviewVoteButtonUpvoteId,
   getGameReviewVotesRegionId,
 } from "../navigation";
-import {
-  FocusOverrides,
-  NavigationService,
-} from "../../../../services/navigation.service";
-import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 
 type ReviewSortOption =
   | "newest"
@@ -246,7 +247,7 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   const primaryFilterNavigationOverrides: FocusOverrides = {
     up: {
       type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
+      itemId: GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
     },
     left: {
       type: "item",
@@ -283,7 +284,8 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
     },
     right: {
-      type: "block",
+      type: "item",
+      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
     },
   };
 

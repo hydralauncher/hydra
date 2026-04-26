@@ -6,6 +6,7 @@ import { Box, FocusItem, Typography } from "../../../common";
 import {
   GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
   GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
+  GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
   GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
   GAME_SUPPORTED_LANGUAGES_TITLE_ID,
 } from "../navigation";
@@ -44,7 +45,8 @@ export function SupportedLanguages({
       itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
     },
     left: {
-      type: "block",
+      type: "item",
+      itemId: GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
     },
     right: {
       type: "block",
@@ -57,7 +59,8 @@ export function SupportedLanguages({
       itemId: GAME_SUPPORTED_LANGUAGES_TITLE_ID,
     },
     left: {
-      type: "block",
+      type: "item",
+      itemId: GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
     },
     right: {
       type: "block",

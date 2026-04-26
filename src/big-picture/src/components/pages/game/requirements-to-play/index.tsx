@@ -8,6 +8,7 @@ import {
   GAME_REQUIREMENTS_TO_PLAY_BUTTONS_REGION_ID,
   GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
   GAME_REQUIREMENTS_TO_PLAY_RECOMMENDED_BUTTON_ID,
+  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
 } from "../navigation";
 
 export interface RequirementsToPlayProps {
@@ -36,7 +37,8 @@ export function RequirementsToPlay({
       itemId: GAME_ACHIEVEMENTS_VIEW_ALL_ID,
     },
     left: {
-      type: "block",
+      type: "item",
+      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
     },
     right: {
       type: "item",

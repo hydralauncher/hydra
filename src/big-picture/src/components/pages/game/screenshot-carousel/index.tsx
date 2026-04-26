@@ -8,6 +8,7 @@ import { useNavigationIsFocused } from "../../../../stores";
 import { FocusItem, HorizontalFocusGroup } from "../../../common";
 import {
   GAME_HERO_ACTIONS_REGION_ID,
+  GAME_REVIEWS_REGION_ID,
   GAME_SCREENSHOT_CAROUSEL_DOTS_REGION_ID,
   GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
   GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
@@ -189,7 +190,8 @@ export function ScreenshotCarousel({
       regionId: GAME_HERO_ACTIONS_REGION_ID,
     },
     down: {
-      type: "block",
+      type: "region",
+      regionId: GAME_REVIEWS_REGION_ID,
     },
     right: {
       type: "item",
@@ -211,7 +213,8 @@ export function ScreenshotCarousel({
       regionId: GAME_HERO_ACTIONS_REGION_ID,
     },
     down: {
-      type: "block",
+      type: "region",
+      regionId: GAME_REVIEWS_REGION_ID,
     },
   };
 
