@@ -38,3 +38,26 @@ electron-builder/
 # Windows
 desktop.ini
 Thumbs.db
+.vscode/
+node_modules/
+__pycache__
+dist
+out
+.DS_Store
+*.log*
+*.tsbuildinfo
+.env
+.vite
+ludusavi/**
+!ludusavi/config.yaml
+hydra-python-rpc/
+/hydra-native/
+native/hydra-native/target/
+.python-version
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+*storybook.log
+Future-updates.md
+TO-DO.md

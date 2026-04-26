@@ -1,6 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
+import { formatBytes } from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -296,6 +297,67 @@ export function GameOptionsModal({
     setShowCancelConfirm(false);
   };
 
+  const getTransferErrorToast = (
+    result: Awaited<ReturnType<typeof window.electron.transferGameFiles>>
+  ) => {
+    const neededSpace =
+      typeof result.needed === "number"
+        ? formatBytes(result.needed)
+        : t("transfer_unknown_size");
+    const availableSpace =
+      typeof result.available === "number"
+        ? formatBytes(result.available)
+        : t("transfer_unknown_size");
+
+    switch (result.error) {
+      case "Transfer cancelled":
+        return {
+          title: t("transfer_cancelled"),
+        };
+      case "not_enough_space":
+        return {
+          title: t("transfer_not_enough_space"),
+          message: t("not_enough_space_detail", {
+            needed: neededSpace,
+            available: availableSpace,
+          }),
+        };
+      case "Game is already in this location":
+        return {
+          title: t("transfer_same_folder"),
+        };
+      case "Destination is inside source folder":
+        return {
+          title: t("transfer_destination_inside_source"),
+        };
+      case "Destination folder already exists":
+        return {
+          title: t("transfer_destination_exists"),
+        };
+      case "Cannot access destination folder":
+        return {
+          title: t("transfer_destination_unavailable"),
+        };
+      case "Cannot determine game root folder":
+        return {
+          title: t("transfer_root_not_found"),
+        };
+      case "Game not found or has no executable path":
+        return {
+          title: t("transfer_game_not_found"),
+        };
+      case "Failed to update database":
+        return {
+          title: t("transfer_failed"),
+          message: t("transfer_db_update_failed"),
+        };
+      default:
+        return {
+          title: t("transfer_failed"),
+        };
+    }
+  };
+
   const handleStartTransfer = async (destPath: string) => {
     const result = await window.electron.transferGameFiles(
       game.shop,
@@ -303,10 +365,14 @@ export function GameOptionsModal({
       destPath
     );
     if (!result.ok) {
-      showErrorToast(result.error || `Transfer failed for ${game.title}`);
-      throw new Error(result.error);
+      const transferErrorToast = getTransferErrorToast(result);
+      showErrorToast(transferErrorToast.title, transferErrorToast.message);
+      throw new Error(transferErrorToast.message ?? transferErrorToast.title);
     }
-    showSuccessToast(`${game.title} moved successfully!`);
+    showSuccessToast(
+      t("transfer_complete"),
+      t("transfer_complete_description", { game: game.title })
+    );
   };
 
   const handleChangeExecutableLocation = async () => {
@@ -562,7 +628,7 @@ export function GameOptionsModal({
       },
       {
         id: "locations" as const,
-        label: t("settings_category_locations", { defaultValue: "Locations" }),
+        label: t("settings_category_locations"),
         icon: <FileDirectoryIcon size={16} />,
       },
       {

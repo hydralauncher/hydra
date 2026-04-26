@@ -24,25 +24,28 @@ export function useUserDetails() {
     dispatch(setProfileBackground(null));
     dispatch(clearCollections());
 
-    window.localStorage.removeItem("userDetails");
+    globalThis.window.localStorage.removeItem("userDetails");
   }, [dispatch]);
 
   const signOut = useCallback(async () => {
     clearUserDetails();
 
-    return window.electron.signOut();
+    return globalThis.window.electron.signOut();
   }, [clearUserDetails]);
 
   const updateUserDetails = useCallback(
     async (userDetails: UserDetails) => {
       dispatch(setUserDetails(userDetails));
-      window.localStorage.setItem("userDetails", JSON.stringify(userDetails));
+      globalThis.window.localStorage.setItem(
+        "userDetails",
+        JSON.stringify(userDetails)
+      );
     },
     [dispatch]
   );
 
   const fetchUserDetails = useCallback(async () => {
-    return window.electron.getMe().then((userDetails) => {
+    return globalThis.window.electron.getMe().then((userDetails) => {
       if (userDetails == null) {
         clearUserDetails();
       }
@@ -55,7 +58,7 @@ export function useUserDetails() {
 
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
-      const response = await window.electron.updateProfile(values);
+      const response = await globalThis.window.electron.updateProfile(values);
       return updateUserDetails({
         ...response,
         username: userDetails?.username || "",
@@ -74,7 +77,7 @@ export function useUserDetails() {
   );
 
   const fetchFriendRequests = useCallback(async () => {
-    return window.electron.hydraApi
+    return globalThis.window.electron.hydraApi
       .get<FriendRequest[]>("/profile/friend-requests")
       .then((friendRequests) => {
         dispatch(setFriendRequests(friendRequests));
@@ -84,7 +87,7 @@ export function useUserDetails() {
 
   const sendFriendRequest = useCallback(
     async (userId: string) => {
-      return window.electron.hydraApi
+      return globalThis.window.electron.hydraApi
         .post("/profile/friend-requests", {
           data: { friendCode: userId },
         })
@@ -96,12 +99,12 @@ export function useUserDetails() {
   const updateFriendRequestState = useCallback(
     async (userId: string, action: FriendRequestAction) => {
       if (action === "CANCEL") {
-        return window.electron.hydraApi
+        return globalThis.window.electron.hydraApi
           .delete(`/profile/friend-requests/${userId}`)
           .then(() => fetchFriendRequests());
       }
 
-      return window.electron.hydraApi
+      return globalThis.window.electron.hydraApi
         .patch(`/profile/friend-requests/${userId}`, {
           data: {
             requestState: action,
@@ -113,13 +116,15 @@ export function useUserDetails() {
   );
 
   const undoFriendship = (userId: string) =>
-    window.electron.hydraApi.delete(`/profile/friend-requests/${userId}`);
+    globalThis.window.electron.hydraApi.delete(
+      `/profile/friend-requests/${userId}`
+    );
 
   const blockUser = (userId: string) =>
-    window.electron.hydraApi.post(`/users/${userId}/block`);
+    globalThis.window.electron.hydraApi.post(`/users/${userId}/block`);
 
   const unblockUser = (userId: string) =>
-    window.electron.hydraApi.post(`/users/${userId}/unblock`);
+    globalThis.window.electron.hydraApi.post(`/users/${userId}/unblock`);
 
   const hasActiveSubscription = useMemo(() => {
     const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);

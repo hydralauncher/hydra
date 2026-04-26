@@ -20,6 +20,7 @@ import { AchievementNotificationInfo } from "@types";
 
 export * from "./constants";
 export * from "./html-sanitizer";
+export * from "./use-hls-video";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

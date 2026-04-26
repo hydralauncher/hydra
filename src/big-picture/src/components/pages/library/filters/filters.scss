@@ -1,0 +1,29 @@
+.library-filters {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  padding: 0 calc(var(--spacing-unit) * 16);
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__search {
+    flex: 1;
+    max-width: 600px;
+  }
+
+  &__view-actions {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__tabs {
+    flex-shrink: 0;
+    padding: calc(var(--spacing-unit) * 6) 0 calc(var(--spacing-unit) * 4) 0;
+  }
+}

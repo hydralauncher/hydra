@@ -3,6 +3,7 @@ import { ipcMain } from "electron";
 
 import "./auth";
 import "./autoupdater";
+import "./big-picture";
 import "./catalogue";
 import "./cloud-save";
 import "./download-sources";
