@@ -22,6 +22,20 @@
     display: flex;
     gap: 16px;
     padding: 64px 0;
+
+    #game-screenshot-carousel-prev-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
+
+    #game-screenshot-carousel-next-button {
+      &[data-focused="true"] {
+        outline: 2px solid #fff !important;
+        outline-offset: -2px;
+      }
+    }
   }
 
   &__main-column {
@@ -221,20 +235,6 @@
     }
 
     #game-stats-title {
-      &[data-focused="true"] {
-        outline: 2px solid #fff !important;
-        outline-offset: -2px;
-      }
-    }
-
-    #game-screenshot-carousel-prev-button {
-      &[data-focused="true"] {
-        outline: 2px solid #fff !important;
-        outline-offset: -2px;
-      }
-    }
-
-    #game-screenshot-carousel-next-button {
       &[data-focused="true"] {
         outline: 2px solid #fff !important;
         outline-offset: -2px;
