@@ -20,7 +20,7 @@ const closeGame = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const processes = NativeAddon.listProcesses();
+  const processes = await NativeAddon.listProcesses();
 
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
 

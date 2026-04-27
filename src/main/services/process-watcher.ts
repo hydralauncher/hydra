@@ -143,38 +143,14 @@ const findGamePathByProcess = async (
 };
 
 const getSystemProcessMap = async () => {
-  const processes = NativeAddon.listProcesses();
+  const { processMap: rawMap, winePrefixMap: rawWineMap, linuxProcesses } =
+    await NativeAddon.getSystemProcessMap();
 
-  const processMap = new Map<string, Set<string>>();
-  const winePrefixMap = new Map<string, string>();
-  const linuxProcesses: LinuxProcessInfo[] = [];
+  const processMap = new Map<string, Set<string>>(
+    Object.entries(rawMap).map(([k, v]) => [k, new Set(v)])
+  );
 
-  processes.forEach((process) => {
-    const key = process.name?.toLowerCase();
-    const value =
-      platform === "win32"
-        ? process.exe
-        : path.join(process.cwd ?? "", process.name ?? "");
-
-    if (!key || !value) return;
-
-    const STEAM_COMPAT_DATA_PATH = process.environ?.STEAM_COMPAT_DATA_PATH;
-    if (STEAM_COMPAT_DATA_PATH) {
-      winePrefixMap.set(value, STEAM_COMPAT_DATA_PATH);
-    }
-
-    if (platform === "linux") {
-      linuxProcesses.push({
-        name: key,
-        cwd: (process.cwd ?? "").toLowerCase(),
-        exe: (process.exe ?? "").toLowerCase(),
-        steamCompatDataPath: STEAM_COMPAT_DATA_PATH?.toLowerCase() ?? null,
-      });
-    }
-
-    const currentSet = processMap.get(key) ?? new Set();
-    processMap.set(key, currentSet.add(value));
-  });
+  const winePrefixMap = new Map<string, string>(Object.entries(rawWineMap));
 
   return { processMap, winePrefixMap, linuxProcesses };
 };
