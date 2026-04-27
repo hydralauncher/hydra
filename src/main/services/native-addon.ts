@@ -224,7 +224,11 @@ export class NativeAddon {
     for (const pending of drained) {
       if (pending.type === "list") pending.resolve([]);
       else
-        pending.resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
+        pending.resolve({
+          processMap: {},
+          winePrefixMap: {},
+          linuxProcesses: [],
+        });
     }
   }
 

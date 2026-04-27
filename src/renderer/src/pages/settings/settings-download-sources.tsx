@@ -93,7 +93,6 @@ export function SettingsDownloadSources() {
     return () => clearInterval(intervalId);
   }, [downloadSources]);
 
-
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
 

@@ -143,8 +143,11 @@ const findGamePathByProcess = async (
 };
 
 const getSystemProcessMap = async () => {
-  const { processMap: rawMap, winePrefixMap: rawWineMap, linuxProcesses } =
-    await NativeAddon.getSystemProcessMap();
+  const {
+    processMap: rawMap,
+    winePrefixMap: rawWineMap,
+    linuxProcesses,
+  } = await NativeAddon.getSystemProcessMap();
 
   const processMap = new Map<string, Set<string>>(
     Object.entries(rawMap).map(([k, v]) => [k, new Set(v)])
