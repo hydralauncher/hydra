@@ -146,7 +146,7 @@ const cleanupStaleCompatibilityProcesses = async (
   const defaultPrefixPath = Wine.getDefaultPrefixPathForGame(objectId);
   if (defaultPrefixPath !== winePrefixPath) return;
 
-  const processes = NativeAddon.listProcesses();
+  const processes = await NativeAddon.listProcesses();
 
   const stalePids = processes
     .filter((runningProcess) => {

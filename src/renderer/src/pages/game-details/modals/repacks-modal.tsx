@@ -43,7 +43,8 @@ export interface RepacksModalProps {
     addToQueueOnly?: boolean,
     fileIndices?: number[],
     selectedFilesSize?: number | null,
-    automaticallyDeleteArchiveFiles?: boolean
+    automaticallyDeleteArchiveFiles?: boolean,
+    signal?: AbortSignal
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }

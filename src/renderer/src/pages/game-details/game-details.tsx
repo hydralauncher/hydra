@@ -95,7 +95,7 @@ export default function GameDetails() {
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
-          setGameOptionsInitialCategory,
+          setGameOptionsInitialCategory, // ADD THIS
         }) => {
           const handleStartDownload = async (
             repack: GameRepack,
@@ -105,35 +105,42 @@ export default function GameDetails() {
             addToQueueOnly = false,
             fileIndices?: number[],
             selectedFilesSize?: number | null,
-            automaticallyDeleteArchiveFiles = false
+            automaticallyDeleteArchiveFiles = false,
+            signal?: AbortSignal
           ) => {
             const response = addToQueueOnly
-              ? await addGameToQueue({
-                  objectId: objectId!,
-                  title: gameTitle,
-                  downloader,
-                  shop,
-                  downloadPath,
-                  uri: selectRepackUri(repack, downloader),
-                  automaticallyExtract,
-                  automaticallyDeleteArchiveFiles,
-                  fileSize: repack.fileSize,
-                  fileIndices,
-                  selectedFilesSize,
-                })
-              : await startDownload({
-                  objectId: objectId!,
-                  title: gameTitle,
-                  downloader,
-                  shop,
-                  downloadPath,
-                  uri: selectRepackUri(repack, downloader),
-                  automaticallyExtract,
-                  automaticallyDeleteArchiveFiles,
-                  fileSize: repack.fileSize,
-                  fileIndices,
-                  selectedFilesSize,
-                });
+              ? await addGameToQueue(
+                  {
+                    objectId: objectId!,
+                    title: gameTitle,
+                    downloader,
+                    shop,
+                    downloadPath,
+                    uri: selectRepackUri(repack, downloader),
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
+                    fileSize: repack.fileSize,
+                    fileIndices,
+                    selectedFilesSize,
+                  },
+                  signal
+                )
+              : await startDownload(
+                  {
+                    objectId: objectId!,
+                    title: gameTitle,
+                    downloader,
+                    shop,
+                    downloadPath,
+                    uri: selectRepackUri(repack, downloader),
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
+                    fileSize: repack.fileSize,
+                    fileIndices,
+                    selectedFilesSize,
+                  },
+                  signal
+                );
 
             if (response.ok) {
               await updateGame();

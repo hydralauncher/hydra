@@ -1,0 +1,38 @@
+name: Text Integrity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "release/**"
+
+jobs:
+  text-integrity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Verify LF line endings
+        run: |
+          files_with_cr="$(git grep -Il $'\r' -- . || true)"
+
+          if [ -n "$files_with_cr" ]; then
+            echo "Tracked text files must use LF line endings. Files containing CR characters:"
+            echo "$files_with_cr"
+            exit 1
+          fi
+
+      - name: Verify LICENSE hash
+        run: |
+          expected="32619612c2e0223e86c4908747ec14bef64c3c423fee80910c1aa944769b66f9"
+          actual="$(sha256sum LICENSE | cut -d ' ' -f1)"
+
+          if [ "$actual" != "$expected" ]; then
+            echo "LICENSE hash changed."
+            echo "Expected: $expected"
+            echo "Actual:   $actual"
+            exit 1
+          fi

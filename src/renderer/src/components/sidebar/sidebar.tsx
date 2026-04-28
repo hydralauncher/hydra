@@ -7,11 +7,11 @@ import type { GameCollection, LibraryGame } from "@types";
 
 import {
   Button,
-  TextField,
   ConfirmationModal,
   ContextMenu,
   CreateCollectionModal,
   Modal,
+  TextField,
 } from "@renderer/components";
 import {
   useDownload,
@@ -28,25 +28,26 @@ import "./sidebar.scss";
 
 import { buildGameDetailsPath } from "@renderer/helpers";
 
-import { SidebarProfile } from "./sidebar-profile";
-import { sortBy } from "lodash-es";
-import cn from "classnames";
 import {
+  ChevronRightIcon,
   CommentDiscussionIcon,
+  FileDirectoryIcon,
+  HeartIcon,
+  PencilIcon,
   PlayIcon,
   PlusIcon,
-  ChevronRightIcon,
-  HeartIcon,
-  FileDirectoryIcon,
-  PencilIcon,
   TrashIcon,
+  VideoIcon,
 } from "@primer/octicons-react";
-import { SidebarGameItem } from "./sidebar-game-item";
-import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
-import { setFriendRequestCount } from "@renderer/features/user-details-slice";
-import { setCollections } from "@renderer/features";
-import { useDispatch } from "react-redux";
 import deckyIcon from "@renderer/assets/icons/decky.png";
+import { setCollections } from "@renderer/features";
+import { setFriendRequestCount } from "@renderer/features/user-details-slice";
+import cn from "classnames";
+import { sortBy } from "lodash-es";
+import { useDispatch } from "react-redux";
+import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
+import { SidebarGameItem } from "./sidebar-game-item";
+import { SidebarProfile } from "./sidebar-profile";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -535,6 +536,10 @@ export function Sidebar() {
     ];
   }, [collections, favoritesCount, t]);
 
+  const handleOpenBigPictureWindow = () => {
+    globalThis.window.electron.openBigPictureWindow();
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -571,6 +576,18 @@ export function Sidebar() {
                   </button>
                 </li>
               ))}
+
+              <li className="sidebar__menu-item">
+                <button
+                  type="button"
+                  className="sidebar__menu-item-button"
+                  onClick={handleOpenBigPictureWindow}
+                >
+                  <VideoIcon />
+                  <span>{t("big_picture")}</span>
+                </button>
+              </li>
+
               {window.electron.platform === "linux" && homebrewFolderExists && (
                 <li className="sidebar__menu-item sidebar__menu-item--decky">
                   <button

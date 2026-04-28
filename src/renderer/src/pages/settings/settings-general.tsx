@@ -70,7 +70,7 @@ export function SettingsGeneral() {
       setCanInstallCommonRedist(canInstall);
     });
 
-    const interval = setInterval(() => {
+    const redistInterval = setInterval(() => {
       window.electron.canInstallCommonRedist().then((canInstall) => {
         setCanInstallCommonRedist(canInstall);
       });
@@ -90,7 +90,7 @@ export function SettingsGeneral() {
     );
 
     return () => {
-      clearInterval(interval);
+      clearInterval(redistInterval);
       if (volumeUpdateTimeoutRef.current) {
         clearTimeout(volumeUpdateTimeoutRef.current);
       }
