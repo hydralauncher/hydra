@@ -5,6 +5,7 @@ dist
 out
 .DS_Store
 *.log*
+*.tsbuildinfo
 .env
 .vite
 ludusavi/**
@@ -18,3 +19,5 @@ native/hydra-native/target/
 .env.sentry-build-plugin
 
 *storybook.log
+Future-updates.md
+TO-DO.md
