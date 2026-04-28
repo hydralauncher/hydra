@@ -172,7 +172,7 @@
     "deck_verified_only": "Csak Ellenőrzött",
     "result_count": "{{resultCount}} találat",
     "filter_count": "{{filterCount}} elérhető",
-    "clear_filters": "{{filterCount}} szűrő tisztítása"
+    "clear_filters": "Tisztítás"
   },
   "game_details": {
     "open_download_options": "Letöltési opciók megnyitása",
@@ -979,7 +979,7 @@
     "collection_deleted": "Gyűjtemény törölve",
     "failed_delete_collection": "Gyűjtemény törlése sikertelen",
     "recently_played": "Legutóbb játszott",
-    "favorites": "Favorites",
+    "favorites": "Kedvencek",
     "empty_favorites_title": "Nincs kedvenc játék",
     "empty_favorites_description": "Jelöld meg kedvenc játékaidat hogy kéznél legyenek.",
     "empty_collection_title": "Ez a gyűjtemény üres",
