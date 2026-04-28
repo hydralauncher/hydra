@@ -2,13 +2,10 @@ import path from "node:path";
 import fs from "node:fs";
 
 import { registerEvent } from "../register-event";
-import { logger } from "@main/services";
+import { logger } from "@main/services/logger";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
-const deleteArchive = async (
-  _event: Electron.IpcMainInvokeEvent,
-  filePath: string
-) => {
+export const deleteArchiveFile = async (filePath: string) => {
   try {
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
@@ -46,5 +43,10 @@ const deleteArchive = async (
     return false;
   }
 };
+
+const deleteArchive = async (
+  _event: Electron.IpcMainInvokeEvent,
+  filePath: string
+) => deleteArchiveFile(filePath);
 
 registerEvent("deleteArchive", deleteArchive);

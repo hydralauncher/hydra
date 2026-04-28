@@ -105,6 +105,7 @@ export default function GameDetails() {
             addToQueueOnly = false,
             fileIndices?: number[],
             selectedFilesSize?: number | null,
+            automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
             const response = addToQueueOnly
@@ -116,7 +117,8 @@ export default function GameDetails() {
                     shop,
                     downloadPath,
                     uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract: automaticallyExtract,
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,
                     fileIndices,
                     selectedFilesSize,
@@ -131,7 +133,8 @@ export default function GameDetails() {
                     shop,
                     downloadPath,
                     uri: selectRepackUri(repack, downloader),
-                    automaticallyExtract: automaticallyExtract,
+                    automaticallyExtract,
+                    automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,
                     fileIndices,
                     selectedFilesSize,
