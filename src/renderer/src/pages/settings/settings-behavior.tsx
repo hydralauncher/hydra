@@ -33,6 +33,7 @@ export function SettingsBehavior() {
     showHiddenAchievementsDescription: false,
     showDownloadSpeedInMegabytes: false,
     extractFilesByDefault: true,
+    autoDeleteArchiveAfterExtraction: false,
     enableSteamAchievements: false,
     autoplayGameTrailers: true,
     hideToTrayOnGameStart: false,
@@ -83,6 +84,8 @@ export function SettingsBehavior() {
         showDownloadSpeedInMegabytes:
           userPreferences.showDownloadSpeedInMegabytes ?? false,
         extractFilesByDefault: userPreferences.extractFilesByDefault ?? true,
+        autoDeleteArchiveAfterExtraction:
+          userPreferences.autoDeleteArchiveAfterExtraction ?? false,
         enableSteamAchievements:
           userPreferences.enableSteamAchievements ?? false,
         autoplayGameTrailers: userPreferences.autoplayGameTrailers ?? true,
@@ -292,6 +295,17 @@ export function SettingsBehavior() {
         onChange={() =>
           handleChange({
             extractFilesByDefault: !form.extractFilesByDefault,
+          })
+        }
+      />
+
+      <CheckboxField
+        label={t("auto_delete_archive_after_extraction")}
+        checked={form.autoDeleteArchiveAfterExtraction}
+        onChange={() =>
+          handleChange({
+            autoDeleteArchiveAfterExtraction:
+              !form.autoDeleteArchiveAfterExtraction,
           })
         }
       />

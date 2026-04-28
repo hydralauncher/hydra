@@ -5,10 +5,7 @@ import { registerEvent } from "../register-event";
 import { logger } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
-const deleteArchive = async (
-  _event: Electron.IpcMainInvokeEvent,
-  filePath: string
-) => {
+export const deleteArchiveFile = async (filePath: string) => {
   try {
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
@@ -45,6 +42,13 @@ const deleteArchive = async (
     logger.error(`Failed to delete archive: ${filePath}`, err);
     return false;
   }
+};
+
+const deleteArchive = async (
+  _event: Electron.IpcMainInvokeEvent,
+  filePath: string
+) => {
+  return deleteArchiveFile(filePath);
 };
 
 registerEvent("deleteArchive", deleteArchive);
