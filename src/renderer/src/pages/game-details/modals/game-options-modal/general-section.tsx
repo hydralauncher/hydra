@@ -277,13 +277,16 @@ export function GeneralSettingsSection({
 
       {/* Drive Selector */}
       {showTransferSection && game.executablePath && !isTransferring && (
-      <div className="game-options-modal__section">
+        <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
             <h4 className="game-options-modal__header-description">
               {t("transfer_game_description", { game: game.title })}
               {transferGameSize && (
-                <> (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)</>
+                <>
+                  {" "}
+                  (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)
+                </>
               )}
             </h4>
           </div>
@@ -350,7 +353,8 @@ export function GeneralSettingsSection({
                             )}
                           </div>
                           <span className="drive-card__space">
-                            {fmt(drive.free)} {t("transfer_free")}{" / "}
+                            {fmt(drive.free)} {t("transfer_free")}
+                            {" / "}
                             {fmt(drive.total)}
                           </span>
                         </div>
