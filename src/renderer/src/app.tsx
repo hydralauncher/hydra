@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-import { WorkWonders } from "workwonders-sdk";
+import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
 import {
   useAppDispatch,
   useAppSelector,
@@ -10,32 +8,34 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { WorkWonders } from "workwonders-sdk";
 
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  clearExtraction,
+  closeToast,
+  setExtractionProgress,
+  setGameRunning,
+  setProfileBackground,
+  setUserDetails,
   setUserPreferences,
   toggleDraggingDisabled,
-  closeToast,
-  setUserDetails,
-  setProfileBackground,
-  setGameRunning,
-  setExtractionProgress,
-  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "./hooks/use-subscription";
-import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
+import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import {
-  injectCustomCss,
-  removeCustomCss,
-  getAchievementSoundUrl,
-  getAchievementSoundVolume,
-} from "./helpers";
-import { levelDBService } from "./services/leveldb.service";
 import type { UserPreferences } from "@types";
 import "./app.scss";
+import {
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+  injectCustomCss,
+  removeCustomCss,
+} from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
 
 export interface AppProps {
   children: React.ReactNode;

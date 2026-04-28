@@ -21,6 +21,7 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
   } = payload;
@@ -61,6 +62,7 @@ const startGameDownload = async (
     queued: true,
     extracting: false,
     automaticallyExtract,
+    automaticallyDeleteArchiveFiles,
     extractionProgress: 0,
     fileIndices,
     selectedFilesSize,

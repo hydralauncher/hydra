@@ -137,6 +137,35 @@ export class DownloadManager {
     };
   }
 
+  private static parseGofileUri(uri: string) {
+    let normalizedUri = uri.trim();
+
+    if (
+      !normalizedUri.startsWith("http://") &&
+      !normalizedUri.startsWith("https://")
+    ) {
+      normalizedUri = `https://${normalizedUri}`;
+    }
+
+    try {
+      const parsed = new URL(normalizedUri);
+      const id = parsed.pathname.split("/").filter(Boolean).pop() || "";
+      const password = parsed.searchParams.get("password") || undefined;
+
+      return {
+        id,
+        password,
+      };
+    } catch {
+      const id =
+        normalizedUri.split("?")[0].split("/").filter(Boolean).pop() || "";
+      return {
+        id,
+        password: undefined,
+      };
+    }
+  }
+
   private static logResolvedUrl(url: string): void {
     let sanitizedUrl = url;
 
@@ -957,10 +986,15 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
-    const id = download.uri.split("/").pop();
-    const token = await GofileApi.authorize();
-    const downloadLink = await GofileApi.getDownloadLink(id!);
+    const { id, password } = this.parseGofileUri(download.uri);
+    if (!id) {
+      throw new Error("Invalid gofile URL");
+    }
+
+    const downloadLink = await GofileApi.getDownloadLink(id, password);
     await GofileApi.checkDownloadUrl(downloadLink);
+    const token = await GofileApi.authorize();
+
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -1192,10 +1226,14 @@ export class DownloadManager {
 
     switch (download.downloader) {
       case Downloader.Gofile: {
-        const id = download.uri.split("/").pop();
-        const token = await GofileApi.authorize();
-        const downloadLink = await GofileApi.getDownloadLink(id!);
+        const { id, password } = this.parseGofileUri(download.uri);
+        if (!id) {
+          throw new Error("Invalid gofile URL");
+        }
+
+        const downloadLink = await GofileApi.getDownloadLink(id, password);
         await GofileApi.checkDownloadUrl(downloadLink);
+        const token = await GofileApi.authorize();
 
         return {
           action: "start",

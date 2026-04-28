@@ -26,6 +26,7 @@ export function SettingsBehavior() {
     runAtStartup: false,
     startMinimized: false,
     launchToLibraryPage: false,
+    launchInBigPicture: false,
     disableNsfwAlert: false,
     enableAutoInstall: false,
     seedAfterDownloadComplete: false,
@@ -72,6 +73,7 @@ export function SettingsBehavior() {
         runAtStartup: userPreferences.runAtStartup ?? false,
         startMinimized: userPreferences.startMinimized ?? false,
         launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
+        launchInBigPicture: userPreferences.launchInBigPicture ?? false,
         disableNsfwAlert: userPreferences.disableNsfwAlert ?? false,
         enableAutoInstall: userPreferences.enableAutoInstall ?? false,
         seedAfterDownloadComplete:
@@ -189,6 +191,14 @@ export function SettingsBehavior() {
         checked={form.launchToLibraryPage}
         onChange={() =>
           handleChange({ launchToLibraryPage: !form.launchToLibraryPage })
+        }
+      />
+
+      <CheckboxField
+        label={t("launch_hydra_in_big_picture")}
+        checked={form.launchInBigPicture}
+        onChange={() =>
+          handleChange({ launchInBigPicture: !form.launchInBigPicture })
         }
       />
 

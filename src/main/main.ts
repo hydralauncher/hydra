@@ -25,6 +25,7 @@ import {
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
+import { GofileApi } from "./services/hosters";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -75,6 +76,8 @@ export const loadState = async () => {
   if (userPreferences?.torBoxApiToken) {
     TorBoxClient.authorize(userPreferences.torBoxApiToken);
   }
+
+  GofileApi.initialize();
 
   Ludusavi.copyConfigFileToUserData();
   Ludusavi.copyBinaryToUserData();

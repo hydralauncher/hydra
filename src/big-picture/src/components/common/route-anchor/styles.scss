@@ -1,0 +1,125 @@
+.route-anchor {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 2);
+  border-radius: var(--spacing-unit);
+  transition: background-color 0.2s ease-in-out;
+  width: 100%;
+  color: var(--text);
+  user-select: none;
+
+  &--extra-padding {
+    padding: calc(var(--spacing-unit) * 3);
+  }
+
+  &--active {
+    color: var(--primary);
+    background-color: var(--secondary-hover);
+  }
+
+  &:not(&--active):hover {
+    background-color: var(--secondary);
+  }
+
+  [data-focus-visible="true"] & {
+    box-shadow: inset 0 0 0 1px var(--text-secondary);
+  }
+
+  [data-focus-visible="true"] &:not(&--active) {
+    background-color: var(--secondary);
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--spacing-unit) / 2);
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &--small-size {
+      width: 24px;
+      height: 24px;
+    }
+
+    &--large-size {
+      width: 32px;
+      height: 32px;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__label {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__favorite {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+  }
+}
+
+.state-wrapper {
+  width: 100%;
+
+  &--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &--active {
+    pointer-events: none;
+  }
+}
+
+.tooltip-content {
+  background-color: var(--secondary);
+  color: var(--text);
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+  border-radius: var(--spacing-unit);
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  animation-duration: 200ms;
+  animation-timing-function: ease-in-out;
+  will-change: transform, opacity;
+
+  &[data-state="delayed-open"] {
+    animation-name: fadeIn;
+  }
+
+  &__label {
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

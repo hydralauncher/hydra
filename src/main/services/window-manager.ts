@@ -1,3 +1,14 @@
+import { is } from "@electron-toolkit/utils";
+import { isStaging } from "@main/constants";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import icon from "@resources/icon.png?asset";
+import trayIcon from "@resources/tray-icon.png?asset";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import type {
+  AchievementCustomNotificationPosition,
+  ScreenState,
+  UserPreferences,
+} from "@types";
 import {
   BrowserWindow,
   Menu,
@@ -9,28 +20,19 @@ import {
   screen,
   shell,
 } from "electron";
-import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
-import path from "node:path";
-import icon from "@resources/icon.png?asset";
-import trayIcon from "@resources/tray-icon.png?asset";
-import { HydraApi } from "./hydra-api";
-import UserAgent from "user-agents";
-import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
-import type {
-  AchievementCustomNotificationPosition,
-  ScreenState,
-  UserPreferences,
-} from "@types";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { isStaging } from "@main/constants";
+import path from "node:path";
+import UserAgent from "user-agents";
+import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
+  private static bigPicture: Electron.BrowserWindow | null = null;
+  private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -122,6 +124,12 @@ export class WindowManager {
   public static async createMainWindow() {
     if (this.mainWindow) return;
 
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
@@ -131,7 +139,15 @@ export class WindowManager {
       this.initialConfigInitializationMainWindow
     );
 
-    if (isMaximized) {
+    this.deferredMainMaximize = false;
+
+    if (userPreferences?.launchInBigPicture) {
+      this.mainWindow.setOpacity(0);
+      this.mainWindow.setSkipTaskbar(true);
+      if (isMaximized) {
+        this.deferredMainMaximize = true;
+      }
+    } else if (isMaximized) {
       this.mainWindow.maximize();
     }
 
@@ -205,12 +221,6 @@ export class WindowManager {
       }
     );
 
-    const userPreferences = await db
-      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-        valueEncoding: "json",
-      })
-      .catch(() => null);
-
     const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
 
     this.loadMainWindowURL(initialHash);
@@ -219,7 +229,11 @@ export class WindowManager {
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
-      WindowManager.mainWindow?.show();
+      if (userPreferences?.launchInBigPicture) {
+        void WindowManager.openBigPictureWindow();
+      } else {
+        WindowManager.mainWindow?.show();
+      }
     });
 
     this.mainWindow.on("close", async () => {
@@ -259,6 +273,55 @@ export class WindowManager {
     this.mainWindow.webContents.setWindowOpenHandler((handler) => {
       shell.openExternal(handler.url);
       return { action: "deny" };
+    });
+  }
+
+  public static async openBigPictureWindow() {
+    if (this.bigPicture) {
+      this.bigPicture.focus();
+      return;
+    }
+
+    this.bigPicture = new BrowserWindow({
+      fullscreen: true,
+      backgroundColor: "#0a0a0a",
+      icon,
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.bigPicture.removeMenu();
+
+    if (!app.isPackaged || isStaging) {
+      this.bigPicture.webContents.openDevTools();
+    }
+
+    this.loadWindowURL(this.bigPicture, "big-picture");
+
+    this.bigPicture.once("ready-to-show", () => {
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        main.setOpacity(1);
+        main.hide();
+      }
+      this.bigPicture?.show();
+    });
+
+    this.bigPicture.on("closed", () => {
+      this.bigPicture = null;
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        if (WindowManager.deferredMainMaximize) {
+          main.maximize();
+          WindowManager.deferredMainMaximize = false;
+        }
+        main.setSkipTaskbar(false);
+        main.show();
+        main.focus();
+      }
     });
   }
 
