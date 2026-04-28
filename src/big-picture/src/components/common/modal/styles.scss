@@ -1,0 +1,10 @@
+.modal {
+  border-radius: 8px;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 100%;
+  overflow: hidden;
+  background-color: #0e0e0e;
+  display: flex;
+  flex-direction: column;
+}

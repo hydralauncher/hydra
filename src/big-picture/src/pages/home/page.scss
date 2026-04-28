@@ -1,0 +1,59 @@
+.home-page {
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--background);
+  color: var(--text);
+}
+
+.home-page__popular-games {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
+}
+
+.home-page__popular-games-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.home-page__popular-games-row {
+  width: calc(100% + 12px);
+  min-width: 0;
+  margin: -6px;
+  padding: 6px 6px calc(var(--spacing-unit) * 2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  > [data-focus-wrapper] {
+    flex: 0 0 350px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page__popular-games {
+    padding: 0 calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 8);
+  }
+
+  .home-page__popular-games-title {
+    font-size: 24px;
+  }
+
+  .home-page__popular-games-row > [data-focus-wrapper] {
+    flex-basis: min(320px, 82vw);
+  }
+}

@@ -27,6 +27,8 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 8000;
 const STALL_CHECK_INTERVAL_MS = 2000;
+const DEFAULT_DOWNLOAD_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
 const RETRYABLE_ERROR_CODES = new Set([
   "ECONNRESET",
@@ -307,6 +309,15 @@ export class JsHttpDownloader {
     startByte: number
   ): Record<string, string> {
     const requestHeaders: Record<string, string> = { ...headers };
+
+    const hasUserAgentHeader = Object.keys(requestHeaders).some(
+      (key) => key.toLowerCase() === "user-agent"
+    );
+
+    if (!hasUserAgentHeader) {
+      requestHeaders["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
+    }
+
     if (startByte > 0) {
       requestHeaders["Range"] = `bytes=${startByte}-`;
     }
@@ -335,6 +346,17 @@ export class JsHttpDownloader {
     }
   }
 
+  private parseTotalSizeFrom416(response: Response): number | null {
+    const contentRange = response.headers.get("content-range");
+    if (!contentRange) return null;
+
+    const match = /bytes\s+\*\/(\d+)/i.exec(contentRange);
+    if (!match) return null;
+
+    const total = Number.parseInt(match[1], 10);
+    return Number.isFinite(total) && total > 0 ? total : null;
+  }
+
   private async executeDownload(
     url: string,
     requestHeaders: Record<string, string>,
@@ -355,25 +377,23 @@ export class JsHttpDownloader {
     );
 
     if (response.status === 416 && startByte > 0) {
-      logger.log(
-        "[JsHttpDownloader] Range not satisfiable, deleting existing file and restarting"
-      );
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const remoteTotalSize = this.parseTotalSizeFrom416(response);
+
+      if (remoteTotalSize !== null && startByte === remoteTotalSize) {
+        this.fileSize = remoteTotalSize;
+        this.bytesDownloaded = remoteTotalSize;
+        this.status = "complete";
+        this.retryCount = 0;
+        this.downloadSpeed = 0;
+
+        logger.log(
+          "[JsHttpDownloader] Range not satisfiable but local file already complete"
+        );
+        return;
       }
-      this.bytesDownloaded = 0;
-      this.resetSpeedTracking();
 
-      const headersWithoutRange = { ...requestHeaders };
-      delete headersWithoutRange["Range"];
-
-      return this.executeDownload(
-        url,
-        headersWithoutRange,
-        filePath,
-        0,
-        savePath,
-        usedFallback
+      throw new Error(
+        `[JsHttpDownloader] Range not satisfiable for resumed download (local=${startByte}, remote=${remoteTotalSize ?? "unknown"}). Keeping local file and aborting to avoid restart from zero.`
       );
     }
 

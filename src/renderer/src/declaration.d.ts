@@ -41,6 +41,13 @@ import type {
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
+export interface DriveInfo {
+  root: string;
+  label: string;
+  free: number;
+  total: number;
+}
+
 declare global {
   declare module "*.svg" {
     const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
@@ -540,6 +547,9 @@ declare global {
     openMainWindow: () => Promise<void>;
     isMainWindowOpen: () => Promise<boolean>;
 
+    /* Big Picture Window */
+    openBigPictureWindow: () => Promise<void>;
+
     /* Download Options */
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
@@ -563,6 +573,27 @@ declare global {
       values: (sublevelName: string) => Promise<unknown[]>;
       iterator: (sublevelName: string) => Promise<[string, unknown][]>;
     };
+
+    /* Transfer Game */
+    getAvailableDrives: () => Promise<DriveInfo[]>;
+    transferGameFiles: (
+      shop: GameShop,
+      objectId: string,
+      destParent: string
+    ) => Promise<{
+      ok: boolean;
+      error?: string;
+      needed?: number;
+      available?: number;
+      newExePath?: string;
+    }>;
+
+    // Cancel for game transfers
+    cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+
+    /* Event listeners for transfer progress */
+    on: (channel: string, listener: (...args: any[]) => void) => void;
+    off: (channel: string, listener: (...args: any[]) => void) => void;
   }
 
   interface Window {
