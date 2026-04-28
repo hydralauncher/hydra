@@ -329,19 +329,18 @@
   }
 
   &--selected {
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: #4ade80 !important;
+    background: rgba(74, 222, 128, 0.05) !important;
   }
 
   &--nospace {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
   &__icon {
     flex-shrink: 0;
-    opacity: 0.7;
-    color: #fff;
+    color: rgba(255, 255, 255, 0.5);
   }
 
   &__body {
@@ -355,31 +354,67 @@
   &__top {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
   }
 
+  &__name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
   &__label {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     color: #fff;
-    opacity: 0.9;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &--current {
+      color: #4ade80;
+    }
+  }
+
+  &__installed-tag {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 4px;
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  &__nospace-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  &__nospace-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f87171;
+    flex-shrink: 0;
+  }
+
+  &__nospace-text {
+    font-size: 11px;
+    color: #f87171;
+    white-space: nowrap;
   }
 
   &__space {
     font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
-    color: #fff;
-    opacity: 0.8;
-  }
-
-  &--nospace &__space {
-    color: #f87171;
-    opacity: 1;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   &__bar {
@@ -396,29 +431,21 @@
     left: 0;
     top: 0;
     bottom: 0;
-    background: rgba(168, 162, 158, 0.6);
+    background: rgba(168, 162, 158, 0.5);
     border-radius: 2px;
+
+    &--error {
+      background: rgba(248, 113, 113, 0.6);
+    }
   }
 
   &__bar-game {
     position: absolute;
     top: 0;
     bottom: 0;
-    background: linear-gradient(90deg, #22c55e, #4ade80);
+    background: #4ade80;
     opacity: 0.9;
     border-radius: 0 2px 2px 0;
-    box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
-  }
-
-  &__tag {
-    flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 8px;
-    border-radius: 4px;
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.15);
-    border: 1px solid rgba(248, 113, 113, 0.25);
   }
 }
 

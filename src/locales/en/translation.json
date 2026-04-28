@@ -544,6 +544,7 @@
     "transfer_game_not_found": "Game not found or executable path is missing.",
     "transfer_db_update_failed": "Files were moved, but Hydra could not update metadata. Refresh and verify the executable path.",
     "transfer_unknown_size": "unknown",
+    "transfer_installed_here": "installed here",
     "not_enough_space_detail": "Not enough space — need {{needed}}, only {{available}} available.",
     "detecting_drives": "Detecting drives...",
     "browse": "Browse",
