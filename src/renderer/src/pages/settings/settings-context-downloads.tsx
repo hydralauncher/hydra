@@ -49,6 +49,7 @@ export function SettingsContextDownloads() {
     extractFilesByDefault: true,
     createStartMenuShortcut: true,
     maxDownloadSpeedMegabytes: "",
+    deleteArchiveFilesAfterExtractionByDefault: false,
   });
 
   useEffect(() => {
@@ -69,6 +70,8 @@ export function SettingsContextDownloads() {
               userPreferences.showDownloadSpeedInMegabytes ?? false
             )
           : "",
+      deleteArchiveFilesAfterExtractionByDefault:
+        userPreferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
     });
   }, [userPreferences]);
 
@@ -180,6 +183,17 @@ export function SettingsContextDownloads() {
           label={t("show_download_speed_in_megabytes")}
           checked={form.showDownloadSpeedInMegabytes}
           onChange={handleSpeedUnitChange}
+        />
+
+        <CheckboxField
+          label={t("delete_archive_files_after_extraction")}
+          checked={form.deleteArchiveFilesAfterExtractionByDefault}
+          onChange={() =>
+            handleChange({
+              deleteArchiveFilesAfterExtractionByDefault:
+                !form.deleteArchiveFilesAfterExtractionByDefault,
+            })
+          }
         />
 
         {window.electron.platform === "win32" && (
