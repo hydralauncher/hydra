@@ -1,6 +1,5 @@
 import path from "node:path";
 import fs from "node:fs";
-import os from "node:os";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
 import { gamesSublevel } from "@main/level";
@@ -10,40 +9,62 @@ import {
   logger,
   WindowManager,
 } from "@main/services";
+import axios from "axios";
 
-// Common root folder names found in game installation paths
-const COMMON_GAME_ROOT_FOLDERS = [
+const platform = process.platform;
+
+// ─── Platform-aware common game folders ─────────────────────────────────────
+
+const COMMON_GAME_FOLDERS_WIN = [
   "Games",
-  "Game",
+  "Hydra Games",
   "GOG Games",
   "Epic Games",
-  "Battle.net",
-  "Origin Games",
-  "Ubisoft Games",
   "EA Games",
-  "Rockstar Games",
-  "Riot Games",
-  "Xbox Games",
-  "SteamLibrary",
-  "DODI-Repacks",
-  "FitGirl Repacks",
+  "Origin Games",
+  "Ubisoft Game Launcher\\games",
+  "SteamLibrary\\steamapps\\common",
+  "Steam\\steamapps\\common",
+  "Program Files (x86)\\Steam\\steamapps\\common",
+  "Program Files\\Steam\\steamapps\\common",
+  "Program Files (x86)\\DODI-Repacks",
+  "Program Files\\Epic Games",
+  "Program Files (x86)\\GOG Galaxy\\Games",
 ];
 
-// Common launcher-specific patterns
-const LAUNCHER_PATTERNS = [
-  "Steam\\steamapps\\common",
-  "SteamLibrary\\steamapps\\common",
-  "Epic Games",
-  "GOG Games",
-  "Battle.net\\Games",
-  "Origin Games",
-  "EA Games",
-  "Ubisoft Games",
-  "Ubisoft Game Launcher\\games",
-  "Rockstar Games",
-  "Riot Games",
-  "XboxGames",
+const COMMON_GAME_FOLDERS_LINUX = [
+  "Games",
+  "Hydra Games",
+  ".steam/steam/steamapps/common",
+  ".local/share/Steam/steamapps/common",
+  "snap/steam/common/.local/share/Steam/steamapps/common",
 ];
+
+const COMMON_GAME_FOLDERS_MAC = [
+  "Games",
+  "Hydra Games",
+  "Library/Application Support/Steam/steamapps/common",
+];
+
+const BAD_EXE_PATTERNS = [
+  /^unins/i,
+  /^setup/i,
+  /^install/i,
+  /^redist/i,
+  /^vcredist/i,
+  /^dxsetup/i,
+  /^vc_redist/i,
+  /^directx/i,
+  /^dotnet/i,
+  /^uplayinstaller/i,
+  /^easyanticheat/i,
+  /^battleye/i,
+  /^crashreport/i,
+  /^bugsplat/i,
+  /^cefsharp/i,
+];
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 
 interface FoundGame {
   title: string;
@@ -55,295 +76,297 @@ interface ScanResult {
   total: number;
 }
 
-function getAllDrives(): string[] {
-  const drives: string[] = [];
-  
-  if (process.platform === 'win32') {
-    // Windows: Check all drive letters A-Z
-    for (let i = 65; i <= 90; i++) {
-      const driveLetter = String.fromCharCode(i);
-      const drivePath = `${driveLetter}:\\`;
-      try {
-        if (fs.existsSync(drivePath)) {
-          drives.push(drivePath);
-        }
-      } catch {
-        // Drive doesn't exist or is inaccessible
-      }
-    }
-  } else if (process.platform === 'linux') {
-    // Linux: Add common mount points
-    drives.push('/');
-    try {
-      const mediaPath = '/media';
-      const runMediaPath = '/run/media';
-      
-      if (fs.existsSync(mediaPath)) {
-        const userDirs = fs.readdirSync(mediaPath);
-        for (const dir of userDirs) {
-          drives.push(path.join(mediaPath, dir));
-        }
-      }
-      
-      if (fs.existsSync(runMediaPath)) {
-        const userDirs = fs.readdirSync(runMediaPath);
-        for (const dir of userDirs) {
-          drives.push(path.join(runMediaPath, dir));
-        }
-      }
-    } catch {
-      // Fallback to root only
-    }
-    
-    // Add /mnt for WSL and traditional mounts
-    if (fs.existsSync('/mnt')) {
-      try {
-        const mntDirs = fs.readdirSync('/mnt');
-        for (const dir of mntDirs) {
-          drives.push(path.join('/mnt', dir));
-        }
-      } catch {}
-    }
-  } else if (process.platform === 'darwin') {
-    // macOS
-    drives.push('/');
-    drives.push('/Applications');
-    try {
-      const userApplications = path.join(os.homedir(), 'Applications');
-      if (fs.existsSync(userApplications)) {
-        drives.push(userApplications);
-      }
-    } catch {}
-  }
-
-  return drives;
+interface SteamAppDetails {
+  success: boolean;
+  data?: {
+    name: string;
+    launch?: Array<{
+      executable?: string;
+      type?: string;
+    }>;
+  };
 }
 
-function generateScanPaths(drives: string[]): string[] {
-  const scanPaths: string[] = [];
+// ─── Drive / mount point detection ──────────────────────────────────────────
 
-  for (const drive of drives) {
-    // 1. Check for root-level game folders
-    for (const folder of COMMON_GAME_ROOT_FOLDERS) {
-      scanPaths.push(path.join(drive, folder));
+function getWindowsDriveRoots(): string[] {
+  const letters = Array.from({ length: 26 }, (_, i) =>
+    String.fromCharCode(65 + i)
+  );
+  return letters
+    .map((l) => `${l}:\\`)
+    .filter((root) => fs.existsSync(root));
+}
+
+async function getLinuxMountPoints(): Promise<string[]> {
+  try {
+    const mounts = await fs.promises.readFile("/proc/mounts", "utf8");
+    const ignoredFs = new Set([
+      "proc", "sysfs", "tmpfs", "devtmpfs", "devpts", "overlay",
+      "squashfs", "nsfs", "cgroup", "cgroup2", "pstore", "bpf",
+      "tracefs", "securityfs", "configfs", "debugfs", "mqueue",
+      "hugetlbfs", "fusectl", "ramfs", "autofs", "binfmt_misc",
+    ]);
+    const points = new Set<string>();
+    for (const line of mounts.split("\n")) {
+      const [source, target, fsType] = line.split(" ");
+      if (!target || ignoredFs.has(fsType)) continue;
+      if (!source?.startsWith("/dev/") && !fsType?.startsWith("fuse.")) continue;
+      points.add(target);
     }
+    if (points.size === 0) points.add("/");
+    return Array.from(points);
+  } catch (err) {
+    logger.error("[ScanInstalledGames] Failed to read /proc/mounts:", err);
+    return ["/"];
+  }
+}
 
-    // 2. Check Program Files variants (Windows specific)
-    if (process.platform === 'win32') {
-      const programFilesPaths = [
-        path.join(drive, 'Program Files'),
-        path.join(drive, 'Program Files (x86)'),
-      ];
+async function buildScanDirectories(): Promise<string[]> {
+  const dirs: string[] = [];
 
-      for (const pfPath of programFilesPaths) {
-        if (fs.existsSync(pfPath)) {
-          // Add game-related subdirectories
-          for (const folder of COMMON_GAME_ROOT_FOLDERS) {
-            scanPaths.push(path.join(pfPath, folder));
-          }
-        }
+  if (platform === "win32") {
+    const roots = getWindowsDriveRoots();
+    for (const root of roots) {
+      for (const folder of COMMON_GAME_FOLDERS_WIN) {
+        dirs.push(path.join(root, folder));
       }
     }
-
-    // 3. Check launcher-specific patterns
-    for (const pattern of LAUNCHER_PATTERNS) {
-      scanPaths.push(path.join(drive, pattern));
+  } else if (platform === "linux") {
+    const home = process.env.HOME ?? "/root";
+    const mountPoints = await getLinuxMountPoints();
+    for (const folder of COMMON_GAME_FOLDERS_LINUX) {
+      dirs.push(path.join(home, folder));
+      for (const mount of mountPoints) {
+        dirs.push(path.join(mount, folder));
+      }
+    }
+  } else if (platform === "darwin") {
+    const home = process.env.HOME ?? "/Users/user";
+    for (const folder of COMMON_GAME_FOLDERS_MAC) {
+      dirs.push(path.join(home, folder));
     }
   }
 
-  // Filter to only existing directories for performance
-  return scanPaths.filter(dir => {
-    try {
-      return fs.existsSync(dir);
-    } catch {
-      return false;
-    }
-  });
+  return dirs;
 }
 
-async function findGameExecutable(
-  gameTitle: string,
-  executableNames: Set<string>,
-  scanPaths: string[]
-): Promise<string | null> {
-  const titleLower = gameTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-  const titleWords = titleLower.split(/\s+/).filter(w => w.length > 2);
+// ─── Exe lookup: Hydra DB ────────────────────────────────────────────────────
 
-  for (const scanPath of scanPaths) {
-    try {
-      // Check if the directory itself contains the game
-      const found = await scanDirectoryForGame(scanPath, executableNames, titleWords);
-      if (found) return found;
+function getExesFromHydraDB(objectId: string): Set<string> | null {
+  const names = GameExecutables.getExecutablesForGame(objectId);
+  if (!names || names.length === 0) return null;
+  logger.info(
+    `[ScanInstalledGames] Hydra DB: found ${names.length} exe(s) for ${objectId}`
+  );
+  return new Set(names.map((n) => n.toLowerCase()));
+}
 
-      // Also check subdirectories one level deep
-      const entries = fs.readdirSync(scanPath, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        
-        const fullPath = path.join(scanPath, entry.name);
-        const entryLower = entry.name.toLowerCase();
-        
-        // Quick check: does this folder name match the game title?
-        const folderMatch = titleWords.some(word => entryLower.includes(word));
-        if (folderMatch) {
-          const found = await scanDirectoryForGame(fullPath, executableNames, titleWords);
-          if (found) return found;
-        }
-      }
-    } catch (err) {
-      // Silently continue to next path
+// ─── Exe lookup: Steam API ───────────────────────────────────────────────────
+
+async function getExesFromSteam(objectId: string): Promise<Set<string> | null> {
+  try {
+    logger.info(`[ScanInstalledGames] Steam API: querying for ${objectId}`);
+    const res = await axios.get<{ [appid: string]: SteamAppDetails }>(
+      `https://store.steampowered.com/api/appdetails?appids=${objectId}`,
+      { timeout: 5000 }
+    );
+
+    const appData = res.data?.[objectId];
+    if (!appData?.success || !appData.data?.launch) {
+      logger.warn(
+        `[ScanInstalledGames] Steam API: no launch data for ${objectId}`
+      );
+      return null;
     }
+
+    const exes = new Set<string>();
+    for (const launch of appData.data.launch) {
+      if (!launch.executable) continue;
+      const exeName = path.basename(launch.executable).toLowerCase();
+      if (exeName) exes.add(exeName);
+    }
+
+    if (exes.size === 0) {
+      logger.warn(
+        `[ScanInstalledGames] Steam API: empty exe list for ${objectId}`
+      );
+      return null;
+    }
+
+    logger.info(
+      `[ScanInstalledGames] Steam API: found exe(s) for ${objectId}: ${[...exes].join(", ")}`
+    );
+    return exes;
+  } catch (err) {
+    logger.error(
+      `[ScanInstalledGames] Steam API: request failed for ${objectId}:`,
+      err
+    );
+    return null;
   }
-
-  return null;
 }
 
-async function scanDirectoryForGame(
-  dirPath: string,
-  executableNames: Set<string>,
-  titleWords: string[]
+// ─── Exe lookup: fuzzy folder match ─────────────────────────────────────────
+
+function normalizeTitleForMatch(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+function folderMatchesTitle(folderName: string, gameTitle: string): boolean {
+  const normalFolder = normalizeTitleForMatch(folderName);
+  const normalTitle = normalizeTitleForMatch(gameTitle);
+
+  if (normalFolder === normalTitle) return true;
+  if (
+    normalFolder.includes(normalTitle) ||
+    normalTitle.includes(normalFolder)
+  )
+    return true;
+
+  const longer = Math.max(normalFolder.length, normalTitle.length);
+  if (longer === 0) return false;
+  const diff = Math.abs(normalFolder.length - normalTitle.length);
+  return diff / longer <= 0.2;
+}
+
+function isBadExe(exeName: string): boolean {
+  return BAD_EXE_PATTERNS.some((pattern) => pattern.test(exeName));
+}
+
+async function findBestExeInFolder(
+  folderPath: string
 ): Promise<string | null> {
   try {
-    // If we have specific executable names, look for those first
-    if (executableNames.size > 0) {
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-      
-      for (const entry of entries) {
-        if (!entry.isFile()) continue;
-        if (!entry.name.toLowerCase().endsWith('.exe') && !entry.name.toLowerCase().endsWith('.app')) continue;
-        
-        if (executableNames.has(entry.name.toLowerCase())) {
-          return path.join(dirPath, entry.name);
-        }
-      }
-    }
+    const exeExtension = platform === "darwin" ? ".app" : ".exe";
+    const entries = await fs.promises.readdir(folderPath, {
+      withFileTypes: true,
+      recursive: true,
+    });
 
-    // Fallback: If no specific executables are known, scan for any likely executable
-    // This handles games not in our database
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    
-    // First, try to find executables in the root
+    const candidates: { filePath: string; depth: number; size: number }[] = [];
+
     for (const entry of entries) {
       if (!entry.isFile()) continue;
-      
-      const fileName = entry.name.toLowerCase();
-      if (!fileName.endsWith('.exe') && !fileName.endsWith('.app')) continue;
-      
-      const fileNameNoExt = fileName.replace(/\.(exe|app)$/, '');
-      
-      // Check if any title word matches the executable name
-      if (titleWords.some(word => fileNameNoExt.includes(word))) {
-        return path.join(dirPath, entry.name);
+      if (!entry.name.toLowerCase().endsWith(exeExtension)) continue;
+      if (isBadExe(entry.name)) continue;
+
+      const parentPath =
+        "parentPath" in entry ? entry.parentPath : folderPath;
+      const filePath = path.join(parentPath, entry.name);
+      const depth = filePath.split(path.sep).length;
+
+      try {
+        const stat = await fs.promises.stat(filePath);
+        candidates.push({ filePath, depth, size: stat.size });
+      } catch {
+        // skip unreadable files
       }
     }
 
-    // Then check bin/ subdirectory (common pattern)
-    const binPath = path.join(dirPath, 'bin');
-    if (fs.existsSync(binPath)) {
-      const binEntries = fs.readdirSync(binPath, { withFileTypes: true });
-      
-      for (const entry of binEntries) {
-        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.exe')) continue;
-        
-        const fileNameNoExt = entry.name.toLowerCase().replace('.exe', '');
-        if (titleWords.some(word => fileNameNoExt.includes(word))) {
-          return path.join(binPath, entry.name);
-        }
-      }
+    if (candidates.length === 0) return null;
+
+    // Prefer shallowest depth, then largest size
+    candidates.sort((a, b) => a.depth - b.depth || b.size - a.size);
+    return candidates[0].filePath;
+  } catch (err) {
+    logger.error(
+      `[ScanInstalledGames] Error scanning folder ${folderPath}:`,
+      err
+    );
+    return null;
+  }
+}
+
+async function findExeByFuzzyMatch(
+  gameTitle: string,
+  scanDirs: string[]
+): Promise<string | null> {
+  logger.info(
+    `[ScanInstalledGames] Fuzzy match: searching for "${gameTitle}"`
+  );
+
+  for (const scanDir of scanDirs) {
+    if (!fs.existsSync(scanDir)) continue;
+
+    let entries: fs.Dirent[];
+    try {
+      entries = await fs.promises.readdir(scanDir, { withFileTypes: true });
+    } catch (err) {
+      logger.error(
+        `[ScanInstalledGames] Fuzzy match: cannot read dir ${scanDir}:`,
+        err
+      );
+      continue;
     }
 
-    // Check Build/ or Binaries/ directories
-    for (const subDir of ['Build', 'Binaries', 'Game', 'Release']) {
-      const subPath = path.join(dirPath, subDir);
-      if (fs.existsSync(subPath)) {
-        const subEntries = fs.readdirSync(subPath, { withFileTypes: true });
-        
-        for (const entry of subEntries) {
-          if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.exe')) continue;
-          
-          const fileNameNoExt = entry.name.toLowerCase().replace('.exe', '');
-          if (titleWords.some(word => fileNameNoExt.includes(word))) {
-            return path.join(subPath, entry.name);
-          }
-        }
-      }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (!folderMatchesTitle(entry.name, gameTitle)) continue;
+
+      const gameFolder = path.join(scanDir, entry.name);
+      logger.info(
+        `[ScanInstalledGames] Fuzzy match: "${entry.name}" matched "${gameTitle}"`
+      );
+
+      const exePath = await findBestExeInFolder(gameFolder);
+      if (exePath) return exePath;
     }
-  } catch {
-    // Directory might not be readable
   }
 
   return null;
 }
 
-const scanInstalledGames = async (
-  _event: Electron.IpcMainInvokeEvent
-): Promise<ScanResult> => {
-  logger.info("[ScanInstalledGames] Starting comprehensive game scan...");
-  
-  // Get all available drives
-  const drives = getAllDrives();
-  logger.info(`[ScanInstalledGames] Found drives: ${drives.join(', ')}`);
-  
-  // Generate all possible scan paths
-  const scanPaths = generateScanPaths(drives);
-  logger.info(`[ScanInstalledGames] Generated ${scanPaths.length} scan paths`);
+// ─── Directory search with known exe names ───────────────────────────────────
 
-  // Get all games from database (including those without executables)
-  const games = await gamesSublevel
-    .iterator()
-    .all()
-    .then((results) =>
-      results
-        .filter(
-          ([_key, game]) => game.isDeleted === false && game.shop !== "custom"
-        )
-        .map(([key, game]) => ({ key, game }))
-    );
+async function searchInDirectories(
+  executableNames: Set<string>,
+  scanDirs: string[]
+): Promise<string | null> {
+  for (const scanDir of scanDirs) {
+    if (!fs.existsSync(scanDir)) continue;
+    const foundPath = await findExecutableInFolder(scanDir, executableNames);
+    if (foundPath) return foundPath;
+  }
+  return null;
+}
 
-  const foundGames: FoundGame[] = [];
-  const gamesToScan = games.filter((g) => !g.game.executablePath);
-  
-  logger.info(`[ScanInstalledGames] Scanning ${gamesToScan.length} games without executables`);
+async function findExecutableInFolder(
+  folderPath: string,
+  executableNames: Set<string>
+): Promise<string | null> {
+  try {
+    const entries = await fs.promises.readdir(folderPath, {
+      withFileTypes: true,
+      recursive: true,
+    });
 
-  let scanned = 0;
-  for (const { key, game } of gamesToScan) {
-    scanned++;
-    
-    if (scanned % 10 === 0) {
-      logger.info(`[ScanInstalledGames] Progress: ${scanned}/${gamesToScan.length}`);
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const fileName = entry.name.toLowerCase();
+      if (executableNames.has(fileName)) {
+        const parentPath =
+          "parentPath" in entry ? entry.parentPath : folderPath;
+        return path.join(parentPath, entry.name);
+      }
     }
-
-    const executableNames = GameExecutables.getExecutablesForGame(game.objectId);
-    const normalizedNames = new Set(
-      (executableNames || []).map((name: string) => name.toLowerCase())
+  } catch (err) {
+    logger.error(
+      `[ScanInstalledGames] Error reading folder ${folderPath}:`,
+      err
     );
-
-    const foundPath = await findGameExecutable(game.title, normalizedNames, scanPaths);
-
-    if (foundPath) {
-      await gamesSublevel.put(key, { ...game, executablePath: foundPath });
-
-      logger.info(
-        `[ScanInstalledGames] ✓ Found: ${game.title} -> ${foundPath}`
-      );
-
-      foundGames.push({ title: game.title, executablePath: foundPath });
-    }
   }
 
-  logger.info(
-    `[ScanInstalledGames] Scan complete. Found ${foundGames.length} games out of ${gamesToScan.length}`
-  );
+  return null;
+}
 
-  WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
-  await publishScanNotification(foundGames.length);
-
-  return { foundGames, total: gamesToScan.length };
-};
+// ─── Notification ────────────────────────────────────────────────────────────
 
 async function publishScanNotification(foundCount: number): Promise<void> {
   const hasFoundGames = foundCount > 0;
-
   await LocalNotificationManager.createNotification(
     "SCAN_GAMES_COMPLETE",
     t(
@@ -361,5 +384,91 @@ async function publishScanNotification(foundCount: number): Promise<void> {
     { url: "/library?openScanModal=true" }
   );
 }
+
+// ─── Main scan ───────────────────────────────────────────────────────────────
+
+const scanInstalledGames = async (
+  _event: Electron.IpcMainInvokeEvent
+): Promise<ScanResult> => {
+  logger.info(`[ScanInstalledGames] Starting on platform: ${platform}`);
+
+  const scanDirs = await buildScanDirectories();
+  logger.info(
+    `[ScanInstalledGames] Scanning ${scanDirs.length} potential directories`
+  );
+
+  const games = await gamesSublevel
+    .iterator()
+    .all()
+    .then((results) =>
+      results
+        .filter(([_key, game]) => game.isDeleted === false)
+        .map(([key, game]) => ({ key, game }))
+    );
+
+  const foundGames: FoundGame[] = [];
+  const gamesToScan = games.filter((g) => !g.game.executablePath);
+
+  logger.info(
+    `[ScanInstalledGames] ${gamesToScan.length} games without executable path`
+  );
+
+  for (const { key, game } of gamesToScan) {
+    logger.info(
+      `[ScanInstalledGames] Processing: "${game.title}" (${game.objectId}, shop: ${game.shop})`
+    );
+
+    let foundPath: string | null = null;
+
+    // Step 1: Hydra exe DB
+    const hydraExes = getExesFromHydraDB(game.objectId);
+    if (hydraExes) {
+      foundPath = await searchInDirectories(hydraExes, scanDirs);
+      if (foundPath)
+        logger.info(
+          `[ScanInstalledGames] "${game.title}" found via Hydra DB: ${foundPath}`
+        );
+    }
+
+    // Step 2: Steam API
+    if (!foundPath && game.shop === "steam") {
+      const steamExes = await getExesFromSteam(game.objectId);
+      if (steamExes) {
+        foundPath = await searchInDirectories(steamExes, scanDirs);
+        if (foundPath)
+          logger.info(
+            `[ScanInstalledGames] "${game.title}" found via Steam API: ${foundPath}`
+          );
+      }
+    }
+
+    // Step 3: Fuzzy fallback
+    if (!foundPath) {
+      foundPath = await findExeByFuzzyMatch(game.title, scanDirs);
+      if (foundPath)
+        logger.info(
+          `[ScanInstalledGames] "${game.title}" found via fuzzy match: ${foundPath}`
+        );
+    }
+
+    if (foundPath) {
+      await gamesSublevel.put(key, { ...game, executablePath: foundPath });
+      foundGames.push({ title: game.title, executablePath: foundPath });
+    } else {
+      logger.warn(
+        `[ScanInstalledGames] Could not find executable for: "${game.title}"`
+      );
+    }
+  }
+
+  logger.info(
+    `[ScanInstalledGames] Done. Found ${foundGames.length}/${gamesToScan.length}`
+  );
+
+  WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
+  await publishScanNotification(foundGames.length);
+
+  return { foundGames, total: gamesToScan.length };
+};
 
 registerEvent("scanInstalledGames", scanInstalledGames);
