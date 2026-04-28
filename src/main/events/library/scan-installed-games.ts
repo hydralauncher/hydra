@@ -46,6 +46,8 @@ const COMMON_GAME_FOLDERS_MAC = [
   "Library/Application Support/Steam/steamapps/common",
 ];
 
+// Patterns for executables that are never the main game binary.
+// Checked against the full filename (no extension) case-insensitively.
 const BAD_EXE_PATTERNS = [
   /^unins/i,
   /^setup/i,
@@ -62,6 +64,26 @@ const BAD_EXE_PATTERNS = [
   /^crashreport/i,
   /^bugsplat/i,
   /^cefsharp/i,
+  // Unity / Unreal engine helpers that appear at root level
+  /^unitycrashhhandler/i,
+  /^unitycrashhhandler64/i,
+  /^crashreporterclient/i,
+  /^unrealcefsubprocess/i,
+  /^unrealeditor/i,
+  /^shadercompileworker/i,
+  // Launcher / anti-cheat helpers
+  /^start_protected_game$/i,
+  /^socialclubhelper/i,
+  /^rockstarinstaller/i,
+  /^bethesdanetlauncher/i,
+  /^galaxyclient/i,
+  /^epicwebhelper/i,
+  // Generic helpers
+  /^splashtscreen/i,
+  /helper$/i,
+  /launcher$/i,         // catches "GameLauncher", "EpicLauncher", etc.
+  /updater$/i,
+  /patcher$/i,
 ];
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -216,29 +238,86 @@ function normalizeTitleForMatch(title: string): string {
     .trim();
 }
 
+// Sørensen–Dice coefficient over character bigrams.
+// Returns 0..1; values ≥ 0.6 indicate a plausible match.
+function diceSimilarity(a: string, b: string): number {
+  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+
+  const bigrams = (s: string): Map<string, number> => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < s.length - 1; i++) {
+      const bg = s.slice(i, i + 2);
+      map.set(bg, (map.get(bg) ?? 0) + 1);
+    }
+    return map;
+  };
+
+  const aBigrams = bigrams(a);
+  const bBigrams = bigrams(b);
+  let intersection = 0;
+
+  for (const [bg, count] of aBigrams) {
+    intersection += Math.min(count, bBigrams.get(bg) ?? 0);
+  }
+
+  return (2 * intersection) / ((a.length - 1) + (b.length - 1));
+}
+
 function folderMatchesTitle(folderName: string, gameTitle: string): boolean {
   const normalFolder = normalizeTitleForMatch(folderName);
   const normalTitle = normalizeTitleForMatch(gameTitle);
 
   if (normalFolder === normalTitle) return true;
-  if (
-    normalFolder.includes(normalTitle) ||
-    normalTitle.includes(normalFolder)
-  )
-    return true;
 
-  const longer = Math.max(normalFolder.length, normalTitle.length);
-  if (longer === 0) return false;
-  const diff = Math.abs(normalFolder.length - normalTitle.length);
-  return diff / longer <= 0.2;
+  // Substring match only when the shorter string covers ≥ 70% of the longer.
+  // This prevents short generic names ("left4dead2") from matching long titles.
+  const shorter = normalFolder.length <= normalTitle.length ? normalFolder : normalTitle;
+  const longer  = normalFolder.length >  normalTitle.length ? normalFolder : normalTitle;
+  const coverageRatio = shorter.length / longer.length;
+
+  if (coverageRatio >= 0.7 && longer.includes(shorter)) return true;
+
+  // Dice coefficient — require high similarity to avoid false positives.
+  return diceSimilarity(normalFolder, normalTitle) >= 0.6;
 }
 
 function isBadExe(exeName: string): boolean {
-  return BAD_EXE_PATTERNS.some((pattern) => pattern.test(exeName));
+  // Strip extension before pattern matching so "/^launcher$/i" works correctly.
+  const stem = exeName.replace(/\.[^.]+$/, "");
+  return BAD_EXE_PATTERNS.some((pattern) => pattern.test(stem));
+}
+
+// Score a candidate exe: higher is better.
+// Penalises deep nesting, rewards large files.
+// A strong name bonus (+1 000 000) ensures a large-but-named exe beats a
+// massive-but-generic one (e.g. "re4.exe" beats a 500 MB "UEPrereqSetup.exe").
+function scoreExe(
+  filePath: string,
+  size: number,
+  depth: number,
+  gameTitle: string
+): number {
+  const stem = path.basename(filePath, path.extname(filePath)).toLowerCase();
+  const normalTitle = normalizeTitleForMatch(gameTitle);
+
+  const nameSimilarity = diceSimilarity(
+    normalizeTitleForMatch(stem),
+    normalTitle
+  );
+
+  // Depth penalty: each extra level costs 100 000 points so that a
+  // shallower exe wins over a deeper one unless the deeper one is vastly larger.
+  const depthPenalty = depth * 100_000;
+
+  // Name bonus: if the exe name resembles the game title, prioritise strongly.
+  const nameBonus = nameSimilarity >= 0.5 ? 1_000_000 * nameSimilarity : 0;
+
+  return nameBonus - depthPenalty + size;
 }
 
 async function findBestExeInFolder(
-  folderPath: string
+  folderPath: string,
+  gameTitle: string
 ): Promise<string | null> {
   try {
     const exeExtension = platform === "darwin" ? ".app" : ".exe";
@@ -247,7 +326,7 @@ async function findBestExeInFolder(
       recursive: true,
     });
 
-    const candidates: { filePath: string; depth: number; size: number }[] = [];
+    const candidates: { filePath: string; score: number }[] = [];
 
     for (const entry of entries) {
       if (!entry.isFile()) continue;
@@ -255,13 +334,14 @@ async function findBestExeInFolder(
       if (isBadExe(entry.name)) continue;
 
       const parentPath =
-        "parentPath" in entry ? entry.parentPath : folderPath;
+        "parentPath" in entry ? entry.parentPath : (entry as any).path ?? folderPath;
       const filePath = path.join(parentPath, entry.name);
       const depth = filePath.split(path.sep).length;
 
       try {
         const stat = await fs.promises.stat(filePath);
-        candidates.push({ filePath, depth, size: stat.size });
+        const score = scoreExe(filePath, stat.size, depth, gameTitle);
+        candidates.push({ filePath, score });
       } catch {
         // skip unreadable files
       }
@@ -269,8 +349,7 @@ async function findBestExeInFolder(
 
     if (candidates.length === 0) return null;
 
-    // Prefer shallowest depth, then largest size
-    candidates.sort((a, b) => a.depth - b.depth || b.size - a.size);
+    candidates.sort((a, b) => b.score - a.score);
     return candidates[0].filePath;
   } catch (err) {
     logger.error(
@@ -312,7 +391,8 @@ async function findExeByFuzzyMatch(
         `[ScanInstalledGames] Fuzzy match: "${entry.name}" matched "${gameTitle}"`
       );
 
-      const exePath = await findBestExeInFolder(gameFolder);
+      // Pass gameTitle so scoreExe can favour name-similar exes inside the folder.
+      const exePath = await findBestExeInFolder(gameFolder, gameTitle);
       if (exePath) return exePath;
     }
   }
@@ -349,7 +429,7 @@ async function findExecutableInFolder(
       const fileName = entry.name.toLowerCase();
       if (executableNames.has(fileName)) {
         const parentPath =
-          "parentPath" in entry ? entry.parentPath : folderPath;
+          "parentPath" in entry ? entry.parentPath : (entry as any).path ?? folderPath;
         return path.join(parentPath, entry.name);
       }
     }
@@ -409,6 +489,9 @@ const scanInstalledGames = async (
   const foundGames: FoundGame[] = [];
   const gamesToScan = games.filter((g) => !g.game.executablePath);
 
+  // Track assigned exe paths so two games never share the same executable.
+  const assignedPaths = new Set<string>();
+
   logger.info(
     `[ScanInstalledGames] ${gamesToScan.length} games without executable path`
   );
@@ -419,10 +502,14 @@ const scanInstalledGames = async (
     );
 
     let foundPath: string | null = null;
+    // Track whether any named-exe source had data, even if the file wasn't on disk.
+    // If it did, skip fuzzy matching — the game probably isn't installed.
+    let namedExeSourceHadData = false;
 
     // Step 1: Hydra exe DB
     const hydraExes = getExesFromHydraDB(game.objectId);
     if (hydraExes) {
+      namedExeSourceHadData = true;
       foundPath = await searchInDirectories(hydraExes, scanDirs);
       if (foundPath)
         logger.info(
@@ -430,10 +517,11 @@ const scanInstalledGames = async (
         );
     }
 
-    // Step 2: Steam API
-    if (!foundPath && game.shop === "steam") {
+    // Step 2: Steam API (only if Hydra had no entry for this game)
+    if (!foundPath && !namedExeSourceHadData && game.shop === "steam") {
       const steamExes = await getExesFromSteam(game.objectId);
       if (steamExes) {
+        namedExeSourceHadData = true;
         foundPath = await searchInDirectories(steamExes, scanDirs);
         if (foundPath)
           logger.info(
@@ -442,8 +530,10 @@ const scanInstalledGames = async (
       }
     }
 
-    // Step 3: Fuzzy fallback
-    if (!foundPath) {
+    // Step 3: Fuzzy fallback — only when no named-exe source had data.
+    // If Hydra or Steam knew the exe name but it wasn't on disk, the game
+    // is likely not installed; fuzzy matching would just produce wrong results.
+    if (!foundPath && !namedExeSourceHadData) {
       foundPath = await findExeByFuzzyMatch(game.title, scanDirs);
       if (foundPath)
         logger.info(
@@ -451,7 +541,16 @@ const scanInstalledGames = async (
         );
     }
 
+    // Reject if another game already claimed this executable.
+    if (foundPath && assignedPaths.has(foundPath)) {
+      logger.warn(
+        `[ScanInstalledGames] "${game.title}" — exe already claimed by another game, skipping: ${foundPath}`
+      );
+      foundPath = null;
+    }
+
     if (foundPath) {
+      assignedPaths.add(foundPath);
       await gamesSublevel.put(key, { ...game, executablePath: foundPath });
       foundGames.push({ title: game.title, executablePath: foundPath });
     } else {
