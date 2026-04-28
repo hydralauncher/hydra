@@ -124,8 +124,6 @@ export function GeneralSettingsSection({
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
-  const transferGameLabel =
-    gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
   const transferGameSize = gameSize > 0 ? fmt(gameSize) : null;
   const pathSep = window.electron.platform === "win32" ? "\\" : "/";
   const gameRoot = game.executablePath
@@ -279,16 +277,13 @@ export function GeneralSettingsSection({
 
       {/* Drive Selector */}
       {showTransferSection && game.executablePath && !isTransferring && (
-        <div className="game-options-modal__section">
+      <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
             <h4 className="game-options-modal__header-description">
-              {t("transfer_game_description", { game: transferGameLabel })}
+              {t("transfer_game_description", { game: game.title })}
               {transferGameSize && (
-                <>
-                  {" "}
-                  (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)
-                </>
+                <> (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)</>
               )}
             </h4>
           </div>
@@ -328,7 +323,7 @@ export function GeneralSettingsSection({
                       disabled={hasInsufficientSpace}
                     >
                       <HardDrive
-                        size={16}
+                        size={18}
                         className="drive-card__icon"
                         color={isCurrentDrive ? "#4ade80" : undefined}
                       />
@@ -355,7 +350,7 @@ export function GeneralSettingsSection({
                             )}
                           </div>
                           <span className="drive-card__space">
-                            {fmt(drive.free)} {t("transfer_free")}{" "}
+                            {fmt(drive.free)} {t("transfer_free")}{" / "}
                             {fmt(drive.total)}
                           </span>
                         </div>
