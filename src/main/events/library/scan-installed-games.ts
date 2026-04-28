@@ -517,10 +517,11 @@ const scanInstalledGames = async (
         );
     }
 
-    // Step 2: Steam API (only if Hydra had no entry for this game)
-    if (!foundPath && !namedExeSourceHadData && game.shop === "steam") {
+    // Step 2: Steam API
+    if (!foundPath && game.shop === "steam") {
       const steamExes = await getExesFromSteam(game.objectId);
       if (steamExes) {
+        // Also set this flag so we skip fuzzy if Steam had data too
         namedExeSourceHadData = true;
         foundPath = await searchInDirectories(steamExes, scanDirs);
         if (foundPath)
