@@ -1,0 +1,1 @@
+fix playingnow/close state

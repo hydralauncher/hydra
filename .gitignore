@@ -3,6 +3,46 @@ node_modules/
 __pycache__
 dist
 out
+build/
+.DS_Store
+*.log*
+.env
+.vite
+ludusavi/**
+!ludusavi/config.yaml
+hydra-python-rpc/
+/hydra-native/
+native/hydra-native/target/
+.python-version
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+*storybook.log
+Future-updates.md
+TO-DO.md
+
+# Build artifacts
+release/
+electron-builder/
+.electron-builder/
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# VS Code history
+.history/
+
+# Windows
+desktop.ini
+Thumbs.db
+.vscode/
+node_modules/
+__pycache__
+dist
+out
 .DS_Store
 *.log*
 *.tsbuildinfo
