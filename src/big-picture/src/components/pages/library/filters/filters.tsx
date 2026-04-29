@@ -1,10 +1,16 @@
 import "./filters.scss";
 
+import type { GameCollection, LibraryGame } from "@types";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { logger } from "@renderer/logger";
+
 import {
   Button,
   Divider,
   DropdownSelect,
   type DropdownSelectOption,
+  FocusItem,
   HorizontalFocusGroup,
   Input,
   Tabs,
@@ -14,30 +20,31 @@ import {
   FunnelIcon,
   ListDashesIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
   SortAscendingIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import type { FocusOverrides } from "../../../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
-  LIBRARY_FILTERS_ALL_TAB_ID,
-  LIBRARY_FILTERS_COMPLETED_TAB_ID,
-  LIBRARY_FILTERS_FAVORITES_TAB_ID,
+  getLibraryFiltersTabFocusId,
   LIBRARY_FILTERS_FILTER_SELECT_ID,
   LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
+  LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_FILTERS_SORT_SELECT_ID,
   LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
 } from "../navigation";
-import type {
-  LibraryFilterCounts,
-  LibraryFilterTab,
-  LibrarySecondaryFilter,
-  LibrarySortOption,
-  LibraryViewMode,
+import {
+  countGamesInCollection,
+  type LibraryFilterCounts,
+  type LibraryFilterTab,
+  type LibrarySecondaryFilter,
+  type LibrarySortOption,
+  type LibraryViewMode,
 } from "../library-data";
 
 const SORT_OPTIONS = [
@@ -56,6 +63,19 @@ const FILTER_OPTIONS = [
   { value: "never_played", label: "Never Played" },
 ] satisfies Array<DropdownSelectOption<LibrarySecondaryFilter>>;
 
+const TITLE_COMPARE_COLLECTIONS = { sensitivity: "base" } as const;
+
+const SIDEBAR_LIBRARY_OVERRIDE = {
+  type: "item" as const,
+  itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.library,
+};
+
+const TAB_UP_FROM_TOOLBAR_OVERRIDE = {
+  type: "region" as const,
+  regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
+  entryDirection: "up" as const,
+};
+
 export interface LibraryFiltersProps {
   selectedTab: LibraryFilterTab;
   onSelectedTabChange: (tab: LibraryFilterTab) => void;
@@ -68,6 +88,8 @@ export interface LibraryFiltersProps {
   search: string;
   onSearchChange: (search: string) => void;
   counts: LibraryFilterCounts;
+  library: LibraryGame[];
+  collections: GameCollection[];
   firstContentItemId?: string | null;
 }
 
@@ -83,83 +105,120 @@ export function LibraryFilters({
   search,
   onSearchChange,
   counts,
+  library,
+  collections,
   firstContentItemId = null,
 }: Readonly<LibraryFiltersProps>) {
-  const tabDownOverride = firstContentItemId
-    ? ({
+  const { t } = useTranslation("library");
+
+  const tabDownOverride = useMemo(
+    () =>
+      firstContentItemId
+        ? {
+            type: "item" as const,
+            itemId: firstContentItemId,
+          }
+        : {
+            type: "block" as const,
+          },
+    [firstContentItemId]
+  );
+
+  const { tabItems, lastTabFocusId } = useMemo(() => {
+    const sortedCollections = [...collections].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, TITLE_COMPARE_COLLECTIONS)
+    );
+
+    const builtins: Array<{
+      id: string;
+      value: LibraryFilterTab;
+      label: string;
+    }> = [
+      {
+        id: getLibraryFiltersTabFocusId("all"),
+        value: "all",
+        label: `All (${counts.all})`,
+      },
+      {
+        id: getLibraryFiltersTabFocusId("favorites"),
+        value: "favorites",
+        label: `Favorites (${counts.favorites})`,
+      },
+      {
+        id: getLibraryFiltersTabFocusId("completed"),
+        value: "completed",
+        label: `Completed (${counts.completed})`,
+      },
+    ];
+
+    const collectionSpecs = sortedCollections.map((collection) => ({
+      id: getLibraryFiltersTabFocusId(collection.id),
+      value: collection.id,
+      label: `${collection.name} (${countGamesInCollection(library, collection.id)})`,
+    }));
+
+    const row = [...builtins, ...collectionSpecs];
+    const lastTabFocusId = row[row.length - 1]!.id;
+
+    const tabItemsLocal = row.map((spec, index) => ({
+      ...spec,
+      navigationOverrides: {
+        left:
+          index === 0
+            ? SIDEBAR_LIBRARY_OVERRIDE
+            : {
+                type: "item" as const,
+                itemId: row[index - 1]!.id,
+              },
+        right:
+          index === row.length - 1
+            ? {
+                type: "item" as const,
+                itemId: LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID,
+              }
+            : {
+                type: "item" as const,
+                itemId: row[index + 1]!.id,
+              },
+        up: TAB_UP_FROM_TOOLBAR_OVERRIDE,
+        down: tabDownOverride,
+      },
+    })) satisfies Array<TabsItem<LibraryFilterTab>>;
+
+    return { tabItems: tabItemsLocal, lastTabFocusId };
+  }, [collections, counts, library, tabDownOverride]);
+
+  const newFolderNavigationOverrides = useMemo(
+    (): FocusOverrides => ({
+      left: {
         type: "item",
-        itemId: firstContentItemId,
-      } as const)
-    : ({
-        type: "block",
-      } as const);
-  const tabUpOverride = {
-    type: "region",
-    regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
-    entryDirection: "up",
-  } as const;
-  const sidebarLibraryOverride = {
-    type: "item",
-    itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.library,
-  } as const;
-  const tabs = [
-    {
-      id: LIBRARY_FILTERS_ALL_TAB_ID,
-      value: "all",
-      label: `All (${counts.all})`,
-      navigationOverrides: {
-        left: sidebarLibraryOverride,
-        right: {
-          type: "item",
-          itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
-        },
-        up: tabUpOverride,
-        down: tabDownOverride,
+        itemId: lastTabFocusId,
       },
-    },
-    {
-      id: LIBRARY_FILTERS_FAVORITES_TAB_ID,
-      value: "favorites",
-      label: `Favorites (${counts.favorites})`,
-      navigationOverrides: {
-        left: {
-          type: "item",
-          itemId: LIBRARY_FILTERS_ALL_TAB_ID,
-        },
-        right: {
-          type: "item",
-          itemId: LIBRARY_FILTERS_COMPLETED_TAB_ID,
-        },
-        up: tabUpOverride,
-        down: tabDownOverride,
+      right: { type: "block" },
+      up: TAB_UP_FROM_TOOLBAR_OVERRIDE,
+      down: tabDownOverride,
+    }),
+    [lastTabFocusId, tabDownOverride]
+  );
+
+  const selectedTabFocusId = useMemo(() => {
+    return getLibraryFiltersTabFocusId(String(selectedTab));
+  }, [selectedTab]);
+
+  const toolbarNavigationOverrides: FocusOverrides = useMemo(() => {
+    return {
+      up: {
+        type: "region",
+        regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
+        entryDirection: "up",
       },
-    },
-    {
-      id: LIBRARY_FILTERS_COMPLETED_TAB_ID,
-      value: "completed",
-      label: `Completed (${counts.completed})`,
-      navigationOverrides: {
-        left: {
-          type: "item",
-          itemId: LIBRARY_FILTERS_FAVORITES_TAB_ID,
-        },
-        right: { type: "block" },
-        up: tabUpOverride,
-        down: tabDownOverride,
+      down: {
+        type: "item",
+        itemId: selectedTabFocusId,
       },
-    },
-  ] satisfies Array<TabsItem<LibraryFilterTab>>;
-  const toolbarNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "region",
-      regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
-      entryDirection: "up",
-    },
-    down: {
-      type: "item",
-      itemId: LIBRARY_FILTERS_ALL_TAB_ID,
-    },
-  };
+    };
+  }, [selectedTabFocusId]);
+
   const toolbarUpOverride = {
     type: "region",
     regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
@@ -167,10 +226,10 @@ export function LibraryFilters({
   } as const;
   const toolbarDownOverride = {
     type: "item",
-    itemId: LIBRARY_FILTERS_ALL_TAB_ID,
+    itemId: selectedTabFocusId,
   } as const;
   const searchNavigationOverrides: FocusOverrides = {
-    left: sidebarLibraryOverride,
+    left: SIDEBAR_LIBRARY_OVERRIDE,
     right: {
       type: "item",
       itemId: LIBRARY_FILTERS_SORT_SELECT_ID,
@@ -226,7 +285,7 @@ export function LibraryFilters({
     down: toolbarDownOverride,
   };
   const tabsNavigationOverrides: FocusOverrides = {
-    up: tabUpOverride,
+    up: TAB_UP_FROM_TOOLBAR_OVERRIDE,
     down: tabDownOverride,
   };
 
@@ -320,12 +379,38 @@ export function LibraryFilters({
 
       <div className="library-filters__tabs">
         <Tabs
-          items={tabs}
+          className="library-filters-tabs"
+          items={tabItems}
           value={selectedTab}
           onValueChange={onSelectedTabChange}
           regionId={LIBRARY_FILTERS_TABS_REGION_ID}
           navigationOverrides={tabsNavigationOverrides}
           ariaLabel="Library filters"
+          afterTabs={
+            <FocusItem
+              id={LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID}
+              asChild
+              navigationOverrides={newFolderNavigationOverrides}
+            >
+              <button
+                type="button"
+                className="tabs__tab"
+                aria-label={t("new_folder")}
+                onClick={() => {
+                  logger.log("library new folder clicked");
+                }}
+              >
+                <span className="tabs__tab-label tabs__tab-label--with-icon">
+                  <PlusIcon
+                    className="tabs__tab-icon"
+                    size={16}
+                    aria-hidden="true"
+                  />
+                  <span>{t("new_folder")}</span>
+                </span>
+              </button>
+            </FocusItem>
+          }
         />
       </div>
     </div>

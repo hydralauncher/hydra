@@ -1,6 +1,14 @@
 import type { LibraryGame } from "@types";
 
-export type LibraryFilterTab = "all" | "favorites" | "completed";
+export const BUILTIN_LIBRARY_TABS = ["all", "favorites", "completed"] as const;
+export type BuiltinLibraryTab = (typeof BUILTIN_LIBRARY_TABS)[number];
+
+export function isBuiltinLibraryTab(value: string): value is BuiltinLibraryTab {
+  return (BUILTIN_LIBRARY_TABS as readonly string[]).includes(value);
+}
+
+/** Built-ins or `/profile/games/collections` id — discriminate with `isBuiltinLibraryTab` */
+export type LibraryFilterTab = string;
 export type LibraryViewMode = "grid" | "list";
 export type LibrarySortOption =
   | "last_played"
@@ -66,6 +74,26 @@ export function isCompletedGame(game: LibraryGame) {
   );
 }
 
+export function getGameCollectionIds(game: LibraryGame): string[] {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+}
+
+export function countGamesInCollection(
+  library: LibraryGame[],
+  collectionId: string
+) {
+  return library.filter((game) =>
+    getGameCollectionIds(game).includes(collectionId)
+  ).length;
+}
+
 export function matchesSearchQuery(game: LibraryGame, searchQuery: string) {
   const normalizedQuery = searchQuery.trim().toLowerCase();
   if (!normalizedQuery) return true;
@@ -96,7 +124,13 @@ export function filterLibraryByTab(
     return library.filter(isCompletedGame);
   }
 
-  return library;
+  if (selectedTab === "all") {
+    return library;
+  }
+
+  return library.filter((game) =>
+    getGameCollectionIds(game).includes(selectedTab)
+  );
 }
 
 export function getLibraryFilterCounts(

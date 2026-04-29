@@ -2,8 +2,9 @@ import type { LibraryGame } from "@types";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
-import { useLibrary } from "../../hooks";
+import { useGameCollections, useLibrary } from "../../hooks";
 import {
+  isBuiltinLibraryTab,
   type LibraryViewMode,
   LibraryFocusGrid,
   LibraryFilters,
@@ -71,6 +72,7 @@ function getInitialLibraryStoredValue<TValue extends string>(
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const { library, updateLibrary } = useLibrary();
+  const { collections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
     useState<LibraryFilterTab>("all");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
@@ -140,6 +142,17 @@ export default function LibraryPage() {
   }, [sortBy]);
 
   useEffect(() => {
+    if (
+      isBuiltinLibraryTab(selectedFilterTab) ||
+      collections.some((c) => c.id === selectedFilterTab)
+    ) {
+      return;
+    }
+
+    setSelectedFilterTab("all");
+  }, [collections, selectedFilterTab]);
+
+  useEffect(() => {
     try {
       globalThis.window.localStorage.setItem(
         LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
@@ -187,6 +200,8 @@ export default function LibraryPage() {
           search={search}
           onSearchChange={setSearch}
           counts={filterCounts}
+          library={library}
+          collections={collections}
           firstContentItemId={firstContentItemId}
         />
 

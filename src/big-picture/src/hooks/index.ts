@@ -1,4 +1,5 @@
 export * from "./use-game-details.hook";
+export * from "./use-game-collections.hook";
 export * from "./use-library.hook";
 export * from "./use-library-game-state";
 export * from "./use-dominant-color.hook";

@@ -26,6 +26,8 @@ export interface TabsProps<TValue extends string = string> {
   value?: TValue;
   defaultValue?: TValue;
   onValueChange?: (value: TValue) => void;
+  /** Inline after tab buttons, same row and focus region (e.g. add action). */
+  afterTabs?: ReactNode;
   trailingAction?: ReactNode;
   regionId?: string;
   navigationOverrides?: FocusOverrides;
@@ -38,6 +40,7 @@ export function Tabs<TValue extends string = string>({
   value,
   defaultValue,
   onValueChange,
+  afterTabs,
   trailingAction,
   regionId,
   navigationOverrides,
@@ -73,55 +76,58 @@ export function Tabs<TValue extends string = string>({
           navigationOverrides={navigationOverrides}
           autoScrollMode="region"
           className="tabs__list"
-          role="tablist"
-          aria-label={ariaLabel}
           style={
             {
               gap: "calc(var(--spacing-unit) * 12)",
               alignItems: "flex-start",
+              flexWrap: "nowrap",
             } as CSSProperties
           }
         >
-          {items.map((item) => {
-            const isSelected = selectedItem?.value === item.value;
+          <div role="tablist" aria-label={ariaLabel} className="tabs__tablist">
+            {items.map((item) => {
+              const isSelected = selectedItem?.value === item.value;
 
-            return (
-              <FocusItem
-                key={item.value}
-                id={item.id}
-                asChild
-                navigationState={item.disabled ? "disabled" : "active"}
-                navigationOverrides={item.navigationOverrides}
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  disabled={item.disabled}
-                  className={cn("tabs__tab", {
-                    "tabs__tab--active": isSelected,
-                    "tabs__tab--disabled": item.disabled,
-                  })}
-                  onClick={() => handleSelect(item.value)}
+              return (
+                <FocusItem
+                  key={item.value}
+                  id={item.id}
+                  asChild
+                  navigationState={item.disabled ? "disabled" : "active"}
+                  navigationOverrides={item.navigationOverrides}
                 >
-                  <span className="tabs__tab-label">{item.label}</span>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    disabled={item.disabled}
+                    className={cn("tabs__tab", {
+                      "tabs__tab--active": isSelected,
+                      "tabs__tab--disabled": item.disabled,
+                    })}
+                    onClick={() => handleSelect(item.value)}
+                  >
+                    <span className="tabs__tab-label">{item.label}</span>
 
-                  {isSelected && (
-                    <motion.span
-                      className="tabs__indicator"
-                      layoutId={indicatorLayoutId}
-                      transition={{
-                        type: "spring",
-                        stiffness: 420,
-                        damping: 34,
-                        mass: 0.8,
-                      }}
-                    />
-                  )}
-                </button>
-              </FocusItem>
-            );
-          })}
+                    {isSelected && (
+                      <motion.span
+                        className="tabs__indicator"
+                        layoutId={indicatorLayoutId}
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 34,
+                          mass: 0.8,
+                        }}
+                      />
+                    )}
+                  </button>
+                </FocusItem>
+              );
+            })}
+          </div>
+
+          {afterTabs}
         </HorizontalFocusGroup>
 
         {trailingAction && (

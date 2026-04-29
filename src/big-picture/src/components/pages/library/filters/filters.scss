@@ -47,7 +47,7 @@
   &__search {
     flex: 1;
     min-width: 0;
-    max-width: 600px;
+    max-width: 450px;
   }
 
   &__select {
@@ -76,6 +76,14 @@
   &__tabs {
     flex-shrink: 0;
     padding: calc(var(--spacing-unit) * 6) 0 calc(var(--spacing-unit) * 4) 0;
+
+    .library-filters-tabs .tabs__divider {
+      background-color: color-mix(
+        in srgb,
+        var(--primary) 14%,
+        var(--background)
+      );
+    }
   }
 
   @media (max-width: 1440px) {

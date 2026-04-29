@@ -999,6 +999,7 @@
   "library": {
     "library": "Library",
     "collections": "Collections",
+    "new_folder": "New Folder",
     "play": "Play",
     "download": "Download",
     "downloading": "Downloading",
