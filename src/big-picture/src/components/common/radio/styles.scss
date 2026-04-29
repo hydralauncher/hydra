@@ -1,0 +1,80 @@
+/* Tokens: :root in src/big-picture/src/styles/globals.scss */
+
+.radio {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: calc(var(--spacing-unit) * 2);
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--text);
+  padding: calc(var(--spacing-unit) * 2);
+  user-select: none;
+  cursor: pointer;
+
+  &--block {
+    width: 100%;
+    border-radius: calc(var(--spacing-unit) * 2);
+    transition: background-color 0.2s ease-in-out;
+
+    &:hover {
+      background-color: var(--secondary);
+    }
+
+    &--active {
+      background-color: var(--secondary-hover);
+
+      &:hover {
+        background-color: var(--secondary-hover);
+      }
+    }
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &__input {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--primary);
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background-color 0.2s ease-in-out,
+      border-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 calc(var(--spacing-unit) * 2)
+        color-mix(in srgb, var(--primary) 25%, transparent);
+    }
+
+    &--checked {
+      border-color: var(--primary);
+      background-color: transparent;
+    }
+
+    &__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--primary);
+    }
+  }
+
+  &__label {
+    cursor: pointer;
+    color: var(--text);
+  }
+}

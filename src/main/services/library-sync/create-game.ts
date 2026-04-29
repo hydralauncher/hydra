@@ -13,11 +13,19 @@ export const createGame = async (game: Game) => {
     shop: game.shop,
     lastTimePlayed: game.lastTimePlayed,
   }).then((response) => {
-    const { id: remoteId, playTimeInMilliseconds, lastTimePlayed } = response;
+    const {
+      id: remoteId,
+      playTimeInMilliseconds,
+      lastTimePlayed,
+      createdAt,
+    } = response;
 
     gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
       ...game,
       remoteId,
+      addedToLibraryAt:
+        game.addedToLibraryAt ??
+        (createdAt ? new Date(createdAt) : new Date()),
       playTimeInMilliseconds,
       lastTimePlayed,
     });

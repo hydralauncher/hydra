@@ -48,6 +48,7 @@ export interface Game {
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
+  addedToLibraryAt?: Date | null;
   objectId: string;
   shop: GameShop;
   remoteId: string | null;

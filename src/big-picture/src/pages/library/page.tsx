@@ -11,9 +11,15 @@ import {
   GameSettingsModal,
   LibraryHero,
   VerticalFocusGroup,
+  LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
+  LIBRARY_SORT_BY_STORAGE_KEY,
   LIBRARY_VIEW_MODE_STORAGE_KEY,
+  type LibrarySecondaryFilter,
   isLibraryViewMode,
   type LibraryFilterTab,
+  type LibrarySortOption,
+  isLibrarySecondaryFilter,
+  isLibrarySortOption,
   useLibraryFavorite,
   useLibraryPageData,
 } from "../../components";
@@ -21,18 +27,44 @@ import {
 import "./page.scss";
 
 function getInitialLibraryViewMode(): LibraryViewMode {
+  return getInitialLibraryStoredValue(
+    LIBRARY_VIEW_MODE_STORAGE_KEY,
+    isLibraryViewMode,
+    "grid"
+  );
+}
+
+function getInitialLibrarySortOption(): LibrarySortOption {
+  return getInitialLibraryStoredValue(
+    LIBRARY_SORT_BY_STORAGE_KEY,
+    isLibrarySortOption,
+    "last_played"
+  );
+}
+
+function getInitialLibrarySecondaryFilter(): LibrarySecondaryFilter {
+  return getInitialLibraryStoredValue(
+    LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
+    isLibrarySecondaryFilter,
+    "all_games"
+  );
+}
+
+function getInitialLibraryStoredValue<TValue extends string>(
+  storageKey: string,
+  validator: (value: string | null | undefined) => value is TValue,
+  fallbackValue: TValue
+) {
   if (typeof globalThis.window === "undefined") {
-    return "grid";
+    return fallbackValue;
   }
 
   try {
-    const storedValue = globalThis.window.localStorage.getItem(
-      LIBRARY_VIEW_MODE_STORAGE_KEY
-    );
+    const storedValue = globalThis.window.localStorage.getItem(storageKey);
 
-    return isLibraryViewMode(storedValue) ? storedValue : "grid";
+    return validator(storedValue) ? storedValue : fallbackValue;
   } catch {
-    return "grid";
+    return fallbackValue;
   }
 }
 
@@ -44,6 +76,12 @@ export default function LibraryPage() {
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
     getInitialLibraryViewMode
   );
+  const [sortBy, setSortBy] = useState<LibrarySortOption>(
+    getInitialLibrarySortOption
+  );
+  const [filterBy, setFilterBy] = useState<LibrarySecondaryFilter>(
+    getInitialLibrarySecondaryFilter
+  );
   const [search, setSearch] = useState("");
   const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
   const { favoriteLoadingGameId, toggleFavorite } =
@@ -54,7 +92,7 @@ export default function LibraryPage() {
     firstGridItemId,
     firstListItemId,
     lastPlayedGames,
-  } = useLibraryPageData(library, selectedFilterTab, search);
+  } = useLibraryPageData(library, selectedFilterTab, search, sortBy, filterBy);
   const firstContentItemId =
     viewMode === "list" ? firstListItemId : firstGridItemId;
   const contentTransitionKey = `${selectedFilterTab}:${viewMode}`;
@@ -91,6 +129,25 @@ export default function LibraryPage() {
   }, [viewMode]);
 
   useEffect(() => {
+    try {
+      globalThis.window.localStorage.setItem(LIBRARY_SORT_BY_STORAGE_KEY, sortBy);
+    } catch {
+      // Ignore storage failures and keep the in-memory sort option.
+    }
+  }, [sortBy]);
+
+  useEffect(() => {
+    try {
+      globalThis.window.localStorage.setItem(
+        LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
+        filterBy
+      );
+    } catch {
+      // Ignore storage failures and keep the in-memory filter option.
+    }
+  }, [filterBy]);
+
+  useEffect(() => {
     hasMountedContentRef.current = true;
     previousContentTransitionKeyRef.current = contentTransitionKey;
   }, [contentTransitionKey]);
@@ -120,6 +177,10 @@ export default function LibraryPage() {
           onSelectedTabChange={setSelectedFilterTab}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          filterBy={filterBy}
+          onFilterByChange={setFilterBy}
           search={search}
           onSearchChange={setSearch}
           counts={filterCounts}
@@ -133,7 +194,9 @@ export default function LibraryPage() {
             className="library-page__content-transition"
             initial={shouldAnimateContentChange ? { opacity: 0, y: 10 } : false}
             animate={{ opacity: 1, y: 0 }}
-            exit={shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined}
+            exit={
+              shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
+            }
             transition={
               shouldAnimateContentChange
                 ? {

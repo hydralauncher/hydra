@@ -1,8 +1,20 @@
 import "./filters.scss";
-import { Button, HorizontalFocusGroup, Input, Tabs } from "../../../common";
+
 import {
+  Button,
+  Divider,
+  DropdownSelect,
+  type DropdownSelectOption,
+  HorizontalFocusGroup,
+  Input,
+  Tabs,
+  type TabsItem,
+} from "../../../common";
+import {
+  FunnelIcon,
   ListDashesIcon,
   MagnifyingGlassIcon,
+  SortAscendingIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import type { FocusOverrides } from "../../../../services";
@@ -11,9 +23,11 @@ import {
   LIBRARY_FILTERS_ALL_TAB_ID,
   LIBRARY_FILTERS_COMPLETED_TAB_ID,
   LIBRARY_FILTERS_FAVORITES_TAB_ID,
+  LIBRARY_FILTERS_FILTER_SELECT_ID,
   LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
+  LIBRARY_FILTERS_SORT_SELECT_ID,
   LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
@@ -21,15 +35,36 @@ import {
 import type {
   LibraryFilterCounts,
   LibraryFilterTab,
+  LibrarySecondaryFilter,
+  LibrarySortOption,
   LibraryViewMode,
 } from "../library-data";
-import type { TabsItem } from "../../../common";
+
+const SORT_OPTIONS = [
+  { value: "last_played", label: "Last Played" },
+  { value: "playtime", label: "Most Played" },
+  { value: "title_asc", label: "Alphabetical (A-Z)" },
+  { value: "title_desc", label: "Alphabetical (Z-A)" },
+  { value: "added_desc", label: "Newest Added" },
+  { value: "added_asc", label: "Oldest Added" },
+] satisfies Array<DropdownSelectOption<LibrarySortOption>>;
+
+const FILTER_OPTIONS = [
+  { value: "all_games", label: "All Games" },
+  { value: "installed", label: "Installed" },
+  { value: "not_installed", label: "Not Installed" },
+  { value: "never_played", label: "Never Played" },
+] satisfies Array<DropdownSelectOption<LibrarySecondaryFilter>>;
 
 export interface LibraryFiltersProps {
   selectedTab: LibraryFilterTab;
   onSelectedTabChange: (tab: LibraryFilterTab) => void;
   viewMode: LibraryViewMode;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
+  sortBy: LibrarySortOption;
+  onSortByChange: (sortBy: LibrarySortOption) => void;
+  filterBy: LibrarySecondaryFilter;
+  onFilterByChange: (filterBy: LibrarySecondaryFilter) => void;
   search: string;
   onSearchChange: (search: string) => void;
   counts: LibraryFilterCounts;
@@ -41,6 +76,10 @@ export function LibraryFilters({
   onSelectedTabChange,
   viewMode,
   onViewModeChange,
+  sortBy,
+  onSortByChange,
+  filterBy,
+  onFilterByChange,
   search,
   onSearchChange,
   counts,
@@ -134,6 +173,30 @@ export function LibraryFilters({
     left: sidebarLibraryOverride,
     right: {
       type: "item",
+      itemId: LIBRARY_FILTERS_SORT_SELECT_ID,
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
+  const sortNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
+    },
+    right: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_FILTER_SELECT_ID,
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
+  const filterNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_SORT_SELECT_ID,
+    },
+    right: {
+      type: "item",
       itemId: LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
     },
     up: toolbarUpOverride,
@@ -142,7 +205,7 @@ export function LibraryFilters({
   const listViewNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
-      itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
+      itemId: LIBRARY_FILTERS_FILTER_SELECT_ID,
     },
     right: {
       type: "item",
@@ -178,15 +241,45 @@ export function LibraryFilters({
         regionId={LIBRARY_FILTERS_TOOLBAR_REGION_ID}
         navigationOverrides={toolbarNavigationOverrides}
       >
-        <div className="library-filters__search">
-          <Input
-            focusId={LIBRARY_FILTERS_SEARCH_INPUT_ID}
-            focusNavigationOverrides={searchNavigationOverrides}
-            type="text"
-            placeholder="Search library"
-            iconLeft={<MagnifyingGlassIcon size={24} />}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+        <div className="library-filters__search-and-filters">
+          <div className="library-filters__search">
+            <Input
+              focusId={LIBRARY_FILTERS_SEARCH_INPUT_ID}
+              focusNavigationOverrides={searchNavigationOverrides}
+              type="text"
+              placeholder="Search library"
+              iconLeft={<MagnifyingGlassIcon size={24} />}
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+
+          <div className="library-filters__toolbar-divider" aria-hidden="true">
+            <Divider orientation="vertical" color="var(--text-secondary)" />
+          </div>
+
+          <DropdownSelect
+            className="library-filters__select"
+            hideLabel
+            leadingIcon={<SortAscendingIcon size={22} />}
+            ariaLabel="Sort library by"
+            focusId={LIBRARY_FILTERS_SORT_SELECT_ID}
+            focusNavigationOverrides={sortNavigationOverrides}
+            value={sortBy}
+            options={SORT_OPTIONS}
+            onValueChange={onSortByChange}
+          />
+
+          <DropdownSelect
+            className="library-filters__select"
+            hideLabel
+            leadingIcon={<FunnelIcon size={20} />}
+            ariaLabel="Filter library games"
+            focusId={LIBRARY_FILTERS_FILTER_SELECT_ID}
+            focusNavigationOverrides={filterNavigationOverrides}
+            value={filterBy}
+            options={FILTER_OPTIONS}
+            onValueChange={onFilterByChange}
           />
         </div>
 

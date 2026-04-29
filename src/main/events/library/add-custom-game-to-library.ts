@@ -52,6 +52,7 @@ const addCustomGameToLibrary = async (
     isDeleted: false,
     playTimeInMilliseconds: 0,
     lastTimePlayed: null,
+    addedToLibraryAt: new Date(),
     executablePath,
     launchOptions: null,
     favorite: false,
