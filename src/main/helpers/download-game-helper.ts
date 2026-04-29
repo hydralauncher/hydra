@@ -34,6 +34,7 @@ export const prepareGameEntry = async ({
       iconUrl: gameAssets?.iconUrl ?? null,
       libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
       logoImageUrl: gameAssets?.logoImageUrl ?? null,
+      coverImageUrl: gameAssets?.coverImageUrl ?? null,
       objectId,
       shop,
       remoteId: null,

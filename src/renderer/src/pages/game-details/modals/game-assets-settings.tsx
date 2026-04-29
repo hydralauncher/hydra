@@ -8,7 +8,7 @@ import type { Game, LibraryGame, ShopDetailsWithAssets } from "@types";
 
 import "./game-assets-settings.scss";
 
-type AssetType = "icon" | "logo" | "hero";
+type AssetType = "icon" | "logo" | "hero" | "cover";
 
 interface ElectronFile extends File {
   path?: string;
@@ -18,30 +18,35 @@ interface GameWithOriginalAssets extends Game {
   originalIconPath?: string;
   originalLogoPath?: string;
   originalHeroPath?: string;
+  originalCoverPath?: string;
 }
 
 interface LibraryGameWithCustomOriginalAssets extends LibraryGame {
   customOriginalIconPath?: string;
   customOriginalLogoPath?: string;
   customOriginalHeroPath?: string;
+  customOriginalCoverPath?: string;
 }
 
 interface AssetPaths {
   icon: string;
   logo: string;
   hero: string;
+  cover: string;
 }
 
 interface AssetUrls {
   icon: string | null;
   logo: string | null;
   hero: string | null;
+  cover: string | null;
 }
 
 interface RemovedAssets {
   icon: boolean;
   logo: boolean;
   hero: boolean;
+  cover: boolean;
 }
 
 const VALID_IMAGE_TYPES = [
@@ -58,18 +63,21 @@ const INITIAL_ASSET_PATHS: AssetPaths = {
   icon: "",
   logo: "",
   hero: "",
+  cover: "",
 };
 
 const INITIAL_REMOVED_ASSETS: RemovedAssets = {
   icon: false,
   logo: false,
   hero: false,
+  cover: false,
 };
 
 const INITIAL_ASSET_URLS: AssetUrls = {
   icon: null,
   logo: null,
   hero: null,
+  cover: null,
 };
 
 export interface GameAssetsSettingsProps {
@@ -130,16 +138,20 @@ export function GameAssetsSettings({
       const heroRemoved =
         !currentGame.libraryHeroImageUrl &&
         Boolean(gameWithAssets.originalHeroPath);
+      const coverRemoved =
+        !currentGame.coverImageUrl && Boolean(gameWithAssets.originalCoverPath);
 
       setAssetPaths({
         icon: extractLocalPath(currentGame.iconUrl),
         logo: extractLocalPath(currentGame.logoImageUrl),
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        cover: extractLocalPath(currentGame.coverImageUrl),
       });
       setAssetDisplayPaths({
         icon: extractLocalPath(currentGame.iconUrl),
         logo: extractLocalPath(currentGame.logoImageUrl),
         hero: extractLocalPath(currentGame.libraryHeroImageUrl),
+        cover: extractLocalPath(currentGame.coverImageUrl),
       });
       setOriginalAssetPaths({
         icon:
@@ -151,12 +163,16 @@ export function GameAssetsSettings({
         hero:
           gameWithAssets.originalHeroPath ||
           extractLocalPath(currentGame.libraryHeroImageUrl),
+        cover:
+          gameWithAssets.originalCoverPath ||
+          extractLocalPath(currentGame.coverImageUrl),
       });
 
       setRemovedAssets({
         icon: iconRemoved,
         logo: logoRemoved,
         hero: heroRemoved,
+        cover: coverRemoved,
       });
     },
     [extractLocalPath]
@@ -174,16 +190,21 @@ export function GameAssetsSettings({
       const heroRemoved =
         !currentGame.customHeroImageUrl &&
         Boolean(gameWithAssets.customOriginalHeroPath);
+      const coverRemoved =
+        !currentGame.customCoverImageUrl &&
+        Boolean(gameWithAssets.customOriginalCoverPath);
 
       setAssetPaths({
         icon: extractLocalPath(currentGame.customIconUrl),
         logo: extractLocalPath(currentGame.customLogoImageUrl),
         hero: extractLocalPath(currentGame.customHeroImageUrl),
+        cover: extractLocalPath(currentGame.customCoverImageUrl),
       });
       setAssetDisplayPaths({
         icon: extractLocalPath(currentGame.customIconUrl),
         logo: extractLocalPath(currentGame.customLogoImageUrl),
         hero: extractLocalPath(currentGame.customHeroImageUrl),
+        cover: extractLocalPath(currentGame.customCoverImageUrl),
       });
       setOriginalAssetPaths({
         icon:
@@ -195,12 +216,16 @@ export function GameAssetsSettings({
         hero:
           gameWithAssets.customOriginalHeroPath ||
           extractLocalPath(currentGame.customHeroImageUrl),
+        cover:
+          gameWithAssets.customOriginalCoverPath ||
+          extractLocalPath(currentGame.customCoverImageUrl),
       });
 
       setRemovedAssets({
         icon: iconRemoved,
         logo: logoRemoved,
         hero: heroRemoved,
+        cover: coverRemoved,
       });
 
       setDefaultUrls({
@@ -210,6 +235,10 @@ export function GameAssetsSettings({
         hero:
           shopDetails?.assets?.libraryHeroImageUrl ||
           currentGame.libraryHeroImageUrl ||
+          null,
+        cover:
+          shopDetails?.assets?.coverImageUrl ||
+          currentGame.coverImageUrl ||
           null,
       });
     },
@@ -263,6 +292,8 @@ export function GameAssetsSettings({
         return game.logoImageUrl;
       case "hero":
         return game.libraryHeroImageUrl;
+      case "cover":
+        return game.coverImageUrl;
       default:
         return null;
     }
@@ -436,7 +467,13 @@ export function GameAssetsSettings({
         ? `local:${assetPaths.hero}`
         : currentGame.libraryHeroImageUrl;
 
-    return { iconUrl, logoImageUrl, libraryHeroImageUrl };
+    const coverImageUrl = removedAssets.cover
+      ? null
+      : assetPaths.cover
+        ? `local:${assetPaths.cover}`
+        : currentGame.coverImageUrl;
+
+    return { iconUrl, logoImageUrl, libraryHeroImageUrl, coverImageUrl };
   };
 
   const prepareNonCustomGameAssets = () => {
@@ -455,15 +492,21 @@ export function GameAssetsSettings({
         ? `local:${assetPaths.hero}`
         : null;
 
+    const customCoverImageUrl =
+      !removedAssets.cover && assetPaths.cover
+        ? `local:${assetPaths.cover}`
+        : null;
+
     return {
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
+      customCoverImageUrl,
     };
   };
 
   const updateCustomGame = async (currentGame: LibraryGame | Game) => {
-    const { iconUrl, logoImageUrl, libraryHeroImageUrl } =
+    const { iconUrl, logoImageUrl, libraryHeroImageUrl, coverImageUrl } =
       prepareCustomGameAssets(currentGame);
 
     return window.electron.updateCustomGame({
@@ -473,15 +516,21 @@ export function GameAssetsSettings({
       iconUrl: iconUrl || undefined,
       logoImageUrl: logoImageUrl || undefined,
       libraryHeroImageUrl: libraryHeroImageUrl || undefined,
+      coverImageUrl: coverImageUrl || undefined,
       originalIconPath: originalAssetPaths.icon || undefined,
       originalLogoPath: originalAssetPaths.logo || undefined,
       originalHeroPath: originalAssetPaths.hero || undefined,
+      originalCoverPath: originalAssetPaths.cover || undefined,
     });
   };
 
   const updateNonCustomGame = async (currentGame: LibraryGame) => {
-    const { customIconUrl, customLogoImageUrl, customHeroImageUrl } =
-      prepareNonCustomGameAssets();
+    const {
+      customIconUrl,
+      customLogoImageUrl,
+      customHeroImageUrl,
+      customCoverImageUrl,
+    } = prepareNonCustomGameAssets();
 
     return window.electron.updateGameCustomAssets({
       shop: currentGame.shop,
@@ -490,6 +539,7 @@ export function GameAssetsSettings({
       customIconUrl,
       customLogoImageUrl,
       customHeroImageUrl,
+      customCoverImageUrl,
       customOriginalIconPath: removedAssets.icon
         ? undefined
         : originalAssetPaths.icon || undefined,
@@ -499,6 +549,9 @@ export function GameAssetsSettings({
       customOriginalHeroPath: removedAssets.hero
         ? undefined
         : originalAssetPaths.hero || undefined,
+      customOriginalCoverPath: removedAssets.cover
+        ? undefined
+        : originalAssetPaths.cover || undefined,
     });
   };
 
@@ -681,6 +734,15 @@ export function GameAssetsSettings({
             disabled={isUpdating}
           >
             {t("edit_game_modal_hero")}
+          </Button>
+
+          <Button
+            type="button"
+            theme={selectedAssetType === "cover" ? "primary" : "outline"}
+            onClick={() => handleAssetTypeChange("cover")}
+            disabled={isUpdating}
+          >
+            {t("edit_game_modal_cover")}
           </Button>
         </div>
       </div>
