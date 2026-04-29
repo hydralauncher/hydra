@@ -12,3 +12,4 @@ export * from "./use-search.hook";
 export * from "./use-format.hook";
 export * from "./use-date.hook";
 export * from "./use-game-details.hook";
+export * from "./use-floating-panel-position.hook";

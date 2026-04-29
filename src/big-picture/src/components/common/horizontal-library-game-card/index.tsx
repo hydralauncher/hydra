@@ -2,7 +2,12 @@ import "./styles.scss";
 
 import { SparkleIcon, TrophyIcon } from "@phosphor-icons/react";
 import cn from "classnames";
-import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
 
 export interface HorizontalLibraryGameCardProps {
   coverImageUrl?: string | null;
@@ -15,6 +20,7 @@ export interface HorizontalLibraryGameCardProps {
   forceHovered?: boolean;
   className?: string;
   onClick?: () => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onCoverImageError?: () => void;
 }
 
@@ -35,6 +41,7 @@ export function HorizontalLibraryGameCard({
   forceHovered = false,
   className,
   onClick,
+  onContextMenu,
   onCoverImageError,
 }: Readonly<HorizontalLibraryGameCardProps>) {
   const hasProgress =
@@ -66,6 +73,7 @@ export function HorizontalLibraryGameCard({
       })}
       style={customProperties}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       onKeyDown={onClick != null ? handleCardKeyDown : undefined}
       role={onClick != null ? "button" : undefined}
       tabIndex={onClick != null ? 0 : undefined}

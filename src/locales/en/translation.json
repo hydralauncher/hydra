@@ -1039,7 +1039,19 @@
     "empty_collection_description": "Right-click any game, open Collection, and add it here.",
     "disk_usage": "Disk usage",
     "disk_usage_tooltip": "Installed size on disk",
-    "installer_size_tooltip": "Installer size"
+    "installer_size_tooltip": "Installer size",
+    "context_menu_accessible_label": "Game context menu",
+    "context_menu_launch_game": "Launch Game",
+    "context_menu_download_game": "Download Game",
+    "context_menu_open_game_page": "Open Game Page",
+    "context_menu_remove_from_favorites": "Remove from Favorites",
+    "context_menu_mark_as_favorite": "Mark as Favorite",
+    "context_menu_view_achievements": "View Achievements",
+    "context_menu_share": "Share",
+    "context_menu_options": "Options",
+    "context_menu_uninstall": "Uninstall",
+    "context_menu_remove_from_library": "Remove from Library",
+    "context_menu_add_to_library": "Add to Library"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

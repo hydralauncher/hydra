@@ -11,9 +11,19 @@ import "./focus-list.scss";
 
 export interface LibraryFocusListProps {
   games: LibraryGame[];
+  contextMenuGameId?: string | null;
+  onOpenContextMenu?: (
+    game: LibraryGame,
+    position: { x: number; y: number },
+    restoreFocusId: string
+  ) => void;
 }
 
-export function LibraryFocusList({ games }: Readonly<LibraryFocusListProps>) {
+export function LibraryFocusList({
+  games,
+  contextMenuGameId = null,
+  onOpenContextMenu,
+}: Readonly<LibraryFocusListProps>) {
   const navigationOverridesByItemId = useLibraryListNavigation(games);
 
   if (games.length === 0) return null;
@@ -28,6 +38,8 @@ export function LibraryFocusList({ games }: Readonly<LibraryFocusListProps>) {
           <HorizontalLibraryGameListCard
             key={game.id}
             game={game}
+            contextMenuOpen={contextMenuGameId === game.id}
+            onOpenContextMenu={onOpenContextMenu}
             navigationOverrides={
               navigationOverridesByItemId[getLibraryFocusListItemId(game.id)]
             }

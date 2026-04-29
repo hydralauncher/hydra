@@ -2,6 +2,7 @@ import type { ShopAssets } from "@types";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { MouseEventHandler } from "react";
 import { useGamepad } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
@@ -41,6 +42,11 @@ interface FocusCarouselProps {
     index: number,
     games: ShopAssets[]
   ) => FocusOverrides | undefined;
+  onCarouselItemOpenContextMenu?: (
+    game: ShopAssets,
+    position: { x: number; y: number },
+    restoreFocusId: string
+  ) => void;
 }
 
 interface FocusCarouselSlideProps {
@@ -51,6 +57,11 @@ interface FocusCarouselSlideProps {
   navigationOverrides?: FocusOverrides;
   onFocused: () => void;
   onActivate?: (game: ShopAssets) => void;
+  onCarouselItemOpenContextMenu?: (
+    game: ShopAssets,
+    position: { x: number; y: number },
+    restoreFocusId: string
+  ) => void;
 }
 
 function getDefaultItemNavigationOverrides(
@@ -433,13 +444,19 @@ function useCarouselControls(emblaApi: EmblaApi) {
 function FocusCarouselCard({
   game,
   cardVariant,
-}: Readonly<{ game: ShopAssets; cardVariant: "vertical" | "horizontal" }>) {
+  onContextMenu,
+}: Readonly<{
+  game: ShopAssets;
+  cardVariant: "vertical" | "horizontal";
+  onContextMenu?: MouseEventHandler<HTMLElement>;
+}>) {
   if (cardVariant === "horizontal") {
     return (
       <HorizontalStoreGameCard
         coverImageUrl={getGameLandscapeImageSource(game)}
         gameTitle={game.title}
         downloadSourceCount={game.downloadSources.length}
+        onContextMenu={onContextMenu}
       />
     );
   }
@@ -449,6 +466,7 @@ function FocusCarouselCard({
       coverImageUrl={getGameCoverImageSource(game)}
       gameTitle={game.title}
       downloadSourceCount={game.downloadSources.length}
+      onContextMenu={onContextMenu}
     />
   );
 }
@@ -472,6 +490,7 @@ function FocusCarouselSlide({
   navigationOverrides,
   onFocused,
   onActivate,
+  onCarouselItemOpenContextMenu,
 }: Readonly<FocusCarouselSlideProps>) {
   const isFocused = useNavigationIsFocused(itemId);
 
@@ -481,6 +500,18 @@ function FocusCarouselSlide({
     onFocused();
   }, [isFocused, onFocused]);
 
+  const handleCardContextMenu: MouseEventHandler<HTMLElement> = (event) => {
+    if (!onCarouselItemOpenContextMenu) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    onCarouselItemOpenContextMenu(
+      game,
+      { x: event.clientX, y: event.clientY },
+      itemId
+    );
+  };
+
   return (
     <article className="focus-carousel__slide" data-slide-index={index}>
       <FocusItem
@@ -489,13 +520,34 @@ function FocusCarouselSlide({
           onActivate
             ? {
                 primary: () => onActivate(game),
-                secondary: "off",
+                secondary:
+                  onCarouselItemOpenContextMenu != null
+                    ? () => {
+                        const element = document.getElementById(itemId);
+                        const rect = element?.getBoundingClientRect();
+
+                        if (rect) {
+                          onCarouselItemOpenContextMenu(
+                            game,
+                            {
+                              x: rect.left + rect.width / 2,
+                              y: rect.top + rect.height / 2,
+                            },
+                            itemId
+                          );
+                        }
+                      }
+                    : "off",
               }
             : undefined
         }
         navigationOverrides={navigationOverrides}
       >
-        <FocusCarouselCard game={game} cardVariant={cardVariant} />
+        <FocusCarouselCard
+          cardVariant={cardVariant}
+          game={game}
+          onContextMenu={handleCardContextMenu}
+        />
       </FocusItem>
     </article>
   );
@@ -508,6 +560,7 @@ export function FocusCarousel({
   getItemId,
   getItemNavigationOverrides,
   onItemActivate,
+  onCarouselItemOpenContextMenu,
   showRightFade = false,
   cardVariant = "vertical",
 }: Readonly<FocusCarouselProps>) {
@@ -647,6 +700,9 @@ export function FocusCarousel({
                     itemId={itemId}
                     cardVariant={cardVariant}
                     navigationOverrides={navigationOverrides}
+                    onCarouselItemOpenContextMenu={
+                      onCarouselItemOpenContextMenu
+                    }
                     onFocused={() => handleSlideFocused(index)}
                     onActivate={onItemActivate}
                   />

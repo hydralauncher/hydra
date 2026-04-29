@@ -1,6 +1,7 @@
 import "./styles.scss";
 
 import cn from "classnames";
+import type { MouseEventHandler } from "react";
 
 export interface HorizontalStoreGameCardProps {
   coverImageUrl?: string | null;
@@ -9,6 +10,7 @@ export interface HorizontalStoreGameCardProps {
   forceHovered?: boolean;
   className?: string;
   onClick?: () => void;
+  onContextMenu?: MouseEventHandler<HTMLElement>;
   onCoverImageError?: () => void;
 }
 
@@ -26,6 +28,7 @@ export function HorizontalStoreGameCard({
   forceHovered = false,
   className,
   onClick,
+  onContextMenu,
   onCoverImageError,
 }: Readonly<HorizontalStoreGameCardProps>) {
   const rootClassName = cn("horizontal-store-game-card", className, {
@@ -63,11 +66,20 @@ export function HorizontalStoreGameCard({
   );
 
   if (onClick == null) {
-    return <div className={rootClassName}>{inner}</div>;
+    return (
+      <div className={rootClassName} onContextMenu={onContextMenu}>
+        {inner}
+      </div>
+    );
   }
 
   return (
-    <button type="button" className={rootClassName} onClick={onClick}>
+    <button
+      type="button"
+      className={rootClassName}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+    >
       {inner}
     </button>
   );

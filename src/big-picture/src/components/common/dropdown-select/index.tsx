@@ -1,26 +1,22 @@
 import "./styles.scss";
 
-import {
-  autoUpdate,
-  computePosition,
-  flip,
-  offset,
-  shift,
-  size,
-} from "@floating-ui/dom";
+import { flip, offset, shift, size } from "@floating-ui/dom";
 import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
 import {
   type ReactNode,
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { useNavigation, useNavigationScreenActions } from "../../../hooks";
+import {
+  useFloatingPanelPosition,
+  useNavigation,
+  useNavigationScreenActions,
+} from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { FocusRegionContext } from "../../context";
 import { FocusItem } from "../focus-item";
@@ -71,7 +67,6 @@ export function DropdownSelect<TValue extends string = string>({
   const generatedId = useId();
   const { setFocus } = useNavigation();
   const referenceRef = useRef<HTMLDivElement | null>(null);
-  const floatingRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const resolvedBaseId =
@@ -120,84 +115,38 @@ export function DropdownSelect<TValue extends string = string>({
     [closeMenu, onValueChange]
   );
 
-  const updateFloatingPosition = useCallback(() => {
-    const reference = referenceRef.current;
-    const floating = floatingRef.current;
+  const floatingMiddleware = useMemo(
+    () => [
+      offset(DROPDOWN_MENU_OFFSET),
+      flip({ fallbackPlacements: ["top"] }),
+      shift({ padding: DROPDOWN_VIEWPORT_MARGIN }),
+      size({
+        apply({ elements, availableWidth, availableHeight }) {
+          const maxHeight =
+            Number.isFinite(availableHeight) && availableHeight > 0
+              ? Math.min(DROPDOWN_MAX_HEIGHT, availableHeight)
+              : DROPDOWN_MAX_HEIGHT;
 
-    if (!reference || !floating) {
-      return;
-    }
-
-    void computePosition(reference, floating, {
-      placement: "bottom",
-      strategy: "fixed",
-      middleware: [
-        offset(DROPDOWN_MENU_OFFSET),
-        flip({ fallbackPlacements: ["top"] }),
-        shift({ padding: DROPDOWN_VIEWPORT_MARGIN }),
-        size({
-          apply({ elements, availableWidth, availableHeight }) {
-            const maxH =
-              Number.isFinite(availableHeight) && availableHeight > 0
-                ? Math.min(DROPDOWN_MAX_HEIGHT, availableHeight)
-                : DROPDOWN_MAX_HEIGHT;
-
-            Object.assign(elements.floating.style, {
-              width: "max-content",
-              minWidth: `${DROPDOWN_MIN_WIDTH}px`,
-              maxWidth:
-                typeof availableWidth === "number" && availableWidth > 0
-                  ? `${availableWidth}px`
-                  : "",
-              maxHeight: `${maxH}px`,
-            });
-          },
-        }),
-      ],
-    }).then(({ x, y, strategy }) => {
-      const floatingEl = floatingRef.current;
-
-      if (!floatingEl?.isConnected) {
-        return;
-      }
-
-      const nextStrategy = strategy ?? "fixed";
-      Object.assign(floatingEl.style, {
-        position: nextStrategy,
-        left: `${x}px`,
-        top: `${y}px`,
-        right: "",
-        bottom: "",
-        zIndex: "1000",
-        visibility: "visible",
-      });
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const reference = referenceRef.current;
-    const floating = floatingRef.current;
-
-    if (!reference || !floating) {
-      return undefined;
-    }
-
-    floating.style.visibility = "hidden";
-
-    updateFloatingPosition();
-
-    return autoUpdate(reference, floating, updateFloatingPosition, {
-      ancestorScroll: true,
-      ancestorResize: true,
-      animationFrame: true,
-      elementResize: true,
-      layoutShift: true,
-    });
-  }, [isOpen, options.length, updateFloatingPosition]);
+          Object.assign(elements.floating.style, {
+            width: "max-content",
+            minWidth: `${DROPDOWN_MIN_WIDTH}px`,
+            maxWidth:
+              typeof availableWidth === "number" && availableWidth > 0
+                ? `${availableWidth}px`
+                : "",
+            maxHeight: `${maxHeight}px`,
+          });
+        },
+      }),
+    ],
+    []
+  );
+  const { floatingRef } = useFloatingPanelPosition<HTMLDivElement>({
+    isOpen,
+    reference: referenceRef.current,
+    placement: "bottom",
+    middleware: floatingMiddleware,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -221,7 +170,7 @@ export function DropdownSelect<TValue extends string = string>({
     return () => {
       globalThis.document.removeEventListener("mousedown", handlePointerDown);
     };
-  }, [closeMenu, isOpen]);
+  }, [closeMenu, floatingRef, isOpen]);
 
   useNavigationScreenActions(
     isOpen

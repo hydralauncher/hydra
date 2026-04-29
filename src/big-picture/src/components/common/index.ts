@@ -31,6 +31,7 @@ export * from "./navigation-layer";
 export * from "./focus-item";
 export * from "./diagnostics";
 export * from "./dropdown-select";
+export * from "./context-menu";
 export * from "./scroll-area";
 export * from "./route-anchor";
 export * from "./button";

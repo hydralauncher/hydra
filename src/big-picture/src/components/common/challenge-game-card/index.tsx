@@ -1,5 +1,7 @@
 import "./styles.scss";
 
+import type { MouseEventHandler } from "react";
+
 import { SourceAnchor } from "../source-anchor";
 
 export interface ChallengeGameCardProps {
@@ -7,6 +9,7 @@ export interface ChallengeGameCardProps {
   gameTitle: string;
   genres: string[];
   downloadSources: string[];
+  onContextMenu?: MouseEventHandler<HTMLElement>;
 }
 
 const MAX_VISIBLE_SOURCES = 3;
@@ -16,6 +19,7 @@ export function ChallengeGameCard({
   gameTitle,
   genres,
   downloadSources,
+  onContextMenu,
 }: Readonly<ChallengeGameCardProps>) {
   const visibleSources = downloadSources.slice(0, MAX_VISIBLE_SOURCES);
   const hiddenSourcesCount = Math.max(
@@ -24,7 +28,7 @@ export function ChallengeGameCard({
   );
 
   return (
-    <div className="challenge-game-card">
+    <div className="challenge-game-card" onContextMenu={onContextMenu}>
       <div className="challenge-game-card__cover">
         {coverImageUrl ? (
           <img src={coverImageUrl} alt={gameTitle} draggable={false} />
