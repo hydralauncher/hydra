@@ -1,5 +1,11 @@
 import type { LibraryGame } from "@types";
 
+export interface GameCoverImageSource {
+  coverImageUrl?: string | null;
+  libraryImageUrl?: string | null;
+  iconUrl?: string | null;
+}
+
 export function resolveImageSource(
   imageUrl: string | null | undefined
 ): string {
@@ -21,6 +27,7 @@ export function resolveImageSource(
     const normalizedLocalPath = trimmedImageUrl
       .slice("local:".length)
       .replaceAll("\\", "/");
+
     return `local:${normalizedLocalPath}`;
   }
 
@@ -44,4 +51,8 @@ export function getGameImageSources(game: LibraryGame) {
     .filter((source, index, array) => {
       return source !== "" && array.indexOf(source) === index;
     });
+}
+
+export function getGameCoverImageSource(game: GameCoverImageSource) {
+  return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
 }
