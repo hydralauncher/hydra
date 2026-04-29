@@ -17,8 +17,7 @@ export type LibrarySecondaryFilter =
 
 export const LIBRARY_VIEW_MODE_STORAGE_KEY =
   "hydra:big-picture:library-view-mode";
-export const LIBRARY_SORT_BY_STORAGE_KEY =
-  "hydra:big-picture:library-sort-by";
+export const LIBRARY_SORT_BY_STORAGE_KEY = "hydra:big-picture:library-sort-by";
 export const LIBRARY_SECONDARY_FILTER_STORAGE_KEY =
   "hydra:big-picture:library-filter-by";
 
@@ -148,7 +147,9 @@ export function sortLibraryGames(
       const playtimeDifference =
         (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0);
 
-      return playtimeDifference !== 0 ? playtimeDifference : compareTitles(a, b);
+      return playtimeDifference !== 0
+        ? playtimeDifference
+        : compareTitles(a, b);
     }
 
     if (sortBy === "title_asc") {
@@ -165,9 +166,7 @@ export function sortLibraryGames(
 
       if (aAddedAt !== null && bAddedAt !== null) {
         const addedDifference =
-          sortBy === "added_desc"
-            ? bAddedAt - aAddedAt
-            : aAddedAt - bAddedAt;
+          sortBy === "added_desc" ? bAddedAt - aAddedAt : aAddedAt - bAddedAt;
 
         return addedDifference !== 0 ? addedDifference : compareTitles(a, b);
       }

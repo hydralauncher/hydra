@@ -24,8 +24,7 @@ export const createGame = async (game: Game) => {
       ...game,
       remoteId,
       addedToLibraryAt:
-        game.addedToLibraryAt ??
-        (createdAt ? new Date(createdAt) : new Date()),
+        game.addedToLibraryAt ?? (createdAt ? new Date(createdAt) : new Date()),
       playTimeInMilliseconds,
       lastTimePlayed,
     });

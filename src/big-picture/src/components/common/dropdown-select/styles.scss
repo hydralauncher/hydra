@@ -71,13 +71,21 @@
   &:focus-visible,
   &[data-focus-visible="true"] {
     outline: none;
-    border-color: color-mix(in srgb, var(--primary) 45%, var(--secondary-border));
+    border-color: color-mix(
+      in srgb,
+      var(--primary) 45%,
+      var(--secondary-border)
+    );
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   &[data-open="true"] {
     outline: none;
-    border-color: color-mix(in srgb, var(--primary) 55%, var(--secondary-border));
+    border-color: color-mix(
+      in srgb,
+      var(--primary) 55%,
+      var(--secondary-border)
+    );
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent);
   }
 }

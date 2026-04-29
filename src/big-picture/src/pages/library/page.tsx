@@ -130,7 +130,10 @@ export default function LibraryPage() {
 
   useEffect(() => {
     try {
-      globalThis.window.localStorage.setItem(LIBRARY_SORT_BY_STORAGE_KEY, sortBy);
+      globalThis.window.localStorage.setItem(
+        LIBRARY_SORT_BY_STORAGE_KEY,
+        sortBy
+      );
     } catch {
       // Ignore storage failures and keep the in-memory sort option.
     }
