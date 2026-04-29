@@ -1,6 +1,6 @@
 import type { LibraryGame } from "@types";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import { useLibrary } from "../../hooks";
 import {
@@ -37,6 +37,7 @@ function getInitialLibraryViewMode(): LibraryViewMode {
 }
 
 export default function LibraryPage() {
+  const hasMountedContentRef = useRef(false);
   const { library, updateLibrary } = useLibrary();
   const [selectedFilterTab, setSelectedFilterTab] =
     useState<LibraryFilterTab>("all");
@@ -57,6 +58,10 @@ export default function LibraryPage() {
   const firstContentItemId =
     viewMode === "list" ? firstListItemId : firstGridItemId;
   const contentTransitionKey = `${selectedFilterTab}:${viewMode}`;
+  const previousContentTransitionKeyRef = useRef(contentTransitionKey);
+  const shouldAnimateContentChange =
+    hasMountedContentRef.current &&
+    previousContentTransitionKeyRef.current !== contentTransitionKey;
 
   useEffect(() => {
     updateLibrary();
@@ -84,6 +89,11 @@ export default function LibraryPage() {
       // Ignore storage failures and keep the in-memory view mode.
     }
   }, [viewMode]);
+
+  useEffect(() => {
+    hasMountedContentRef.current = true;
+    previousContentTransitionKeyRef.current = contentTransitionKey;
+  }, [contentTransitionKey]);
 
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
@@ -119,16 +129,20 @@ export default function LibraryPage() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={contentTransitionKey}
-            layout
+            layout={shouldAnimateContentChange}
             className="library-page__content-transition"
-            initial={{ opacity: 0, y: 10 }}
+            initial={shouldAnimateContentChange ? { opacity: 0, y: 10 } : false}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{
-              opacity: { duration: 0.18, ease: "easeOut" },
-              y: { duration: 0.18, ease: "easeOut" },
-              layout: { duration: 0.22, ease: "easeOut" },
-            }}
+            exit={shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined}
+            transition={
+              shouldAnimateContentChange
+                ? {
+                    opacity: { duration: 0.18, ease: "easeOut" },
+                    y: { duration: 0.18, ease: "easeOut" },
+                    layout: { duration: 0.22, ease: "easeOut" },
+                  }
+                : undefined
+            }
           >
             {viewMode === "list" ? (
               <LibraryFocusList games={filteredLibrary} />
