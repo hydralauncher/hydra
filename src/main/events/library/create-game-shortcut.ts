@@ -14,8 +14,13 @@ import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { logger } from "@main/services";
 
-const isValidHttpUrl = (url: string | null | undefined): url is string => {
-  return !!url && (url.startsWith("http://") || url.startsWith("https://"));
+const isValidUrl = (url: string | null | undefined): url is string => {
+  return (
+    !!url &&
+    (url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("local:"))
+  );
 };
 
 const isIcoUrl = (url: string): boolean => {
@@ -38,7 +43,7 @@ const downloadIcon = async (
     // Ignore fs errors
   }
 
-  const validUrls = iconUrls.filter(isValidHttpUrl);
+  const validUrls = iconUrls.filter(isValidUrl);
 
   if (validUrls.length === 0) {
     logger.warn("No valid icon URLs found for game shortcut");
@@ -49,11 +54,18 @@ const downloadIcon = async (
 
   for (const iconUrl of validUrls) {
     try {
-      logger.log(`Trying to download icon from: ${iconUrl}`);
-      const response = await axios.get(iconUrl, {
-        responseType: "arraybuffer",
-      });
-      const imageBuffer = Buffer.from(response.data);
+      logger.log(`Trying to download/read icon from: ${iconUrl}`);
+
+      let imageBuffer: Buffer;
+      if (iconUrl.startsWith("local:")) {
+        const localPath = iconUrl.slice("local:".length);
+        imageBuffer = fs.readFileSync(localPath);
+      } else {
+        const response = await axios.get(iconUrl, {
+          responseType: "arraybuffer",
+        });
+        imageBuffer = Buffer.from(response.data);
+      }
 
       // If source is already ICO, use it directly
       if (isIcoUrl(iconUrl)) {
@@ -229,6 +241,7 @@ const createGameShortcut = async (
 
   const assets = shop === "custom" ? null : await getGameAssets(objectId, shop);
   const iconPath = await downloadIcon(shop, objectId, [
+    game.customIconUrl,
     assets?.iconUrl,
     game.iconUrl,
     assets?.coverImageUrl,
