@@ -36,12 +36,7 @@ import { useNavigate } from "react-router-dom";
 
 import "./page.scss";
 
-const HOME_SECTION_ORDER = [
-  "hero",
-  "weekly",
-  "trending",
-  "challenge",
-] as const;
+const HOME_SECTION_ORDER = ["hero", "weekly", "trending", "challenge"] as const;
 
 type HomeSectionId = (typeof HOME_SECTION_ORDER)[number];
 
@@ -56,12 +51,14 @@ export default function Home() {
   const hasTrending = hotGames.length > 0;
   const hasChallenge = hardPlatinums.length > 0;
 
-  const homeSectionRegionIdById: Record<Exclude<HomeSectionId, "hero">, string> =
-    {
-      weekly: HOME_WEEKLY_GAMES_CAROUSEL_REGION_ID,
-      trending: HOME_TRENDING_GAMES_CAROUSEL_REGION_ID,
-      challenge: HOME_HARD_PLATINUMS_GRID_REGION_ID,
-    };
+  const homeSectionRegionIdById: Record<
+    Exclude<HomeSectionId, "hero">,
+    string
+  > = {
+    weekly: HOME_WEEKLY_GAMES_CAROUSEL_REGION_ID,
+    trending: HOME_TRENDING_GAMES_CAROUSEL_REGION_ID,
+    challenge: HOME_HARD_PLATINUMS_GRID_REGION_ID,
+  };
 
   const availableSections = HOME_SECTION_ORDER.filter((sectionId) => {
     switch (sectionId) {
@@ -194,8 +191,7 @@ export default function Home() {
       : {}),
   });
 
-  const challengeGridUpRegionId =
-    getPreviousRegionAbove("challenge").regionId;
+  const challengeGridUpRegionId = getPreviousRegionAbove("challenge").regionId;
   const challengeNavigationOverridesByItemId = useHomeChallengeGridNavigation(
     hardPlatinums,
     challengeGridUpRegionId
