@@ -33,11 +33,13 @@ import "./styles.scss";
 interface HomePageHeroProps {
   featuredGame: TrendingGame | null;
   downNavigationTarget?: FocusOverrideTarget;
+  upNavigationTarget?: FocusOverrideTarget;
 }
 
 export function HomePageHero({
   featuredGame,
   downNavigationTarget,
+  upNavigationTarget,
 }: Readonly<HomePageHeroProps>) {
   const navigate = useNavigate();
   const { updateLibrary, ...gameState } = useLibraryGameState(
@@ -112,12 +114,16 @@ export function HomePageHero({
     downNavigationTarget ?? {
       type: "block",
     };
+  const heroUpNavigationTarget: FocusOverrideTarget = upNavigationTarget ?? {
+    type: "block",
+  };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
     left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     right: {
       type: "block",
     },
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
@@ -126,12 +132,14 @@ export function HomePageHero({
     right: {
       type: "block",
     },
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
   const openGamePageNavigationOverrides: FocusOverrides = {
     left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
     right: getItemFocusTarget(secondActionFocusId),
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
@@ -160,7 +168,7 @@ export function HomePageHero({
           size="large"
           variant="primary"
         >
-          Launch Game
+          Download Game
         </Button>
       );
     }

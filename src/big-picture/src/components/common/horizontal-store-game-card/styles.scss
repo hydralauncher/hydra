@@ -1,4 +1,4 @@
-button.vertical-store-game-card {
+button.horizontal-store-game-card {
   appearance: none;
   border: none;
   margin: 0;
@@ -9,11 +9,11 @@ button.vertical-store-game-card {
   cursor: pointer;
 }
 
-.vertical-store-game-card {
-  width: min(350px, 100%);
+.horizontal-store-game-card {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing-unit) * 5);
+  gap: calc(var(--spacing-unit) * 4);
   border: 1px solid transparent;
   border-radius: calc(var(--spacing-unit) * 2);
   background-color: transparent;
@@ -28,7 +28,7 @@ button.vertical-store-game-card {
   &__cover {
     position: relative;
     width: 100%;
-    aspect-ratio: 268 / 400;
+    aspect-ratio: 460 / 215;
     border-radius: var(--spacing-unit);
     overflow: hidden;
     background-color: var(--surface);
@@ -47,22 +47,12 @@ button.vertical-store-game-card {
     &::before {
       content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 172%;
-      background: linear-gradient(
-        35deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(0, 0, 0, 0.07) 51.5%,
-        rgba(255, 255, 255, 0.15) 64%,
-        rgba(255, 255, 255, 0.1) 100%
-      );
-      transform: translateY(-36%);
-      opacity: 0.5;
-      transition:
-        opacity 0.3s ease,
-        transform 0.3s ease;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0%, transparent 50%);
+      opacity: 0.65;
+      transition: opacity 0.3s ease;
       pointer-events: none;
       z-index: 1;
     }
@@ -117,12 +107,11 @@ button.vertical-store-game-card {
     background-color: var(--surface);
     border-color: var(--secondary-border);
 
-    .vertical-store-game-card__cover::before {
+    .horizontal-store-game-card__cover::before {
       opacity: 1;
-      transform: translateY(-20%);
     }
 
-    .vertical-store-game-card__body {
+    .horizontal-store-game-card__body {
       padding-inline: calc(var(--spacing-unit) * 2);
     }
   }

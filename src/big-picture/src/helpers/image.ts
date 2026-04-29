@@ -56,3 +56,7 @@ export function getGameImageSources(game: LibraryGame) {
 export function getGameCoverImageSource(game: GameCoverImageSource) {
   return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
 }
+
+export function getGameLandscapeImageSource(game: GameCoverImageSource) {
+  return game.libraryImageUrl ?? game.coverImageUrl ?? game.iconUrl;
+}

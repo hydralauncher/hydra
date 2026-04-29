@@ -2,7 +2,7 @@ import "./styles.scss";
 
 import cn from "classnames";
 
-export interface VerticalStoreGameCardProps {
+export interface HorizontalStoreGameCardProps {
   coverImageUrl?: string | null;
   gameTitle: string;
   downloadSourceCount: number;
@@ -19,7 +19,7 @@ function getDownloadSourcesLabel(downloadSourceCount: number) {
   return `${normalizedCount} download ${suffix}`;
 }
 
-export function VerticalStoreGameCard({
+export function HorizontalStoreGameCard({
   coverImageUrl,
   gameTitle,
   downloadSourceCount,
@@ -27,15 +27,15 @@ export function VerticalStoreGameCard({
   className,
   onClick,
   onCoverImageError,
-}: Readonly<VerticalStoreGameCardProps>) {
-  const rootClassName = cn("vertical-store-game-card", className, {
-    "vertical-store-game-card--force-hovered": forceHovered,
+}: Readonly<HorizontalStoreGameCardProps>) {
+  const rootClassName = cn("horizontal-store-game-card", className, {
+    "horizontal-store-game-card--force-hovered": forceHovered,
   });
   const TitleTag = onClick == null ? "h3" : "span";
 
   const inner = (
     <>
-      <div className="vertical-store-game-card__cover">
+      <div className="horizontal-store-game-card__cover">
         {coverImageUrl ? (
           <img
             src={coverImageUrl}
@@ -45,17 +45,17 @@ export function VerticalStoreGameCard({
           />
         ) : (
           <div
-            className="vertical-store-game-card__cover-placeholder"
+            className="horizontal-store-game-card__cover-placeholder"
             aria-hidden="true"
           />
         )}
       </div>
 
-      <div className="vertical-store-game-card__body">
-        <TitleTag className="vertical-store-game-card__title">
+      <div className="horizontal-store-game-card__body">
+        <TitleTag className="horizontal-store-game-card__title">
           {gameTitle}
         </TitleTag>
-        <p className="vertical-store-game-card__subtitle">
+        <p className="horizontal-store-game-card__subtitle">
           {getDownloadSourcesLabel(downloadSourceCount)}
         </p>
       </div>
