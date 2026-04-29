@@ -584,7 +584,8 @@
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "delete_shortcut_success": "Steam shortcut deleted successfully",
     "delete_shortcut_error": "Failed to delete Steam shortcut",
-    "delete_steam_shortcut": "Delete Steam shortcut"
+    "delete_steam_shortcut": "Delete Steam shortcut",
+    "cloud_sync_saves_only": "Sync saves only for this game (if supported)"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -838,7 +839,9 @@
     "downloads": "Downloads",
     "create_shortcuts_on_download": "Create desktop and Start Menu shortcuts when a game finishes downloading",
     "default_proton_version": "Default Proton version",
-    "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override"
+    "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override",
+    "cloud_sync": "Cloud Sync",
+    "cloud_sync_saves_only": "Sync saves only (excludes configuration files for supported games)"
   },
   "notifications": {
     "download_complete": "Download complete",

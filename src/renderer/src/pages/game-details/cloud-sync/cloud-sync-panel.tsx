@@ -35,12 +35,16 @@ import { Tooltip } from "react-tooltip";
 
 interface CloudSyncPanelProps {
   automaticCloudSync: boolean;
+  cloudSyncSavesOnly: boolean;
   onToggleAutomaticCloudSync: (event: ChangeEvent<HTMLInputElement>) => void;
+  onToggleCloudSyncSavesOnly: (event: ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function CloudSyncPanel({
   automaticCloudSync,
+  cloudSyncSavesOnly,
   onToggleAutomaticCloudSync,
+  onToggleCloudSyncSavesOnly,
 }: Readonly<CloudSyncPanelProps>) {
   const [deletingArtifact, setDeletingArtifact] = useState(false);
   const [backupDownloadProgress, setBackupDownloadProgress] =
@@ -226,6 +230,12 @@ export function CloudSyncPanel({
           checked={automaticCloudSync}
           disabled={!hasActiveSubscription || !game?.executablePath}
           onChange={onToggleAutomaticCloudSync}
+        />
+        <CheckboxField
+          label={t("cloud_sync_saves_only")}
+          checked={cloudSyncSavesOnly}
+          disabled={!hasActiveSubscription}
+          onChange={onToggleCloudSyncSavesOnly}
         />
       </div>
 
