@@ -124,8 +124,11 @@ export function GeneralSettingsSection({
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
-  const transferGameLabel =
-    gameSize > 0 ? `${game.title} (${fmt(gameSize)})` : game.title;
+  const transferGameSize = gameSize > 0 ? fmt(gameSize) : null;
+  const pathSep = window.electron.platform === "win32" ? "\\" : "/";
+  const gameRoot = game.executablePath
+    ? game.executablePath.split(pathSep)[0] + pathSep
+    : null;
 
   useEffect(() => {
     if (!isTransferring) return;
@@ -278,7 +281,13 @@ export function GeneralSettingsSection({
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
             <h4 className="game-options-modal__header-description">
-              {t("transfer_game_description", { game: transferGameLabel })}
+              {t("transfer_game_description", { game: game.title })}
+              {transferGameSize && (
+                <>
+                  {" "}
+                  (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)
+                </>
+              )}
             </h4>
           </div>
 
@@ -301,6 +310,8 @@ export function GeneralSettingsSection({
                       ? Math.min((gameSize / drive.total) * 100, 100 - usedPct)
                       : 0;
 
+                  const isCurrentDrive = gameRoot === drive.root;
+
                   return (
                     <button
                       key={drive.root}
@@ -314,22 +325,42 @@ export function GeneralSettingsSection({
                       }}
                       disabled={hasInsufficientSpace}
                     >
-                      <HardDrive size={18} className="drive-card__icon" />
+                      <HardDrive
+                        size={18}
+                        className="drive-card__icon"
+                        color={isCurrentDrive ? "#4ade80" : undefined}
+                      />
                       <div className="drive-card__body">
                         <div className="drive-card__top">
-                          <span className="drive-card__label">
-                            {drive.label || drive.root}
-                          </span>
-                          <span
-                            className={`drive-card__space ${hasInsufficientSpace ? "drive-card__space--error" : ""}`}
-                          >
-                            {fmt(drive.free)} {t("transfer_free")} /{" "}
+                          <div className="drive-card__name-row">
+                            <span
+                              className={`drive-card__label ${isCurrentDrive ? "drive-card__label--current" : ""}`}
+                            >
+                              {drive.label || drive.root}
+                            </span>
+                            {isCurrentDrive && (
+                              <span className="drive-card__installed-tag">
+                                {t("transfer_installed_here")}
+                              </span>
+                            )}
+                            {hasInsufficientSpace && (
+                              <div className="drive-card__nospace-indicator">
+                                <span className="drive-card__nospace-dot" />
+                                <span className="drive-card__nospace-text">
+                                  {t("transfer_insufficient_space")}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="drive-card__space">
+                            {fmt(drive.free)} {t("transfer_free")}
+                            {" / "}
                             {fmt(drive.total)}
                           </span>
                         </div>
                         <div className="drive-card__bar">
                           <div
-                            className="drive-card__bar-used"
+                            className={`drive-card__bar-used ${hasInsufficientSpace ? "drive-card__bar-used--error" : ""}`}
                             style={{ width: `${usedPct}%` }}
                           />
                           {gamePct > 0 && (
@@ -343,11 +374,6 @@ export function GeneralSettingsSection({
                           )}
                         </div>
                       </div>
-                      {hasInsufficientSpace && (
-                        <span className="drive-card__tag">
-                          {t("transfer_insufficient_space")}
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -549,3 +575,4 @@ export function GeneralSettingsSection({
     </>
   );
 }
+// test
