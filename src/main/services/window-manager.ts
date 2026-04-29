@@ -40,6 +40,7 @@ export class WindowManager {
     sourceWindow: BrowserWindow | null;
     target: WindowMode;
   } | null = null;
+  private static pendingMainWindowHash: string | undefined;
   private static readonly modeSwitchClosingWindows =
     new WeakSet<BrowserWindow>();
 
@@ -317,6 +318,7 @@ export class WindowManager {
 
     const initialHash =
       hashOverride ?? (userPreferences?.launchToLibraryPage ? "library" : "");
+    this.pendingMainWindowHash = undefined;
 
     void this.loadMainWindowURL(initialHash);
     mainWindow.removeMenu();
@@ -434,6 +436,13 @@ export class WindowManager {
       }
 
       this.modeSwitchClosingWindows.delete(bigPictureWindow);
+
+      if (isModeSwitchClose && this.pendingModeSwitch?.target === "main") {
+        const hash = this.pendingMainWindowHash;
+        this.pendingMainWindowHash = undefined;
+        void this.createMainWindow(hash);
+        return;
+      }
 
       if (!isModeSwitchClose) {
         const userPreferences = await this.getUserPreferences();
@@ -828,10 +837,14 @@ export class WindowManager {
 
     const bigPicture = this.getBigPictureWindow();
     if (bigPicture) {
+      this.pendingMainWindowHash = hash;
       this.pendingModeSwitch = {
-        sourceWindow: bigPicture,
+        sourceWindow: null,
         target: "main",
       };
+
+      this.closeWindowForModeSwitch(bigPicture);
+      return;
     }
 
     await this.createMainWindow(hash);

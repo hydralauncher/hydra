@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 export default function Settings() {
   const navigate = useNavigate();
 
-  const handleCloseBigPicture = () => {
+  const handleOpenMainWindow = () => {
     if (IS_DESKTOP) {
-      globalThis.close();
+      void globalThis.window.electron.openMainWindow();
     } else {
       navigate("/");
     }
@@ -23,7 +23,7 @@ export default function Settings() {
         justifyContent: "center",
       }}
     >
-      <Button onClick={handleCloseBigPicture}>Close big picture</Button>
+      <Button onClick={handleOpenMainWindow}>Open main window</Button>
     </div>
   );
 }
