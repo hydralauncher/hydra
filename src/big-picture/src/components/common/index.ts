@@ -8,6 +8,7 @@ export * from "./chip";
 export * from "./divider";
 export * from "./game-card";
 export * from "./horizontal-card";
+export * from "./horizontal-library-game-card";
 export * from "./horizontal-store-game-card";
 export * from "./image-lightbox";
 export * from "./input";

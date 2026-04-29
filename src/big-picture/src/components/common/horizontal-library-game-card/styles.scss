@@ -1,28 +1,28 @@
-.vertical-game-card {
-  --vertical-game-card-progress-color: var(--alert);
-  --vertical-game-card-progress-value: 0;
+.horizontal-library-game-card {
+  --horizontal-library-game-card-progress-color: var(--alert);
+  --horizontal-library-game-card-progress-value: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 4);
   border: 1px solid transparent;
   border-radius: calc(var(--spacing-unit) * 2);
   background-color: transparent;
   outline: none;
   outline-offset: 3px;
+  overflow: hidden;
   transition:
     background-color 0.2s ease-in-out,
     border-color 0.2s ease-in-out,
     outline-color 0.2s ease-in-out;
-  overflow: hidden;
 
   &__cover {
     position: relative;
     width: 100%;
-    aspect-ratio: 268 / 400;
+    aspect-ratio: 460 / 215;
     border-radius: var(--spacing-unit);
-    overflow: hidden;
     background-color: var(--surface);
+    overflow: hidden;
 
     img,
     &-placeholder {
@@ -38,22 +38,12 @@
     &::before {
       content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 172%;
-      background: linear-gradient(
-        35deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(0, 0, 0, 0.07) 51.5%,
-        rgba(255, 255, 255, 0.15) 64%,
-        rgba(255, 255, 255, 0.1) 100%
-      );
-      transform: translateY(-36%);
-      opacity: 0.5;
-      transition:
-        opacity 0.3s ease,
-        transform 0.3s ease;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.24) 0%, transparent 50%);
+      opacity: 0.65;
+      transition: opacity 0.3s ease;
       pointer-events: none;
       z-index: 1;
     }
@@ -70,17 +60,18 @@
   }
 
   &__body {
-    width: 100%;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: calc(var(--spacing-unit) * 2);
+    gap: calc(var(--spacing-unit) * 3);
     padding: 0 0 calc(var(--spacing-unit) * 2);
     transition: padding 0.2s ease-in-out;
   }
 
   &__info {
     min-width: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 2);
@@ -121,9 +112,11 @@
   }
 
   &__progress {
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
+    flex: 1;
 
     &--placeholder {
       visibility: hidden;
@@ -137,7 +130,7 @@
     gap: var(--spacing-unit);
     color: color-mix(
       in srgb,
-      var(--vertical-game-card-progress-color) 70%,
+      var(--horizontal-library-game-card-progress-color) 70%,
       white
     );
     font-weight: 400;
@@ -145,12 +138,12 @@
 
   &__progress-track {
     position: relative;
-    width: calc(var(--spacing-unit) * 25);
+    width: calc(var(--spacing-unit) * 50);
     height: var(--spacing-unit);
     border-radius: 999px;
     background-color: color-mix(
       in srgb,
-      var(--vertical-game-card-progress-color) 20%,
+      var(--horizontal-library-game-card-progress-color) 20%,
       transparent
     );
     overflow: hidden;
@@ -160,9 +153,9 @@
       content: "";
       position: absolute;
       inset: 0 auto 0 0;
-      width: calc(100% * var(--vertical-game-card-progress-value));
+      width: calc(100% * var(--horizontal-library-game-card-progress-value));
       border-radius: inherit;
-      background-color: var(--vertical-game-card-progress-color);
+      background-color: var(--horizontal-library-game-card-progress-color);
       z-index: 1;
     }
 
@@ -178,6 +171,8 @@
   }
 
   &__action {
+    display: flex;
+    align-items: center;
     max-width: 0;
     opacity: 0;
     flex-shrink: 0;
@@ -196,16 +191,15 @@
     background-color: var(--surface);
     border-color: var(--secondary-border);
 
-    .vertical-game-card__cover::before {
+    .horizontal-library-game-card__cover::before {
       opacity: 1;
-      transform: translateY(-20%);
     }
 
-    .vertical-game-card__body {
+    .horizontal-library-game-card__body {
       padding-inline: calc(var(--spacing-unit) * 2);
     }
 
-    .vertical-game-card__action {
+    .horizontal-library-game-card__action {
       max-width: calc(var(--spacing-unit) * 11);
       opacity: 1;
       pointer-events: auto;
@@ -217,7 +211,7 @@
   }
 
   &--completed {
-    .vertical-game-card__progress-track {
+    .horizontal-library-game-card__progress-track {
       &::before {
         opacity: 0;
         inset: 0 auto 0 -62%;
@@ -234,14 +228,14 @@
           rgba(255, 255, 255, 0.03) 90%,
           rgba(255, 255, 255, 0) 100%
         );
-        animation: vertical-game-card-complete-shine 1.7s
+        animation: horizontal-library-game-card-complete-shine 1.7s
           cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
     }
   }
 }
 
-@keyframes vertical-game-card-complete-shine {
+@keyframes horizontal-library-game-card-complete-shine {
   0% {
     opacity: 0;
     transform: translateX(0);
@@ -261,8 +255,23 @@
   }
 }
 
+@media (max-width: 720px) {
+  .horizontal-library-game-card {
+    &__body {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 0 0 calc(var(--spacing-unit) * 2);
+    }
+
+    &__action {
+      align-self: flex-end;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vertical-game-card--completed .vertical-game-card__progress-track::before {
+  .horizontal-library-game-card--completed
+    .horizontal-library-game-card__progress-track::before {
     animation: none;
     opacity: 0;
   }

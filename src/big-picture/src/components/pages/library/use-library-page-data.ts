@@ -1,6 +1,9 @@
 import type { LibraryGame } from "@types";
 import { useDeferredValue, useMemo } from "react";
-import { getFirstLibraryFocusGridItemId } from "./navigation";
+import {
+  getFirstLibraryFocusGridItemId,
+  getFirstLibraryFocusListItemId,
+} from "./navigation";
 import {
   filterLibraryByTab,
   getLastPlayedGames,
@@ -39,10 +42,15 @@ export function useLibraryPageData(
     return getFirstLibraryFocusGridItemId(filteredLibrary[0]?.id);
   }, [filteredLibrary]);
 
+  const firstListItemId = useMemo(() => {
+    return getFirstLibraryFocusListItemId(filteredLibrary[0]?.id);
+  }, [filteredLibrary]);
+
   return {
     filteredLibrary,
     filterCounts,
     firstGridItemId,
+    firstListItemId,
     lastPlayedGames,
   };
 }

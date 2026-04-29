@@ -10,3 +10,8 @@
   gap: calc(var(--spacing-unit) * 6);
   padding-bottom: calc(var(--spacing-unit) * 8);
 }
+
+.library-page__content-transition {
+  width: 100%;
+  will-change: opacity, transform;
+}

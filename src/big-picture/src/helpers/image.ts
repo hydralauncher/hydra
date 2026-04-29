@@ -53,6 +53,19 @@ export function getGameImageSources(game: LibraryGame) {
     });
 }
 
+export function getGameLandscapeImageSources(game: LibraryGame) {
+  return [
+    game.libraryImageUrl,
+    game.coverImageUrl,
+    game.customIconUrl,
+    game.iconUrl,
+  ]
+    .map((source) => resolveImageSource(source))
+    .filter((source, index, array) => {
+      return source !== "" && array.indexOf(source) === index;
+    });
+}
+
 export function getGameCoverImageSource(game: GameCoverImageSource) {
   return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
 }

@@ -1,6 +1,10 @@
 import type { LibraryGame } from "@types";
 
 export type LibraryFilterTab = "all" | "favorites" | "completed";
+export type LibraryViewMode = "grid" | "list";
+
+export const LIBRARY_VIEW_MODE_STORAGE_KEY =
+  "hydra:big-picture:library-view-mode";
 
 export interface LibraryFilterCounts {
   all: number;
@@ -96,4 +100,10 @@ export function getHeroPlaytimeLabel(playTimeInMilliseconds?: number | null) {
   );
 
   return `${totalHours}h`;
+}
+
+export function isLibraryViewMode(
+  value: string | null | undefined
+): value is LibraryViewMode {
+  return value === "grid" || value === "list";
 }

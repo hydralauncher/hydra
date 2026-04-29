@@ -18,30 +18,38 @@ import {
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
 } from "../navigation";
-import type { LibraryFilterCounts, LibraryFilterTab } from "../library-data";
+import type {
+  LibraryFilterCounts,
+  LibraryFilterTab,
+  LibraryViewMode,
+} from "../library-data";
 import type { TabsItem } from "../../../common";
 
 export interface LibraryFiltersProps {
   selectedTab: LibraryFilterTab;
   onSelectedTabChange: (tab: LibraryFilterTab) => void;
+  viewMode: LibraryViewMode;
+  onViewModeChange: (viewMode: LibraryViewMode) => void;
   search: string;
   onSearchChange: (search: string) => void;
   counts: LibraryFilterCounts;
-  firstGridItemId?: string | null;
+  firstContentItemId?: string | null;
 }
 
 export function LibraryFilters({
   selectedTab,
   onSelectedTabChange,
+  viewMode,
+  onViewModeChange,
   search,
   onSearchChange,
   counts,
-  firstGridItemId = null,
+  firstContentItemId = null,
 }: Readonly<LibraryFiltersProps>) {
-  const tabDownOverride = firstGridItemId
+  const tabDownOverride = firstContentItemId
     ? ({
         type: "item",
-        itemId: firstGridItemId,
+        itemId: firstContentItemId,
       } as const)
     : ({
         type: "block",
@@ -187,8 +195,11 @@ export function LibraryFilters({
             focusId={LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID}
             focusNavigationOverrides={listViewNavigationOverrides}
             className="library-filters__view-button library-filters__view-button--list"
-            variant="secondary"
+            variant={viewMode === "list" ? "primary" : "secondary"}
             size="icon"
+            aria-label="List view"
+            aria-pressed={viewMode === "list"}
+            onClick={() => onViewModeChange("list")}
           >
             <ListDashesIcon
               className="library-filters__view-icon library-filters__view-icon--list"
@@ -200,8 +211,11 @@ export function LibraryFilters({
             focusId={LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID}
             focusNavigationOverrides={gridViewNavigationOverrides}
             className="library-filters__view-button library-filters__view-button--grid"
-            variant="secondary"
+            variant={viewMode === "grid" ? "primary" : "secondary"}
             size="icon"
+            aria-label="Grid view"
+            aria-pressed={viewMode === "grid"}
+            onClick={() => onViewModeChange("grid")}
           >
             <SquaresFourIcon
               className="library-filters__view-icon library-filters__view-icon--grid"

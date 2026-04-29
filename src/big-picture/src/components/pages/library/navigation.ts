@@ -13,6 +13,7 @@ export const LIBRARY_FILTERS_ALL_TAB_ID = "library-filters-tab-all";
 export const LIBRARY_FILTERS_FAVORITES_TAB_ID = "library-filters-tab-favorites";
 export const LIBRARY_FILTERS_COMPLETED_TAB_ID = "library-filters-tab-completed";
 export const LIBRARY_FOCUS_GRID_REGION_ID = "library-focus-grid";
+export const LIBRARY_FOCUS_LIST_REGION_ID = "library-focus-list";
 
 export function getLibraryFocusGridItemId(gameId: string) {
   return `library-focus-grid-item-${gameId}`;
@@ -22,4 +23,14 @@ export function getFirstLibraryFocusGridItemId(gameId?: string | null) {
   if (!gameId) return null;
 
   return getLibraryFocusGridItemId(gameId);
+}
+
+export function getLibraryFocusListItemId(gameId: string) {
+  return `library-focus-list-item-${gameId}`;
+}
+
+export function getFirstLibraryFocusListItemId(gameId?: string | null) {
+  if (!gameId) return null;
+
+  return getLibraryFocusListItemId(gameId);
 }
