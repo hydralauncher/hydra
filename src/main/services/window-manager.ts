@@ -40,6 +40,7 @@ export class WindowManager {
     sourceWindow: BrowserWindow | null;
     target: WindowMode;
   } | null = null;
+  private static lastActiveWindowMode: WindowMode | null = null;
   private static pendingMainWindowHash: string | undefined;
   private static readonly modeSwitchClosingWindows =
     new WeakSet<BrowserWindow>();
@@ -142,29 +143,21 @@ export class WindowManager {
     return null;
   }
 
-  private static getOpenAppWindow() {
-    const visibleMode = this.getVisibleWindowMode();
-
-    if (visibleMode === "big-picture") {
-      return this.getBigPictureWindow();
-    }
-
-    if (visibleMode === "main") {
-      return this.getMainWindow();
-    }
-
-    return this.getBigPictureWindow() ?? this.getMainWindow();
+  private static setLastActiveWindowMode(mode: WindowMode) {
+    this.lastActiveWindowMode = mode;
   }
 
-  private static async getCurrentOrPreferredMode() {
-    const visibleMode = this.getVisibleWindowMode();
+  private static getCurrentOrLastMode() {
+    return this.getVisibleWindowMode() ?? this.lastActiveWindowMode;
+  }
 
-    if (visibleMode) {
-      return visibleMode;
-    }
-
+  private static async getColdStartMode() {
     const userPreferences = await this.getUserPreferences();
     return userPreferences?.launchInBigPicture ? "big-picture" : "main";
+  }
+
+  private static async getResumeWindowMode() {
+    return this.getCurrentOrLastMode() ?? (await this.getColdStartMode());
   }
 
   private static focusWindow(window: BrowserWindow) {
@@ -185,6 +178,23 @@ export class WindowManager {
     window.close();
   }
 
+  private static closeWindowAndWait(
+    window: BrowserWindow | null,
+    markAsModeSwitch: boolean = false
+  ) {
+    if (!window || window.isDestroyed()) return Promise.resolve();
+
+    return new Promise<void>((resolve) => {
+      window.once("closed", () => resolve());
+
+      if (markAsModeSwitch) {
+        this.modeSwitchClosingWindows.add(window);
+      }
+
+      window.close();
+    });
+  }
+
   private static completeModeSwitch(target: WindowMode) {
     if (this.pendingModeSwitch?.target !== target) return;
 
@@ -200,6 +210,20 @@ export class WindowManager {
 
   public static isAppWindowVisible() {
     return this.getVisibleWindowMode() !== null;
+  }
+
+  public static hideActiveAppWindow() {
+    const visibleMode = this.getVisibleWindowMode();
+
+    if (visibleMode === "main") {
+      this.setLastActiveWindowMode("main");
+      this.getMainWindow()?.hide();
+    } else if (visibleMode === "big-picture") {
+      this.setLastActiveWindowMode("big-picture");
+      this.getBigPictureWindow()?.hide();
+    }
+
+    void this.refreshSystemTray();
   }
 
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
@@ -326,8 +350,14 @@ export class WindowManager {
     mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging) mainWindow.webContents.openDevTools();
 
+      WindowManager.setLastActiveWindowMode("main");
       WindowManager.focusWindow(mainWindow);
       WindowManager.completeModeSwitch("main");
+      void WindowManager.refreshSystemTray();
+    });
+
+    mainWindow.on("focus", () => {
+      WindowManager.setLastActiveWindowMode("main");
       void WindowManager.refreshSystemTray();
     });
 
@@ -378,29 +408,7 @@ export class WindowManager {
     return mainWindow;
   }
 
-  public static async openBigPictureWindow() {
-    const bigPicture = this.getBigPictureWindow();
-
-    if (bigPicture) {
-      this.focusWindow(bigPicture);
-
-      const mainWindow = this.getMainWindow();
-      if (mainWindow) {
-        this.closeWindowForModeSwitch(mainWindow);
-      }
-
-      void this.refreshSystemTray();
-      return;
-    }
-
-    const mainWindow = this.getMainWindow();
-    if (mainWindow) {
-      this.pendingModeSwitch = {
-        sourceWindow: mainWindow,
-        target: "big-picture",
-      };
-    }
-
+  private static async createBigPictureWindow() {
     this.bigPicture = new BrowserWindow({
       fullscreen: true,
       backgroundColor: "#0a0a0a",
@@ -422,8 +430,14 @@ export class WindowManager {
     void this.loadWindowURL(bigPictureWindow, "big-picture");
 
     bigPictureWindow.once("ready-to-show", () => {
+      this.setLastActiveWindowMode("big-picture");
       this.focusWindow(bigPictureWindow);
       this.completeModeSwitch("big-picture");
+      void this.refreshSystemTray();
+    });
+
+    bigPictureWindow.on("focus", () => {
+      this.setLastActiveWindowMode("big-picture");
       void this.refreshSystemTray();
     });
 
@@ -454,6 +468,39 @@ export class WindowManager {
 
       void this.refreshSystemTray();
     });
+
+    return bigPictureWindow;
+  }
+
+  public static async openBigPictureWindow() {
+    const bigPicture = this.getBigPictureWindow();
+
+    if (bigPicture?.isVisible()) {
+      this.setLastActiveWindowMode("big-picture");
+      this.focusWindow(bigPicture);
+
+      const mainWindow = this.getMainWindow();
+      if (mainWindow) {
+        this.closeWindowForModeSwitch(mainWindow);
+      }
+
+      void this.refreshSystemTray();
+      return;
+    }
+
+    const mainWindow = this.getMainWindow();
+    if (mainWindow) {
+      this.pendingModeSwitch = {
+        sourceWindow: mainWindow,
+        target: "big-picture",
+      };
+    }
+
+    if (bigPicture) {
+      await this.closeWindowAndWait(bigPicture, true);
+    }
+
+    await this.createBigPictureWindow();
   }
 
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
@@ -789,31 +836,38 @@ export class WindowManager {
     }
   }
 
-  public static async openPreferredWindow() {
-    const existingWindow = this.getOpenAppWindow();
-
-    if (existingWindow) {
-      this.focusWindow(existingWindow);
-
-      const mainWindow = this.getMainWindow();
-      const bigPicture = this.getBigPictureWindow();
-
-      if (existingWindow === bigPicture && mainWindow) {
-        this.closeWindowForModeSwitch(mainWindow);
-      } else if (existingWindow === mainWindow && bigPicture) {
-        this.closeWindowForModeSwitch(bigPicture);
-      }
-
-      return;
-    }
-
-    const mode = await this.getCurrentOrPreferredMode();
+  public static async openStartupWindow() {
+    const mode = await this.getColdStartMode();
 
     if (mode === "big-picture") {
       await this.openBigPictureWindow();
-    } else {
-      await this.openMainWindow();
+      return;
     }
+
+    await this.openMainWindow();
+  }
+
+  public static async resumeAppWindow() {
+    const visibleMode = this.getVisibleWindowMode();
+
+    if (visibleMode === "big-picture") {
+      await this.openBigPictureWindow();
+      return;
+    }
+
+    if (visibleMode === "main") {
+      await this.openMainWindow();
+      return;
+    }
+
+    const mode = await this.getResumeWindowMode();
+
+    if (mode === "big-picture") {
+      await this.openBigPictureWindow();
+      return;
+    }
+
+    await this.openMainWindow();
   }
 
   public static async openMainWindow(hash?: string) {
@@ -824,6 +878,7 @@ export class WindowManager {
         await this.loadMainWindowURL(hash);
       }
 
+      this.setLastActiveWindowMode("main");
       this.focusWindow(mainWindow);
 
       const bigPicture = this.getBigPictureWindow();
@@ -855,11 +910,13 @@ export class WindowManager {
   }
 
   private static async buildSystemTrayMenu(language: string) {
-    const currentOrPreferredMode = await this.getCurrentOrPreferredMode();
-    const shouldOpenMainWindow = currentOrPreferredMode === "big-picture";
-    const toggleKey = shouldOpenMainWindow
-      ? "open_main_window"
-      : "open_big_picture";
+    const currentOrLastMode = this.getCurrentOrLastMode();
+    const toggleKey =
+      currentOrLastMode === "big-picture"
+        ? "exit_big_picture"
+        : currentOrLastMode === "main"
+          ? "open_big_picture"
+          : null;
 
     const games = await gamesSublevel
       .values()
@@ -894,23 +951,27 @@ export class WindowManager {
         }),
         type: "normal",
         click: () => {
-          void this.openPreferredWindow();
+          void this.resumeAppWindow();
         },
       },
-      {
-        label: t(toggleKey, {
-          ns: "system_tray",
-          lng: language,
-        }),
-        type: "normal",
-        click: () => {
-          if (shouldOpenMainWindow) {
-            void this.openMainWindow();
-          } else {
-            void this.openBigPictureWindow();
-          }
-        },
-      },
+      ...(toggleKey
+        ? [
+            {
+              label: t(toggleKey, {
+                ns: "system_tray",
+                lng: language,
+              }),
+              type: "normal" as const,
+              click: () => {
+                if (currentOrLastMode === "big-picture") {
+                  void this.openMainWindow();
+                } else {
+                  void this.openBigPictureWindow();
+                }
+              },
+            },
+          ]
+        : []),
       {
         type: "separator",
       },
@@ -966,7 +1027,7 @@ export class WindowManager {
       await this.refreshSystemTray();
 
       tray.addListener("double-click", () => {
-        void this.openPreferredWindow();
+        void this.resumeAppWindow();
       });
 
       tray.addListener("right-click", showContextMenu);
@@ -974,7 +1035,7 @@ export class WindowManager {
       await this.refreshSystemTray();
 
       tray.addListener("click", () => {
-        void this.openPreferredWindow();
+        void this.resumeAppWindow();
       });
 
       tray.addListener("right-click", showContextMenu);
