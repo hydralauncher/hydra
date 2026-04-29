@@ -863,6 +863,8 @@
   },
   "system_tray": {
     "open": "Открыть Hydra",
+    "open_big_picture": "Открыть Big Picture",
+    "open_main_window": "Открыть главное окно",
     "quit": "Выйти"
   },
   "game_card": {
