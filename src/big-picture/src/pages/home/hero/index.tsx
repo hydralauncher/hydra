@@ -14,7 +14,10 @@ import {
 } from "../../../components";
 import { useLibraryLaunchGame } from "../../../components/pages/library/use-library-launch-game";
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
-import { getBigPictureGameDetailsPath } from "../../../helpers";
+import {
+  getBigPictureGameDetailsPath,
+  getItemFocusTarget,
+} from "../../../helpers";
 import { useDominantColor, useLibraryGameState } from "../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../layout";
 import type { FocusOverrideTarget, FocusOverrides } from "../../../services";
@@ -111,10 +114,7 @@ export function HomePageHero({
     };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: HOME_HERO_OPEN_GAME_PAGE_ID,
-    },
+    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     right: {
       type: "block",
     },
@@ -122,10 +122,7 @@ export function HomePageHero({
   };
 
   const downloadOrPlayNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: HOME_HERO_OPEN_GAME_PAGE_ID,
-    },
+    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     right: {
       type: "block",
     },
@@ -133,14 +130,8 @@ export function HomePageHero({
   };
 
   const openGamePageNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: secondActionFocusId,
-    },
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+    right: getItemFocusTarget(secondActionFocusId),
     down: heroDownNavigationTarget,
   };
 
