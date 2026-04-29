@@ -820,6 +820,7 @@
   "system_tray": {
     "open": "Abrir Hydra",
     "open_big_picture": "Abrir Big Picture",
+    "exit_big_picture": "Sair do Big Picture",
     "open_main_window": "Abrir janela principal",
     "quit": "Fechar"
   },

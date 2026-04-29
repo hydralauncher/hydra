@@ -149,7 +149,7 @@ app.whenReady().then(async () => {
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
   if (!process.argv.includes("--hidden") && !deepLinkArg && !isRunDeepLink) {
-    await WindowManager.openPreferredWindow();
+    await WindowManager.openStartupWindow();
   }
 
   WindowManager.createNotificationWindow();
@@ -180,7 +180,7 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
 
   // Only open a visible app window if the user disabled hiding on game start.
   if (!userPreferences?.hideToTrayOnGameStart) {
-    await WindowManager.openPreferredWindow();
+    await WindowManager.resumeAppWindow();
   }
 
   await launchGame({
@@ -248,7 +248,7 @@ app.on("second-instance", (_event, commandLine) => {
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
 
   if (!deepLink && !isRunDeepLink) {
-    void WindowManager.openPreferredWindow();
+    void WindowManager.resumeAppWindow();
   }
 
   void handleDeepLinkPath(deepLink);
@@ -284,8 +284,8 @@ app.on("before-quit", async (e) => {
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (!WindowManager.hasOpenAppWindow()) {
-    void WindowManager.openPreferredWindow();
+  if (!WindowManager.isAppWindowVisible()) {
+    void WindowManager.resumeAppWindow();
   }
 });
 
