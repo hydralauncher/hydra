@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -148,15 +148,15 @@ app.whenReady().then(async () => {
   );
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
-  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
-    WindowManager.createMainWindow();
+  if (!process.argv.includes("--hidden") && !deepLinkArg && !isRunDeepLink) {
+    await WindowManager.openPreferredWindow();
   }
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
 
   if (deepLinkArg) {
-    handleDeepLinkPath(deepLinkArg);
+    await handleDeepLinkPath(deepLinkArg);
   }
 });
 
@@ -178,9 +178,9 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
     { valueEncoding: "json" }
   );
 
-  // Only open main window if setting is disabled
+  // Only open a visible app window if the user disabled hiding on game start.
   if (!userPreferences?.hideToTrayOnGameStart) {
-    WindowManager.createMainWindow();
+    await WindowManager.openPreferredWindow();
   }
 
   await launchGame({
@@ -191,7 +191,7 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
   });
 };
 
-const handleDeepLinkPath = (uri?: string) => {
+const handleDeepLinkPath = async (uri?: string) => {
   if (!uri) return;
 
   try {
@@ -202,14 +202,14 @@ const handleDeepLinkPath = (uri?: string) => {
       const objectId = url.searchParams.get("objectId");
 
       if (shop && objectId) {
-        handleRunGame(shop, objectId);
+        void handleRunGame(shop, objectId);
       }
 
       return;
     }
 
     if (url.host === "install-source") {
-      WindowManager.redirect(`settings${url.search}`);
+      await WindowManager.redirect(`settings${url.search}`);
       return;
     }
 
@@ -217,7 +217,7 @@ const handleDeepLinkPath = (uri?: string) => {
       const userId = url.searchParams.get("userId");
 
       if (userId) {
-        WindowManager.redirect(`profile/${userId}`);
+        await WindowManager.redirect(`profile/${userId}`);
       }
 
       return;
@@ -229,7 +229,7 @@ const handleDeepLinkPath = (uri?: string) => {
       const authorName = url.searchParams.get("authorName");
 
       if (themeName && authorId && authorName) {
-        WindowManager.redirect(
+        await WindowManager.redirect(
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
@@ -247,22 +247,15 @@ app.on("second-instance", (_event, commandLine) => {
   // Check if this is a "run" deep link - don't show main window in that case
   const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
 
-  if (!isRunDeepLink) {
-    if (WindowManager.mainWindow) {
-      if (WindowManager.mainWindow.isMinimized())
-        WindowManager.mainWindow.restore();
-
-      WindowManager.mainWindow.focus();
-    } else {
-      WindowManager.createMainWindow();
-    }
+  if (!deepLink && !isRunDeepLink) {
+    void WindowManager.openPreferredWindow();
   }
 
-  handleDeepLinkPath(deepLink);
+  void handleDeepLinkPath(deepLink);
 });
 
 app.on("open-url", (_event, url) => {
-  handleDeepLinkPath(url);
+  void handleDeepLinkPath(url);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -291,8 +284,8 @@ app.on("before-quit", async (e) => {
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    WindowManager.createMainWindow();
+  if (!WindowManager.hasOpenAppWindow()) {
+    void WindowManager.openPreferredWindow();
   }
 });
 
