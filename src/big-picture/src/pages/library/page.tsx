@@ -1,6 +1,12 @@
 import type { LibraryGame } from "@types";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
 import { useGameCollections, useLibrary } from "../../hooks";
@@ -126,9 +132,13 @@ export default function LibraryPage() {
     firstListItemId,
     lastPlayedGames,
   } = useLibraryPageData(library, selectedFilterTab, search, sortBy, filterBy);
+
+  /** Must change when sorting, secondary filter or search updates so grid/list fades. */
+  const deferredSearchTransition = useDeferredValue(search);
+
   const firstContentItemId =
     viewMode === "list" ? firstListItemId : firstGridItemId;
-  const contentTransitionKey = `${selectedFilterTab}:${viewMode}`;
+  const contentTransitionKey = `${selectedFilterTab}:${viewMode}:${sortBy}:${filterBy}:${deferredSearchTransition}`;
   const previousContentTransitionKeyRef = useRef(contentTransitionKey);
   const shouldAnimateContentChange =
     hasMountedContentRef.current &&
