@@ -40,7 +40,8 @@ export class WindowManager {
     sourceWindow: BrowserWindow | null;
     target: WindowMode;
   } | null = null;
-  private static readonly modeSwitchClosingWindows = new WeakSet<BrowserWindow>();
+  private static readonly modeSwitchClosingWindows =
+    new WeakSet<BrowserWindow>();
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -321,8 +322,7 @@ export class WindowManager {
     mainWindow.removeMenu();
 
     mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged || isStaging)
-        mainWindow.webContents.openDevTools();
+      if (!app.isPackaged || isStaging) mainWindow.webContents.openDevTools();
 
       WindowManager.focusWindow(mainWindow);
       WindowManager.completeModeSwitch("main");
@@ -354,7 +354,10 @@ export class WindowManager {
 
       const latestUserPreferences = await this.getUserPreferences();
 
-      if (latestUserPreferences?.preferQuitInsteadOfHiding && !isModeSwitchClose) {
+      if (
+        latestUserPreferences?.preferQuitInsteadOfHiding &&
+        !isModeSwitchClose
+      ) {
         app.quit();
       }
 
@@ -423,7 +426,8 @@ export class WindowManager {
     });
 
     bigPictureWindow.on("closed", async () => {
-      const isModeSwitchClose = this.modeSwitchClosingWindows.has(bigPictureWindow);
+      const isModeSwitchClose =
+        this.modeSwitchClosingWindows.has(bigPictureWindow);
 
       if (this.bigPicture === bigPictureWindow) {
         this.bigPicture = null;
