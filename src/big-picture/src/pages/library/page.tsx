@@ -17,7 +17,6 @@ import {
   LibraryFilters,
   LibraryFocusList,
   LibraryGameContextMenu,
-  GameSettingsModal,
   LibraryHero,
   VerticalFocusGroup,
   LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
@@ -36,7 +35,6 @@ import {
 import { logger } from "@renderer/logger";
 
 import { getBigPictureGameDetailsPath } from "../../helpers";
-import { ConfirmationModal } from "../../components/pages/library/settings-modal/submodals";
 
 import "./page.scss";
 
@@ -45,11 +43,6 @@ interface GameContextMenuState {
   visible: boolean;
   position: { x: number; y: number };
   restoreFocusId: string | null;
-}
-
-interface GameConfirmationState {
-  type: "remove-files" | "remove-library";
-  game: LibraryGame;
 }
 
 const DEFAULT_MENU_POSITION = { x: 0, y: 0 };
@@ -83,7 +76,7 @@ function getInitialLibraryStoredValue<TValue extends string>(
   validator: (value: string | null | undefined) => value is TValue,
   fallbackValue: TValue
 ) {
-  if (typeof globalThis.window === "undefined") {
+  if (globalThis.window === undefined) {
     return fallbackValue;
   }
 
@@ -100,7 +93,7 @@ export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
-  const { collections, loadCollections } = useGameCollections();
+  const { collections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
     useState<LibraryFilterTab>("all");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
@@ -113,7 +106,6 @@ export default function LibraryPage() {
     getInitialLibrarySecondaryFilter
   );
   const [search, setSearch] = useState("");
-  const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
   const [contextMenuState, setContextMenuState] =
     useState<GameContextMenuState>({
       game: null,
@@ -121,8 +113,6 @@ export default function LibraryPage() {
       position: DEFAULT_MENU_POSITION,
       restoreFocusId: null,
     });
-  const [pendingConfirmation, setPendingConfirmation] =
-    useState<GameConfirmationState | null>(null);
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
   const {
@@ -143,11 +133,6 @@ export default function LibraryPage() {
   const shouldAnimateContentChange =
     hasMountedContentRef.current &&
     previousContentTransitionKeyRef.current !== contentTransitionKey;
-
-  const refreshLibraryData = useCallback(async () => {
-    await Promise.all([updateLibrary(), loadCollections()]);
-    globalThis.window.dispatchEvent(new Event("library-update"));
-  }, [loadCollections, updateLibrary]);
 
   const handleOpenGameContextMenu = useCallback(
     (
@@ -188,48 +173,35 @@ export default function LibraryPage() {
     [navigate]
   );
 
+  const logOptionsPlaceholder = useCallback(
+    (game: LibraryGame, source: "library-hero" | "library-context-menu") => {
+      console.log("big-picture options placeholder", {
+        source,
+        id: game.id,
+        objectId: game.objectId,
+        title: game.title,
+      });
+    },
+    []
+  );
+
   const handleRequestRemoveFiles = useCallback((game: LibraryGame) => {
-    setPendingConfirmation({
-      type: "remove-files",
-      game,
+    console.log("big-picture library uninstall placeholder", {
+      source: "library-context-menu",
+      id: game.id,
+      objectId: game.objectId,
+      title: game.title,
     });
   }, []);
 
   const handleRequestRemoveFromLibrary = useCallback((game: LibraryGame) => {
-    setPendingConfirmation({
-      type: "remove-library",
-      game,
+    console.log("big-picture library remove-from-library placeholder", {
+      source: "library-context-menu",
+      id: game.id,
+      objectId: game.objectId,
+      title: game.title,
     });
   }, []);
-
-  const handleConfirmRemoveFiles = useCallback(async () => {
-    if (pendingConfirmation?.type !== "remove-files") return;
-
-    await globalThis.window.electron.deleteGameFolder(
-      pendingConfirmation.game.shop,
-      pendingConfirmation.game.objectId
-    );
-    await refreshLibraryData();
-  }, [pendingConfirmation, refreshLibraryData]);
-
-  const handleConfirmRemoveFromLibrary = useCallback(async () => {
-    if (pendingConfirmation?.type !== "remove-library") return;
-
-    const { game } = pendingConfirmation;
-
-    if (game.download?.status === "active") {
-      await globalThis.window.electron.cancelGameDownload(
-        game.shop,
-        game.objectId
-      );
-    }
-
-    await globalThis.window.electron.removeGameFromLibrary(
-      game.shop,
-      game.objectId
-    );
-    await refreshLibraryData();
-  }, [pendingConfirmation, refreshLibraryData]);
 
   useEffect(() => {
     updateLibrary();
@@ -310,11 +282,8 @@ export default function LibraryPage() {
         <LibraryHero
           favoriteLoadingGameId={favoriteLoadingGameId}
           lastPlayedGames={lastPlayedGames}
-          onOpenGameSettings={(game) => {
-            logger.log("Library hero settings", {
-              objectId: game.objectId,
-            });
-            setSettingsGame(game);
+          onOpenOptions={(game) => {
+            logOptionsPlaceholder(game, "library-hero");
           }}
           onToggleFavorite={toggleFavorite}
         />
@@ -386,10 +355,7 @@ export default function LibraryPage() {
         visible={contextMenuState.visible}
         position={contextMenuState.position}
         restoreFocusId={contextMenuState.restoreFocusId}
-        isFavoriteLoading={
-          contextMenuState.game != null &&
-          favoriteLoadingGameId === contextMenuState.game.id
-        }
+        isFavoriteLoading={favoriteLoadingGameId === contextMenuState.game?.id}
         onClose={handleCloseGameContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onOpenGamePage={handleOpenGamePage}
@@ -403,42 +369,10 @@ export default function LibraryPage() {
           logger.log("library-context-menu share", { objectId: game.objectId });
         }}
         onOptions={(game) => {
-          setSettingsGame(game);
+          logOptionsPlaceholder(game, "library-context-menu");
         }}
         onUninstall={handleRequestRemoveFiles}
         onRemoveFromLibrary={handleRequestRemoveFromLibrary}
-      />
-
-      <ConfirmationModal
-        visible={pendingConfirmation?.type === "remove-files"}
-        title="Uninstall?"
-        description="This deletes the downloaded game files from disk."
-        confirmLabel="Uninstall"
-        danger
-        onClose={() => setPendingConfirmation(null)}
-        onConfirm={handleConfirmRemoveFiles}
-      />
-
-      <ConfirmationModal
-        visible={pendingConfirmation?.type === "remove-library"}
-        title="Remove from library?"
-        description={`Remove ${
-          pendingConfirmation?.game.title ?? "this game"
-        } from your library. Downloaded files will not be deleted.`}
-        confirmLabel="Remove"
-        danger
-        onClose={() => setPendingConfirmation(null)}
-        onConfirm={handleConfirmRemoveFromLibrary}
-      />
-
-      <GameSettingsModal
-        visible={settingsGame !== null}
-        game={settingsGame}
-        onClose={() => setSettingsGame(null)}
-        onGameUpdated={(updatedGame) => {
-          setSettingsGame(updatedGame);
-          updateLibrary();
-        }}
       />
     </section>
   );

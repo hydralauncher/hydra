@@ -42,11 +42,9 @@ import {
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
-  GameSettingsModal,
   useLibraryFavorite,
   useLibraryLaunchGame,
 } from "../../components/pages/library";
-import { ConfirmationModal } from "../../components/pages/library/settings-modal/submodals";
 import { IS_DESKTOP } from "../../constants";
 import { useGameCollections, useLibrary } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
@@ -64,11 +62,6 @@ interface HomeCatalogMenuState {
   visible: boolean;
   position: { x: number; y: number };
   restoreFocusId: string | null;
-}
-
-interface HomePendingConfirmationState {
-  type: "remove-files" | "remove-library";
-  game: LibraryGame;
 }
 
 export default function Home() {
@@ -110,58 +103,35 @@ export default function Home() {
     logger.log(`Big Picture library context menu share: ${game.objectId}`);
   }, []);
 
-  const [settingsGame, setSettingsGame] = useState<LibraryGame | null>(null);
-
   const handleLibraryOptionsFromMenu = useCallback((game: LibraryGame) => {
-    setSettingsGame(game);
+    console.log("big-picture options placeholder", {
+      source: "home-context-menu",
+      id: game.id,
+      objectId: game.objectId,
+      title: game.title,
+    });
   }, []);
 
-  const [pendingConfirmation, setPendingConfirmation] =
-    useState<HomePendingConfirmationState | null>(null);
-
   const handleRequestRemoveFilesFromMenu = useCallback((game: LibraryGame) => {
-    setPendingConfirmation({ type: "remove-files", game });
+    console.log("big-picture home uninstall placeholder", {
+      source: "home-context-menu",
+      id: game.id,
+      objectId: game.objectId,
+      title: game.title,
+    });
   }, []);
 
   const handleRequestRemoveFromLibraryFromMenu = useCallback(
     (game: LibraryGame) => {
-      setPendingConfirmation({ type: "remove-library", game });
+      console.log("big-picture home remove-from-library placeholder", {
+        source: "home-context-menu",
+        id: game.id,
+        objectId: game.objectId,
+        title: game.title,
+      });
     },
     []
   );
-
-  const handleConfirmRemoveFiles = useCallback(async () => {
-    if (pendingConfirmation?.type !== "remove-files") return;
-
-    await globalThis.window.electron.deleteGameFolder(
-      pendingConfirmation.game.shop,
-      pendingConfirmation.game.objectId
-    );
-    await refreshLibraryData();
-  }, [pendingConfirmation, refreshLibraryData]);
-
-  const handleConfirmRemoveFromLibrary = useCallback(async () => {
-    if (pendingConfirmation?.type !== "remove-library") return;
-
-    const { game } = pendingConfirmation;
-
-    if (game.download?.status === "active") {
-      await globalThis.window.electron.cancelGameDownload(
-        game.shop,
-        game.objectId
-      );
-    }
-
-    await globalThis.window.electron.removeGameFromLibrary(
-      game.shop,
-      game.objectId
-    );
-    await refreshLibraryData();
-  }, [pendingConfirmation, refreshLibraryData]);
-
-  const handleCloseConfirmation = useCallback(() => {
-    setPendingConfirmation(null);
-  }, []);
 
   const [menuState, setMenuState] = useState<HomeCatalogMenuState>({
     catalogGame: null,
@@ -503,7 +473,7 @@ export default function Home() {
           getItemNavigationOverrides={getWeeklyGameNavigationOverrides}
           onCarouselItemOpenContextMenu={openCatalogMenu}
           onItemActivate={(game) => {
-            void navigate(getBigPictureGameDetailsPath(game));
+            navigate(getBigPictureGameDetailsPath(game));
           }}
           showRightFade
         />
@@ -516,7 +486,7 @@ export default function Home() {
           getItemNavigationOverrides={getHotGameNavigationOverrides}
           onCarouselItemOpenContextMenu={openCatalogMenu}
           onItemActivate={(game) => {
-            void navigate(getBigPictureGameDetailsPath(game));
+            navigate(getBigPictureGameDetailsPath(game));
           }}
           showRightFade
         />
@@ -566,7 +536,7 @@ export default function Home() {
                     key={itemId}
                     actions={{
                       primary: () => {
-                        void navigate(getBigPictureGameDetailsPath(game));
+                        navigate(getBigPictureGameDetailsPath(game));
                       },
                       secondary: () => {
                         openChallengeContextMenuSecondary();
@@ -601,40 +571,6 @@ export default function Home() {
             menuItems.length > 0
           }
           onClose={closeCatalogMenu}
-        />
-
-        <ConfirmationModal
-          confirmLabel="Uninstall"
-          danger
-          description="This deletes the downloaded game files from disk."
-          onClose={handleCloseConfirmation}
-          onConfirm={handleConfirmRemoveFiles}
-          visible={pendingConfirmation?.type === "remove-files"}
-          title="Uninstall?"
-        />
-
-        <ConfirmationModal
-          confirmLabel="Remove"
-          danger
-          description={`Remove ${
-            pendingConfirmation?.type === "remove-library"
-              ? (pendingConfirmation.game.title ?? "this game")
-              : "this game"
-          } from your library. Downloaded files will not be deleted.`}
-          onClose={handleCloseConfirmation}
-          onConfirm={handleConfirmRemoveFromLibrary}
-          visible={pendingConfirmation?.type === "remove-library"}
-          title="Remove from library?"
-        />
-
-        <GameSettingsModal
-          game={settingsGame}
-          visible={settingsGame !== null}
-          onClose={() => setSettingsGame(null)}
-          onGameUpdated={(updatedGame) => {
-            setSettingsGame(updatedGame);
-            void updateLibrary();
-          }}
         />
       </section>
     </VerticalFocusGroup>
