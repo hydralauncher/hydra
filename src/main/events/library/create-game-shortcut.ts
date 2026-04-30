@@ -32,8 +32,19 @@ const downloadIcon = async (
   objectId: string,
   iconUrls: (string | null | undefined)[]
 ): Promise<string | null> => {
+  const validUrls = iconUrls.filter(isValidUrl);
+
+  if (validUrls.length === 0) {
+    logger.warn("No valid icon URLs found for game shortcut");
+    return null;
+  }
+
+  const urlHash = Buffer.from(validUrls[0])
+    .toString("base64")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .substring(0, 16);
   const iconDir = path.join(ASSETS_PATH, `${shop}-${objectId}`);
-  const iconPath = path.join(iconDir, "icon.ico");
+  const iconPath = path.join(iconDir, `icon-${urlHash}.ico`);
 
   try {
     if (fs.existsSync(iconPath)) {
@@ -41,13 +52,6 @@ const downloadIcon = async (
     }
   } catch {
     // Ignore fs errors
-  }
-
-  const validUrls = iconUrls.filter(isValidUrl);
-
-  if (validUrls.length === 0) {
-    logger.warn("No valid icon URLs found for game shortcut");
-    return null;
   }
 
   fs.mkdirSync(iconDir, { recursive: true });
