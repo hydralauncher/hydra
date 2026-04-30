@@ -628,6 +628,7 @@
     "files": "FILES"
   },
   "settings": {
+    "current_username": "Nombre de usuario:",
     "downloads_path": "Ruta de descarga",
     "change": "Actualizar",
     "notifications": "Notificaciones",
