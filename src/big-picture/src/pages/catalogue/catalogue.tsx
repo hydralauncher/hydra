@@ -4,18 +4,22 @@ import {
   Button,
   Checkbox,
   Chip,
+  ConfirmationModal,
   Divider,
+  HorizontalFocusGroup,
   HorizontalCard,
   ImageLightbox,
   Input,
   ListCard,
   Modal,
+  NavigationLayer,
   RouteAnchor,
   ScrollArea,
   SourceAnchor,
   Tooltip,
   Typography,
   UserProfile,
+  VerticalFocusGroup,
   VerticalGameCard,
 } from "../../components";
 import {
@@ -74,6 +78,7 @@ export default function Catalogue() {
   const [checked, setChecked] = useState(true);
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [chips, setChips] = useState([
     { label: "Library", color: "#8aeb13" },
@@ -433,10 +438,16 @@ export default function Catalogue() {
 
         <ShowcaseSection
           title="Overlays"
-          description="Modal e ImageLightbox acionados por botões."
+          description="Modal base, confirmation modal e ImageLightbox acionados por botões."
         >
           <div className="catalogue-page__component-row">
             <Button onClick={() => setIsModalOpen(true)}>Open Modal</Button>
+            <Button
+              variant="danger"
+              onClick={() => setIsConfirmationModalOpen(true)}
+            >
+              Open Confirmation
+            </Button>
             <Button variant="secondary" onClick={() => setIsLightboxOpen(true)}>
               Open Lightbox
             </Button>
@@ -444,21 +455,39 @@ export default function Catalogue() {
         </ShowcaseSection>
       </div>
 
-      <Modal visible={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="catalogue-page__modal-content">
-          <Typography variant="h3">Modal</Typography>
-          <Typography variant="body">
-            Overlay component with backdrop, outside click and Escape close.
-          </Typography>
+      <Modal
+        visible={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        ariaLabel="Catalogue modal example"
+      >
+        <NavigationLayer>
+          <VerticalFocusGroup className="catalogue-page__modal-content">
+            <Typography variant="h3">Modal</Typography>
+            <Typography variant="body">
+              Overlay component with backdrop, outside click and Escape close.
+            </Typography>
 
-          <div className="catalogue-page__component-row">
-            <Button onClick={() => setIsModalOpen(false)}>Confirm</Button>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
+            <HorizontalFocusGroup className="catalogue-page__component-row">
+              <Button onClick={() => setIsModalOpen(false)}>Confirm</Button>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+            </HorizontalFocusGroup>
+          </VerticalFocusGroup>
+        </NavigationLayer>
       </Modal>
+
+      <ConfirmationModal
+        visible={isConfirmationModalOpen}
+        title="Delete saved layout?"
+        description="This is a showcase example of the common confirmation modal."
+        confirmLabel="Delete"
+        danger
+        onClose={() => setIsConfirmationModalOpen(false)}
+        onConfirm={() => {
+          console.log("catalogue confirmation modal confirm");
+        }}
+      />
 
       {isLightboxOpen && (
         <button
