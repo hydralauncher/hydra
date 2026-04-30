@@ -1,18 +1,23 @@
-import "./styles.scss";
-
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import cn from "classnames";
-
 import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
+import { FocusRegionContext } from "../../context";
+
+import "./styles.scss";
+import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
 
 export interface ModalProps {
   visible: boolean;
   onClose: () => void;
+  onBack?: () => void;
+  title: string;
+  description?: string;
   children: ReactNode;
   className?: string;
+  coverImage?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   ariaLabel?: string;
@@ -21,11 +26,15 @@ export interface ModalProps {
 export function Modal({
   visible,
   onClose,
+  onBack,
+  title,
+  description,
   children,
+  coverImage,
   className,
   closeOnBackdrop = true,
   closeOnEscape = true,
-  ariaLabel,
+  ariaLabel = title,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
@@ -81,29 +90,68 @@ export function Modal({
 
   if (!IS_BROWSER) return null;
 
-  const portalTarget = document.getElementById("root") ?? document.body;
+  const portalTarget =
+    document.getElementById("big-picture") ??
+    document.getElementById("root") ??
+    document.body;
 
   return createPortal(
-    <AnimatePresence>
-      {visible && (
-        <Backdrop>
-          <motion.aside
-            role="dialog"
-            aria-modal="true"
-            aria-label={ariaLabel}
-            ref={modalContentRef}
-            data-hydra-dialog
-            className={cn("modal", className)}
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {children}
-          </motion.aside>
-        </Backdrop>
-      )}
-    </AnimatePresence>,
+    <FocusRegionContext.Provider value={null}>
+      <AnimatePresence>
+        {visible && (
+          <Backdrop>
+            <motion.aside
+              role="dialog"
+              aria-modal="true"
+              aria-label={ariaLabel}
+              ref={modalContentRef}
+              data-hydra-dialog
+              className={cn("modal", className)}
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="modal__header">
+                {coverImage && (
+                  <div className="modal__header-cover-image">
+                    <img src={coverImage} alt={title} />
+                  </div>
+                )}
+
+                <div className="modal__header-title">
+                  {onBack && (
+                    <button
+                      className="modal__header-back-button"
+                      onClick={onBack}
+                    >
+                      <ArrowLeftIcon size={20} />
+                    </button>
+                  )}
+
+                  <h4>{title}</h4>
+                </div>
+
+                {description && (
+                  <p className="modal__header-description">{description}</p>
+                )}
+
+                <button
+                  className="modal__header-close-button"
+                  onClick={onClose}
+                >
+                  <XIcon size={24} />
+                </button>
+              </div>
+
+              <div className="modal__divider" />
+
+              <div className="modal__content">{children}</div>
+            </motion.aside>
+          </Backdrop>
+        )}
+      </AnimatePresence>
+    </FocusRegionContext.Provider>,
     portalTarget
   );
 }
