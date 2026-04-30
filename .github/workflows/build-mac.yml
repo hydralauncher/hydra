@@ -18,7 +18,11 @@ jobs:
         with:
           python-version: 3.9
       - run: pip install -r requirements.txt
-      - run: yarn build:mac
+      - run: |
+          yarn build:native
+          yarn build:python-rpc
+          electron-vite build
+          electron-builder --mac --publish never
       - uses: actions/upload-artifact@v4
         with:
           name: dmg
