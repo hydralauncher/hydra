@@ -12,16 +12,20 @@ export interface ModalProps {
   visible: boolean;
   onClose: () => void;
   children: ReactNode;
-  clickOutsideToClose?: boolean;
   className?: string;
+  closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
+  ariaLabel?: string;
 }
 
 export function Modal({
   visible,
   onClose,
   children,
-  clickOutsideToClose = true,
   className,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
+  ariaLabel,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
@@ -45,7 +49,7 @@ export function Modal({
   }, [onClose]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !closeOnEscape) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isTopMostModal()) {
@@ -55,12 +59,12 @@ export function Modal({
 
     globalThis.window.addEventListener("keydown", onKeyDown);
     return () => globalThis.window.removeEventListener("keydown", onKeyDown);
-  }, [visible, handleCloseClick]);
+  }, [closeOnEscape, visible, handleCloseClick]);
 
   useEffect(() => {
-    if (!clickOutsideToClose || !visible) return;
+    if (!closeOnBackdrop || !visible) return;
 
-    const onMouseDown = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       if (!isTopMostModal()) return;
       if (
         modalContentRef.current &&
@@ -70,10 +74,10 @@ export function Modal({
       }
     };
 
-    globalThis.window.addEventListener("mousedown", onMouseDown);
+    globalThis.window.addEventListener("pointerdown", onPointerDown, true);
     return () =>
-      globalThis.window.removeEventListener("mousedown", onMouseDown);
-  }, [clickOutsideToClose, visible, handleCloseClick]);
+      globalThis.window.removeEventListener("pointerdown", onPointerDown, true);
+  }, [closeOnBackdrop, visible, handleCloseClick]);
 
   if (!IS_BROWSER) return null;
 
@@ -85,13 +89,15 @@ export function Modal({
         <Backdrop>
           <motion.aside
             role="dialog"
+            aria-modal="true"
+            aria-label={ariaLabel}
             ref={modalContentRef}
             data-hydra-dialog
             className={cn("modal", className)}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            transition={{ duration: 0.2, ease: [0.33, 1, 0.68, 1] }}
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             {children}
           </motion.aside>
