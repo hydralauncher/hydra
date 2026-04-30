@@ -34,7 +34,7 @@ import "./hero.scss";
 
 interface LibraryHeroProps {
   lastPlayedGames: LibraryGame[];
-  onOpenGameSettings?: (game: LibraryGame) => void;
+  onOpenOptions?: (game: LibraryGame) => void;
   onToggleFavorite?: (game: LibraryGame) => Promise<void> | void;
   favoriteLoadingGameId?: string | null;
 }
@@ -51,7 +51,7 @@ function getLastPlayedLabel(lastTimePlayed: Date | string | null | undefined) {
 
 export function LibraryHero({
   lastPlayedGames,
-  onOpenGameSettings,
+  onOpenOptions,
   onToggleFavorite,
   favoriteLoadingGameId = null,
 }: Readonly<LibraryHeroProps>) {
@@ -219,7 +219,7 @@ export function LibraryHero({
                 focusNavigationOverrides={optionsNavigationOverrides}
                 onClick={() => {
                   if (featuredGame) {
-                    onOpenGameSettings?.(featuredGame);
+                    onOpenOptions?.(featuredGame);
                   }
                 }}
               >
