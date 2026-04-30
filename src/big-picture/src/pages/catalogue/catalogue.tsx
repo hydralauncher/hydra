@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { ShopAssets } from "@types";
 import {
   Accordion,
   Button,
@@ -6,20 +7,17 @@ import {
   Chip,
   ConfirmationModal,
   Divider,
-  HorizontalFocusGroup,
   HorizontalCard,
   ImageLightbox,
   Input,
   ListCard,
   Modal,
-  NavigationLayer,
   RouteAnchor,
   ScrollArea,
   SourceAnchor,
   Tooltip,
   Typography,
   UserProfile,
-  VerticalFocusGroup,
   VerticalGameCard,
 } from "../../components";
 import {
@@ -38,7 +36,10 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { formatPlayedTime } from "../../helpers";
+import { IS_DESKTOP } from "../../constants";
 import "./page.scss";
+
+const STEAM_SAMPLE_OBJECT_ID = "2379780";
 
 const CARD_IMAGE =
   "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=700&q=80";
@@ -80,11 +81,28 @@ export default function Catalogue() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [steamAssets3357650, setSteamAssets3357650] =
+    useState<ShopAssets | null>(null);
   const [chips, setChips] = useState([
     { label: "Library", color: "#8aeb13" },
     { label: "Cloud", color: "#67e8f9" },
     { label: "Beta", color: "#f3c611" },
   ]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    globalThis.window.electron
+      .getGameAssets(STEAM_SAMPLE_OBJECT_ID, "steam")
+      .then(setSteamAssets3357650)
+      .catch(() => setSteamAssets3357650(null));
+  }, []);
+
+  useEffect(() => {
+    if (!steamAssets3357650) return;
+
+    console.log("catalogue steam assets 3357650", steamAssets3357650);
+  }, [steamAssets3357650]);
 
   const restoreChips = () => {
     setChips([
@@ -456,25 +474,15 @@ export default function Catalogue() {
       </div>
 
       <Modal
+        title={`Download ${steamAssets3357650?.title}`}
+        description="17.9 GB left on disk"
+        coverImage={steamAssets3357650?.libraryHeroImageUrl ?? undefined}
+        onBack={() => setIsModalOpen(false)}
         visible={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        ariaLabel="Catalogue modal example"
+        ariaLabel="Catalogue Example"
       >
-        <NavigationLayer>
-          <VerticalFocusGroup className="catalogue-page__modal-content">
-            <Typography variant="h3">Modal</Typography>
-            <Typography variant="body">
-              Overlay component with backdrop, outside click and Escape close.
-            </Typography>
-
-            <HorizontalFocusGroup className="catalogue-page__component-row">
-              <Button onClick={() => setIsModalOpen(false)}>Confirm</Button>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </Button>
-            </HorizontalFocusGroup>
-          </VerticalFocusGroup>
-        </NavigationLayer>
+        <div>testing</div>
       </Modal>
 
       <ConfirmationModal
