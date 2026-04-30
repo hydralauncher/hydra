@@ -5,7 +5,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  ConfirmationModal,
   Divider,
   HorizontalCard,
   ImageLightbox,
