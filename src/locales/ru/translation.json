@@ -633,6 +633,7 @@
     "move_down": "Переместить вниз"
   },
   "settings": {
+    "current_username": "Имя пользователя:",
     "downloads_path": "Путь загрузок",
     "change": "Изменить",
     "notifications": "Уведомления",
