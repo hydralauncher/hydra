@@ -5,9 +5,11 @@ import cn from "classnames";
 import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
 import { FocusRegionContext } from "../../context";
+import { useNavigationScreenActions } from "../../../hooks";
 
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
+import { NavigationLayer } from "../navigation-layer";
 
 export interface ModalProps {
   visible: boolean;
@@ -20,6 +22,7 @@ export interface ModalProps {
   coverImage?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
+  closeOnB?: boolean;
   ariaLabel?: string;
 }
 
@@ -34,18 +37,12 @@ export function Modal({
   className,
   closeOnBackdrop = true,
   closeOnEscape = true,
+  closeOnB = true,
   ariaLabel = title,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
   const isTopMostModal = () => {
-    if (
-      document.querySelector(
-        ".featurebase-widget-overlay.featurebase-display-block"
-      )
-    )
-      return false;
-
     const openModals = document.querySelectorAll("[role=dialog]");
     return (
       openModals.length &&
@@ -56,6 +53,17 @@ export function Modal({
   const handleCloseClick = useCallback(() => {
     onClose();
   }, [onClose]);
+
+  const shouldCloseOnB = visible && closeOnB;
+
+  const handleBPress = useCallback(() => {
+    if (!isTopMostModal()) return;
+    handleCloseClick();
+  }, [handleCloseClick]);
+
+  useNavigationScreenActions(
+    shouldCloseOnB ? { press: { b: handleBPress } } : {}
+  );
 
   useEffect(() => {
     if (!visible || !closeOnEscape) return;
@@ -75,12 +83,12 @@ export function Modal({
 
     const onPointerDown = (e: PointerEvent) => {
       if (!isTopMostModal()) return;
-      if (
+
+      const clickedOutside =
         modalContentRef.current &&
-        !modalContentRef.current.contains(e.target as Node)
-      ) {
-        handleCloseClick();
-      }
+        !modalContentRef.current.contains(e.target as Node);
+
+      if (clickedOutside) handleCloseClick();
     };
 
     globalThis.window.addEventListener("pointerdown", onPointerDown, true);
@@ -112,41 +120,43 @@ export function Modal({
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="modal__header">
-                {coverImage && (
-                  <div className="modal__header-cover-image">
-                    <img src={coverImage} alt={title} />
-                  </div>
-                )}
-
-                <div className="modal__header-title">
-                  {onBack && (
-                    <button
-                      className="modal__header-back-button"
-                      onClick={onBack}
-                    >
-                      <ArrowLeftIcon size={20} />
-                    </button>
+              <NavigationLayer rootRegionId={modalContentRef.current?.id}>
+                <div className="modal__header">
+                  {coverImage && (
+                    <div className="modal__header-cover-image">
+                      <img src={coverImage} alt={title} />
+                    </div>
                   )}
 
-                  <h4>{title}</h4>
+                  <div className="modal__header-title">
+                    {onBack && (
+                      <button
+                        className="modal__header-back-button"
+                        onClick={onBack}
+                      >
+                        <ArrowLeftIcon size={20} />
+                      </button>
+                    )}
+
+                    <h4>{title}</h4>
+                  </div>
+
+                  {description && (
+                    <p className="modal__header-description">{description}</p>
+                  )}
+
+                  <button
+                    className="modal__header-close-button"
+                    onClick={handleCloseClick}
+                  >
+                    <XIcon size={24} />
+                  </button>
                 </div>
 
-                {description && (
-                  <p className="modal__header-description">{description}</p>
-                )}
+                <div className="modal__divider" />
 
-                <button
-                  className="modal__header-close-button"
-                  onClick={onClose}
-                >
-                  <XIcon size={24} />
-                </button>
-              </div>
-
-              <div className="modal__divider" />
-
-              <div className="modal__content">{children}</div>
+                <div className="modal__content">{children}</div>
+              </NavigationLayer>
             </motion.aside>
           </Backdrop>
         )}
