@@ -364,13 +364,12 @@
     padding: calc(globals.$spacing-unit * 1.5);
     border-radius: 12px;
     border: 1px solid rgba(255, 140, 50, 0.2);
-    background:
-      linear-gradient(
-        160deg,
-        rgba(255, 90, 30, 0.12) 0%,
-        rgba(255, 140, 50, 0.04) 60%,
-        rgba(255, 255, 255, 0.04) 100%
-      );
+    background: linear-gradient(
+      160deg,
+      rgba(255, 90, 30, 0.12) 0%,
+      rgba(255, 140, 50, 0.04) 60%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
     cursor: pointer;
     color: inherit;
     text-align: center;
@@ -407,13 +406,12 @@
       max-width: 200px;
       min-height: 200px;
       border-color: rgba(255, 140, 50, 0.45);
-      background:
-        linear-gradient(
-          160deg,
-          rgba(255, 90, 30, 0.22) 0%,
-          rgba(255, 140, 50, 0.08) 60%,
-          rgba(255, 255, 255, 0.04) 100%
-        );
+      background: linear-gradient(
+        160deg,
+        rgba(255, 90, 30, 0.22) 0%,
+        rgba(255, 140, 50, 0.08) 60%,
+        rgba(255, 255, 255, 0.04) 100%
+      );
       box-shadow:
         0 0 0 1px rgba(255, 140, 50, 0.15),
         0 8px 32px rgba(255, 90, 30, 0.2);
