@@ -270,4 +270,297 @@
       grid-template-columns: repeat(4, 1fr);
     }
   }
+
+  &__streaks {
+    position: relative;
+  }
+
+  &__streaks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__streaks-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__streaks-flame-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__streaks-flame {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+    animation: home-streaks-flame-bob 2.4s ease-in-out infinite;
+  }
+
+  &__streaks-flame-glow {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 140, 50, 0.55) 0%,
+      rgba(255, 140, 50, 0) 70%
+    );
+    filter: blur(6px);
+    animation: home-streaks-glow-pulse 2.4s ease-in-out infinite;
+  }
+
+  &__streaks-title {
+    color: #fff;
+    background: linear-gradient(90deg, #ffd27a 0%, #ff7a3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  &__streaks-record {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 1.5);
+    background: rgba(255, 140, 50, 0.08);
+    border: 1px solid rgba(255, 140, 50, 0.25);
+    border-radius: 8px;
+
+    &-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: globals.$muted-color;
+    }
+
+    &-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffb347;
+    }
+  }
+
+  &__streak-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit);
+    min-width: 160px;
+    max-width: 160px;
+    min-height: 180px;
+    padding: calc(globals.$spacing-unit * 1.5);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 140, 50, 0.2);
+    background:
+      linear-gradient(
+        160deg,
+        rgba(255, 90, 30, 0.12) 0%,
+        rgba(255, 140, 50, 0.04) 60%,
+        rgba(255, 255, 255, 0.04) 100%
+      );
+    cursor: pointer;
+    color: inherit;
+    text-align: center;
+    overflow: hidden;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at 50% 0%,
+        rgba(255, 140, 50, 0.18) 0%,
+        rgba(255, 140, 50, 0) 60%
+      );
+      pointer-events: none;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 140, 50, 0.5);
+      box-shadow: 0 8px 24px rgba(255, 90, 30, 0.18);
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+
+    &--featured {
+      min-width: 200px;
+      max-width: 200px;
+      min-height: 200px;
+      border-color: rgba(255, 140, 50, 0.45);
+      background:
+        linear-gradient(
+          160deg,
+          rgba(255, 90, 30, 0.22) 0%,
+          rgba(255, 140, 50, 0.08) 60%,
+          rgba(255, 255, 255, 0.04) 100%
+        );
+      box-shadow:
+        0 0 0 1px rgba(255, 140, 50, 0.15),
+        0 8px 32px rgba(255, 90, 30, 0.2);
+      animation: home-streak-card-featured-pulse 3s ease-in-out infinite;
+
+      .home__streak-card-flame-icon {
+        width: 56px;
+        height: 56px;
+      }
+
+      .home__streak-card-number {
+        font-size: 48px;
+      }
+    }
+  }
+
+  &__streak-card-flame {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__streak-card-flame-icon {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+    animation: home-streaks-flame-bob 2s ease-in-out infinite;
+  }
+
+  &__streak-card-flame-pulse {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 140, 50, 0.6) 0%,
+      rgba(255, 140, 50, 0) 70%
+    );
+    filter: blur(10px);
+    animation: home-streaks-glow-pulse 2s ease-in-out infinite;
+  }
+
+  &__streak-card-count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    line-height: 1;
+  }
+
+  &__streak-card-number {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(180deg, #ffd27a 0%, #ff7a3d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: home-streak-number-pop 0.5s ease-out;
+  }
+
+  &__streak-card-unit {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: globals.$muted-color;
+  }
+
+  &__streak-card-game {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+
+    &-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    &-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+  }
+}
+
+@keyframes home-streaks-flame-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.06);
+  }
+}
+
+@keyframes home-streaks-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes home-streak-card-featured-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 140, 50, 0.15),
+      0 8px 32px rgba(255, 90, 30, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 140, 50, 0.35),
+      0 12px 40px rgba(255, 90, 30, 0.35);
+  }
+}
+
+@keyframes home-streak-number-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

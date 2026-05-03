@@ -1,0 +1,135 @@
+@use "../../scss/globals.scss";
+
+$cell-size: 12px;
+$cell-gap: 3px;
+
+.play-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit);
+  width: 100%;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit);
+    flex-wrap: wrap;
+  }
+
+  &__summary {
+    font-size: 13px;
+    color: globals.$muted-color;
+  }
+
+  &__legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &-label {
+      font-size: 11px;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__scroll {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+  }
+
+  &__grid-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: max-content;
+  }
+
+  &__months {
+    display: grid;
+    grid-template-columns: repeat(53, $cell-size);
+    column-gap: $cell-gap;
+    height: 14px;
+    font-size: 10px;
+    color: globals.$muted-color;
+  }
+
+  &__month-label {
+    grid-row: 1;
+    white-space: nowrap;
+  }
+
+  &__grid {
+    display: flex;
+    gap: $cell-gap;
+  }
+
+  &__week {
+    display: flex;
+    flex-direction: column;
+    gap: $cell-gap;
+  }
+
+  &__cell {
+    width: $cell-size;
+    height: $cell-size;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    transition:
+      transform 0.1s ease,
+      outline 0.1s ease;
+    cursor: default;
+
+    &:hover {
+      outline: 1px solid rgba(255, 255, 255, 0.4);
+      transform: scale(1.15);
+    }
+
+    &--legend {
+      width: 10px;
+      height: 10px;
+      cursor: default;
+
+      &:hover {
+        outline: none;
+        transform: none;
+      }
+    }
+
+    &--future {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    &--level-0 {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &--level-1 {
+      background: rgba(255, 140, 50, 0.28);
+    }
+
+    &--level-2 {
+      background: rgba(255, 140, 50, 0.5);
+    }
+
+    &--level-3 {
+      background: rgba(255, 110, 30, 0.75);
+    }
+
+    &--level-4 {
+      background: linear-gradient(135deg, #ff7a3d 0%, #ffb347 100%);
+      box-shadow: 0 0 6px rgba(255, 122, 61, 0.6);
+    }
+  }
+}

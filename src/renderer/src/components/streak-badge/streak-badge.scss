@@ -1,0 +1,42 @@
+@use "../../scss/globals.scss";
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffb347;
+  line-height: 1;
+  user-select: none;
+
+  &__icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  &__count {
+    white-space: nowrap;
+  }
+
+  &--compact {
+    font-size: 11px;
+    gap: 2px;
+
+    .streak-badge__icon {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  &--full {
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+    border-radius: 6px;
+    background: rgba(255, 179, 71, 0.12);
+    border: 1px solid rgba(255, 179, 71, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}

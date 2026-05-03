@@ -64,6 +64,10 @@ export interface Game {
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
+  currentStreak?: number;
+  longestStreak?: number;
+  lastStreakDate?: string | null;
+  playedDates?: string[];
 }
 
 export interface Download {
