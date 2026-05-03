@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
 import { useNavigate } from "react-router-dom";
 
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
-import { Button, GameCard, Hero } from "@renderer/components";
+import {
+  Button,
+  GameCard,
+  Hero,
+  PlayHeatmap,
+  StreakBadge,
+} from "@renderer/components";
+import { getDisplayStreak } from "@shared";
 import type {
   DownloadSource,
   LibraryGame,
@@ -57,6 +65,39 @@ export default function Home() {
       ["lastTimePlayed"],
       ["desc"]
     ).slice(0, 10);
+  }, [library]);
+
+  const streakGames = useMemo(() => {
+    if (!library || library.length === 0) return [];
+    const today = new Date();
+    return library
+      .map((game) => ({
+        game,
+        display: getDisplayStreak(
+          {
+            currentStreak: game.currentStreak ?? 0,
+            longestStreak: game.longestStreak ?? 0,
+            lastStreakDate: game.lastStreakDate ?? null,
+          },
+          today
+        ),
+      }))
+      .filter((entry) => entry.display >= 2)
+      .sort((a, b) => b.display - a.display)
+      .slice(0, 6);
+  }, [library]);
+
+  const hasPlayHistory = useMemo(
+    () => library?.some((game) => game.playedDates?.length),
+    [library]
+  );
+
+  const longestStreakEver = useMemo(() => {
+    if (!library || library.length === 0) return 0;
+    return library.reduce(
+      (max, game) => Math.max(max, game.longestStreak ?? 0),
+      0
+    );
   }, [library]);
 
   const formatPlayTime = (ms: number) => {
@@ -174,6 +215,87 @@ export default function Home() {
       <section className="home__content">
         <Hero />
 
+        {/* Streaks */}
+        {streakGames.length > 0 && (
+          <section className="home__section home__streaks">
+            <div className="home__streaks-header">
+              <div className="home__streaks-title-wrapper">
+                <div className="home__streaks-flame-wrapper">
+                  <img
+                    src={flameIconAnimated}
+                    alt=""
+                    className="home__streaks-flame"
+                  />
+                  <span className="home__streaks-flame-glow" />
+                </div>
+                <h2 className="home__section-title home__streaks-title">
+                  {t("your_streaks")}
+                </h2>
+              </div>
+
+              {longestStreakEver >= 2 && (
+                <div className="home__streaks-record">
+                  <span className="home__streaks-record-label">
+                    {t("best_streak_ever")}
+                  </span>
+                  <span className="home__streaks-record-value">
+                    {t("days_count", { count: longestStreakEver })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="home__horizontal-scroll">
+              {streakGames.map(({ game, display }, index) => (
+                <button
+                  key={game.id}
+                  className={cn("home__streak-card", {
+                    "home__streak-card--featured": index === 0,
+                  })}
+                  onClick={() => handleRecentGameClick(game)}
+                >
+                  <div className="home__streak-card-flame">
+                    <img
+                      src={flameIconAnimated}
+                      alt=""
+                      className="home__streak-card-flame-icon"
+                    />
+                    <span className="home__streak-card-flame-pulse" />
+                  </div>
+
+                  <div className="home__streak-card-count">
+                    <span className="home__streak-card-number">{display}</span>
+                    <span className="home__streak-card-unit">
+                      {t("days_label", { count: display })}
+                    </span>
+                  </div>
+
+                  <div className="home__streak-card-game">
+                    {game.iconUrl && (
+                      <img
+                        src={game.iconUrl}
+                        alt={game.title}
+                        className="home__streak-card-game-icon"
+                      />
+                    )}
+                    <span className="home__streak-card-game-title">
+                      {game.title}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Play heatmap */}
+        {hasPlayHistory && (
+          <section className="home__section home__heatmap-section">
+            <h2 className="home__section-title">{t("play_activity")}</h2>
+            <PlayHeatmap library={library} />
+          </section>
+        )}
+
         {/* Continue Playing */}
         {recentGames.length > 0 && (
           <section className="home__section">
@@ -203,6 +325,12 @@ export default function Home() {
                     <span className="home__recent-game-playtime">
                       {formatPlayTime(game.playTimeInMilliseconds)}
                     </span>
+                    <StreakBadge
+                      currentStreak={game.currentStreak}
+                      longestStreak={game.longestStreak}
+                      lastStreakDate={game.lastStreakDate}
+                      variant="compact"
+                    />
                   </div>
                 </button>
               ))}

@@ -13,6 +13,8 @@ export * from "./link/link";
 export * from "./select-field/select-field";
 export * from "./toast/toast";
 export * from "./badge/badge";
+export * from "./streak-badge/streak-badge";
+export * from "./play-heatmap/play-heatmap";
 export * from "./confirmation-modal/confirmation-modal";
 export * from "./suspense-wrapper/suspense-wrapper";
 export * from "./debrid-badge/debrid-badge";

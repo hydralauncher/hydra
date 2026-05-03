@@ -21,6 +21,7 @@ import { AchievementNotificationInfo, FriendNotificationInfo } from "@types";
 export * from "./constants";
 export * from "./html-sanitizer";
 export * from "./rom-consoles";
+export * from "./streak";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

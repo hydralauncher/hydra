@@ -6,7 +6,8 @@ import { useLocation } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { XIcon } from "@primer/octicons-react";
-import { ConfirmationModal, GameContextMenu } from "..";
+import { ConfirmationModal, GameContextMenu, StreakBadge } from "..";
+import { getDisplayStreak } from "@shared";
 import { useAppSelector } from "@renderer/hooks";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
@@ -231,6 +232,27 @@ export function SidebarGameItem({
         <span className="sidebar__game-badge">
           +{game.newDownloadOptionsCount}
         </span>
+      );
+    }
+
+    if (
+      getDisplayStreak(
+        {
+          currentStreak: game.currentStreak ?? 0,
+          longestStreak: game.longestStreak ?? 0,
+          lastStreakDate: game.lastStreakDate ?? null,
+        },
+        new Date()
+      ) >= 2
+    ) {
+      return (
+        <StreakBadge
+          currentStreak={game.currentStreak}
+          longestStreak={game.longestStreak}
+          lastStreakDate={game.lastStreakDate}
+          variant="compact"
+          animated={false}
+        />
       );
     }
 

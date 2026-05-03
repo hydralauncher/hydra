@@ -1,5 +1,5 @@
 import { buildGameDetailsPath } from "@renderer/helpers";
-import { Link } from "@renderer/components";
+import { Link, StreakBadge } from "@renderer/components";
 import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
@@ -62,6 +62,12 @@ export function RecentGamesBox() {
                 <div className="recent-games__game-description">
                   <ClockIcon />
                   <small>{formatPlayTime(game)}</small>
+                  <StreakBadge
+                    currentStreak={game.currentStreak}
+                    longestStreak={game.longestStreak}
+                    lastStreakDate={game.lastStreakDate}
+                    variant="compact"
+                  />
                 </div>
               </div>
             </Link>

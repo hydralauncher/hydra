@@ -77,6 +77,9 @@ export type UserGame = {
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
+  currentStreak?: number;
+  longestStreak?: number;
+  lastStreakDate?: string | null;
 } & ShopAssets;
 
 export interface UserLibraryResponse {

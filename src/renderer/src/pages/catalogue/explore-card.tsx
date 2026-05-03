@@ -51,9 +51,7 @@ export function ExploreCard({ game, index }: ExploreCardProps) {
     }
   }, [game.objectId, game.shop, stats]);
 
-  const addToLibrary = async (
-    e: React.MouseEvent | React.KeyboardEvent
-  ) => {
+  const addToLibrary = async (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     if (inLibrary || isAdding) return;
     setIsAdding(true);
