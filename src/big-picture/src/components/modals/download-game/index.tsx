@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Downloader, getDownloadersForUris } from "@shared";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../../constants";
-import { sortAvailableDownloaders } from "../../../helpers";
+import {
+  sortAvailableDownloaders,
+  sortDownloadOptions,
+  type DownloadOptionsSortBy,
+} from "../../../helpers";
 import { SourceAnchor } from "../../common/source-anchor";
 import { DownloadSourceOption } from "../../common/download-source-option";
 import {
@@ -25,7 +30,6 @@ import {
   VerticalFocusGroup,
 } from "../../common";
 import {
-  FolderSimpleIcon,
   DownloadSimpleIcon,
   MagnifyingGlassIcon,
   SortAscendingIcon,
@@ -59,13 +63,14 @@ interface DownloadDirectorySuggestion {
   totalBytes: number;
 }
 
-const DOWNLOAD_SORT_OPTIONS = [
-  { value: "added_desc", label: "Newest" },
-  { value: "added_asc", label: "Oldest" },
-  { value: "most_seeders", label: "Most Seeders" },
-  { value: "least_seeders", label: "Fewest Seeders" },
-  { value: "size_desc", label: "Largest" },
-  { value: "size_asc", label: "Smallest" },
+const DOWNLOAD_SORT_OPTIONS: Array<{
+  value: DownloadOptionsSortBy;
+  label: string;
+}> = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "largest", label: "Largest" },
+  { value: "smallest", label: "Smallest" },
 ];
 
 enum DownloadGameStep {
@@ -100,6 +105,9 @@ export function DownloadGameModal({
     isntFirstStep ? { press: { b: handleOnBack } } : {}
   );
 
+  const stepTransitionKey =
+    step === DownloadGameStep.SourceList ? "source-list" : "options";
+
   return (
     <Modal
       visible={visible}
@@ -110,28 +118,39 @@ export function DownloadGameModal({
       className="download-game-modal"
       closeOnB={!isntFirstStep}
       onBack={handleOnBack}
+      animateLayout
     >
-      <div
-        className={`download-game-modal__content download-game-modal__content--${
-          step === DownloadGameStep.SourceList ? "source-list" : "options"
-        }`}
-      >
-        {step === DownloadGameStep.SourceList && (
-          <DownloadGameSourceList
-            game={game}
-            visible={visible}
-            onSelectOption={handleNextStep}
-          />
-        )}
+      <div className="download-game-modal__content">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={stepTransitionKey}
+            className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{
+              opacity: { duration: 0.18, ease: "easeOut" },
+              y: { duration: 0.18, ease: "easeOut" },
+            }}
+          >
+            {step === DownloadGameStep.SourceList && (
+              <DownloadGameSourceList
+                game={game}
+                visible={visible}
+                onSelectOption={handleNextStep}
+              />
+            )}
 
-        {step === DownloadGameStep.Options && selectedOption && (
-          <DownloadGameOptions
-            key={selectedOption.id}
-            option={selectedOption}
-            visible={visible}
-            onClose={onClose}
-          />
-        )}
+            {step === DownloadGameStep.Options && selectedOption && (
+              <DownloadGameOptions
+                key={selectedOption.id}
+                option={selectedOption}
+                visible={visible}
+                onClose={onClose}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </Modal>
   );
@@ -142,11 +161,12 @@ function DownloadGameSourceList({
   visible,
   onSelectOption,
 }: Readonly<DownloadGameSourceListProps>) {
-  const { downloadOptions, isLoading } = useGameDownloadOptions(game, visible);
-
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [selectedSortOption, setSelectedSortOption] =
-    useState<string>("most_seeders");
+    useState<DownloadOptionsSortBy>("newest");
+
+  const { downloadOptions, isLoading } = useGameDownloadOptions(game, visible);
 
   const downloadSources = useMemo(() => {
     return Array.from(
@@ -155,10 +175,33 @@ function DownloadGameSourceList({
   }, [downloadOptions]);
 
   const filteredDownloadOptions = useMemo(() => {
-    return downloadOptions.filter((option) =>
-      option.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = searchTerm.toLowerCase();
+
+    return downloadOptions
+      .filter((option) => option.title.toLowerCase().includes(term))
+      .filter((option) => {
+        if (selectedSources.length === 0) return true;
+
+        return selectedSources.includes(option.downloadSourceName);
+      });
+  }, [downloadOptions, searchTerm, selectedSources]);
+
+  const sortedDownloadOptions = useMemo(
+    () => sortDownloadOptions(filteredDownloadOptions, selectedSortOption),
+    [filteredDownloadOptions, selectedSortOption]
+  );
+
+  const handleSourceClick = (source: string) => {
+    setSelectedSources((previousSources) =>
+      previousSources.includes(source)
+        ? previousSources.filter((previousSource) => previousSource !== source)
+        : [...previousSources, source]
     );
-  }, [downloadOptions, searchTerm]);
+  };
+
+  const optionsTransitionKey = isLoading
+    ? "loading"
+    : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
 
   return (
     <VerticalFocusGroup className="download-game-modal__source-list">
@@ -185,9 +228,8 @@ function DownloadGameSourceList({
                 key={source}
                 title={source}
                 size="large"
-                onClick={() => {
-                  console.log("source", source);
-                }}
+                isSelected={selectedSources.includes(source)}
+                onClick={() => handleSourceClick(source)}
               />
             ))}
         </HorizontalFocusGroup>
@@ -205,21 +247,35 @@ function DownloadGameSourceList({
       </HorizontalFocusGroup>
 
       <div className="download-game-modal__source-list__options">
-        {isLoading &&
-          Array.from({ length: 3 }, (_, index) => (
-            <DownloadSourceOptionSkeleton
-              key={`download-source-option-skeleton-${index}`}
-            />
-          ))}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={optionsTransitionKey}
+            className="download-game-modal__source-list__options-transition"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{
+              opacity: { duration: 0.18, ease: "easeOut" },
+              y: { duration: 0.18, ease: "easeOut" },
+            }}
+          >
+            {isLoading &&
+              Array.from({ length: 3 }, (_, index) => (
+                <DownloadSourceOptionSkeleton
+                  key={`download-source-option-skeleton-${index}`}
+                />
+              ))}
 
-        {!isLoading &&
-          filteredDownloadOptions.map((option) => (
-            <DownloadSourceOption
-              key={option.id}
-              option={option}
-              onSelect={() => onSelectOption(option)}
-            />
-          ))}
+            {!isLoading &&
+              sortedDownloadOptions.map((option) => (
+                <DownloadSourceOption
+                  key={option.id}
+                  option={option}
+                  onSelect={() => onSelectOption(option)}
+                />
+              ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </VerticalFocusGroup>
   );
@@ -325,21 +381,6 @@ function DownloadGameOptions({
     };
   }, [visible]);
 
-  const handleChooseDownloadDirectory = async () => {
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-      defaultPath: selectedDownloadPath || undefined,
-    });
-
-    if (result.canceled) return;
-
-    const nextPath = result.filePaths[0];
-
-    if (!nextPath) return;
-
-    setSelectedDownloadPath(nextPath);
-  };
-
   const handleStartDownload = () => {
     console.log("download-game-modal start download", {
       optionId: option.id,
@@ -353,112 +394,80 @@ function DownloadGameOptions({
 
   return (
     <div className="download-game-modal__options">
-      <div className="download-game-modal__chosen-repack">
-        <p className="download-game-modal__chosen-repack-label">
-          Chosen Option
-        </p>
-        <p className="download-game-modal__chosen-repack-title">
-          {option.title}
-        </p>
-      </div>
-
-      <div className="download-game-modal__downloader">
-        <div className="download-game-modal__downloader-copy">
-          <p className="download-game-modal__downloader-label">Downloader</p>
-          <p className="download-game-modal__downloader-description">
-            Choose a download method
+      <VerticalFocusGroup>
+        <div className="download-game-modal__chosen-repack">
+          <p className="download-game-modal__chosen-repack-label">
+            Chosen Option
+          </p>
+          <p className="download-game-modal__chosen-repack-title">
+            {option.title}
           </p>
         </div>
 
-        <Tabs
-          items={downloaderItems}
-          value={selectedDownloader}
-          defaultValue={downloaderItems[0]?.value}
-          onValueChange={setSelectedDownloader}
-          variant="segmented"
-          ariaLabel="Download methods"
-          className="download-game-modal__downloader-tabs"
-        />
-      </div>
+        <div className="download-game-modal__downloader">
+          <div className="download-game-modal__downloader-copy">
+            <p className="download-game-modal__downloader-label">Downloader</p>
+            <p className="download-game-modal__downloader-description">
+              Choose a download method
+            </p>
+          </div>
 
-      <div className="download-game-modal__directory">
-        <div className="download-game-modal__directory-copy">
-          <p className="download-game-modal__directory-label">
-            Download directory
-          </p>
-          <p className="download-game-modal__directory-description">
-            To create or change the default download folders, go to{" "}
-            <span>Settings</span>
-          </p>
-        </div>
-
-        <HorizontalFocusGroup
-          className="download-game-modal__directory-controls"
-          style={{
-            width: "100%",
-            alignItems: "stretch",
-            gap: "calc(var(--spacing-unit) * 2)",
-          }}
-        >
-          <Input
-            value={selectedDownloadPath}
-            placeholder="Choose a download directory"
-            readOnly
-            tabIndex={-1}
-            focusNavigationState="disabled"
-            onFocus={(event) => event.target.blur()}
+          <Tabs
+            items={downloaderItems}
+            value={selectedDownloader}
+            defaultValue={downloaderItems[0]?.value}
+            onValueChange={setSelectedDownloader}
+            variant="segmented"
+            ariaLabel="Download methods"
+            className="download-game-modal__downloader-tabs"
           />
+        </div>
 
-          <Button
-            variant="secondary"
-            className="download-game-modal__directory-button"
-            icon={<FolderSimpleIcon size={20} />}
-            onClick={() => void handleChooseDownloadDirectory()}
+        <div className="download-game-modal__directory">
+          <div className="download-game-modal__directory-copy">
+            <p className="download-game-modal__directory-label">
+              Download directory
+            </p>
+            <p className="download-game-modal__directory-description">
+              To create or change the default download folders, go to{" "}
+              <span>Settings</span>
+            </p>
+          </div>
+
+          <HorizontalFocusGroup
+            className="download-game-modal__directory-disks"
+            style={{
+              display: "grid",
+              width: "100%",
+              alignItems: "stretch",
+              gap: "calc(var(--spacing-unit) * 2)",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            }}
           >
-            Change
+            {downloadDirectorySuggestions.map((directory) => (
+              <UserDiskItem
+                key={directory.path}
+                title={directory.title}
+                path={directory.path}
+                freeBytes={directory.freeBytes}
+                totalBytes={directory.totalBytes}
+                isSelected={selectedDownloadPath === directory.path}
+                onClick={() => setSelectedDownloadPath(directory.path)}
+                className="download-game-modal__directory-disk"
+              />
+            ))}
+          </HorizontalFocusGroup>
+        </div>
+
+        <div className="download-game-modal__actions">
+          <Button
+            icon={<DownloadSimpleIcon size={20} />}
+            onClick={handleStartDownload}
+          >
+            Start Download
           </Button>
-        </HorizontalFocusGroup>
-
-        <HorizontalFocusGroup
-          className="download-game-modal__directory-disks"
-          style={{
-            display: "grid",
-            width: "100%",
-            alignItems: "stretch",
-            gap: "calc(var(--spacing-unit) * 2)",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          }}
-        >
-          {downloadDirectorySuggestions.map((directory) => (
-            <UserDiskItem
-              key={directory.path}
-              title={directory.title}
-              path={directory.path}
-              freeBytes={directory.freeBytes}
-              totalBytes={directory.totalBytes}
-              isSelected={selectedDownloadPath === directory.path}
-              onClick={() => setSelectedDownloadPath(directory.path)}
-              className="download-game-modal__directory-disk"
-            />
-          ))}
-        </HorizontalFocusGroup>
-      </div>
-
-      <HorizontalFocusGroup
-        className="download-game-modal__actions"
-        style={{
-          width: "100%",
-          justifyContent: "flex-end",
-          gap: "calc(var(--spacing-unit) * 2)",
-        }}
-      >
-        <Button
-          icon={<DownloadSimpleIcon size={20} />}
-          onClick={handleStartDownload}
-        >
-          Start Download
-        </Button>
-      </HorizontalFocusGroup>
+        </div>
+      </VerticalFocusGroup>
     </div>
   );
 }

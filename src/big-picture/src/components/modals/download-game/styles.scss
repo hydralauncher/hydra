@@ -1,0 +1,244 @@
+.download-game-modal {
+  .modal__content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__step {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__step--source-list {
+    overflow: hidden;
+  }
+
+  &__step--options {
+    overflow: auto;
+    padding: calc(var(--spacing-unit) * 6);
+  }
+
+  &__source-list {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 6);
+    padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 6) 0;
+  }
+
+  &__source-list__sources {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2) !important;
+  }
+
+  &__source-list__toolbar {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__source-list__options {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: calc(var(--spacing-unit) * 6);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__source-list__options-transition {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+    will-change: opacity, transform;
+  }
+
+  &__source-list__sort-options {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  &__source-list__sort-options-select {
+    width: fit-content;
+    min-width: 0;
+  }
+
+  &__options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 6);
+    width: 100%;
+  }
+
+  &__chosen-repack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit));
+    width: 100%;
+    max-width: 80%;
+  }
+
+  &__chosen-repack-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  &__chosen-repack-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.8;
+  }
+
+  &__downloader-tabs {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  &__downloader {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+    max-width: 720px;
+  }
+
+  &__downloader-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit));
+    width: 100%;
+  }
+
+  &__downloader-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  &__downloader-description {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.8;
+  }
+
+  &__directory {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+    max-width: 720px;
+  }
+
+  &__directory-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-unit);
+    width: 100%;
+  }
+
+  &__directory-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    opacity: 0.8;
+  }
+
+  &__directory-description {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+
+    span {
+      color: var(--text);
+    }
+  }
+
+  &__directory-controls {
+    width: 100%;
+    align-items: stretch;
+    gap: calc(var(--spacing-unit) * 2);
+
+    > .input-container {
+      flex: 1 1 0;
+    }
+  }
+
+  &__directory-input {
+    height: 40px;
+    outline: 0 solid transparent;
+    outline-offset: 0;
+
+    &:focus-visible,
+    [data-focus-visible="true"] & {
+      border-color: var(--secondary-border);
+      outline: 1px solid var(--primary);
+    }
+  }
+
+  &__directory-button {
+    flex-shrink: 0;
+    min-width: 136px;
+    white-space: nowrap;
+  }
+
+  &__directory-disks {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__directory-disk {
+    min-width: 0;
+    margin-top: var(--spacing-unit);
+
+    &:only-child {
+      grid-column: 1 / -1;
+    }
+
+    &:nth-child(3):last-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+  }
+}

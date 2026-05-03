@@ -11,10 +11,17 @@ interface DownloadSourceOptionProps {
     GameRepack,
     "title" | "fileSize" | "downloadSourceName" | "uploadDate"
   >;
+  onSelect: (
+    option: Pick<
+      GameRepack,
+      "title" | "fileSize" | "downloadSourceName" | "uploadDate"
+    >
+  ) => void;
 }
 
 export function DownloadSourceOption({
   option,
+  onSelect,
 }: Readonly<DownloadSourceOptionProps>) {
   const formatedDate = useMemo(() => {
     return option.uploadDate
@@ -24,7 +31,10 @@ export function DownloadSourceOption({
 
   return (
     <FocusItem asChild>
-      <button className="download-source-option">
+      <button
+        className="download-source-option"
+        onClick={() => onSelect(option)}
+      >
         <div className="download-source-option__header">
           <div className="download-source-option__header__left">
             <p className="download-source-option__header__left__title">

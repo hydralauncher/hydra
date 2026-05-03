@@ -21,8 +21,10 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--text-secondary);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow:
+      0 6px 10px rgba(0, 0, 0, 0.05),
+      inset 0 0 0 2px var(--primary);
   }
 
   &__header {
