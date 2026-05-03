@@ -24,7 +24,10 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   closeOnB?: boolean;
   ariaLabel?: string;
+  animateLayout?: boolean;
 }
+
+export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
 
 export function Modal({
   visible,
@@ -39,6 +42,7 @@ export function Modal({
   closeOnEscape = true,
   closeOnB = true,
   ariaLabel = title,
+  animateLayout = false,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,9 +88,17 @@ export function Modal({
     const onPointerDown = (e: PointerEvent) => {
       if (!isTopMostModal()) return;
 
+      const target = e.target as Node | null;
+      const targetElement = target instanceof Element ? target : null;
+      const clickedOwnedOverlay = targetElement?.closest(
+        `[${MODAL_OWNED_OVERLAY_ATTRIBUTE}]`
+      );
+
       const clickedOutside =
         modalContentRef.current &&
-        !modalContentRef.current.contains(e.target as Node);
+        target &&
+        !modalContentRef.current.contains(target) &&
+        !clickedOwnedOverlay;
 
       if (clickedOutside) handleCloseClick();
     };
@@ -115,10 +127,15 @@ export function Modal({
               ref={modalContentRef}
               data-hydra-dialog
               className={cn("modal", className)}
+              layout={animateLayout || undefined}
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.22,
+                ease: [0.22, 1, 0.36, 1],
+                layout: { duration: 0.4, ease: "easeInOut" },
+              }}
             >
               <NavigationLayer rootRegionId={modalContentRef.current?.id}>
                 <div className="modal__header">

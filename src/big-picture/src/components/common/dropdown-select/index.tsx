@@ -20,6 +20,7 @@ import {
 import type { FocusOverrides } from "../../../services";
 import { FocusRegionContext } from "../../context";
 import { FocusItem } from "../focus-item";
+import { MODAL_OWNED_OVERLAY_ATTRIBUTE } from "../modal";
 import { NavigationLayer } from "../navigation-layer";
 import { VerticalFocusGroup } from "../vertical-focus-group";
 
@@ -249,6 +250,7 @@ export function DropdownSelect<TValue extends string = string>({
                 <div
                   ref={floatingRef}
                   className="dropdown-select__popover-wrapper"
+                  {...{ [MODAL_OWNED_OVERLAY_ATTRIBUTE]: "" }}
                 >
                   <VerticalFocusGroup
                     regionId={resolvedMenuRegionId}
