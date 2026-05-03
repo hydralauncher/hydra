@@ -334,8 +334,7 @@ function DownloadGameOptions({
     };
 
     const buildDownloadDirectorySuggestions = async () => {
-      const preferences =
-        (await globalThis.window.electron.getUserPreferences()) as UserPreferences | null;
+      const preferences = await globalThis.window.electron.getUserPreferences();
       const defaultDownloadsPath =
         await globalThis.window.electron.getDefaultDownloadsPath();
       const initialDownloadPath =
