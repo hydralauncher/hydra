@@ -44,26 +44,19 @@ export function SettingsBehavior() {
 
   const protonVersionAutoLabel = t("proton_version_auto", {
     ns: ["settings", "game_details"],
-    defaultValue: "Auto (global default or umu default)",
   });
 
   const protonSourceUmuDefault = t("proton_source_umu_default", {
     ns: ["settings", "game_details"],
-    defaultValue: "umu default selection",
   });
 
   const protonSourceSteam = t("proton_source_steam", {
     ns: ["settings", "game_details"],
-    defaultValue: "Installed by Steam",
   });
 
-  const protonSourceCompatibilityTools = t(
-    "proton_source_compatibility_tools",
-    {
+  const protonSourceCompatibilityTools = t("proton_source_compatibility_tools", {
       ns: ["settings", "game_details"],
-      defaultValue: "Installed in Steam compatibilitytools.d",
-    }
-  );
+  });
 
   useEffect(() => {
     if (userPreferences) {
