@@ -350,7 +350,7 @@ export function useBigPictureDownloadsPageData() {
       : null;
 
     let statusLabel = "Active";
-    let statusTone: DownloadTone = "active";
+    const statusTone: DownloadTone = "active";
 
     if (isExtracting) {
       statusLabel = "Extracting";
