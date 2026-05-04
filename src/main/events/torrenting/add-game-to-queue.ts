@@ -49,7 +49,6 @@ const addGameToQueue = async (
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
-    extractionProgress: 0,
     fileIndices,
     selectedFilesSize,
   };
