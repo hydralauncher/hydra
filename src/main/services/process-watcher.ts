@@ -8,7 +8,7 @@ import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
-import { MAIN_LOOP_INTERVAL } from "@main/constants";
+import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 
@@ -34,7 +34,7 @@ interface LinuxProcessInfo {
   steamCompatDataPath: string | null;
 }
 
-const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / MAIN_LOOP_INTERVAL; // 3 minutes
+const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / INTERVALS.processWatcher; // 3 minutes
 let currentTick = 1;
 
 const platform = process.platform;
