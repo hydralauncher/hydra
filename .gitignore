@@ -18,3 +18,4 @@ hydra-python-rpc/
 *storybook.log
 
 aria2/
+tsconfig.node.tsbuildinfo
