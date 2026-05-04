@@ -1,7 +1,7 @@
 import { Downloader, DownloadError, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 import { WindowManager } from "../window-manager";
 import { publishDownloadCompleteNotification } from "../notifications";
-import type { Download, DownloadProgress, UserPreferences } from "@types";
+import type { Download, DownloadProgress, Game, UserPreferences } from "@types";
 import {
   GofileApi,
   DatanodesApi,
@@ -518,7 +518,7 @@ export class DownloadManager {
   private static sendProgressUpdate(
     progress: number,
     status: DownloadProgress,
-    game: any
+    game: Game
   ) {
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
@@ -532,7 +532,7 @@ export class DownloadManager {
 
   private static async handleDownloadCompletion(
     download: Download,
-    game: any,
+    game: Game,
     gameId: string
   ) {
     publishDownloadCompleteNotification(game);
@@ -633,7 +633,7 @@ export class DownloadManager {
     }
   }
 
-  private static async handleExtraction(download: Download, game: any) {
+  private static async handleExtraction(download: Download, game: Game) {
     const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
     const extractionPath = download.folderName
       ? path.join(download.downloadPath, download.folderName)
