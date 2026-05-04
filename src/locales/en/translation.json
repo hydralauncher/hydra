@@ -641,6 +641,7 @@
     "move_down": "Move down"
   },
   "settings": {
+    "current_username": "Username:",
     "downloads_path": "Downloads path",
     "change": "Update",
     "notifications": "Notifications",
