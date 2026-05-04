@@ -1139,7 +1139,7 @@ function NavigationDiagnosticsPanel() {
       text = `[navigation-diagnostics] JSON.stringify failed: ${String(error)}`;
     }
 
-    navigator.clipboard.writeText(text).catch((err) => {
+    globalThis.window.electron.clipboard.writeText(text).catch((err) => {
       console.warn("[navigation-diagnostics] clipboard copy failed", err);
     });
   };
