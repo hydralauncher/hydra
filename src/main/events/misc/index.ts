@@ -1,5 +1,6 @@
 import "./can-install-common-redist";
 import "./check-homebrew-folder-exists";
+import "./clipboard-write-text";
 import "./close-game-launcher-window";
 import "./delete-temp-file";
 import "./show-game-launcher-window";

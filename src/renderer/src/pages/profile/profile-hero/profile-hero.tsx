@@ -258,7 +258,7 @@ export function ProfileHero() {
 
   const copyFriendCode = useCallback(() => {
     if (userProfile?.id) {
-      navigator.clipboard.writeText(userProfile.id);
+      globalThis.window.electron.clipboard.writeText(userProfile.id);
       setIsCopied(true);
 
       const startTime = performance.now();
