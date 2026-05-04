@@ -24,10 +24,8 @@ import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 
-const PROGRESS_THROTTLE_MS = 1000;
-
 export class GameFilesManager {
-  private lastProgressUpdate = 0;
+  private lastProgressUpdateValue = -1;
 
   constructor(
     private readonly shop: GameShop,
@@ -38,22 +36,12 @@ export class GameFilesManager {
     return levelKeys.game(this.shop, this.objectId);
   }
 
-  private async updateExtractionProgress(progress: number, force = false) {
-    const now = Date.now();
-
-    if (!force && now - this.lastProgressUpdate < PROGRESS_THROTTLE_MS) {
+  private updateExtractionProgress(progress: number) {
+    if (progress === this.lastProgressUpdateValue) {
       return;
     }
 
-    this.lastProgressUpdate = now;
-
-    const download = await downloadsSublevel.get(this.gameKey);
-    if (!download) return;
-
-    await downloadsSublevel.put(this.gameKey, {
-      ...download,
-      extractionProgress: progress,
-    });
+    this.lastProgressUpdateValue = progress;
 
     WindowManager.mainWindow?.webContents.send(
       "on-extraction-progress",
@@ -84,7 +72,6 @@ export class GameFilesManager {
         status,
         queued: false,
         extracting: false,
-        extractionProgress: 0,
       });
     }
 
@@ -140,7 +127,7 @@ export class GameFilesManager {
 
     if (filesToExtract.length === 0) return true;
 
-    await this.updateExtractionProgress(0, true);
+    this.updateExtractionProgress(0);
 
     const totalFiles = filesToExtract.length;
     let completedFiles = 0;
@@ -162,10 +149,7 @@ export class GameFilesManager {
 
         if (result.success) {
           completedFiles++;
-          await this.updateExtractionProgress(
-            completedFiles / totalFiles,
-            true
-          );
+          this.updateExtractionProgress(completedFiles / totalFiles);
         } else {
           await this.setExtractionFailedState(
             new Error(`7zip returned unsuccessful extraction for ${file}`),
@@ -225,7 +209,6 @@ export class GameFilesManager {
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       extracting: false,
-      extractionProgress: 0,
     });
 
     // Calculate and store the installed size
@@ -654,7 +637,7 @@ export class GameFilesManager {
       path.parse(download.folderName!).name
     );
 
-    await this.updateExtractionProgress(0, true);
+    this.updateExtractionProgress(0);
 
     try {
       const result = await SevenZip.extractFile(
