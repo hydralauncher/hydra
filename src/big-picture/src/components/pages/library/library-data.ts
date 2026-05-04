@@ -1,6 +1,33 @@
 import type { LibraryGame } from "@types";
 
-export type LibraryFilterTab = "all" | "favorites" | "completed";
+export const BUILTIN_LIBRARY_TABS = ["all", "favorites", "completed"] as const;
+export type BuiltinLibraryTab = (typeof BUILTIN_LIBRARY_TABS)[number];
+
+export function isBuiltinLibraryTab(value: string): value is BuiltinLibraryTab {
+  return (BUILTIN_LIBRARY_TABS as readonly string[]).includes(value);
+}
+
+/** Built-ins or `/profile/games/collections` id — discriminate with `isBuiltinLibraryTab` */
+export type LibraryFilterTab = string;
+export type LibraryViewMode = "grid" | "list";
+export type LibrarySortOption =
+  | "last_played"
+  | "playtime"
+  | "title_asc"
+  | "title_desc"
+  | "added_desc"
+  | "added_asc";
+export type LibrarySecondaryFilter =
+  | "all_games"
+  | "installed"
+  | "not_installed"
+  | "never_played";
+
+export const LIBRARY_VIEW_MODE_STORAGE_KEY =
+  "hydra:big-picture:library-view-mode";
+export const LIBRARY_SORT_BY_STORAGE_KEY = "hydra:big-picture:library-sort-by";
+export const LIBRARY_SECONDARY_FILTER_STORAGE_KEY =
+  "hydra:big-picture:library-filter-by";
 
 export interface LibraryFilterCounts {
   all: number;
@@ -9,14 +36,23 @@ export interface LibraryFilterCounts {
 }
 
 export const LAST_PLAYED_GAMES_COUNT = 3;
+const TITLE_COMPARE_OPTIONS = { sensitivity: "base" } as const;
+
+function compareTitles(a: LibraryGame, b: LibraryGame) {
+  return a.title.localeCompare(b.title, undefined, TITLE_COMPARE_OPTIONS);
+}
+
+function getDateTimestamp(value?: Date | string | null) {
+  if (!value) return null;
+
+  const timestamp = new Date(value).getTime();
+
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
 
 export function sortByLastPlayed(a: LibraryGame, b: LibraryGame) {
-  const aLastPlayed = a.lastTimePlayed
-    ? new Date(a.lastTimePlayed as Date).getTime()
-    : null;
-  const bLastPlayed = b.lastTimePlayed
-    ? new Date(b.lastTimePlayed as Date).getTime()
-    : null;
+  const aLastPlayed = getDateTimestamp(a.lastTimePlayed);
+  const bLastPlayed = getDateTimestamp(b.lastTimePlayed);
 
   if (aLastPlayed !== null && bLastPlayed !== null) {
     const lastPlayedDifference = bLastPlayed - aLastPlayed;
@@ -26,7 +62,7 @@ export function sortByLastPlayed(a: LibraryGame, b: LibraryGame) {
   if (aLastPlayed !== null) return -1;
   if (bLastPlayed !== null) return 1;
 
-  return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+  return compareTitles(a, b);
 }
 
 export function isCompletedGame(game: LibraryGame) {
@@ -36,6 +72,26 @@ export function isCompletedGame(game: LibraryGame) {
     achievementCount > 0 &&
     (game.unlockedAchievementCount ?? 0) >= achievementCount
   );
+}
+
+export function getGameCollectionIds(game: LibraryGame): string[] {
+  if (Array.isArray(game.collectionIds)) {
+    return game.collectionIds;
+  }
+
+  const legacyCollectionId = (game as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+}
+
+export function countGamesInCollection(
+  library: LibraryGame[],
+  collectionId: string
+) {
+  return library.filter((game) =>
+    getGameCollectionIds(game).includes(collectionId)
+  ).length;
 }
 
 export function matchesSearchQuery(game: LibraryGame, searchQuery: string) {
@@ -68,7 +124,13 @@ export function filterLibraryByTab(
     return library.filter(isCompletedGame);
   }
 
-  return library;
+  if (selectedTab === "all") {
+    return library;
+  }
+
+  return library.filter((game) =>
+    getGameCollectionIds(game).includes(selectedTab)
+  );
 }
 
 export function getLibraryFilterCounts(
@@ -87,6 +149,72 @@ export function getLastPlayedGames(library: LibraryGame[]) {
     .slice(0, LAST_PLAYED_GAMES_COUNT);
 }
 
+export function filterLibraryBySecondaryFilter(
+  library: LibraryGame[],
+  selectedFilter: LibrarySecondaryFilter
+) {
+  if (selectedFilter === "installed") {
+    return library.filter((game) => Boolean(game.executablePath));
+  }
+
+  if (selectedFilter === "not_installed") {
+    return library.filter((game) => !game.executablePath);
+  }
+
+  if (selectedFilter === "never_played") {
+    return library.filter((game) => (game.playTimeInMilliseconds ?? 0) <= 0);
+  }
+
+  return library;
+}
+
+export function sortLibraryGames(
+  library: LibraryGame[],
+  sortBy: LibrarySortOption
+) {
+  return [...library].sort((a, b) => {
+    if (sortBy === "last_played") {
+      return sortByLastPlayed(a, b);
+    }
+
+    if (sortBy === "playtime") {
+      const playtimeDifference =
+        (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0);
+
+      return playtimeDifference !== 0
+        ? playtimeDifference
+        : compareTitles(a, b);
+    }
+
+    if (sortBy === "title_asc") {
+      return compareTitles(a, b);
+    }
+
+    if (sortBy === "title_desc") {
+      return compareTitles(b, a);
+    }
+
+    if (sortBy === "added_desc" || sortBy === "added_asc") {
+      const aAddedAt = getDateTimestamp(a.addedToLibraryAt);
+      const bAddedAt = getDateTimestamp(b.addedToLibraryAt);
+
+      if (aAddedAt !== null && bAddedAt !== null) {
+        const addedDifference =
+          sortBy === "added_desc" ? bAddedAt - aAddedAt : aAddedAt - bAddedAt;
+
+        return addedDifference !== 0 ? addedDifference : compareTitles(a, b);
+      }
+
+      if (aAddedAt !== null) return -1;
+      if (bAddedAt !== null) return 1;
+
+      return compareTitles(a, b);
+    }
+
+    return compareTitles(a, b);
+  });
+}
+
 export function getHeroPlaytimeLabel(playTimeInMilliseconds?: number | null) {
   if (!playTimeInMilliseconds) return "0h";
 
@@ -96,4 +224,34 @@ export function getHeroPlaytimeLabel(playTimeInMilliseconds?: number | null) {
   );
 
   return `${totalHours}h`;
+}
+
+export function isLibraryViewMode(
+  value: string | null | undefined
+): value is LibraryViewMode {
+  return value === "grid" || value === "list";
+}
+
+export function isLibrarySortOption(
+  value: string | null | undefined
+): value is LibrarySortOption {
+  return (
+    value === "last_played" ||
+    value === "playtime" ||
+    value === "title_asc" ||
+    value === "title_desc" ||
+    value === "added_desc" ||
+    value === "added_asc"
+  );
+}
+
+export function isLibrarySecondaryFilter(
+  value: string | null | undefined
+): value is LibrarySecondaryFilter {
+  return (
+    value === "all_games" ||
+    value === "installed" ||
+    value === "not_installed" ||
+    value === "never_played"
+  );
 }

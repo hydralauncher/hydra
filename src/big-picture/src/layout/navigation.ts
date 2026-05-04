@@ -2,6 +2,7 @@ export const BIG_PICTURE_APP_LAYER_ID = "big-picture-app-layer";
 export const BIG_PICTURE_SHELL_REGION_ID = "big-picture-shell";
 export const BIG_PICTURE_SIDEBAR_REGION_ID = "big-picture-sidebar";
 export const BIG_PICTURE_CONTENT_REGION_ID = "big-picture-content";
+export const BIG_PICTURE_HEADER_REGION_ID = "header";
 
 export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   home: "big-picture-sidebar-home",

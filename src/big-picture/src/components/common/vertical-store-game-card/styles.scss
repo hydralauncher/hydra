@@ -1,3 +1,14 @@
+button.vertical-store-game-card {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
 .vertical-store-game-card {
   width: min(350px, 100%);
   display: flex;

@@ -6,7 +6,7 @@ import {
   MagnifyingGlassIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
-import { useMemo } from "react";
+import { forwardRef, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Divider,
@@ -167,9 +167,10 @@ function SidebarLibrary() {
   );
 }
 
-function SidebarContainer({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+const SidebarContainer = forwardRef<
+  HTMLDivElement,
+  Readonly<{ children: React.ReactNode }>
+>(function SidebarContainer({ children }, ref) {
   const handleMouseLeave = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -177,29 +178,30 @@ function SidebarContainer({
   };
 
   return (
-    <>
-      <div
-        role="presentation"
-        className="sidebar-container"
-        onMouseLeave={handleMouseLeave}
-      >
-        {children}
-      </div>
-      <div className="sidebar-spacer" />
-      <div className="sidebar-drawer-overlay" />
-    </>
+    <div
+      ref={ref}
+      role="presentation"
+      className="sidebar-container"
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </div>
   );
-}
+});
 
 function Sidebar() {
   return (
-    <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
-      <SidebarContainer>
-        <SidebarRouter />
-        <Divider />
-        <SidebarLibrary />
-      </SidebarContainer>
-    </VerticalFocusGroup>
+    <>
+      <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
+        <SidebarContainer>
+          <SidebarRouter />
+          <Divider />
+          <SidebarLibrary />
+        </SidebarContainer>
+      </VerticalFocusGroup>
+      <div className="sidebar-spacer" />
+      <div className="sidebar-drawer-overlay" />
+    </>
   );
 }
 

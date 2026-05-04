@@ -18,6 +18,7 @@ import {
   NavigationDiagnostics,
   VerticalFocusGroup,
 } from "./components";
+import { getItemFocusTarget } from "./helpers";
 import type { FocusOverrides } from "./services";
 
 import "./styles/globals.scss";
@@ -27,10 +28,7 @@ export default function App() {
   const showNavigationDiagnostics = import.meta.env.DEV;
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const contentNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: activeSidebarItemId,
-    },
+    left: getItemFocusTarget(activeSidebarItemId),
   };
 
   useEffect(() => {

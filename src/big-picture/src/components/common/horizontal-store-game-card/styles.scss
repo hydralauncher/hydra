@@ -1,0 +1,122 @@
+button.horizontal-store-game-card {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.horizontal-store-game-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  border: 1px solid transparent;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background-color: transparent;
+  outline: none;
+  outline-offset: 3px;
+  overflow: hidden;
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out,
+    outline-color 0.2s ease-in-out;
+
+  &__cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 460 / 215;
+    border-radius: var(--spacing-unit);
+    overflow: hidden;
+    background-color: var(--surface);
+
+    img,
+    &-placeholder {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    img {
+      object-fit: cover;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, transparent 42%),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0%, transparent 50%);
+      opacity: 0.65;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+
+  &__cover-placeholder {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      ),
+      var(--secondary);
+  }
+
+  &__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit);
+    padding: 0 0 calc(var(--spacing-unit) * 2);
+    transition: padding 0.2s ease-in-out;
+  }
+
+  &__title,
+  &__subtitle {
+    margin: 0;
+    line-height: normal;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  &:hover,
+  &:focus-within,
+  &--force-hovered,
+  [data-focused="true"] > &,
+  [data-focus-visible="true"] > & {
+    background-color: var(--surface);
+    border-color: var(--secondary-border);
+
+    .horizontal-store-game-card__cover::before {
+      opacity: 1;
+    }
+
+    .horizontal-store-game-card__body {
+      padding-inline: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  [data-focus-visible="true"] > & {
+    outline: 2px solid var(--primary);
+  }
+}

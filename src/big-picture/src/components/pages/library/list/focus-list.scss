@@ -1,0 +1,32 @@
+.library-focus-list {
+  width: 100%;
+  padding: 0 calc(var(--spacing-unit) * 6);
+}
+
+.library-focus-list__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: calc(var(--spacing-unit) * 4);
+  row-gap: calc(var(--spacing-unit) * 8);
+}
+
+.library-game-card__action-button {
+  cursor: pointer;
+}
+
+@media (min-width: 1281px) {
+  .library-focus-list {
+    padding: 0 calc(var(--spacing-unit) * 16);
+  }
+
+  .library-focus-list__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: calc(var(--spacing-unit) * 8);
+  }
+}
+
+@media (min-width: 2240px) {
+  .library-focus-list__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

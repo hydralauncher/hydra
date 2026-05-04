@@ -39,6 +39,7 @@ export const prepareGameEntry = async ({
       remoteId: null,
       playTimeInMilliseconds: 0,
       lastTimePlayed: null,
+      addedToLibraryAt: new Date(),
       isDeleted: false,
     });
   }

@@ -37,6 +37,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@floating-ui/dom": "^1.7.6",
     "@fontsource/noto-sans": "^5.2.10",
     "@fontsource/space-grotesk": "^5.2.10",
     "@hookform/resolvers": "^5.2.2",

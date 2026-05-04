@@ -1,4 +1,5 @@
 export * from "./use-game-details.hook";
+export * from "./use-game-collections.hook";
 export * from "./use-library.hook";
 export * from "./use-library-game-state";
 export * from "./use-dominant-color.hook";
@@ -11,3 +12,4 @@ export * from "./use-search.hook";
 export * from "./use-format.hook";
 export * from "./use-date.hook";
 export * from "./use-game-details.hook";
+export * from "./use-floating-panel-position.hook";

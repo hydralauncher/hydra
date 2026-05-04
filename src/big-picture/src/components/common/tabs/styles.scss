@@ -17,6 +17,15 @@
     flex: 1;
   }
 
+  &__tablist {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 12);
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   &__tab {
     position: relative;
     display: flex;
@@ -60,6 +69,17 @@
     transform: scale(1);
     transform-origin: center bottom;
     transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+
+    &--with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  &__tab-icon {
+    flex-shrink: 0;
+    display: block;
   }
 
   &__tab:focus-visible &__tab-label,
