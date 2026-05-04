@@ -507,7 +507,10 @@ export class NavigationService {
   public updateNavigationNode(
     nodeId: string,
     updates: Partial<
-      Pick<FocusNode, "navigationState" | "navigationOrder" | "navigationOverrides">
+      Pick<
+        FocusNode,
+        "navigationState" | "navigationOrder" | "navigationOverrides"
+      >
     >
   ) {
     const registeredNode = this.nodes.get(nodeId);
@@ -922,7 +925,9 @@ export class NavigationService {
   }
 
   private getHistoricalOrderForTarget(regionId: string, target: FocusTarget) {
-    return this.regionChildOrder.get(regionId)?.get(this.getTargetKey(target)) ?? 0;
+    return (
+      this.regionChildOrder.get(regionId)?.get(this.getTargetKey(target)) ?? 0
+    );
   }
 
   private sortRegionChildren(regionId: string) {

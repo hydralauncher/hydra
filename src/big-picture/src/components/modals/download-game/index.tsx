@@ -70,7 +70,9 @@ interface DownloadDirectorySuggestion {
   totalBytes: number;
 }
 
-function hasActiveLibraryDownload(library: Array<Pick<LibraryGame, "download">>) {
+function hasActiveLibraryDownload(
+  library: Array<Pick<LibraryGame, "download">>
+) {
   return library.some((libraryGame) => {
     const download = libraryGame.download;
 

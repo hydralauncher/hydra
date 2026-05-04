@@ -712,10 +712,7 @@ export function useBigPictureDownloadsPageData() {
       await globalThis.window.electron.pauseGameSeed(game.shop, game.objectId);
     }
 
-    await globalThis.window.electron.deleteGameFolder(
-      game.shop,
-      game.objectId
-    );
+    await globalThis.window.electron.deleteGameFolder(game.shop, game.objectId);
   }, []);
 
   const moveQueuedDownload = useCallback(

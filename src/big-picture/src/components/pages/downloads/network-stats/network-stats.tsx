@@ -61,12 +61,17 @@ export function DownloadsNetworkStats({
   } satisfies CSSProperties;
 
   return (
-    <section className="downloads-network-stats" aria-label="Downloads network stats">
+    <section
+      className="downloads-network-stats"
+      aria-label="Downloads network stats"
+    >
       <div className="downloads-network-stats__meta">
         <div className="downloads-network-stats__metric">
           <GaugeIcon size={18} style={iconStyle} weight="duotone" />
           <Typography className="downloads-network-stats__metric-text">
-            <span className="downloads-network-stats__metric-label">Network:</span>
+            <span className="downloads-network-stats__metric-label">
+              Network:
+            </span>
             <strong>{speedLabel}</strong>
           </Typography>
         </div>
@@ -74,14 +79,17 @@ export function DownloadsNetworkStats({
         <div className="downloads-network-stats__metric">
           <ChartLineUpIcon size={18} style={iconStyle} weight="duotone" />
           <Typography className="downloads-network-stats__metric-text">
-            <span className="downloads-network-stats__metric-label">Highest:</span>
+            <span className="downloads-network-stats__metric-label">
+              Highest:
+            </span>
             <strong>{peakSpeedLabel}</strong>
           </Typography>
         </div>
 
         {showSeedsAndPeers ? (
           <Typography className="downloads-network-stats__torrent-meta">
-            Seeds: <strong>{seeds ?? 0}</strong> Peers: <strong>{peers ?? 0}</strong>
+            Seeds: <strong>{seeds ?? 0}</strong> Peers:{" "}
+            <strong>{peers ?? 0}</strong>
           </Typography>
         ) : null}
       </div>

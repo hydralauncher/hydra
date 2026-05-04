@@ -97,14 +97,19 @@ export function DownloadsHero({
     []
   );
 
-  const pauseResumeIcon = pauseOrResumeLabel.toLowerCase().includes("resume") ? (
+  const pauseResumeIcon = pauseOrResumeLabel
+    .toLowerCase()
+    .includes("resume") ? (
     <PlayIcon size={24} weight="fill" />
   ) : (
     <PauseIcon size={24} weight="fill" />
   );
 
   return (
-    <section className="downloads-hero" aria-label={download?.title ?? "Downloads hero"}>
+    <section
+      className="downloads-hero"
+      aria-label={download?.title ?? "Downloads hero"}
+    >
       {backgroundLayers.map((layer) => {
         const layerHandlers = getLayerEventHandlers(layer);
 

@@ -51,7 +51,7 @@
   gap: calc(var(--spacing-unit) * 3);
 }
 
-.downloads-page__section-count{
+.downloads-page__section-count {
   color: var(--text-secondary);
   font-weight: 400;
 }
@@ -117,7 +117,11 @@
 
 .downloads-page__move-grabbed {
   border-color: var(--primary) !important;
-  background: color-mix(in srgb, var(--surface) 78%, var(--primary) 22%) !important;
+  background: color-mix(
+    in srgb,
+    var(--surface) 78%,
+    var(--primary) 22%
+  ) !important;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent),
     0 10px 28px color-mix(in srgb, black 20%, transparent);
@@ -140,7 +144,11 @@
 
 .downloads-page__drop-target--active {
   border-color: var(--primary) !important;
-  background: color-mix(in srgb, var(--surface) 76%, var(--primary) 24%) !important;
+  background: color-mix(
+    in srgb,
+    var(--surface) 76%,
+    var(--primary) 24%
+  ) !important;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 

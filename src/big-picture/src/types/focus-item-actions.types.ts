@@ -63,7 +63,9 @@ export interface FocusItemActions {
 export interface ScreenActions {
   press?: Partial<Record<NavigationActionButton, ScreenActionDefinition>>;
   hold?: Partial<Record<NavigationActionButton, ScreenActionDefinition>>;
-  direction?: Partial<Record<NavigationDirectionAction, ScreenActionDefinition>>;
+  direction?: Partial<
+    Record<NavigationDirectionAction, ScreenActionDefinition>
+  >;
 }
 
 export interface FocusItemActionsMeta {

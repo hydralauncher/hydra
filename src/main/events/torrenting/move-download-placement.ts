@@ -196,7 +196,10 @@ async function moveDownloadPlacement(
       return false;
     }
 
-    if (sourcePlacement === "paused" && sourcePausedIndex === targetQueueIndex) {
+    if (
+      sourcePlacement === "paused" &&
+      sourcePausedIndex === targetQueueIndex
+    ) {
       return true;
     }
   }

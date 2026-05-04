@@ -64,7 +64,12 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     targetIndex: number
   ) =>
-    ipcRenderer.invoke("setPausedDownloadPosition", shop, objectId, targetIndex),
+    ipcRenderer.invoke(
+      "setPausedDownloadPosition",
+      shop,
+      objectId,
+      targetIndex
+    ),
   moveDownloadPlacement: (
     shop: GameShop,
     objectId: string,

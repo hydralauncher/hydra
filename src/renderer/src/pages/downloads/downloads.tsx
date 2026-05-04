@@ -89,7 +89,8 @@ export default function Downloads() {
 
       /* Is downloading or extracting */
       const isExtracting =
-        isActiveLikeDownload(next.download) || extraction?.visibleId === next.id;
+        isActiveLikeDownload(next.download) ||
+        extraction?.visibleId === next.id;
       if (lastPacket?.gameId === next.id || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 

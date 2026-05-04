@@ -31,9 +31,7 @@ export const isCompletedLikeDownload = (download: Download) => {
   );
 };
 
-export const getDownloadPlacement = (
-  download: Download
-): DownloadPlacement => {
+export const getDownloadPlacement = (download: Download): DownloadPlacement => {
   if (download.status === "removed") {
     return "hidden";
   }

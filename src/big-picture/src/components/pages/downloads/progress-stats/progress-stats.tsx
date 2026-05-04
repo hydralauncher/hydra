@@ -38,10 +38,7 @@ export function DownloadsProgressStats({
         <Typography variant="h5">{progressLabel}</Typography>
       </div>
 
-      <div
-        className="downloads-progress-stats__bar"
-        aria-hidden="true"
-      >
+      <div className="downloads-progress-stats__bar" aria-hidden="true">
         <div className="downloads-progress-stats__fill" style={fillStyle} />
       </div>
 

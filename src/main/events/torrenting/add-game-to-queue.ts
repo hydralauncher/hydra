@@ -1,6 +1,11 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi, logger, WindowManager } from "@main/services";
+import {
+  DownloadManager,
+  HydraApi,
+  logger,
+  WindowManager,
+} from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { parseBytes } from "@shared";

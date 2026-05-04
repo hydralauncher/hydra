@@ -205,7 +205,10 @@ export class GameFilesManager {
           await deleteArchiveFile(archivePath);
         }
       } else {
-        WindowManager.sendToAppWindows("on-archive-deletion-prompt", archivePaths);
+        WindowManager.sendToAppWindows(
+          "on-archive-deletion-prompt",
+          archivePaths
+        );
       }
     }
 

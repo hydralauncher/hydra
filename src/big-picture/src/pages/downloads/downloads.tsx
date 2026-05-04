@@ -286,7 +286,10 @@ function getPreviewPlacement(
   return null;
 }
 
-function getTargetForPlacement(placement: DragPlacement, index: number): DragTarget {
+function getTargetForPlacement(
+  placement: DragPlacement,
+  index: number
+): DragTarget {
   if (placement === "hero") {
     return { kind: "hero" };
   }
@@ -297,7 +300,9 @@ function getTargetForPlacement(placement: DragPlacement, index: number): DragTar
   };
 }
 
-function getOriginalPreviewLayoutState(state: MoveModeState): PreviewLayoutState {
+function getOriginalPreviewLayoutState(
+  state: MoveModeState
+): PreviewLayoutState {
   return {
     sourceGameId: state.sourceGameId,
     heroId: state.originalHeroId,
@@ -836,7 +841,11 @@ export default function Downloads() {
     (direction: "up" | "down") => {
       setMoveMode((current) => {
         if (!current || current.isCommitting) return current;
-        const nextTarget = getNextMoveTarget(current, direction, canPromoteToHero);
+        const nextTarget = getNextMoveTarget(
+          current,
+          direction,
+          canPromoteToHero
+        );
         if (!nextTarget) return current;
 
         return applyMoveTargetToMoveModeState(
