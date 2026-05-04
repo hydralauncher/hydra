@@ -83,6 +83,7 @@ export function NavigationInputProvider({
     triggerItemHold,
     triggerScreenPress,
     triggerScreenHold,
+    triggerScreenDirection,
     canResolveFocusedPrimaryAction,
     canResolveFocusedSecondaryAction,
     hasFocusedItemPressAction,
@@ -150,22 +151,30 @@ export function NavigationInputProvider({
 
       if (event.key === "ArrowUp" || key === "w") {
         event.preventDefault();
-        moveFocus("up");
+        if (!triggerScreenDirection("up", event)) {
+          moveFocus("up");
+        }
       }
 
       if (event.key === "ArrowLeft" || key === "a") {
         event.preventDefault();
-        moveFocus("left");
+        if (!triggerScreenDirection("left", event)) {
+          moveFocus("left");
+        }
       }
 
       if (event.key === "ArrowDown" || key === "s") {
         event.preventDefault();
-        moveFocus("down");
+        if (!triggerScreenDirection("down", event)) {
+          moveFocus("down");
+        }
       }
 
       if (event.key === "ArrowRight" || key === "d") {
         event.preventDefault();
-        moveFocus("right");
+        if (!triggerScreenDirection("right", event)) {
+          moveFocus("right");
+        }
       }
 
       const isPrimaryKey =
@@ -189,13 +198,15 @@ export function NavigationInputProvider({
     return () => {
       globalThis.removeEventListener("keydown", handleKeyDown);
     };
-  }, [moveFocus, triggerPrimary, triggerScreenPress]);
+  }, [moveFocus, triggerPrimary, triggerScreenDirection, triggerScreenPress]);
 
   useEffect(() => {
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
       if (!isActiveGamepadEvent(event)) return;
 
-      moveFocus("up");
+      if (!triggerScreenDirection("up")) {
+        moveFocus("up");
+      }
     });
 
     const unsubDpadLeft = onButtonPressed(
@@ -203,7 +214,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("left");
+        if (!triggerScreenDirection("left")) {
+          moveFocus("left");
+        }
       }
     );
 
@@ -212,7 +225,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("down");
+        if (!triggerScreenDirection("down")) {
+          moveFocus("down");
+        }
       }
     );
 
@@ -221,7 +236,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("right");
+        if (!triggerScreenDirection("right")) {
+          moveFocus("right");
+        }
       }
     );
 
@@ -231,7 +248,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("up");
+        if (!triggerScreenDirection("up")) {
+          moveFocus("up");
+        }
       }
     );
 
@@ -241,7 +260,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("left");
+        if (!triggerScreenDirection("left")) {
+          moveFocus("left");
+        }
       }
     );
 
@@ -251,7 +272,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("down");
+        if (!triggerScreenDirection("down")) {
+          moveFocus("down");
+        }
       }
     );
 
@@ -261,7 +284,9 @@ export function NavigationInputProvider({
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
 
-        moveFocus("right");
+        if (!triggerScreenDirection("right")) {
+          moveFocus("right");
+        }
       }
     );
 
@@ -275,7 +300,13 @@ export function NavigationInputProvider({
       unsubStickLeft();
       unsubStickRight();
     };
-  }, [isActiveGamepadEvent, moveFocus, onButtonPressed, onStickMove]);
+  }, [
+    isActiveGamepadEvent,
+    moveFocus,
+    onButtonPressed,
+    onStickMove,
+    triggerScreenDirection,
+  ]);
 
   useEffect(() => {
     resetHoldSessions();

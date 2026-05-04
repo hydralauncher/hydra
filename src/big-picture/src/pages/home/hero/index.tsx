@@ -5,6 +5,7 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { TrendingGame } from "@types";
+import { DownloadGameModal } from "../../../components/modals";
 import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 import {
@@ -48,7 +49,7 @@ export function HomePageHero({
   );
   const launchGame = useLibraryLaunchGame(
     useCallback(() => {
-      console.log("home-hero download");
+      setIsDownloadingGame(true);
     }, [])
   );
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
@@ -63,7 +64,7 @@ export function HomePageHero({
   const secondActionFocusId = isInLibrary
     ? HOME_HERO_DOWNLOAD_ID
     : HOME_HERO_ADD_TO_LIBRARY_ID;
-
+  const [isDownloadingGame, setIsDownloadingGame] = useState(false);
   useEffect(() => {
     updateLibrary();
   }, [updateLibrary]);
@@ -85,7 +86,7 @@ export function HomePageHero({
 
   const handleDownloadOrPlayClick = async () => {
     if (!gameState.libraryGame) {
-      console.log("home-hero download");
+      setIsDownloadingGame(true);
       return;
     }
     await launchGame(gameState.libraryGame);
@@ -106,6 +107,10 @@ export function HomePageHero({
     } finally {
       setIsAddingToLibrary(false);
     }
+  };
+
+  const handleDownloadGameModalClose = () => {
+    setIsDownloadingGame(false);
   };
 
   if (!featuredGame) return null;
@@ -256,6 +261,12 @@ export function HomePageHero({
           </HorizontalFocusGroup>
         </div>
       </div>
+
+      <DownloadGameModal
+        visible={isDownloadingGame}
+        onClose={handleDownloadGameModalClose}
+        game={featuredGame}
+      />
     </section>
   );
 }

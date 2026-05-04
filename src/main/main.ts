@@ -2,7 +2,11 @@ import { downloadsSublevel } from "./level/sublevels/downloads";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
-import type { Download, UserPreferences } from "@types";
+import {
+  isQueuedDownload,
+  type Download,
+  type UserPreferences,
+} from "../types";
 import path from "node:path";
 import fs from "node:fs";
 import {
@@ -21,11 +25,13 @@ import {
   DeckyPlugin,
   DownloadSourcesChecker,
   WSClient,
+  WindowManager,
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
 import { GofileApi } from "./services/hosters";
+import { getNextQueuedDownload } from "./events/torrenting/update-download-queue-position";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -107,7 +113,7 @@ export const loadState = async () => {
       return orderBy(games, "timestamp", "desc");
     });
 
-  let interruptedDownload: Download | null = null;
+  let interruptedDownloadKey: string | null = null;
 
   for (const download of downloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
@@ -122,8 +128,8 @@ export const loadState = async () => {
 
     // Find interrupted active download (download that was running when app closed)
     // Mark it as paused but remember it for auto-resume
-    if (download.status === "active" && !interruptedDownload) {
-      interruptedDownload = download;
+    if (download.status === "active" && !interruptedDownloadKey) {
+      interruptedDownloadKey = downloadKey;
       await downloadsSublevel.put(downloadKey, {
         ...download,
         status: "paused",
@@ -148,10 +154,7 @@ export const loadState = async () => {
   for (const download of updatedDownloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
     const hasInvalidQueuedState =
-      download.queued &&
-      (download.status === "removed" ||
-        download.status === "complete" ||
-        download.status === "seeding");
+      download.queued && !isQueuedDownload(download);
 
     if (!hasInvalidQueuedState) {
       normalizedDownloads.push(download);
@@ -167,13 +170,18 @@ export const loadState = async () => {
     normalizedDownloads.push(normalizedDownload);
   }
 
-  // Prioritize interrupted download, then queued downloads
+  const interruptedDownload =
+    interruptedDownloadKey != null
+      ? (normalizedDownloads.find(
+          (download) =>
+            levelKeys.game(download.shop, download.objectId) ===
+            interruptedDownloadKey
+        ) ?? null)
+      : null;
+
+  // Prioritize interrupted active download, then the oldest valid queued item.
   const downloadToResume =
-    interruptedDownload ??
-    normalizedDownloads.find(
-      (game) =>
-        game.queued && (game.status === "paused" || game.status === "error")
-    );
+    interruptedDownload ?? getNextQueuedDownload(normalizedDownloads);
 
   const downloadsToSeed: Download[] = [];
 
@@ -234,6 +242,8 @@ export const loadState = async () => {
     // Use Python RPC for everything (torrent or fallback)
     await DownloadManager.startRPC(downloadToResume, downloadsToSeed);
   }
+
+  WindowManager.sendDownloadsUpdated();
 
   startMainLoop();
 

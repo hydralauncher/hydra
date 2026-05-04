@@ -16,6 +16,7 @@ import {
   SourceAnchor,
   Tooltip,
   Typography,
+  UserDiskItem,
   UserProfile,
   VerticalGameCard,
 } from "../../components";
@@ -50,6 +51,8 @@ const POSTER_IMAGE =
   "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80";
 const HOVER_POSTER_IMAGE =
   "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80";
+const SAMPLE_FREE_BYTES = Math.round(145.3 * 1024 ** 3);
+const SAMPLE_TOTAL_BYTES = 480 * 1024 ** 3;
 
 interface ShowcaseSectionProps {
   title: string;
@@ -78,7 +81,6 @@ export default function Catalogue() {
   const [checked, setChecked] = useState(true);
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [steamAssets3357650, setSteamAssets3357650] =
     useState<ShopAssets | null>(null);
@@ -423,6 +425,27 @@ export default function Catalogue() {
         </ShowcaseSection>
 
         <ShowcaseSection
+          title="Storage"
+          description="Card de disco do usuario com uso e espaco livre."
+        >
+          <div className="catalogue-page__cards">
+            <UserDiskItem
+              title="eight's blazing fast SSD"
+              path="C:\\Others\\Games"
+              freeBytes={SAMPLE_FREE_BYTES}
+              totalBytes={SAMPLE_TOTAL_BYTES}
+            />
+            <UserDiskItem
+              title="Hydra archive drive"
+              path="D:\\Hydra\\Library"
+              freeBytes={Math.round(82.6 * 1024 ** 3)}
+              totalBytes={2 * 1024 ** 4}
+              isSelected
+            />
+          </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection
           title="ScrollArea"
           description="Container com scrollbar visível e conteúdo extenso."
         >
@@ -455,16 +478,10 @@ export default function Catalogue() {
 
         <ShowcaseSection
           title="Overlays"
-          description="Modal base, confirmation modal e ImageLightbox acionados por botões."
+          description="Modal base e ImageLightbox acionados por botões."
         >
           <div className="catalogue-page__component-row">
             <Button onClick={() => setIsModalOpen(true)}>Open Modal</Button>
-            <Button
-              variant="danger"
-              onClick={() => setIsConfirmationModalOpen(true)}
-            >
-              Open Confirmation
-            </Button>
             <Button variant="secondary" onClick={() => setIsLightboxOpen(true)}>
               Open Lightbox
             </Button>
@@ -483,18 +500,6 @@ export default function Catalogue() {
       >
         <div>testing</div>
       </Modal>
-
-      <ConfirmationModal
-        visible={isConfirmationModalOpen}
-        title="Delete saved layout?"
-        description="This is a showcase example of the common confirmation modal."
-        confirmLabel="Delete"
-        danger
-        onClose={() => setIsConfirmationModalOpen(false)}
-        onConfirm={() => {
-          console.log("catalogue confirmation modal confirm");
-        }}
-      />
 
       {isLightboxOpen && (
         <button

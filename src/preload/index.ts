@@ -53,6 +53,31 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       direction
     ),
+  setDownloadQueuePosition: (
+    shop: GameShop,
+    objectId: string,
+    targetIndex: number
+  ) =>
+    ipcRenderer.invoke("setDownloadQueuePosition", shop, objectId, targetIndex),
+  setPausedDownloadPosition: (
+    shop: GameShop,
+    objectId: string,
+    targetIndex: number
+  ) =>
+    ipcRenderer.invoke("setPausedDownloadPosition", shop, objectId, targetIndex),
+  moveDownloadPlacement: (
+    shop: GameShop,
+    objectId: string,
+    targetArea: "hero" | "queue" | "paused",
+    targetIndex?: number
+  ) =>
+    ipcRenderer.invoke(
+      "moveDownloadPlacement",
+      shop,
+      objectId,
+      targetArea,
+      targetIndex
+    ),
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -333,6 +358,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
+  onDownloadsUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-downloads-updated", listener);
+    return () => ipcRenderer.removeListener("on-downloads-updated", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (

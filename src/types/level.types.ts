@@ -85,8 +85,10 @@ export interface Download {
   fileSize: number | null;
   shouldSeed: boolean;
   status: DownloadStatus | null;
+  // queued=true means automatic queue placement; queued=false means paused/manual.
   queued: boolean;
   timestamp: number;
+  // Extraction is modeled as a flag layered on top of the persisted status.
   extracting: boolean;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;

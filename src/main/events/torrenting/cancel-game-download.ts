@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 
-import { DownloadManager, logger } from "@main/services";
+import { DownloadManager, logger, WindowManager } from "@main/services";
 import { GameShop } from "@types";
 import { downloadsSublevel, levelKeys } from "@main/level";
 
@@ -27,6 +27,7 @@ const cancelGameDownload = async (
     queued: false,
     shouldSeed: false,
   });
+  WindowManager.sendDownloadsUpdated();
 };
 
 registerEvent("cancelGameDownload", cancelGameDownload);

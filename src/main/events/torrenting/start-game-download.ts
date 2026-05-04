@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi, logger } from "@main/services";
+import { DownloadManager, HydraApi, logger, WindowManager } from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
@@ -73,6 +73,8 @@ const startGameDownload = async (
     await DownloadManager.startDownload(download).then(() => {
       return downloadsSublevel.put(gameKey, download);
     });
+
+    WindowManager.sendDownloadsUpdated();
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

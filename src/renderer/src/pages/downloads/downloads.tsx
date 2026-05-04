@@ -7,7 +7,13 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { GameShop, LibraryGame, SeedingStatus } from "@types";
+import {
+  getDownloadPlacement,
+  isActiveLikeDownload,
+  type GameShop,
+  type LibraryGame,
+  type SeedingStatus,
+} from "../../../../types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -78,32 +84,23 @@ export default function Downloads() {
       /* Game has been manually added to the library */
       if (!next.download) return prev;
 
-      if (next.download.status === "removed") return prev;
+      const placement = getDownloadPlacement(next.download);
+      if (placement === "hidden") return prev;
 
       /* Is downloading or extracting */
       const isExtracting =
-        next.download.extracting || extraction?.visibleId === next.id;
+        isActiveLikeDownload(next.download) || extraction?.visibleId === next.id;
       if (lastPacket?.gameId === next.id || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
-      /* Is either queued, paused, or failed */
-      const isQueuedDownload =
-        next.download.queued &&
-        next.download.status !== "complete" &&
-        next.download.status !== "seeding";
-
-      if (
-        isQueuedDownload ||
-        next.download?.status === "paused" ||
-        next.download?.status === "error"
-      )
+      if (placement === "queue" || placement === "paused")
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
     const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
-      "desc",
+      "asc",
     ]);
 
     const complete = orderBy(result.complete, (game) =>

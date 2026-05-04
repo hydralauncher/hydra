@@ -1,0 +1,224 @@
+.downloads-game-card {
+  width: 100%;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.downloads-game-card__main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 8);
+  padding: calc(var(--spacing-unit) * 2);
+  border: 1px solid transparent;
+  border-radius: calc(var(--spacing-unit) * 3);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  outline: none;
+  transition:
+    background-color 0.12s ease-in-out,
+    border-color 0.12s ease-in-out;
+
+  &[data-focused="true"],
+  &:focus-visible,
+  &:hover {
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border-color: var(--secondary-border);
+  }
+
+  &[data-focused="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+.downloads-game-card__cover {
+  width: clamp(176px, 18vw, 272px);
+  aspect-ratio: 2 / 1;
+  flex-shrink: 0;
+  border-radius: calc(var(--spacing-unit) * 2);
+  overflow: hidden;
+  background: var(--surface);
+
+  img,
+  &-placeholder {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  img {
+    object-fit: cover;
+  }
+}
+
+.downloads-game-card__cover-placeholder {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    ),
+    var(--secondary);
+}
+
+.downloads-game-card__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.downloads-game-card__copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+.downloads-game-card__title,
+.downloads-game-card__secondary {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.downloads-game-card__title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.downloads-game-card__secondary,
+.downloads-game-card__progress-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.downloads-game-card__progress {
+  width: min(100%, 280px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+.downloads-game-card__progress-track {
+  width: 100%;
+  height: calc(var(--spacing-unit) * 1.5);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  overflow: hidden;
+}
+
+.downloads-game-card__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--alert);
+}
+
+.downloads-game-card__progress-label {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.downloads-game-card__status {
+  flex-shrink: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.downloads-game-card__side {
+  min-width: 0;
+  flex-shrink: 0;
+  width: min(100%, 560px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.downloads-game-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.downloads-game-card__action-button--icon-only {
+  .button__icon-container--left::after,
+  .button__icon-container--right::before {
+    content: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .downloads-game-card {
+    align-items: stretch;
+  }
+
+  .downloads-game-card__main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 5);
+  }
+
+  .downloads-game-card__side {
+    width: auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .downloads-game-card__status {
+    text-align: left;
+  }
+
+  .downloads-game-card__actions {
+    justify-content: flex-end;
+  }
+
+  .downloads-game-card__progress {
+    width: min(100%, 280px);
+    align-items: flex-start;
+  }
+
+  .downloads-game-card__progress-label {
+    text-align: left;
+  }
+}
+
+@media (max-width: 720px) {
+  .downloads-game-card__main {
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  .downloads-game-card__cover {
+    width: min(100%, 240px);
+  }
+
+  .downloads-game-card__side {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .downloads-game-card__actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .downloads-game-card__progress {
+    width: 100%;
+  }
+}

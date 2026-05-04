@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 
-import { DownloadManager, logger } from "@main/services";
+import { DownloadManager, logger, WindowManager } from "@main/services";
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 
@@ -43,6 +43,7 @@ const resumeGameDownload = async (
       timestamp: Date.now(),
       queued: true,
     });
+    WindowManager.sendDownloadsUpdated();
   }
 };
 

@@ -39,6 +39,7 @@ import {
   GridFocusGroup,
   VerticalFocusGroup,
 } from "../../components";
+import { DownloadGameModal } from "../../components/modals";
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
@@ -78,11 +79,16 @@ export default function Home() {
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
 
+  const [downloadModalGame, setDownloadModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleCloseDownloadModal = useCallback(() => {
+    setDownloadModalGame(null);
+  }, []);
+
   const handleLaunchFromMenu = useLibraryLaunchGame(
-    useCallback((_game: LibraryGame) => {
-      logger.warn(
-        "Big Picture: Install/download from context menu is not wired yet"
-      );
+    useCallback((game: LibraryGame) => {
+      setDownloadModalGame(game);
     }, [])
   );
 
@@ -572,6 +578,15 @@ export default function Home() {
           }
           onClose={closeCatalogMenu}
         />
+
+        {downloadModalGame ? (
+          <DownloadGameModal
+            key={downloadModalGame.id}
+            visible
+            onClose={handleCloseDownloadModal}
+            game={downloadModalGame}
+          />
+        ) : null}
       </section>
     </VerticalFocusGroup>
   );

@@ -22,7 +22,6 @@ import path from "node:path";
 import fs from "node:fs";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { orderBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
@@ -31,6 +30,7 @@ import { AllDebridClient } from "./all-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { getNextQueuedDownload } from "@main/events/torrenting/update-download-queue-position";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -522,11 +522,12 @@ export class DownloadManager {
   ) {
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-      WindowManager.mainWindow.webContents.send(
-        "on-download-progress",
-        structuredClone({ ...status, game })
-      );
     }
+
+    WindowManager.sendToAppWindows(
+      "on-download-progress",
+      structuredClone({ ...status, game })
+    );
   }
 
   private static async handleDownloadCompletion(
@@ -614,6 +615,7 @@ export class DownloadManager {
         queued: false,
         extracting: shouldExtract,
       });
+      WindowManager.sendDownloadsUpdated();
 
       return true;
     } else {
@@ -624,6 +626,7 @@ export class DownloadManager {
         queued: false,
         extracting: shouldExtract,
       });
+      WindowManager.sendDownloadsUpdated();
       await this.cancelDownload(gameId);
 
       return false;
@@ -705,18 +708,8 @@ export class DownloadManager {
   }
 
   private static async processNextQueuedDownload() {
-    const downloads = await downloadsSublevel
-      .values()
-      .all()
-      .then((games) =>
-        orderBy(
-          games.filter((game) => game.status === "paused" && game.queued),
-          ["timestamp"],
-          ["desc"]
-        )
-      );
-
-    const [nextItemOnQueue] = downloads;
+    const downloads = await downloadsSublevel.values().all();
+    const nextItemOnQueue = getNextQueuedDownload(downloads);
 
     if (nextItemOnQueue) {
       this.resumeDownload(nextItemOnQueue);
@@ -737,12 +730,12 @@ export class DownloadManager {
         .then((res) => res.data);
     } catch (error) {
       logger.error("[DownloadManager] RPC seed status poll failed", error);
-      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
 
     if (!seedStatus.length) {
-      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
 
@@ -769,12 +762,13 @@ export class DownloadManager {
               ? Math.min(totalSize / status.fileSize, 1)
               : download.progress,
         });
+        WindowManager.sendDownloadsUpdated();
 
-        WindowManager.mainWindow?.webContents.send("on-hard-delete");
+        WindowManager.sendToAppWindows("on-hard-delete");
       }
     }
 
-    WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
+    WindowManager.sendToAppWindows("on-seeding-status", seedStatus);
   }
 
   static async pauseDownload(downloadKey = this.downloadingGameId) {
@@ -817,7 +811,7 @@ export class DownloadManager {
       }
 
       WindowManager.mainWindow?.setProgressBar(-1);
-      WindowManager.mainWindow?.webContents.send("on-download-progress", null);
+      WindowManager.sendToAppWindows("on-download-progress", null);
       this.downloadingGameId = null;
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;

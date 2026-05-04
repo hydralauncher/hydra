@@ -13,7 +13,13 @@ import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
 } from "../../skeletons";
-import type { DiskUsage, Game, GameRepack, UserPreferences } from "@types";
+import type {
+  DiskUsage,
+  Game,
+  GameRepack,
+  LibraryGame,
+  UserPreferences,
+} from "@types";
 import {
   useGameDownloadOptions,
   useNavigationScreenActions,
@@ -51,6 +57,7 @@ interface DownloadGameSourceListProps {
 }
 
 interface DownloadGameOptionsProps {
+  game: Pick<Game, "objectId" | "shop" | "title" | "libraryHeroImageUrl">;
   option: GameRepack;
   visible: boolean;
   onClose: () => void;
@@ -61,6 +68,19 @@ interface DownloadDirectorySuggestion {
   path: string;
   freeBytes: number;
   totalBytes: number;
+}
+
+function hasActiveLibraryDownload(library: Array<Pick<LibraryGame, "download">>) {
+  return library.some((libraryGame) => {
+    const download = libraryGame.download;
+
+    return Boolean(
+      download &&
+        (download.status === "active" ||
+          download.status === "extracting" ||
+          download.extracting)
+    );
+  });
 }
 
 const DOWNLOAD_SORT_OPTIONS: Array<{
@@ -144,6 +164,7 @@ export function DownloadGameModal({
             {step === DownloadGameStep.Options && selectedOption && (
               <DownloadGameOptions
                 key={selectedOption.id}
+                game={game}
                 option={selectedOption}
                 visible={visible}
                 onClose={onClose}
@@ -282,6 +303,7 @@ function DownloadGameSourceList({
 }
 
 function DownloadGameOptions({
+  game,
   option,
   visible,
   onClose,
@@ -291,9 +313,9 @@ function DownloadGameOptions({
     useState<DownloadDirectorySuggestion[]>([]);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [selectedDownloader, setSelectedDownloader] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedDownloader, setSelectedDownloader] = useState<string>();
+  const [hasActiveDownload, setHasActiveDownload] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const downloaderItems = useMemo(() => {
     const availableDownloaders = sortAvailableDownloaders(
@@ -320,9 +342,38 @@ function DownloadGameOptions({
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
+      setHasActiveDownload(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshActiveDownloadState = async () => {
+      const library = await globalThis.window.electron.getLibrary();
+
+      if (cancelled) return;
+
+      setHasActiveDownload(hasActiveLibraryDownload(library));
+    };
+
+    void refreshActiveDownloadState();
+
+    const unsubscribe = globalThis.window.electron.onDownloadsUpdated(() => {
+      void refreshActiveDownloadState();
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !IS_DESKTOP) {
       setSelectedDownloadPath("");
       setDownloadDirectorySuggestions([]);
       setUserPreferences(null);
+      setIsSubmitting(false);
       return;
     }
 
@@ -380,15 +431,88 @@ function DownloadGameOptions({
     };
   }, [visible]);
 
-  const handleStartDownload = () => {
-    console.log("download-game-modal start download", {
-      optionId: option.id,
-      optionTitle: option.title,
-      downloadPath: selectedDownloadPath,
-      downloader: selectedDownloader,
-    });
+  const resolvedDownloader = useMemo(() => {
+    if (!selectedDownloader) return null;
 
-    onClose();
+    return Number(selectedDownloader) as Downloader;
+  }, [selectedDownloader]);
+
+  const selectedUri = useMemo(() => {
+    if (resolvedDownloader == null) return null;
+
+    return (
+      option.uris.find((uri) =>
+        getDownloadersForUris([uri]).includes(resolvedDownloader)
+      ) ?? null
+    );
+  }, [option.uris, resolvedDownloader]);
+
+  const isSubmitDisabled =
+    isSubmitting ||
+    !selectedDownloadPath ||
+    resolvedDownloader == null ||
+    !selectedUri;
+
+  const handleStartDownload = async () => {
+    if (
+      !IS_DESKTOP ||
+      !selectedDownloadPath ||
+      resolvedDownloader == null ||
+      !selectedUri
+    ) {
+      return;
+    }
+
+    const payload = {
+      objectId: game.objectId,
+      title: game.title,
+      shop: game.shop,
+      uri: selectedUri,
+      downloadPath: selectedDownloadPath,
+      downloader: resolvedDownloader,
+      automaticallyExtract: false,
+      automaticallyDeleteArchiveFiles: false,
+      fileSize: option.fileSize,
+    } as const;
+
+    setIsSubmitting(true);
+    let shouldQueue = hasActiveDownload;
+
+    try {
+      const library = await globalThis.window.electron.getLibrary();
+      shouldQueue = hasActiveLibraryDownload(library);
+
+      const response = shouldQueue
+        ? await globalThis.window.electron.addGameToQueue(payload)
+        : await globalThis.window.electron.startGameDownload(payload);
+
+      if (response.ok) {
+        onClose();
+        return;
+      }
+
+      console.error("download-game-modal failed to submit download", {
+        action: shouldQueue ? "queue" : "start",
+        error: response.error,
+        game,
+        option,
+        downloader: resolvedDownloader,
+        downloadPath: selectedDownloadPath,
+        uri: selectedUri,
+      });
+    } catch (error) {
+      console.error("download-game-modal failed to submit download", {
+        action: hasActiveDownload ? "queue" : "start",
+        error,
+        game,
+        option,
+        downloader: resolvedDownloader,
+        downloadPath: selectedDownloadPath,
+        uri: selectedUri,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -461,9 +585,11 @@ function DownloadGameOptions({
         <div className="download-game-modal__actions">
           <Button
             icon={<DownloadSimpleIcon size={20} />}
+            loading={isSubmitting}
+            disabled={isSubmitDisabled}
             onClick={handleStartDownload}
           >
-            Start Download
+            {hasActiveDownload ? "Add to Queue" : "Start Download"}
           </Button>
         </div>
       </VerticalFocusGroup>

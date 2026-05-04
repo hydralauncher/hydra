@@ -1,6 +1,6 @@
 import { registerEvent } from "../register-event";
 
-import { DownloadManager } from "@main/services";
+import { DownloadManager, WindowManager } from "@main/services";
 import { GameShop } from "@types";
 import { downloadsSublevel, levelKeys } from "@main/level";
 
@@ -21,6 +21,7 @@ const pauseGameDownload = async (
       status: "paused",
       queued: false,
     });
+    WindowManager.sendDownloadsUpdated();
   }
 };
 

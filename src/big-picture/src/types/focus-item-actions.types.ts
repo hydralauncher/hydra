@@ -4,6 +4,7 @@ export type NavigationActionMode = "press" | "hold";
 export type FocusItemPressButton = "x" | "y";
 export type FocusItemHoldButton = "a" | "b" | "x";
 export type NavigationTargetType = "item" | "region";
+export type NavigationDirectionAction = "up" | "down" | "left" | "right";
 
 export interface NavigationActionContext {
   itemId: string;
@@ -62,6 +63,7 @@ export interface FocusItemActions {
 export interface ScreenActions {
   press?: Partial<Record<NavigationActionButton, ScreenActionDefinition>>;
   hold?: Partial<Record<NavigationActionButton, ScreenActionDefinition>>;
+  direction?: Partial<Record<NavigationDirectionAction, ScreenActionDefinition>>;
 }
 
 export interface FocusItemActionsMeta {

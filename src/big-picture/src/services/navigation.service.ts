@@ -27,6 +27,7 @@ export interface FocusNode {
   regionId: string;
   layerId: string;
   navigationState: NavigationNodeState;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   getElement: FocusElementGetter;
 }
@@ -36,6 +37,7 @@ export interface FocusRegion {
   parentRegionId: string | null;
   orientation: FocusOrientation;
   layerId: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getElement: FocusElementGetter;
@@ -290,6 +292,7 @@ export class NavigationService {
       ...region,
       parentRegionId: region.parentRegionId ?? null,
       layerId,
+      navigationOrder: region.navigationOrder,
       navigationOverrides: region.navigationOverrides,
       isPersistent: Boolean(region.isPersistent),
     };
@@ -366,6 +369,7 @@ export class NavigationService {
       Pick<
         FocusRegion,
         | "navigationOverrides"
+        | "navigationOrder"
         | "getElement"
         | "autoScrollMode"
         | "getScrollAnchor"
@@ -378,6 +382,8 @@ export class NavigationService {
 
     const nextNavigationOverrides =
       updates.navigationOverrides ?? registeredRegion.navigationOverrides;
+    const nextNavigationOrder =
+      updates.navigationOrder ?? registeredRegion.navigationOrder;
 
     const nextGetElement = updates.getElement ?? registeredRegion.getElement;
     const nextAutoScrollMode =
@@ -390,6 +396,7 @@ export class NavigationService {
         registeredRegion.navigationOverrides,
         nextNavigationOverrides
       ) &&
+      nextNavigationOrder === registeredRegion.navigationOrder &&
       nextGetElement === registeredRegion.getElement &&
       nextAutoScrollMode === registeredRegion.autoScrollMode &&
       nextGetScrollAnchor === registeredRegion.getScrollAnchor
@@ -399,11 +406,16 @@ export class NavigationService {
 
     this.regions.set(regionId, {
       ...registeredRegion,
+      navigationOrder: nextNavigationOrder,
       navigationOverrides: nextNavigationOverrides,
       autoScrollMode: nextAutoScrollMode,
       getElement: nextGetElement,
       getScrollAnchor: nextGetScrollAnchor,
     });
+
+    if (registeredRegion.parentRegionId) {
+      this.sortRegionChildren(registeredRegion.parentRegionId);
+    }
 
     this.notify();
   }
@@ -415,6 +427,7 @@ export class NavigationService {
     > & {
       layerId?: string;
       navigationState?: NavigationNodeState;
+      navigationOrder?: number;
       navigationOverrides?: FocusOverrides;
     }
   ) {
@@ -438,6 +451,7 @@ export class NavigationService {
       regionId: node.regionId,
       layerId,
       navigationState: node.navigationState ?? "active",
+      navigationOrder: node.navigationOrder,
       navigationOverrides: node.navigationOverrides,
       getElement: node.getElement,
     });
@@ -492,7 +506,9 @@ export class NavigationService {
 
   public updateNavigationNode(
     nodeId: string,
-    updates: Partial<Pick<FocusNode, "navigationState" | "navigationOverrides">>
+    updates: Partial<
+      Pick<FocusNode, "navigationState" | "navigationOrder" | "navigationOverrides">
+    >
   ) {
     const registeredNode = this.nodes.get(nodeId);
 
@@ -500,11 +516,14 @@ export class NavigationService {
 
     const nextNavigationState =
       updates.navigationState ?? registeredNode.navigationState;
+    const nextNavigationOrder =
+      updates.navigationOrder ?? registeredNode.navigationOrder;
     const nextNavigationOverrides =
       updates.navigationOverrides ?? registeredNode.navigationOverrides;
 
     if (
       nextNavigationState === registeredNode.navigationState &&
+      nextNavigationOrder === registeredNode.navigationOrder &&
       this.areFocusOverridesEqual(
         registeredNode.navigationOverrides,
         nextNavigationOverrides
@@ -516,8 +535,11 @@ export class NavigationService {
     this.nodes.set(nodeId, {
       ...registeredNode,
       navigationState: nextNavigationState,
+      navigationOrder: nextNavigationOrder,
       navigationOverrides: nextNavigationOverrides,
     });
+
+    this.sortRegionChildren(registeredNode.regionId);
 
     const resolvedPendingInitialFocus = this.tryResolvePendingInitialFocus(
       registeredNode.layerId
@@ -574,6 +596,7 @@ export class NavigationService {
       parentRegionId: region.parentRegionId,
       orientation: region.orientation,
       layerId: region.layerId,
+      navigationOrder: region.navigationOrder,
       navigationOverrides: region.navigationOverrides,
       autoScrollMode: region.autoScrollMode,
       getElement: region.getElement,
@@ -867,24 +890,13 @@ export class NavigationService {
       this.regionChildOrderCounter.set(regionId, nextOrder + 1);
     }
 
-    const targetOrder = childOrder.get(targetKey) ?? 0;
-    const insertIndex = children.findIndex((child) => {
-      const childKey = this.getTargetKey(child);
-      const childTargetOrder = childOrder.get(childKey) ?? 0;
-
-      return childTargetOrder > targetOrder;
-    });
-
-    if (insertIndex === -1) {
-      children.push(target);
-      return;
-    }
-
-    children.splice(insertIndex, 0, target);
+    children.push(target);
+    this.sortRegionChildren(regionId);
   }
 
   private removeChildTarget(regionId: string, target: FocusTarget) {
     const children = this.regionChildren.get(regionId);
+    const childOrder = this.regionChildOrder.get(regionId);
 
     if (!children) return;
 
@@ -893,10 +905,56 @@ export class NavigationService {
     );
 
     this.regionChildren.set(regionId, nextChildren);
+
+    childOrder?.delete(this.getTargetKey(target));
   }
 
   private getTargetKey(target: FocusTarget) {
     return `${target.type}:${target.id}`;
+  }
+
+  private getNavigationOrderForTarget(target: FocusTarget) {
+    if (target.type === "node") {
+      return this.nodes.get(target.id)?.navigationOrder;
+    }
+
+    return this.regions.get(target.id)?.navigationOrder;
+  }
+
+  private getHistoricalOrderForTarget(regionId: string, target: FocusTarget) {
+    return this.regionChildOrder.get(regionId)?.get(this.getTargetKey(target)) ?? 0;
+  }
+
+  private sortRegionChildren(regionId: string) {
+    const children = this.regionChildren.get(regionId);
+
+    if (!children) return;
+
+    children.sort((left, right) => {
+      const leftNavigationOrder = this.getNavigationOrderForTarget(left);
+      const rightNavigationOrder = this.getNavigationOrderForTarget(right);
+
+      if (
+        leftNavigationOrder != null &&
+        rightNavigationOrder != null &&
+        leftNavigationOrder !== rightNavigationOrder
+      ) {
+        return leftNavigationOrder - rightNavigationOrder;
+      }
+
+      if (leftNavigationOrder != null && rightNavigationOrder == null) {
+        return -1;
+      }
+
+      if (leftNavigationOrder == null && rightNavigationOrder != null) {
+        return 1;
+      }
+
+      return (
+        this.getHistoricalOrderForTarget(regionId, left) -
+        this.getHistoricalOrderForTarget(regionId, right)
+      );
+    });
   }
 
   private hasPendingInitialFocus(layerId: string) {

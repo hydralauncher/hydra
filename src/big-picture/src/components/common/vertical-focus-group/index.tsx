@@ -19,6 +19,7 @@ import {
 
 interface VerticalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   regionId?: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getScrollAnchor?: () => HTMLElement | null;
@@ -28,6 +29,7 @@ interface VerticalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
 
 export function VerticalFocusGroup({
   regionId,
+  navigationOrder,
   navigationOverrides,
   autoScrollMode = "auto",
   getScrollAnchor,
@@ -41,6 +43,7 @@ export function VerticalFocusGroup({
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
+  const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const initialGetScrollAnchorRef = useRef(getScrollAnchor);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -53,6 +56,7 @@ export function VerticalFocusGroup({
       parentRegionId,
       orientation: "vertical",
       layerId,
+      navigationOrder: initialNavigationOrderRef.current,
       navigationOverrides: initialNavigationOverridesRef.current,
       autoScrollMode,
       isPersistent: Boolean(regionId),
@@ -72,12 +76,14 @@ export function VerticalFocusGroup({
     navigation.updateRegion(resolvedRegionId, {
       autoScrollMode,
       getScrollAnchor,
+      navigationOrder,
       navigationOverrides,
     });
   }, [
     autoScrollMode,
     getScrollAnchor,
     navigation,
+    navigationOrder,
     navigationOverrides,
     resolvedRegionId,
   ]);

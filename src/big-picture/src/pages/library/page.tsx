@@ -32,6 +32,7 @@ import {
   useLibraryLaunchGame,
   useLibraryPageData,
 } from "../../components";
+import { DownloadGameModal } from "../../components/modals";
 import { logger } from "@renderer/logger";
 
 import { getBigPictureGameDetailsPath } from "../../helpers";
@@ -157,12 +158,16 @@ export default function LibraryPage() {
     }));
   }, []);
 
+  const [downloadModalGame, setDownloadModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleCloseDownloadModal = useCallback(() => {
+    setDownloadModalGame(null);
+  }, []);
+
   const handleLaunchOrDownload = useLibraryLaunchGame(
     useCallback((game: LibraryGame) => {
-      logger.warn("Big Picture: Download game workflow not wired", {
-        objectId: game.objectId,
-        shop: game.shop,
-      });
+      setDownloadModalGame(game);
     }, [])
   );
 
@@ -374,6 +379,15 @@ export default function LibraryPage() {
         onUninstall={handleRequestRemoveFiles}
         onRemoveFromLibrary={handleRequestRemoveFromLibrary}
       />
+
+      {downloadModalGame ? (
+        <DownloadGameModal
+          key={downloadModalGame.id}
+          visible
+          onClose={handleCloseDownloadModal}
+          game={downloadModalGame}
+        />
+      ) : null}
     </section>
   );
 }

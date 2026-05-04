@@ -8,6 +8,7 @@ import type {
   FocusItemHoldButton,
   FocusItemPressButton,
   NavigationActionButton,
+  NavigationDirectionAction,
 } from "../types";
 import { useNavigationSnapshot } from "../stores";
 import { useCallback } from "react";
@@ -126,6 +127,23 @@ export function useNavigationActions() {
     return navigationScreenActions.hasAction("hold", button);
   }, []);
 
+  const triggerScreenDirection = useCallback(
+    (
+      direction: NavigationDirectionAction,
+      originalEvent: Event | null = null
+    ) => {
+      return navigationScreenActions.triggerDirection(direction, originalEvent);
+    },
+    []
+  );
+
+  const hasScreenDirectionAction = useCallback(
+    (direction: NavigationDirectionAction) => {
+      return navigationScreenActions.hasDirection(direction);
+    },
+    []
+  );
+
   return {
     registerRegion,
     registerNavigationNode,
@@ -138,12 +156,14 @@ export function useNavigationActions() {
     triggerItemHold,
     triggerScreenPress,
     triggerScreenHold,
+    triggerScreenDirection,
     canResolveFocusedPrimaryAction,
     canResolveFocusedSecondaryAction,
     hasFocusedItemPressAction,
     hasFocusedItemHoldAction,
     hasScreenPressAction,
     hasScreenHoldAction,
+    hasScreenDirectionAction,
   };
 }
 
