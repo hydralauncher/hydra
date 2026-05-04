@@ -1,12 +1,11 @@
 import path from "node:path";
 import fs from "node:fs";
-import type { Game, AchievementFile, UserPreferences } from "@types";
+import type { Game, AchievementFile } from "@types";
 import { Cracker } from "@shared";
 import { achievementsLogger } from "../logger";
 import { SystemPath } from "../system-path";
 import { getSteamLocation, getSteamUsersIds } from "../steam";
 import { Wine } from "../wine";
-import { db, levelKeys } from "@main/level";
 
 const getAppDataPath = () => {
   if (process.platform === "win32") {
@@ -284,23 +283,12 @@ export const findAchievementFiles = (game: Game) => {
 const steamUserIds = await getSteamUsersIds();
 const steamPath = await getSteamLocation().catch(() => null);
 
-export const findAchievementFileInSteamPath = async (game: Game) => {
+export const findAchievementFileInSteamPath = (game: Game) => {
   if (!steamUserIds.length) {
     return [];
   }
 
   if (!steamPath) {
-    return [];
-  }
-
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    {
-      valueEncoding: "json",
-    }
-  );
-
-  if (!userPreferences?.enableSteamAchievements) {
     return [];
   }
 
