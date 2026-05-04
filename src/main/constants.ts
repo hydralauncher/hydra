@@ -49,7 +49,7 @@ export const INTERVALS = {
   achievementWatcher: 2_000,
   seedStatusWatcher: 2_000,
   updateChecker: 60_000 * 50, // 50 minutes
-  powerSaveBlockerSync: 2_000,
+  powerSaveBlockerSync: 20_000,
 };
 
 export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
