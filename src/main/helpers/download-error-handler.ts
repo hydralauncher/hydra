@@ -15,6 +15,10 @@ const handleAxiosError = (
     return { ok: false, error: DownloadError.RealDebridAccountNotAuthorized };
   }
 
+  if (err.response?.status === 429 && downloader === Downloader.VikingFile) {
+    return { ok: false, error: DownloadError.VikingFileNimbusQuotaExceeded };
+  }
+
   if (downloader === Downloader.TorBox) {
     const data = err.response?.data as { detail?: string } | undefined;
     return { ok: false, error: data?.detail };

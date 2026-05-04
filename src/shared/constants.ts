@@ -64,6 +64,7 @@ export enum DownloadError {
   GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
   NotCachedOnHydra = "download_error_not_cached_on_hydra",
+  VikingFileNimbusQuotaExceeded = "download_error_vikingfile_nimbus_quota_exceeded",
 }
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
