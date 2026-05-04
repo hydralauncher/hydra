@@ -56,10 +56,24 @@ fs.readdir(dist, async (err, files) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        upload,
-        branchName: process.env.BRANCH_NAME,
-        version: packageJson.version,
-        githubActor: process.env.GITHUB_ACTOR,
+        username: "Hydra Builds",
+        embeds: [
+          {
+            description: process.env.BRANCH_NAME,
+            color: 5814783,
+            title: `🔥 Nova build do Hydra (versão ${packageJson.version})`,
+            fields: [
+              {
+                name: "",
+                value: `⬇️ Baixar\n[${upload.name}](${upload.url})`,
+              },
+            ],
+            footer: {
+              text: process.env.GITHUB_ACTOR,
+              icon_url: `https://avatars.githubusercontent.com/u/${process.env.GITHUB_ACTOR_ID}`,
+            },
+          },
+        ],
       }),
     });
   }
