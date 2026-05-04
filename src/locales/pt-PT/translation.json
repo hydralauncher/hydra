@@ -526,6 +526,7 @@
     "files": "FILES"
   },
   "settings": {
+    "current_username": "Nome de usuário:",
     "downloads_path": "Local das transferências",
     "change": "Procurar...",
     "notifications": "Notificações",
