@@ -63,7 +63,6 @@ const startGameDownload = async (
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
-    extractionProgress: 0,
     fileIndices,
     selectedFilesSize,
     fileSize: selectedFilesSize ?? null,
