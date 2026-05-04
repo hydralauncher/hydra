@@ -23,7 +23,11 @@ import type {
   ScreenState,
   UserPreferences,
 } from "@types";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import {
+  AuthPage,
+  generateAchievementCustomNotificationTest,
+  generateFriendCustomNotificationTest,
+} from "@shared";
 import { isStaging } from "@main/constants";
 import { logger } from "./logger";
 
@@ -52,6 +56,7 @@ export class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
+        webviewTag: true,
       },
       show: false,
     };
@@ -361,10 +366,15 @@ export class WindowManager {
       }
     );
 
-    if (
-      userPreferences?.achievementNotificationsEnabled === false ||
-      userPreferences?.achievementCustomNotificationsEnabled === false
-    ) {
+    const achievementCustomEnabled =
+      userPreferences?.achievementNotificationsEnabled !== false &&
+      userPreferences?.achievementCustomNotificationsEnabled !== false;
+
+    const friendCustomEnabled =
+      userPreferences?.friendStartGameNotificationsEnabled !== false &&
+      userPreferences?.friendStartGameCustomNotificationsEnabled !== false;
+
+    if (!achievementCustomEnabled && !friendCustomEnabled) {
       return;
     }
 
@@ -423,6 +433,23 @@ export class WindowManager {
           isPlatinum: true,
         }),
       ]
+    );
+  }
+
+  public static async showFriendTestNotification() {
+    const userPreferences = await db.get<string, UserPreferences>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    const language = userPreferences.language ?? "en";
+
+    this.notificationWindow?.webContents.send(
+      "on-friend-started-playing",
+      userPreferences.achievementCustomNotificationPosition ?? "top-left",
+      generateFriendCustomNotificationTest(t, language)
     );
   }
 

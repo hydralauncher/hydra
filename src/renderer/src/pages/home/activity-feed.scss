@@ -134,6 +134,12 @@
     color: globals.$warning-color;
   }
 
+  &__time-ago {
+    font-size: 12px;
+    color: globals.$body-color;
+    opacity: 0.5;
+  }
+
   &__game-icon {
     width: 32px;
     height: 32px;

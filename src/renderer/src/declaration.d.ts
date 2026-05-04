@@ -30,6 +30,7 @@ import type {
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  FriendNotificationInfo,
   Game,
   DiskUsage,
   DownloadSource,
@@ -37,6 +38,8 @@ import type {
   GoogleDriveUserInfo,
   GoogleDriveBackupArtifact,
   RomEntry,
+  RssFeed,
+  NewsArticle,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -180,10 +183,11 @@ declare global {
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    runGameInstallerFile: (filePath: string) => Promise<boolean>;
     getGameInstallerActionType: (
       shop: GameShop,
       objectId: string
-    ) => Promise<"install" | "open-folder">;
+    ) => Promise<"install" | "open-folder" | "select-executable">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
     getGameSaveFolder: (
@@ -241,6 +245,20 @@ declare global {
       foundGames: { title: string; executablePath: string }[];
       total: number;
     }>;
+    importSteamGames: () => Promise<{
+      importedCount: number;
+      totalFound: number;
+      alreadyInLibrary: number;
+    }>;
+    onSteamImportProgress: (
+      cb: (value: {
+        totalGames: number;
+        currentIndex: number;
+        currentGame: string;
+        importedCount: number;
+        done: boolean;
+      }) => void
+    ) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -250,6 +268,15 @@ declare global {
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[], totalSizeInBytes: number) => void
     ) => () => Electron.IpcRenderer;
+    onPasswordRequired: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
+    retryExtractionWithPassword: (
+      shop: GameShop,
+      objectId: string,
+      password: string
+    ) => Promise<void>;
+    cancelExtraction: (shop: GameShop, objectId: string) => Promise<void>;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
     createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
@@ -370,6 +397,7 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Misc */
+    setFullScreen: (flag: boolean) => Promise<void>;
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
     getVersion: () => Promise<string>;
@@ -523,8 +551,15 @@ declare global {
         position: AchievementCustomNotificationPosition
       ) => void
     ) => () => Electron.IpcRenderer;
+    onFriendStartedPlaying: (
+      cb: (
+        position?: AchievementCustomNotificationPosition,
+        friendInfo?: FriendNotificationInfo
+      ) => void
+    ) => () => Electron.IpcRenderer;
     updateAchievementCustomNotificationWindow: () => Promise<void>;
     showAchievementTestNotification: () => Promise<void>;
+    showFriendTestNotification: () => Promise<void>;
 
     /* Themes */
     addCustomTheme: (theme: Theme) => Promise<void>;
@@ -563,6 +598,23 @@ declare global {
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
     ) => () => Electron.IpcRenderer;
+
+    /* News */
+    news: {
+      getFeeds: () => Promise<RssFeed[]>;
+      addFeed: (name: string, url: string) => Promise<RssFeed>;
+      removeFeed: (feedId: string) => Promise<void>;
+      fetchArticles: () => Promise<NewsArticle[]>;
+      seedDefaultFeeds: () => Promise<void>;
+      scrapeArticle: (url: string) => Promise<{ content: string } | null>;
+      translateText: (
+        text: string,
+        targetLang: string
+      ) => Promise<{
+        translatedText: string;
+        detectedLanguage: string | null;
+      }>;
+    };
 
     /* ROMs (Beta) */
     roms: {

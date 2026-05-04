@@ -94,6 +94,9 @@ export default function Library() {
       case "favorites":
         filtered = library.filter((game) => game.favorite);
         break;
+      case "installed":
+        filtered = library.filter((game) => game.executablePath);
+        break;
       case "all":
       default:
         filtered = library;
@@ -126,16 +129,19 @@ export default function Library() {
     const allGamesCount = library.length;
     let recentlyPlayedCount = 0;
     let favoritesCount = 0;
+    let installedCount = 0;
 
     for (const game of library) {
       if (game.lastTimePlayed !== null) recentlyPlayedCount++;
       if (game.favorite) favoritesCount++;
+      if (game.executablePath) installedCount++;
     }
 
     return {
       allGamesCount,
       recentlyPlayedCount,
       favoritesCount,
+      installedCount,
     };
   }, [library]);
 
@@ -176,6 +182,7 @@ export default function Library() {
                 allGamesCount={filterCounts.allGamesCount}
                 recentlyPlayedCount={filterCounts.recentlyPlayedCount}
                 favoritesCount={filterCounts.favoritesCount}
+                installedCount={filterCounts.installedCount}
               />
             </div>
 

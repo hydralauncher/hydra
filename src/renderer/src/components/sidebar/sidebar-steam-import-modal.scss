@@ -1,0 +1,102 @@
+@use "../../scss/globals.scss";
+
+.steam-import-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__status-text {
+    font-size: 13px;
+    color: globals.$muted-color;
+  }
+
+  &__current-game {
+    font-size: 13px;
+    color: globals.$body-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  &__progress-label {
+    font-size: 12px;
+    color: globals.$muted-color;
+  }
+
+  &__progress-percentage {
+    font-size: 13px;
+    font-weight: 600;
+    color: globals.$body-color;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__progress-track {
+    width: 100%;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, globals.$brand-blue, #5b8af5);
+    transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &--indeterminate {
+      width: 40% !important;
+      animation: steam-import-indeterminate 1.5s ease-in-out infinite;
+    }
+  }
+
+  &__result {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__result-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: globals.$body-color;
+  }
+
+  &__result-value {
+    font-weight: 600;
+  }
+
+  &__close-button {
+    align-self: flex-end;
+    padding: 8px 24px;
+    border-radius: 4px;
+    background-color: globals.$brand-blue;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+}
+
+@keyframes steam-import-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}

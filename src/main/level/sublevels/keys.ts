@@ -26,4 +26,5 @@ export const levelKeys = {
   googleDriveUserInfo: "googleDriveUserInfo",
   roms: "roms",
   repackCache: "repackCache",
+  rssFeeds: "rssFeeds",
 };

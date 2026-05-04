@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
@@ -24,14 +24,20 @@ import { SidebarProfile } from "./sidebar-profile";
 import { sortBy } from "lodash-es";
 import cn from "classnames";
 import {
+  ClockIcon,
   CommentDiscussionIcon,
   PlayIcon,
   PlusIcon,
+  TrophyIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import { SidebarGameItem } from "./sidebar-game-item";
+import { SidebarDragLayer } from "./sidebar-drag-layer";
 import { SidebarAddingCustomGameModal } from "./sidebar-adding-custom-game-modal";
+
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import { useDispatch } from "react-redux";
+import { AnimatePresence, motion } from "framer-motion";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 
 const SIDEBAR_MIN_WIDTH = 200;
@@ -43,8 +49,6 @@ const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 const isGamePlayable = (game: LibraryGame) => Boolean(game.executablePath);
 
 export function Sidebar() {
-  const filterRef = useRef<HTMLInputElement>(null);
-
   const dispatch = useDispatch();
 
   const { t } = useTranslation("sidebar");
@@ -58,7 +62,7 @@ export function Sidebar() {
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
   const navigate = useNavigate();
 
-  const [filteredLibrary, setFilteredLibrary] = useState<LibraryGame[]>([]);
+  const [filterText, setFilterText] = useState("");
 
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -67,9 +71,49 @@ export function Sidebar() {
 
   const location = useLocation();
 
+  const gameRunning = useAppSelector((state) => state.gameRunning.gameRunning);
+
+  const [gameOrder, setGameOrder] = useState<string[]>(() => {
+    try {
+      const stored = window.localStorage.getItem("sidebarGameOrder");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const sortedLibrary = useMemo(() => {
-    return sortBy(library, (game) => game.title);
-  }, [library]);
+    const alphabetical = sortBy(library, (game) => game.title);
+    const libraryIds = new Set(library.map((g) => g.id));
+
+    const prunedOrder = gameOrder.filter((id) => libraryIds.has(id));
+    const orderedIds = new Set(prunedOrder);
+    const newGames = alphabetical.filter((g) => !orderedIds.has(g.id));
+    const finalOrder = [...prunedOrder, ...newGames.map((g) => g.id)];
+
+    const gameMap = new Map(library.map((g) => [g.id, g]));
+    return finalOrder.map((id) => gameMap.get(id)!).filter(Boolean);
+  }, [library, gameOrder]);
+
+  const handleDropGame = useCallback(() => {
+    setGameOrder((current) => {
+      window.localStorage.setItem("sidebarGameOrder", JSON.stringify(current));
+      return current;
+    });
+  }, []);
+
+  const runningGame = useMemo(() => {
+    if (!gameRunning) return null;
+    return library.find((g) => g.id === gameRunning.id) ?? null;
+  }, [gameRunning, library]);
+
+  const formatSessionTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   const { hasActiveSubscription } = useUserDetails();
 
@@ -83,6 +127,50 @@ export function Sidebar() {
 
   const [showPlayableOnly, setShowPlayableOnly] = useState(false);
   const [showAddGameModal, setShowAddGameModal] = useState(false);
+
+  const visibleLibraryGames = useMemo(() => {
+    return sortedLibrary.filter(
+      (g) =>
+        !g.favorite &&
+        (!showPlayableOnly || isGamePlayable(g)) &&
+        (!filterText ||
+          g.title.toLowerCase().includes(filterText.toLowerCase()))
+    );
+  }, [sortedLibrary, showPlayableOnly, filterText]);
+
+  const handleMoveGame = useCallback(
+    (dragIndex: number, hoverIndex: number) => {
+      const draggedId = visibleLibraryGames[dragIndex]?.id;
+      const hoveredId = visibleLibraryGames[hoverIndex]?.id;
+      if (!draggedId || !hoveredId || draggedId === hoveredId) return;
+
+      setGameOrder((prev) => {
+        const alphabetical = sortBy(library, (g) => g.title);
+        let currentIds: string[];
+
+        if (prev.length > 0) {
+          const libraryIds = new Set(library.map((g) => g.id));
+          const pruned = prev.filter((id) => libraryIds.has(id));
+          const orderedSet = new Set(pruned);
+          const newIds = alphabetical
+            .filter((g) => !orderedSet.has(g.id))
+            .map((g) => g.id);
+          currentIds = [...pruned, ...newIds];
+        } else {
+          currentIds = alphabetical.map((g) => g.id);
+        }
+
+        const fromIdx = currentIds.indexOf(draggedId);
+        const toIdx = currentIds.indexOf(hoveredId);
+        if (fromIdx === -1 || toIdx === -1) return prev;
+
+        const [removed] = currentIds.splice(fromIdx, 1);
+        currentIds.splice(toIdx, 0, removed);
+        return currentIds;
+      });
+    },
+    [visibleLibraryGames, library]
+  );
 
   const handlePlayButtonClick = () => {
     setShowPlayableOnly(!showPlayableOnly);
@@ -183,22 +271,8 @@ export function Sidebar() {
   };
 
   const handleFilter: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    setFilteredLibrary(
-      sortedLibrary.filter((game) =>
-        game.title
-          .toLowerCase()
-          .includes(event.target.value.toLocaleLowerCase())
-      )
-    );
+    setFilterText(event.target.value);
   };
-
-  useEffect(() => {
-    setFilteredLibrary(sortedLibrary);
-
-    if (filterRef.current) {
-      filterRef.current.value = "";
-    }
-  }, [sortedLibrary]);
 
   useEffect(() => {
     window.onmousemove = (event: MouseEvent) => {
@@ -308,6 +382,8 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
+      <SidebarDragLayer />
+
       <div className="sidebar__container">
         <SidebarProfile />
 
@@ -364,6 +440,115 @@ export function Sidebar() {
             </ul>
           </section>
 
+          <AnimatePresence>
+            {gameRunning && (
+              <motion.section
+                key="now-playing"
+                role="button"
+                tabIndex={0}
+                className="sidebar__now-playing-section"
+                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                animate={{ opacity: 1, height: "auto", marginBottom: 0 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{
+                  duration: 0.3,
+                  ease: [0.4, 0, 0.2, 1],
+                  opacity: { duration: 0.2 },
+                }}
+                onClick={() => {
+                  const path = buildGameDetailsPath({
+                    shop: gameRunning.shop,
+                    objectId: gameRunning.objectId,
+                    title: gameRunning.title,
+                  });
+                  if (path !== location.pathname) {
+                    navigate(path);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    const path = buildGameDetailsPath({
+                      shop: gameRunning.shop,
+                      objectId: gameRunning.objectId,
+                      title: gameRunning.title,
+                    });
+                    if (path !== location.pathname) {
+                      navigate(path);
+                    }
+                  }
+                }}
+              >
+                {(runningGame?.customHeroImageUrl ||
+                  runningGame?.libraryHeroImageUrl) && (
+                  <div className="sidebar__now-playing-cover">
+                    <img
+                      src={
+                        (runningGame.customHeroImageUrl ||
+                          runningGame.libraryHeroImageUrl)!
+                      }
+                      alt=""
+                      className="sidebar__now-playing-cover-img"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+
+                <div className="sidebar__now-playing-content">
+                  {runningGame?.coverImageUrl && (
+                    <img
+                      src={runningGame.coverImageUrl}
+                      alt=""
+                      className="sidebar__now-playing-game-cover"
+                      loading="lazy"
+                    />
+                  )}
+
+                  <div className="sidebar__now-playing-body">
+                    <div className="sidebar__now-playing-header">
+                      <small className="sidebar__now-playing-label">
+                        <span className="sidebar__now-playing-dot" />
+                        {t("now_playing")}
+                      </small>
+                      <button
+                        type="button"
+                        className="sidebar__now-playing-close"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.electron.closeGame(
+                            gameRunning.shop,
+                            gameRunning.objectId
+                          );
+                        }}
+                        title={t("close_game_title")}
+                      >
+                        <XIcon size={12} />
+                      </button>
+                    </div>
+
+                    <span className="sidebar__now-playing-title">
+                      {gameRunning.title}
+                    </span>
+
+                    <div className="sidebar__now-playing-stats">
+                      <span className="sidebar__now-playing-stat">
+                        <ClockIcon size={11} />
+                        {formatSessionTime(gameRunning.sessionDurationInMillis)}
+                      </span>
+                      {runningGame?.achievementCount != null &&
+                        runningGame.achievementCount > 0 && (
+                          <span className="sidebar__now-playing-stat">
+                            <TrophyIcon size={11} />
+                            {runningGame.unlockedAchievementCount ?? 0}/
+                            {runningGame.achievementCount}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+
           {favoriteGames.length > 0 && (
             <section className="sidebar__section">
               <small className="sidebar__section-title">{t("favorites")}</small>
@@ -417,26 +602,27 @@ export function Sidebar() {
             </div>
 
             <TextField
-              ref={filterRef}
               placeholder={t("filter")}
+              value={filterText}
               onChange={handleFilter}
               theme="dark"
             />
 
             <ul className="sidebar__menu">
-              {filteredLibrary
-                .filter((game) => !game.favorite)
-                .filter((game) => !showPlayableOnly || isGamePlayable(game))
-                .map((game) => (
-                  <SidebarGameItem
-                    key={game.id}
-                    game={game}
-                    handleSidebarGameClick={handleSidebarGameClick}
-                    getGameTitle={getGameTitle}
-                    downloadProgress={getGameDownloadProgress(game)}
-                    extractionProgress={getGameExtractionProgress(game)}
-                  />
-                ))}
+              {visibleLibraryGames.map((game, idx) => (
+                <SidebarGameItem
+                  key={game.id}
+                  game={game}
+                  handleSidebarGameClick={handleSidebarGameClick}
+                  getGameTitle={getGameTitle}
+                  downloadProgress={getGameDownloadProgress(game)}
+                  extractionProgress={getGameExtractionProgress(game)}
+                  index={idx}
+                  onMoveGame={handleMoveGame}
+                  onDropGame={handleDropGame}
+                  draggable
+                />
+              ))}
             </ul>
           </section>
         </div>

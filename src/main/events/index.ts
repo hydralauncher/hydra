@@ -19,6 +19,7 @@ import "./torrenting";
 import "./user";
 import "./user-preferences";
 import "./roms";
+import "./news";
 
 import { isPortableVersion } from "@main/helpers";
 import { WindowManager } from "@main/services";

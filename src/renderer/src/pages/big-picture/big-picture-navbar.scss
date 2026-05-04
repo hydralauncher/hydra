@@ -1,0 +1,217 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+
+@keyframes bp-tab-indicator {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.bp-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  min-height: 72px;
+  padding: 0 40px;
+  background: linear-gradient(
+    to bottom,
+    rgba($bp-bg, 0.92) 0%,
+    rgba($bp-bg, 0.75) 100%
+  );
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 3;
+
+  &__tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__bumper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba($bp-text, 0.4);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba($bp-text, 0.6);
+    }
+  }
+
+  &__tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba($bp-text, 0.4);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    letter-spacing: 0.2px;
+
+    &:hover {
+      color: rgba($bp-text, 0.75);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &--active {
+      color: $bp-text;
+      background: rgba($bp-accent, 0.08);
+      border-color: rgba($bp-accent, 0.2);
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 4px;
+        left: 24px;
+        right: 24px;
+        height: 2px;
+        background: $bp-accent;
+        border-radius: 1px;
+        animation: bp-tab-indicator 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      &:hover {
+        color: $bp-text;
+        background: rgba($bp-accent, 0.12);
+      }
+    }
+  }
+
+  &__download {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &-ring {
+      width: 44px;
+      height: 44px;
+      transform: rotate(-90deg);
+
+      &-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.08);
+        stroke-width: 3;
+      }
+
+      &-fill {
+        fill: none;
+        stroke: $bp-accent;
+        stroke-width: 3;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+    }
+
+    &-center {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $bp-accent;
+      pointer-events: none;
+    }
+
+    &-speed {
+      font-size: 9px;
+      font-weight: 600;
+      color: rgba($bp-text, 0.55);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.2px;
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  &__clock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.2;
+
+    &-time {
+      font-size: 18px;
+      font-weight: 600;
+      color: $bp-text;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5px;
+    }
+
+    &-date {
+      font-size: 11px;
+      color: rgba($bp-text, 0.35);
+      font-weight: 400;
+    }
+  }
+
+  &__exit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba($bp-text, 0.45);
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.25s ease;
+
+    &:hover {
+      color: globals.$error-color;
+      background: rgba(globals.$error-color, 0.1);
+      border-color: rgba(globals.$error-color, 0.3);
+    }
+  }
+}

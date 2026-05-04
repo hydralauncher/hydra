@@ -1,0 +1,179 @@
+@use "../../scss/globals.scss";
+
+.friends-dropdown {
+  position: relative;
+  -webkit-app-region: no-drag;
+
+  &__trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    padding: globals.$spacing-unit;
+    border-radius: 4px;
+
+    &:hover {
+      color: #dadbe1;
+    }
+  }
+
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background-color: globals.$success-color;
+    border-radius: 50%;
+    border: 2px solid globals.$dark-background-color;
+  }
+
+  &__panel {
+    position: fixed;
+    z-index: 1000;
+    width: 320px;
+    max-height: 420px;
+    background-color: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    animation: friendsDropdownFadeIn 0.15s ease-out;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid globals.$border-color;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__count {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.7;
+  }
+
+  &__list {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__section-label {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: globals.$body-color;
+    opacity: 0.6;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+
+    &--offline {
+      filter: grayscale(100%);
+      opacity: 0.6;
+    }
+  }
+
+  &__online-indicator {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    background-color: globals.$success-color;
+    border-radius: 50%;
+    border: 2px solid rgba(18, 18, 18, 0.95);
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: globals.$body-font-size;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__game {
+    font-size: globals.$small-font-size;
+    color: globals.$success-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__status {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.5;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(globals.$spacing-unit * 4);
+    color: globals.$body-color;
+    opacity: 0.5;
+    font-size: globals.$small-font-size;
+  }
+}
+
+@keyframes friendsDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

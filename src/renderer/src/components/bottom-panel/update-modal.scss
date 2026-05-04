@@ -1,0 +1,41 @@
+@use "../../scss/globals.scss";
+
+.update-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 120px;
+
+  &__status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    text-align: center;
+  }
+
+  &__title {
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  &__description {
+    color: globals.$muted-color;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__spinner {
+    animation: update-modal-spin 1s linear infinite;
+    color: globals.$body-color;
+    margin-bottom: globals.$spacing-unit;
+  }
+}
+
+@keyframes update-modal-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

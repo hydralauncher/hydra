@@ -64,6 +64,10 @@ export interface Game {
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
+  currentStreak?: number;
+  longestStreak?: number;
+  lastStreakDate?: string | null;
+  playedDates?: string[];
 }
 
 export interface Download {
@@ -124,6 +128,7 @@ export interface UserPreferences {
   achievementSoundVolume?: number;
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
+  friendStartGameCustomNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   autoDeleteInstallerAfterExtraction?: boolean;

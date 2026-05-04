@@ -134,6 +134,18 @@ class TorrentDownloader:
         status = self.torrent_handle.status()
         info = self.torrent_handle.get_torrent_info()
         
+        files = []
+        if info:
+            file_storage = info.files()
+            file_progress = self.torrent_handle.file_progress()
+            for i in range(file_storage.num_files()):
+                files.append({
+                    'name': file_storage.file_name(i),
+                    'path': file_storage.file_path(i),
+                    'size': file_storage.file_size(i),
+                    'bytesDownloaded': file_progress[i] if i < len(file_progress) else 0,
+                })
+
         response = {
             'folderName': info.name() if info else "",
             'fileSize': info.total_size() if info else 0,
@@ -144,6 +156,7 @@ class TorrentDownloader:
             'numSeeds': status.num_seeds,
             'status': status.state,
             'bytesDownloaded': status.progress * info.total_size() if info else status.all_time_download,
+            'files': files,
         }
 
         return response

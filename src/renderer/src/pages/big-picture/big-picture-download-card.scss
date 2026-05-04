@@ -1,0 +1,173 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-danger: globals.$error-color;
+
+@keyframes bp-progress-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba($bp-accent, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba($bp-accent, 0.5);
+  }
+}
+
+@keyframes bp-progress-stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 0;
+  }
+}
+
+.bp-download-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  background: $bp-surface;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    background 0.25s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: #161616;
+  }
+
+  // ── Cover ──
+  &__cover {
+    width: 72px;
+    height: 96px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__cover-placeholder {
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  // ── Info ──
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $bp-text;
+    display: block;
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ── Progress bar ──
+  &__progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: $bp-accent;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    position: relative;
+
+    &--active {
+      animation: bp-progress-glow 2s ease-in-out infinite;
+
+      // Animated stripes
+      background-image: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.1) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.1) 75%,
+        transparent 75%,
+        transparent
+      );
+      background-size: 40px 40px;
+      animation:
+        bp-progress-glow 2s ease-in-out infinite,
+        bp-progress-stripes 1s linear infinite;
+    }
+  }
+
+  // ── Meta ──
+  &__meta {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: rgba($bp-text, 0.45);
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+
+  // ── Actions ──
+  &__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__btn {
+    padding: 10px 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba($bp-text, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.2px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: $bp-text;
+    }
+
+    &--danger {
+      border-color: rgba($bp-danger, 0.25);
+      color: #f4475e;
+
+      &:hover {
+        background: rgba($bp-danger, 0.12);
+        border-color: rgba($bp-danger, 0.4);
+      }
+    }
+  }
+}

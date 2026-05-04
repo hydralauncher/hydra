@@ -318,6 +318,10 @@ export function ProfileHero() {
                 <Skeleton width={150} height={28} />
               )}
 
+              {userProfile?.bio && (
+                <p className="profile-hero__bio">{userProfile.bio}</p>
+              )}
+
               {currentGame && (
                 <Link
                   to={buildGameDetailsPath({

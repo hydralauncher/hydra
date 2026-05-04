@@ -1,0 +1,174 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-surface: globals.$background-color;
+$bp-bg: globals.$dark-background-color;
+
+@keyframes bp-hero-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bp-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bp-library {
+  // ── Featured / hero card ──
+  &__hero {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    cursor: pointer;
+    animation: bp-hero-fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    &-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to right,
+        rgba($bp-bg, 0.9) 0%,
+        rgba($bp-bg, 0.5) 40%,
+        transparent 70%
+      );
+    }
+
+    &-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      padding: 32px 40px;
+      z-index: 1;
+    }
+
+    &-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: rgba($bp-accent, 0.15);
+      border: 1px solid rgba($bp-accent, 0.3);
+      color: $bp-accent;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+
+      &::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: $bp-accent;
+        animation: bp-pulse-dot 2s ease-in-out infinite;
+      }
+    }
+
+    &-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+      margin: 0 0 8px 0;
+      letter-spacing: -0.3px;
+    }
+
+    &-subtitle {
+      font-size: 15px;
+      color: rgba($bp-text, 0.6);
+    }
+
+    // Focused state
+    &[data-bp-focused="true"] {
+      .bp-library__hero-image {
+        transform: scale(1.03);
+      }
+    }
+  }
+
+  // ── Section heading ──
+  &__section-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.08),
+        transparent
+      );
+    }
+  }
+
+  // ── Game grid ──
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+
+  // ── Empty state ──
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 12px;
+
+    h2 {
+      color: rgba($bp-text, 0.3);
+      font-weight: 500;
+    }
+  }
+}
+
+@keyframes bp-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba($bp-accent, 0.5);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 4px rgba($bp-accent, 0);
+  }
+}

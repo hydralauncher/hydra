@@ -1,0 +1,92 @@
+@use "../../scss/globals.scss";
+
+.seeding-hover-card {
+  position: fixed;
+  z-index: 1000;
+  background-color: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  padding: calc(globals.$spacing-unit * 1.5);
+  min-width: 240px;
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  transform: translateX(-50%);
+  animation: seedingHoverCardFadeIn 0.15s ease-out;
+
+  &__title {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.7;
+    margin-bottom: globals.$spacing-unit;
+  }
+
+  &__game {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit) 0;
+
+    & + & {
+      border-top: 1px solid globals.$border-color;
+    }
+  }
+
+  &__game-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: globals.$background-color;
+  }
+
+  &__game-icon-fallback {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: globals.$body-color;
+    opacity: 0.5;
+  }
+
+  &__game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  &__game-title {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__game-speed {
+    font-size: 11px;
+    color: globals.$seeding-color;
+    opacity: 0.9;
+  }
+}
+
+@keyframes seedingHoverCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.95) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+}

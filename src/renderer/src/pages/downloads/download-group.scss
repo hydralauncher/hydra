@@ -749,6 +749,51 @@
     }
   }
 
+  &__torrent-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit);
+    max-height: 200px;
+    overflow-y: auto;
+    padding: calc(globals.$spacing-unit * 1.5);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: calc(globals.$spacing-unit);
+  }
+
+  &__torrent-file-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__torrent-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+  }
+
+  &__torrent-file-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__torrent-file-size {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   &__seeding-header-icon {
     display: flex;
     align-items: center;

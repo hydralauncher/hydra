@@ -61,30 +61,35 @@
     text-decoration: underline;
   }
 
-  &__progress-bar {
+  &--downloading {
+    background-color: rgba(34, 197, 94, 0.05);
+  }
+
+  &--extracting {
+    background-color: rgba(147, 130, 255, 0.05);
+  }
+
+  &--paused {
+    background-color: rgba(156, 163, 175, 0.05);
+  }
+
+  &__progress {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
-    width: 100%;
-    height: 3px;
-    transition: all ease 0.2s;
-
-    &::-webkit-progress-bar {
-      background-color: transparent;
-    }
-
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-    }
-
-    &--disabled {
-      opacity: globals.$disabled-opacity;
-    }
+    height: 100%;
+    background-color: rgba(34, 197, 94, 0.2);
+    transition: width 0.3s ease;
+    pointer-events: none;
+    border-radius: 8px;
 
     &--extraction {
-      &::-webkit-progress-value {
-        background-color: #fff;
-      }
+      background-color: rgba(147, 130, 255, 0.2);
+    }
+
+    &--paused {
+      background-color: rgba(156, 163, 175, 0.2);
+      opacity: globals.$disabled-opacity;
     }
   }
 }

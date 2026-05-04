@@ -1,12 +1,11 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import { useContext, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
 } from "@renderer/helpers";
-import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
+import { PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
 import { Link } from "@renderer/components";
@@ -14,7 +13,6 @@ import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./achievements-content.scss";
 
 interface UserInfo {
@@ -32,14 +30,9 @@ interface AchievementsContentProps {
 
 interface AchievementSummaryProps {
   user: UserInfo;
-  isComparison?: boolean;
 }
 
-function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
-  const { t } = useTranslation("achievement");
-  const { userDetails, hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
-
+function AchievementSummary({ user }: AchievementSummaryProps) {
   const getProfileImage = (
     user: Pick<UserInfo, "profileImageUrl" | "displayName">
   ) => {
@@ -57,28 +50,6 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
       </div>
     );
   };
-
-  if (isComparison && userDetails?.id == user.id && !hasActiveSubscription) {
-    return (
-      <div className="achievements-content__comparison">
-        <div className="achievements-content__comparison__container">
-          <LockIcon size={24} />
-          <h3>
-            <button
-              className="achievements-content__comparison__container__subscription-required-button"
-              onClick={() => showHydraCloudModal("achievements")}
-            >
-              {t("subscription_needed")}
-            </button>
-          </h3>
-        </div>
-        <div className="achievements-content__comparison__blured-avatar">
-          {getProfileImage(user)}
-          <h1>{user.displayName}</h1>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="achievements-content__user-summary">
@@ -122,7 +93,7 @@ export function AchievementsContent({
 
   const dispatch = useAppDispatch();
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
@@ -158,7 +129,7 @@ export function AchievementsContent({
     );
   };
 
-  if (!objectId || !shop || !gameTitle || !userDetails) return null;
+  if (!objectId || !shop || !gameTitle) return null;
 
   return (
     <div className="achievements-content__achievements-list">
@@ -194,7 +165,9 @@ export function AchievementsContent({
           <div className="achievements-content__achievements-list__section__container__achievements-summary-wrapper">
             <AchievementSummary
               user={{
-                ...userDetails,
+                id: userDetails?.id ?? "",
+                displayName: userDetails?.displayName ?? "",
+                profileImageUrl: userDetails?.profileImageUrl ?? null,
                 totalAchievementCount: comparedAchievements
                   ? comparedAchievements.owner.totalAchievementCount
                   : achievements!.length,
@@ -203,7 +176,6 @@ export function AchievementsContent({
                   : achievements!.filter((achievement) => achievement.unlocked)
                       .length,
               }}
-              isComparison={otherUser !== null}
             />
 
             {otherUser && <AchievementSummary user={otherUser} />}
@@ -214,15 +186,14 @@ export function AchievementsContent({
           <div
             className={`achievements-content__achievements-list__section__table-header ${isHeaderStuck ? "achievements-content__achievements-list__section__table-header--stuck" : ""}`}
           >
-            <div
-              className={`achievements-content__achievements-list__section__table-header__container ${hasActiveSubscription ? "achievements-content__achievements-list__section__table-header__container--has-active-subscription" : "achievements-content__achievements-list__section__table-header__container--has-no-active-subscription"}`}
-            >
+            <div className="achievements-content__achievements-list__section__table-header__container achievements-content__achievements-list__section__table-header__container--has-active-subscription">
               <div></div>
-              {hasActiveSubscription && (
-                <div className="achievements-content__achievements-list__section__table-header__container__user-avatar">
-                  {getProfileImage({ ...userDetails })}
-                </div>
-              )}
+              <div className="achievements-content__achievements-list__section__table-header__container__user-avatar">
+                {getProfileImage({
+                  profileImageUrl: userDetails?.profileImageUrl ?? null,
+                  displayName: userDetails?.displayName ?? "",
+                })}
+              </div>
               <div className="achievements-content__achievements-list__section__table-header__container__other-user-avatar">
                 {getProfileImage(otherUser)}
               </div>

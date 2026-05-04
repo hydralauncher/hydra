@@ -11,3 +11,4 @@ export * from "./downloadSourcesCheckTimestamp";
 export * from "./local-notifications";
 export * from "./roms";
 export * from "./repack-cache";
+export * from "./rss-feeds";

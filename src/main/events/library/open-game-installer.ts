@@ -1,26 +1,12 @@
 import { shell } from "electron";
 import path from "node:path";
 import fs from "node:fs";
-import { spawnSync, exec } from "node:child_process";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
+import { executeGameInstaller } from "../helpers/execute-game-installer";
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
-
-const executeGameInstaller = (filePath: string) => {
-  if (process.platform === "win32") {
-    shell.openPath(filePath);
-    return true;
-  }
-
-  if (spawnSync("which", ["wine"]).status === 0) {
-    exec(`wine "${filePath}"`);
-    return true;
-  }
-
-  return false;
-};
 
 const openGameInstaller = async (
   _event: Electron.IpcMainInvokeEvent,

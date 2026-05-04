@@ -17,9 +17,8 @@ import {
 } from "@renderer/hooks";
 
 import "./header.scss";
-import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { ScanGamesModal } from "./scan-games-modal";
-import { OnlineFriendsAvatars } from "./online-friends-avatars";
+import { FriendsDropdown } from "./friends-dropdown";
 import {
   setFilters,
   setLibrarySearchQuery,
@@ -35,6 +34,7 @@ const pathTitle: Record<string, string> = {
   "/catalogue": "catalogue",
   "/library": "library",
   "/downloads": "downloads",
+  "/news": "news",
   "/settings": "settings",
 };
 
@@ -325,7 +325,7 @@ export function Header() {
         </section>
 
         <section className="header__section">
-          <OnlineFriendsAvatars />
+          <FriendsDropdown />
 
           {isOnLibraryPage && window.electron.platform === "win32" && (
             <button
@@ -391,8 +391,6 @@ export function Header() {
       {isOnLibraryPage && window.electron.platform === "win32" && (
         <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
       )}
-
-      <AutoUpdateSubHeader />
 
       <SearchDropdown
         visible={

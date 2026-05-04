@@ -10,7 +10,6 @@ import { Button, Link, StarRating } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useDate, useFormat, useUserDetails } from "@renderer/hooks";
 import {
-  CloudOfflineIcon,
   DownloadIcon,
   LockIcon,
   PeopleIcon,
@@ -19,7 +18,6 @@ import {
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 
@@ -63,14 +61,13 @@ export function Sidebar() {
     data: HowLongToBeatCategory[] | null;
   }>({ isLoading: true, data: null });
 
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const [activeRequirement, setActiveRequirement] =
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const { gameTitle, shopDetails, objectId, shop, stats, achievements } =
     useContext(gameDetailsContext);
 
-  const { showHydraCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
@@ -137,16 +134,6 @@ export function Sidebar() {
           })}
         >
           <ul className="list">
-            {!hasActiveSubscription && (
-              <button
-                className="subscription-required-button"
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <CloudOfflineIcon size={16} />
-                <span>{t("achievements_not_sync")}</span>
-              </button>
-            )}
-
             {achievements.slice(0, 4).map((achievement) => (
               <li key={achievement.displayName}>
                 <Link

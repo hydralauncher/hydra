@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 
 import { useAppSelector, useDate, useDownload } from "@renderer/hooks";
 
@@ -53,39 +54,41 @@ export function HeroPanel() {
     (game?.download?.status === "active" && game?.download?.progress < 1) ||
     game?.download?.status === "paused";
 
-  const showExtractionProgressBar = isExtracting;
+  const isPaused = game?.download?.status === "paused";
+
+  const downloadProgress = isGameDownloading
+    ? (lastPacket?.progress ?? 0)
+    : (game?.download?.progress ?? 0);
 
   return (
     <div className="hero-panel__container">
-      <div className="hero-panel">
+      <div
+        className={cn("hero-panel", {
+          "hero-panel--downloading": showProgressBar && !isPaused,
+          "hero-panel--extracting": isExtracting,
+          "hero-panel--paused": isPaused,
+        })}
+      >
+        {showProgressBar && (
+          <div
+            className={cn("hero-panel__progress", {
+              "hero-panel__progress--paused": isPaused,
+            })}
+            style={{ width: `${downloadProgress * 100}%` }}
+          />
+        )}
+
+        {isExtracting && (
+          <div
+            className="hero-panel__progress hero-panel__progress--extraction"
+            style={{ width: `${(extraction?.progress ?? 0) * 100}%` }}
+          />
+        )}
+
         <div className="hero-panel__content">{getInfo()}</div>
         <div className="hero-panel__actions">
           <HeroPanelActions />
         </div>
-
-        {showProgressBar && (
-          <progress
-            max={1}
-            value={
-              isGameDownloading
-                ? lastPacket?.progress
-                : game?.download?.progress
-            }
-            className={`hero-panel__progress-bar ${
-              game?.download?.status === "paused"
-                ? "hero-panel__progress-bar--disabled"
-                : ""
-            }`}
-          />
-        )}
-
-        {showExtractionProgressBar && (
-          <progress
-            max={1}
-            value={extraction?.progress ?? 0}
-            className="hero-panel__progress-bar hero-panel__progress-bar--extraction"
-          />
-        )}
       </div>
     </div>
   );

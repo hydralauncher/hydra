@@ -2,7 +2,9 @@ import { app } from "electron";
 import path from "node:path";
 import { SystemPath } from "./services/system-path";
 
-export const defaultDownloadsPath = SystemPath.getPath("downloads");
+export const defaultDownloadsPath = app.isPackaged
+  ? path.dirname(process.execPath)
+  : SystemPath.getPath("downloads");
 
 export const isStaging = (import.meta.env.MAIN_VITE_API_URL ?? "").includes(
   "staging"

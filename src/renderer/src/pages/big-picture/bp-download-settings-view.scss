@@ -1,0 +1,296 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-success: #4caf50;
+$bp-danger: globals.$error-color;
+
+@keyframes bp-settings-enter {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.bp-download-settings {
+  animation: bp-settings-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px;
+  }
+
+  // ── Card wrapper ──
+  &__card {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  &__card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  &__card-label {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba($bp-text, 0.7);
+    margin: 0;
+  }
+
+  &__card-hint {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba($bp-text, 0.6);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  // ── Downloader list ──
+  &__downloaders {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__downloader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 20px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
+    color: $bp-text;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+
+    &[data-bp-focused="true"] {
+      background: rgba($bp-accent, 0.12);
+      border-color: $bp-accent;
+      box-shadow:
+        inset 0 0 0 1px rgba($bp-accent, 0.3),
+        0 0 12px rgba($bp-accent, 0.15);
+      overflow: hidden;
+
+      &::after {
+        display: none;
+      }
+    }
+
+    &-name {
+      font-weight: 500;
+    }
+
+    &-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba($bp-text, 0.5);
+    }
+
+    &-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+
+      &--online {
+        background: $bp-success;
+        box-shadow: 0 0 6px rgba($bp-success, 0.4);
+      }
+
+      &--warning {
+        background: #f59e0b;
+      }
+
+      &--offline {
+        background: $bp-danger;
+      }
+    }
+  }
+
+  // ── Storage bar ──
+  &__storage-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: rgba($bp-text, 0.6);
+  }
+
+  &__storage-free {
+    color: rgba($bp-text, 0.4);
+  }
+
+  &__storage-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+
+    &-used {
+      height: 100%;
+      background: rgba($bp-text, 0.3);
+      transition: width 0.3s ease;
+    }
+
+    &-download {
+      height: 100%;
+      background: $bp-accent;
+      transition: width 0.3s ease;
+
+      &--overflow {
+        background: $bp-danger;
+      }
+    }
+  }
+
+  &__storage-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 13px;
+    color: rgba($bp-text, 0.5);
+  }
+
+  &__storage-warning {
+    color: $bp-danger;
+    font-weight: 500;
+  }
+
+  // ── Option row (path, toggle) ──
+  &__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 18px 24px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    color: $bp-text;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+
+    &[data-bp-focused="true"] {
+      background: rgba($bp-accent, 0.1);
+      border-color: $bp-accent;
+      box-shadow:
+        inset 0 0 0 1px rgba($bp-accent, 0.3),
+        0 0 12px rgba($bp-accent, 0.15);
+      overflow: hidden;
+
+      &::after {
+        display: none;
+      }
+    }
+  }
+
+  &__option-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__option-label {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba($bp-text, 0.85);
+  }
+
+  &__option-value {
+    font-size: 14px;
+    color: rgba($bp-text, 0.4);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__option-action {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: $bp-accent;
+    margin-left: 16px;
+  }
+
+  &__path-error {
+    display: block;
+    margin-top: 4px;
+    padding: 0 24px;
+    font-size: 13px;
+    color: $bp-danger;
+  }
+
+  // ── Toggle switch ──
+  &__switch {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+
+    &--on {
+      background: $bp-accent;
+    }
+  }
+
+  &__switch-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+
+    .bp-download-settings__switch--on & {
+      transform: translateX(24px);
+    }
+  }
+}

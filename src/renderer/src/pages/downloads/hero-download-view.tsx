@@ -21,6 +21,7 @@ import {
 
 import { AnimatedPercentage } from "./animated-percentage";
 import { SpeedChart } from "./speed-chart";
+import { TorrentFilesPanel } from "./torrent-files-panel";
 import { heroEnterVariants } from "./download-animations";
 
 interface HeroDownloadViewProps {
@@ -296,6 +297,13 @@ export function HeroDownloadView({
             />
           </div>
         </div>
+
+        {isTorrent &&
+          !lastPacket?.isDownloadingMetadata &&
+          lastPacket?.files &&
+          lastPacket.files.length > 0 && (
+            <TorrentFilesPanel files={lastPacket.files} />
+          )}
       </div>
     </motion.div>
   );

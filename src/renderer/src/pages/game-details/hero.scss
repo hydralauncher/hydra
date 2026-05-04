@@ -1,16 +1,26 @@
 @use "../../scss/globals.scss";
 
-$hero-height: 350px;
+$hero-height: 400px;
 
 @keyframes slide-in {
   0% {
     transform: translateY(calc(40px + globals.$spacing-unit * 2));
     opacity: 0;
   }
-
   100% {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -29,13 +39,13 @@ $hero-height: 350px;
     transition: all ease 0.2s;
 
     @media (min-width: 1250px) {
-      height: 350px;
-      min-height: 350px;
+      height: 420px;
+      min-height: 420px;
     }
   }
 
   &__hero-content {
-    padding: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
     height: 100%;
     width: 100%;
     display: flex;
@@ -43,7 +53,7 @@ $hero-height: 350px;
     align-items: flex-end;
 
     @media (min-width: 768px) {
-      padding: calc(globals.$spacing-unit * 2);
+      padding: calc(globals.$spacing-unit * 3);
     }
   }
 
@@ -59,9 +69,9 @@ $hero-height: 350px;
 
   &__edit-custom-game-button {
     padding: calc(globals.$spacing-unit * 1.5);
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(20px);
-    border-radius: 8px;
+    border-radius: 10px;
     transition: all ease 0.2s;
     cursor: pointer;
     min-height: 40px;
@@ -70,8 +80,8 @@ $hero-height: 350px;
     align-items: center;
     justify-content: center;
     color: globals.$muted-color;
-    border: solid 1px globals.$border-color;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    border: solid 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
 
     &:active {
@@ -79,8 +89,9 @@ $hero-height: 350px;
     }
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.5);
-      color: globals.$body-color;
+      background-color: rgba(0, 0, 0, 0.4);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
     }
   }
 
@@ -94,9 +105,10 @@ $hero-height: 350px;
     background: linear-gradient(
       0deg,
       globals.$background-color 0%,
-      rgba(18, 18, 18, 0.85) 15%,
-      rgba(18, 18, 18, 0.4) 40%,
-      transparent 70%
+      rgba(18, 18, 18, 0.9) 12%,
+      rgba(18, 18, 18, 0.5) 35%,
+      rgba(18, 18, 18, 0.15) 55%,
+      transparent 75%
     );
   }
 
@@ -112,10 +124,7 @@ $hero-height: 350px;
     &::after {
       content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: linear-gradient(
         0deg,
         rgba(0, 0, 0, 0.3) 60%,
@@ -127,8 +136,8 @@ $hero-height: 350px;
     }
 
     @media (min-width: 1250px) {
-      height: calc(350px + 82px);
-      min-height: calc(350px + 84px);
+      height: calc(420px + 82px);
+      min-height: calc(420px + 84px);
     }
   }
 
@@ -138,15 +147,60 @@ $hero-height: 350px;
     min-height: $hero-height;
     object-fit: cover;
     object-position: top;
-    transition: all ease 0.2s;
+    transition: all ease 0.3s;
     position: absolute;
     z-index: 0;
     border-radius: 0px 0px 8px 8px;
 
     @media (min-width: 1250px) {
       object-position: center;
-      height: $hero-height;
-      min-height: $hero-height;
+      height: 420px;
+      min-height: 420px;
+    }
+  }
+
+  &__hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: hero-fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    max-width: 500px;
+  }
+
+  &__hero-short-description {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    margin: 0;
+    text-align: left;
+  }
+
+  &__hero-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  &__hero-meta-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    svg {
+      opacity: 0.7;
     }
   }
 
@@ -155,6 +209,7 @@ $hero-height: 350px;
     align-self: flex-end;
     object-fit: contain;
     object-position: left bottom;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
 
     @media (min-width: 768px) {
       width: 250px;
@@ -172,7 +227,7 @@ $hero-height: 350px;
     font-size: 1.8rem;
     font-weight: bold;
     color: #ffffff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
     text-align: left;
     line-height: 1.2;
     word-wrap: break-word;
@@ -192,9 +247,9 @@ $hero-height: 350px;
 
   &__cloud-sync-button {
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(20px);
-    border-radius: 8px;
+    border-radius: 10px;
     transition: all ease 0.2s;
     cursor: pointer;
     min-height: 40px;
@@ -204,8 +259,8 @@ $hero-height: 350px;
     gap: globals.$spacing-unit;
     color: globals.$muted-color;
     font-size: globals.$small-font-size;
-    border: solid 1px globals.$border-color;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.8);
+    border: solid 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     animation: slide-in 0.3s cubic-bezier(0.33, 1, 0.68, 1);
 
     &:active {
@@ -218,7 +273,8 @@ $hero-height: 350px;
     }
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
     }
   }
 
@@ -245,7 +301,7 @@ $hero-height: 350px;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     background-color: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
-    border-radius: 8px;
+    border-radius: 10px;
     transition: all ease 0.2s;
     cursor: pointer;
     min-height: 40px;

@@ -77,6 +77,9 @@ export type UserGame = {
   isFavorite: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
+  currentStreak?: number;
+  longestStreak?: number;
+  lastStreakDate?: string | null;
 } & ShopAssets;
 
 export interface UserLibraryResponse {
@@ -107,7 +110,8 @@ export interface SteamGame {
 
 export type AppUpdaterEvent =
   | { type: "update-available"; info: { version: string } }
-  | { type: "update-downloaded" };
+  | { type: "update-downloaded" }
+  | { type: "update-not-available" };
 
 /* Events */
 export interface StartGameDownloadPayload {
@@ -307,6 +311,13 @@ export interface AchievementNotificationInfo {
   points?: number;
 }
 
+export interface FriendNotificationInfo {
+  displayName: string;
+  profileImageUrl: string | null;
+  gameTitle: string;
+  gameIconUrl: string | null;
+}
+
 export interface GameArtifact {
   id: string;
   artifactLengthInBytes: number;
@@ -452,6 +463,7 @@ export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
 export * from "./rom.types";
+export * from "./news.types";
 
 export interface GoogleDriveTokens {
   accessToken: string;

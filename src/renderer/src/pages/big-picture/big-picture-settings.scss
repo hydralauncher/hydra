@@ -1,0 +1,321 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-danger: globals.$error-color;
+$bp-body: globals.$body-color;
+
+@keyframes bp-settings-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bp-settings {
+  max-width: 860px;
+  padding-bottom: 40px;
+
+  // ── Group (section) ──
+  &__group {
+    margin-bottom: 32px;
+    animation: bp-settings-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    &:nth-child(1) {
+      animation-delay: 0s;
+    }
+    &:nth-child(2) {
+      animation-delay: 0.06s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.12s;
+    }
+    &:nth-child(4) {
+      animation-delay: 0.18s;
+    }
+    &:nth-child(5) {
+      animation-delay: 0.24s;
+    }
+
+    &--exit {
+      margin-top: 16px;
+    }
+  }
+
+  &__group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    color: $bp-accent;
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0;
+      color: $bp-text;
+      letter-spacing: -0.2px;
+    }
+  }
+
+  // ── Card (container for rows) ──
+  &__card {
+    border-radius: 16px;
+    background: $bp-surface;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    // No overflow hidden — rows need to visually "pop out" on focus
+    position: relative;
+  }
+
+  // ── Row (single setting — the focusable element) ──
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 24px;
+    gap: 24px;
+    border: none;
+    background: $bp-surface;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+    transform: translateY(0);
+    transition:
+      background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    // First and last rows get border-radius to match the card
+    &:first-child {
+      border-radius: 16px 16px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 16px 16px;
+    }
+
+    &:first-child:last-child {
+      border-radius: 16px;
+    }
+
+    &:hover {
+      background: lighten($bp-surface, 2%);
+    }
+
+    // ── Focused: highlight the row ──
+    &[data-bp-focused="true"] {
+      z-index: 10;
+      background: lighten($bp-surface, 5%);
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 1.5px rgba($bp-accent, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 0 16px rgba($bp-accent, 0.08);
+      border-bottom-color: transparent;
+
+      // Disable the global shine sweep on rows
+      &::after {
+        display: none;
+      }
+
+      .bp-settings__row-description {
+        max-height: 60px;
+        opacity: 1;
+        margin-top: 5px;
+      }
+
+      .bp-settings__row-label {
+        color: #fff;
+      }
+
+      .bp-settings__toggle-track {
+        border-color: rgba($bp-accent, 0.5);
+      }
+    }
+
+    &--disabled,
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  &__row-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__row-label {
+    font-size: 17px;
+    font-weight: 500;
+    color: $bp-text;
+    line-height: 1.3;
+  }
+
+  &__row-description {
+    font-size: 13px;
+    color: rgba($bp-body, 0.45);
+    line-height: 1.4;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+      max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.25s ease,
+      margin-top 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    margin-top: 0;
+
+    &--path {
+      font-family: "Fira Code", "Cascadia Code", monospace;
+      font-size: 12px;
+      color: rgba($bp-body, 0.35);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 420px;
+      max-height: none;
+      opacity: 1;
+      margin-top: 4px;
+    }
+  }
+
+  // ── Select ──
+  &__select {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: $bp-text;
+    font-size: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    min-width: 240px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: $bp-accent;
+      box-shadow: 0 0 0 3px rgba($bp-accent, 0.15);
+    }
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    option {
+      background: $bp-bg;
+      color: $bp-text;
+    }
+  }
+
+  // ── Action button (e.g. "Change" for path) ──
+  &__action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: $bp-text;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  // ── Toggle switch (visual only span) ──
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    min-width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  &__toggle-track {
+    position: relative;
+    display: block;
+    width: 48px;
+    height: 26px;
+    border-radius: 13px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    .bp-settings__toggle--on & {
+      background: rgba($bp-accent, 0.2);
+      border-color: $bp-accent;
+    }
+  }
+
+  &__toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    .bp-settings__toggle--on & {
+      left: calc(100% - 19px);
+      background: $bp-accent;
+      box-shadow: 0 0 8px rgba($bp-accent, 0.4);
+    }
+  }
+
+  // ── Exit button ──
+  &__exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 20px 52px;
+    border: 1px solid rgba($bp-danger, 0.2);
+    background: rgba($bp-danger, 0.06);
+    color: #f4475e;
+    font-size: 18px;
+    font-weight: 500;
+    font-family: inherit;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.3px;
+
+    &:hover {
+      background: rgba($bp-danger, 0.12);
+      border-color: rgba($bp-danger, 0.35);
+      transform: scale(1.01);
+    }
+  }
+}

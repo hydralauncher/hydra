@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -18,8 +18,14 @@ import {
   FileZipIcon,
   HorizontalRuleIcon,
   SearchIcon,
+  SyncIcon,
   ToolsIcon,
 } from "@primer/octicons-react";
+import { Upload } from "lucide-react";
+import { formatBytes } from "@shared";
+import type { AppUpdaterEvent, SeedingStatus } from "@types";
+import { SeedingHoverCard } from "./seeding-hover-card";
+import { UpdateModal } from "./update-modal";
 
 type ActivityType =
   | "downloading"
@@ -49,6 +55,19 @@ export function BottomPanel() {
   const [commonRedistStatus, setCommonRedistStatus] = useState<string | null>(
     null
   );
+
+  const [hasUpdate, setHasUpdate] = useState(false);
+  const [isReadyToInstall, setIsReadyToInstall] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
+  const [showSeedingCard, setShowSeedingCard] = useState(false);
+  const [seedingCardPosition, setSeedingCardPosition] = useState({
+    x: 0,
+    y: 0,
+  });
+  const seedingButtonRef = useRef<HTMLButtonElement>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     window.electron.getVersion().then((result) => setVersion(result));
@@ -80,6 +99,62 @@ export function BottomPanel() {
   useEffect(() => {
     window.electron.getSessionHash().then((result) => setSessionHash(result));
   }, [userDetails?.id]);
+
+  useEffect(() => {
+    const unlisten = window.electron.onSeedingStatus((status) => {
+      setSeedingStatus(status);
+    });
+
+    return () => unlisten();
+  }, []);
+
+  useEffect(() => {
+    const unlisten = window.electron.onAutoUpdaterEvent(
+      (event: AppUpdaterEvent) => {
+        if (event.type === "update-available") {
+          setHasUpdate(true);
+        }
+
+        if (event.type === "update-downloaded") {
+          setIsReadyToInstall(true);
+        }
+      }
+    );
+
+    window.electron.checkForUpdates();
+
+    return () => unlisten();
+  }, []);
+
+  const totalUploadSpeed = useMemo(
+    () => seedingStatus.reduce((acc, s) => acc + s.uploadSpeed, 0),
+    [seedingStatus]
+  );
+
+  const handleSeedingMouseEnter = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+
+    hoverTimerRef.current = setTimeout(() => {
+      if (seedingButtonRef.current) {
+        const rect = seedingButtonRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const bottomY = window.innerHeight - rect.top + 8;
+        setSeedingCardPosition({
+          x: centerX,
+          y: bottomY,
+        });
+      }
+      setShowSeedingCard(true);
+    }, 300);
+  }, []);
+
+  const handleSeedingMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+
+    hoverTimerRef.current = setTimeout(() => {
+      setShowSeedingCard(false);
+    }, 200);
+  }, []);
 
   const activityInfo = useMemo(() => {
     if (commonRedistStatus) {
@@ -252,12 +327,56 @@ export function BottomPanel() {
         )}
       </button>
 
-      <div className="bottom-panel__version-button">
+      {seedingStatus.length > 0 && totalUploadSpeed > 0 && (
+        <>
+          <button
+            ref={seedingButtonRef}
+            type="button"
+            className="bottom-panel__seeding-button"
+            onClick={() => navigate("/downloads")}
+            onMouseEnter={handleSeedingMouseEnter}
+            onMouseLeave={handleSeedingMouseLeave}
+          >
+            <div className="bottom-panel__seeding-icon">
+              <Upload size={14} />
+            </div>
+            <small className="bottom-panel__seeding-speed">
+              {formatBytes(totalUploadSpeed)}/s
+            </small>
+          </button>
+
+          {showSeedingCard && (
+            <SeedingHoverCard
+              seedingStatus={seedingStatus}
+              library={library}
+              position={seedingCardPosition}
+              onMouseEnter={handleSeedingMouseEnter}
+              onMouseLeave={handleSeedingMouseLeave}
+            />
+          )}
+        </>
+      )}
+
+      <button
+        type="button"
+        className="bottom-panel__version-button"
+        onClick={() => setShowUpdateModal(true)}
+      >
+        {(hasUpdate || isReadyToInstall) && (
+          <div className="bottom-panel__update-icon">
+            <SyncIcon size={12} />
+          </div>
+        )}
         <small>
           {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
           {VERSION_CODENAME}&quot;
         </small>
-      </div>
+      </button>
+
+      <UpdateModal
+        visible={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+      />
     </footer>
   );
 }

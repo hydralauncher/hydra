@@ -16,6 +16,7 @@ import { SettingsDebrid } from "./settings-debrid";
 import { SettingsBackups } from "./settings-backups";
 import { SettingsStorage } from "./settings-storage";
 import { SettingsBeta } from "./settings-beta";
+import { SettingsNewsFeeds } from "./settings-news-feeds";
 
 export default function Settings() {
   const { t } = useTranslation("settings");
@@ -34,6 +35,7 @@ export default function Settings() {
       { tabLabel: t("debrid"), contentTitle: t("debrid") },
       { tabLabel: t("backups"), contentTitle: t("backups") },
       { tabLabel: t("storage"), contentTitle: t("storage") },
+      { tabLabel: t("news_feeds"), contentTitle: t("news_feeds") },
       { tabLabel: t("beta"), contentTitle: t("beta") },
     ];
 
@@ -79,6 +81,10 @@ export default function Settings() {
             }
 
             if (currentCategoryIndex === 7) {
+              return <SettingsNewsFeeds />;
+            }
+
+            if (currentCategoryIndex === 8) {
               return <SettingsBeta />;
             }
 

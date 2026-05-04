@@ -1,0 +1,202 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+
+@keyframes bp-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.12;
+  }
+}
+
+.bp-catalogue {
+  // ── Filters bar ──
+  &__filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  &__genre-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  &__genre-chip {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba($bp-text, 0.6);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba($bp-text, 0.85);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &--active {
+      background: rgba($bp-accent, 0.15);
+      border-color: rgba($bp-accent, 0.4);
+      color: $bp-accent;
+
+      &:hover {
+        background: rgba($bp-accent, 0.22);
+        color: $bp-accent;
+        border-color: rgba($bp-accent, 0.5);
+      }
+    }
+  }
+
+  &__clear-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(globals.$error-color, 0.3);
+    background: rgba(globals.$error-color, 0.08);
+    color: globals.$error-color;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(globals.$error-color, 0.15);
+      border-color: rgba(globals.$error-color, 0.5);
+    }
+
+    &--large {
+      padding: 12px 28px;
+      font-size: 15px;
+      border-radius: 12px;
+    }
+  }
+
+  &__page-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  &__page-badge {
+    font-size: 14px;
+    font-weight: 600;
+    color: $bp-text;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__page-hint {
+    font-size: 11px;
+    color: rgba($bp-text, 0.3);
+  }
+
+  // ── Results count ──
+  &__result-count {
+    font-size: 13px;
+    color: rgba($bp-text, 0.35);
+    margin-bottom: 16px;
+  }
+
+  // ── Grid ──
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  // ── Skeleton loading ──
+  &__skeleton {
+    aspect-ratio: 460 / 300;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    animation: bp-skeleton-pulse 1.5s ease-in-out infinite;
+  }
+
+  // ── Empty state ──
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 50vh;
+    gap: 12px;
+    text-align: center;
+
+    svg {
+      color: rgba($bp-text, 0.15);
+    }
+
+    h2 {
+      color: rgba($bp-text, 0.35);
+      font-weight: 500;
+      font-size: 24px;
+      margin: 0;
+    }
+
+    p {
+      color: rgba($bp-text, 0.2);
+      font-size: 15px;
+      margin: 0;
+      max-width: 400px;
+    }
+  }
+
+  // ── Pagination ──
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 32px;
+    padding-bottom: 16px;
+  }
+
+  &__page-btn {
+    padding: 12px 32px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: $bp-text;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &:hover:not(:disabled) {
+      background: rgba($bp-accent, 0.1);
+      border-color: rgba($bp-accent, 0.3);
+      color: $bp-accent;
+    }
+
+    &:disabled {
+      opacity: 0.2;
+      cursor: default;
+    }
+  }
+
+  &__page-current {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba($bp-text, 0.5);
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+    text-align: center;
+  }
+}

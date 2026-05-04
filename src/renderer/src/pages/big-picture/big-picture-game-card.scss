@@ -1,0 +1,245 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-success: #4caf50;
+
+@keyframes bp-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bp-running-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgba($bp-success, 0.6),
+      0 0 12px rgba($bp-success, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba($bp-success, 0.8),
+      0 0 24px rgba($bp-success, 0.25);
+  }
+}
+
+.bp-game-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: $bp-surface;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease;
+  animation: bp-card-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  // ── Not installed but available ──
+  &--not-installed {
+    opacity: 0.55;
+    filter: saturate(0.4);
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease,
+      opacity 0.3s ease,
+      filter 0.3s ease;
+
+    &:hover,
+    &[data-bp-focused="true"] {
+      opacity: 0.85;
+      filter: saturate(0.8);
+    }
+  }
+
+  // ── Unavailable (not in any feed) ──
+  &--unavailable {
+    opacity: 0.3;
+    filter: saturate(0.1) brightness(0.7);
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease,
+      opacity 0.3s ease,
+      filter 0.3s ease;
+
+    &:hover,
+    &[data-bp-focused="true"] {
+      opacity: 0.5;
+      filter: saturate(0.3) brightness(0.8);
+    }
+  }
+
+  // ── Running state ──
+  &--running {
+    animation:
+      bp-card-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both,
+      bp-running-glow 2.5s ease-in-out infinite;
+    border-color: rgba($bp-success, 0.4);
+  }
+
+  // ── Image ──
+  &__image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+
+    .bp-game-card:hover &,
+    [data-bp-focused="true"] & {
+      transform: scale(1.06);
+    }
+  }
+
+  &__placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    );
+  }
+
+  // ── Download badge overlay ──
+  &__download-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba($bp-accent, 0.85);
+    color: #fff;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+
+    &--unavailable {
+      background: rgba(120, 120, 120, 0.7);
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__download-badge-slash {
+    position: absolute;
+    width: 26px;
+    height: 2px;
+    background: rgba(255, 80, 80, 0.9);
+    border-radius: 1px;
+    transform: rotate(-45deg);
+    box-shadow: 0 0 4px rgba(255, 80, 80, 0.4);
+  }
+
+  // ── Progress bar ──
+  &__progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, $bp-accent, #24ccae);
+    transition: width 0.4s ease;
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px rgba($bp-accent, 0.4);
+  }
+
+  // ── Info section ──
+  &__info {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: linear-gradient(to bottom, $bp-surface, #0e0e0e);
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: $bp-text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    letter-spacing: 0.1px;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    text-align: left;
+
+    &--running {
+      color: $bp-success;
+    }
+
+    &--downloading {
+      color: $bp-accent;
+    }
+
+    &--default {
+      color: rgba($bp-text, 0.4);
+    }
+
+    &--available {
+      color: $bp-accent;
+    }
+
+    &--unavailable {
+      color: rgba($bp-text, 0.25);
+    }
+  }
+
+  &__status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &--running {
+      background: $bp-success;
+      box-shadow: 0 0 6px rgba($bp-success, 0.5);
+    }
+
+    &--downloading {
+      background: $bp-accent;
+      box-shadow: 0 0 6px rgba($bp-accent, 0.5);
+    }
+  }
+}

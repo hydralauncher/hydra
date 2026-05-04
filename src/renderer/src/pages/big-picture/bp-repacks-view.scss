@@ -1,0 +1,299 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-success: #4caf50;
+$bp-danger: globals.$error-color;
+
+@keyframes bp-repacks-enter {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.bp-repacks {
+  animation: bp-repacks-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 280px);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  &__counter {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba($bp-text, 0.4);
+    padding: 6px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba($bp-text, 0.4);
+    font-size: 18px;
+    flex: 1;
+  }
+
+  // ── Source tabs (LB / RB) ──
+  &__tabs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+
+  &__tabs-hint {
+    flex-shrink: 0;
+  }
+
+  &__tabs-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba($bp-text, 0.6);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__tabs-list {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    flex: 1;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba($bp-text, 0.5);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+
+    &--active {
+      background: rgba($bp-accent, 0.12);
+      border-color: rgba($bp-accent, 0.4);
+      color: $bp-accent;
+    }
+  }
+
+  &__tab-count {
+    font-size: 12px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba($bp-text, 0.4);
+
+    .bp-repacks__tab--active & {
+      background: rgba($bp-accent, 0.15);
+      color: $bp-accent;
+    }
+  }
+
+  &__single-source {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba($bp-text, 0.5);
+    margin-bottom: 16px;
+    padding: 8px 0;
+    flex-shrink: 0;
+  }
+
+  // ── Repack list ──
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+  }
+
+  // ── Repack item ──
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 18px 24px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
+    color: $bp-text;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+    flex-shrink: 0;
+
+    &--last {
+      background: rgba($bp-accent, 0.06);
+      border-left: 3px solid $bp-accent;
+    }
+
+    // Gamepad focus style — overrides the global one for better list UX
+    &[data-bp-focused="true"] {
+      background: rgba($bp-accent, 0.12);
+      border-color: $bp-accent;
+      box-shadow:
+        inset 0 0 0 1px rgba($bp-accent, 0.3),
+        0 0 12px rgba($bp-accent, 0.15);
+      overflow: hidden;
+
+      // Override the global shine animation which clips list items
+      &::after {
+        display: none;
+      }
+
+      .bp-repacks__item-title {
+        color: #fff;
+      }
+    }
+  }
+
+  &__item-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__item-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  &__item-title {
+    font-size: 16px;
+    color: rgba($bp-text, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease;
+  }
+
+  &__item-size {
+    font-size: 14px;
+    color: rgba($bp-text, 0.5);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  &__item-date {
+    font-size: 13px;
+    color: rgba($bp-text, 0.35);
+    white-space: nowrap;
+  }
+
+  &__item-status {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--online {
+      color: $bp-success;
+    }
+
+    &--partial {
+      color: #f59e0b;
+    }
+
+    &--offline {
+      color: $bp-danger;
+    }
+  }
+
+  // ── Status dot ──
+  &__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &--online {
+      background: $bp-success;
+      box-shadow: 0 0 6px rgba($bp-success, 0.4);
+    }
+
+    &--partial {
+      background: #f59e0b;
+      box-shadow: 0 0 6px rgba(#f59e0b, 0.4);
+    }
+
+    &--offline {
+      background: $bp-danger;
+      box-shadow: 0 0 6px rgba($bp-danger, 0.3);
+    }
+  }
+}

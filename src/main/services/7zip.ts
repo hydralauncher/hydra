@@ -3,6 +3,24 @@ import Seven, { CommandLineSwitches } from "node-7z";
 import path from "node:path";
 import { logger } from "./logger";
 
+export class PasswordRequiredError extends Error {
+  constructor(filePath: string) {
+    super(`Password required to extract: ${filePath}`);
+    this.name = "PasswordRequiredError";
+  }
+}
+
+const isPasswordError = (error: Error): boolean => {
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("wrong password") ||
+    message.includes("can not open encrypted archive") ||
+    message.includes("password is not set") ||
+    message.includes("encrypted") ||
+    message.includes("data error")
+  );
+};
+
 export const binaryName = {
   linux: "7zzs",
   darwin: "7zz",
@@ -110,7 +128,12 @@ export class SevenZip {
             logger.error(
               `Failed to extract file: ${filePath} after trying all passwords`
             );
-            reject(new Error(`Failed to extract file: ${filePath}`));
+
+            if (isPasswordError(err)) {
+              reject(new PasswordRequiredError(filePath));
+            } else {
+              reject(new Error(`Failed to extract file: ${filePath}`));
+            }
           }
         });
       };

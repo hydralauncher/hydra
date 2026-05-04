@@ -9,6 +9,7 @@ import {
   subscriptionSlice,
   catalogueSearchSlice,
   romsSlice,
+  newsSlice,
 } from "@renderer/features";
 
 export const store = configureStore({
@@ -22,6 +23,7 @@ export const store = configureStore({
     subscription: subscriptionSlice.reducer,
     catalogueSearch: catalogueSearchSlice.reducer,
     roms: romsSlice.reducer,
+    news: newsSlice.reducer,
   },
 });
 

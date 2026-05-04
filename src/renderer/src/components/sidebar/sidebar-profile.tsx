@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { BellIcon } from "@primer/octicons-react";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { BellIcon, ScreenFullIcon } from "@primer/octicons-react";
+import { useAppSelector, useBigPicture, useUserDetails } from "@renderer/hooks";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -16,6 +16,7 @@ export function SidebarProfile() {
   const { t } = useTranslation("sidebar");
 
   const { userDetails } = useUserDetails();
+  const { enterBigPicture } = useBigPicture();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 
@@ -169,6 +170,15 @@ export function SidebarProfile() {
 
           {gameRunningDetails()}
         </div>
+      </button>
+
+      <button
+        type="button"
+        className="sidebar-profile__notification-button"
+        onClick={enterBigPicture}
+        title={t("big_picture_mode")}
+      >
+        <ScreenFullIcon size={16} />
       </button>
 
       {notificationsButton}

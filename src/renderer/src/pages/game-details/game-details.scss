@@ -21,15 +21,18 @@
     z-index: 1;
   }
 
-  // Description Section Styles
   &__description-container {
     display: flex;
     width: 100%;
     flex: 1;
     min-width: 0;
     background-color: globals.$background-color;
-    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 3);
     gap: calc(globals.$spacing-unit * 3);
+
+    @media (min-width: 1280px) {
+      padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3);
+    }
   }
 
   &__description-content {
@@ -45,21 +48,23 @@
 
   &__section-title {
     font-size: 18px;
-    font-weight: bold;
-    color: globals.$muted-color;
+    font-weight: 700;
+    color: #fff;
     padding-bottom: calc(globals.$spacing-unit * 1.5);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     margin: 0;
+    letter-spacing: -0.01em;
   }
 
   &__description {
     user-select: text;
-    line-height: 22px;
+    line-height: 24px;
     font-size: globals.$body-font-size;
     width: 100%;
     overflow-x: auto;
     min-height: auto;
     transition: max-height 0.3s ease-in-out;
+    color: globals.$body-color;
 
     &--collapsed {
       max-height: 300px;
@@ -72,7 +77,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 60px;
+        height: 80px;
         background: linear-gradient(transparent, globals.$background-color);
         pointer-events: none;
       }
@@ -84,7 +89,7 @@
 
     img,
     video {
-      border-radius: 5px;
+      border-radius: 8px;
       margin-top: globals.$spacing-unit;
       margin-bottom: calc(globals.$spacing-unit * 3);
       display: block !important;
@@ -98,7 +103,12 @@
     }
 
     a {
-      color: globals.$body-color;
+      color: globals.$brand-teal;
+      transition: opacity 0.15s ease;
+
+      &:hover {
+        opacity: 0.8;
+      }
     }
 
     .bb_tag {
@@ -111,21 +121,20 @@
     background: none;
     border: 1px solid globals.$border-color;
     color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75)
-      calc(globals.$spacing-unit * 1.5);
-    border-radius: 8px;
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
+    border-radius: 10px;
     cursor: pointer;
     font-size: globals.$body-font-size;
     transition: all 0.2s ease;
     align-self: center;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      border-color: globals.$brand-teal;
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
     }
   }
 
-  // Skeleton-specific styles
   &__skeleton {
     .react-loading-skeleton {
       background: linear-gradient(90deg, #1c1c1c 25%, #2a2a2a 50%, #1c1c1c 75%);
@@ -133,7 +142,6 @@
       animation: skeleton-loading 1.5s infinite;
     }
 
-    // Ensure skeleton elements maintain proper spacing
     .description-header {
       margin-bottom: calc(globals.$spacing-unit * 1.5);
     }
@@ -143,14 +151,12 @@
       max-width: 300px;
     }
 
-    // Hero panel skeleton spacing
     .hero-panel__content {
       display: flex;
       flex-direction: column;
       gap: calc(globals.$spacing-unit * 0.5);
     }
 
-    // Review items skeleton spacing
     .review-item-skeleton {
       border: 1px solid globals.$border-color;
       border-radius: 8px;
@@ -158,7 +164,6 @@
       margin-bottom: calc(globals.$spacing-unit * 1);
     }
 
-    // Sidebar section spacing
     .sidebar-section-skeleton {
       margin-bottom: calc(globals.$spacing-unit * 1.5);
     }

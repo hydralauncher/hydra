@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
 import { useFormat, useUserDetails } from "@renderer/hooks";
-import { useSubscription } from "@renderer/hooks/use-subscription";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Link } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -26,7 +25,6 @@ const MAX_MOST_PLAYED = 10;
 export function StatsTab() {
   const [showWrappedModal, setShowWrappedModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { showHydraCloudModal } = useSubscription();
   const { userStats, isMe, userProfile, libraryGames, pinnedGames } =
     useContext(userProfileContext);
   const { userDetails } = useUserDetails();
@@ -104,6 +102,7 @@ export function StatsTab() {
       avgPlaytime,
       completionRate,
       gamesWithAchievements: gamesWithAchievements.length,
+      totalUnlocked,
     };
   }, [allGames, userStats]);
 
@@ -219,62 +218,36 @@ export function StatsTab() {
           </div>
         )}
 
-        {(isMe || userStats.unlockedAchievementSum !== undefined) && (
+        {(userStats.unlockedAchievementSum !== undefined ||
+          computedStats.totalUnlocked > 0) && (
           <div className="stats-tab__card">
             <TrophyIcon size={18} />
-            {userStats.unlockedAchievementSum !== undefined ? (
-              <>
-                <span className="stats-tab__card-value">
-                  {userStats.unlockedAchievementSum}
-                </span>
-                <span className="stats-tab__card-label">
-                  {t("achievements_unlocked")}
-                </span>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => showHydraCloudModal("achievements")}
-                className="stats-tab__cloud-link"
-              >
-                {t("show_achievements_on_profile")}
-              </button>
-            )}
+            <span className="stats-tab__card-value">
+              {userStats.unlockedAchievementSum ?? computedStats.totalUnlocked}
+            </span>
+            <span className="stats-tab__card-label">
+              {t("achievements_unlocked")}
+            </span>
           </div>
         )}
 
-        {(isMe || userStats.achievementsPointsEarnedSum !== undefined) && (
+        {userStats.achievementsPointsEarnedSum !== undefined && (
           <div className="stats-tab__card">
             <HydraIcon width={18} height={18} />
-            {userStats.achievementsPointsEarnedSum !== undefined ? (
-              <>
-                <span className="stats-tab__card-value">
-                  {numberFormatter.format(
-                    userStats.achievementsPointsEarnedSum.value
-                  )}
-                </span>
-                <span className="stats-tab__card-label">
-                  {t("earned_points")}
-                </span>
-                <span
-                  className="stats-tab__card-rank"
-                  title={t("ranking_updated_weekly")}
-                >
-                  {t("top_percentile", {
-                    percentile:
-                      userStats.achievementsPointsEarnedSum.topPercentile,
-                  })}
-                </span>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => showHydraCloudModal("achievements-points")}
-                className="stats-tab__cloud-link"
-              >
-                {t("show_points_on_profile")}
-              </button>
-            )}
+            <span className="stats-tab__card-value">
+              {numberFormatter.format(
+                userStats.achievementsPointsEarnedSum.value
+              )}
+            </span>
+            <span className="stats-tab__card-label">{t("earned_points")}</span>
+            <span
+              className="stats-tab__card-rank"
+              title={t("ranking_updated_weekly")}
+            >
+              {t("top_percentile", {
+                percentile: userStats.achievementsPointsEarnedSum.topPercentile,
+              })}
+            </span>
           </div>
         )}
 

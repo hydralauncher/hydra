@@ -6,7 +6,7 @@ import pngToIco from "png-to-ico";
 import type { GameShop, UserPreferences } from "@types";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { FILE_EXTENSIONS_TO_EXTRACT, removeSymbolsFromName } from "@shared";
-import { SevenZip, ExtractionProgress } from "./7zip";
+import { SevenZip, ExtractionProgress, PasswordRequiredError } from "./7zip";
 import { WindowManager } from "./window-manager";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { logger } from "./logger";
@@ -19,6 +19,7 @@ import { ASSETS_PATH, windowsStartMenuPath } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 
 const PROGRESS_THROTTLE_MS = 1000;
+const DEFAULT_PASSWORDS = ["online-fix.me", "steamrip.com"];
 
 export class GameFilesManager {
   private lastProgressUpdate = 0;
@@ -27,6 +28,14 @@ export class GameFilesManager {
     private readonly shop: GameShop,
     private readonly objectId: string
   ) {}
+
+  private emitPasswordRequired() {
+    WindowManager.mainWindow?.webContents.send(
+      "on-password-required",
+      this.shop,
+      this.objectId
+    );
+  }
 
   private get gameKey() {
     return levelKeys.game(this.shop, this.objectId);
@@ -78,7 +87,7 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
-  async extractFilesInDirectory(directoryPath: string) {
+  async extractFilesInDirectory(directoryPath: string, userPassword?: string) {
     if (!fs.existsSync(directoryPath)) return;
     const files = await fs.promises.readdir(directoryPath);
 
@@ -94,6 +103,10 @@ export class GameFilesManager {
 
     await this.updateExtractionProgress(0, true);
 
+    const passwords = userPassword
+      ? [userPassword, ...DEFAULT_PASSWORDS]
+      : DEFAULT_PASSWORDS;
+
     const totalFiles = filesToExtract.length;
     let completedFiles = 0;
 
@@ -103,7 +116,7 @@ export class GameFilesManager {
           {
             filePath: path.join(directoryPath, file),
             cwd: directoryPath,
-            passwords: ["online-fix.me", "steamrip.com"],
+            passwords,
           },
           (progress) => {
             const overallProgress =
@@ -121,7 +134,12 @@ export class GameFilesManager {
         }
       } catch (err) {
         logger.error(`Failed to extract file: ${file}`, err);
-        await this.clearExtractionState();
+
+        if (err instanceof PasswordRequiredError) {
+          this.emitPasswordRequired();
+        } else {
+          await this.clearExtractionState();
+        }
         return;
       }
     }
@@ -492,7 +510,7 @@ export class GameFilesManager {
     return null;
   }
 
-  async extractDownloadedFile() {
+  async extractDownloadedFile(userPassword?: string) {
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
       gamesSublevel.get(this.gameKey),
@@ -507,6 +525,10 @@ export class GameFilesManager {
       path.parse(download.folderName!).name
     );
 
+    const passwords = userPassword
+      ? [userPassword, ...DEFAULT_PASSWORDS]
+      : DEFAULT_PASSWORDS;
+
     await this.updateExtractionProgress(0, true);
 
     try {
@@ -514,13 +536,13 @@ export class GameFilesManager {
         {
           filePath,
           outputPath: extractionPath,
-          passwords: ["online-fix.me", "steamrip.com"],
+          passwords,
         },
         this.handleProgress
       );
 
       if (result.success) {
-        await this.extractFilesInDirectory(extractionPath);
+        await this.extractFilesInDirectory(extractionPath, userPassword);
 
         if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
           await this.handleArchiveDeletion([filePath]);
@@ -535,9 +557,40 @@ export class GameFilesManager {
       }
     } catch (err) {
       logger.error(`Failed to extract downloaded file: ${filePath}`, err);
-      await this.clearExtractionState();
+
+      if (err instanceof PasswordRequiredError) {
+        this.emitPasswordRequired();
+      } else {
+        await this.clearExtractionState();
+      }
     }
 
     return true;
+  }
+
+  async retryExtractionWithPassword(password: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+    if (!download) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      extracting: true,
+      extractionProgress: 0,
+    });
+
+    if (
+      FILE_EXTENSIONS_TO_EXTRACT.some((ext) =>
+        download.folderName?.endsWith(ext)
+      )
+    ) {
+      this.extractDownloadedFile(password);
+    } else {
+      this.extractFilesInDirectory(
+        path.join(download.downloadPath, download.folderName!),
+        password
+      ).then(() => {
+        this.setExtractionComplete(false);
+      });
+    }
   }
 }

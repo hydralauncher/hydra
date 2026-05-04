@@ -1,0 +1,287 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+
+@keyframes bp-viewer-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bp-viewer-content-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bp-media-slider {
+  margin-bottom: 48px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  &__counter {
+    font-size: 16px;
+    color: rgba($bp-text, 0.5);
+    font-variant-numeric: tabular-nums;
+  }
+
+  // ── Bento grid ──
+  &__bento {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 180px;
+    grid-auto-flow: dense;
+    gap: 10px;
+  }
+
+  &__bento-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    transition:
+      border-color 0.25s ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.25s ease;
+
+    &:hover {
+      border-color: rgba($bp-accent, 0.5);
+      transform: scale(1.02);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 1;
+
+      .bp-media-slider__bento-overlay {
+        opacity: 0;
+      }
+    }
+
+    // Gamepad focus style
+    &[data-bp-focused="true"] {
+      border-color: $bp-accent;
+      transform: scale(1.03);
+      box-shadow:
+        0 0 0 2px $bp-accent,
+        0 0 24px rgba($bp-accent, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 2;
+
+      .bp-media-slider__bento-overlay {
+        opacity: 0;
+      }
+    }
+
+    // Large: 2 columns × 2 rows (featured)
+    &--large {
+      grid-column: span 2;
+      grid-row: span 2;
+    }
+
+    // Wide: 2 columns × 1 row
+    &--wide {
+      grid-column: span 2;
+    }
+
+    // Tall: 1 column × 2 rows
+    &--tall {
+      grid-row: span 2;
+    }
+  }
+
+  &__bento-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  &__bento-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 60%,
+      rgba(0, 0, 0, 0.35) 100%
+    );
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+  }
+
+  &__bento-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// ── Fullscreen Viewer ──
+.bp-media-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: bp-viewer-enter 0.25s ease both;
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+  }
+
+  &__content {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 24px 0;
+    animation: bp-viewer-content-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.05s
+      both;
+    min-height: 0;
+  }
+
+  &__video,
+  &__image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    display: block;
+  }
+
+  &__video {
+    background: #000;
+  }
+
+  // ── Controls bar ──
+  &__controls {
+    position: relative;
+    padding: 16px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__btn {
+    padding: 12px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    color: $bp-text;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: center;
+
+    &:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    &--play {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: rgba($bp-accent, 0.15);
+      border-color: rgba($bp-accent, 0.3);
+      color: $bp-accent;
+    }
+  }
+
+  // ── Progress bar ──
+  &__progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  &__progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: $bp-accent;
+    border-radius: 3px;
+    transition: width 0.25s linear;
+  }
+
+  &__time {
+    font-size: 14px;
+    color: rgba($bp-text, 0.5);
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  &__counter {
+    font-size: 14px;
+    color: rgba($bp-text, 0.35);
+    font-variant-numeric: tabular-nums;
+  }
+}

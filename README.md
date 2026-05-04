@@ -5,66 +5,82 @@
   <h1 align="center">Hydra Launcher (Fork)</h1>
 
   <p align="center">
-    <strong>Fork de <a href="https://github.com/hydralauncher/hydra">Hydra Launcher</a> con funciones sociales avanzadas, sistema de backups dual (Google Drive + local), gestión de almacenamiento y mejoras de interfaz.</strong>
+    <strong>A fork of <a href="https://github.com/hydralauncher/hydra">Hydra Launcher</a> with enhanced social features, dual backup system, storage management, drag-and-drop sidebar, and UI improvements.</strong>
   </p>
 
 </div>
 
-## Sobre este fork
+## About this fork
 
-Este repositorio es un fork del proyecto original [hydralauncher/hydra](https://github.com/hydralauncher/hydra). Hydra es una plataforma de gaming open-source construida con Electron, React, TypeScript y Python. Este fork extiende la funcionalidad base con las siguientes mejoras:
+This repository is a fork of [hydralauncher/hydra](https://github.com/hydralauncher/hydra). Hydra is an open-source gaming platform built with Electron, React, TypeScript, and Python. This fork extends the base functionality with the features listed below.
 
-## Cambios respecto al proyecto original
+## What's different from the original
 
-### Funciones sociales
+### Social features
 
-- **Feed de actividad en Home** — Sección que muestra la actividad de amigos en tiempo real: jugando ahora, jugado recientemente y reseñas recientes.
-- **Avatares de amigos online en el header** — Muestra hasta 3 avatares de amigos en línea con indicador de actividad y badge "+N" para los restantes. Se actualiza cada 60 segundos.
-- **Hover cards de amigos** — Tooltip flotante al pasar el cursor sobre un amigo que muestra su perfil, juego actual y duración de la sesión.
-- **Acciones de amistad en perfil** — Botones para deshacer amistad y bloquear usuario desde el perfil.
+- **Activity feed on Home** — Real-time feed showing friend activity: currently playing, recently played, and recent reviews, with automatic refresh and pagination.
+- **Online friends in header** — Displays up to 3 online friend avatars in the header with activity indicators and a "+N" badge for the rest. Refreshes every 60 seconds.
+- **Friend hover cards** — Floating tooltip when hovering over a friend showing their profile, current game, and session duration.
+- **Friend actions on profile** — Unfriend and block buttons directly from a user's profile page.
 
-### Perfil mejorado
+### Enhanced profile
 
-- **Pestaña de estadísticas** — Dashboard completo con: tamaño de biblioteca, tiempo total jugado (con ranking percentil), promedio por juego, tasa de completado de logros, logros desbloqueados, puntos ganados y karma.
-- **Juegos más jugados** — Top 5 de juegos con barras proporcionales de tiempo de juego.
-- **Controles de biblioteca** — Búsqueda con fuzzy search, ordenación (por tiempo jugado, logros, jugado recientemente), y alternancia entre vista grilla/lista.
-- **Vista de lista para juegos** — Nuevo componente de lista con tiempo de juego, progreso de logros y opción de fijar/desfijar juegos.
+- **Statistics tab** — Full dashboard displaying: library size, total playtime (with percentile ranking), average playtime per game, achievement completion rate, unlocked achievements, achievement points, and karma.
+- **Most played games** — Top 5 games with proportional playtime bars.
+- **Library controls** — Fuzzy search across the library, sorting by playtime/achievements/last played, and grid/list view toggle.
+- **List view for games** — A new list-based view showing playtime, achievement progress, and pin/unpin per game.
 
-### Sistema de backups dual
+### Dual backup system
 
-- **Google Drive** — Sincronización de guardados a Google Drive con autenticación OAuth2, refresco automático de tokens, compresión tar y metadatos (hostname, plataforma, prefijo Wine).
-- **Backup local** — Alternativa de backup en disco local con ruta configurable y archivos de metadatos `.meta.json`.
-- **Restauración multiplataforma** — Soporte para mapeo de rutas Wine/Windows para restaurar backups entre sistemas.
-- **Configuración en Ajustes** — Nueva pestaña "Backups" para elegir entre Hydra Cloud y backup local, con selector de ruta.
+- **Google Drive** — Save synchronization via Google Drive with OAuth2 authentication, automatic token refresh, tar compression, and metadata (hostname, platform, Wine prefix paths).
+- **Local backup** — Alternative local disk backup with a configurable path and `.meta.json` metadata files.
+- **Cross-platform restore** — Supports Wine/Windows path mapping for restoring backups across different operating systems.
+- **Backup settings** — New "Backups" tab in Settings to choose between Hydra Cloud and local backup, with a directory picker.
 
-### Gestión de almacenamiento
+### Storage management
 
-- **Pestaña de almacenamiento en Ajustes** — Visualización del uso de disco con barra de progreso, desglose por juego con segmentos coloreados, leyenda de los 5 juegos que más espacio ocupan.
-- **Eliminación selectiva** — Opción de borrar solo el instalador o los archivos completos del juego, con modal de confirmación que muestra el espacio que se liberará.
-- **Protección inteligente** — Impide eliminar el instalador si el ejecutable del juego está dentro de la carpeta del instalador.
+- **Storage tab in Settings** — Disk usage visualization with a progress bar, per-game breakdown with colored segments, and a legend of the top 5 space-consuming games.
+- **Selective deletion** — Option to delete only the game installer or the complete game files, with a confirmation modal showing how much space will be freed.
+- **Smart protection** — Prevents deleting the installer if the game executable resides inside the installer directory.
 
-### Mejoras de UI
+### Sidebar improvements
 
-- **Sidebar mejorada** — Muestra progreso de descarga y extracción con barras de progreso individuales por juego.
-- **Modal de opciones de juego rediseñado** — Nuevo layout con iconos descriptivos (Octicons), accesibilidad por teclado y variables de estado precalculadas para estados deshabilitados.
-- **Estilos refinados** — Ajustes de SCSS en múltiples componentes: catálogo, detalles de juego, perfil, notificaciones, configuración, sidebar, modal de cloud sync, galería, entre otros.
+- **Drag-and-drop reordering** — Reorder games in the sidebar via drag-and-drop with persistent custom ordering.
+- **Now-playing section** — Dedicated section showing the currently playing game with cover art and session duration.
+- **Steam import** — Import games from your Steam library directly into the sidebar.
 
-### Backend y tipos
+### UI improvements
 
-- **Nuevos servicios**: `GoogleDriveService`, `LocalBackupService` como singletons en `src/main/services/`.
-- **Nuevos eventos IPC**: 7 eventos para Google Drive + 5 para backup local + `deleteGameInstaller`.
-- **Tipos añadidos**: `GoogleDriveTokens`, `GoogleDriveUserInfo`, `GoogleDriveBackupArtifact`, `BackupProvider`, `DiskUsage`.
-- **Tipos extendidos**: `UserPreferences` con `localBackupPath` y `backupProvider`; `UserDetails` con `karma`; `UserProfile` con `hasCompletedWrapped2025`; `UserGame` con `isPinned`.
+- **Redesigned game options modal** — New layout with descriptive Octicons, keyboard accessibility, and pre-calculated disabled states.
+- **Bottom panel updates** — Centered seeding hover card and broadcast of empty seed status.
+- **Refined styles** — SCSS refinements across catalogue, game details, profile, notifications, settings, sidebar, cloud sync modal, gallery, and more.
 
-## Estructura de archivos nuevos
+### Download enhancements
+
+- **Executable selector** — Choose which executable to run after downloading.
+- **Password modal** — Support for password-protected downloads.
+- **Beta features tab** — New settings page for experimental features.
+
+### Removed restrictions
+
+- **Subscription gates removed** — Achievements and profile statistics are now freely accessible to all users without a subscription.
+
+### Backend and types
+
+- **New services**: `GoogleDriveService` and `LocalBackupService` as singletons in `src/main/services/`.
+- **New IPC events**: 7 for Google Drive + 5 for local backup + `deleteGameInstaller`.
+- **New types**: `GoogleDriveTokens`, `GoogleDriveUserInfo`, `GoogleDriveBackupArtifact`, `BackupProvider`, `DiskUsage`.
+- **Extended types**: `UserPreferences` with `localBackupPath` and `backupProvider`; `UserDetails` and `UserProfile` with `karma`; `UserGame` with `isPinned` and `pinnedDate`.
+
+## New file structure
 
 ```
-src/main/events/google-drive/       # Eventos IPC de Google Drive
-src/main/events/local-backup/       # Eventos IPC de backup local
+src/main/events/google-drive/       # Google Drive IPC events
+src/main/events/local-backup/       # Local backup IPC events
 src/main/events/library/delete-game-installer.ts
-src/main/helpers/restore-backup.ts  # Restauración unificada de backups
-src/main/services/google-drive.ts   # Servicio de Google Drive
-src/main/services/local-backup.ts   # Servicio de backup local
+src/main/helpers/restore-backup.ts  # Unified backup restore
+src/main/services/google-drive.ts   # Google Drive service
+src/main/services/local-backup.ts   # Local backup service
 
 src/renderer/src/components/header/friend-hover-card.tsx
 src/renderer/src/components/header/online-friends-avatars.tsx
@@ -75,17 +91,18 @@ src/renderer/src/pages/profile/profile-content/most-played-games-box.tsx
 src/renderer/src/pages/profile/profile-content/stats-tab.tsx
 src/renderer/src/pages/profile/profile-content/user-library-game-list-item.tsx
 src/renderer/src/pages/settings/settings-backups.tsx
+src/renderer/src/pages/settings/settings-beta.tsx
 src/renderer/src/pages/settings/settings-storage.tsx
 ```
 
-## Compilar desde el código fuente
+## Building from source
 
-Consulta la documentación del proyecto original: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
+Refer to the original project documentation: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
 
-Requisitos adicionales:
+Additional requirements:
 
-- Usa **yarn**, no npm
-- Node.js compatible con Electron
+- Use **yarn**, not npm
+- Node.js compatible with Electron
 
 ```bash
 git clone https://github.com/abrahampo1/hydra.git
@@ -94,10 +111,10 @@ yarn install
 yarn dev
 ```
 
-## Licencia
+## License
 
-Hydra está licenciado bajo la [Licencia MIT](LICENSE).
+Hydra is licensed under the [MIT License](LICENSE).
 
-## Créditos
+## Credits
 
-Proyecto original: [hydralauncher/hydra](https://github.com/hydralauncher/hydra)
+Original project: [hydralauncher/hydra](https://github.com/hydralauncher/hydra)

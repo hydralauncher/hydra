@@ -1,0 +1,181 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+
+.bp-reviews {
+  margin-bottom: 48px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__count {
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba($bp-text, 0.5);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  &__sort {
+    display: flex;
+    gap: 8px;
+  }
+
+  &__sort-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba($bp-text, 0.6);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &--active {
+      background: rgba($bp-accent, 0.15);
+      border-color: rgba($bp-accent, 0.3);
+      color: $bp-accent;
+    }
+  }
+
+  &__loading,
+  &__empty {
+    text-align: center;
+    padding: 40px;
+    color: rgba($bp-text, 0.4);
+    font-size: 16px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
+
+    &[data-bp-focused="true"] {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba($bp-accent, 0.4);
+    }
+
+    &-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    &-footer {
+      margin-top: 12px;
+    }
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+
+    &--placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba($bp-accent, 0.2);
+      color: $bp-accent;
+      font-weight: 600;
+      font-size: 16px;
+    }
+  }
+
+  &__username {
+    font-size: 15px;
+    font-weight: 500;
+    color: $bp-text;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__stars {
+    font-size: 18px;
+    color: #fbbf24;
+    letter-spacing: 2px;
+  }
+
+  &__playtime {
+    font-size: 13px;
+    color: rgba($bp-text, 0.4);
+  }
+
+  &__content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba($bp-text, 0.75);
+    word-break: break-word;
+    overflow: hidden;
+
+    p {
+      margin: 0 0 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  &__date {
+    font-size: 13px;
+    color: rgba($bp-text, 0.35);
+  }
+
+  &__load-more {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: $bp-text;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+}

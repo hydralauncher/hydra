@@ -173,6 +173,7 @@ export default function Downloads() {
                 library={group.library}
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
+                onBinaryNotFound={() => setShowBinaryNotFoundModal(true)}
                 seedingStatus={seedingStatus}
                 queuedGameIds={group.queuedGameIds}
               />

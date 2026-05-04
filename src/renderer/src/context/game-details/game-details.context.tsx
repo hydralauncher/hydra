@@ -2,12 +2,7 @@ import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { getSteamLanguage } from "@renderer/helpers";
-import {
-  useAppDispatch,
-  useAppSelector,
-  useDownload,
-  useUserDetails,
-} from "@renderer/hooks";
+import { useAppDispatch, useAppSelector, useDownload } from "@renderer/hooks";
 
 import type {
   GameRepack,
@@ -85,8 +80,6 @@ export function GameDetailsContextProvider({
   const dispatch = useAppDispatch();
 
   const { lastPacket } = useDownload();
-  const { userDetails } = useUserDetails();
-
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -157,7 +150,7 @@ export function GameDetailsContextProvider({
         setIsLoading(false);
       });
 
-    if (userDetails && shop !== "custom") {
+    if (shop !== "custom") {
       window.electron
         .getUnlockedAchievements(objectId, shop)
         .then((achievements) => {
@@ -166,15 +159,7 @@ export function GameDetailsContextProvider({
         })
         .catch(() => void 0);
     }
-  }, [
-    updateGame,
-    dispatch,
-    objectId,
-    shop,
-    i18n.language,
-    userDetails,
-    userPreferences,
-  ]);
+  }, [updateGame, dispatch, objectId, shop, i18n.language, userPreferences]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -292,7 +277,6 @@ export function GameDetailsContextProvider({
       objectId,
       shop,
       (achievements) => {
-        if (!userDetails) return;
         setAchievements(achievements);
       }
     );
@@ -300,7 +284,7 @@ export function GameDetailsContextProvider({
     return () => {
       unsubscribe();
     };
-  }, [objectId, shop, userDetails]);
+  }, [objectId, shop]);
 
   useEffect(() => {
     if (shop === "custom") return;

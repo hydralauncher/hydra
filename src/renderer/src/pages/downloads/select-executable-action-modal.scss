@@ -1,0 +1,18 @@
+@use "../../scss/globals.scss";
+
+.select-executable-action-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__description {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  &__actions {
+    display: flex;
+    align-self: flex-end;
+    gap: globals.$spacing-unit;
+  }
+}

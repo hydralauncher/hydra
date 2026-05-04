@@ -15,10 +15,15 @@ const updateAchievementCustomNotificationWindow = async (
 
   WindowManager.closeNotificationWindow();
 
-  if (
+  const achievementCustomEnabled =
     userPreferences.achievementNotificationsEnabled !== false &&
-    userPreferences.achievementCustomNotificationsEnabled !== false
-  ) {
+    userPreferences.achievementCustomNotificationsEnabled !== false;
+
+  const friendCustomEnabled =
+    userPreferences.friendStartGameNotificationsEnabled !== false &&
+    userPreferences.friendStartGameCustomNotificationsEnabled !== false;
+
+  if (achievementCustomEnabled || friendCustomEnabled) {
     WindowManager.createNotificationWindow();
   }
 };

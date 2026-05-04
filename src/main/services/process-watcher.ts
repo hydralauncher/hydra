@@ -11,6 +11,7 @@ import { logger } from "./logger";
 import path from "path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { MAIN_LOOP_INTERVAL } from "@main/constants";
+import { appendPlayedDate, bumpStreak } from "@shared";
 
 const uploadBackup = async (game: Game) => {
   const userPreferences = await db
@@ -235,6 +236,29 @@ function onOpenGame(game: Game) {
     firstTick: now,
     lastSyncTick: now,
   });
+
+  const today = new Date();
+  const updatedStreak = bumpStreak(
+    {
+      currentStreak: game.currentStreak ?? 0,
+      longestStreak: game.longestStreak ?? 0,
+      lastStreakDate: game.lastStreakDate ?? null,
+    },
+    today
+  );
+  const updatedPlayedDates = appendPlayedDate(game.playedDates, today);
+  const playHistoryChanged =
+    updatedPlayedDates.length !== (game.playedDates?.length ?? 0);
+
+  if (
+    updatedStreak.lastStreakDate !== (game.lastStreakDate ?? null) ||
+    playHistoryChanged
+  ) {
+    game = { ...game, ...updatedStreak, playedDates: updatedPlayedDates };
+    gamesSublevel
+      .put(levelKeys.game(game.shop, game.objectId), game)
+      .catch(() => {});
+  }
 
   // Close the launcher window when game starts
   WindowManager.closeGameLauncherWindow();

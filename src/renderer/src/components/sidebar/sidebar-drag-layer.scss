@@ -1,0 +1,76 @@
+@use "../../scss/globals.scss";
+
+.sidebar-drag-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+
+  &__card {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 10px 16px;
+    background: linear-gradient(
+      135deg,
+      rgba(30, 30, 30, 0.97) 0%,
+      rgba(22, 22, 22, 0.97) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transform-origin: center center;
+    transform: scale(1) rotate(-2deg);
+    animation: drag-card-appear 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    backdrop-filter: blur(12px);
+    max-width: 240px;
+  }
+
+  &__icon {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: 4px;
+    object-fit: cover;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  }
+
+  &__icon-placeholder {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes drag-card-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
+}

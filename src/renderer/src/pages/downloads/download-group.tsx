@@ -14,6 +14,7 @@ import {
   useDownload,
   useLibrary,
   useDate,
+  useToast,
 } from "@renderer/hooks";
 
 import "./download-group.scss";
@@ -31,6 +32,7 @@ import {
   ColumnsIcon,
   DownloadIcon,
   FileDirectoryIcon,
+  FileIcon,
   LinkIcon,
   PeopleIcon,
   PlayIcon,
@@ -42,6 +44,7 @@ import { MoreVertical, Folder, Upload, ArrowUpFromLine } from "lucide-react";
 import { average } from "color.js";
 
 import { HeroDownloadView } from "./hero-download-view";
+import { SelectExecutableActionModal } from "./select-executable-action-modal";
 import { listContainerVariants, listItemVariants } from "./download-animations";
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -87,6 +90,7 @@ export interface DownloadGroupProps {
   title: string;
   openDeleteGameModal: (shop: GameShop, objectId: string) => void;
   openGameInstaller: (shop: GameShop, objectId: string) => void;
+  onBinaryNotFound: () => void;
   seedingStatus: SeedingStatus[];
   queuedGameIds?: string[];
 }
@@ -96,6 +100,7 @@ export function DownloadGroup({
   title,
   openDeleteGameModal,
   openGameInstaller,
+  onBinaryNotFound,
   seedingStatus,
   queuedGameIds = [],
 }: Readonly<DownloadGroupProps>) {
@@ -162,6 +167,7 @@ export function DownloadGroup({
   );
 
   const { formatDistance } = useDate();
+  const { showSuccessToast } = useToast();
 
   // Get speed history and peak speeds from Redux (centralized state)
   const speedHistory = useAppSelector((state) => state.download.speedHistory);
@@ -180,8 +186,11 @@ export function DownloadGroup({
     string | null
   >(null);
   const [gameActionTypes, setGameActionTypes] = useState<
-    Record<string, "install" | "open-folder">
+    Record<string, "install" | "open-folder" | "select-executable">
   >({});
+  const [selectExeModalVisible, setSelectExeModalVisible] = useState(false);
+  const [selectedFilePath, setSelectedFilePath] = useState("");
+  const [selectExeGame, setSelectExeGame] = useState<LibraryGame | null>(null);
 
   const extractDominantColor = useCallback(
     async (imageUrl: string, gameId: string) => {
@@ -349,6 +358,74 @@ export function DownloadGroup({
     [updateLibrary]
   );
 
+  const handleClearFromList = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      await window.electron.removeGame(shop, objectId);
+      updateLibrary();
+    },
+    [updateLibrary]
+  );
+
+  const handleSelectExecutable = useCallback(
+    async (game: LibraryGame) => {
+      const download = game.download;
+      if (!download?.folderName || !download?.downloadPath) return;
+
+      const folderPath = download.downloadPath + "/" + download.folderName;
+
+      const result = await window.electron.showOpenDialog({
+        defaultPath: folderPath,
+        properties: ["openFile"],
+        filters: [
+          {
+            name: t("executable_files"),
+            extensions: ["exe", "msi", "lnk"],
+          },
+        ],
+      });
+
+      if (result.canceled || !result.filePaths.length) return;
+
+      const filePath = result.filePaths[0];
+      setSelectedFilePath(filePath);
+      setSelectExeGame(game);
+      setSelectExeModalVisible(true);
+    },
+    [t]
+  );
+
+  const handleSetAsGameExecutable = useCallback(async () => {
+    if (!selectExeGame || !selectedFilePath) return;
+
+    await window.electron.updateExecutablePath(
+      selectExeGame.shop,
+      selectExeGame.objectId,
+      selectedFilePath
+    );
+
+    updateLibrary();
+    setSelectExeModalVisible(false);
+    setSelectExeGame(null);
+    setSelectedFilePath("");
+  }, [selectExeGame, selectedFilePath, updateLibrary]);
+
+  const handleRunAsInstaller = useCallback(async () => {
+    if (!selectedFilePath) return;
+
+    const success =
+      await window.electron.runGameInstallerFile(selectedFilePath);
+
+    if (!success) {
+      onBinaryNotFound();
+    } else {
+      showSuccessToast(t("installer_launched"));
+    }
+
+    setSelectExeModalVisible(false);
+    setSelectExeGame(null);
+    setSelectedFilePath("");
+  }, [selectedFilePath, onBinaryNotFound, showSuccessToast, t]);
+
   const getGameActions = (game: LibraryGame): DropdownMenuItem[] => {
     const download = lastPacket?.download;
     const isGameDownloading = isGameDownloadingMap[game.id];
@@ -504,7 +581,10 @@ export function DownloadGroup({
       });
 
       const results = await Promise.all(actionTypesPromises);
-      const newActionTypes: Record<string, "install" | "open-folder"> = {};
+      const newActionTypes: Record<
+        string,
+        "install" | "open-folder" | "select-executable"
+      > = {};
       results.forEach(({ gameId, actionType }) => {
         newActionTypes[gameId] = actionType;
       });
@@ -873,9 +953,59 @@ export function DownloadGroup({
                     <div className="download-group__simple-actions">
                       {game.download?.progress === 1 &&
                         (() => {
+                          if (game.executablePath) {
+                            return (
+                              <>
+                                <Button
+                                  theme="primary"
+                                  onClick={() =>
+                                    window.electron.openGame(
+                                      game.shop,
+                                      game.objectId,
+                                      game.executablePath!,
+                                      game.launchOptions
+                                    )
+                                  }
+                                  disabled={isGameDeleting(game.id)}
+                                  className="download-group__simple-action-btn"
+                                >
+                                  <PlayIcon size={16} />
+                                  {t("play")}
+                                </Button>
+                                <Button
+                                  theme="outline"
+                                  onClick={() =>
+                                    handleClearFromList(
+                                      game.shop,
+                                      game.objectId
+                                    )
+                                  }
+                                  disabled={isGameDeleting(game.id)}
+                                  className="download-group__simple-menu-btn"
+                                  tooltip={t("clear_from_list")}
+                                >
+                                  <XCircleIcon size={16} />
+                                </Button>
+                              </>
+                            );
+                          }
+
                           const actionType =
                             gameActionTypes[game.id] || "open-folder";
-                          const isInstall = actionType === "install";
+
+                          if (actionType === "select-executable") {
+                            return (
+                              <Button
+                                theme="primary"
+                                onClick={() => handleSelectExecutable(game)}
+                                disabled={isGameDeleting(game.id)}
+                                className="download-group__simple-action-btn"
+                              >
+                                <FileIcon size={16} />
+                                {t("select_executable")}
+                              </Button>
+                            );
+                          }
 
                           return (
                             <Button
@@ -886,7 +1016,7 @@ export function DownloadGroup({
                               disabled={isGameDeleting(game.id)}
                               className="download-group__simple-action-btn"
                             >
-                              {isInstall ? (
+                              {actionType === "install" ? (
                                 <>
                                   <DownloadIcon size={16} />
                                   {t("install")}
@@ -928,6 +1058,18 @@ export function DownloadGroup({
           </AnimatePresence>
         </motion.ul>
       </div>
+
+      <SelectExecutableActionModal
+        visible={selectExeModalVisible}
+        fileName={selectedFilePath.split(/[/\\]/).pop() || ""}
+        onClose={() => {
+          setSelectExeModalVisible(false);
+          setSelectExeGame(null);
+          setSelectedFilePath("");
+        }}
+        onSetAsGameExecutable={handleSetAsGameExecutable}
+        onRunAsInstaller={handleRunAsInstaller}
+      />
     </>
   );
 }

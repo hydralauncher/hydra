@@ -5,6 +5,7 @@ import Skeleton from "react-loading-skeleton";
 
 import { Avatar } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { useDate } from "@renderer/hooks";
 import type { GameShop, UserDetails, UserFriends, UserProfile } from "@types";
 
 import "./activity-feed.scss";
@@ -55,6 +56,7 @@ interface ActivityFeedProps {
 export function ActivityFeed({ userDetails }: ActivityFeedProps) {
   const { t } = useTranslation("home");
   const navigate = useNavigate();
+  const { formatDistance } = useDate();
 
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -345,6 +347,13 @@ export function ActivityFeed({ userDetails }: ActivityFeedProps) {
                 {item.friend.displayName}
               </button>
               {renderActivityText(item)}
+              {item.timestamp && item.type !== "playing_now" && (
+                <span className="activity-feed__time-ago">
+                  {formatDistance(item.timestamp, new Date(), {
+                    addSuffix: true,
+                  })}
+                </span>
+              )}
             </div>
 
             {item.game.iconUrl && (

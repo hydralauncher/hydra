@@ -10,7 +10,7 @@ const getGameInstallerActionType = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string
-): Promise<"install" | "open-folder"> => {
+): Promise<"install" | "open-folder" | "select-executable"> => {
   const downloadKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(downloadKey);
 
@@ -51,8 +51,8 @@ const getGameInstallerActionType = async (
     return "install";
   }
 
-  // Otherwise, opens folder
-  return "open-folder";
+  // Multiple or no executables found — let user select
+  return "select-executable";
 };
 
 registerEvent("getGameInstallerActionType", getGameInstallerActionType);

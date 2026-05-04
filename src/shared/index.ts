@@ -16,11 +16,12 @@ import {
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
-import { AchievementNotificationInfo } from "@types";
+import { AchievementNotificationInfo, FriendNotificationInfo } from "@types";
 
 export * from "./constants";
 export * from "./html-sanitizer";
 export * from "./rom-consoles";
+export * from "./streak";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
@@ -222,5 +223,23 @@ export const generateAchievementCustomNotificationTest = (
     isHidden: options.isHidden ?? false,
     isRare: options.isRare ?? false,
     isPlatinum: options.isPlatinum ?? false,
+  };
+};
+
+export const generateFriendCustomNotificationTest = (
+  t: any,
+  language?: string
+): FriendNotificationInfo => {
+  return {
+    displayName: t("test_friend_notification_name", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    profileImageUrl: "https://cdn.losbroxas.org/favicon.svg",
+    gameTitle: t("test_friend_notification_game", {
+      ns: "notifications",
+      lng: language ?? "en",
+    }),
+    gameIconUrl: "https://cdn.losbroxas.org/favicon.svg",
   };
 };

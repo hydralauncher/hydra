@@ -19,6 +19,7 @@ import type {
   ShortcutLocation,
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  FriendNotificationInfo,
   GoogleDriveUserInfo,
   GoogleDriveBackupArtifact,
 } from "@types";
@@ -223,6 +224,8 @@ contextBridge.exposeInMainWorld("electron", {
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
+  runGameInstallerFile: (filePath: string) =>
+    ipcRenderer.invoke("runGameInstallerFile", filePath),
   getGameInstallerActionType: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
@@ -268,6 +271,30 @@ contextBridge.exposeInMainWorld("electron", {
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
   scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
+  importSteamGames: () => ipcRenderer.invoke("importSteamGames"),
+  onSteamImportProgress: (
+    cb: (value: {
+      totalGames: number;
+      currentIndex: number;
+      currentGame: string;
+      importedCount: number;
+      done: boolean;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      value: {
+        totalGames: number;
+        currentIndex: number;
+        currentGame: string;
+        importedCount: number;
+        done: boolean;
+      }
+    ) => cb(value);
+    ipcRenderer.on("on-steam-import-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-steam-import-progress", listener);
+  },
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (shop: GameShop, objectId: string) =>
@@ -321,6 +348,23 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-archive-deletion-prompt", listener);
   },
+  onPasswordRequired: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-password-required", listener);
+    return () => ipcRenderer.removeListener("on-password-required", listener);
+  },
+  retryExtractionWithPassword: (
+    shop: GameShop,
+    objectId: string,
+    password: string
+  ) =>
+    ipcRenderer.invoke("retryExtractionWithPassword", shop, objectId, password),
+  cancelExtraction: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("cancelExtraction", shop, objectId),
   deleteArchive: (filePath: string) =>
     ipcRenderer.invoke("deleteArchive", filePath),
 
@@ -499,6 +543,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   /* Misc */
+  setFullScreen: (flag: boolean) => ipcRenderer.invoke("setFullScreen", flag),
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
@@ -763,10 +808,27 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-combined-achievements-unlocked", listener);
   },
+  onFriendStartedPlaying: (
+    cb: (
+      position?: AchievementCustomNotificationPosition,
+      friendInfo?: FriendNotificationInfo
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position?: AchievementCustomNotificationPosition,
+      friendInfo?: FriendNotificationInfo
+    ) => cb(position, friendInfo);
+    ipcRenderer.on("on-friend-started-playing", listener);
+    return () =>
+      ipcRenderer.removeListener("on-friend-started-playing", listener);
+  },
   updateAchievementCustomNotificationWindow: () =>
     ipcRenderer.invoke("updateAchievementCustomNotificationWindow"),
   showAchievementTestNotification: () =>
     ipcRenderer.invoke("showAchievementTestNotification"),
+  showFriendTestNotification: () =>
+    ipcRenderer.invoke("showFriendTestNotification"),
 
   /* Themes */
   addCustomTheme: (theme: Theme) => ipcRenderer.invoke("addCustomTheme", theme),
@@ -829,6 +891,19 @@ contextBridge.exposeInMainWorld("electron", {
   closeGameLauncherWindow: () => ipcRenderer.invoke("closeGameLauncherWindow"),
   openMainWindow: () => ipcRenderer.invoke("openMainWindow"),
   isMainWindowOpen: () => ipcRenderer.invoke("isMainWindowOpen"),
+
+  /* News */
+  news: {
+    getFeeds: () => ipcRenderer.invoke("getRssFeeds"),
+    addFeed: (name: string, url: string) =>
+      ipcRenderer.invoke("addRssFeed", name, url),
+    removeFeed: (feedId: string) => ipcRenderer.invoke("removeRssFeed", feedId),
+    fetchArticles: () => ipcRenderer.invoke("fetchNewsArticles"),
+    seedDefaultFeeds: () => ipcRenderer.invoke("seedDefaultFeeds"),
+    scrapeArticle: (url: string) => ipcRenderer.invoke("scrapeArticle", url),
+    translateText: (text: string, targetLang: string) =>
+      ipcRenderer.invoke("translateText", text, targetLang),
+  },
 
   /* ROMs (Beta) */
   roms: {

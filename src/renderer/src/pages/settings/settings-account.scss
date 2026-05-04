@@ -4,41 +4,195 @@
   &__form {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 3);
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-
-    h3,
-    h4 {
-      margin: 0;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: rgba(255, 255, 255, 0.4);
-    }
-  }
-
-  &__actions {
-    display: flex;
-    gap: globals.$spacing-unit;
-    margin-top: globals.$spacing-unit;
-  }
-
-  &__subscription-info {
-    display: flex;
-    flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
   }
 
-  &__subscription-button {
-    place-self: flex-start;
+  &__section-title {
+    margin: 0;
+    margin-top: calc(globals.$spacing-unit);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.4);
   }
 
+  &__section-description {
+    font-size: 13px;
+    color: globals.$muted-color;
+    margin: 0;
+    margin-top: calc(globals.$spacing-unit * -1);
+  }
+
+  /* ── Profile card ── */
+  &__profile-card {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 3);
+  }
+
+  &__profile-card-header {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 3);
+    align-items: flex-start;
+  }
+
+  &__avatar-button {
+    position: relative;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    flex-shrink: 0;
+    color: globals.$body-color;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__avatar-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: globals.$muted-color;
+    z-index: 1;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__avatar-button:hover &__avatar-overlay {
+    opacity: 1;
+  }
+
+  &__profile-fields {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__username {
+    font-size: 13px;
+    color: globals.$muted-color;
+    margin-top: calc(globals.$spacing-unit * -1);
+  }
+
+  &__bio-field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__bio-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: globals.$body-color;
+  }
+
+  &__bio-textarea {
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: globals.$body-color;
+    font-family: inherit;
+    font-size: 14px;
+    padding: globals.$spacing-unit;
+    transition: border-color 0.15s ease;
+
+    &::placeholder {
+      color: globals.$muted-color;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  &__bio-char-count {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.3);
+    align-self: flex-end;
+  }
+
+  &__profile-card-actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: flex-end;
+    padding-top: globals.$spacing-unit;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  /* ── Two-column row ── */
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  /* ── Generic section card ── */
+  &__section-card {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section-card-title {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &__section-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__section-card-actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+    margin-top: calc(globals.$spacing-unit / 2);
+  }
+
+  /* ── Email display ── */
+  &__email {
+    font-size: 14px;
+    color: globals.$body-color;
+    margin: 0;
+    word-break: break-all;
+  }
+
+  /* ── Subscription info ── */
+  &__subscription-info {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  /* ── Blocked users ── */
   &__blocked-users {
     list-style: none;
     margin: 0;

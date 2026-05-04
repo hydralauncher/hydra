@@ -1,0 +1,238 @@
+@use "../../scss/globals";
+
+// ── Brand tokens ──
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-accent: globals.$brand-teal;
+$bp-accent-blue: globals.$brand-blue;
+$bp-text: globals.$muted-color;
+$bp-text-muted: globals.$body-color;
+$bp-border: globals.$border-color;
+$bp-danger: globals.$error-color;
+$bp-success: #4caf50;
+
+// ── Ambient particles ──
+@keyframes bp-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.03;
+  }
+  50% {
+    transform: translateY(-40px) scale(1.1);
+    opacity: 0.07;
+  }
+}
+
+@keyframes bp-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// ── Page entrance ──
+@keyframes bp-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ── Shine sweep for focused elements ──
+@keyframes bp-shine {
+  0% {
+    left: -75%;
+  }
+  100% {
+    left: 125%;
+  }
+}
+
+// ── Root container ──
+.big-picture {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background-color: $bp-bg;
+  color: $bp-text;
+  overflow: clip;
+  font-family: "Noto Sans", sans-serif;
+  font-size: 18px;
+  user-select: none;
+  position: relative;
+
+  // Ambient background orbs
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(120px);
+  }
+
+  &::before {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, $bp-accent 0%, transparent 70%);
+    top: -200px;
+    left: -100px;
+    opacity: 0.06;
+    animation: bp-float 12s ease-in-out infinite;
+  }
+
+  &::after {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, $bp-accent-blue 0%, transparent 70%);
+    bottom: -150px;
+    right: -100px;
+    opacity: 0.05;
+    animation: bp-float 15s ease-in-out infinite 3s;
+  }
+
+  // Hide all scrollbars
+  * {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 40px 56px;
+    position: relative;
+    z-index: 1;
+
+    // Animate page content entrance
+    > * {
+      animation: bp-page-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  // ── Typography ──
+  h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin: 0 0 28px 0;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, $bp-text 0%, rgba($bp-text, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: $bp-text;
+  }
+
+  h3 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 12px 0;
+    color: $bp-text-muted;
+  }
+}
+
+// ── Focus indicator (spatial navigation) ──
+[data-bp-focused="true"] {
+  outline: none;
+  box-shadow:
+    0 0 0 2px $bp-accent,
+    0 0 16px rgba($bp-accent, 0.25);
+  z-index: 10;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+
+  // Shine sweep overlay
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+    animation: bp-shine 0.8s ease-out forwards;
+    pointer-events: none;
+    z-index: 11;
+  }
+}
+
+// ── Controller hints bar (bottom) ──
+.bp-controller-hints {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  height: 56px;
+  min-height: 56px;
+  background: linear-gradient(
+    to top,
+    rgba($bp-bg, 0.95) 0%,
+    rgba($bp-bg, 0.8) 100%
+  );
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  z-index: 2;
+  animation: bp-fade-in 0.6s ease 0.3s both;
+
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba($bp-text, 0.5);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba($bp-text, 0.7);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}

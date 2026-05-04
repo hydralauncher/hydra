@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  FriendNotificationInfo,
 } from "@types";
 import {
   injectCustomCss,
@@ -11,12 +12,18 @@ import {
   getAchievementSoundVolume,
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
+import { FriendNotificationItem } from "@renderer/components/friend-notification/friend-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import app from "../../../app.scss?inline";
-import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
+import achievementStyles from "../../../components/achievements/notification/achievement-notification.scss?inline";
+import friendStyles from "../../../components/friend-notification/friend-notification.scss?inline";
 import root from "react-shadow";
 
 const NOTIFICATION_TIMEOUT = 4000;
+
+type NotificationQueueItem =
+  | { type: "achievement"; data: AchievementNotificationInfo }
+  | { type: "friend"; data: FriendNotificationInfo };
 
 export function AchievementNotification() {
   const { t } = useTranslation("achievement");
@@ -26,11 +33,10 @@ export function AchievementNotification() {
   const [position, setPosition] =
     useState<AchievementCustomNotificationPosition>("top-left");
 
-  const [achievements, setAchievements] = useState<
-    AchievementNotificationInfo[]
-  >([]);
-  const [currentAchievement, setCurrentAchievement] =
-    useState<AchievementNotificationInfo | null>(null);
+  const [queue, setQueue] = useState<NotificationQueueItem[]>([]);
+  const [currentItem, setCurrentItem] = useState<NotificationQueueItem | null>(
+    null
+  );
 
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
@@ -53,16 +59,20 @@ export function AchievementNotification() {
 
         setPosition(position);
 
-        setAchievements([
+        setQueue((prev) => [
+          ...prev,
           {
-            title: t("new_achievements_unlocked", {
-              gameCount,
-              achievementCount,
-            }),
-            isHidden: false,
-            isRare: false,
-            isPlatinum: false,
-            iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+            type: "achievement",
+            data: {
+              title: t("new_achievements_unlocked", {
+                gameCount,
+                achievementCount,
+              }),
+              isHidden: false,
+              isRare: false,
+              isPlatinum: false,
+              iconUrl: "https://cdn.losbroxas.org/favicon.svg",
+            },
           },
         ]);
 
@@ -83,7 +93,12 @@ export function AchievementNotification() {
           setPosition(position);
         }
 
-        setAchievements((ach) => ach.concat(achievements));
+        setQueue((prev) => [
+          ...prev,
+          ...achievements.map(
+            (a) => ({ type: "achievement", data: a }) as NotificationQueueItem
+          ),
+        ]);
 
         playAudio();
       }
@@ -94,7 +109,24 @@ export function AchievementNotification() {
     };
   }, [playAudio]);
 
-  const hasAchievementsPending = achievements.length > 0;
+  useEffect(() => {
+    const unsubscribe = window.electron.onFriendStartedPlaying(
+      (position, friendInfo) => {
+        if (!friendInfo) return;
+        if (position) {
+          setPosition(position);
+        }
+
+        setQueue((prev) => [...prev, { type: "friend", data: friendInfo }]);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const hasItemsPending = queue.length > 0;
 
   const startAnimateClosing = useCallback(() => {
     cancelAnimationFrame(closingAnimation.current);
@@ -110,14 +142,14 @@ export function AchievementNotification() {
           closingAnimation.current = requestAnimationFrame(animateClosing);
         } else {
           setIsVisible(false);
-          setAchievements((ach) => ach.slice(1));
+          setQueue((q) => q.slice(1));
         }
       }
     );
   }, []);
 
   useEffect(() => {
-    if (hasAchievementsPending) {
+    if (hasItemsPending) {
       setIsClosing(false);
       setIsVisible(true);
 
@@ -135,13 +167,13 @@ export function AchievementNotification() {
         }
       );
     }
-  }, [hasAchievementsPending, startAnimateClosing, currentAchievement]);
+  }, [hasItemsPending, startAnimateClosing, currentItem]);
 
   useEffect(() => {
-    if (achievements.length) {
-      setCurrentAchievement(achievements[0]);
+    if (queue.length) {
+      setCurrentItem(queue[0]);
     }
-  }, [achievements]);
+  }, [queue]);
 
   const loadAndApplyTheme = useCallback(async () => {
     if (!shadowRootRef) return;
@@ -172,15 +204,26 @@ export function AchievementNotification() {
   return (
     <root.div>
       <style type="text/css">
-        {app} {styles}
+        {app} {achievementStyles} {friendStyles}
       </style>
       <section ref={setShadowRootRef}>
-        {isVisible && currentAchievement && (
-          <AchievementNotificationItem
-            achievement={currentAchievement}
-            isClosing={isClosing}
-            position={position}
-          />
+        {isVisible && currentItem && (
+          <>
+            {currentItem.type === "achievement" && (
+              <AchievementNotificationItem
+                achievement={currentItem.data}
+                isClosing={isClosing}
+                position={position}
+              />
+            )}
+            {currentItem.type === "friend" && (
+              <FriendNotificationItem
+                friend={currentItem.data}
+                isClosing={isClosing}
+                position={position}
+              />
+            )}
+          </>
         )}
       </section>
     </root.div>

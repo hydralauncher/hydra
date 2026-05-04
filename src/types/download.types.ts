@@ -10,6 +10,13 @@ export type DownloadStatus =
   | "removed"
   | "extracting";
 
+export interface LibtorrentFile {
+  name: string;
+  path: string;
+  size: number;
+  bytesDownloaded: number;
+}
+
 export interface DownloadProgress {
   downloadSpeed: number;
   timeRemaining: number;
@@ -20,6 +27,7 @@ export interface DownloadProgress {
   progress: number;
   gameId: string;
   download: Download;
+  files?: LibtorrentFile[];
 }
 
 /* TorBox */

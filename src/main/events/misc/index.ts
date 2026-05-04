@@ -13,5 +13,6 @@ import "./open-external";
 import "./open-main-window";
 import "./reset-common-redist-preflight";
 import "./save-temp-file";
+import "./set-fullscreen";
 import "./show-item-in-folder";
 import "./show-open-dialog";

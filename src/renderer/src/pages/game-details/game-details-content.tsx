@@ -1,5 +1,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { PencilIcon } from "@primer/octicons-react";
+import {
+  PencilIcon,
+  CalendarIcon,
+  DownloadIcon,
+  PeopleIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -15,7 +20,12 @@ import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import {
+  useUserDetails,
+  useLibrary,
+  useAppSelector,
+  useFormat,
+} from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./game-details.scss";
 import "./hero.scss";
@@ -72,6 +82,9 @@ export function GameDetailsContent() {
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { updateLibrary, library } = useLibrary();
+  const { numberFormatter } = useFormat();
+
+  const { stats } = useContext(gameDetailsContext);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -183,7 +196,40 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              <GameLogo game={game} shopDetails={shopDetails} />
+              <div>
+                <GameLogo game={game} shopDetails={shopDetails} />
+
+                {shopDetails && (
+                  <div className="game-details__hero-info">
+                    {shopDetails.short_description && (
+                      <p className="game-details__hero-short-description">
+                        {shopDetails.short_description}
+                      </p>
+                    )}
+
+                    <div className="game-details__hero-meta">
+                      {shopDetails.release_date?.date && (
+                        <span className="game-details__hero-meta-badge">
+                          <CalendarIcon size={12} />
+                          {shopDetails.release_date.date}
+                        </span>
+                      )}
+                      {stats && (
+                        <>
+                          <span className="game-details__hero-meta-badge">
+                            <DownloadIcon size={12} />
+                            {numberFormatter.format(stats.downloadCount)}
+                          </span>
+                          <span className="game-details__hero-meta-badge">
+                            <PeopleIcon size={12} />
+                            {numberFormatter.format(stats.playerCount)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
                 {game && (

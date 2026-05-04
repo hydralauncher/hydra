@@ -1,0 +1,67 @@
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+
+@keyframes bp-section-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.bp-downloads {
+  &__section {
+    margin-bottom: 40px;
+    animation: bp-section-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    &:nth-child(2) {
+      animation-delay: 0.1s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.15s;
+    }
+
+    &:nth-child(4) {
+      animation-delay: 0.2s;
+    }
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+
+      &::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0.06),
+          transparent
+        );
+      }
+    }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 12px;
+
+    h2 {
+      color: rgba($bp-text, 0.25);
+      font-weight: 500;
+    }
+  }
+}

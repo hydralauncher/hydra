@@ -4,36 +4,28 @@ import { Toaster } from "sileo";
 import {
   useAppDispatch,
   useAppSelector,
-  useDownload,
+  useBigPicture,
   useLibrary,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import { useGamepad } from "@renderer/hooks/use-gamepad";
+import type { GamepadAction } from "@renderer/hooks/use-gamepad";
 
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  setUserPreferences,
-  toggleDraggingDisabled,
-  setUserDetails,
-  setProfileBackground,
-  setGameRunning,
-  setExtractionProgress,
-  clearExtraction,
-} from "@renderer/features";
+import { setUserPreferences, toggleDraggingDisabled } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { useSubscription } from "./hooks/use-subscription";
 import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
+import { PasswordRequiredModal } from "./pages/downloads/password-required-modal";
 
-import {
-  injectCustomCss,
-  removeCustomCss,
-  getAchievementSoundUrl,
-  getAchievementSoundVolume,
-} from "./helpers";
+import { injectCustomCss, removeCustomCss } from "./helpers";
 import { levelDBService } from "./services/leveldb.service";
-import type { UserPreferences } from "@types";
+import type { GameShop, UserPreferences } from "@types";
 import "./app.scss";
 
 export interface AppProps {
@@ -42,21 +34,28 @@ export interface AppProps {
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const { updateLibrary, library } = useLibrary();
+  const { updateLibrary } = useLibrary();
+  const { enterBigPicture } = useBigPicture();
 
-  // Listen for new download options updates
   useDownloadOptionsListener();
+
+  const handleGamepadAction = useCallback(
+    (action: GamepadAction) => {
+      if (action.type === "menu") {
+        enterBigPicture();
+      }
+    },
+    [enterBigPicture]
+  );
+
+  useGamepad({
+    enabled: true,
+    onAction: handleGamepadAction,
+  });
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, setLastPacket } = useDownload();
-
-  const {
-    hasActiveSubscription,
-    fetchUserDetails,
-    updateUserDetails,
-    clearUserDetails,
-  } = useUserDetails();
+  const { hasActiveSubscription } = useUserDetails();
 
   const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
     useSubscription();
@@ -77,6 +76,13 @@ export function App() {
   const [archivePaths, setArchivePaths] = useState<string[]>([]);
   const [archiveTotalSize, setArchiveTotalSize] = useState(0);
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordRequiredShop, setPasswordRequiredShop] =
+    useState<GameShop | null>(null);
+  const [passwordRequiredObjectId, setPasswordRequiredObjectId] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     Promise.all([
       levelDBService.get("userPreferences", null, "json"),
@@ -87,120 +93,10 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onDownloadProgress(
-      (downloadProgress) => {
-        if (downloadProgress?.progress === 1) {
-          clearDownload();
-          updateLibrary();
-          return;
-        }
-
-        setLastPacket(downloadProgress);
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [clearDownload, setLastPacket, updateLibrary]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onHardDelete(() => {
+    window.electron.importSteamGames().then(() => {
       updateLibrary();
     });
-
-    return () => unsubscribe();
   }, [updateLibrary]);
-
-  const setupExternalResources = useCallback(async () => {
-    const cachedUserDetails = window.localStorage.getItem("userDetails");
-
-    if (cachedUserDetails) {
-      const { profileBackground, ...userDetails } =
-        JSON.parse(cachedUserDetails);
-
-      dispatch(setUserDetails(userDetails));
-      dispatch(setProfileBackground(profileBackground));
-    }
-
-    const userDetails = await fetchUserDetails().catch(() => null);
-
-    if (userDetails) {
-      updateUserDetails(userDetails);
-    }
-
-    if (!document.getElementById("external-resources")) {
-      const $script = document.createElement("script");
-      $script.id = "external-resources";
-      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-      document.head.appendChild($script);
-    }
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
-
-  useEffect(() => {
-    setupExternalResources();
-  }, [setupExternalResources]);
-
-  const onSignIn = useCallback(() => {
-    fetchUserDetails().then((response) => {
-      if (response) {
-        updateUserDetails(response);
-        showSuccessToast(t("successfully_signed_in"));
-      }
-    });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
-      if (gamesRunning.length) {
-        const lastGame = gamesRunning[gamesRunning.length - 1];
-        const libraryGame = library.find(
-          (library) => library.id === lastGame.id
-        );
-
-        if (libraryGame) {
-          dispatch(
-            setGameRunning({
-              ...libraryGame,
-              sessionDurationInMillis: lastGame.sessionDurationInMillis,
-            })
-          );
-          return;
-        }
-      }
-      dispatch(setGameRunning(null));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [dispatch, library]);
-
-  useEffect(() => {
-    const listeners = [
-      window.electron.onSignIn(onSignIn),
-      window.electron.onLibraryBatchComplete(() => {
-        updateLibrary();
-      }),
-      window.electron.onSignOut(() => clearUserDetails()),
-      window.electron.onExtractionProgress((shop, objectId, progress) => {
-        dispatch(setExtractionProgress({ shop, objectId, progress }));
-      }),
-      window.electron.onExtractionComplete(() => {
-        dispatch(clearExtraction());
-        updateLibrary();
-      }),
-      window.electron.onArchiveDeletionPrompt((paths, totalSizeInBytes) => {
-        setArchivePaths(paths);
-        setArchiveTotalSize(totalSizeInBytes);
-        setShowArchiveDeletionModal(true);
-      }),
-    ];
-
-    return () => {
-      listeners.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
 
   useEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = 0;
@@ -242,26 +138,35 @@ export function App() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
-  const playAudio = useCallback(async () => {
-    const soundUrl = await getAchievementSoundUrl();
-    const volume = await getAchievementSoundVolume();
-    const audio = new Audio(soundUrl);
-    audio.volume = volume;
-    audio.play();
-  }, []);
-
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
+    const unsubscribe = window.electron.onSignIn(() => {
+      showSuccessToast(t("successfully_signed_in"));
     });
 
+    return () => unsubscribe();
+  }, [t, showSuccessToast]);
+
+  useEffect(() => {
+    const listeners = [
+      window.electron.onArchiveDeletionPrompt((paths, totalSizeInBytes) => {
+        setArchivePaths(paths);
+        setArchiveTotalSize(totalSizeInBytes);
+        setShowArchiveDeletionModal(true);
+      }),
+      window.electron.onPasswordRequired((shop, objectId) => {
+        setPasswordRequiredShop(shop);
+        setPasswordRequiredObjectId(objectId);
+        setShowPasswordModal(true);
+      }),
+    ];
+
     return () => {
-      unsubscribe();
+      listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [playAudio]);
+  }, []);
 
   return (
-    <>
+    <DndProvider backend={HTML5Backend}>
       {window.electron.platform === "win32" && (
         <div className="title-bar">
           <h4>
@@ -288,6 +193,13 @@ export function App() {
         onClose={() => setShowArchiveDeletionModal(false)}
       />
 
+      <PasswordRequiredModal
+        visible={showPasswordModal}
+        shop={passwordRequiredShop}
+        objectId={passwordRequiredObjectId}
+        onClose={() => setShowPasswordModal(false)}
+      />
+
       <main>
         <Sidebar />
 
@@ -305,6 +217,6 @@ export function App() {
       </main>
 
       <BottomPanel />
-    </>
+    </DndProvider>
   );
 }

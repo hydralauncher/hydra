@@ -1,0 +1,218 @@
+@use "../../scss/globals.scss";
+
+.video-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__heading {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+
+    @media (max-width: 1000px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  &__skeleton {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+  }
+}
+
+.video-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid globals.$border-color;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: video-card-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+
+    .video-card__poster {
+      transform: scale(1.05);
+    }
+
+    .video-card__play-badge {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  &:active {
+    opacity: globals.$active-opacity;
+    transform: translateY(-2px);
+  }
+
+  &--unavailable {
+    opacity: 0.45;
+
+    &:hover {
+      opacity: 0.6;
+    }
+  }
+
+  &--playing {
+    border-color: globals.$brand-teal;
+    box-shadow:
+      0 0 0 1px globals.$brand-teal,
+      0 12px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  &__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #000;
+  }
+
+  &__poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition:
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.3s ease;
+
+    &--hidden {
+      opacity: 0;
+    }
+  }
+
+  &__video-wrapper {
+    position: absolute;
+    inset: 0;
+    animation: video-fade-in 0.4s ease;
+  }
+
+  &__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__play-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  &__gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  &__info {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__info-main {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+
+  &__availability {
+    font-size: 11px;
+    color: globals.$body-color;
+    opacity: 0.6;
+    text-align: left;
+
+    &--available {
+      color: globals.$success-color;
+      opacity: 1;
+    }
+  }
+
+  &__stats {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__stat {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+
+    .star-rating {
+      align-items: center;
+    }
+  }
+}
+
+@keyframes video-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes video-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

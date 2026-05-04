@@ -1,0 +1,419 @@
+@use "sass:color";
+@use "../../scss/globals";
+
+$bp-accent: globals.$brand-teal;
+$bp-accent-blue: globals.$brand-blue;
+$bp-text: globals.$muted-color;
+$bp-bg: globals.$dark-background-color;
+$bp-surface: globals.$background-color;
+$bp-danger: globals.$error-color;
+$bp-success: #4caf50;
+
+@keyframes bp-detail-hero-zoom {
+  from {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bp-detail-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bp-play-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba($bp-accent, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba($bp-accent, 0);
+  }
+}
+
+@keyframes bp-launching-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes bp-launching-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes bp-stat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bp-game-detail {
+  position: relative;
+  min-height: calc(100vh - 72px - 56px - 80px);
+
+  &--subview {
+    padding: 20px 0;
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+  }
+
+  // ── Hero ──
+  &__hero {
+    position: absolute;
+    top: -40px;
+    left: -56px;
+    right: -56px;
+    height: 480px;
+    overflow: hidden;
+  }
+
+  &__hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: bp-detail-hero-zoom 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  &__hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba($bp-bg, 0.3) 30%,
+        rgba($bp-bg, 0.7) 55%,
+        $bp-bg 75%
+      ),
+      linear-gradient(to right, rgba($bp-bg, 0.6) 0%, transparent 50%);
+  }
+
+  // ── Body content ──
+  &__body {
+    position: relative;
+    z-index: 1;
+    padding-top: 320px;
+    animation: bp-detail-content-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s
+      both;
+  }
+
+  &__title {
+    font-size: 52px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 20px 0;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    letter-spacing: -0.5px;
+    background: none;
+    -webkit-text-fill-color: unset;
+  }
+
+  // ── Stats row ──
+  &__stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 15px;
+    color: rgba($bp-text, 0.8);
+    animation: bp-stat-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    &:nth-child(1) {
+      animation-delay: 0.3s;
+    }
+    &:nth-child(2) {
+      animation-delay: 0.4s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.5s;
+    }
+    &:nth-child(4) {
+      animation-delay: 0.6s;
+    }
+    &:nth-child(5) {
+      animation-delay: 0.7s;
+    }
+
+    &-label {
+      color: rgba($bp-text, 0.45);
+      font-size: 13px;
+    }
+
+    &-value {
+      font-weight: 600;
+      color: $bp-text;
+    }
+  }
+
+  // ── Genre chips ──
+  &__genres {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+
+  &__genre-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba($bp-accent, 0.1);
+    border: 1px solid rgba($bp-accent, 0.2);
+    color: $bp-accent;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  // ── Action buttons ──
+  &__actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+    animation: bp-detail-content-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.4s
+      both;
+  }
+
+  &__action {
+    position: relative;
+    padding: 18px 52px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: $bp-text;
+    font-size: 18px;
+    font-weight: 500;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    letter-spacing: 0.3px;
+    overflow: hidden;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: scale(1.02);
+    }
+
+    // Play button — muted by default, activates on focus
+    &--primary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba($bp-text, 0.5);
+      font-weight: 600;
+      font-size: 18px;
+      padding: 18px 52px;
+      letter-spacing: 0.3px;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba($bp-text, 0.7);
+      }
+
+      &[data-bp-focused="true"] {
+        background: linear-gradient(135deg, $bp-accent, #11967f);
+        border-color: transparent;
+        color: #000;
+        font-weight: 700;
+        font-size: 22px;
+        padding: 24px 80px;
+        letter-spacing: 0.5px;
+        box-shadow:
+          0 0 0 2px $bp-accent,
+          0 0 32px rgba($bp-accent, 0.35),
+          0 8px 40px rgba($bp-accent, 0.2);
+        animation: bp-play-pulse 2s ease-in-out infinite;
+      }
+    }
+
+    // Launching state
+    &--launching {
+      cursor: not-allowed;
+      pointer-events: none;
+      background: linear-gradient(
+        90deg,
+        rgba($bp-accent, 0.15) 0%,
+        rgba($bp-accent, 0.35) 25%,
+        rgba($bp-accent, 0.15) 50%,
+        rgba($bp-accent, 0.35) 75%,
+        rgba($bp-accent, 0.15) 100%
+      );
+      background-size: 200% 100%;
+      animation:
+        bp-launching-shimmer 1.8s ease-in-out infinite,
+        bp-launching-pulse 2s ease-in-out infinite;
+      border: 1px solid rgba($bp-accent, 0.3);
+      color: $bp-accent;
+      font-weight: 600;
+      letter-spacing: 1px;
+
+      &[data-bp-focused="true"] {
+        background: linear-gradient(
+          90deg,
+          rgba($bp-accent, 0.2) 0%,
+          rgba($bp-accent, 0.5) 25%,
+          rgba($bp-accent, 0.2) 50%,
+          rgba($bp-accent, 0.5) 75%,
+          rgba($bp-accent, 0.2) 100%
+        );
+        background-size: 200% 100%;
+        animation:
+          bp-launching-shimmer 1.8s ease-in-out infinite,
+          bp-launching-pulse 2s ease-in-out infinite;
+        box-shadow:
+          0 0 0 2px rgba($bp-accent, 0.4),
+          0 0 24px rgba($bp-accent, 0.2);
+        border-color: rgba($bp-accent, 0.5);
+        color: $bp-accent;
+        font-size: 22px;
+        padding: 24px 80px;
+      }
+    }
+
+    // Download button
+    &--download {
+      background: linear-gradient(
+        135deg,
+        $bp-accent-blue,
+        color.adjust($bp-accent-blue, $lightness: -10%)
+      );
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      font-size: 18px;
+      padding: 18px 52px;
+
+      &:hover {
+        transform: scale(1.03);
+        box-shadow: 0 6px 24px rgba($bp-accent-blue, 0.3);
+      }
+    }
+
+    // Danger / close game
+    &--danger {
+      background: rgba($bp-danger, 0.12);
+      border-color: rgba($bp-danger, 0.3);
+      color: #f4475e;
+
+      &:hover {
+        background: rgba($bp-danger, 0.2);
+        border-color: rgba($bp-danger, 0.5);
+      }
+    }
+
+    // Back button
+    &--secondary {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba($bp-text, 0.5);
+      padding: 18px 40px;
+      font-size: 16px;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.15);
+        color: rgba($bp-text, 0.7);
+      }
+    }
+  }
+
+  // ── Sections ──
+  &__section {
+    margin-bottom: 48px;
+    padding-top: 8px;
+
+    &-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 16px;
+    }
+  }
+
+  // ── Description ──
+  &__description {
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba($bp-text, 0.7);
+    overflow: hidden;
+    position: relative;
+    word-break: break-word;
+
+    &--collapsed {
+      max-height: 200px;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: linear-gradient(to bottom, transparent, $bp-bg);
+        pointer-events: none;
+      }
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    a {
+      color: $bp-accent;
+    }
+  }
+
+  &__expand-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: $bp-text;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+}

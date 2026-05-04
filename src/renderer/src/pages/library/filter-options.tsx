@@ -2,7 +2,11 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import "./filter-options.scss";
 
-export type FilterOption = "all" | "recently_played" | "favorites";
+export type FilterOption =
+  | "all"
+  | "recently_played"
+  | "favorites"
+  | "installed";
 
 interface FilterOptionsProps {
   filterBy: FilterOption;
@@ -10,6 +14,7 @@ interface FilterOptionsProps {
   allGamesCount: number;
   recentlyPlayedCount: number;
   favoritesCount: number;
+  installedCount: number;
 }
 
 export function FilterOptions({
@@ -18,6 +23,7 @@ export function FilterOptions({
   allGamesCount,
   recentlyPlayedCount,
   favoritesCount,
+  installedCount,
 }: Readonly<FilterOptionsProps>) {
   const { t } = useTranslation("library");
 
@@ -37,6 +43,31 @@ export function FilterOptions({
           )}
         </button>
         {filterBy === "all" && (
+          <motion.div
+            className="library-filter-options__tab-underline"
+            layoutId="library-tab-underline"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+            }}
+          />
+        )}
+      </div>
+      <div className="library-filter-options__tab-wrapper">
+        <button
+          type="button"
+          className={`library-filter-options__tab ${filterBy === "installed" ? "library-filter-options__tab--active" : ""}`}
+          onClick={() => onFilterChange("installed")}
+        >
+          {t("installed")}
+          {installedCount > 0 && (
+            <span className="library-filter-options__tab-badge">
+              {installedCount}
+            </span>
+          )}
+        </button>
+        {filterBy === "installed" && (
           <motion.div
             className="library-filter-options__tab-underline"
             layoutId="library-tab-underline"

@@ -14,6 +14,7 @@ export class UpdateManager {
   private static hasNotified = false;
   private static newVersion = "";
   private static checkTick = 0;
+  private static listenersRegistered = false;
 
   private static mockValuesForDebug() {
     this.sendEvent({ type: "update-available", info: { version: "3.3.1" } });
@@ -44,20 +45,31 @@ export class UpdateManager {
     return false;
   }
 
-  public static async checkForUpdates() {
-    autoUpdater
-      .once("update-available", (info: UpdateInfo) => {
-        this.sendEvent({ type: "update-available", info });
-        this.newVersion = info.version;
-      })
-      .once("update-downloaded", () => {
-        this.sendEvent({ type: "update-downloaded" });
+  private static registerListeners() {
+    if (this.listenersRegistered) return;
+    this.listenersRegistered = true;
 
-        if (!this.hasNotified) {
-          this.hasNotified = true;
-          publishNotificationUpdateReadyToInstall(this.newVersion);
-        }
-      });
+    autoUpdater.on("update-available", (info: UpdateInfo) => {
+      this.sendEvent({ type: "update-available", info });
+      this.newVersion = info.version;
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+      this.sendEvent({ type: "update-downloaded" });
+
+      if (!this.hasNotified) {
+        this.hasNotified = true;
+        publishNotificationUpdateReadyToInstall(this.newVersion);
+      }
+    });
+
+    autoUpdater.on("update-not-available", () => {
+      this.sendEvent({ type: "update-not-available" });
+    });
+  }
+
+  public static async checkForUpdates() {
+    this.registerListeners();
 
     const isAutoInstallAvailable = await this.isAutoInstallEnabled();
 
@@ -68,6 +80,8 @@ export class UpdateManager {
       });
     } else if (sendEventsForDebug) {
       this.mockValuesForDebug();
+    } else {
+      this.sendEvent({ type: "update-not-available" });
     }
 
     return isAutoInstallAvailable;
