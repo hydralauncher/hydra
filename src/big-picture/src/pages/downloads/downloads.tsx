@@ -24,6 +24,7 @@ import {
   Typography,
   VerticalFocusGroup,
 } from "../../components";
+import { DOWNLOADS_HERO_OPTIONS_BUTTON_ID } from "../../components/pages/downloads/navigation";
 import {
   useBigPictureDownloadsPageData,
   type BigPictureActiveDownloadItem,
@@ -920,8 +921,6 @@ export default function Downloads() {
     navigate(href);
   };
 
-  const handleHeroOptions = useCallback(() => {}, []);
-
   const closeDownloadMenu = useCallback(() => {
     setMenuState((current) => ({
       ...current,
@@ -948,6 +947,55 @@ export default function Downloads() {
     },
     []
   );
+
+  const heroDownloadMenuContext = useMemo(() => {
+    if (!renderedActiveDownload) return null;
+
+    const listItem =
+      queuedById.get(renderedActiveDownload.id) ??
+      pausedById.get(renderedActiveDownload.id) ??
+      buildPreviewRowItemFromActive(renderedActiveDownload, "queue");
+
+    const section: "queue" | "paused" = pausedById.has(
+      renderedActiveDownload.id
+    )
+      ? "paused"
+      : "queue";
+
+    return { listItem, section };
+  }, [pausedById, queuedById, renderedActiveDownload]);
+
+  const handleHeroOptions = useCallback(() => {
+    if (
+      !heroDownloadMenuContext ||
+      !renderedActiveDownload ||
+      interactionsLocked
+    ) {
+      return;
+    }
+
+    const element = globalThis.document.getElementById(
+      DOWNLOADS_HERO_OPTIONS_BUTTON_ID
+    );
+    const rect = element?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    openDownloadMenu(
+      heroDownloadMenuContext.listItem,
+      heroDownloadMenuContext.section,
+      {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      },
+      DOWNLOADS_HERO_OPTIONS_BUTTON_ID
+    );
+  }, [
+    heroDownloadMenuContext,
+    interactionsLocked,
+    openDownloadMenu,
+    renderedActiveDownload,
+  ]);
 
   const downloadMenuItems = useMemo<ContextMenuItem[]>(() => {
     if (!menuState.item || !menuState.section) return [];
@@ -1277,6 +1325,50 @@ export default function Downloads() {
     renderedActiveDownload?.game.libraryHeroImageUrl ?? null
   );
 
+  const getDownloadCardFocusActions = useCallback(
+    (
+      itemId: string,
+      canEnterMoveMode: boolean,
+      listItem: BigPictureDownloadListItem,
+      section: "queue" | "paused" | "completed",
+      optionsDisabled: boolean
+    ): FocusItemActions => ({
+      primary: moveMode ? "off" : "auto",
+      press: {
+        x:
+          canEnterMoveMode && !moveMode
+            ? () => {
+                beginMoveMode(itemId);
+              }
+            : undefined,
+      },
+      secondary:
+        optionsDisabled || moveMode
+          ? "off"
+          : () => {
+              const optionsFocusId = getDownloadOptionsActionFocusId(itemId);
+              const element =
+                globalThis.document.getElementById(optionsFocusId);
+              const rect = element?.getBoundingClientRect();
+
+              if (!rect) return;
+
+              openDownloadMenu(
+                listItem,
+                section,
+                {
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2,
+                },
+                optionsFocusId
+              );
+            },
+    }),
+    [beginMoveMode, moveMode, openDownloadMenu]
+  );
+
+  const grabbedGameId = moveMode?.sourceGameId ?? null;
+
   if (!hasDownloads) {
     return (
       <div className="downloads-page downloads-page--empty">
@@ -1289,22 +1381,6 @@ export default function Downloads() {
       </div>
     );
   }
-
-  const getMainCardActions = (
-    itemId: string,
-    canEnterMoveMode: boolean
-  ): FocusItemActions => ({
-    primary: moveMode ? "off" : "auto",
-    press: {
-      x: canEnterMoveMode
-        ? () => {
-            beginMoveMode(itemId);
-          }
-        : undefined,
-    },
-  });
-
-  const grabbedGameId = moveMode?.sourceGameId ?? null;
 
   return (
     <VerticalFocusGroup asChild>
@@ -1366,10 +1442,13 @@ export default function Downloads() {
                 : undefined
             }
             focusActions={
-              renderedActiveDownload
-                ? getMainCardActions(
+              renderedActiveDownload && heroDownloadMenuContext
+                ? getDownloadCardFocusActions(
                     renderedActiveDownload.id,
-                    renderedActiveDownload.canPause
+                    renderedActiveDownload.canPause,
+                    heroDownloadMenuContext.listItem,
+                    heroDownloadMenuContext.section,
+                    interactionsLocked
                   )
                 : undefined
             }
@@ -1462,7 +1541,13 @@ export default function Downloads() {
                 dropIndex={index}
                 isDragging={dragSource?.gameId === item.id}
                 focusId={getDownloadMainFocusId(item.id)}
-                focusActions={getMainCardActions(item.id, true)}
+                focusActions={getDownloadCardFocusActions(
+                  item.id,
+                  true,
+                  item,
+                  "queue",
+                  interactionsLocked
+                )}
                 isMoveGrabbed={grabbedGameId === item.id}
                 primaryActionFocusId={getDownloadPrimaryActionFocusId(item.id)}
                 optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
@@ -1529,7 +1614,13 @@ export default function Downloads() {
                 dropIndex={index}
                 isDragging={dragSource?.gameId === item.id}
                 focusId={getDownloadMainFocusId(item.id)}
-                focusActions={getMainCardActions(item.id, true)}
+                focusActions={getDownloadCardFocusActions(
+                  item.id,
+                  true,
+                  item,
+                  "paused",
+                  interactionsLocked
+                )}
                 isMoveGrabbed={grabbedGameId === item.id}
                 primaryActionFocusId={getDownloadPrimaryActionFocusId(item.id)}
                 optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
@@ -1568,6 +1659,13 @@ export default function Downloads() {
                   }}
                   optionsDisabled={interactionsLocked}
                   focusId={getDownloadMainFocusId(item.id)}
+                  focusActions={getDownloadCardFocusActions(
+                    item.id,
+                    false,
+                    item,
+                    "completed",
+                    interactionsLocked
+                  )}
                   optionsFocusId={getDownloadOptionsActionFocusId(item.id)}
                 />
               ))}

@@ -82,7 +82,7 @@ function SidebarRouter() {
     }>
   ).filter((route) => {
     if (import.meta.env.DEV) return true;
-    return route.key !== "catalogue" && route.key !== "downloads";
+    return route.key !== "catalogue";
   });
 
   return (
