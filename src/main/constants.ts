@@ -43,7 +43,14 @@ export const ASSETS_PATH = path.join(SystemPath.getPath("userData"), "Assets");
 
 export const THEMES_PATH = path.join(SystemPath.getPath("userData"), "themes");
 
-export const MAIN_LOOP_INTERVAL = 2000;
+export const INTERVALS = {
+  processWatcher: 2_000,
+  downloadWatcher: 2_000,
+  achievementWatcher: 2_000,
+  seedStatusWatcher: 2_000,
+  updateChecker: 60_000 * 50, // 50 minutes
+  powerSaveBlockerSync: 20_000,
+};
 
 export const DEFAULT_ACHIEVEMENT_SOUND_VOLUME = 0.15;
 
