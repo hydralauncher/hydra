@@ -27,12 +27,23 @@ import UserAgent from "user-agents";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
+type WindowMode = "main" | "big-picture";
+
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
-  private static deferredMainMaximize = false;
+  private static systemTray: Tray | null = null;
+  private static systemTrayLanguage = "en";
+  private static pendingModeSwitch: {
+    sourceWindow: BrowserWindow | null;
+    target: WindowMode;
+  } | null = null;
+  private static lastActiveWindowMode: WindowMode | null = null;
+  private static pendingMainWindowHash: string | undefined;
+  private static readonly modeSwitchClosingWindows =
+    new WeakSet<BrowserWindow>();
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
@@ -96,6 +107,125 @@ export class WindowManager {
     }
   }
 
+  private static async getUserPreferences() {
+    return db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+  }
+
+  private static getMainWindow() {
+    if (this.mainWindow?.isDestroyed()) {
+      this.mainWindow = null;
+    }
+
+    return this.mainWindow;
+  }
+
+  private static getBigPictureWindow() {
+    if (this.bigPicture?.isDestroyed()) {
+      this.bigPicture = null;
+    }
+
+    return this.bigPicture;
+  }
+
+  private static getVisibleWindowMode(): WindowMode | null {
+    if (this.getBigPictureWindow()?.isVisible()) {
+      return "big-picture";
+    }
+
+    if (this.getMainWindow()?.isVisible()) {
+      return "main";
+    }
+
+    return null;
+  }
+
+  private static setLastActiveWindowMode(mode: WindowMode) {
+    this.lastActiveWindowMode = mode;
+  }
+
+  private static getCurrentOrLastMode() {
+    return this.getVisibleWindowMode() ?? this.lastActiveWindowMode;
+  }
+
+  private static async getColdStartMode() {
+    const userPreferences = await this.getUserPreferences();
+    return userPreferences?.launchInBigPicture ? "big-picture" : "main";
+  }
+
+  private static async getResumeWindowMode() {
+    return this.getCurrentOrLastMode() ?? (await this.getColdStartMode());
+  }
+
+  private static focusWindow(window: BrowserWindow) {
+    if (window.isDestroyed()) return;
+
+    if (window.isMinimized()) {
+      window.restore();
+    }
+
+    window.show();
+    window.focus();
+  }
+
+  private static closeWindowForModeSwitch(window: BrowserWindow | null) {
+    if (!window || window.isDestroyed()) return;
+
+    this.modeSwitchClosingWindows.add(window);
+    window.close();
+  }
+
+  private static closeWindowAndWait(
+    window: BrowserWindow | null,
+    markAsModeSwitch: boolean = false
+  ) {
+    if (!window || window.isDestroyed()) return Promise.resolve();
+
+    return new Promise<void>((resolve) => {
+      window.once("closed", () => resolve());
+
+      if (markAsModeSwitch) {
+        this.modeSwitchClosingWindows.add(window);
+      }
+
+      window.close();
+    });
+  }
+
+  private static completeModeSwitch(target: WindowMode) {
+    if (this.pendingModeSwitch?.target !== target) return;
+
+    const { sourceWindow } = this.pendingModeSwitch;
+    this.pendingModeSwitch = null;
+
+    this.closeWindowForModeSwitch(sourceWindow);
+  }
+
+  public static hasOpenAppWindow() {
+    return this.getMainWindow() !== null || this.getBigPictureWindow() !== null;
+  }
+
+  public static isAppWindowVisible() {
+    return this.getVisibleWindowMode() !== null;
+  }
+
+  public static hideActiveAppWindow() {
+    const visibleMode = this.getVisibleWindowMode();
+
+    if (visibleMode === "main") {
+      this.setLastActiveWindowMode("main");
+      this.getMainWindow()?.hide();
+    } else if (visibleMode === "big-picture") {
+      this.setLastActiveWindowMode("big-picture");
+      this.getBigPictureWindow()?.hide();
+    }
+
+    void this.refreshSystemTray();
+  }
+
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
     await db.put(levelKeys.screenState, configScreenWhenClosed, {
       valueEncoding: "json",
@@ -121,14 +251,10 @@ export class WindowManager {
     };
   }
 
-  public static async createMainWindow() {
-    if (this.mainWindow) return;
+  public static async createMainWindow(hashOverride?: string) {
+    if (this.mainWindow) return this.mainWindow;
 
-    const userPreferences = await db
-      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-        valueEncoding: "json",
-      })
-      .catch(() => null);
+    const userPreferences = await this.getUserPreferences();
 
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
@@ -138,23 +264,16 @@ export class WindowManager {
     this.mainWindow = new BrowserWindow(
       this.initialConfigInitializationMainWindow
     );
+    const mainWindow = this.mainWindow;
 
-    this.deferredMainMaximize = false;
-
-    if (userPreferences?.launchInBigPicture) {
-      this.mainWindow.setOpacity(0);
-      this.mainWindow.setSkipTaskbar(true);
-      if (isMaximized) {
-        this.deferredMainMaximize = true;
-      }
-    } else if (isMaximized) {
-      this.mainWindow.maximize();
+    if (isMaximized) {
+      mainWindow.maximize();
     }
 
-    this.mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+    mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
         if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.webContentsId !== mainWindow.webContents.id ||
           details.url.includes("chatwoot")
         ) {
           return callback(details);
@@ -181,10 +300,10 @@ export class WindowManager {
       }
     );
 
-    this.mainWindow.webContents.session.webRequest.onHeadersReceived(
+    mainWindow.webContents.session.webRequest.onHeadersReceived(
       (details, callback) => {
         if (
-          details.webContentsId !== this.mainWindow?.webContents.id ||
+          details.webContentsId !== mainWindow.webContents.id ||
           details.url.includes("featurebase") ||
           details.url.includes("chatwoot") ||
           details.url.includes("workwonders")
@@ -221,67 +340,75 @@ export class WindowManager {
       }
     );
 
-    const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
+    const initialHash =
+      hashOverride ?? (userPreferences?.launchToLibraryPage ? "library" : "");
+    this.pendingMainWindowHash = undefined;
 
-    this.loadMainWindowURL(initialHash);
-    this.mainWindow.removeMenu();
+    void this.loadMainWindowURL(initialHash);
+    mainWindow.removeMenu();
 
-    this.mainWindow.on("ready-to-show", () => {
-      if (!app.isPackaged || isStaging)
-        WindowManager.mainWindow?.webContents.openDevTools();
-      if (userPreferences?.launchInBigPicture) {
-        void WindowManager.openBigPictureWindow();
-      } else {
-        WindowManager.mainWindow?.show();
-      }
+    mainWindow.on("ready-to-show", () => {
+      if (!app.isPackaged || isStaging) mainWindow.webContents.openDevTools();
+
+      WindowManager.setLastActiveWindowMode("main");
+      WindowManager.focusWindow(mainWindow);
+      WindowManager.completeModeSwitch("main");
+      void WindowManager.refreshSystemTray();
     });
 
-    this.mainWindow.on("close", async () => {
-      const mainWindow = this.mainWindow;
-      this.mainWindow = null;
+    mainWindow.on("focus", () => {
+      WindowManager.setLastActiveWindowMode("main");
+      void WindowManager.refreshSystemTray();
+    });
 
-      const userPreferences = await db.get<string, UserPreferences>(
-        levelKeys.userPreferences,
-        {
-          valueEncoding: "json",
-        }
-      );
+    mainWindow.on("close", async () => {
+      const isModeSwitchClose = this.modeSwitchClosingWindows.has(mainWindow);
 
-      if (mainWindow) {
-        mainWindow.setProgressBar(-1);
-
-        const lastBounds = mainWindow.getBounds();
-        const isMaximized = mainWindow.isMaximized() ?? false;
-        const screenConfig = isMaximized
-          ? {
-              x: undefined,
-              y: undefined,
-              height: this.initialConfigInitializationMainWindow.height ?? 860,
-              width: this.initialConfigInitializationMainWindow.width ?? 1200,
-              isMaximized: true,
-            }
-          : { ...lastBounds, isMaximized };
-
-        await this.saveScreenConfig(screenConfig);
+      if (this.mainWindow === mainWindow) {
+        this.mainWindow = null;
       }
 
-      if (userPreferences?.preferQuitInsteadOfHiding) {
+      mainWindow.setProgressBar(-1);
+
+      const lastBounds = mainWindow.getBounds();
+      const isMaximized = mainWindow.isMaximized() ?? false;
+      const screenConfig = isMaximized
+        ? {
+            x: undefined,
+            y: undefined,
+            height: this.initialConfigInitializationMainWindow.height ?? 860,
+            width: this.initialConfigInitializationMainWindow.width ?? 1200,
+            isMaximized: true,
+          }
+        : { ...lastBounds, isMaximized };
+
+      await this.saveScreenConfig(screenConfig);
+
+      const latestUserPreferences = await this.getUserPreferences();
+
+      if (
+        latestUserPreferences?.preferQuitInsteadOfHiding &&
+        !isModeSwitchClose
+      ) {
         app.quit();
       }
+
+      void this.refreshSystemTray();
     });
 
-    this.mainWindow.webContents.setWindowOpenHandler((handler) => {
+    mainWindow.on("closed", () => {
+      this.modeSwitchClosingWindows.delete(mainWindow);
+    });
+
+    mainWindow.webContents.setWindowOpenHandler((handler) => {
       shell.openExternal(handler.url);
       return { action: "deny" };
     });
+
+    return mainWindow;
   }
 
-  public static async openBigPictureWindow() {
-    if (this.bigPicture) {
-      this.bigPicture.focus();
-      return;
-    }
-
+  private static async createBigPictureWindow() {
     this.bigPicture = new BrowserWindow({
       fullscreen: true,
       backgroundColor: "#0a0a0a",
@@ -292,37 +419,88 @@ export class WindowManager {
         sandbox: false,
       },
     });
+    const bigPictureWindow = this.bigPicture;
 
-    this.bigPicture.removeMenu();
+    bigPictureWindow.removeMenu();
 
     if (!app.isPackaged || isStaging) {
-      this.bigPicture.webContents.openDevTools();
+      bigPictureWindow.webContents.openDevTools();
     }
 
-    this.loadWindowURL(this.bigPicture, "big-picture");
+    void this.loadWindowURL(bigPictureWindow, "big-picture");
 
-    this.bigPicture.once("ready-to-show", () => {
-      const main = this.mainWindow;
-      if (main && !main.isDestroyed()) {
-        main.setOpacity(1);
-        main.hide();
-      }
-      this.bigPicture?.show();
+    bigPictureWindow.once("ready-to-show", () => {
+      this.setLastActiveWindowMode("big-picture");
+      this.focusWindow(bigPictureWindow);
+      this.completeModeSwitch("big-picture");
+      void this.refreshSystemTray();
     });
 
-    this.bigPicture.on("closed", () => {
-      this.bigPicture = null;
-      const main = this.mainWindow;
-      if (main && !main.isDestroyed()) {
-        if (WindowManager.deferredMainMaximize) {
-          main.maximize();
-          WindowManager.deferredMainMaximize = false;
+    bigPictureWindow.on("focus", () => {
+      this.setLastActiveWindowMode("big-picture");
+      void this.refreshSystemTray();
+    });
+
+    bigPictureWindow.on("closed", async () => {
+      const isModeSwitchClose =
+        this.modeSwitchClosingWindows.has(bigPictureWindow);
+
+      if (this.bigPicture === bigPictureWindow) {
+        this.bigPicture = null;
+      }
+
+      this.modeSwitchClosingWindows.delete(bigPictureWindow);
+
+      if (isModeSwitchClose && this.pendingModeSwitch?.target === "main") {
+        const hash = this.pendingMainWindowHash;
+        this.pendingMainWindowHash = undefined;
+        void this.createMainWindow(hash);
+        return;
+      }
+
+      if (!isModeSwitchClose) {
+        const userPreferences = await this.getUserPreferences();
+
+        if (userPreferences?.preferQuitInsteadOfHiding) {
+          app.quit();
         }
-        main.setSkipTaskbar(false);
-        main.show();
-        main.focus();
       }
+
+      void this.refreshSystemTray();
     });
+
+    return bigPictureWindow;
+  }
+
+  public static async openBigPictureWindow() {
+    const bigPicture = this.getBigPictureWindow();
+
+    if (bigPicture?.isVisible()) {
+      this.setLastActiveWindowMode("big-picture");
+      this.focusWindow(bigPicture);
+
+      const mainWindow = this.getMainWindow();
+      if (mainWindow) {
+        this.closeWindowForModeSwitch(mainWindow);
+      }
+
+      void this.refreshSystemTray();
+      return;
+    }
+
+    const mainWindow = this.getMainWindow();
+    if (mainWindow) {
+      this.pendingModeSwitch = {
+        sourceWindow: mainWindow,
+        target: "big-picture",
+      };
+    }
+
+    if (bigPicture) {
+      await this.closeWindowAndWait(bigPicture, true);
+    }
+
+    await this.createBigPictureWindow();
   }
 
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
@@ -658,131 +836,206 @@ export class WindowManager {
     }
   }
 
-  public static openMainWindow() {
-    if (this.mainWindow) {
-      this.mainWindow.show();
-      if (this.mainWindow.isMinimized()) {
-        this.mainWindow.restore();
-      }
-      this.mainWindow.focus();
-    } else {
-      this.createMainWindow();
+  public static async openStartupWindow() {
+    const mode = await this.getColdStartMode();
+
+    if (mode === "big-picture") {
+      await this.openBigPictureWindow();
+      return;
     }
+
+    await this.openMainWindow();
   }
 
-  public static redirect(hash: string) {
-    if (!this.mainWindow) this.createMainWindow();
-    this.loadMainWindowURL(hash);
+  public static async resumeAppWindow() {
+    const visibleMode = this.getVisibleWindowMode();
 
-    if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
-    this.mainWindow?.focus();
+    if (visibleMode === "big-picture") {
+      await this.openBigPictureWindow();
+      return;
+    }
+
+    if (visibleMode === "main") {
+      await this.openMainWindow();
+      return;
+    }
+
+    const mode = await this.getResumeWindowMode();
+
+    if (mode === "big-picture") {
+      await this.openBigPictureWindow();
+      return;
+    }
+
+    await this.openMainWindow();
+  }
+
+  public static async openMainWindow(hash?: string) {
+    const mainWindow = this.getMainWindow();
+
+    if (mainWindow) {
+      if (typeof hash === "string") {
+        await this.loadMainWindowURL(hash);
+      }
+
+      this.setLastActiveWindowMode("main");
+      this.focusWindow(mainWindow);
+
+      const bigPicture = this.getBigPictureWindow();
+      if (bigPicture) {
+        this.closeWindowForModeSwitch(bigPicture);
+      }
+
+      void this.refreshSystemTray();
+      return;
+    }
+
+    const bigPicture = this.getBigPictureWindow();
+    if (bigPicture) {
+      this.pendingMainWindowHash = hash;
+      this.pendingModeSwitch = {
+        sourceWindow: null,
+        target: "main",
+      };
+
+      this.closeWindowForModeSwitch(bigPicture);
+      return;
+    }
+
+    await this.createMainWindow(hash);
+  }
+
+  public static async redirect(hash: string) {
+    await this.openMainWindow(hash);
+  }
+
+  private static async buildSystemTrayMenu(language: string) {
+    const currentOrLastMode = this.getCurrentOrLastMode();
+    const toggleKey =
+      currentOrLastMode === "big-picture"
+        ? "exit_big_picture"
+        : currentOrLastMode === "main"
+          ? "open_big_picture"
+          : null;
+
+    const games = await gamesSublevel
+      .values()
+      .all()
+      .then((games) => {
+        const filteredGames = games.filter(
+          (game) =>
+            !game.isDeleted && game.executablePath && game.lastTimePlayed
+        );
+
+        const sortedGames = orderBy(filteredGames, "lastTimePlayed", "desc");
+
+        return slice(sortedGames, 0, 6);
+      });
+
+    const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
+      games.map(({ title, executablePath }) => ({
+        label: title.length > 18 ? `${title.slice(0, 18)}…` : title,
+        type: "normal",
+        click: async () => {
+          if (!executablePath) return;
+
+          shell.openPath(executablePath);
+        },
+      }));
+
+    return Menu.buildFromTemplate([
+      {
+        label: t("open", {
+          ns: "system_tray",
+          lng: language,
+        }),
+        type: "normal",
+        click: () => {
+          void this.resumeAppWindow();
+        },
+      },
+      ...(toggleKey
+        ? [
+            {
+              label: t(toggleKey, {
+                ns: "system_tray",
+                lng: language,
+              }),
+              type: "normal" as const,
+              click: () => {
+                if (currentOrLastMode === "big-picture") {
+                  void this.openMainWindow();
+                } else {
+                  void this.openBigPictureWindow();
+                }
+              },
+            },
+          ]
+        : []),
+      {
+        type: "separator",
+      },
+      ...recentlyPlayedGames,
+      {
+        type: "separator",
+      },
+      {
+        label: t("quit", {
+          ns: "system_tray",
+          lng: language,
+        }),
+        type: "normal",
+        click: () => app.quit(),
+      },
+    ]);
+  }
+
+  private static async refreshSystemTray() {
+    if (!this.systemTray) return null;
+
+    const contextMenu = await this.buildSystemTrayMenu(this.systemTrayLanguage);
+
+    if (process.platform === "linux") {
+      this.systemTray.setContextMenu(contextMenu);
+    }
+
+    return contextMenu;
   }
 
   public static async createSystemTray(language: string) {
-    let tray: Tray;
+    this.systemTrayLanguage = language;
 
-    if (process.platform === "darwin") {
+    if (!this.systemTray && process.platform === "darwin") {
       const macIcon = nativeImage
         .createFromPath(trayIcon)
         .resize({ width: 24, height: 24 });
-      tray = new Tray(macIcon);
-    } else {
-      tray = new Tray(trayIcon);
+      this.systemTray = new Tray(macIcon);
+    } else if (!this.systemTray) {
+      this.systemTray = new Tray(trayIcon);
     }
-
-    const updateSystemTray = async () => {
-      const games = await gamesSublevel
-        .values()
-        .all()
-        .then((games) => {
-          const filteredGames = games.filter(
-            (game) =>
-              !game.isDeleted && game.executablePath && game.lastTimePlayed
-          );
-
-          const sortedGames = orderBy(filteredGames, "lastTimePlayed", "desc");
-
-          return slice(sortedGames, 0, 6);
-        });
-
-      const recentlyPlayedGames: Array<MenuItemConstructorOptions | MenuItem> =
-        games.map(({ title, executablePath }) => ({
-          label: title.length > 18 ? `${title.slice(0, 18)}…` : title,
-          type: "normal",
-          click: async () => {
-            if (!executablePath) return;
-
-            shell.openPath(executablePath);
-          },
-        }));
-
-      const contextMenu = Menu.buildFromTemplate([
-        {
-          label: t("open", {
-            ns: "system_tray",
-            lng: language,
-          }),
-          type: "normal",
-          click: () => {
-            if (this.mainWindow) {
-              this.mainWindow.show();
-            } else {
-              this.createMainWindow();
-            }
-          },
-        },
-        {
-          type: "separator",
-        },
-        ...recentlyPlayedGames,
-        {
-          type: "separator",
-        },
-        {
-          label: t("quit", {
-            ns: "system_tray",
-            lng: language,
-          }),
-          type: "normal",
-          click: () => app.quit(),
-        },
-      ]);
-
-      if (process.platform === "linux") {
-        tray.setContextMenu(contextMenu);
-      }
-
-      return contextMenu;
-    };
+    const tray = this.systemTray;
 
     const showContextMenu = async () => {
-      const contextMenu = await updateSystemTray();
+      const contextMenu = await this.refreshSystemTray();
+      if (!contextMenu) return;
       tray.popUpContextMenu(contextMenu);
     };
 
     tray.setToolTip("Hydra Launcher");
 
     if (process.platform === "win32") {
-      await updateSystemTray();
+      await this.refreshSystemTray();
 
       tray.addListener("double-click", () => {
-        if (this.mainWindow) {
-          this.mainWindow.show();
-        } else {
-          this.createMainWindow();
-        }
+        void this.resumeAppWindow();
       });
 
       tray.addListener("right-click", showContextMenu);
     } else if (process.platform === "linux") {
-      await updateSystemTray();
+      await this.refreshSystemTray();
 
       tray.addListener("click", () => {
-        if (this.mainWindow) {
-          this.mainWindow.show();
-        } else {
-          this.createMainWindow();
-        }
+        void this.resumeAppWindow();
       });
 
       tray.addListener("right-click", showContextMenu);

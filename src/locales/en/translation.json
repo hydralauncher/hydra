@@ -865,6 +865,9 @@
   },
   "system_tray": {
     "open": "Open Hydra",
+    "open_big_picture": "Open Big Picture",
+    "exit_big_picture": "Exit Big Picture",
+    "open_main_window": "Open Main Window",
     "quit": "Quit"
   },
   "game_card": {

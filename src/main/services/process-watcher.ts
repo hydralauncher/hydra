@@ -289,7 +289,7 @@ function onOpenGame(game: Game) {
   })
     .then((userPreferences) => {
       if (userPreferences?.hideToTrayOnGameStart) {
-        WindowManager.mainWindow?.hide();
+        WindowManager.hideActiveAppWindow();
       }
     })
     .catch(() => {});
