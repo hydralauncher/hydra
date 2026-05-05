@@ -99,7 +99,7 @@ export const loadState = async () => {
     (async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
-    
+
     // Only connect to WebSocket if user is logged in
     if (HydraApi.isLoggedIn()) {
       WSClient.connect();

@@ -25,13 +25,10 @@ export function useDownload() {
     };
   }, []);
 
-  const pauseSeeding = useCallback(
-    async (shop: GameShop, objectId: string) => {
-      if (!IS_DESKTOP) return;
-      await globalThis.window.electron.pauseGameSeed(shop, objectId);
-    },
-    []
-  );
+  const pauseSeeding = useCallback(async (shop: GameShop, objectId: string) => {
+    if (!IS_DESKTOP) return;
+    await globalThis.window.electron.pauseGameSeed(shop, objectId);
+  }, []);
 
   const resumeSeeding = useCallback(
     async (shop: GameShop, objectId: string) => {

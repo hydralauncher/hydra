@@ -58,7 +58,9 @@ export default function Downloads() {
       {downloadingGames.length > 0 && (
         <section style={{ marginBottom: "2rem" }}>
           <h2 style={{ marginBottom: "1rem" }}>Downloading</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             {downloadingGames.map((game) => (
               <DownloadItem
                 key={game.id}
@@ -66,7 +68,7 @@ export default function Downloads() {
                 isDownloading={lastPacket?.gameId === game.id}
                 progress={lastPacket?.progress || 0}
                 downloadSpeed={lastPacket?.downloadSpeed || 0}
-                seedingStatus={seedingStatus.find(s => s.gameId === game.id)}
+                seedingStatus={seedingStatus.find((s) => s.gameId === game.id)}
               />
             ))}
           </div>
@@ -76,7 +78,9 @@ export default function Downloads() {
       {queuedGames.length > 0 && (
         <section>
           <h2 style={{ marginBottom: "1rem" }}>Queued</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             {queuedGames.map((game) => (
               <DownloadItem
                 key={game.id}
@@ -84,7 +88,7 @@ export default function Downloads() {
                 isDownloading={false}
                 progress={game.download?.progress || 0}
                 downloadSpeed={0}
-                seedingStatus={seedingStatus.find(s => s.gameId === game.id)}
+                seedingStatus={seedingStatus.find((s) => s.gameId === game.id)}
               />
             ))}
           </div>
@@ -102,7 +106,13 @@ interface DownloadItemProps {
   seedingStatus?: SeedingStatus;
 }
 
-function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingStatus }: DownloadItemProps) {
+function DownloadItem({
+  game,
+  isDownloading,
+  progress,
+  downloadSpeed,
+  seedingStatus,
+}: DownloadItemProps) {
   const formatSpeed = (speed: number) => {
     if (speed === 0) return "0 B/s";
     const units = ["B/s", "KB/s", "MB/s", "GB/s"];
@@ -138,7 +148,7 @@ function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingSta
         padding: "1rem",
         backgroundColor: "#2a2a2a",
         borderRadius: "8px",
-        gap: "1rem"
+        gap: "1rem",
       }}
     >
       {game.iconUrl && (
@@ -149,7 +159,7 @@ function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingSta
             width: "64px",
             height: "64px",
             objectFit: "cover",
-            borderRadius: "4px"
+            borderRadius: "4px",
           }}
         />
       )}
@@ -162,7 +172,7 @@ function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingSta
               height: "8px",
               backgroundColor: "#444",
               borderRadius: "4px",
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
             <div
@@ -170,7 +180,7 @@ function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingSta
                 height: "100%",
                 width: `${progress * 100}%`,
                 backgroundColor: isDownloading ? "#4CAF50" : "#666",
-                transition: "width 0.3s ease"
+                transition: "width 0.3s ease",
               }}
             />
           </div>
@@ -178,7 +188,9 @@ function DownloadItem({ game, isDownloading, progress, downloadSpeed, seedingSta
             {(progress * 100).toFixed(1)}%
           </span>
         </div>
-        <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.9rem", color: "#aaa" }}>
+        <p
+          style={{ margin: "0.5rem 0 0 0", fontSize: "0.9rem", color: "#aaa" }}
+        >
           {getStatusText()}
         </p>
       </div>
