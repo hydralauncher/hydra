@@ -176,6 +176,9 @@ export function SettingsAccount() {
       />
 
       <section className="settings-account__section">
+        <h4>{t("current_username")}</h4>
+        <p>{userDetails?.username}</p>
+
         <h4>{t("current_email")}</h4>
         <p>{userDetails?.email ?? t("no_email_account")}</p>
 
