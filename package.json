@@ -132,6 +132,8 @@
     "@types/winreg": "^1.2.36",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "baseline-browser-mapping": "^2.10.27",
+    "browserslist": "^4.28.2",
     "electron": "^39.8.5",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.1",

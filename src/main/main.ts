@@ -52,6 +52,8 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 export const loadState = async () => {
   await Lock.acquireLock();
 
+  await db.open();
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {
@@ -97,7 +99,11 @@ export const loadState = async () => {
     (async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
-    WSClient.connect();
+    
+    // Only connect to WebSocket if user is logged in
+    if (HydraApi.isLoggedIn()) {
+      WSClient.connect();
+    }
   });
 
   const downloads = await downloadsSublevel
@@ -225,12 +231,14 @@ export const loadState = async () => {
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
   if (downloadToResume && !isTorrent) {
     // Start Python RPC for seeding only, then resume HTTP download with JS
-    await DownloadManager.startRPC(undefined, downloadsToSeed);
+    if (downloadsToSeed.length > 0) {
+      await DownloadManager.startRPC(undefined, downloadsToSeed);
+    }
     await DownloadManager.startDownload(downloadToResume).catch((err) => {
       // If resume fails, just log it - user can manually retry
       logger.error("Failed to auto-resume download:", err);
     });
-  } else {
+  } else if (downloadToResume || downloadsToSeed.length > 0) {
     // Use Python RPC for everything (torrent or fallback)
     await DownloadManager.startRPC(downloadToResume, downloadsToSeed);
   }

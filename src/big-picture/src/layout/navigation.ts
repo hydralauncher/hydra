@@ -30,26 +30,21 @@ function normalizePathname(pathname: string) {
 
 export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
   const normalizedPathname = normalizePathname(pathname);
-  const isDev = import.meta.env.DEV;
 
   if (normalizedPathname.startsWith("/catalogue")) {
-    return isDev
-      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue
-      : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+    return BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue;
   }
 
   if (normalizedPathname.startsWith("/downloads")) {
-    return isDev
-      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.downloads
-      : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
-  }
-
-  if (normalizedPathname.startsWith("/settings")) {
-    return BIG_PICTURE_SIDEBAR_ITEM_IDS.settings;
+    return BIG_PICTURE_SIDEBAR_ITEM_IDS.downloads;
   }
 
   if (normalizedPathname.startsWith("/library")) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.library;
+  }
+
+  if (normalizedPathname.startsWith("/settings")) {
+    return BIG_PICTURE_SIDEBAR_ITEM_IDS.settings;
   }
 
   return BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
