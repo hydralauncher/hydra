@@ -81,7 +81,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       [
         game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl,
+        game.customCoverImageUrl,
+        game.coverImageUrl,
+        game.customIconUrl,
         game.iconUrl,
       ].filter((url) => !!url && url.trim() !== ""),
     [game]

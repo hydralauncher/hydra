@@ -71,13 +71,15 @@ export function SidebarAddingCustomGameModal({
       const iconUrl = ""; // Don't use gradient for icon
       const logoImageUrl = ""; // Don't use gradient for logo
       const libraryHeroImageUrl = generateRandomGradient(); // Only use gradient for hero
+      const coverImageUrl = ""; // Don't use gradient for cover
 
       const newGame = await window.electron.addCustomGameToLibrary(
         gameNameForSeed,
         executablePath,
         iconUrl,
         logoImageUrl,
-        libraryHeroImageUrl
+        libraryHeroImageUrl,
+        coverImageUrl
       );
 
       showSuccessToast(t("custom_game_modal_success"));

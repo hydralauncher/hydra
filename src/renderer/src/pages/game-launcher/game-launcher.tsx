@@ -129,13 +129,11 @@ export default function GameLauncher() {
     window.electron.closeGameLauncherWindow();
   };
 
-  const normalizedCoverImage =
-    gameAssets?.coverImageUrl?.replaceAll("\\", "/").trim() || "";
-  const fallbackSteamCoverImage =
-    !normalizedCoverImage && shop === "steam" && objectId
-      ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
-      : "";
-  const coverImageSource = normalizedCoverImage || fallbackSteamCoverImage;
+  const coverImageSource =
+    game?.customCoverImageUrl ||
+    game?.coverImageUrl ||
+    game?.customIconUrl ||
+    game?.iconUrl;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game?.playTimeInMilliseconds ?? 0;
   const achievementCount = game?.achievementCount ?? 0;

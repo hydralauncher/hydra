@@ -7,7 +7,7 @@ import { ASSETS_PATH } from "@main/constants";
 const copyCustomGameAsset = async (
   _event: Electron.IpcMainInvokeEvent,
   sourcePath: string,
-  assetType: "icon" | "logo" | "hero"
+  assetType: "icon" | "logo" | "hero" | "cover"
 ): Promise<string> => {
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error("Source file does not exist");

@@ -9,8 +9,18 @@ const collectAssetPathsToDelete = (game: Game): string[] => {
 
   const assetUrls =
     game.shop === "custom"
-      ? [game.iconUrl, game.logoImageUrl, game.libraryHeroImageUrl]
-      : [game.customIconUrl, game.customLogoImageUrl, game.customHeroImageUrl];
+      ? [
+          game.iconUrl,
+          game.logoImageUrl,
+          game.libraryHeroImageUrl,
+          game.coverImageUrl,
+        ]
+      : [
+          game.customIconUrl,
+          game.customLogoImageUrl,
+          game.customHeroImageUrl,
+          game.customCoverImageUrl,
+        ];
 
   for (const url of assetUrls) {
     if (url?.startsWith("local:")) {
@@ -33,6 +43,7 @@ const updateGameAsDeleted = async (
       customIconUrl: null,
       customLogoImageUrl: null,
       customHeroImageUrl: null,
+      customCoverImageUrl: null,
     }),
   };
 

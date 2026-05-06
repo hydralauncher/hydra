@@ -570,6 +570,7 @@ export function GameOptionsModal({
           iconUrl: game.iconUrl || undefined,
           logoImageUrl: game.logoImageUrl || undefined,
           libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+          coverImageUrl: game.coverImageUrl || undefined,
         });
       } else {
         await window.electron.updateGameCustomAssets({

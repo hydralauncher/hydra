@@ -84,6 +84,7 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               customIconUrl: game.customIconUrl,
               customLogoImageUrl: game.customLogoImageUrl,
               customHeroImageUrl: game.customHeroImageUrl,
+              customCoverImageUrl: game.customCoverImageUrl,
             };
           })
       );
