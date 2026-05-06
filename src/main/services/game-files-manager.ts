@@ -46,7 +46,7 @@ export class GameFilesManager {
       return;
     }
 
-    if (progress < this.lastProgressUpdateValue) {
+    if (!force && progress < this.lastProgressUpdateValue) {
       return;
     }
 
