@@ -595,8 +595,7 @@ export function FocusCarousel({
     };
 
     const currentFocusedIndex = getFocusedIndex(currentFocusId);
-    const targetFocusId =
-      currentFocusedIndex === -1 ? rememberedFocusId : null;
+    const targetFocusId = currentFocusedIndex === -1 ? rememberedFocusId : null;
     const focusedIndex = getFocusedIndex(targetFocusId);
 
     if (currentFocusedIndex !== -1) {

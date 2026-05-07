@@ -38,7 +38,9 @@ export function useFeature() {
         setFeatures(nextFeatures);
       })
       .catch(() => {
-        setFeatures((currentFeatures) => currentFeatures ?? getStoredFeatures());
+        setFeatures(
+          (currentFeatures) => currentFeatures ?? getStoredFeatures()
+        );
       });
   }, []);
 

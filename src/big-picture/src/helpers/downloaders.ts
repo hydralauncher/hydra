@@ -94,7 +94,11 @@ export function getDownloaderAvailabilityOptions(
   const unavailableUrisSet = new Set(repack.unavailableUris ?? []);
   const downloaderMap = new Map<
     Downloader,
-    { hasAvailable: boolean; hasUnavailable: boolean; availableUri: string | null }
+    {
+      hasAvailable: boolean;
+      hasUnavailable: boolean;
+      availableUri: string | null;
+    }
   >();
   const allDownloaders = Object.values(Downloader).filter(
     (value) => typeof value === "number"
@@ -152,5 +156,8 @@ export function getDownloaderAvailabilityOptions(
         availableUri: status?.availableUri ?? null,
       } satisfies DownloaderAvailabilityOption;
     })
-    .sort((left, right) => getDownloaderPriority(left) - getDownloaderPriority(right));
+    .sort(
+      (left, right) =>
+        getDownloaderPriority(left) - getDownloaderPriority(right)
+    );
 }

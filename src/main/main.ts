@@ -267,7 +267,10 @@ export const loadState = async () => {
     });
   } else {
     // Use Python RPC for everything (torrent or fallback)
-    await DownloadManager.startRPC(downloadToResume ?? undefined, downloadsToSeed);
+    await DownloadManager.startRPC(
+      downloadToResume ?? undefined,
+      downloadsToSeed
+    );
   }
 
   WindowManager.sendDownloadsUpdated();

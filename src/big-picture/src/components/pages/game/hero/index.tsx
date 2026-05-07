@@ -67,7 +67,10 @@ export function Hero({
     entryDirection: "down",
   };
   const hasPrimaryAction =
-    isGameRunning || Boolean(game?.executablePath) || Boolean(game) || canAddToLibrary;
+    isGameRunning ||
+    Boolean(game?.executablePath) ||
+    Boolean(game) ||
+    canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const favoriteLeftTargetId = shouldShowCatalogActions
     ? GAME_HERO_DOWNLOAD_OPTIONS_ID

@@ -358,12 +358,13 @@ function DownloadGameSourceList({
     const getFocusedIndex = (focusId: string | null) => {
       if (!focusId) return -1;
 
-      return sourceItems.findIndex((sourceItem) => sourceItem.focusId === focusId);
+      return sourceItems.findIndex(
+        (sourceItem) => sourceItem.focusId === focusId
+      );
     };
 
     const currentFocusedIndex = getFocusedIndex(currentFocusId);
-    const targetFocusId =
-      currentFocusedIndex === -1 ? rememberedFocusId : null;
+    const targetFocusId = currentFocusedIndex === -1 ? rememberedFocusId : null;
     const focusedIndex = getFocusedIndex(targetFocusId);
 
     if (!sourcesEmblaApi || focusedIndex === -1 || !targetFocusId) return;
@@ -531,9 +532,11 @@ function DownloadGameOptions({
   const { features } = useFeature();
 
   const availableDownloaderOptions = useMemo(() => {
-    return getDownloaderAvailabilityOptions(option, userPreferences, features).filter(
-      (downloaderOption) => downloaderOption.isAvailable
-    );
+    return getDownloaderAvailabilityOptions(
+      option,
+      userPreferences,
+      features
+    ).filter((downloaderOption) => downloaderOption.isAvailable);
   }, [features, option, userPreferences]);
 
   const downloaderItems = useMemo(() => {

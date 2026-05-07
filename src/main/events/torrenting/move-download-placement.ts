@@ -125,7 +125,10 @@ async function restoreHeroDownload(download: Download | null) {
       return;
     }
 
-    await downloadsSublevel.put(getGameKey(download), asPausedHeroDownload(download));
+    await downloadsSublevel.put(
+      getGameKey(download),
+      asPausedHeroDownload(download)
+    );
   } catch (error) {
     logger.error(
       "[Downloads] Failed to restore previous hero download after placement error",
@@ -279,11 +282,17 @@ async function moveDownloadPlacement(
 
       const nextQueue =
         currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
-          ? [asQueuedDownload(currentHeroDownload), ...queuedDownloadsWithoutSource]
+          ? [
+              asQueuedDownload(currentHeroDownload),
+              ...queuedDownloadsWithoutSource,
+            ]
           : queuedDownloadsWithoutSource;
       const nextPaused =
         currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
-          ? [asPausedDownload(currentHeroDownload), ...pausedDownloadsWithoutSource]
+          ? [
+              asPausedDownload(currentHeroDownload),
+              ...pausedDownloadsWithoutSource,
+            ]
           : pausedDownloadsWithoutSource;
 
       await rewriteQueuedDownloads(nextQueue);
@@ -334,11 +343,17 @@ async function moveDownloadPlacement(
 
       const nextQueue =
         currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
-          ? [asQueuedDownload(currentHeroDownload), ...queuedDownloadsWithoutSource]
+          ? [
+              asQueuedDownload(currentHeroDownload),
+              ...queuedDownloadsWithoutSource,
+            ]
           : queuedDownloadsWithoutSource;
       const nextPaused =
         currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
-          ? [asPausedDownload(currentHeroDownload), ...pausedDownloadsWithoutSource]
+          ? [
+              asPausedDownload(currentHeroDownload),
+              ...pausedDownloadsWithoutSource,
+            ]
           : pausedDownloadsWithoutSource;
 
       await rewriteQueuedDownloads(nextQueue);

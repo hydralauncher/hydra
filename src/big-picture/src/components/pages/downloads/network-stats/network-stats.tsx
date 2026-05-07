@@ -158,11 +158,7 @@ export function DownloadsNetworkStats({
 
         {downloaderLabel ? (
           <div className="downloads-network-stats__metric">
-            <DownloadSimpleIcon
-              size={18}
-              style={iconStyle}
-              weight="duotone"
-            />
+            <DownloadSimpleIcon size={18} style={iconStyle} weight="duotone" />
             <Typography className="downloads-network-stats__metric-text">
               <span className="downloads-network-stats__metric-label">
                 Downloader:

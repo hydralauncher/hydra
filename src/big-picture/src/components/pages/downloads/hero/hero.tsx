@@ -272,7 +272,9 @@ export function DownloadsHero({
               <HeroActionButton
                 focusId={DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID}
                 navigationOverrides={pauseResumeNavigationOverrides}
-                focusActions={actionsDisabled ? blockedHeroActions : pauseHeroActions}
+                focusActions={
+                  actionsDisabled ? blockedHeroActions : pauseHeroActions
+                }
                 variant="primary"
                 icon={pauseResumeIcon}
                 label={snapshot.pauseOrResumeLabel}

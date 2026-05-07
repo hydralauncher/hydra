@@ -52,6 +52,10 @@
   cursor: pointer;
 
   &:hover {
-    background-color: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
+    background-color: color-mix(
+      in srgb,
+      var(--surface) 90%,
+      var(--primary) 10%
+    );
   }
 }

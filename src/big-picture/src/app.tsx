@@ -39,7 +39,7 @@ export default function App() {
   const activeGameRoute = getBigPictureGameRouteMatch(pathname);
   const leftSidebarTargetId = activeGameRoute
     ? getBigPictureSidebarLibraryGameFocusId(activeGameRoute)
-    : activeSidebarItemId ?? BIG_PICTURE_SIDEBAR_ITEM_IDS.library;
+    : (activeSidebarItemId ?? BIG_PICTURE_SIDEBAR_ITEM_IDS.library);
   const contentNavigationOverrides: FocusOverrides = {
     left: getItemFocusTarget(leftSidebarTargetId),
   };
@@ -57,7 +57,8 @@ export default function App() {
   useEffect(() => {
     if (pendingRouteFocusPathname !== pathname) return;
 
-    const entryRegionId = getBigPictureContentEntryRegionIdFromPathname(pathname);
+    const entryRegionId =
+      getBigPictureContentEntryRegionIdFromPathname(pathname);
     if (!entryRegionId) return;
 
     const hasRegion = regions.some((region) => region.id === entryRegionId);

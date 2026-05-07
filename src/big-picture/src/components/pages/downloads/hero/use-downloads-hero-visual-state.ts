@@ -167,7 +167,8 @@ function createLayer(
     isVisible: role === "base" || !hasBackgroundImage,
     isImageReady: !hasBackgroundImage,
     isAccentReady:
-      !hasAccentImage || hasResolvedAccentColor(resolvedSnapshot.accentImageUrl),
+      !hasAccentImage ||
+      hasResolvedAccentColor(resolvedSnapshot.accentImageUrl),
     hasTransitionEnded: role === "base" || !hasBackgroundImage,
   };
 }
@@ -261,8 +262,7 @@ export function useDownloadsHeroDisplayState(
 
   useEffect(() => {
     const pendingAccentLayers = layers.filter(
-      (layer) =>
-        !layer.isAccentReady && Boolean(layer.snapshot.accentImageUrl)
+      (layer) => !layer.isAccentReady && Boolean(layer.snapshot.accentImageUrl)
     );
 
     if (!pendingAccentLayers.length) return;
@@ -270,29 +270,34 @@ export function useDownloadsHeroDisplayState(
     let isMounted = true;
 
     pendingAccentLayers.forEach((layer) => {
-      void preloadAccentColor(layer.snapshot.accentImageUrl).then((accentColor) => {
-        if (!isMounted) return;
+      void preloadAccentColor(layer.snapshot.accentImageUrl).then(
+        (accentColor) => {
+          if (!isMounted) return;
 
-        setLayers((currentLayers) => {
-          const nextLayers = currentLayers.map((candidate) => {
-            if (candidate.key !== layer.key) return candidate;
-            if (candidate.snapshot.accentImageUrl !== layer.snapshot.accentImageUrl) {
-              return candidate;
-            }
+          setLayers((currentLayers) => {
+            const nextLayers = currentLayers.map((candidate) => {
+              if (candidate.key !== layer.key) return candidate;
+              if (
+                candidate.snapshot.accentImageUrl !==
+                layer.snapshot.accentImageUrl
+              ) {
+                return candidate;
+              }
 
-            return {
-              ...candidate,
-              snapshot: {
-                ...candidate.snapshot,
-                accentColor,
-              },
-              isAccentReady: true,
-            };
+              return {
+                ...candidate,
+                snapshot: {
+                  ...candidate.snapshot,
+                  accentColor,
+                },
+                isAccentReady: true,
+              };
+            });
+
+            return promoteLayerIfReady(nextLayers, layer.key);
           });
-
-          return promoteLayerIfReady(nextLayers, layer.key);
-        });
-      });
+        }
+      );
     });
 
     return () => {

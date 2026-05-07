@@ -92,8 +92,10 @@ export default function Downloads() {
         extraction?.visibleId === next.id;
       const hasLiveActivePacket =
         lastPacket?.gameId === next.id && next.download.status === "active";
-      const isActiveHero = placement === "hero" && next.download.status !== "paused";
-      const isPausedHero = placement === "hero" && next.download.status === "paused";
+      const isActiveHero =
+        placement === "hero" && next.download.status !== "paused";
+      const isPausedHero =
+        placement === "hero" && next.download.status === "paused";
 
       if (isActiveHero || hasLiveActivePacket || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };

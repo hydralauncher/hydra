@@ -72,7 +72,7 @@
       rgba(255, 255, 255, 0.08) 0%,
       rgba(255, 255, 255, 0.02) 100%
     ),
-      var(--secondary);
+    var(--secondary);
 }
 
 .downloads-game-card__logo {
@@ -93,8 +93,7 @@
   max-height: 60%;
   object-fit: contain;
   object-position: center;
-  filter:
-    drop-shadow(0 6px 18px rgba(0, 0, 0, 0.52))
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.52))
     drop-shadow(0 2px 8px rgba(0, 0, 0, 0.38));
 }
 

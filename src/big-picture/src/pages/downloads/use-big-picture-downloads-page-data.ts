@@ -392,7 +392,7 @@ export function useBigPictureDownloadsPageData() {
         ? Math.max(packetBytesDownloaded, download.bytesDownloaded)
         : download.bytesDownloaded;
     const sizeInBytes = shouldUseLivePacket
-      ? lastPacket?.download.fileSize ?? download.fileSize
+      ? (lastPacket?.download.fileSize ?? download.fileSize)
       : download.fileSize;
     const eta =
       !isExtracting && shouldUseLivePacket

@@ -34,7 +34,8 @@ function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
   const { pathname } = useLocation();
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
-  const contentEntryTarget = getBigPictureContentEntryTargetFromPathname(pathname);
+  const contentEntryTarget =
+    getBigPictureContentEntryTargetFromPathname(pathname);
   const sidebarItemNavigationOverrides: FocusOverrides = {
     left: {
       type: "block",

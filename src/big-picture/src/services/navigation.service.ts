@@ -1861,9 +1861,13 @@ export class NavigationService {
       return `region target "${target.regionId}" is outside the active layer`;
     }
 
-    const resolvedNodeId = this.getEntryNodeForRegion(target.regionId, target.entryDirection ?? direction, {
-      preferRememberedFocus: target.preferRememberedFocus,
-    });
+    const resolvedNodeId = this.getEntryNodeForRegion(
+      target.regionId,
+      target.entryDirection ?? direction,
+      {
+        preferRememberedFocus: target.preferRememberedFocus,
+      }
+    );
 
     if (!resolvedNodeId) {
       return `region target "${target.regionId}" has no active entry node`;
