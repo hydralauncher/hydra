@@ -217,7 +217,7 @@
     "select_folder_hint": "لتغيير المجلد الافتراضي، انتقل إلى <0>الإعدادات</0>",
     "download_now": "تنزيل الآن",
     "no_shop_details": "تعذر الحصول على تفاصيل المتجر.",
-    "download_options": "خيارات التنزيل",
+    "download_options_title": "خيارات التنزيل",
     "download_path": "مسار التنزيل",
     "previous_screenshot": "لقطة الشاشة السابقة",
     "next_screenshot": "لقطة الشاشة التالية",
@@ -793,8 +793,6 @@
   },
   "game_card": {
     "no_downloads": "لا توجد تنزيلات متاحة",
-    "available_one": "Available",
-    "available_other": "Available",
     "calculating": "Calculating"
   },
   "binary_not_found_modal": {
@@ -864,7 +862,7 @@
     "displayname_min_length": "يجب أن يكون اسم العرض على الأقل 3 أحرف",
     "displayname_max_length": "يجب أن لا يتجاوز اسم العرض 50 حرفًا",
     "report_profile": "الإبلاغ عن هذا الملف",
-    "report_reason": "لماذا تقوم بالإبلاغ عن هذا الملف؟",
+    "report_reason_label": "لماذا تقوم بالإبلاغ عن هذا الملف؟",
     "report_description": "معلومات إضافية",
     "report_description_placeholder": "معلومات إضافية",
     "report": "الإبلاغ",
@@ -872,7 +870,7 @@
     "report_reason_sexual_content": "محتوى جنسي",
     "report_reason_violence": "عنف",
     "report_reason_spam": "بريد عشوائي",
-    "report_reason_other": "أخرى",
+    "report_reason_other_option": "أخرى",
     "profile_reported": "تم الإبلاغ عن الملف الشخصي",
     "your_friend_code": "رمز الصديق الخاص بك:",
     "upload_banner": "رفع بانر",

@@ -217,7 +217,7 @@
     "select_folder_hint": "Vaikimisi kausta muutmiseks mine <0>Seadetesse</0>",
     "download_now": "Laadi alla kohe",
     "no_shop_details": "Poe andmeid ei õnnestunud laadida.",
-    "download_options": "Allalaadimise valikud",
+    "download_options_title": "Allalaadimise valikud",
     "download_path": "Allalaadimise tee",
     "previous_screenshot": "Eelmine kuvatõmmis",
     "next_screenshot": "Järgmine kuvatõmmis",
@@ -793,8 +793,6 @@
   },
   "game_card": {
     "no_downloads": "Allalaadimisi pole saadaval",
-    "available_one": "Available",
-    "available_other": "Available",
     "calculating": "Calculating"
   },
   "binary_not_found_modal": {
@@ -864,7 +862,7 @@
     "displayname_min_length": "Kuvatav nimi peab olema vähemalt 3 tähemärki pikk",
     "displayname_max_length": "Kuvatav nimi võib olla maksimaalselt 50 tähemärki pikk",
     "report_profile": "Teata sellest profiilist",
-    "report_reason": "Miks sa sellest profiilist teatad?",
+    "report_reason_label": "Miks sa sellest profiilist teatad?",
     "report_description": "Lisainfo",
     "report_description_placeholder": "Lisainfo",
     "report": "Teata",
@@ -872,7 +870,7 @@
     "report_reason_sexual_content": "Seksuaalne sisu",
     "report_reason_violence": "Vägivald",
     "report_reason_spam": "Rämpspost",
-    "report_reason_other": "Muu",
+    "report_reason_other_option": "Muu",
     "profile_reported": "Profiilist teatatud",
     "your_friend_code": "Sinu sõbrakood:",
     "upload_banner": "Lae üles bänner",

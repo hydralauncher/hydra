@@ -232,7 +232,7 @@
     "download": "Завантажити",
     "download_count": "Завантажень",
     "download_in_progress": "Триває завантаження.",
-    "download_options": "Варіантів завантаження",
+    "download_options_title": "Варіантів завантаження",
     "download_path": "Тека для завантажень",
     "download_paused": "Завантаження призупинено",
     "download_settings": "Налаштування завантаження",
@@ -793,8 +793,6 @@
   },
   "game_card": {
     "no_downloads": "Немає доступних завантажень",
-    "available_one": "Доступний",
-    "available_other": "Доступні",
     "calculating": "Обчислення"
   },
   "binary_not_found_modal": {
@@ -871,7 +869,7 @@
     "displayname_min_length": "Ім'я користувача повинно містити не менше 3 символів",
     "displayname_max_length": "Ім'я користувача повинно містити не більше 50 символів",
     "report_profile": "Повідомити про цей профіль",
-    "report_reason": "Чому ви повідомляєте про цей профіль?",
+    "report_reason_label": "Чому ви повідомляєте про цей профіль?",
     "report_description": "Додаткова інформація",
     "report_description_placeholder": "Додаткова інформація",
     "report": "Повідомити",
@@ -879,7 +877,7 @@
     "report_reason_sexual_content": "Сексуальний контент",
     "report_reason_violence": "Насильство",
     "report_reason_spam": "Спам",
-    "report_reason_other": "Інше",
+    "report_reason_other_option": "Інше",
     "profile_reported": "Профіль повідомлено",
     "your_friend_code": "Ваш код друга:",
     "upload_banner": "Завантажити банер",

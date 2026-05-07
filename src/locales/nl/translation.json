@@ -233,7 +233,7 @@
     "add_to_queue": "Add to queue",
     "loading": "Loading...",
     "no_shop_details": "Could not retrieve shop details.",
-    "download_options": "Download options",
+    "download_options_title": "Download options",
     "download_path": "Download path",
     "previous_screenshot": "Previous screenshot",
     "next_screenshot": "Next screenshot",
@@ -790,8 +790,6 @@
   },
   "game_card": {
     "no_downloads": "Geen downloads beschikbaar",
-    "available_one": "Available",
-    "available_other": "Available",
     "calculating": "Calculating"
   },
   "binary_not_found_modal": {
@@ -878,7 +876,7 @@
     "displayname_min_length": "Display name must be at least 3 characters long",
     "displayname_max_length": "Display name must be at most 50 characters long",
     "report_profile": "Report this profile",
-    "report_reason": "Why are you reporting this profile?",
+    "report_reason_label": "Why are you reporting this profile?",
     "report_description": "Additional information",
     "report_description_placeholder": "Additional information",
     "report": "Report",
@@ -886,7 +884,7 @@
     "report_reason_sexual_content": "Sexual content",
     "report_reason_violence": "Violence",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Other",
+    "report_reason_other_option": "Other",
     "profile_reported": "Profile reported",
     "your_friend_code": "Your friend code:",
     "copy_friend_code": "Copy friend code",

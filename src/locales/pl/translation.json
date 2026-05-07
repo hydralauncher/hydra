@@ -521,7 +521,7 @@
     "select_folder_hint": "Aby zmienić domyślny folder, przejdź do <0>Ustawień</0>",
     "download_now": "Pobierz teraz",
     "no_shop_details": "Nie udało się pobrać szczegółów sklepu.",
-    "download_options": "Opcje pobierania",
+    "download_options_title": "Opcje pobierania",
     "previous_screenshot": "Poprzedni zrzut ekranu",
     "next_screenshot": "Następny zrzut ekranu",
     "screenshot": "Zrzut ekranu {{number}}",
@@ -864,8 +864,6 @@
     "repack_count_other": "Dodano {{count}} repacków"
   },
   "game_card": {
-    "available_one": "Dostępna",
-    "available_other": "Dostępnych",
     "calculating": "Obliczanie",
     "no_downloads": "Brak dostępnych pobrań"
   },
@@ -942,7 +940,7 @@
     "displayname_min_length": "Nazwa wyświetlana musi mieć co najmniej 3 znaki",
     "displayname_max_length": "Nazwa wyświetlana może mieć maksymalnie 50 znaków",
     "report_profile": "Zgłoś ten profil",
-    "report_reason": "Dlaczego zgłaszasz ten profil?",
+    "report_reason_label": "Dlaczego zgłaszasz ten profil?",
     "report_description": "Dodatkowe informacje",
     "report_description_placeholder": "Dodatkowe informacje",
     "report": "Zgłoś",
@@ -950,7 +948,7 @@
     "report_reason_sexual_content": "Treści seksualne",
     "report_reason_violence": "Przemoc",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Inne",
+    "report_reason_other_option": "Inne",
     "profile_reported": "Profil zgłoszony",
     "your_friend_code": "Twój kod znajomego:",
     "copy_friend_code": "Kopiuj kod znajomego",

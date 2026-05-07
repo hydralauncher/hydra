@@ -176,7 +176,7 @@
     "select_folder_hint": "Para alterar o local predefinido, acede às <0>Definições</0>",
     "download_now": "Iniciar transferência",
     "no_shop_details": "Não foi possível obter os detalhes da loja.",
-    "download_options": "Opções de transferência",
+    "download_options_title": "Opções de transferência",
     "download_path": "Local de transferência",
     "previous_screenshot": "Captura de ecrã anterior",
     "next_screenshot": "Captura de ecrã seguinte",
@@ -744,8 +744,6 @@
     "quit": "Sair"
   },
   "game_card": {
-    "available_one": "Disponível",
-    "available_other": "Disponíveis",
     "no_downloads": "Sem downloads disponíveis",
     "calculating": "A calcular"
   },
@@ -843,7 +841,7 @@
     "locked_profile": "Este perfil é privado",
     "no_friends_yet": "Ainda não adicionaste nenhum amigo",
     "report_profile": "Denunciar este perfil",
-    "report_reason": "Por que é que desejas denunciar este perfil?",
+    "report_reason_label": "Por que é que desejas denunciar este perfil?",
     "report_description": "Informações adicionais",
     "report_description_placeholder": "Insere aqui",
     "report": "Denunciar",
@@ -851,7 +849,7 @@
     "report_reason_sexual_content": "Conteúdo sexual",
     "report_reason_violence": "Violência",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Outro",
+    "report_reason_other_option": "Outro",
     "profile_reported": "Perfil denunciado",
     "your_friend_code": "O teu código de amigo:",
     "copy_friend_code": "Copiar código de amigo",

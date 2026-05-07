@@ -188,7 +188,7 @@
     "select_folder_hint": "Standart yuklab olish jildini o'zgartirish uchun <0>Sozlamalar</0>ni oching",
     "download_now": "Hozir yuklab olish",
     "no_shop_details": "Tavsif olib bo'lmadi",
-    "download_options": "Manbalar",
+    "download_options_title": "Manbalar",
     "download_path": "Yuklab olish yo'li",
     "previous_screenshot": "Oldingi skrinshot",
     "next_screenshot": "Keyingi skrinshot",
@@ -792,8 +792,6 @@
     "quit": "Chiqish"
   },
   "game_card": {
-    "available_one": "Mavjud",
-    "available_other": "Mavjud",
     "no_downloads": "Mavjud manbalar yo'q",
     "calculating": "Calculating"
   },
@@ -866,9 +864,9 @@
     "report_description": "Qo'shimcha ma'lumot",
     "report_description_placeholder": "Qo'shimcha ma'lumot",
     "report_profile": "Bu profil haqida shikoyat qilish",
-    "report_reason": "Nega bu profil haqida shikoyat qilyapsiz?",
+    "report_reason_label": "Nega bu profil haqida shikoyat qilyapsiz?",
     "report_reason_hate": "Nafrat qo'zg'atish",
-    "report_reason_other": "Boshqa",
+    "report_reason_other_option": "Boshqa",
     "report_reason_sexual_content": "Jinsiy tarkib",
     "report_reason_spam": "Spam",
     "report_reason_violence": "Zo'ravonlik",

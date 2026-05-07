@@ -237,7 +237,7 @@
     "add_to_queue": "Sorba állítás",
     "loading": "Töltés...",
     "no_shop_details": "A bolt adatai nem érhetőek el.",
-    "download_options": "Letöltési opciók",
+    "download_options_title": "Letöltési opciók",
     "download_path": "Letöltési hely",
     "previous_screenshot": "Előző screenshot",
     "next_screenshot": "Következő screenshot",
@@ -815,8 +815,6 @@
     "quit": "Kilépés"
   },
   "game_card": {
-    "available_one": "Elérhető",
-    "available_other": "Elérhető",
     "no_downloads": "Nincs elérhető letöltés",
     "calculating": "Számítás alatt.."
   },
@@ -901,7 +899,7 @@
     "displayname_min_length": "A megjelenített névnek legalább 3 karakter hosszúnak kell lennie",
     "displayname_max_length": "A megjelenített név hossza legfeljebb 50 karakter lehet",
     "report_profile": "Profil bejelentése",
-    "report_reason": "Miért jelented ezt a profilt?",
+    "report_reason_label": "Miért jelented ezt a profilt?",
     "report_description": "További információ",
     "report_description_placeholder": "További információ",
     "report": "Bejelentés",
@@ -909,7 +907,7 @@
     "report_reason_sexual_content": "Szexuális tartalom",
     "report_reason_violence": "Fenyegető",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Egyéb",
+    "report_reason_other_option": "Egyéb",
     "profile_reported": "Profil bejelentve",
     "your_friend_code": "A barát kódod:",
     "copy_friend_code": "Barátkód kimásolása",

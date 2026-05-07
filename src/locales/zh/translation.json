@@ -217,7 +217,7 @@
     "select_folder_hint": "要更改默认文件夹,请访问<0>设置</0>",
     "download_now": "立即下载",
     "no_shop_details": "无法检索商店详细信息.",
-    "download_options": "下载选项",
+    "download_options_title": "下载选项",
     "download_path": "下载路径",
     "previous_screenshot": "上一张截图",
     "next_screenshot": "下一张截图",
@@ -793,8 +793,6 @@
   },
   "game_card": {
     "no_downloads": "无可用下载选项",
-    "available_one": "可用",
-    "available_other": "可用",
     "calculating": "正在计算"
   },
   "binary_not_found_modal": {
@@ -864,7 +862,7 @@
     "displayname_min_length": "显示名称最少必须为3个字符。",
     "displayname_max_length": "显示名称最多必须为50个字符",
     "report_profile": "举报此资料",
-    "report_reason": "为什么你要举报此资料?",
+    "report_reason_label": "为什么你要举报此资料?",
     "report_description": "额外信息",
     "report_description_placeholder": "额外信息",
     "report": "举报",
@@ -872,7 +870,7 @@
     "report_reason_sexual_content": "色情内容",
     "report_reason_violence": "暴力",
     "report_reason_spam": "骚扰",
-    "report_reason_other": "其他",
+    "report_reason_other_option": "其他",
     "profile_reported": "个人资料已举报",
     "your_friend_code": "你的好友代码:",
     "upload_banner": "上传横幅",

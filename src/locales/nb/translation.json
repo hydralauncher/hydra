@@ -217,7 +217,7 @@
     "select_folder_hint": "For å endre standard mappen, gå til <0>Innstillingene</0>",
     "download_now": "Last ned nå",
     "no_shop_details": "Kunne ikke modta butikksdetaljene.",
-    "download_options": "Nedlastingsmuligheter",
+    "download_options_title": "Nedlastingsmuligheter",
     "download_path": "Nedlastingssti",
     "previous_screenshot": "Forrige skjermbilde",
     "next_screenshot": "Neste skjermbilde",
@@ -793,8 +793,6 @@
   },
   "game_card": {
     "no_downloads": "Ingen nedlastinger tilgjengelig",
-    "available_one": "Available",
-    "available_other": "Available",
     "calculating": "Calculating"
   },
   "binary_not_found_modal": {
@@ -864,7 +862,7 @@
     "displayname_min_length": "Brukernavnet skal være minst 3 karakterer langt",
     "displayname_max_length": "Brukernavnet skal være maksimalt 50 karakterer langt",
     "report_profile": "Rapportér denne profilen",
-    "report_reason": "Hvorfor rapportérer du denne profilen?",
+    "report_reason_label": "Hvorfor rapportérer du denne profilen?",
     "report_description": "Mer informasjon",
     "report_description_placeholder": "Mer informasjon",
     "report": "Rapportér",
@@ -872,7 +870,7 @@
     "report_reason_sexual_content": "Seksuelt innhold",
     "report_reason_violence": "Vold",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Annet",
+    "report_reason_other_option": "Annet",
     "profile_reported": "Profil rapportert",
     "amount_hours_short": "{{amount}}h",
     "amount_minutes_short": "{{amount}}m",

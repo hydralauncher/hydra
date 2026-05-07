@@ -237,7 +237,7 @@
     "add_to_queue": "Tambah ke antrean",
     "loading": "Memuat...",
     "no_shop_details": "Tidak dapat mengambil detail toko.",
-    "download_options": "Opsi unduhan",
+    "download_options_title": "Opsi unduhan",
     "download_path": "Jalur unduhan",
     "previous_screenshot": "Screenshot sebelumnya",
     "next_screenshot": "Screenshot berikutnya",
@@ -815,8 +815,6 @@
     "quit": "Keluar"
   },
   "game_card": {
-    "available_one": "Tersedia",
-    "available_other": "Tersedia",
     "no_downloads": "Tidak ada unduhan yang tersedia",
     "calculating": "Menghitung"
   },
@@ -901,7 +899,7 @@
     "displayname_min_length": "Nama tampilan harus minimal 3 karakter",
     "displayname_max_length": "Nama tampilan maksimal 50 karakter",
     "report_profile": "Laporkan profil ini",
-    "report_reason": "Mengapa Anda melaporkan profil ini?",
+    "report_reason_label": "Mengapa Anda melaporkan profil ini?",
     "report_description": "Informasi tambahan",
     "report_description_placeholder": "Informasi tambahan",
     "report": "Laporkan",
@@ -909,7 +907,7 @@
     "report_reason_sexual_content": "Konten seksual",
     "report_reason_violence": "Kekerasan",
     "report_reason_spam": "Spam",
-    "report_reason_other": "Lainnya",
+    "report_reason_other_option": "Lainnya",
     "profile_reported": "Profil dilaporkan",
     "your_friend_code": "Kode teman Anda:",
     "copy_friend_code": "Salin kode teman",

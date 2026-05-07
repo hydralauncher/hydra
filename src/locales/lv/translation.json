@@ -218,7 +218,7 @@
     "select_folder_hint": "Lai mainītu noklusējuma lejupielāžu mapi, atveriet <0>Iestatījumus</0>",
     "download_now": "Lejupielādēt tagad",
     "no_shop_details": "Neizdevās iegūt aprakstu",
-    "download_options": "Avoti",
+    "download_options_title": "Avoti",
     "download_path": "Ceļš lejupielādēm",
     "previous_screenshot": "Iepriekšējais ekrānuzņēmums",
     "next_screenshot": "Nākamais ekrānuzņēmums",
@@ -792,8 +792,6 @@
     "quit": "Iziet"
   },
   "game_card": {
-    "available_one": "Pieejams",
-    "available_other": "Pieejams",
     "no_downloads": "Nav pieejamu avotu",
     "calculating": "Aprēķina"
   },
@@ -871,7 +869,7 @@
     "displayname_min_length": "Parādāmam vārdam jābūt vismaz 3 simbolus garam.",
     "displayname_max_length": "Parādāmam vārdam jābūt ne vairāk kā 50 simboliem.",
     "report_profile": "Ziņot par šo profilu",
-    "report_reason": "Kāpēc jūs ziņojat par šo profilu?",
+    "report_reason_label": "Kāpēc jūs ziņojat par šo profilu?",
     "report_description": "Papildu informācija",
     "report_description_placeholder": "Papildu informācija",
     "report": "Ziņot",
@@ -879,7 +877,7 @@
     "report_reason_sexual_content": "Seksuāls saturs",
     "report_reason_violence": "Vardarbība",
     "report_reason_spam": "Surogātpasts",
-    "report_reason_other": "Cits",
+    "report_reason_other_option": "Cits",
     "profile_reported": "Ziņojums par profilu nosūtīts",
     "your_friend_code": "Jūsu drauga kods:",
     "upload_banner": "Augšupielādēt reklāmkarogu",
