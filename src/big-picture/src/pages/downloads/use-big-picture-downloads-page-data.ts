@@ -7,7 +7,6 @@ import type {
 } from "../../../../types";
 import {
   getDownloadPlacement,
-  isActiveLikeDownload,
   isCompletedLikeDownload,
 } from "../../../../types";
 import { addMilliseconds, format } from "date-fns";
@@ -16,7 +15,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../constants";
 import {
   getBigPictureGameDetailsPath,
-  getGameLandscapeImageSource,
   resolveImageSource,
 } from "../../helpers";
 import { useDate, useLibrary } from "../../hooks";
@@ -52,6 +50,7 @@ export interface BigPictureActiveDownloadItem {
   id: string;
   title: string;
   href: string;
+  coverImageUrl: string | null;
   metaLabel: string;
   statusLabel: string;
   statusTone: DownloadTone;
@@ -61,7 +60,10 @@ export interface BigPictureActiveDownloadItem {
   speedLabel: string;
   etaLabel: string | null;
   sizeLabel: string;
-  canPause: boolean;
+  pauseOrResumeAction: "pause" | "resume";
+  canPauseOrResume: boolean;
+  canMoveFromHero: boolean;
+  canPromoteToHero: boolean;
   game: LibraryGame;
 }
 
@@ -76,6 +78,41 @@ export interface BigPictureDownloadsNetworkStats {
 }
 
 const SPEED_HISTORY_SAMPLE_SIZE = 120;
+
+export function getDownloadCoverImageUrl(
+  game: Pick<
+    LibraryGame,
+    | "customHeroImageUrl"
+    | "libraryHeroImageUrl"
+    | "coverImageUrl"
+    | "libraryImageUrl"
+    | "customIconUrl"
+    | "iconUrl"
+  >
+): string | null {
+  return (
+    [
+      game.libraryHeroImageUrl,
+      game.customHeroImageUrl,
+      game.coverImageUrl,
+      game.libraryImageUrl,
+      game.customIconUrl,
+      game.iconUrl,
+    ]
+      .map((source) => resolveImageSource(source))
+      .find(Boolean) ?? null
+  );
+}
+
+export function getDownloadLogoImageUrl(
+  game: Pick<LibraryGame, "customLogoImageUrl" | "logoImageUrl">
+): string | null {
+  return (
+    [game.customLogoImageUrl, game.logoImageUrl]
+      .map((source) => resolveImageSource(source))
+      .find(Boolean) ?? null
+  );
+}
 
 function formatProgress(progress?: number) {
   if (!progress) return "0%";
@@ -281,15 +318,15 @@ export function useBigPictureDownloadsPageData() {
   }, [library]);
 
   const activeGame = useMemo(() => {
-    const extractedOrActive = sortedDownloads.find((game) => {
+    const heroGame = sortedDownloads.find((game) => {
       const download = game.download;
       if (!download) return false;
 
-      return lastPacket?.gameId === game.id || isActiveLikeDownload(download);
+      return getDownloadPlacement(download) === "hero";
     });
 
-    return extractedOrActive ?? null;
-  }, [lastPacket?.gameId, sortedDownloads]);
+    return heroGame ?? null;
+  }, [sortedDownloads]);
 
   const queuedGames = useMemo(() => {
     return orderBy(
@@ -334,25 +371,46 @@ export function useBigPictureDownloadsPageData() {
 
     const download = activeGame.download;
     const isExtracting = download.extracting;
+    const isPausedHero = download.status === "paused";
     const extractionProgress =
       extractionProgressByGameId[activeGame.id] ?? download.extractionProgress;
+    const shouldUseLivePacket =
+      !isPausedHero && lastPacket?.gameId === activeGame.id;
+    const packetProgress = lastPacket?.progress ?? download.progress;
     const progress = isExtracting
       ? extractionProgress
-      : (lastPacket?.progress ?? download.progress);
+      : shouldUseLivePacket
+        ? Math.max(packetProgress, download.progress)
+        : download.progress;
+    const packetBytesDownloaded =
+      lastPacket?.download.bytesDownloaded ?? download.bytesDownloaded;
     const bytesDownloaded = isExtracting
       ? download.fileSize != null
         ? Math.round(download.fileSize * progress)
         : download.bytesDownloaded
-      : (lastPacket?.download.bytesDownloaded ?? download.bytesDownloaded);
-    const sizeInBytes = lastPacket?.download.fileSize ?? download.fileSize;
-    const eta = !isExtracting
-      ? getEtaLabel(lastPacket?.timeRemaining, formatDistance)
-      : null;
+      : shouldUseLivePacket
+        ? Math.max(packetBytesDownloaded, download.bytesDownloaded)
+        : download.bytesDownloaded;
+    const sizeInBytes = shouldUseLivePacket
+      ? lastPacket?.download.fileSize ?? download.fileSize
+      : download.fileSize;
+    const eta =
+      !isExtracting && shouldUseLivePacket
+        ? getEtaLabel(lastPacket?.timeRemaining, formatDistance)
+        : null;
 
     let statusLabel = "Active";
-    const statusTone: DownloadTone = "active";
+    let statusTone: DownloadTone = "active";
+    let speedLabel = "0 B/s";
+    let pauseOrResumeAction: "pause" | "resume" = "pause";
+    let canPauseOrResume = !isExtracting;
 
-    if (isExtracting) {
+    if (isPausedHero) {
+      statusLabel = "Paused";
+      statusTone = "paused";
+      speedLabel = "Paused";
+      pauseOrResumeAction = "resume";
+    } else if (isExtracting) {
       statusLabel = "Extracting";
     } else if (lastPacket?.isCheckingFiles) {
       statusLabel = "Checking files";
@@ -362,10 +420,17 @@ export function useBigPictureDownloadsPageData() {
       statusLabel = "In progress";
     }
 
+    if (!isPausedHero) {
+      speedLabel = isExtracting
+        ? "Preparing files"
+        : formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences);
+    }
+
     return {
       id: activeGame.id,
       title: activeGame.title,
       href: getBigPictureGameDetailsPath(activeGame),
+      coverImageUrl: getDownloadCoverImageUrl(activeGame),
       metaLabel: getDownloadMetaLabel(activeGame),
       statusLabel,
       statusTone,
@@ -374,12 +439,13 @@ export function useBigPictureDownloadsPageData() {
       transferLabel:
         formatTransfer(bytesDownloaded, sizeInBytes) ??
         formatBytes(bytesDownloaded),
-      speedLabel: isExtracting
-        ? "Preparing files"
-        : formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences),
+      speedLabel,
       etaLabel: eta,
       sizeLabel: sizeInBytes != null ? formatBytes(sizeInBytes) : "Unknown",
-      canPause: !isExtracting,
+      pauseOrResumeAction,
+      canPauseOrResume,
+      canMoveFromHero: !isExtracting,
+      canPromoteToHero: !isExtracting,
       game: activeGame,
     };
   }, [
@@ -426,7 +492,7 @@ export function useBigPictureDownloadsPageData() {
         id: game.id,
         title: game.title,
         href: getBigPictureGameDetailsPath(game),
-        coverImageUrl: resolveImageSource(getGameLandscapeImageSource(game)),
+        coverImageUrl: getDownloadCoverImageUrl(game),
         metaLabel: getDownloadMetaLabel(game),
         statusLabel: "Queued",
         statusTone: "default",
@@ -460,7 +526,7 @@ export function useBigPictureDownloadsPageData() {
         id: game.id,
         title: game.title,
         href: getBigPictureGameDetailsPath(game),
-        coverImageUrl: resolveImageSource(getGameLandscapeImageSource(game)),
+        coverImageUrl: getDownloadCoverImageUrl(game),
         metaLabel: getDownloadMetaLabel(game),
         statusLabel: "Paused",
         statusTone: "paused",
@@ -525,7 +591,7 @@ export function useBigPictureDownloadsPageData() {
         id: game.id,
         title: game.title,
         href: getBigPictureGameDetailsPath(game),
-        coverImageUrl: resolveImageSource(getGameLandscapeImageSource(game)),
+        coverImageUrl: getDownloadCoverImageUrl(game),
         metaLabel: getDownloadMetaLabel(game),
         statusLabel,
         statusTone,
@@ -583,6 +649,18 @@ export function useBigPictureDownloadsPageData() {
       return {
         speedLabel: "0 B/s",
         peakSpeedLabel: "0 B/s",
+        speedHistory: speedHistorySamples,
+        speedHistoryLabels,
+        seeds: null,
+        peers: null,
+        showSeedsAndPeers: false,
+      };
+    }
+
+    if (activeDownload.pauseOrResumeAction === "resume") {
+      return {
+        speedLabel: "0 B/s",
+        peakSpeedLabel: formatSpeed(peakSpeed, userPreferences),
         speedHistory: speedHistorySamples,
         speedHistoryLabels,
         seeds: null,
@@ -649,6 +727,15 @@ export function useBigPictureDownloadsPageData() {
       game.shop,
       game.objectId,
       "hero"
+    );
+  }, []);
+
+  const resumeDownload = useCallback(async (game: LibraryGame) => {
+    if (!IS_DESKTOP) return;
+
+    await globalThis.window.electron.resumeGameDownload(
+      game.shop,
+      game.objectId
     );
   }, []);
 
@@ -774,6 +861,7 @@ export function useBigPictureDownloadsPageData() {
     completedDownloads,
     hasDownloads,
     pauseDownload,
+    resumeDownload,
     startNow,
     sendToQueue,
     moveToPaused,

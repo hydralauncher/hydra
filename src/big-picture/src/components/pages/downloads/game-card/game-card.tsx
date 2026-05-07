@@ -6,6 +6,7 @@ import {
 import cn from "classnames";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { FocusItemActions } from "../../../../types";
+import type { FocusOverrides } from "../../../../services";
 import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
 
 import "./game-card.scss";
@@ -16,6 +17,8 @@ interface DownloadsGameCardProps {
   gameId: string;
   title: string;
   coverImageUrl: string | null;
+  logoImageUrl?: string | null;
+  metaLabel?: string | null;
   secondaryLabel: string;
   progress?: number | null;
   progressLabel?: string | null;
@@ -33,10 +36,12 @@ interface DownloadsGameCardProps {
   dragPlacement?: "queue" | "paused";
   dropPlacement?: "queue" | "paused";
   dropIndex?: number;
+  navigationOrder?: number;
   isDragging?: boolean;
   isMoveGrabbed?: boolean;
   focusId?: string;
   focusActions?: FocusItemActions;
+  navigationOverrides?: FocusOverrides;
 }
 
 function clampProgress(value: number | null | undefined) {
@@ -48,6 +53,8 @@ export function DownloadsGameCard({
   gameId,
   title,
   coverImageUrl,
+  logoImageUrl,
+  metaLabel,
   secondaryLabel,
   progress,
   progressLabel,
@@ -65,14 +72,18 @@ export function DownloadsGameCard({
   dragPlacement,
   dropPlacement,
   dropIndex,
+  navigationOrder,
   isDragging = false,
   isMoveGrabbed = false,
   focusId,
   focusActions,
+  navigationOverrides,
 }: Readonly<DownloadsGameCardProps>) {
   const normalizedProgress = clampProgress(progress);
   const showsProgress =
     (variant === "queue" || variant === "paused") && progressLabel != null;
+  const showsProgressMeta = showsProgress && metaLabel != null;
+  const showsRightMeta = variant === "completed" && metaLabel != null;
   const primaryActionIcon =
     variant === "paused" ? (
       <PlayIcon size={22} weight="fill" />
@@ -84,8 +95,16 @@ export function DownloadsGameCard({
   };
 
   return (
-    <HorizontalFocusGroup className="downloads-game-card">
-      <FocusItem id={focusId} actions={focusActions} asChild>
+    <HorizontalFocusGroup
+      className="downloads-game-card"
+      navigationOrder={navigationOrder}
+    >
+      <FocusItem
+        id={focusId}
+        actions={focusActions}
+        navigationOverrides={navigationOverrides}
+        asChild
+      >
         <button
           type="button"
           className={cn(
@@ -105,13 +124,29 @@ export function DownloadsGameCard({
         >
           <div className="downloads-game-card__cover">
             {coverImageUrl ? (
-              <img src={coverImageUrl} alt={title} draggable={false} />
+              <img
+                className="downloads-game-card__cover-image"
+                src={coverImageUrl}
+                alt={title}
+                draggable={false}
+              />
             ) : (
               <div
                 className="downloads-game-card__cover-placeholder"
                 aria-hidden="true"
               />
             )}
+
+            {logoImageUrl ? (
+              <div className="downloads-game-card__logo" aria-hidden="true">
+                <img
+                  className="downloads-game-card__logo-image"
+                  src={logoImageUrl}
+                  alt=""
+                  draggable={false}
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="downloads-game-card__body">
@@ -123,9 +158,16 @@ export function DownloadsGameCard({
             <div className="downloads-game-card__side">
               {showsProgress ? (
                 <div className="downloads-game-card__progress">
-                  <span className="downloads-game-card__progress-label">
-                    {progressLabel}
-                  </span>
+                  <div className="downloads-game-card__progress-header">
+                    {showsProgressMeta ? (
+                      <span className="downloads-game-card__progress-meta">
+                        {metaLabel}
+                      </span>
+                    ) : null}
+                    <span className="downloads-game-card__progress-label">
+                      {progressLabel}
+                    </span>
+                  </div>
                   <div className="downloads-game-card__progress-track">
                     <div
                       className="downloads-game-card__progress-fill"
@@ -135,9 +177,18 @@ export function DownloadsGameCard({
                 </div>
               ) : null}
 
-              {rightStatusLabel ? (
-                <div className="downloads-game-card__status">
-                  {rightStatusLabel}
+              {rightStatusLabel || showsRightMeta ? (
+                <div className="downloads-game-card__status-stack">
+                  {rightStatusLabel ? (
+                    <div className="downloads-game-card__status">
+                      {rightStatusLabel}
+                    </div>
+                  ) : null}
+                  {showsRightMeta ? (
+                    <div className="downloads-game-card__status-meta">
+                      {metaLabel}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

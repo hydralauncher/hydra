@@ -7,6 +7,10 @@ export type DownloadPlacement =
   | "completed"
   | "hidden";
 
+export const isPausedHeroDownload = (download: Download) => {
+  return download.status === "paused" && download.pinnedToHero === true;
+};
+
 export const isActiveLikeDownload = (download: Download) => {
   return (
     download.status === "active" ||
@@ -16,11 +20,19 @@ export const isActiveLikeDownload = (download: Download) => {
 };
 
 export const isQueuedDownload = (download: Download) => {
-  return download.status === "paused" && download.queued;
+  return (
+    download.status === "paused" &&
+    download.queued &&
+    !isPausedHeroDownload(download)
+  );
 };
 
 export const isPausedDownload = (download: Download) => {
-  return download.status === "paused" && !download.queued;
+  return (
+    download.status === "paused" &&
+    !download.queued &&
+    !isPausedHeroDownload(download)
+  );
 };
 
 export const isCompletedLikeDownload = (download: Download) => {
@@ -37,6 +49,10 @@ export const getDownloadPlacement = (download: Download): DownloadPlacement => {
   }
 
   if (isActiveLikeDownload(download)) {
+    return "hero";
+  }
+
+  if (isPausedHeroDownload(download)) {
     return "hero";
   }
 

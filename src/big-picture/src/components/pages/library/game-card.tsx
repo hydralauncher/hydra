@@ -11,7 +11,7 @@ import {
   getBigPictureGameDetailsPath,
   getGameAchievementProgress,
   getGameImageSources,
-  getGameLandscapeImageSources,
+  resolveImageSource,
 } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
 import { useDominantColor } from "../../../hooks";
@@ -49,17 +49,39 @@ function useLibraryGameCardPresentation(
   variant: "vertical" | "horizontal"
 ) {
   const imageSources = useMemo(() => {
-    return variant === "horizontal"
-      ? getGameLandscapeImageSources(game)
-      : getGameImageSources(game);
-  }, [game, variant]);
+    if (variant === "horizontal") {
+      return [
+        game.customHeroImageUrl,
+        game.libraryHeroImageUrl,
+        game.coverImageUrl,
+        game.libraryImageUrl,
+        game.customIconUrl,
+        game.iconUrl,
+      ]
+        .map((source) => resolveImageSource(source))
+        .filter((source, index, array) => {
+          return source !== "" && array.indexOf(source) === index;
+        });
+    }
+
+    return getGameImageSources(game);
+  }, [
+    game.coverImageUrl,
+    game.customHeroImageUrl,
+    game.customIconUrl,
+    game.iconUrl,
+    game.libraryHeroImageUrl,
+    game.libraryImageUrl,
+    variant,
+  ]);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
   const [imageExhausted, setImageExhausted] = useState(false);
+  const imageSourcesSignature = imageSources.join("|");
 
   useEffect(() => {
     setImageSourceIndex(0);
     setImageExhausted(false);
-  }, [game.id, imageSources]);
+  }, [game.id, imageSourcesSignature]);
 
   const activeImageSource = imageExhausted
     ? null
@@ -156,16 +178,18 @@ export function VerticalLibraryGameCard({
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        secondary: onOpenContextMenu
-          ? () => {
-              const buttonRect =
-                menuButtonRef.current?.getBoundingClientRect() ?? null;
+        hold: {
+          y: onOpenContextMenu
+            ? () => {
+                const buttonRect =
+                  menuButtonRef.current?.getBoundingClientRect() ?? null;
 
-              if (buttonRect) {
-                openContextMenuFromRect(buttonRect);
+                if (buttonRect) {
+                  openContextMenuFromRect(buttonRect);
+                }
               }
-            }
-          : "off",
+            : undefined,
+        },
       }}
       navigationOverrides={navigationOverrides}
     >
@@ -227,6 +251,9 @@ export function HorizontalLibraryGameListCard({
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
+  const logoImageUrl = resolveImageSource(
+    game.customLogoImageUrl ?? game.logoImageUrl
+  );
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -247,22 +274,25 @@ export function HorizontalLibraryGameListCard({
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        secondary: onOpenContextMenu
-          ? () => {
-              const buttonRect =
-                menuButtonRef.current?.getBoundingClientRect() ?? null;
+        hold: {
+          y: onOpenContextMenu
+            ? () => {
+                const buttonRect =
+                  menuButtonRef.current?.getBoundingClientRect() ?? null;
 
-              if (buttonRect) {
-                openContextMenuFromRect(buttonRect);
+                if (buttonRect) {
+                  openContextMenuFromRect(buttonRect);
+                }
               }
-            }
-          : "off",
+            : undefined,
+        },
       }}
       navigationOverrides={navigationOverrides}
     >
       <HorizontalLibraryGameCard
         className="library-focus-list__card"
         coverImageUrl={activeImageSource}
+        logoImageUrl={logoImageUrl || null}
         gameTitle={game.title}
         subtitle={playtimeLabel}
         progressLabel={achievementProgress.label}

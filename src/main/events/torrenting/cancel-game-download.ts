@@ -25,6 +25,7 @@ const cancelGameDownload = async (
     ...download,
     status: "removed",
     queued: false,
+    pinnedToHero: false,
     shouldSeed: false,
   });
   WindowManager.sendDownloadsUpdated();

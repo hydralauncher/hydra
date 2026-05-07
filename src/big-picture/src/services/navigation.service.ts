@@ -12,6 +12,7 @@ export type FocusOverrideTarget =
       type: "region";
       regionId: string;
       entryDirection?: FocusDirection;
+      preferRememberedFocus?: boolean;
     }
   | {
       type: "block";
@@ -69,6 +70,10 @@ type PendingInitialFocusRequest = {
   initialFocusId?: string;
   initialFocusRegionId?: string;
 };
+
+interface SetFocusRegionOptions {
+  preferRememberedFocus?: boolean;
+}
 
 const NAVIGATION_DEBUG_STORAGE_KEY = "hydra:big-picture:navigation-debug";
 
@@ -635,7 +640,8 @@ export class NavigationService {
 
   public setFocusRegion(
     regionId: string,
-    entryDirection: FocusDirection = "right"
+    entryDirection: FocusDirection = "right",
+    options: SetFocusRegionOptions = {}
   ) {
     const region = this.regions.get(regionId);
 
@@ -646,13 +652,18 @@ export class NavigationService {
     }
 
     if (
+      options.preferRememberedFocus !== false &&
       this.currentFocusId !== null &&
       this.isNodeWithinRegion(this.currentFocusId, regionId)
     ) {
       return this.currentFocusId;
     }
 
-    const nextNodeId = this.getEntryNodeForRegion(regionId, entryDirection);
+    const nextNodeId = this.getEntryNodeForRegion(
+      regionId,
+      entryDirection,
+      options
+    );
 
     if (!nextNodeId) return null;
 
@@ -1444,7 +1455,10 @@ export class NavigationService {
 
     return this.resolveRegionOverrideTarget(
       target.regionId,
-      target.entryDirection ?? direction
+      target.entryDirection ?? direction,
+      {
+        preferRememberedFocus: target.preferRememberedFocus,
+      }
     );
   }
 
@@ -1466,7 +1480,8 @@ export class NavigationService {
 
   private resolveRegionOverrideTarget(
     regionId: string,
-    direction: FocusDirection
+    direction: FocusDirection,
+    options: SetFocusRegionOptions = {}
   ): string | null {
     if (!this.regions.has(regionId)) {
       return null;
@@ -1476,18 +1491,22 @@ export class NavigationService {
       return null;
     }
 
-    return this.getEntryNodeForRegion(regionId, direction);
+    return this.getEntryNodeForRegion(regionId, direction, options);
   }
 
   private getEntryNodeForRegion(
     regionId: string,
-    direction: FocusDirection
+    direction: FocusDirection,
+    options: SetFocusRegionOptions = {}
   ): string | null {
     if (!this.isRegionInActiveLayer(regionId)) {
       return null;
     }
 
-    const rememberedNodeId = this.lastFocusedByRegionId.get(regionId);
+    const rememberedNodeId =
+      options.preferRememberedFocus === false
+        ? null
+        : this.lastFocusedByRegionId.get(regionId);
 
     if (
       rememberedNodeId &&
@@ -1842,10 +1861,9 @@ export class NavigationService {
       return `region target "${target.regionId}" is outside the active layer`;
     }
 
-    const resolvedNodeId = this.getEntryNodeForRegion(
-      target.regionId,
-      target.entryDirection ?? direction
-    );
+    const resolvedNodeId = this.getEntryNodeForRegion(target.regionId, target.entryDirection ?? direction, {
+      preferRememberedFocus: target.preferRememberedFocus,
+    });
 
     if (!resolvedNodeId) {
       return `region target "${target.regionId}" has no active entry node`;

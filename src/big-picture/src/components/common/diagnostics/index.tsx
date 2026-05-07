@@ -107,6 +107,7 @@ function getFocusedElementDataset(currentFocusId: string | null) {
     hasHoldA: element.dataset.hasHoldA === "true",
     hasHoldB: element.dataset.hasHoldB === "true",
     hasHoldX: element.dataset.hasHoldX === "true",
+    hasHoldY: element.dataset.hasHoldY === "true",
   };
 }
 
@@ -285,6 +286,7 @@ function getFocusedActionsLabel(
     focusedDataset.hasHoldA && "hold.a",
     focusedDataset.hasHoldB && "hold.b",
     focusedDataset.hasHoldX && "hold.x",
+    focusedDataset.hasHoldY && "hold.y",
   ].filter(Boolean);
 
   return actions.join(", ") || "None";

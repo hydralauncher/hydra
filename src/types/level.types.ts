@@ -87,6 +87,8 @@ export interface Download {
   status: DownloadStatus | null;
   // queued=true means automatic queue placement; queued=false means paused/manual.
   queued: boolean;
+  // paused+pinnedToHero=true means the paused download should remain in the hero slot.
+  pinnedToHero?: boolean;
   timestamp: number;
   // Extraction is modeled as a flag layered on top of the persisted status.
   extracting: boolean;

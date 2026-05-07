@@ -24,14 +24,16 @@
     background-color: var(--surface);
     overflow: hidden;
 
-    img,
     &-placeholder {
       width: 100%;
       height: 100%;
       display: block;
     }
 
-    img {
+    .horizontal-library-game-card__cover-image {
+      width: 100%;
+      height: 100%;
+      display: block;
       object-fit: cover;
     }
 
@@ -47,6 +49,44 @@
       pointer-events: none;
       z-index: 1;
     }
+  }
+
+  &__logo {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--spacing-unit) * 4);
+    transform: translateY(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: min(58%, 320px);
+    max-width: min(58%, 320px);
+    height: 100px;
+    pointer-events: none;
+  }
+
+  &__logo-image {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: left center;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  }
+
+  &__logo-fallback {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.05;
+    text-align: left;
+    text-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
   }
 
   &__cover-placeholder {

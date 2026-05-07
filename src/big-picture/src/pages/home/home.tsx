@@ -55,6 +55,10 @@ import "./page.scss";
 const HOME_SECTION_ORDER = ["hero", "weekly", "trending", "challenge"] as const;
 
 type HomeSectionId = (typeof HOME_SECTION_ORDER)[number];
+type DownloadModalGame = Pick<
+  ShopAssets,
+  "objectId" | "shop" | "title" | "libraryHeroImageUrl"
+>;
 
 const DEFAULT_MENU_POSITION = { x: 0, y: 0 };
 
@@ -67,7 +71,7 @@ interface HomeCatalogMenuState {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { t } = useTranslation("library");
+  const { t } = useTranslation(["library", "game_details"]);
   const { library, updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
 
@@ -80,7 +84,7 @@ export default function Home() {
     useLibraryFavorite(updateLibrary);
 
   const [downloadModalGame, setDownloadModalGame] =
-    useState<LibraryGame | null>(null);
+    useState<DownloadModalGame | null>(null);
 
   const handleCloseDownloadModal = useCallback(() => {
     setDownloadModalGame(null);
@@ -199,6 +203,14 @@ export default function Home() {
     navigate(getBigPictureGameDetailsPath(target));
   }, [menuState.catalogGame, navigate]);
 
+  const handleOpenCatalogDownloadOptions = useCallback(() => {
+    const target = menuState.catalogGame;
+
+    if (!target) return;
+
+    setDownloadModalGame(target);
+  }, [menuState.catalogGame]);
+
   const handleCatalogViewAchievementsFromMenu = useCallback(() => {
     const target = menuState.catalogGame;
 
@@ -276,6 +288,7 @@ export default function Home() {
     return buildCatalogGameContextMenuItems(t, target, {
       canAddToLibrary,
       isAddingToLibrary: addingCatalogKey === catalogKey,
+      onOpenDownloadOptions: handleOpenCatalogDownloadOptions,
       onAddToLibrary: handleAddCatalogGameToLibrary,
       onOpenGamePage: handleCatalogNavigateFromMenu,
       onShare: handleCatalogShareFromMenu,
@@ -286,6 +299,7 @@ export default function Home() {
     favoriteLoadingGameId,
     handleAddCatalogGameToLibrary,
     handleCatalogNavigateFromMenu,
+    handleOpenCatalogDownloadOptions,
     handleCatalogShareFromMenu,
     handleCatalogViewAchievementsFromMenu,
     handleLaunchFromMenu,
@@ -544,8 +558,10 @@ export default function Home() {
                       primary: () => {
                         navigate(getBigPictureGameDetailsPath(game));
                       },
-                      secondary: () => {
-                        openChallengeContextMenuSecondary();
+                      hold: {
+                        y: () => {
+                          openChallengeContextMenuSecondary();
+                        },
                       },
                     }}
                     navigationOverrides={
@@ -581,7 +597,7 @@ export default function Home() {
 
         {downloadModalGame ? (
           <DownloadGameModal
-            key={downloadModalGame.id}
+            key={`${downloadModalGame.shop}:${downloadModalGame.objectId}`}
             visible
             onClose={handleCloseDownloadModal}
             game={downloadModalGame}

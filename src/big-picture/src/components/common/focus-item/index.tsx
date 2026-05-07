@@ -136,6 +136,7 @@ export function FocusItem({
         data-has-hold-a={actionsMeta.hasHoldA || undefined}
         data-has-hold-b={actionsMeta.hasHoldB || undefined}
         data-has-hold-x={actionsMeta.hasHoldX || undefined}
+        data-has-hold-y={actionsMeta.hasHoldY || undefined}
         data-navigation-state={effectiveNavigationState}
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}

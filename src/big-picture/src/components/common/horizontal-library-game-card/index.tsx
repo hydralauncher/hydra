@@ -11,6 +11,7 @@ import type {
 
 export interface HorizontalLibraryGameCardProps {
   coverImageUrl?: string | null;
+  logoImageUrl?: string | null;
   gameTitle: string;
   subtitle: string;
   progressLabel?: string;
@@ -32,6 +33,7 @@ function clampProgress(value: number) {
 
 export function HorizontalLibraryGameCard({
   coverImageUrl,
+  logoImageUrl,
   gameTitle,
   subtitle,
   progressLabel,
@@ -81,6 +83,7 @@ export function HorizontalLibraryGameCard({
       <div className="horizontal-library-game-card__cover">
         {coverImageUrl ? (
           <img
+            className="horizontal-library-game-card__cover-image"
             src={coverImageUrl}
             alt={gameTitle}
             draggable={false}
@@ -92,6 +95,21 @@ export function HorizontalLibraryGameCard({
             aria-hidden="true"
           />
         )}
+
+        <div className="horizontal-library-game-card__logo" aria-hidden="true">
+          {logoImageUrl ? (
+            <img
+              src={logoImageUrl}
+              alt=""
+              draggable={false}
+              className="horizontal-library-game-card__logo-image"
+            />
+          ) : (
+            <span className="horizontal-library-game-card__logo-fallback">
+              {gameTitle}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="horizontal-library-game-card__body">

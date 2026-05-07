@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Downloader, getDownloadersForUris } from "@shared";
+import { Downloader } from "@shared";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../../constants";
+import useEmblaCarousel from "embla-carousel-react";
 import {
-  sortAvailableDownloaders,
+  getDownloaderAvailabilityOptions,
   sortDownloadOptions,
   type DownloadOptionsSortBy,
 } from "../../../helpers";
@@ -22,10 +23,13 @@ import type {
 } from "@types";
 import {
   useGameDownloadOptions,
+  useFeature,
   useNavigationScreenActions,
 } from "../../../hooks";
+import { useNavigationStore } from "../../../stores";
 import {
   Button,
+  Checkbox,
   DropdownSelect,
   HorizontalFocusGroup,
   Input,
@@ -98,6 +102,119 @@ const DOWNLOAD_SORT_OPTIONS: Array<{
 enum DownloadGameStep {
   SourceList,
   Options,
+}
+
+type SourceCarouselEmblaApi = ReturnType<typeof useEmblaCarousel>[1];
+type ResolvedSourceCarouselEmblaApi = NonNullable<SourceCarouselEmblaApi>;
+
+const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
+const SLIDE_MEASUREMENT_EPSILON_PX = 1;
+const DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID =
+  "download-game-modal-source-carousel";
+const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
+  "download-game-modal-automatic-extract";
+const DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID =
+  "download-game-modal-delete-archive";
+
+function getSourceFocusId(source: string, index: number) {
+  const normalizedSource = source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `download-game-source-${normalizedSource || "source"}-${index}`;
+}
+
+function getSourceViewportSlideMetrics(
+  emblaApi: ResolvedSourceCarouselEmblaApi
+) {
+  const viewportRect = emblaApi.rootNode().getBoundingClientRect();
+  const slideRects = emblaApi
+    .slideNodes()
+    .map((slideNode) => slideNode.getBoundingClientRect());
+
+  if (slideRects.length === 0) return null;
+
+  const visibleIndexes = slideRects.reduce<number[]>(
+    (indexes, slideRect, index) => {
+      const visibleWidth = Math.max(
+        0,
+        Math.min(slideRect.right, viewportRect.right) -
+          Math.max(slideRect.left, viewportRect.left)
+      );
+
+      if (
+        visibleWidth + SLIDE_MEASUREMENT_EPSILON_PX >=
+        slideRect.width * PARTIAL_VISIBLE_SLIDE_RATIO
+      ) {
+        indexes.push(index);
+      }
+
+      return indexes;
+    },
+    []
+  );
+
+  if (visibleIndexes.length === 0) return null;
+
+  return {
+    firstVisibleIndex: visibleIndexes[0],
+    visibleCount: visibleIndexes.length,
+    visibleIndexes,
+  };
+}
+
+function syncSourceThresholdFocusScroll(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  previousFocusedIndex: number | null,
+  nextFocusedIndex: number
+) {
+  const didNotChange =
+    previousFocusedIndex == null || previousFocusedIndex === nextFocusedIndex;
+
+  if (didNotChange) return;
+
+  const viewportMetrics = getSourceViewportSlideMetrics(emblaApi);
+
+  if (!viewportMetrics) return;
+
+  const { visibleIndexes } = viewportMetrics;
+  const visibleCount = visibleIndexes.length;
+  const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
+  const isOutOfBounds = visiblePosition === -1;
+
+  if (isOutOfBounds) return;
+
+  const selectedPosition = Math.floor(visibleCount / 2) + 1;
+  const isMovingRight = nextFocusedIndex > previousFocusedIndex;
+  const shouldScroll = isMovingRight
+    ? visiblePosition + 1 > selectedPosition && emblaApi.canScrollNext()
+    : visiblePosition + 1 < selectedPosition && emblaApi.canScrollPrev();
+
+  if (!shouldScroll) return;
+
+  if (isMovingRight) emblaApi.scrollNext();
+  else emblaApi.scrollPrev();
+}
+
+function useSourceThresholdFocusScroll(emblaApi: SourceCarouselEmblaApi) {
+  const lastFocusedIndexRef = useRef<number | null>(null);
+
+  return useCallback(
+    (nextFocusedIndex: number) => {
+      const previousFocusedIndex = lastFocusedIndexRef.current;
+      lastFocusedIndexRef.current = nextFocusedIndex;
+
+      if (!emblaApi) return;
+
+      syncSourceThresholdFocusScroll(
+        emblaApi,
+        previousFocusedIndex,
+        nextFocusedIndex
+      );
+    },
+    [emblaApi]
+  );
 }
 
 export function DownloadGameModal({
@@ -188,6 +305,20 @@ function DownloadGameSourceList({
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [selectedSortOption, setSelectedSortOption] =
     useState<DownloadOptionsSortBy>("newest");
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const rememberedFocusId = useNavigationStore(
+    (state) =>
+      state.debugSnapshot.lastFocusedByRegionId[
+        DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID
+      ] ?? null
+  );
+  const [sourcesViewportRef, sourcesEmblaApi] = useEmblaCarousel({
+    align: "start",
+    containScroll: "trimSnaps",
+    duration: 12,
+    dragFree: true,
+  });
+  const lastAlignedFocusIdRef = useRef<string | null>(null);
 
   const { downloadOptions, isLoading } = useGameDownloadOptions(game, visible);
 
@@ -196,6 +327,14 @@ function DownloadGameSourceList({
       new Set(downloadOptions.map((option) => option.downloadSourceName))
     );
   }, [downloadOptions]);
+  const sourceItems = useMemo(
+    () =>
+      downloadSources.map((source, index) => ({
+        source,
+        focusId: getSourceFocusId(source, index),
+      })),
+    [downloadSources]
+  );
 
   const filteredDownloadOptions = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -213,6 +352,53 @@ function DownloadGameSourceList({
     () => sortDownloadOptions(filteredDownloadOptions, selectedSortOption),
     [filteredDownloadOptions, selectedSortOption]
   );
+  const handleSourceFocused = useSourceThresholdFocusScroll(sourcesEmblaApi);
+
+  useEffect(() => {
+    const getFocusedIndex = (focusId: string | null) => {
+      if (!focusId) return -1;
+
+      return sourceItems.findIndex((sourceItem) => sourceItem.focusId === focusId);
+    };
+
+    const currentFocusedIndex = getFocusedIndex(currentFocusId);
+    const targetFocusId =
+      currentFocusedIndex === -1 ? rememberedFocusId : null;
+    const focusedIndex = getFocusedIndex(targetFocusId);
+
+    if (!sourcesEmblaApi || focusedIndex === -1 || !targetFocusId) return;
+    if (lastAlignedFocusIdRef.current === targetFocusId) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      const viewportMetrics = getSourceViewportSlideMetrics(sourcesEmblaApi);
+
+      if (!viewportMetrics) return;
+
+      const selectedPosition = Math.floor(viewportMetrics.visibleCount / 2) + 1;
+      const maxStartIndex = Math.max(
+        0,
+        sourceItems.length - viewportMetrics.visibleCount
+      );
+      const targetStartIndex = Math.max(
+        0,
+        Math.min(focusedIndex - (selectedPosition - 1), maxStartIndex)
+      );
+
+      lastAlignedFocusIdRef.current = targetFocusId;
+
+      if (viewportMetrics.firstVisibleIndex !== targetStartIndex) {
+        sourcesEmblaApi.scrollTo(targetStartIndex, true);
+      }
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [currentFocusId, rememberedFocusId, sourceItems, sourcesEmblaApi]);
+
+  useEffect(() => {
+    lastAlignedFocusIdRef.current = null;
+  }, [sourceItems]);
 
   const handleSourceClick = (source: string) => {
     setSelectedSources((previousSources) =>
@@ -236,26 +422,44 @@ function DownloadGameSourceList({
       />
 
       <HorizontalFocusGroup className="download-game-modal__source-list__toolbar">
-        <HorizontalFocusGroup className="download-game-modal__source-list__sources">
-          {isLoading &&
-            Array.from({ length: 3 }, (_, index) => (
-              <SourceAnchorSkeleton
-                key={`source-anchor-skeleton-${index}`}
-                size="large"
-              />
-            ))}
+        <div className="download-game-modal__source-list__sources-carousel">
+          <div
+            className="download-game-modal__source-list__sources-viewport"
+            ref={sourcesViewportRef}
+          >
+            <HorizontalFocusGroup
+              className="download-game-modal__source-list__sources"
+              regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
+            >
+              {isLoading &&
+                Array.from({ length: 3 }, (_, index) => (
+                  <div
+                    key={`source-anchor-skeleton-${index}`}
+                    className="download-game-modal__source-list__source-slide"
+                  >
+                    <SourceAnchorSkeleton size="large" />
+                  </div>
+                ))}
 
-          {!isLoading &&
-            downloadSources.map((source) => (
-              <SourceAnchor
-                key={source}
-                title={source}
-                size="large"
-                isSelected={selectedSources.includes(source)}
-                onClick={() => handleSourceClick(source)}
-              />
-            ))}
-        </HorizontalFocusGroup>
+              {!isLoading &&
+                sourceItems.map(({ source, focusId }, index) => (
+                  <div
+                    key={focusId}
+                    className="download-game-modal__source-list__source-slide"
+                    onFocusCapture={() => handleSourceFocused(index)}
+                  >
+                    <SourceAnchor
+                      focusId={focusId}
+                      title={source}
+                      size="large"
+                      isSelected={selectedSources.includes(source)}
+                      onClick={() => handleSourceClick(source)}
+                    />
+                  </div>
+                ))}
+            </HorizontalFocusGroup>
+          </div>
+        </div>
 
         <HorizontalFocusGroup className="download-game-modal__source-list__sort-options">
           <DropdownSelect
@@ -315,32 +519,73 @@ function DownloadGameOptions({
     useState<DownloadDirectorySuggestion[]>([]);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
+  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
+    useState(true);
+  const [
+    deleteArchiveFilesAfterExtraction,
+    setDeleteArchiveFilesAfterExtraction,
+  ] = useState(false);
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { features } = useFeature();
+
+  const availableDownloaderOptions = useMemo(() => {
+    return getDownloaderAvailabilityOptions(option, userPreferences, features).filter(
+      (downloaderOption) => downloaderOption.isAvailable
+    );
+  }, [features, option, userPreferences]);
 
   const downloaderItems = useMemo(() => {
-    const availableDownloaders = sortAvailableDownloaders(
-      getDownloadersForUris(option.uris),
-      userPreferences
-    );
-
-    return availableDownloaders.map((downloader) => ({
-      value: String(downloader),
+    return availableDownloaderOptions.map((downloaderOption) => ({
+      value: String(downloaderOption.downloader),
       label: (
         <>
-          {downloader === Downloader.Hydra && (
+          {downloaderOption.downloader === Downloader.Hydra && (
             <StarIcon size={14} weight="fill" aria-hidden="true" />
           )}
-          <span>{DOWNLOADER_NAME[downloader]}</span>
+          <span>{DOWNLOADER_NAME[downloaderOption.downloader]}</span>
         </>
       ),
     })) satisfies Array<TabsItem<string>>;
-  }, [option.uris, userPreferences]);
+  }, [availableDownloaderOptions]);
+
+  const getDefaultDownloader = useCallback(
+    (availableDownloaders: Downloader[]) => {
+      if (availableDownloaders.length === 0) return null;
+
+      if (availableDownloaders.includes(Downloader.RealDebrid)) {
+        return Downloader.RealDebrid;
+      }
+
+      if (availableDownloaders.includes(Downloader.Premiumize)) {
+        return Downloader.Premiumize;
+      }
+
+      if (availableDownloaders.includes(Downloader.AllDebrid)) {
+        return Downloader.AllDebrid;
+      }
+
+      if (availableDownloaders.includes(Downloader.TorBox)) {
+        return Downloader.TorBox;
+      }
+
+      return availableDownloaders[0];
+    },
+    []
+  );
 
   useEffect(() => {
-    setSelectedDownloader(downloaderItems[0]?.value);
-  }, [downloaderItems]);
+    const defaultDownloader = getDefaultDownloader(
+      availableDownloaderOptions.map(
+        (downloaderOption) => downloaderOption.downloader
+      )
+    );
+
+    setSelectedDownloader(
+      defaultDownloader != null ? String(defaultDownloader) : undefined
+    );
+  }, [availableDownloaderOptions, getDefaultDownloader]);
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
@@ -375,6 +620,9 @@ function DownloadGameOptions({
       setSelectedDownloadPath("");
       setDownloadDirectorySuggestions([]);
       setUserPreferences(null);
+      setSelectedDownloader(undefined);
+      setAutomaticExtractionEnabled(true);
+      setDeleteArchiveFilesAfterExtraction(false);
       setIsSubmitting(false);
       return;
     }
@@ -424,6 +672,10 @@ function DownloadGameOptions({
       setUserPreferences(preferences);
       setSelectedDownloadPath(initialDownloadPath);
       setDownloadDirectorySuggestions(suggestions);
+      setAutomaticExtractionEnabled(preferences?.extractFilesByDefault ?? true);
+      setDeleteArchiveFilesAfterExtraction(
+        preferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+      );
     };
 
     void buildDownloadDirectorySuggestions();
@@ -439,15 +691,18 @@ function DownloadGameOptions({
     return Number(selectedDownloader) as Downloader;
   }, [selectedDownloader]);
 
-  const selectedUri = useMemo(() => {
+  const selectedDownloaderOption = useMemo(() => {
     if (resolvedDownloader == null) return null;
 
     return (
-      option.uris.find((uri) =>
-        getDownloadersForUris([uri]).includes(resolvedDownloader)
+      availableDownloaderOptions.find(
+        (downloaderOption) => downloaderOption.downloader === resolvedDownloader
       ) ?? null
     );
-  }, [option.uris, resolvedDownloader]);
+  }, [availableDownloaderOptions, resolvedDownloader]);
+
+  const selectedUri = selectedDownloaderOption?.availableUri ?? null;
+  const hasAvailableDownloader = availableDownloaderOptions.length > 0;
 
   const isSubmitDisabled =
     isSubmitting ||
@@ -472,8 +727,8 @@ function DownloadGameOptions({
       uri: selectedUri,
       downloadPath: selectedDownloadPath,
       downloader: resolvedDownloader,
-      automaticallyExtract: false,
-      automaticallyDeleteArchiveFiles: false,
+      automaticallyExtract: automaticExtractionEnabled,
+      automaticallyDeleteArchiveFiles: deleteArchiveFilesAfterExtraction,
       fileSize: option.fileSize,
     } as const;
 
@@ -519,7 +774,7 @@ function DownloadGameOptions({
 
   return (
     <div className="download-game-modal__options">
-      <VerticalFocusGroup>
+      <VerticalFocusGroup className="download-game-modal__options-stack">
         <div className="download-game-modal__chosen-repack">
           <p className="download-game-modal__chosen-repack-label">
             Chosen Option
@@ -537,15 +792,21 @@ function DownloadGameOptions({
             </p>
           </div>
 
-          <Tabs
-            items={downloaderItems}
-            value={selectedDownloader}
-            defaultValue={downloaderItems[0]?.value}
-            onValueChange={setSelectedDownloader}
-            variant="segmented"
-            ariaLabel="Download methods"
-            className="download-game-modal__downloader-tabs"
-          />
+          {hasAvailableDownloader ? (
+            <Tabs
+              items={downloaderItems}
+              value={selectedDownloader}
+              defaultValue={downloaderItems[0]?.value}
+              onValueChange={setSelectedDownloader}
+              variant="segmented"
+              ariaLabel="Download methods"
+              className="download-game-modal__downloader-tabs"
+            />
+          ) : (
+            <p className="download-game-modal__downloader-empty">
+              No download methods are available for your current setup.
+            </p>
+          )}
         </div>
 
         <div className="download-game-modal__directory">
@@ -582,6 +843,24 @@ function DownloadGameOptions({
               />
             ))}
           </HorizontalFocusGroup>
+        </div>
+
+        <div className="download-game-modal__download-options">
+          <Checkbox
+            block
+            focusId={DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID}
+            label="Automatically extract downloaded files"
+            checked={automaticExtractionEnabled}
+            onChange={setAutomaticExtractionEnabled}
+          />
+
+          <Checkbox
+            block
+            focusId={DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID}
+            label="Always delete archive files after extraction"
+            checked={deleteArchiveFilesAfterExtraction}
+            onChange={setDeleteArchiveFilesAfterExtraction}
+          />
         </div>
 
         <div className="download-game-modal__actions">

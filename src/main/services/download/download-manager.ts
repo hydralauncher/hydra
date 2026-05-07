@@ -613,6 +613,7 @@ export class DownloadManager {
         status: "seeding",
         shouldSeed: true,
         queued: false,
+        pinnedToHero: false,
         extracting: shouldExtract,
       });
       WindowManager.sendDownloadsUpdated();
@@ -624,6 +625,7 @@ export class DownloadManager {
         status: "complete",
         shouldSeed: false,
         queued: false,
+        pinnedToHero: false,
         extracting: shouldExtract,
       });
       WindowManager.sendDownloadsUpdated();
@@ -757,6 +759,7 @@ export class DownloadManager {
           ...download,
           status: "paused",
           shouldSeed: false,
+          pinnedToHero: false,
           progress:
             status.fileSize > 0
               ? Math.min(totalSize / status.fileSize, 1)

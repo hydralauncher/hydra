@@ -118,6 +118,7 @@ export function buildLibraryGameContextMenuItems(
 export interface BuildCatalogGameContextMenuItemsArgs {
   canAddToLibrary: boolean;
   isAddingToLibrary: boolean;
+  onOpenDownloadOptions: () => void;
   onAddToLibrary: () => void | Promise<void>;
   onViewAchievements: () => void;
   onShare: () => void;
@@ -125,13 +126,14 @@ export interface BuildCatalogGameContextMenuItemsArgs {
 }
 
 export function buildCatalogGameContextMenuItems(
-  t: TFunction<["library"]>,
+  t: TFunction<["library", "game_details"]>,
   _catalogGame: ShopAssets,
   args: BuildCatalogGameContextMenuItemsArgs
 ): ContextMenuItem[] {
   const {
     canAddToLibrary,
     isAddingToLibrary,
+    onOpenDownloadOptions,
     onAddToLibrary,
     onViewAchievements,
     onShare,
@@ -141,6 +143,17 @@ export function buildCatalogGameContextMenuItems(
   const nextItems: ContextMenuItem[] = [];
 
   if (canAddToLibrary) {
+    nextItems.push({
+      id: "download-options",
+      label: t("open_download_options", { ns: "game_details" }).replace(
+        /\b\p{L}/gu,
+        (char) => char.toUpperCase()
+      ),
+      icon: <DownloadSimpleIcon aria-hidden size={18} weight="regular" />,
+      restoreFocusOnClose: false,
+      onSelect: onOpenDownloadOptions,
+    });
+
     nextItems.push({
       id: "add-to-library",
       label: t("context_menu_add_to_library"),

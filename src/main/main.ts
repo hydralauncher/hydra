@@ -3,6 +3,7 @@ import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import {
+  getDownloadPlacement,
   isQueuedDownload,
   type Download,
   type UserPreferences,
@@ -113,7 +114,7 @@ export const loadState = async () => {
       return orderBy(games, "timestamp", "desc");
     });
 
-  let interruptedDownloadKey: string | null = null;
+  let hasPinnedInterruptedDownload = false;
 
   for (const download of downloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
@@ -127,18 +128,21 @@ export const loadState = async () => {
     }
 
     // Find interrupted active download (download that was running when app closed)
-    // Mark it as paused but remember it for auto-resume
-    if (download.status === "active" && !interruptedDownloadKey) {
-      interruptedDownloadKey = downloadKey;
+    // and keep it pinned to the hero as paused instead of auto-resuming it.
+    if (download.status === "active" && !hasPinnedInterruptedDownload) {
+      hasPinnedInterruptedDownload = true;
       await downloadsSublevel.put(downloadKey, {
         ...download,
         status: "paused",
+        queued: false,
+        pinnedToHero: true,
       });
     } else if (download.status === "active") {
       // Mark other active downloads as paused
       await downloadsSublevel.put(downloadKey, {
         ...download,
         status: "paused",
+        pinnedToHero: false,
       });
     }
   }
@@ -150,38 +154,60 @@ export const loadState = async () => {
     .then((games) => orderBy(games, "timestamp", "desc"));
 
   const normalizedDownloads: Download[] = [];
+  let pinnedHeroToKeep: string | null = null;
 
   for (const download of updatedDownloads) {
     const downloadKey = levelKeys.game(download.shop, download.objectId);
     const hasInvalidQueuedState =
       download.queued && !isQueuedDownload(download);
+    let normalizedDownload = download;
+    let shouldPersist = false;
 
-    if (!hasInvalidQueuedState) {
-      normalizedDownloads.push(download);
-      continue;
+    if (hasInvalidQueuedState) {
+      normalizedDownload = {
+        ...normalizedDownload,
+        queued: false,
+      };
+      shouldPersist = true;
     }
 
-    const normalizedDownload = {
-      ...download,
-      queued: false,
-    };
+    const hasInvalidPinnedHeroState =
+      normalizedDownload.pinnedToHero === true &&
+      (normalizedDownload.status !== "paused" || normalizedDownload.queued);
 
-    await downloadsSublevel.put(downloadKey, normalizedDownload);
+    if (hasInvalidPinnedHeroState) {
+      normalizedDownload = {
+        ...normalizedDownload,
+        pinnedToHero: false,
+      };
+      shouldPersist = true;
+    }
+
+    if (normalizedDownload.pinnedToHero) {
+      if (pinnedHeroToKeep == null) {
+        pinnedHeroToKeep = downloadKey;
+      } else {
+        normalizedDownload = {
+          ...normalizedDownload,
+          pinnedToHero: false,
+        };
+        shouldPersist = true;
+      }
+    }
+
+    if (shouldPersist) {
+      await downloadsSublevel.put(downloadKey, normalizedDownload);
+    }
+
     normalizedDownloads.push(normalizedDownload);
   }
+  const hasHeroDownload = normalizedDownloads.some(
+    (download) => getDownloadPlacement(download) === "hero"
+  );
 
-  const interruptedDownload =
-    interruptedDownloadKey != null
-      ? (normalizedDownloads.find(
-          (download) =>
-            levelKeys.game(download.shop, download.objectId) ===
-            interruptedDownloadKey
-        ) ?? null)
-      : null;
-
-  // Prioritize interrupted active download, then the oldest valid queued item.
-  const downloadToResume =
-    interruptedDownload ?? getNextQueuedDownload(normalizedDownloads);
+  const downloadToResume = hasHeroDownload
+    ? null
+    : getNextQueuedDownload(normalizedDownloads);
 
   const downloadsToSeed: Download[] = [];
 
@@ -221,6 +247,7 @@ export const loadState = async () => {
       status: "paused",
       shouldSeed: false,
       queued: false,
+      pinnedToHero: false,
       progress,
     });
 
@@ -240,7 +267,7 @@ export const loadState = async () => {
     });
   } else {
     // Use Python RPC for everything (torrent or fallback)
-    await DownloadManager.startRPC(downloadToResume, downloadsToSeed);
+    await DownloadManager.startRPC(downloadToResume ?? undefined, downloadsToSeed);
   }
 
   WindowManager.sendDownloadsUpdated();

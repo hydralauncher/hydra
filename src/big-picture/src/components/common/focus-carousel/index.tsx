@@ -520,24 +520,26 @@ function FocusCarouselSlide({
           onActivate
             ? {
                 primary: () => onActivate(game),
-                secondary:
-                  onCarouselItemOpenContextMenu != null
-                    ? () => {
-                        const element = document.getElementById(itemId);
-                        const rect = element?.getBoundingClientRect();
+                hold: {
+                  y:
+                    onCarouselItemOpenContextMenu != null
+                      ? () => {
+                          const element = document.getElementById(itemId);
+                          const rect = element?.getBoundingClientRect();
 
-                        if (rect) {
-                          onCarouselItemOpenContextMenu(
-                            game,
-                            {
-                              x: rect.left + rect.width / 2,
-                              y: rect.top + rect.height / 2,
-                            },
-                            itemId
-                          );
+                          if (rect) {
+                            onCarouselItemOpenContextMenu(
+                              game,
+                              {
+                                x: rect.left + rect.width / 2,
+                                y: rect.top + rect.height / 2,
+                              },
+                              itemId
+                            );
+                          }
                         }
-                      }
-                    : "off",
+                      : undefined,
+                },
               }
             : undefined
         }
@@ -594,8 +596,13 @@ export function FocusCarousel({
 
     const currentFocusedIndex = getFocusedIndex(currentFocusId);
     const targetFocusId =
-      currentFocusedIndex !== -1 ? currentFocusId : rememberedFocusId;
+      currentFocusedIndex === -1 ? rememberedFocusId : null;
     const focusedIndex = getFocusedIndex(targetFocusId);
+
+    if (currentFocusedIndex !== -1) {
+      lastAlignedFocusIdRef.current = null;
+      return;
+    }
 
     if (!emblaApi || focusedIndex === -1 || !targetFocusId) return;
     if (lastAlignedFocusIdRef.current === targetFocusId) return;
@@ -626,6 +633,10 @@ export function FocusCarousel({
       globalThis.cancelAnimationFrame(animationFrameId);
     };
   }, [currentFocusId, emblaApi, games, getItemId, rememberedFocusId]);
+
+  useEffect(() => {
+    lastAlignedFocusIdRef.current = null;
+  }, [games, rememberedFocusId]);
 
   if (games.length === 0) return null;
 

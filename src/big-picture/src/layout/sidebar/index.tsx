@@ -19,11 +19,14 @@ import { IS_DESKTOP } from "../../constants";
 import { useLibrary, useSearch } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
-  BIG_PICTURE_CONTENT_REGION_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_REGION_ID,
   type BigPictureSidebarRouteKey,
+  getBigPictureContentEntryTargetFromPathname,
+  getBigPictureGameRouteMatch,
+  getBigPictureSidebarLibraryGameFocusId,
   getBigPictureSidebarItemIdFromPathname,
+  normalizeBigPicturePathname,
 } from "../navigation";
 import "./styles.scss";
 
@@ -31,15 +34,12 @@ function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
   const { pathname } = useLocation();
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
+  const contentEntryTarget = getBigPictureContentEntryTargetFromPathname(pathname);
   const sidebarItemNavigationOverrides: FocusOverrides = {
     left: {
       type: "block",
     },
-    right: {
-      type: "region",
-      regionId: BIG_PICTURE_CONTENT_REGION_ID,
-      entryDirection: "right",
-    },
+    right: contentEntryTarget,
   };
 
   const routes = (
@@ -108,6 +108,11 @@ function SidebarRouter() {
 
 function SidebarLibrary() {
   const { library } = useLibrary();
+  const { pathname } = useLocation();
+  const normalizedPathname = normalizeBigPicturePathname(pathname);
+  const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
+  const contentEntryTarget =
+    getBigPictureContentEntryTargetFromPathname(pathname);
 
   const sortedLibrary = useMemo(() => {
     return [...library].sort(
@@ -146,6 +151,14 @@ function SidebarLibrary() {
             <ul className="library-list">
               {filteredItems.map((game) => {
                 const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
+                const focusId = getBigPictureSidebarLibraryGameFocusId({
+                  shop: game.shop,
+                  objectId: game.objectId,
+                });
+                const active =
+                  normalizedPathname === desktopPath ||
+                  (activeGameRoute?.shop === game.shop &&
+                    activeGameRoute.objectId === game.objectId);
 
                 return (
                   <li key={game.id} className="library-list__item">
@@ -155,6 +168,11 @@ function SidebarLibrary() {
                       href={desktopPath}
                       icon={game.iconUrl}
                       isFavorite={game.favorite}
+                      active={active}
+                      focusId={focusId}
+                      focusNavigationOverrides={{
+                        right: contentEntryTarget,
+                      }}
                     />
                   </li>
                 );

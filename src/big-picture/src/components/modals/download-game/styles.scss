@@ -1,4 +1,11 @@
 .download-game-modal {
+  --download-game-modal-source-outline-width: 1px;
+  --download-game-modal-source-outline-offset: 2px;
+  --download-game-modal-source-ring-space: calc(
+    var(--download-game-modal-source-outline-width) +
+      var(--download-game-modal-source-outline-offset)
+  );
+
   .modal__content {
     display: flex;
     flex-direction: column;
@@ -46,6 +53,28 @@
     flex-direction: row;
     align-items: center;
     gap: calc(var(--spacing-unit) * 2) !important;
+    padding-inline-end: calc(
+      var(--download-game-modal-source-ring-space) + 1px
+    );
+  }
+
+  &__source-list__sources-carousel {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  &__source-list__sources-viewport {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__source-list__source-slide {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: var(--download-game-modal-source-ring-space);
   }
 
   &__source-list__toolbar {
@@ -80,6 +109,7 @@
     display: flex;
     flex-direction: row;
     gap: 1rem;
+    flex-shrink: 0;
   }
 
   &__source-list__sort-options-select {
@@ -90,9 +120,14 @@
   &__options {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: calc(var(--spacing-unit) * 6);
     width: 100%;
+  }
+
+  &__options-stack {
+    width: 100%;
+    min-width: 0;
   }
 
   &__chosen-repack {
@@ -150,6 +185,16 @@
     font-weight: 400;
     color: var(--text-secondary);
     opacity: 0.8;
+  }
+
+  &__downloader-empty {
+    width: 100%;
+    padding: calc(var(--spacing-unit) * 3);
+    border-radius: calc(var(--spacing-unit) * 2);
+    background: color-mix(in srgb, var(--secondary) 80%, black 20%);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
   }
 
   &__directory {
@@ -232,6 +277,13 @@
     &:nth-child(3):last-child {
       grid-column: 1 / -1;
     }
+  }
+
+  &__download-options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
   }
 
   &__actions {

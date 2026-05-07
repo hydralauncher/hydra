@@ -149,6 +149,11 @@
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: calc(var(--spacing-unit) * 4);
+  padding-right: calc(var(--spacing-unit) * 3);
+}
+
+.downloads-hero__action-focus-proxy {
+  pointer-events: none;
 }
 
 .downloads-hero__empty {
@@ -180,7 +185,7 @@
   }
 
   .downloads-hero__content {
-    padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
+    padding: 0 0 calc(var(--spacing-unit) * 16);
   }
 
   .downloads-hero__active {
@@ -225,5 +230,6 @@
     position: relative;
     justify-content: flex-start;
     flex-wrap: wrap;
+    padding-right: 0;
   }
 }

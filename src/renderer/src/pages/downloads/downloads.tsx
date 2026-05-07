@@ -87,14 +87,18 @@ export default function Downloads() {
       const placement = getDownloadPlacement(next.download);
       if (placement === "hidden") return prev;
 
-      /* Is downloading or extracting */
       const isExtracting =
         isActiveLikeDownload(next.download) ||
         extraction?.visibleId === next.id;
-      if (lastPacket?.gameId === next.id || isExtracting)
+      const hasLiveActivePacket =
+        lastPacket?.gameId === next.id && next.download.status === "active";
+      const isActiveHero = placement === "hero" && next.download.status !== "paused";
+      const isPausedHero = placement === "hero" && next.download.status === "paused";
+
+      if (isActiveHero || hasLiveActivePacket || isExtracting)
         return { ...prev, downloading: [...prev.downloading, next] };
 
-      if (placement === "queue" || placement === "paused")
+      if (placement === "queue" || placement === "paused" || isPausedHero)
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };

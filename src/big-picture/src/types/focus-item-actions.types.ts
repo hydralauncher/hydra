@@ -2,7 +2,7 @@ export type NavigationActionButton = "a" | "b" | "x" | "y" | "start" | "select";
 
 export type NavigationActionMode = "press" | "hold";
 export type FocusItemPressButton = "x" | "y";
-export type FocusItemHoldButton = "a" | "b" | "x";
+export type FocusItemHoldButton = "a" | "b" | "x" | "y";
 export type NavigationTargetType = "item" | "region";
 export type NavigationDirectionAction = "up" | "down" | "left" | "right";
 
@@ -57,6 +57,7 @@ export interface FocusItemActions {
     a?: ActionHandler;
     b?: ActionHandler;
     x?: ActionHandler;
+    y?: ActionHandler;
   };
 }
 
@@ -76,6 +77,7 @@ export interface FocusItemActionsMeta {
   hasHoldA: boolean;
   hasHoldB: boolean;
   hasHoldX: boolean;
+  hasHoldY: boolean;
 }
 
 export const DEFAULT_FOCUS_ITEM_ACTIONS: FocusItemActions = {
@@ -112,5 +114,6 @@ export function getFocusItemActionsMeta(
     hasHoldA: Boolean(resolvedActions.hold?.a),
     hasHoldB: Boolean(resolvedActions.hold?.b),
     hasHoldX: Boolean(resolvedActions.hold?.x),
+    hasHoldY: Boolean(resolvedActions.hold?.y),
   };
 }

@@ -37,8 +37,12 @@ export function useNavigationActions() {
   }, []);
 
   const setFocusRegion = useCallback(
-    (regionId: string, entryDirection: FocusDirection = "right") => {
-      return navigation.setFocusRegion(regionId, entryDirection);
+    (
+      regionId: string,
+      entryDirection: FocusDirection = "right",
+      options?: Parameters<typeof navigation.setFocusRegion>[2]
+    ) => {
+      return navigation.setFocusRegion(regionId, entryDirection, options);
     },
     []
   );

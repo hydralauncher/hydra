@@ -1,3 +1,4 @@
+export const LIBRARY_PAGE_REGION_ID = "library-page";
 export const LIBRARY_HERO_ACTIONS_REGION_ID = "library-hero-actions";
 export const LIBRARY_HERO_LAUNCH_BUTTON_ID = "library-hero-launch-button";
 export const LIBRARY_HERO_OPTIONS_BUTTON_ID = "library-hero-options-button";

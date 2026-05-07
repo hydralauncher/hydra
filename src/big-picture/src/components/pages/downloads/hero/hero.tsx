@@ -1,39 +1,43 @@
-import type { LibraryGame } from "@types";
 import { GearIcon, PauseIcon, PlayIcon } from "@phosphor-icons/react";
 import cn from "classnames";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
-import { useDominantColor } from "../../../../hooks";
-import { getItemFocusTarget } from "../../../../helpers";
-import type { FocusItemActions } from "../../../../types";
+import {
+  getContrastTextColor,
+  getItemFocusTarget,
+  getOptionalItemFocusTarget,
+} from "../../../../helpers";
 import type { FocusOverrides } from "../../../../services";
+import type { FocusItemActions } from "../../../../types";
 import {
   AnimatedHeroImage,
-  Button,
   FocusItem,
   HorizontalFocusGroup,
   Typography,
 } from "../../../common";
-import { useHeroBackgroundLayers } from "../../library/hero/use-hero-background-layers";
 import {
   DOWNLOADS_HERO_ACTIONS_REGION_ID,
   DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
   DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID,
 } from "../navigation";
+import type {
+  DownloadsHeroSnapshot,
+  DownloadsHeroSnapshotLayer,
+} from "./use-downloads-hero-visual-state";
 
 import "./hero.scss";
 
-interface DownloadsHeroDownload {
-  id: string;
-  title: string;
-  href: string;
-  game: LibraryGame;
-}
-
 interface DownloadsHeroProps {
-  download: DownloadsHeroDownload | null;
-  canPauseOrResume: boolean;
-  pauseOrResumeLabel: string;
+  snapshot: DownloadsHeroSnapshot | null;
+  backgroundLayers: DownloadsHeroSnapshotLayer[];
+  getLayerEventHandlers: (layer: DownloadsHeroSnapshotLayer) => {
+    onLoad: () => void;
+    onError: () => void;
+    onTransitionEnd: () => void;
+  };
+  navigationOrder?: number;
+  isInteractive?: boolean;
   onPauseOrResume: () => void;
   onOpenOptions?: () => void;
   onOpenDetails: () => void;
@@ -42,14 +46,70 @@ interface DownloadsHeroProps {
   isDragging?: boolean;
   isDropActive?: boolean;
   isDropDisabled?: boolean;
-  focusId?: string;
+  isMoveModeActive?: boolean;
+  nextListFocusId?: string;
+}
+
+interface HeroActionButtonProps {
+  focusId: string;
+  navigationOverrides: FocusOverrides;
   focusActions?: FocusItemActions;
+  variant: "primary" | "secondary";
+  icon: ReactNode;
+  label: string;
+  disabled?: boolean;
+  style?: CSSProperties;
+  onClick?: () => void;
+}
+
+function HeroActionButton({
+  focusId,
+  navigationOverrides,
+  focusActions,
+  variant,
+  icon,
+  label,
+  disabled = false,
+  style,
+  onClick,
+}: Readonly<HeroActionButtonProps>) {
+  return (
+    <FocusItem
+      id={focusId}
+      actions={focusActions}
+      navigationOverrides={navigationOverrides}
+      asChild
+    >
+      <button
+        type="button"
+        className={cn(
+          "button",
+          `button--${variant}`,
+          "button--large",
+          disabled && "button--disabled"
+        )}
+        onClick={() => {
+          if (disabled) return;
+          onClick?.();
+        }}
+        aria-disabled={disabled}
+        style={style}
+      >
+        <div className="button__icon-container--left button__icon-container">
+          {icon}
+        </div>
+        <p className="button__text">{label}</p>
+      </button>
+    </FocusItem>
+  );
 }
 
 export function DownloadsHero({
-  download,
-  canPauseOrResume,
-  pauseOrResumeLabel,
+  snapshot,
+  backgroundLayers,
+  getLayerEventHandlers,
+  navigationOrder = 0,
+  isInteractive = true,
   onPauseOrResume,
   onOpenOptions,
   onOpenDetails,
@@ -58,20 +118,14 @@ export function DownloadsHero({
   isDragging = false,
   isDropActive = false,
   isDropDisabled = false,
-  focusId,
-  focusActions,
+  isMoveModeActive = false,
+  nextListFocusId,
 }: Readonly<DownloadsHeroProps>) {
   const [shouldShowLogoFallback, setShouldShowLogoFallback] = useState(false);
-  const dominantColor = useDominantColor(
-    download?.game.libraryHeroImageUrl ?? null
-  );
-  const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    download?.game.libraryHeroImageUrl
-  );
 
   useEffect(() => {
     setShouldShowLogoFallback(false);
-  }, [download?.game.logoImageUrl]);
+  }, [snapshot?.id, snapshot?.logoImageUrl]);
 
   const pauseResumeNavigationOverrides = useMemo<FocusOverrides>(
     () => ({
@@ -80,8 +134,9 @@ export function DownloadsHero({
         type: "item",
         itemId: DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
       },
+      down: getOptionalItemFocusTarget(nextListFocusId),
     }),
-    []
+    [nextListFocusId]
   );
 
   const optionsNavigationOverrides = useMemo<FocusOverrides>(
@@ -93,22 +148,54 @@ export function DownloadsHero({
       right: {
         type: "block",
       },
+      down: getOptionalItemFocusTarget(nextListFocusId),
     }),
-    []
+    [nextListFocusId]
   );
 
-  const pauseResumeIcon = pauseOrResumeLabel
-    .toLowerCase()
+  const pauseResumeIcon = snapshot?.pauseOrResumeLabel
+    ?.toLowerCase()
     .includes("resume") ? (
     <PlayIcon size={24} weight="fill" />
   ) : (
     <PauseIcon size={24} weight="fill" />
   );
+  const pauseResumeButtonStyle = useMemo(() => {
+    if (!snapshot?.accentColor) return undefined;
+
+    return {
+      "--button-custom-color": snapshot.accentColor,
+      "--button-custom-hover-color": `color-mix(in srgb, ${snapshot.accentColor} 80%, white)`,
+      "--button-custom-text-color": getContrastTextColor(snapshot.accentColor),
+    } as CSSProperties;
+  }, [snapshot?.accentColor]);
+  const actionsDisabled = isMoveModeActive || !isInteractive;
+  const blockedHeroActions = useMemo<FocusItemActions>(
+    () => ({
+      primary: "off",
+      secondary: "off",
+    }),
+    []
+  );
+  const pauseHeroActions = useMemo<FocusItemActions>(
+    () => ({
+      primary: "auto",
+      secondary: "off",
+    }),
+    []
+  );
+  const optionsHeroActions = useMemo<FocusItemActions>(
+    () => ({
+      primary: "auto",
+      secondary: "off",
+    }),
+    []
+  );
 
   return (
     <section
       className="downloads-hero"
-      aria-label={download?.title ?? "Downloads hero"}
+      aria-label={snapshot?.title ?? "Downloads hero"}
     >
       {backgroundLayers.map((layer) => {
         const layerHandlers = getLayerEventHandlers(layer);
@@ -124,7 +211,7 @@ export function DownloadsHero({
           >
             <AnimatedHeroImage
               className="downloads-hero__bg"
-              imageUrl={layer.imageUrl}
+              imageUrl={layer.snapshot.backgroundImageUrl ?? ""}
               onLoad={layerHandlers.onLoad}
               onError={layerHandlers.onError}
             />
@@ -135,70 +222,79 @@ export function DownloadsHero({
       <div className="downloads-hero__overlay" />
 
       <div className="downloads-hero__content" data-download-drop-target="hero">
-        {download ? (
+        {snapshot ? (
           <div className="downloads-hero__active">
-            <FocusItem id={focusId} actions={focusActions} asChild>
-              <button
-                type="button"
-                className={cn(
-                  "downloads-hero__main",
-                  isDragSource && "downloads-hero__main--drag-source",
-                  isDragging && "downloads-hero__main--dragging",
-                  isDropActive && "downloads-hero__main--drop-active",
-                  isDropDisabled && "downloads-hero__main--drop-disabled",
-                  isMoveGrabbed && "downloads-hero__main--move-grabbed"
+            <button
+              type="button"
+              className={cn(
+                "downloads-hero__main",
+                isDragSource && "downloads-hero__main--drag-source",
+                isDragging && "downloads-hero__main--dragging",
+                isDropActive && "downloads-hero__main--drop-active",
+                isDropDisabled && "downloads-hero__main--drop-disabled",
+                isMoveGrabbed && "downloads-hero__main--move-grabbed"
+              )}
+              onClick={() => {
+                if (!isInteractive) return;
+                onOpenDetails();
+              }}
+              data-download-drag-source={
+                isDragSource && isInteractive ? "true" : undefined
+              }
+              data-drag-placement={
+                isDragSource && isInteractive ? "hero" : undefined
+              }
+              data-game-id={snapshot.id}
+              tabIndex={-1}
+              aria-disabled={!isInteractive}
+            >
+              <div className="downloads-hero__logo">
+                {snapshot.logoImageUrl && !shouldShowLogoFallback ? (
+                  <img
+                    src={snapshot.logoImageUrl}
+                    alt={snapshot.title}
+                    className="downloads-hero__logo-image"
+                    onError={() => setShouldShowLogoFallback(true)}
+                  />
+                ) : (
+                  <span className="downloads-hero__logo-fallback">
+                    {snapshot.title}
+                  </span>
                 )}
-                onClick={onOpenDetails}
-                data-download-drag-source={isDragSource ? "true" : undefined}
-                data-drag-placement={isDragSource ? "hero" : undefined}
-                data-game-id={download.id}
-              >
-                <div className="downloads-hero__logo">
-                  {download.game.logoImageUrl && !shouldShowLogoFallback ? (
-                    <img
-                      src={download.game.logoImageUrl}
-                      alt={download.title}
-                      className="downloads-hero__logo-image"
-                      onError={() => setShouldShowLogoFallback(true)}
-                    />
-                  ) : (
-                    <span className="downloads-hero__logo-fallback">
-                      {download.title}
-                    </span>
-                  )}
-                </div>
-              </button>
-            </FocusItem>
+              </div>
+            </button>
 
             <HorizontalFocusGroup
               className="downloads-hero__actions"
               regionId={DOWNLOADS_HERO_ACTIONS_REGION_ID}
+              navigationOrder={navigationOrder}
             >
-              <Button
-                variant="primary"
-                size="large"
-                color={dominantColor ?? undefined}
-                icon={pauseResumeIcon}
+              <HeroActionButton
                 focusId={DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID}
-                focusNavigationOverrides={pauseResumeNavigationOverrides}
-                disabled={!canPauseOrResume}
+                navigationOverrides={pauseResumeNavigationOverrides}
+                focusActions={actionsDisabled ? blockedHeroActions : pauseHeroActions}
+                variant="primary"
+                icon={pauseResumeIcon}
+                label={snapshot.pauseOrResumeLabel}
+                disabled={actionsDisabled || !snapshot.canPauseOrResume}
+                style={pauseResumeButtonStyle}
                 onClick={onPauseOrResume}
-              >
-                {pauseOrResumeLabel}
-              </Button>
+              />
 
-              <Button
-                variant="secondary"
-                size="large"
-                icon={<GearIcon size={24} />}
+              <HeroActionButton
                 focusId={DOWNLOADS_HERO_OPTIONS_BUTTON_ID}
-                focusNavigationOverrides={optionsNavigationOverrides}
+                navigationOverrides={optionsNavigationOverrides}
+                focusActions={
+                  actionsDisabled ? blockedHeroActions : optionsHeroActions
+                }
+                variant="secondary"
+                icon={<GearIcon size={24} />}
+                label="Options"
+                disabled={actionsDisabled}
                 onClick={() => {
                   onOpenOptions?.();
                 }}
-              >
-                Options
-              </Button>
+              />
             </HorizontalFocusGroup>
           </div>
         ) : (

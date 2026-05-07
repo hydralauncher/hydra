@@ -33,6 +33,7 @@ import {
   useLibraryPageData,
 } from "../../components";
 import { DownloadGameModal } from "../../components/modals";
+import { LIBRARY_PAGE_REGION_ID } from "../../components/pages/library/navigation";
 import { logger } from "@renderer/logger";
 
 import { getBigPictureGameDetailsPath } from "../../helpers";
@@ -275,85 +276,93 @@ export default function LibraryPage() {
 
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
-      <div className="library-page__empty">
-        <p>No games in library</p>
-      </div>
+      <section className="library-page">
+        <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
+          <div className="library-page__empty">
+            <p>No games in library</p>
+          </div>
+        </VerticalFocusGroup>
+      </section>
     );
   }
 
   return (
-    <section className="library-page">
-      <VerticalFocusGroup>
-        <LibraryHero
-          favoriteLoadingGameId={favoriteLoadingGameId}
-          lastPlayedGames={lastPlayedGames}
-          onOpenOptions={(game) => {
-            logOptionsPlaceholder(game, "library-hero");
-          }}
-          onToggleFavorite={toggleFavorite}
-        />
+    <>
+      <section className="library-page">
+        <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
+          <LibraryHero
+            favoriteLoadingGameId={favoriteLoadingGameId}
+            lastPlayedGames={lastPlayedGames}
+            onOpenOptions={(game) => {
+              logOptionsPlaceholder(game, "library-hero");
+            }}
+            onToggleFavorite={toggleFavorite}
+          />
 
-        <LibraryFilters
-          selectedTab={selectedFilterTab}
-          onSelectedTabChange={setSelectedFilterTab}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          filterBy={filterBy}
-          onFilterByChange={setFilterBy}
-          search={search}
-          onSearchChange={setSearch}
-          counts={filterCounts}
-          library={library}
-          collections={collections}
-          firstContentItemId={firstContentItemId}
-        />
+          <LibraryFilters
+            selectedTab={selectedFilterTab}
+            onSelectedTabChange={setSelectedFilterTab}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            filterBy={filterBy}
+            onFilterByChange={setFilterBy}
+            search={search}
+            onSearchChange={setSearch}
+            counts={filterCounts}
+            library={library}
+            collections={collections}
+            firstContentItemId={firstContentItemId}
+          />
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={contentTransitionKey}
-            layout={shouldAnimateContentChange}
-            className="library-page__content-transition"
-            initial={shouldAnimateContentChange ? { opacity: 0, y: 10 } : false}
-            animate={{ opacity: 1, y: 0 }}
-            exit={
-              shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
-            }
-            transition={
-              shouldAnimateContentChange
-                ? {
-                    opacity: { duration: 0.18, ease: "easeOut" },
-                    y: { duration: 0.18, ease: "easeOut" },
-                    layout: { duration: 0.22, ease: "easeOut" },
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={contentTransitionKey}
+              layout={shouldAnimateContentChange}
+              className="library-page__content-transition"
+              initial={
+                shouldAnimateContentChange ? { opacity: 0, y: 10 } : false
+              }
+              animate={{ opacity: 1, y: 0 }}
+              exit={
+                shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
+              }
+              transition={
+                shouldAnimateContentChange
+                  ? {
+                      opacity: { duration: 0.18, ease: "easeOut" },
+                      y: { duration: 0.18, ease: "easeOut" },
+                      layout: { duration: 0.22, ease: "easeOut" },
+                    }
+                  : undefined
+              }
+            >
+              {viewMode === "list" ? (
+                <LibraryFocusList
+                  games={filteredLibrary}
+                  contextMenuGameId={
+                    contextMenuState.visible
+                      ? (contextMenuState.game?.id ?? null)
+                      : null
                   }
-                : undefined
-            }
-          >
-            {viewMode === "list" ? (
-              <LibraryFocusList
-                games={filteredLibrary}
-                contextMenuGameId={
-                  contextMenuState.visible
-                    ? (contextMenuState.game?.id ?? null)
-                    : null
-                }
-                onOpenContextMenu={handleOpenGameContextMenu}
-              />
-            ) : (
-              <LibraryFocusGrid
-                games={filteredLibrary}
-                contextMenuGameId={
-                  contextMenuState.visible
-                    ? (contextMenuState.game?.id ?? null)
-                    : null
-                }
-                onOpenContextMenu={handleOpenGameContextMenu}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </VerticalFocusGroup>
+                  onOpenContextMenu={handleOpenGameContextMenu}
+                />
+              ) : (
+                <LibraryFocusGrid
+                  games={filteredLibrary}
+                  contextMenuGameId={
+                    contextMenuState.visible
+                      ? (contextMenuState.game?.id ?? null)
+                      : null
+                  }
+                  onOpenContextMenu={handleOpenGameContextMenu}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </VerticalFocusGroup>
+      </section>
 
       <LibraryGameContextMenu
         game={contextMenuState.game}
@@ -388,6 +397,6 @@ export default function LibraryPage() {
           game={downloadModalGame}
         />
       ) : null}
-    </section>
+    </>
   );
 }

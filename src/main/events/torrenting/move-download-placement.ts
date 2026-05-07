@@ -31,6 +31,7 @@ function asQueuedDownload(download: Download) {
     ...download,
     status: "paused" as const,
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     extractionProgress: 0,
   };
@@ -41,6 +42,18 @@ function asPausedDownload(download: Download) {
     ...download,
     status: "paused" as const,
     queued: false,
+    pinnedToHero: false,
+    extracting: false,
+    extractionProgress: 0,
+  };
+}
+
+function asPausedHeroDownload(download: Download) {
+  return {
+    ...download,
+    status: "paused" as const,
+    queued: false,
+    pinnedToHero: true,
     extracting: false,
     extractionProgress: 0,
   };
@@ -92,6 +105,7 @@ async function activateDownload(download: Download) {
     ...download,
     status: "active" as const,
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     extractionProgress: 0,
     timestamp: Date.now(),
@@ -102,14 +116,19 @@ async function activateDownload(download: Download) {
   return activeDownload;
 }
 
-async function restoreActiveDownload(download: Download | null) {
+async function restoreHeroDownload(download: Download | null) {
   if (!download) return;
 
   try {
-    await activateDownload(download);
+    if (isActiveLikeDownload(download)) {
+      await activateDownload(download);
+      return;
+    }
+
+    await downloadsSublevel.put(getGameKey(download), asPausedHeroDownload(download));
   } catch (error) {
     logger.error(
-      "[Downloads] Failed to restore previous active download after placement error",
+      "[Downloads] Failed to restore previous hero download after placement error",
       error
     );
   }
@@ -148,6 +167,12 @@ async function moveDownloadPlacement(
   }
 
   const allDownloads = await downloadsSublevel.values().all();
+  const currentHeroDownload =
+    allDownloads.find(
+      (download) =>
+        getDownloadPlacement(download) === "hero" &&
+        !(download.shop === shop && download.objectId === objectId)
+    ) ?? null;
   const activeDownload =
     allDownloads.find(
       (download) =>
@@ -166,8 +191,9 @@ async function moveDownloadPlacement(
 
   if (
     targetArea === "hero" &&
-    activeDownload &&
-    isExtractingDownload(activeDownload)
+    currentHeroDownload &&
+    isActiveLikeDownload(currentHeroDownload) &&
+    isExtractingDownload(currentHeroDownload)
   ) {
     return false;
   }
@@ -243,7 +269,7 @@ async function moveDownloadPlacement(
       try {
         await activateDownload(sourceDownload);
       } catch (error) {
-        await restoreActiveDownload(activeDownload);
+        await restoreHeroDownload(currentHeroDownload);
         logger.error(
           "[Downloads] Failed to promote paused download to hero",
           error
@@ -251,11 +277,19 @@ async function moveDownloadPlacement(
         return false;
       }
 
-      const nextQueue = activeDownload
-        ? [asQueuedDownload(activeDownload), ...queuedDownloadsWithoutSource]
-        : queuedDownloadsWithoutSource;
+      const nextQueue =
+        currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
+          ? [asQueuedDownload(currentHeroDownload), ...queuedDownloadsWithoutSource]
+          : queuedDownloadsWithoutSource;
+      const nextPaused =
+        currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
+          ? [asPausedDownload(currentHeroDownload), ...pausedDownloadsWithoutSource]
+          : pausedDownloadsWithoutSource;
 
       await rewriteQueuedDownloads(nextQueue);
+      if (currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)) {
+        await rewritePausedDownloads(nextPaused);
+      }
       return finalizeSuccess();
     }
   }
@@ -290,7 +324,7 @@ async function moveDownloadPlacement(
       try {
         await activateDownload(sourceDownload);
       } catch (error) {
-        await restoreActiveDownload(activeDownload);
+        await restoreHeroDownload(currentHeroDownload);
         logger.error(
           "[Downloads] Failed to promote queued download to hero",
           error
@@ -298,11 +332,19 @@ async function moveDownloadPlacement(
         return false;
       }
 
-      const nextQueue = activeDownload
-        ? [asQueuedDownload(activeDownload), ...queuedDownloadsWithoutSource]
-        : queuedDownloadsWithoutSource;
+      const nextQueue =
+        currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
+          ? [asQueuedDownload(currentHeroDownload), ...queuedDownloadsWithoutSource]
+          : queuedDownloadsWithoutSource;
+      const nextPaused =
+        currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
+          ? [asPausedDownload(currentHeroDownload), ...pausedDownloadsWithoutSource]
+          : pausedDownloadsWithoutSource;
 
       await rewriteQueuedDownloads(nextQueue);
+      if (currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)) {
+        await rewritePausedDownloads(nextPaused);
+      }
       return finalizeSuccess();
     }
   }
@@ -311,7 +353,9 @@ async function moveDownloadPlacement(
     return false;
   }
 
-  await pauseActiveDownload(sourceDownload);
+  if (isActiveLikeDownload(sourceDownload)) {
+    await pauseActiveDownload(sourceDownload);
+  }
 
   const nextQueuedDownload = getNextQueuedDownload(
     queuedDownloadsWithoutSource
@@ -325,7 +369,7 @@ async function moveDownloadPlacement(
     try {
       await activateDownload(nextQueuedDownload);
     } catch (error) {
-      await restoreActiveDownload(sourceDownload);
+      await restoreHeroDownload(sourceDownload);
       logger.error(
         "[Downloads] Failed to activate next queued download after demoting hero",
         error
@@ -356,7 +400,7 @@ async function moveDownloadPlacement(
   }
 
   if (targetArea === "hero") {
-    await restoreActiveDownload(sourceDownload);
+    await restoreHeroDownload(sourceDownload);
     return finalizeSuccess();
   }
 

@@ -135,5 +135,6 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     openGame,
     closeGame,
     toggleFavorite,
+    updateGame,
   };
 }

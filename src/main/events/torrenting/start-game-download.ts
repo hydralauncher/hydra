@@ -44,6 +44,16 @@ const startGameDownload = async (
       await downloadsSublevel.put(key, {
         ...value,
         status: "paused",
+        pinnedToHero: false,
+      });
+      continue;
+    }
+
+    if (value.pinnedToHero) {
+      await downloadsSublevel.put(key, {
+        ...value,
+        pinnedToHero: false,
+        queued: false,
       });
     }
   }
@@ -65,6 +75,7 @@ const startGameDownload = async (
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,

@@ -29,13 +29,18 @@
     font-weight: 400;
   }
 
-  [data-focus-visible="true"] & {
-    outline: 1px solid var(--primary);
-    outline-offset: 2px;
+  [data-focus-wrapper="true"][data-focus-visible="true"] > a > &,
+  [data-focus-wrapper="true"][data-focus-visible="true"] > button > & {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 6px 10px rgba(0, 0, 0, 0.05);
   }
 
   &--selected {
-    background-color: var(--secondary);
+    background: color-mix(in srgb, var(--surface) 88%, var(--primary) 12%);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--primary) 16%, transparent),
+      0 6px 10px rgba(0, 0, 0, 0.05);
 
     .source-anchor__title {
       color: var(--text);
@@ -47,12 +52,6 @@
   cursor: pointer;
 
   &:hover {
-    background-color: var(--secondary);
-  }
-
-  &:focus-visible {
-    outline: 1px solid var(--primary);
-    outline-offset: 2px;
-    border-radius: var(--spacing-unit);
+    background-color: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
   }
 }

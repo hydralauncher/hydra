@@ -39,7 +39,8 @@
 }
 
 .downloads-network-stats__metric-label,
-.downloads-network-stats__torrent-meta {
+.downloads-network-stats__torrent-meta,
+.downloads-network-stats__downloader {
   color: var(--text-secondary);
 }
 
@@ -49,6 +50,10 @@
     color: var(--text);
     font-weight: 500;
   }
+}
+
+.downloads-network-stats__downloader {
+  margin: 0;
 }
 
 .downloads-network-stats__chart {

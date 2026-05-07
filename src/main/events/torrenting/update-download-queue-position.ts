@@ -47,6 +47,7 @@ export const rewriteQueuedDownloads = async (queuedDownloads: Download[]) => {
           ...queuedDownload,
           status: "paused",
           queued: true,
+          pinnedToHero: false,
           timestamp: baseTimestamp + index,
         }
       )
@@ -72,6 +73,7 @@ export const rewritePausedDownloads = async (pausedDownloads: Download[]) => {
           ...pausedDownload,
           status: "paused",
           queued: false,
+          pinnedToHero: false,
           timestamp: baseTimestamp + index,
         }
       )

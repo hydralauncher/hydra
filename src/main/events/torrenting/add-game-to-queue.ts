@@ -51,6 +51,7 @@ const addGameToQueue = async (
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,

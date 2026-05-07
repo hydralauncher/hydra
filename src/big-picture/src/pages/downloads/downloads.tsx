@@ -8,12 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
-import { getGameLandscapeImageSource, resolveImageSource } from "../../helpers";
-import {
-  useDominantColor,
-  useNavigation,
-  useNavigationScreenActions,
-} from "../../hooks";
+import type { FocusOverrides } from "../../services";
+import { useNavigation, useNavigationScreenActions } from "../../hooks";
 import {
   ContextMenu,
   type ContextMenuItem,
@@ -24,10 +20,22 @@ import {
   Typography,
   VerticalFocusGroup,
 } from "../../components";
-import { DOWNLOADS_HERO_OPTIONS_BUTTON_ID } from "../../components/pages/downloads/navigation";
 import {
+  DOWNLOADS_PAGE_REGION_ID,
+  DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
+  DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID,
+} from "../../components/pages/downloads/navigation";
+import {
+  useDownloadsHeroDisplayState,
+  type DownloadsHeroSnapshot,
+  type DownloadsHeroMenuContext,
+} from "../../components/pages/downloads/hero/use-downloads-hero-visual-state";
+import {
+  getDownloadCoverImageUrl,
+  getDownloadLogoImageUrl,
   useBigPictureDownloadsPageData,
   type BigPictureActiveDownloadItem,
+  type BigPictureDownloadsNetworkStats,
   type BigPictureDownloadListItem,
 } from "./use-big-picture-downloads-page-data";
 
@@ -75,11 +83,18 @@ type PreviewLayoutState = {
 
 type MoveModeState = PreviewLayoutState & {
   sourcePlacement: DragPlacement;
-  moveTarget: DragTarget;
+  moveTarget: PreviewPlacement;
   originalHeroId: string | null;
   originalQueueIds: string[];
   originalPausedIds: string[];
   isCommitting: boolean;
+};
+
+type OptimisticCommitState = {
+  sourceGameId: string;
+  sourcePlacement: DragPlacement;
+  targetPlacement: PreviewPlacement;
+  layout: PreviewLayoutState;
 };
 
 type DownloadMenuState = {
@@ -89,6 +104,13 @@ type DownloadMenuState = {
   restoreFocusId: string | null;
   visible: boolean;
 };
+
+type PreviewScrollBehavior = "keep-visible" | "prefer-center";
+
+const PREVIEW_SCROLL_SAFE_MARGIN = 96;
+const DRAG_EDGE_SCROLL_ZONE_PX = 120;
+const DRAG_EDGE_SCROLL_MIN_STEP_PX = 8;
+const DRAG_EDGE_SCROLL_MAX_STEP_PX = 30;
 
 function isDragSourceData(value: unknown): value is DragSourceData {
   if (!value || typeof value !== "object") return false;
@@ -134,8 +156,24 @@ function getReorderedTargetIndex(targetIndex: number, sourceIndex: number) {
   return targetIndex > sourceIndex ? targetIndex - 1 : targetIndex;
 }
 
+function swapItemsAtIndices(
+  items: string[],
+  leftIndex: number,
+  rightIndex: number
+) {
+  const next = [...items];
+  const temporary = next[leftIndex];
+  next[leftIndex] = next[rightIndex];
+  next[rightIndex] = temporary;
+  return next;
+}
+
 function clampInsertionIndex(targetIndex: number, length: number) {
   return Math.max(0, Math.min(targetIndex, length));
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function insertAtIndex(items: string[], targetIndex: number, gameId: string) {
@@ -258,6 +296,44 @@ function getDownloadOptionsActionFocusId(gameId: string) {
   return `downloads-options-${gameId}`;
 }
 
+function getHeroPrimaryFocusId() {
+  return DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID;
+}
+
+const DOWNLOADS_REGION_NAVIGATION_ORDER = {
+  hero: 0,
+  queue: 1,
+  paused: 2,
+  completed: 3,
+} as const;
+
+function getRepresentativeFocusIdForPlacement(
+  placement: DragPlacement,
+  gameId: string
+) {
+  return placement === "hero"
+    ? getHeroPrimaryFocusId()
+    : getDownloadMainFocusId(gameId);
+}
+
+function getRepresentativeFocusIdForMoveTarget(
+  sourceGameId: string,
+  moveTarget: PreviewPlacement | DragTarget
+) {
+  return moveTarget.kind === "hero"
+    ? getHeroPrimaryFocusId()
+    : getDownloadMainFocusId(sourceGameId);
+}
+
+function getDownloadMenuPosition(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+
+  return {
+    x: rect.left,
+    y: rect.bottom + 4,
+  };
+}
+
 function getPreviewPlacement(
   state: PreviewLayoutState,
   gameId: string
@@ -290,7 +366,7 @@ function getPreviewPlacement(
 function getTargetForPlacement(
   placement: DragPlacement,
   index: number
-): DragTarget {
+): PreviewPlacement {
   if (placement === "hero") {
     return { kind: "hero" };
   }
@@ -301,22 +377,125 @@ function getTargetForPlacement(
   };
 }
 
-function getOriginalPreviewLayoutState(
-  state: MoveModeState
-): PreviewLayoutState {
-  return {
-    sourceGameId: state.sourceGameId,
-    heroId: state.originalHeroId,
-    queueIds: state.originalQueueIds,
-    pausedIds: state.originalPausedIds,
-  };
+function getPreviewPlacementKey(
+  state: PreviewLayoutState | null,
+  sourceGameId: string | null
+) {
+  if (!state || !sourceGameId) return null;
+
+  const placement = getPreviewPlacement(state, sourceGameId);
+  if (!placement) return null;
+
+  return placement.kind === "hero"
+    ? "hero"
+    : `${placement.kind}:${placement.index}`;
+}
+
+function resolvePreviewTargetElement(
+  root: HTMLElement,
+  state: PreviewLayoutState | null,
+  sourceGameId: string | null
+) {
+  if (!state || !sourceGameId) return null;
+
+  const placement = getPreviewPlacement(state, sourceGameId);
+  if (!placement) return null;
+
+  if (placement.kind === "hero") {
+    return root.querySelector<HTMLElement>(
+      "[data-download-drop-target='hero']"
+    );
+  }
+
+  return globalThis.document.getElementById(
+    getDownloadMainFocusId(sourceGameId)
+  );
+}
+
+function scrollPreviewTargetIntoView(
+  container: HTMLElement,
+  target: HTMLElement,
+  behavior: PreviewScrollBehavior
+) {
+  const containerRect = container.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const maxScrollTop = Math.max(
+    0,
+    container.scrollHeight - container.clientHeight
+  );
+  const safeTop = containerRect.top + PREVIEW_SCROLL_SAFE_MARGIN;
+  const safeBottom = containerRect.bottom - PREVIEW_SCROLL_SAFE_MARGIN;
+
+  let nextScrollTop = container.scrollTop;
+
+  if (behavior === "prefer-center") {
+    const targetCenterY = targetRect.top + targetRect.height / 2;
+    const containerCenterY = containerRect.top + containerRect.height / 2;
+    nextScrollTop = container.scrollTop + (targetCenterY - containerCenterY);
+  } else if (targetRect.top < safeTop) {
+    nextScrollTop = container.scrollTop + (targetRect.top - safeTop);
+  } else if (targetRect.bottom > safeBottom) {
+    nextScrollTop = container.scrollTop + (targetRect.bottom - safeBottom);
+  } else {
+    return;
+  }
+
+  container.scrollTop = clamp(nextScrollTop, 0, maxScrollTop);
+}
+
+function getDragTargetFromPoint(root: HTMLElement, x: number, y: number) {
+  const elements = globalThis.document.elementsFromPoint(x, y);
+
+  for (const candidate of elements) {
+    if (!(candidate instanceof HTMLElement)) continue;
+
+    const dropElement = candidate.closest<HTMLElement>(
+      "[data-download-drop-role='card'], [data-download-drop-role='container'], [data-download-drop-target='hero']"
+    );
+
+    if (!dropElement || !root.contains(dropElement)) {
+      continue;
+    }
+
+    if (dropElement.dataset.downloadDropTarget === "hero") {
+      return { kind: "hero" } satisfies DragTarget;
+    }
+
+    const placement = dropElement.dataset.dropPlacement;
+    const rawIndex = dropElement.dataset.dropIndex;
+    const index = Number(rawIndex ?? "0");
+
+    if (
+      (placement !== "queue" && placement !== "paused") ||
+      Number.isNaN(index)
+    ) {
+      continue;
+    }
+
+    if (dropElement.dataset.downloadDropRole === "card") {
+      const bounds = dropElement.getBoundingClientRect();
+      const midpoint = bounds.top + bounds.height / 2;
+
+      return {
+        kind: placement,
+        index: index + (y >= midpoint ? 1 : 0),
+      } satisfies DragTarget;
+    }
+
+    return {
+      kind: placement,
+      index,
+    } satisfies DragTarget;
+  }
+
+  return null;
 }
 
 function getNextMoveTarget(
   state: MoveModeState,
   direction: "up" | "down",
   canPromoteToHero: boolean
-): DragTarget | null {
+): PreviewPlacement | null {
   const placement = getPreviewPlacement(state, state.sourceGameId);
 
   if (!placement) return null;
@@ -347,11 +526,11 @@ function getNextMoveTarget(
 
   if (placement.kind === "hero") {
     if (state.queueIds.length > 0) {
-      return { kind: "queue", index: 1 };
+      return { kind: "queue", index: 0 };
     }
 
     if (state.pausedIds.length > 0) {
-      return { kind: "paused", index: 1 };
+      return { kind: "paused", index: 0 };
     }
 
     return null;
@@ -359,36 +538,192 @@ function getNextMoveTarget(
 
   if (placement.kind === "queue") {
     if (placement.index < state.queueIds.length - 1) {
-      return { kind: "queue", index: placement.index + 2 };
+      return { kind: "queue", index: placement.index + 1 };
     }
 
     return { kind: "paused", index: 0 };
   }
 
   if (placement.index < state.pausedIds.length - 1) {
-    return { kind: "paused", index: placement.index + 2 };
+    return { kind: "paused", index: placement.index + 1 };
   }
 
   return null;
 }
 
-function applyMoveTargetToMoveModeState(
+function applyPreviewPlacementToMoveModeState(
   state: MoveModeState,
-  moveTarget: DragTarget,
+  moveTarget: PreviewPlacement,
   canPromoteToHero: boolean
 ): MoveModeState {
-  const previewLayout = buildPreviewLayoutState(
-    getOriginalPreviewLayoutState(state),
-    state.sourcePlacement,
-    moveTarget,
-    canPromoteToHero
-  );
+  const placement = getPreviewPlacement(state, state.sourceGameId);
 
-  return {
-    ...state,
-    ...previewLayout,
-    moveTarget,
-  };
+  if (!placement) {
+    return state;
+  }
+
+  const sourceGameId = state.sourceGameId;
+
+  if (placement.kind === moveTarget.kind) {
+    if (
+      placement.kind === "hero" ||
+      ("index" in placement &&
+        "index" in moveTarget &&
+        placement.index === moveTarget.index)
+    ) {
+      return state;
+    }
+  }
+
+  if (placement.kind === "hero" && moveTarget.kind === "queue") {
+    const [nextHeroId, ...remainingQueueIds] = state.queueIds;
+
+    if (!nextHeroId) return state;
+
+    return {
+      ...state,
+      heroId: nextHeroId,
+      queueIds: [sourceGameId, ...remainingQueueIds],
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "hero" && moveTarget.kind === "paused") {
+    const [nextHeroId, ...remainingPausedIds] = state.pausedIds;
+
+    if (!nextHeroId) return state;
+
+    return {
+      ...state,
+      heroId: nextHeroId,
+      pausedIds: [sourceGameId, ...remainingPausedIds],
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "queue" && moveTarget.kind === "hero") {
+    if (!canPromoteToHero) return state;
+
+    return {
+      ...state,
+      heroId: sourceGameId,
+      queueIds: [
+        ...(state.heroId ? [state.heroId] : []),
+        ...state.queueIds.filter((id) => id !== sourceGameId),
+      ],
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "queue" && moveTarget.kind === "queue") {
+    return {
+      ...state,
+      queueIds: swapItemsAtIndices(
+        state.queueIds,
+        placement.index,
+        moveTarget.index
+      ),
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "queue" && moveTarget.kind === "paused") {
+    return {
+      ...state,
+      queueIds: state.queueIds.filter((id) => id !== sourceGameId),
+      pausedIds: [sourceGameId, ...state.pausedIds],
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "paused" && moveTarget.kind === "hero") {
+    if (!canPromoteToHero) return state;
+
+    return {
+      ...state,
+      heroId: sourceGameId,
+      queueIds: [...(state.heroId ? [state.heroId] : []), ...state.queueIds],
+      pausedIds: state.pausedIds.filter((id) => id !== sourceGameId),
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "paused" && moveTarget.kind === "queue") {
+    return {
+      ...state,
+      queueIds: [...state.queueIds, sourceGameId],
+      pausedIds: state.pausedIds.filter((id) => id !== sourceGameId),
+      moveTarget,
+    };
+  }
+
+  if (placement.kind === "paused" && moveTarget.kind === "paused") {
+    return {
+      ...state,
+      pausedIds: swapItemsAtIndices(
+        state.pausedIds,
+        placement.index,
+        moveTarget.index
+      ),
+      moveTarget,
+    };
+  }
+
+  return state;
+}
+
+function buildDownloadsMainNavigationOverrides(
+  sectionItemIds: string[][]
+): Record<string, FocusOverrides> {
+  const overridesByItemId: Record<string, FocusOverrides> = {};
+
+  for (
+    let sectionIndex = 0;
+    sectionIndex < sectionItemIds.length;
+    sectionIndex += 1
+  ) {
+    const items = sectionItemIds[sectionIndex];
+
+    if (items.length === 0) continue;
+
+    const previousSectionItems =
+      sectionItemIds
+        .slice(0, sectionIndex)
+        .reverse()
+        .find((candidate) => candidate.length > 0) ?? [];
+    const nextSectionItems =
+      sectionItemIds
+        .slice(sectionIndex + 1)
+        .find((candidate) => candidate.length > 0) ?? [];
+
+    for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+      const itemId = items[itemIndex];
+      const previousItemId =
+        items[itemIndex - 1] ?? previousSectionItems.at(-1) ?? null;
+      const nextItemId = items[itemIndex + 1] ?? nextSectionItems[0] ?? null;
+
+      overridesByItemId[itemId] = {
+        up: previousItemId
+          ? {
+              type: "item",
+              itemId: previousItemId,
+            }
+          : {
+              type: "block",
+            },
+        down: nextItemId
+          ? {
+              type: "item",
+              itemId: nextItemId,
+            }
+          : {
+              type: "block",
+            },
+      };
+    }
+  }
+
+  return overridesByItemId;
 }
 
 function cx(...values: Array<string | false | null | undefined>) {
@@ -430,7 +765,7 @@ function buildPreviewRowItemFromActive(
     id: item.id,
     title: item.title,
     href: item.href,
-    coverImageUrl: resolveImageSource(getGameLandscapeImageSource(item.game)),
+    coverImageUrl: getDownloadCoverImageUrl(item.game),
     metaLabel: item.metaLabel,
     statusLabel: placement === "queue" ? "Queued" : "Paused",
     statusTone: placement === "queue" ? "default" : "paused",
@@ -460,6 +795,7 @@ function buildPreviewHeroItemFromListItem(
     id: item.id,
     title: item.title,
     href: item.href,
+    coverImageUrl: item.coverImageUrl,
     metaLabel: item.metaLabel,
     statusLabel: item.statusLabel,
     statusTone: item.statusTone,
@@ -469,8 +805,21 @@ function buildPreviewHeroItemFromListItem(
     speedLabel: item.speedLabel ?? "Ready when dropped",
     etaLabel: item.etaLabel ?? null,
     sizeLabel: item.sizeLabel ?? item.trailingLabel,
-    canPause: true,
+    pauseOrResumeAction: "pause",
+    canPauseOrResume: true,
+    canMoveFromHero: true,
+    canPromoteToHero: true,
     game: item.game,
+  };
+}
+
+function buildHeroMenuContext(
+  item: BigPictureDownloadListItem,
+  section: "queue" | "paused"
+): DownloadsHeroMenuContext {
+  return {
+    item,
+    section,
   };
 }
 
@@ -510,6 +859,7 @@ export default function Downloads() {
     completedDownloads,
     hasDownloads,
     pauseDownload,
+    resumeDownload,
     startNow,
     sendToQueue,
     moveToPaused,
@@ -523,11 +873,20 @@ export default function Downloads() {
   } = useBigPictureDownloadsPageData();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const suppressOpenRef = useRef(false);
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dragEdgeScrollFrameRef = useRef<number | null>(null);
+  const dragSourceRef = useRef<DragSourceData | null>(null);
+  const lastDragAssistTargetRef = useRef<DragTarget | null>(null);
+  const updateMouseDragPreviewRef = useRef<
+    ((source: DragSourceData, target: DragTarget | null) => void) | null
+  >(null);
   const [dragSource, setDragSource] = useState<DragSourceData | null>(null);
   const [dragTarget, setDragTarget] = useState<DragTarget | null>(null);
   const [dragPreviewState, setDragPreviewState] =
     useState<PreviewLayoutState | null>(null);
   const [moveMode, setMoveMode] = useState<MoveModeState | null>(null);
+  const [optimisticCommitState, setOptimisticCommitState] =
+    useState<OptimisticCommitState | null>(null);
   const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
   const [menuState, setMenuState] = useState<DownloadMenuState>({
     item: null,
@@ -560,9 +919,135 @@ export default function Downloads() {
     [activeDownload]
   );
 
-  const canPromoteToHero = !activeDownload || activeDownload.canPause;
+  const canPromoteToHero = !activeDownload || activeDownload.canPromoteToHero;
   const interactionsLocked = Boolean(moveMode);
-  const previewLayoutState = moveMode ?? dragPreviewState;
+  const previewLayoutState =
+    moveMode ?? dragPreviewState ?? optimisticCommitState?.layout ?? null;
+  const stopDragEdgeAutoScroll = useCallback(() => {
+    if (dragEdgeScrollFrameRef.current !== null) {
+      globalThis.window.cancelAnimationFrame(dragEdgeScrollFrameRef.current);
+      dragEdgeScrollFrameRef.current = null;
+    }
+
+    dragPointerRef.current = null;
+    lastDragAssistTargetRef.current = null;
+  }, []);
+
+  const scrollHeroTargetIntoViewForDrag = useCallback(
+    (container: HTMLElement) => {
+      const heroTarget = container.querySelector<HTMLElement>(
+        "[data-download-drop-target='hero']"
+      );
+      if (!heroTarget) return;
+
+      scrollPreviewTargetIntoView(container, heroTarget, "prefer-center");
+    },
+    []
+  );
+
+  const maybeRunHeroDragAssist = useCallback(
+    (target: DragTarget | null) => {
+      if (target?.kind !== "hero") {
+        lastDragAssistTargetRef.current = target;
+        return;
+      }
+
+      const previousTarget = lastDragAssistTargetRef.current;
+      const isNewHeroTarget = previousTarget?.kind !== "hero";
+      lastDragAssistTargetRef.current = target;
+
+      if (!isNewHeroTarget) return;
+
+      const container = pageRef.current;
+      if (!container || !dragSourceRef.current) return;
+
+      scrollHeroTargetIntoViewForDrag(container);
+    },
+    [scrollHeroTargetIntoViewForDrag]
+  );
+
+  const runDragEdgeAutoScroll = useCallback(() => {
+    const container = pageRef.current;
+    const pointer = dragPointerRef.current;
+
+    if (!container || !pointer || !dragSourceRef.current) {
+      dragEdgeScrollFrameRef.current = null;
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const topZone = rect.top + DRAG_EDGE_SCROLL_ZONE_PX;
+    const bottomZone = rect.bottom - DRAG_EDGE_SCROLL_ZONE_PX;
+    let delta = 0;
+
+    if (pointer.y < topZone) {
+      const intensity = clamp(
+        (topZone - pointer.y) / DRAG_EDGE_SCROLL_ZONE_PX,
+        0,
+        1
+      );
+      delta = -Math.max(
+        DRAG_EDGE_SCROLL_MIN_STEP_PX,
+        DRAG_EDGE_SCROLL_MAX_STEP_PX * intensity
+      );
+    } else if (pointer.y > bottomZone) {
+      const intensity = clamp(
+        (pointer.y - bottomZone) / DRAG_EDGE_SCROLL_ZONE_PX,
+        0,
+        1
+      );
+      delta = Math.max(
+        DRAG_EDGE_SCROLL_MIN_STEP_PX,
+        DRAG_EDGE_SCROLL_MAX_STEP_PX * intensity
+      );
+    }
+
+    if (delta === 0) {
+      dragEdgeScrollFrameRef.current = null;
+      return;
+    }
+
+    const maxScrollTop = Math.max(
+      0,
+      container.scrollHeight - container.clientHeight
+    );
+    const nextScrollTop = clamp(container.scrollTop + delta, 0, maxScrollTop);
+
+    if (nextScrollTop === container.scrollTop) {
+      dragEdgeScrollFrameRef.current = null;
+      return;
+    }
+
+    container.scrollTop = nextScrollTop;
+
+    const nextTarget = getDragTargetFromPoint(container, pointer.x, pointer.y);
+    maybeRunHeroDragAssist(nextTarget);
+    updateMouseDragPreviewRef.current?.(dragSourceRef.current, nextTarget);
+
+    dragEdgeScrollFrameRef.current = globalThis.window.requestAnimationFrame(
+      runDragEdgeAutoScroll
+    );
+  }, [maybeRunHeroDragAssist]);
+
+  const updateDragEdgeAutoScroll = useCallback(
+    (pointer: { x: number; y: number } | null) => {
+      if (!pointer) {
+        stopDragEdgeAutoScroll();
+        return;
+      }
+
+      dragPointerRef.current = pointer;
+
+      if (dragEdgeScrollFrameRef.current !== null) {
+        return;
+      }
+
+      dragEdgeScrollFrameRef.current = globalThis.window.requestAnimationFrame(
+        runDragEdgeAutoScroll
+      );
+    },
+    [runDragEdgeAutoScroll, stopDragEdgeAutoScroll]
+  );
 
   const getGameById = useCallback(
     (gameId: string) => {
@@ -585,11 +1070,66 @@ export default function Downloads() {
     [activeDownload?.id, pausedById, queuedById]
   );
 
-  const commitPlacement = useCallback(
+  const commitPreviewPlacement = useCallback(
     async (
       gameId: string,
       sourcePlacement: DragPlacement,
-      targetPlacement: PreviewPlacement | DragTarget
+      targetPlacement: PreviewPlacement
+    ) => {
+      const game = getGameById(gameId);
+      if (!game) return;
+
+      if (targetPlacement.kind === "hero") {
+        if (sourcePlacement === "hero") return;
+        await startNow(game);
+        return;
+      }
+
+      if (targetPlacement.kind === "paused") {
+        if (sourcePlacement === "paused") {
+          const sourceIndex = pausedDownloads.findIndex(
+            (item) => item.id === gameId
+          );
+          if (sourceIndex === -1 || targetPlacement.index === sourceIndex)
+            return;
+
+          await setPausedDownloadPosition(game, targetPlacement.index);
+          return;
+        }
+
+        await moveToPaused(game, targetPlacement.index);
+        return;
+      }
+
+      if (sourcePlacement === "queue") {
+        const sourceIndex = queuedDownloads.findIndex(
+          (item) => item.id === gameId
+        );
+        if (sourceIndex === -1 || targetPlacement.index === sourceIndex) return;
+
+        await setQueuedDownloadPosition(game, targetPlacement.index);
+        return;
+      }
+
+      await sendToQueue(game, targetPlacement.index);
+    },
+    [
+      getGameById,
+      moveToPaused,
+      pausedDownloads,
+      queuedDownloads,
+      sendToQueue,
+      setPausedDownloadPosition,
+      setQueuedDownloadPosition,
+      startNow,
+    ]
+  );
+
+  const commitDragTarget = useCallback(
+    async (
+      gameId: string,
+      sourcePlacement: DragPlacement,
+      targetPlacement: DragTarget
     ) => {
       const game = getGameById(gameId);
       if (!game) return;
@@ -662,6 +1202,40 @@ export default function Downloads() {
     [activeDownload?.id, pausedDownloads, queuedDownloads]
   );
 
+  const beginOptimisticCommit = useCallback(
+    (
+      sourceGameId: string,
+      sourcePlacement: DragPlacement,
+      targetPlacement: PreviewPlacement
+    ) => {
+      const layout = buildPreviewLayoutState(
+        getBasePreviewLayoutState(sourceGameId),
+        sourcePlacement,
+        targetPlacement,
+        canPromoteToHero
+      );
+      const finalPlacement = getPreviewPlacement(layout, sourceGameId);
+
+      if (!finalPlacement) return null;
+
+      setOptimisticCommitState({
+        sourceGameId,
+        sourcePlacement,
+        targetPlacement: finalPlacement,
+        layout,
+      });
+      setPendingFocusId(
+        getRepresentativeFocusIdForMoveTarget(sourceGameId, finalPlacement)
+      );
+
+      return {
+        layout,
+        finalPlacement,
+      };
+    },
+    [canPromoteToHero, getBasePreviewLayoutState]
+  );
+
   const updateMouseDragPreview = useCallback(
     (source: DragSourceData, target: DragTarget | null) => {
       setDragTarget((current) =>
@@ -688,6 +1262,10 @@ export default function Downloads() {
     },
     [canPromoteToHero, getBasePreviewLayoutState]
   );
+
+  useEffect(() => {
+    updateMouseDragPreviewRef.current = updateMouseDragPreview;
+  }, [updateMouseDragPreview]);
 
   const renderedData = useMemo(() => {
     if (!previewLayoutState) {
@@ -753,12 +1331,233 @@ export default function Downloads() {
   const renderedActiveDownload = renderedData.active;
   const renderedQueuedDownloads = renderedData.queued;
   const renderedPausedDownloads = renderedData.paused;
+  const isHeroOptimisticLoading =
+    Boolean(optimisticCommitState) &&
+    optimisticCommitState?.targetPlacement.kind === "hero" &&
+    optimisticCommitState.sourceGameId === renderedActiveDownload?.id &&
+    activeDownload?.id !== renderedActiveDownload?.id;
+  const isHeroMovePreviewActive =
+    (Boolean(moveMode) &&
+      moveMode?.moveTarget.kind === "hero" &&
+      moveMode?.sourcePlacement !== "hero") ||
+    (Boolean(dragPreviewState) &&
+      dragTarget?.kind === "hero" &&
+      dragSource?.placement !== "hero");
+  const neutralNetworkStats = useMemo<BigPictureDownloadsNetworkStats>(() => {
+    const sampleCount = Math.max(networkStats.speedHistory.length, 1);
+
+    return {
+      speedLabel: "0 B/s",
+      peakSpeedLabel: "0 B/s",
+      speedHistory: Array.from({ length: sampleCount }, () => 0),
+      speedHistoryLabels: Array.from({ length: sampleCount }, () => "0 B/s"),
+      seeds: null,
+      peers: null,
+      showSeedsAndPeers: false,
+    };
+  }, [networkStats.speedHistory.length]);
+  const targetActiveHeroSnapshot = useMemo<DownloadsHeroSnapshot | null>(() => {
+    const sourceDownload =
+      isHeroOptimisticLoading && renderedActiveDownload
+        ? renderedActiveDownload
+        : activeDownload;
+    if (!sourceDownload) return null;
+
+    const backgroundImageUrl = getDownloadCoverImageUrl(sourceDownload.game);
+    const logoImageUrl = getDownloadLogoImageUrl(sourceDownload.game);
+
+    return {
+      id: sourceDownload.id,
+      title: sourceDownload.title,
+      href: sourceDownload.href,
+      backgroundImageUrl,
+      logoImageUrl,
+      accentImageUrl: backgroundImageUrl,
+      accentColor: null,
+      pauseOrResumeLabel:
+        sourceDownload.pauseOrResumeAction === "resume"
+          ? t("resume_download", {
+              defaultValue: "Resume Download",
+            })
+          : t("pause_download", {
+              defaultValue: "Pause Download",
+            }),
+      canPauseOrResume: isHeroOptimisticLoading
+        ? false
+        : (activeDownload?.canPauseOrResume ?? false),
+      progressPanel: {
+        title: isHeroOptimisticLoading
+          ? "Starting Download"
+          : sourceDownload.pauseOrResumeAction === "resume"
+            ? "Paused Download"
+            : "Download In Progress",
+        progress: isHeroOptimisticLoading ? 0 : (activeDownload?.progress ?? 0),
+        progressLabel: isHeroOptimisticLoading
+          ? "0%"
+          : (activeDownload?.progressLabel ?? "0%"),
+        transferLabel: isHeroOptimisticLoading
+          ? "-- / --"
+          : (activeDownload?.transferLabel ?? "-- / --"),
+        etaLabel: isHeroOptimisticLoading
+          ? "--"
+          : (activeDownload?.etaLabel ?? "--"),
+      },
+      networkPanel: {
+        ...(isHeroOptimisticLoading ? neutralNetworkStats : networkStats),
+        downloaderLabel: isHeroOptimisticLoading
+          ? null
+          : (activeDownload?.metaLabel ?? null),
+      },
+      menuContext:
+        !isHeroOptimisticLoading && activeDownload
+          ? buildHeroMenuContext(
+              buildPreviewRowItemFromActive(
+                activeDownload,
+                activeDownload.pauseOrResumeAction === "resume"
+                  ? "paused"
+                  : "queue"
+              ),
+              activeDownload.pauseOrResumeAction === "resume"
+                ? "paused"
+                : "queue"
+            )
+          : null,
+      mode: isHeroOptimisticLoading ? "preview" : "normal",
+    };
+  }, [
+    activeDownload,
+    isHeroOptimisticLoading,
+    networkStats,
+    neutralNetworkStats,
+    renderedActiveDownload,
+    t,
+  ]);
+  const targetPreviewHeroSnapshot =
+    useMemo<DownloadsHeroSnapshot | null>(() => {
+      if (!isHeroMovePreviewActive || !renderedActiveDownload) {
+        return null;
+      }
+
+      const backgroundImageUrl = getDownloadCoverImageUrl(
+        renderedActiveDownload.game
+      );
+      const logoImageUrl = getDownloadLogoImageUrl(renderedActiveDownload.game);
+
+      return {
+        id: renderedActiveDownload.id,
+        title: renderedActiveDownload.title,
+        href: renderedActiveDownload.href,
+        backgroundImageUrl,
+        logoImageUrl,
+        accentImageUrl: backgroundImageUrl,
+        accentColor: null,
+        pauseOrResumeLabel: t("pause_download", {
+          defaultValue: "Pause Download",
+        }),
+        canPauseOrResume: false,
+        progressPanel: {
+          title: "Move Preview",
+          progress: 0,
+          progressLabel: "0%",
+          transferLabel: "-- / --",
+          etaLabel: "--",
+        },
+        networkPanel: {
+          ...neutralNetworkStats,
+          downloaderLabel: null,
+        },
+        menuContext: null,
+        mode: "preview",
+      };
+    }, [
+      isHeroMovePreviewActive,
+      neutralNetworkStats,
+      renderedActiveDownload,
+      t,
+    ]);
+  const targetHeroSnapshot =
+    targetPreviewHeroSnapshot ?? targetActiveHeroSnapshot;
+  const {
+    displayedSnapshot: displayedHeroSnapshot,
+    backgroundLayers: heroBackgroundLayers,
+    getLayerEventHandlers: getHeroLayerEventHandlers,
+    isTransitioning: isHeroSnapshotTransitioning,
+  } = useDownloadsHeroDisplayState(targetHeroSnapshot);
+  const heroPanelState = displayedHeroSnapshot ?? null;
+  const heroInteractionDisabled = Boolean(
+    interactionsLocked ||
+      isHeroSnapshotTransitioning ||
+      displayedHeroSnapshot?.mode !== "normal"
+  );
+  const isHeroOptimisticCommitPending = Boolean(
+    optimisticCommitState &&
+      optimisticCommitState.targetPlacement.kind === "hero" &&
+      (displayedHeroSnapshot?.id !== optimisticCommitState.sourceGameId ||
+        displayedHeroSnapshot?.mode !== "normal" ||
+        isHeroSnapshotTransitioning)
+  );
+  const mainNavigationOverridesByFocusId = useMemo(() => {
+    const heroFocusIds = displayedHeroSnapshot ? [getHeroPrimaryFocusId()] : [];
+    const queueFocusIds = renderedQueuedDownloads.map((item) =>
+      getDownloadMainFocusId(item.id)
+    );
+    const pausedFocusIds = renderedPausedDownloads.map((item) =>
+      getDownloadMainFocusId(item.id)
+    );
+    const completedFocusIds = completedDownloads.map((item) =>
+      getDownloadMainFocusId(item.id)
+    );
+
+    return buildDownloadsMainNavigationOverrides([
+      heroFocusIds,
+      queueFocusIds,
+      pausedFocusIds,
+      completedFocusIds,
+    ]);
+  }, [
+    completedDownloads,
+    displayedHeroSnapshot,
+    renderedPausedDownloads,
+    renderedQueuedDownloads,
+  ]);
+  const firstVisibleListFocusId =
+    renderedQueuedDownloads[0]?.id != null
+      ? getDownloadMainFocusId(renderedQueuedDownloads[0].id)
+      : renderedPausedDownloads[0]?.id != null
+        ? getDownloadMainFocusId(renderedPausedDownloads[0].id)
+        : completedDownloads[0]?.id != null
+          ? getDownloadMainFocusId(completedDownloads[0].id)
+          : undefined;
+  const moveModeTargetFocusId = useMemo(() => {
+    if (!moveMode) return null;
+
+    return getRepresentativeFocusIdForMoveTarget(
+      moveMode.sourceGameId,
+      moveMode.moveTarget
+    );
+  }, [
+    moveMode?.moveTarget.kind,
+    moveMode?.moveTarget.kind === "hero" ? null : moveMode?.moveTarget.index,
+    moveMode?.sourceGameId,
+  ]);
+  const moveModePreviewPlacementKey = useMemo(
+    () =>
+      moveMode ? getPreviewPlacementKey(moveMode, moveMode.sourceGameId) : null,
+    [moveMode]
+  );
+  const dragPreviewPlacementKey = useMemo(
+    () =>
+      dragPreviewState && dragSource
+        ? getPreviewPlacementKey(dragPreviewState, dragSource.gameId)
+        : null,
+    [dragPreviewState, dragSource]
+  );
 
   const visibleMainFocusIds = useMemo(() => {
     const ids: string[] = [];
 
-    if (renderedActiveDownload) {
-      ids.push(getDownloadMainFocusId(renderedActiveDownload.id));
+    if (displayedHeroSnapshot) {
+      ids.push(getHeroPrimaryFocusId());
     }
 
     renderedQueuedDownloads.forEach((item) => {
@@ -769,9 +1568,14 @@ export default function Downloads() {
       ids.push(getDownloadMainFocusId(item.id));
     });
 
+    completedDownloads.forEach((item) => {
+      ids.push(getDownloadMainFocusId(item.id));
+    });
+
     return ids;
   }, [
-    renderedActiveDownload,
+    completedDownloads,
+    displayedHeroSnapshot,
     renderedPausedDownloads,
     renderedQueuedDownloads,
   ]);
@@ -782,13 +1586,143 @@ export default function Downloads() {
 
     const frameId = globalThis.window.requestAnimationFrame(() => {
       setFocus(pendingFocusId);
-      setPendingFocusId(null);
+
+      if (!isHeroOptimisticCommitPending) {
+        setPendingFocusId(null);
+      }
     });
 
     return () => {
       globalThis.window.cancelAnimationFrame(frameId);
     };
-  }, [pendingFocusId, setFocus, visibleMainFocusIds]);
+  }, [
+    isHeroOptimisticCommitPending,
+    pendingFocusId,
+    setFocus,
+    visibleMainFocusIds,
+  ]);
+
+  useEffect(() => {
+    if (!moveModeTargetFocusId) return;
+    if (!visibleMainFocusIds.includes(moveModeTargetFocusId)) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      setFocus(moveModeTargetFocusId);
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [moveModeTargetFocusId, setFocus, visibleMainFocusIds]);
+
+  useEffect(() => {
+    dragSourceRef.current = dragSource;
+  }, [dragSource]);
+
+  useEffect(() => stopDragEdgeAutoScroll, [stopDragEdgeAutoScroll]);
+
+  useEffect(() => {
+    if (!dragSource) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      updateDragEdgeAutoScroll({
+        x: event.clientX,
+        y: event.clientY,
+      });
+    };
+
+    globalThis.window.addEventListener("pointermove", handlePointerMove);
+
+    return () => {
+      globalThis.window.removeEventListener("pointermove", handlePointerMove);
+      stopDragEdgeAutoScroll();
+    };
+  }, [dragSource, stopDragEdgeAutoScroll, updateDragEdgeAutoScroll]);
+
+  useEffect(() => {
+    if (!optimisticCommitState) return;
+
+    const actualLayout = getBasePreviewLayoutState(
+      optimisticCommitState.sourceGameId
+    );
+
+    if (optimisticCommitState.targetPlacement.kind === "hero") {
+      if (
+        displayedHeroSnapshot?.id === optimisticCommitState.sourceGameId &&
+        displayedHeroSnapshot.mode === "normal" &&
+        !isHeroSnapshotTransitioning
+      ) {
+        setOptimisticCommitState(null);
+        if (pendingFocusId === getHeroPrimaryFocusId()) {
+          setPendingFocusId(null);
+        }
+      }
+
+      return;
+    }
+
+    if (arePreviewLayoutsEqual(actualLayout, optimisticCommitState.layout)) {
+      setOptimisticCommitState(null);
+    }
+  }, [
+    displayedHeroSnapshot,
+    getBasePreviewLayoutState,
+    isHeroSnapshotTransitioning,
+    optimisticCommitState,
+    pendingFocusId,
+  ]);
+
+  useEffect(() => {
+    if (!moveMode || !moveModePreviewPlacementKey) return;
+
+    const root = pageRef.current;
+    if (!root) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      const target = resolvePreviewTargetElement(
+        root,
+        moveMode,
+        moveMode.sourceGameId
+      );
+      if (!target) return;
+
+      scrollPreviewTargetIntoView(
+        root,
+        target,
+        moveMode.moveTarget.kind === "hero" ? "prefer-center" : "keep-visible"
+      );
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [moveMode, moveModePreviewPlacementKey]);
+
+  useEffect(() => {
+    if (!dragPreviewState || !dragSource || !dragPreviewPlacementKey) return;
+
+    const root = pageRef.current;
+    if (!root) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      const target = resolvePreviewTargetElement(
+        root,
+        dragPreviewState,
+        dragSource.gameId
+      );
+      if (!target) return;
+
+      scrollPreviewTargetIntoView(
+        root,
+        target,
+        dragTarget?.kind === "hero" ? "prefer-center" : "keep-visible"
+      );
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [dragPreviewPlacementKey, dragPreviewState, dragSource, dragTarget?.kind]);
 
   const beginMoveMode = useCallback(
     (gameId: string) => {
@@ -797,7 +1731,7 @@ export default function Downloads() {
       const placement = getOriginalPlacement(gameId);
       if (!placement) return;
 
-      if (placement === "hero" && !activeDownload?.canPause) {
+      if (placement === "hero" && !activeDownload?.canMoveFromHero) {
         return;
       }
 
@@ -834,7 +1768,12 @@ export default function Downloads() {
   const cancelMoveMode = useCallback(() => {
     if (!moveMode) return;
 
-    setPendingFocusId(getDownloadMainFocusId(moveMode.sourceGameId));
+    setPendingFocusId(
+      getRepresentativeFocusIdForPlacement(
+        moveMode.sourcePlacement,
+        moveMode.sourceGameId
+      )
+    );
     setMoveMode(null);
   }, [moveMode]);
 
@@ -849,7 +1788,7 @@ export default function Downloads() {
         );
         if (!nextTarget) return current;
 
-        return applyMoveTargetToMoveModeState(
+        return applyPreviewPlacementToMoveModeState(
           current,
           nextTarget,
           canPromoteToHero
@@ -862,13 +1801,21 @@ export default function Downloads() {
   const confirmMoveMode = useCallback(async () => {
     if (!moveMode || moveMode.isCommitting) return;
 
+    const finalPlacement = getPreviewPlacement(moveMode, moveMode.sourceGameId);
+    if (!finalPlacement) return;
+
     const isSamePlacement =
       moveMode.heroId === moveMode.originalHeroId &&
       areIdListsEqual(moveMode.queueIds, moveMode.originalQueueIds) &&
       areIdListsEqual(moveMode.pausedIds, moveMode.originalPausedIds);
 
     if (isSamePlacement) {
-      setPendingFocusId(getDownloadMainFocusId(moveMode.sourceGameId));
+      setPendingFocusId(
+        getRepresentativeFocusIdForPlacement(
+          moveMode.sourcePlacement,
+          moveMode.sourceGameId
+        )
+      );
       setMoveMode(null);
       return;
     }
@@ -877,17 +1824,39 @@ export default function Downloads() {
       current ? { ...current, isCommitting: true } : current
     );
 
+    const optimisticCommit = beginOptimisticCommit(
+      moveMode.sourceGameId,
+      moveMode.sourcePlacement,
+      finalPlacement
+    );
+
     try {
-      await commitPlacement(
+      await commitPreviewPlacement(
         moveMode.sourceGameId,
         moveMode.sourcePlacement,
-        moveMode.moveTarget
+        finalPlacement
       );
+    } catch (error) {
+      setOptimisticCommitState(null);
+      setPendingFocusId(
+        getRepresentativeFocusIdForPlacement(
+          moveMode.sourcePlacement,
+          moveMode.sourceGameId
+        )
+      );
+      throw error;
     } finally {
-      setPendingFocusId(getDownloadMainFocusId(moveMode.sourceGameId));
+      if (!optimisticCommit) {
+        setPendingFocusId(
+          getRepresentativeFocusIdForMoveTarget(
+            moveMode.sourceGameId,
+            finalPlacement
+          )
+        );
+      }
       setMoveMode(null);
     }
-  }, [commitPlacement, moveMode]);
+  }, [beginOptimisticCommit, commitPreviewPlacement, moveMode]);
 
   useNavigationScreenActions(
     moveMode
@@ -948,54 +1917,30 @@ export default function Downloads() {
     []
   );
 
-  const heroDownloadMenuContext = useMemo(() => {
-    if (!renderedActiveDownload) return null;
-
-    const listItem =
-      queuedById.get(renderedActiveDownload.id) ??
-      pausedById.get(renderedActiveDownload.id) ??
-      buildPreviewRowItemFromActive(renderedActiveDownload, "queue");
-
-    const section: "queue" | "paused" = pausedById.has(
-      renderedActiveDownload.id
-    )
-      ? "paused"
-      : "queue";
-
-    return { listItem, section };
-  }, [pausedById, queuedById, renderedActiveDownload]);
+  const heroDownloadMenuContext = displayedHeroSnapshot?.menuContext ?? null;
+  const heroPauseTargetDownload =
+    displayedHeroSnapshot?.mode === "normal" &&
+    activeDownload?.id === displayedHeroSnapshot.id
+      ? activeDownload
+      : null;
 
   const handleHeroOptions = useCallback(() => {
-    if (
-      !heroDownloadMenuContext ||
-      !renderedActiveDownload ||
-      interactionsLocked
-    ) {
+    if (!heroDownloadMenuContext || heroInteractionDisabled) {
       return;
     }
 
     const element = globalThis.document.getElementById(
       DOWNLOADS_HERO_OPTIONS_BUTTON_ID
     );
-    const rect = element?.getBoundingClientRect();
-
-    if (!rect) return;
+    if (!(element instanceof HTMLElement)) return;
 
     openDownloadMenu(
-      heroDownloadMenuContext.listItem,
+      heroDownloadMenuContext.item,
       heroDownloadMenuContext.section,
-      {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      },
+      getDownloadMenuPosition(element),
       DOWNLOADS_HERO_OPTIONS_BUTTON_ID
     );
-  }, [
-    heroDownloadMenuContext,
-    interactionsLocked,
-    openDownloadMenu,
-    renderedActiveDownload,
-  ]);
+  }, [heroDownloadMenuContext, heroInteractionDisabled, openDownloadMenu]);
 
   const downloadMenuItems = useMemo<ContextMenuItem[]>(() => {
     if (!menuState.item || !menuState.section) return [];
@@ -1005,28 +1950,10 @@ export default function Downloads() {
     if (menuState.section === "queue") {
       return [
         {
-          id: "start-now",
-          label: t("start_now", { defaultValue: "Start now" }),
-          disabled: interactionsLocked || !canPromoteToHero,
-          onSelect: () => startNow(item.game),
-        },
-        {
           id: "move-to-paused",
-          label: t("move_to_paused", { defaultValue: "Move to paused" }),
+          label: t("pause", { defaultValue: "Pause" }),
           disabled: interactionsLocked,
           onSelect: () => moveToPaused(item.game),
-        },
-        {
-          id: "move-up",
-          label: t("move_up"),
-          disabled: interactionsLocked || !item.canMoveUp,
-          onSelect: () => moveQueuedDownload(item.game, "up"),
-        },
-        {
-          id: "move-down",
-          label: t("move_down"),
-          disabled: interactionsLocked || !item.canMoveDown,
-          onSelect: () => moveQueuedDownload(item.game, "down"),
         },
         {
           id: "cancel",
@@ -1040,18 +1967,6 @@ export default function Downloads() {
 
     if (menuState.section === "paused") {
       return [
-        {
-          id: "start-now",
-          label: t("start_now", { defaultValue: "Start now" }),
-          disabled: interactionsLocked || !canPromoteToHero,
-          onSelect: () => startNow(item.game),
-        },
-        {
-          id: "send-to-queue",
-          label: t("send_to_queue", { defaultValue: "Send to queue" }),
-          disabled: interactionsLocked,
-          onSelect: () => sendToQueue(item.game),
-        },
         {
           id: "cancel",
           label: t("cancel"),
@@ -1141,7 +2056,7 @@ export default function Downloads() {
           element,
           canDrag: () => {
             if (placement === "hero") {
-              return Boolean(activeDownload?.canPause);
+              return Boolean(activeDownload?.canMoveFromHero);
             }
 
             return true;
@@ -1168,7 +2083,7 @@ export default function Downloads() {
           canDrop: ({ source }) => {
             if (!isDragSourceData(source.data)) return false;
             if (source.data.placement === "hero") {
-              return Boolean(activeDownload?.canPause);
+              return Boolean(activeDownload?.canMoveFromHero);
             }
             return true;
           },
@@ -1206,7 +2121,7 @@ export default function Downloads() {
           canDrop: ({ source }) => {
             if (!isDragSourceData(source.data)) return false;
             if (source.data.placement === "hero") {
-              return Boolean(activeDownload?.canPause);
+              return Boolean(activeDownload?.canMoveFromHero);
             }
             return true;
           },
@@ -1264,6 +2179,7 @@ export default function Downloads() {
         onDragStart: ({ source }) => {
           if (!isDragSourceData(source.data)) return;
           setDragSource(source.data);
+          lastDragAssistTargetRef.current = null;
           updateMouseDragPreview(source.data, null);
         },
         onDrag: ({ source, location }) => {
@@ -1273,6 +2189,7 @@ export default function Downloads() {
             ? getDragTargetFromData(location.current.dropTargets[0].data)
             : null;
 
+          maybeRunHeroDragAssist(currentTarget);
           updateMouseDragPreview(source.data, currentTarget);
         },
         onDropTargetChange: ({ source, location }) => {
@@ -1282,14 +2199,17 @@ export default function Downloads() {
             ? getDragTargetFromData(location.current.dropTargets[0].data)
             : null;
 
+          maybeRunHeroDragAssist(currentTarget);
           updateMouseDragPreview(source.data, currentTarget);
         },
         onDrop: ({ source, location }) => {
+          stopDragEdgeAutoScroll();
           setDragSource(null);
           setDragTarget(null);
           setDragPreviewState(null);
 
           if (!isDragSourceData(source.data)) return;
+          const dragSourceData = source.data;
 
           const resolvedTarget = location.current.dropTargets[0]?.data
             ? getDragTargetFromData(location.current.dropTargets[0].data)
@@ -1298,32 +2218,59 @@ export default function Downloads() {
           if (!resolvedTarget) return;
 
           suppressOpenRef.current = true;
+          const optimisticCommit = beginOptimisticCommit(
+            dragSourceData.gameId,
+            dragSourceData.placement,
+            resolvedTarget.kind === "hero"
+              ? resolvedTarget
+              : {
+                  kind: resolvedTarget.kind,
+                  index: resolvedTarget.index,
+                }
+          );
 
-          void commitPlacement(
-            source.data.gameId,
-            source.data.placement,
+          void commitDragTarget(
+            dragSourceData.gameId,
+            dragSourceData.placement,
             resolvedTarget
-          ).finally(() => {
-            globalThis.window.setTimeout(() => {
-              suppressOpenRef.current = false;
-            }, 0);
-          });
+          )
+            .catch(() => {
+              setOptimisticCommitState(null);
+              setPendingFocusId(
+                getRepresentativeFocusIdForPlacement(
+                  dragSourceData.placement,
+                  dragSourceData.gameId
+                )
+              );
+            })
+            .finally(() => {
+              if (!optimisticCommit) {
+                setPendingFocusId(
+                  getRepresentativeFocusIdForMoveTarget(
+                    dragSourceData.gameId,
+                    resolvedTarget
+                  )
+                );
+              }
+              globalThis.window.setTimeout(() => {
+                suppressOpenRef.current = false;
+              }, 0);
+            });
         },
       })
     );
 
     return combine(...cleanupFns);
   }, [
-    activeDownload?.canPause,
+    activeDownload?.canMoveFromHero,
     canPromoteToHero,
-    commitPlacement,
+    beginOptimisticCommit,
+    commitDragTarget,
+    maybeRunHeroDragAssist,
     moveMode,
+    stopDragEdgeAutoScroll,
     updateMouseDragPreview,
   ]);
-
-  const activeDownloadAccentColor = useDominantColor(
-    renderedActiveDownload?.game.libraryHeroImageUrl ?? null
-  );
 
   const getDownloadCardFocusActions = useCallback(
     (
@@ -1349,17 +2296,12 @@ export default function Downloads() {
               const optionsFocusId = getDownloadOptionsActionFocusId(itemId);
               const element =
                 globalThis.document.getElementById(optionsFocusId);
-              const rect = element?.getBoundingClientRect();
-
-              if (!rect) return;
+              if (!(element instanceof HTMLElement)) return;
 
               openDownloadMenu(
                 listItem,
                 section,
-                {
-                  x: rect.left + rect.width / 2,
-                  y: rect.top + rect.height / 2,
-                },
+                getDownloadMenuPosition(element),
                 optionsFocusId
               );
             },
@@ -1383,100 +2325,79 @@ export default function Downloads() {
   }
 
   return (
-    <VerticalFocusGroup asChild>
+    <VerticalFocusGroup regionId={DOWNLOADS_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="downloads-page">
-        {moveMode ? (
-          <div className="downloads-page__move-mode-banner">
-            <Typography variant="h5">
-              {moveMode.isCommitting
-                ? t("move_mode_committing", {
-                    defaultValue: "Applying move...",
-                  })
-                : t("move_mode_title", { defaultValue: "Move mode active" })}
-            </Typography>
-            <Typography className="downloads-page__empty-copy">
-              {moveMode.isCommitting
-                ? t("move_mode_committing_copy", {
-                    defaultValue:
-                      "Please wait while the new position is saved.",
-                  })
-                : t("move_mode_copy", {
-                    defaultValue:
-                      "Use Up/Down to move the card, A to confirm, and B to cancel.",
-                  })}
-            </Typography>
-          </div>
-        ) : null}
-
         <>
           <DownloadsHero
-            download={renderedActiveDownload}
-            canPauseOrResume={Boolean(
-              renderedActiveDownload && !interactionsLocked
-                ? renderedActiveDownload.canPause
-                : false
-            )}
-            pauseOrResumeLabel={t("pause")}
+            snapshot={displayedHeroSnapshot}
+            backgroundLayers={heroBackgroundLayers}
+            getLayerEventHandlers={getHeroLayerEventHandlers}
+            navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.hero}
+            isInteractive={!heroInteractionDisabled}
             onPauseOrResume={() => {
-              if (!renderedActiveDownload) return;
-              void pauseDownload(renderedActiveDownload.game);
+              if (!heroPauseTargetDownload) return;
+              if (heroPauseTargetDownload.pauseOrResumeAction === "resume") {
+                void resumeDownload(heroPauseTargetDownload.game);
+                return;
+              }
+
+              void pauseDownload(heroPauseTargetDownload.game);
             }}
             onOpenOptions={handleHeroOptions}
             onOpenDetails={() => {
-              if (!renderedActiveDownload) return;
-              handleOpen(renderedActiveDownload.href);
+              if (!displayedHeroSnapshot) return;
+              handleOpen(displayedHeroSnapshot.href);
             }}
             isMoveGrabbed={
-              Boolean(renderedActiveDownload) &&
-              grabbedGameId === renderedActiveDownload?.id
+              Boolean(displayedHeroSnapshot) &&
+              grabbedGameId === displayedHeroSnapshot?.id
             }
-            isDragSource={Boolean(renderedActiveDownload) && !moveMode}
-            isDragging={dragSource?.gameId === renderedActiveDownload?.id}
+            isDragSource={
+              Boolean(displayedHeroSnapshot) && !heroInteractionDisabled
+            }
+            isDragging={dragSource?.gameId === displayedHeroSnapshot?.id}
             isDropActive={areTargetsEqual(dragTarget, { kind: "hero" })}
-            isDropDisabled={Boolean(
-              renderedActiveDownload && !canPromoteToHero
-            )}
-            focusId={
-              renderedActiveDownload
-                ? getDownloadMainFocusId(renderedActiveDownload.id)
-                : undefined
-            }
-            focusActions={
-              renderedActiveDownload && heroDownloadMenuContext
-                ? getDownloadCardFocusActions(
-                    renderedActiveDownload.id,
-                    renderedActiveDownload.canPause,
-                    heroDownloadMenuContext.listItem,
-                    heroDownloadMenuContext.section,
-                    interactionsLocked
-                  )
-                : undefined
-            }
+            isDropDisabled={Boolean(displayedHeroSnapshot && !canPromoteToHero)}
+            isMoveModeActive={Boolean(moveMode)}
+            nextListFocusId={firstVisibleListFocusId}
           />
 
           <div className="downloads-page__hero-stats-stack">
             <DownloadsProgressStats
-              title={
-                renderedActiveDownload
-                  ? "Download In Progress"
-                  : "Waiting Download"
+              title={heroPanelState?.progressPanel.title ?? "Waiting Download"}
+              progress={heroPanelState?.progressPanel.progress ?? 0}
+              progressLabel={
+                heroPanelState?.progressPanel.progressLabel ?? "0%"
               }
-              progress={renderedActiveDownload?.progress ?? 0}
-              progressLabel={renderedActiveDownload?.progressLabel ?? "0%"}
-              transferLabel={renderedActiveDownload?.transferLabel ?? "-- / --"}
-              etaLabel={renderedActiveDownload?.etaLabel ?? "--"}
-              accentColor={activeDownloadAccentColor ?? undefined}
+              transferLabel={
+                heroPanelState?.progressPanel.transferLabel ?? "-- / --"
+              }
+              etaLabel={heroPanelState?.progressPanel.etaLabel ?? "--"}
+              accentColor={displayedHeroSnapshot?.accentColor ?? undefined}
             />
 
             <DownloadsNetworkStats
-              speedLabel={networkStats.speedLabel}
-              peakSpeedLabel={networkStats.peakSpeedLabel}
-              speedHistory={networkStats.speedHistory}
-              speedHistoryLabels={networkStats.speedHistoryLabels}
-              seeds={networkStats.seeds}
-              peers={networkStats.peers}
-              showSeedsAndPeers={networkStats.showSeedsAndPeers}
-              accentColor={activeDownloadAccentColor ?? undefined}
+              speedLabel={heroPanelState?.networkPanel.speedLabel ?? "0 B/s"}
+              peakSpeedLabel={
+                heroPanelState?.networkPanel.peakSpeedLabel ?? "0 B/s"
+              }
+              speedHistory={
+                heroPanelState?.networkPanel.speedHistory ??
+                neutralNetworkStats.speedHistory
+              }
+              speedHistoryLabels={
+                heroPanelState?.networkPanel.speedHistoryLabels ??
+                neutralNetworkStats.speedHistoryLabels
+              }
+              downloaderLabel={
+                heroPanelState?.networkPanel.downloaderLabel ?? null
+              }
+              seeds={heroPanelState?.networkPanel.seeds ?? null}
+              peers={heroPanelState?.networkPanel.peers ?? null}
+              showSeedsAndPeers={
+                heroPanelState?.networkPanel.showSeedsAndPeers ?? false
+              }
+              accentColor={displayedHeroSnapshot?.accentColor ?? undefined}
             />
           </div>
         </>
@@ -1484,6 +2405,7 @@ export default function Downloads() {
         <Section title="Queued" count={renderedQueuedDownloads.length}>
           <VerticalFocusGroup
             className="downloads-page__list"
+            navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.queue}
             data-download-drop-role="container"
             data-download-drop-target="queue"
             data-drop-placement="queue"
@@ -1497,9 +2419,6 @@ export default function Downloads() {
                     "downloads-page__drop-target--active"
                 )}
               >
-                <Typography variant="h5">
-                  {t("queue_empty_title", { defaultValue: "Queue is empty" })}
-                </Typography>
                 <Typography className="downloads-page__empty-copy">
                   {t("queue_empty_copy", {
                     defaultValue:
@@ -1516,6 +2435,8 @@ export default function Downloads() {
                 variant="queue"
                 title={item.title}
                 coverImageUrl={item.coverImageUrl}
+                logoImageUrl={getDownloadLogoImageUrl(item.game)}
+                metaLabel={item.metaLabel}
                 secondaryLabel={item.secondaryLabel}
                 progress={item.progress}
                 progressLabel={item.progressLabel}
@@ -1524,14 +2445,10 @@ export default function Downloads() {
                 primaryActionLabel={t("pause")}
                 primaryActionDisabled={interactionsLocked}
                 onOpenOptions={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
                   openDownloadMenu(
                     item,
                     "queue",
-                    {
-                      x: rect.left + rect.width / 2,
-                      y: rect.top + rect.height / 2,
-                    },
+                    getDownloadMenuPosition(event.currentTarget),
                     getDownloadOptionsActionFocusId(item.id)
                   );
                 }}
@@ -1539,8 +2456,14 @@ export default function Downloads() {
                 dragPlacement={!moveMode ? "queue" : undefined}
                 dropPlacement="queue"
                 dropIndex={index}
+                navigationOrder={index}
                 isDragging={dragSource?.gameId === item.id}
                 focusId={getDownloadMainFocusId(item.id)}
+                navigationOverrides={
+                  mainNavigationOverridesByFocusId[
+                    getDownloadMainFocusId(item.id)
+                  ]
+                }
                 focusActions={getDownloadCardFocusActions(
                   item.id,
                   true,
@@ -1559,6 +2482,7 @@ export default function Downloads() {
         <Section title={t("paused")} count={renderedPausedDownloads.length}>
           <VerticalFocusGroup
             className="downloads-page__list"
+            navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.paused}
             data-download-drop-role="container"
             data-download-drop-target="paused"
             data-drop-placement="paused"
@@ -1589,6 +2513,8 @@ export default function Downloads() {
                 variant="paused"
                 title={item.title}
                 coverImageUrl={item.coverImageUrl}
+                logoImageUrl={getDownloadLogoImageUrl(item.game)}
+                metaLabel={item.metaLabel}
                 secondaryLabel={item.secondaryLabel}
                 progress={item.progress}
                 progressLabel={item.progressLabel}
@@ -1597,14 +2523,10 @@ export default function Downloads() {
                 primaryActionLabel={t("resume")}
                 primaryActionDisabled={interactionsLocked}
                 onOpenOptions={(event) => {
-                  const rect = event.currentTarget.getBoundingClientRect();
                   openDownloadMenu(
                     item,
                     "paused",
-                    {
-                      x: rect.left + rect.width / 2,
-                      y: rect.top + rect.height / 2,
-                    },
+                    getDownloadMenuPosition(event.currentTarget),
                     getDownloadOptionsActionFocusId(item.id)
                   );
                 }}
@@ -1612,8 +2534,14 @@ export default function Downloads() {
                 dragPlacement={!moveMode ? "paused" : undefined}
                 dropPlacement="paused"
                 dropIndex={index}
+                navigationOrder={index}
                 isDragging={dragSource?.gameId === item.id}
                 focusId={getDownloadMainFocusId(item.id)}
+                navigationOverrides={
+                  mainNavigationOverridesByFocusId[
+                    getDownloadMainFocusId(item.id)
+                  ]
+                }
                 focusActions={getDownloadCardFocusActions(
                   item.id,
                   true,
@@ -1634,31 +2562,38 @@ export default function Downloads() {
             title={t("downloads_completed")}
             count={completedDownloads.length}
           >
-            <VerticalFocusGroup className="downloads-page__list">
-              {completedDownloads.map((item) => (
+            <VerticalFocusGroup
+              className="downloads-page__list"
+              navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.completed}
+            >
+              {completedDownloads.map((item, index) => (
                 <DownloadsGameCard
                   key={item.id}
                   gameId={item.id}
                   variant="completed"
                   title={item.title}
                   coverImageUrl={item.coverImageUrl}
+                  logoImageUrl={getDownloadLogoImageUrl(item.game)}
+                  metaLabel={item.metaLabel}
                   secondaryLabel={item.secondaryLabel}
                   rightStatusLabel={item.rightStatusLabel}
                   onOpen={() => handleOpen(item.href)}
                   onOpenOptions={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
                     openDownloadMenu(
                       item,
                       "completed",
-                      {
-                        x: rect.left + rect.width / 2,
-                        y: rect.top + rect.height / 2,
-                      },
+                      getDownloadMenuPosition(event.currentTarget),
                       getDownloadOptionsActionFocusId(item.id)
                     );
                   }}
                   optionsDisabled={interactionsLocked}
+                  navigationOrder={index}
                   focusId={getDownloadMainFocusId(item.id)}
+                  navigationOverrides={
+                    mainNavigationOverridesByFocusId[
+                      getDownloadMainFocusId(item.id)
+                    ]
+                  }
                   focusActions={getDownloadCardFocusActions(
                     item.id,
                     false,
