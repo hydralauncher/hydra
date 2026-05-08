@@ -6,6 +6,7 @@ import {
   CheckboxField,
   Link,
   ProtonPathPicker,
+  TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
@@ -36,6 +37,9 @@ export function SettingsContextCompatibility() {
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
     useState("");
+  const [defaultWinePrefixBasePath, setDefaultWinePrefixBasePath] =
+    useState("");
+  const [defaultWinePrefixPath, setDefaultWinePrefixPath] = useState("");
 
   const [autoRunMangohud, setAutoRunMangohud] = useState(false);
   const [autoRunGamemode, setAutoRunGamemode] = useState(false);
@@ -80,7 +84,10 @@ export function SettingsContextCompatibility() {
     setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     setAutoRunMangohud(userPreferences.autoRunMangohud ?? false);
     setAutoRunGamemode(userPreferences.autoRunGamemode ?? false);
-  }, [userPreferences]);
+    setDefaultWinePrefixPath(
+      userPreferences.defaultWinePrefixPath ?? defaultWinePrefixBasePath
+    );
+  }, [defaultWinePrefixBasePath, userPreferences]);
 
   useEffect(() => {
     if (window.electron.platform !== "linux") {
@@ -98,6 +105,28 @@ export function SettingsContextCompatibility() {
       .isMangohudAvailable()
       .then(setMangohudAvailable)
       .catch(() => setMangohudAvailable(false));
+  }, []);
+
+  useEffect(() => {
+    if (window.electron.platform !== "linux") {
+      setDefaultWinePrefixBasePath("");
+      setDefaultWinePrefixPath("");
+      return;
+    }
+
+    window.electron
+      .getDefaultWinePrefixSelectionPath()
+      .then((path) => {
+        const resolvedPath = path ?? "";
+        setDefaultWinePrefixBasePath(resolvedPath);
+        setDefaultWinePrefixPath(
+          userPreferences?.defaultWinePrefixPath ?? resolvedPath
+        );
+      })
+      .catch(() => {
+        setDefaultWinePrefixBasePath("");
+        setDefaultWinePrefixPath(userPreferences?.defaultWinePrefixPath ?? "");
+      });
   }, []);
 
   useEffect(() => {
@@ -134,9 +163,12 @@ export function SettingsContextCompatibility() {
     ns: ["settings", "game_details"],
   });
 
-  const protonSourceCompatibilityTools = t("proton_source_compatibility_tools", {
+  const protonSourceCompatibilityTools = t(
+    "proton_source_compatibility_tools",
+    {
       ns: ["settings", "game_details"],
-  });
+    }
+  );
 
   const handleInstallCommonRedist = async () => {
     setInstallingCommonRedist(true);
@@ -148,11 +180,74 @@ export function SettingsContextCompatibility() {
     }
   };
 
+  const handleChooseDefaultWinePrefixPath = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      defaultPath: defaultWinePrefixPath,
+      properties: ["openDirectory"],
+    });
+
+    if (!filePaths.length) return;
+
+    const nextPath = filePaths[0];
+    setDefaultWinePrefixPath(nextPath);
+    await updateUserPreferences({ defaultWinePrefixPath: nextPath });
+  };
+
+  const handleClearDefaultWinePrefixPath = async () => {
+    await updateUserPreferences({ defaultWinePrefixPath: null });
+
+    window.electron
+      .getDefaultWinePrefixSelectionPath()
+      .then((path) => {
+        const resolvedPath = path ?? "";
+        setDefaultWinePrefixBasePath(resolvedPath);
+        setDefaultWinePrefixPath(resolvedPath);
+      })
+      .catch(() => {
+        setDefaultWinePrefixPath(defaultWinePrefixBasePath);
+      });
+  };
+
+  const hasCustomDefaultWinePrefixPath =
+    userPreferences?.defaultWinePrefixPath != null;
+
   return (
     <div className="settings-context-panel settings-context-compatibility">
       {window.electron.platform === "linux" && (
         <div className="settings-context-panel__group">
           <div className="settings-context-compatibility__stack">
+            <div className="settings-context-compatibility__section">
+              <TextField
+                label={t("default_wine_prefix", {
+                  defaultValue: "Default Wine prefix location",
+                })}
+                value={defaultWinePrefixPath}
+                readOnly
+                disabled
+                placeholder={t("no_directory_selected")}
+                rightContent={
+                  <>
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={handleChooseDefaultWinePrefixPath}
+                    >
+                      {t("change")}
+                    </Button>
+                    {hasCustomDefaultWinePrefixPath && (
+                      <Button
+                        type="button"
+                        theme="outline"
+                        onClick={handleClearDefaultWinePrefixPath}
+                      >
+                        {t("clear")}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+            </div>
+
             <div className="settings-behavior__proton-section settings-context-compatibility__section">
               <p className="settings-behavior__proton-description">
                 {t("default_proton_version_description")}
@@ -203,9 +298,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_gamemode_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_gamemode_prefix")}</span>
                       <Link
                         to={GAMEMODE_SITE_URL}
                         className="settings-behavior__gamemode-link"
@@ -254,9 +347,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_mangohud_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_mangohud_prefix")}</span>
                       <Link
                         to={MANGOHUD_SITE_URL}
                         className="settings-behavior__mangohud-link"

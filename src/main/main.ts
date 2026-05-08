@@ -21,6 +21,7 @@ import {
   DeckyPlugin,
   DownloadSourcesChecker,
   WSClient,
+  Wine,
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
@@ -58,6 +59,8 @@ export const loadState = async () => {
       valueEncoding: "json",
     }
   );
+
+  Wine.syncUserPreferences(userPreferences);
 
   await import("./events");
 

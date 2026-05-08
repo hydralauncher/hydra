@@ -1,10 +1,11 @@
 import { registerEvent } from "../register-event";
+import path from "node:path";
 
 import type { UserPreferences } from "@types";
 import i18next from "i18next";
-import { db, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager } from "@main/services";
+import { DownloadManager, Wine } from "@main/services";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -24,6 +25,41 @@ const updateUserPreferences = async (
     patchUserProfile({ language: preferences.language }).catch(() => {});
   }
 
+  const shouldPinExistingWinePrefixes =
+    process.platform === "linux" &&
+    Object.hasOwn(preferences, "defaultWinePrefixPath") &&
+    preferences.defaultWinePrefixPath !==
+      userPreferences?.defaultWinePrefixPath;
+
+  if (shouldPinExistingWinePrefixes) {
+    const games = await gamesSublevel.values().all();
+
+    await Promise.all(
+      games.map(async (game) => {
+        if (game.winePrefixPath || !game.executablePath) {
+          return;
+        }
+
+        if (path.extname(game.executablePath).toLowerCase() !== ".exe") {
+          return;
+        }
+
+        const resolvedWinePrefixPath = Wine.getDefaultPrefixPathForGame(
+          game.objectId
+        );
+
+        if (!resolvedWinePrefixPath) {
+          return;
+        }
+
+        await gamesSublevel.put(levelKeys.game(game.shop, game.objectId), {
+          ...game,
+          winePrefixPath: resolvedWinePrefixPath,
+        });
+      })
+    );
+  }
+
   await db.put<string, UserPreferences>(
     levelKeys.userPreferences,
     {
@@ -34,6 +70,11 @@ const updateUserPreferences = async (
       valueEncoding: "json",
     }
   );
+
+  Wine.syncUserPreferences({
+    ...userPreferences,
+    ...preferences,
+  });
 
   if (Object.hasOwn(preferences, "maxDownloadSpeedBytesPerSecond")) {
     await DownloadManager.applyDownloadSpeedLimit(
