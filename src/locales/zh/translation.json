@@ -758,6 +758,7 @@
     "no_sound_file_selected": "No sound file selected",
     "downloads": "Downloads",
     "create_start_menu_shortcut_on_download": "Create Start Menu shortcut when game finishes downloading",
+    "default_wine_prefix": "Default Wine prefix location",
     "default_proton_version": "Default Proton version",
     "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override",
     "proton_version_auto": "Auto (global default or umu default)",
