@@ -98,6 +98,13 @@ export const loadState = async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
     WSClient.connect();
+
+    if (userPreferences?.steamAutoSyncOnStartup) {
+      const { runSteamStartupSync } = await import(
+        "./services/steam-startup-sync"
+      );
+      void runSteamStartupSync(userPreferences);
+    }
   });
 
   const downloads = await downloadsSublevel

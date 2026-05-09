@@ -267,6 +267,45 @@ declare global {
     authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
     authenticateAllDebrid: (apiToken: string) => Promise<AllDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
+    authenticateSteam: () => Promise<{ steamId: string }>;
+    importSteamAchievements: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<{ importedCount: number; newCount: number }>;
+    syncAllSteamAchievements: () => Promise<{
+      total: number;
+      synced: number;
+      totalNew: number;
+      cancelled: boolean;
+    }>;
+    syncSteamLibrary: () => Promise<{
+      total: number;
+      imported: number;
+      updated: number;
+      skipped: number;
+      cancelled: boolean;
+    }>;
+    onSteamAchievementsSyncProgress: (
+      cb: (progress: {
+        current: number;
+        total: number;
+        gameTitle: string;
+        done?: boolean;
+      }) => void
+    ) => () => Electron.IpcRenderer;
+    cancelSteamSync: (type: "achievements" | "library") => Promise<void>;
+    fetchSteamProfile: () => Promise<{
+      displayName: string;
+      avatarUrl: string;
+    }>;
+    onSteamLibrarySyncProgress: (
+      cb: (progress: {
+        current: number;
+        total: number;
+        gameTitle: string;
+        done?: boolean;
+      }) => void
+    ) => () => Electron.IpcRenderer;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>

@@ -1,4 +1,10 @@
 import "./authenticate-real-debrid";
+import "./authenticate-steam";
+import "./import-steam-achievements";
+import "./sync-all-steam-achievements";
+import "./sync-steam-library";
+import "./cancel-steam-sync";
+import "./fetch-steam-profile";
 import "./authenticate-premiumize";
 import "./authenticate-all-debrid";
 import "./authenticate-torbox";
