@@ -1,6 +1,5 @@
 import type { LibraryGame } from "@types";
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 
 import { ContextMenu } from "../../common";
 import { buildLibraryGameContextMenuItems } from "./game-context-menu-items";
@@ -36,13 +35,10 @@ export function LibraryGameContextMenu({
   onUninstall,
   onRemoveFromLibrary,
 }: Readonly<LibraryGameContextMenuProps>) {
-  const { t } = useTranslation("library");
-
   const items = useMemo(() => {
     if (!game) return [];
 
     return buildLibraryGameContextMenuItems(
-      t,
       game,
       {
         onLaunchOrDownload,
@@ -65,7 +61,6 @@ export function LibraryGameContextMenu({
     onToggleFavorite,
     onUninstall,
     onViewAchievements,
-    t,
   ]);
 
   if (!game) {
@@ -74,7 +69,7 @@ export function LibraryGameContextMenu({
 
   return (
     <ContextMenu
-      ariaLabel={t("context_menu_accessible_label")}
+      ariaLabel="Game context menu"
       items={items}
       visible={visible}
       position={position}

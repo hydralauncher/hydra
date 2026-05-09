@@ -2,7 +2,6 @@ import "./filters.scss";
 
 import type { GameCollection, LibraryGame } from "@types";
 import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { logger } from "@renderer/logger";
 
 import {
@@ -109,8 +108,6 @@ export function LibraryFilters({
   collections,
   firstContentItemId = null,
 }: Readonly<LibraryFiltersProps>) {
-  const { t } = useTranslation("library");
-
   const tabDownOverride = useMemo(
     () =>
       firstContentItemId
@@ -395,7 +392,7 @@ export function LibraryFilters({
               <button
                 type="button"
                 className="tabs__tab"
-                aria-label={t("new_folder")}
+                aria-label="New Folder"
                 onClick={() => {
                   logger.log("library new folder clicked");
                 }}
@@ -406,7 +403,7 @@ export function LibraryFilters({
                     size={16}
                     aria-hidden="true"
                   />
-                  <span>{t("new_folder")}</span>
+                  <span>New Folder</span>
                 </span>
               </button>
             </FocusItem>

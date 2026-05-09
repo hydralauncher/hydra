@@ -6,7 +6,6 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { LibraryGame } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
@@ -922,7 +921,6 @@ function Section({
 
 export default function Downloads() {
   const navigate = useNavigate();
-  const { t } = useTranslation("downloads");
   const { setFocus } = useNavigation();
   const { currentFocusId, nodes } = useNavigationSnapshot();
   const {
@@ -1458,12 +1456,8 @@ export default function Downloads() {
       accentColor: null,
       pauseOrResumeLabel:
         sourceDownload.pauseOrResumeAction === "resume"
-          ? t("resume_download", {
-              defaultValue: "Resume Download",
-            })
-          : t("pause_download", {
-              defaultValue: "Pause Download",
-            }),
+          ? "Resume Download"
+          : "Pause Download",
       canPauseOrResume: isHeroOptimisticLoading
         ? false
         : (activeDownload?.canPauseOrResume ?? false),
@@ -1498,7 +1492,6 @@ export default function Downloads() {
     networkStats,
     neutralNetworkStats,
     renderedActiveDownload,
-    t,
   ]);
   const targetPreviewHeroSnapshot =
     useMemo<DownloadsHeroSnapshot | null>(() => {
@@ -1519,9 +1512,7 @@ export default function Downloads() {
         logoImageUrl,
         accentImageUrl: backgroundImageUrl,
         accentColor: null,
-        pauseOrResumeLabel: t("pause_download", {
-          defaultValue: "Pause Download",
-        }),
+        pauseOrResumeLabel: "Pause Download",
         canPauseOrResume: false,
         progressPanel: {
           title: "Move Preview",
@@ -1540,7 +1531,6 @@ export default function Downloads() {
       isHeroMovePreviewActive,
       neutralNetworkStats,
       renderedActiveDownload,
-      t,
     ]);
   const targetHeroSnapshot =
     targetPreviewHeroSnapshot ?? targetActiveHeroSnapshot;
@@ -2148,13 +2138,13 @@ export default function Downloads() {
       return [
         {
           id: "move-to-paused",
-          label: t("pause", { defaultValue: "Pause" }),
+          label: "Pause",
           disabled: interactionsLocked,
           onSelect: () => moveToPaused(item.game),
         },
         {
           id: "cancel",
-          label: t("cancel"),
+          label: "Cancel",
           danger: true,
           disabled: interactionsLocked,
           restoreFocusOnClose: false,
@@ -2167,7 +2157,7 @@ export default function Downloads() {
       return [
         {
           id: "cancel",
-          label: t("cancel"),
+          label: "Cancel",
           danger: true,
           disabled: interactionsLocked,
           restoreFocusOnClose: false,
@@ -2183,8 +2173,8 @@ export default function Downloads() {
               id: "toggle-seeding",
               label:
                 item.seedAction === "pause"
-                  ? t("stop_seeding")
-                  : t("resume_seeding"),
+                  ? "Stop Seeding"
+                  : "Resume Seeding",
               disabled: interactionsLocked,
               onSelect: () => {
                 if (item.seedAction === "pause") {
@@ -2200,7 +2190,7 @@ export default function Downloads() {
         ? [
             {
               id: "remove",
-              label: t("remove"),
+              label: "Remove",
               danger: true,
               disabled: interactionsLocked,
               restoreFocusOnClose: false,
@@ -2222,7 +2212,6 @@ export default function Downloads() {
     resumeSeeding,
     sendToQueue,
     startNow,
-    t,
   ]);
 
   useEffect(() => {
@@ -2515,9 +2504,9 @@ export default function Downloads() {
     return (
       <div className="downloads-page downloads-page--empty">
         <div className="downloads-page__empty-state">
-          <Typography variant="h2">{t("no_downloads_title")}</Typography>
+          <Typography variant="h2">No downloads yet</Typography>
           <Typography className="downloads-page__empty-copy">
-            {t("no_downloads_description")}
+            Start a download to see it here.
           </Typography>
         </div>
       </div>
@@ -2628,10 +2617,7 @@ export default function Downloads() {
                 )}
               >
                 <Typography className="downloads-page__empty-copy">
-                  {t("queue_empty_copy", {
-                    defaultValue:
-                      "Drag downloads here to line them up for automatic start.",
-                  })}
+                  Drag downloads here to line them up for automatic start.
                 </Typography>
               </div>
             ) : null}
@@ -2650,7 +2636,7 @@ export default function Downloads() {
                 progressLabel={item.progressLabel}
                 onOpen={() => handleOpen(item.href)}
                 onPrimaryAction={() => moveToPaused(item.game)}
-                primaryActionLabel={t("pause")}
+                primaryActionLabel="Pause"
                 primaryActionDisabled={interactionsLocked}
                 onOpenOptions={(event) => {
                   openDownloadMenu(
@@ -2687,7 +2673,7 @@ export default function Downloads() {
           </VerticalFocusGroup>
         </Section>
 
-        <Section title={t("paused")} count={renderedPausedDownloads.length}>
+        <Section title="Paused" count={renderedPausedDownloads.length}>
           <VerticalFocusGroup
             className="downloads-page__list"
             navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.paused}
@@ -2706,10 +2692,8 @@ export default function Downloads() {
                 )}
               >
                 <Typography className="downloads-page__empty-copy">
-                  {t("paused_empty_copy", {
-                    defaultValue:
-                      "Downloads you pause manually will stay here until you move them.",
-                  })}
+                  Downloads you pause manually will stay here until you move
+                  them.
                 </Typography>
               </div>
             ) : null}
@@ -2728,7 +2712,7 @@ export default function Downloads() {
                 progressLabel={item.progressLabel}
                 onOpen={() => handleOpen(item.href)}
                 onPrimaryAction={() => sendToQueue(item.game)}
-                primaryActionLabel={t("resume")}
+                primaryActionLabel="Resume"
                 primaryActionDisabled={interactionsLocked}
                 onOpenOptions={(event) => {
                   openDownloadMenu(
@@ -2767,7 +2751,7 @@ export default function Downloads() {
 
         {completedDownloads.length > 0 ? (
           <Section
-            title={t("downloads_completed")}
+            title="Downloads Completed"
             count={completedDownloads.length}
           >
             <VerticalFocusGroup
@@ -2817,9 +2801,7 @@ export default function Downloads() {
         ) : null}
 
         <ContextMenu
-          ariaLabel={t("context_menu_accessible_label", {
-            defaultValue: "Download options",
-          })}
+          ariaLabel="Download options"
           items={downloadMenuItems}
           position={menuState.position}
           restoreFocusId={menuState.restoreFocusId}

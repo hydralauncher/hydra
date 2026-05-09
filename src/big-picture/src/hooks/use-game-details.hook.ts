@@ -37,11 +37,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     setIsLoading(true);
 
     const [shopDetailsResult, statsResult, assets] = await Promise.all([
-      globalThis.window.electron.getGameShopDetails(
-        objectId,
-        shop,
-        navigator.language
-      ),
+      globalThis.window.electron.getGameShopDetails(objectId, shop, "en"),
       shop === "custom"
         ? Promise.resolve(null)
         : globalThis.window.electron.getGameStats(objectId, shop),

@@ -24,9 +24,7 @@ export function DownloadSourceOption({
   onSelect,
 }: Readonly<DownloadSourceOptionProps>) {
   const formatedDate = useMemo(() => {
-    return option.uploadDate
-      ? formatDate(new Date(option.uploadDate), "en")
-      : "";
+    return option.uploadDate ? formatDate(new Date(option.uploadDate)) : "";
   }, [option.uploadDate]);
 
   return (

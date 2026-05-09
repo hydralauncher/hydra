@@ -10,7 +10,6 @@ import {
   TrophyIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
-import type { TFunction } from "i18next";
 
 import type { ContextMenuItem } from "../../common";
 
@@ -25,7 +24,6 @@ export interface LibraryGameContextMenuHandlers {
 }
 
 export function buildLibraryGameContextMenuItems(
-  t: TFunction<["library"]>,
   game: LibraryGame,
   handlers: LibraryGameContextMenuHandlers,
   isFavoriteLoading: boolean
@@ -44,8 +42,8 @@ export function buildLibraryGameContextMenuItems(
     {
       id: "launch-or-download",
       label: game.executablePath
-        ? t("context_menu_launch_game")
-        : t("context_menu_download_game"),
+        ? "Launch Game"
+        : "Download Game",
       icon: game.executablePath ? (
         <PlayIcon size={18} weight="fill" />
       ) : (
@@ -56,27 +54,27 @@ export function buildLibraryGameContextMenuItems(
     {
       id: "favorite",
       label: game.favorite
-        ? t("context_menu_remove_from_favorites")
-        : t("context_menu_mark_as_favorite"),
+        ? "Remove from Favorites"
+        : "Mark as Favorite",
       icon: <HeartIcon size={18} weight={game.favorite ? "fill" : "regular"} />,
       disabled: isFavoriteLoading,
       onSelect: () => onToggleFavorite(game),
     },
     {
       id: "view-achievements",
-      label: t("context_menu_view_achievements"),
+      label: "View Achievements",
       icon: <TrophyIcon size={18} />,
       onSelect: () => onViewAchievements(game),
     },
     {
       id: "share",
-      label: t("context_menu_share"),
+      label: "Share",
       icon: <ExportIcon size={18} />,
       onSelect: () => onShare(game),
     },
     {
       id: "options",
-      label: t("context_menu_options"),
+      label: "Options",
       icon: <GearIcon size={18} />,
       onSelect: () => onOptions(game),
     },
@@ -85,7 +83,7 @@ export function buildLibraryGameContextMenuItems(
   if (game.download?.downloadPath) {
     nextItems.push({
       id: "uninstall",
-      label: t("context_menu_uninstall"),
+      label: "Uninstall",
       icon: <TrashIcon size={18} />,
       danger: true,
       restoreFocusOnClose: false,
@@ -95,7 +93,7 @@ export function buildLibraryGameContextMenuItems(
 
   nextItems.push({
     id: "remove-from-library",
-    label: t("context_menu_remove_from_library"),
+    label: "Remove from Library",
     icon: <XCircleIcon size={18} />,
     danger: true,
     restoreFocusOnClose: false,
@@ -115,7 +113,6 @@ export interface BuildCatalogGameContextMenuItemsArgs {
 }
 
 export function buildCatalogGameContextMenuItems(
-  t: TFunction<["library", "game_details"]>,
   _catalogGame: ShopAssets,
   args: BuildCatalogGameContextMenuItemsArgs
 ): ContextMenuItem[] {
@@ -141,7 +138,7 @@ export function buildCatalogGameContextMenuItems(
 
     nextItems.push({
       id: "add-to-library",
-      label: t("context_menu_add_to_library"),
+      label: "Add to Library",
       icon: <BookmarkSimpleIcon aria-hidden size={18} weight="regular" />,
       disabled: isAddingToLibrary,
       restoreFocusOnClose: false,
@@ -152,13 +149,13 @@ export function buildCatalogGameContextMenuItems(
   nextItems.push(
     {
       id: "view-achievements",
-      label: t("context_menu_view_achievements"),
+      label: "View Achievements",
       icon: <TrophyIcon aria-hidden size={18} />,
       onSelect: onViewAchievements,
     },
     {
       id: "share",
-      label: t("context_menu_share"),
+      label: "Share",
       icon: <ExportIcon aria-hidden size={18} />,
       onSelect: onShare,
     }

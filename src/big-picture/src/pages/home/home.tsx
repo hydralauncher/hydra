@@ -1,7 +1,6 @@
 import type { LibraryGame, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEventHandler } from "react";
-import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { logger } from "@renderer/logger";
 
@@ -71,7 +70,6 @@ interface HomeCatalogMenuState {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { t } = useTranslation(["library", "game_details"]);
   const { setFocus } = useNavigation();
   const { library, updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
@@ -277,7 +275,6 @@ export default function Home() {
       const game = libraryGameForOpenMenu;
 
       return buildLibraryGameContextMenuItems(
-        t,
         game,
         {
           onLaunchOrDownload: handleLaunchFromMenu,
@@ -295,7 +292,7 @@ export default function Home() {
     const catalogKey = `${target.shop}:${target.objectId}`;
     const canAddToLibrary = IS_DESKTOP && target.shop !== "custom";
 
-    return buildCatalogGameContextMenuItems(t, target, {
+    return buildCatalogGameContextMenuItems(target, {
       canAddToLibrary,
       isAddingToLibrary: addingCatalogKey === catalogKey,
       onOpenDownloadOptions: handleOpenCatalogDownloadOptions,
@@ -319,7 +316,6 @@ export default function Home() {
     libraryGameForOpenMenu,
     menuState.catalogGame,
     menuState.visible,
-    t,
     toggleFavorite,
   ]);
 
@@ -591,7 +587,7 @@ export default function Home() {
         ) : null}
 
         <ContextMenu
-          ariaLabel={t("context_menu_accessible_label")}
+          ariaLabel="Game context menu"
           items={menuItems}
           position={menuState.position}
           restoreFocusId={menuState.restoreFocusId}
