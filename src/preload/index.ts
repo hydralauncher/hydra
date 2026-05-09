@@ -22,6 +22,7 @@ import type {
   AchievementNotificationInfo,
   ProtonVersion,
   TorrentFilesResponse,
+  DownloadLayoutState,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -36,8 +37,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("cancelGameDownload", shop, objectId),
   pauseGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("pauseGameDownload", shop, objectId),
-  resumeGameDownload: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("resumeGameDownload", shop, objectId),
+  resumeGameDownload: (
+    shop: GameShop,
+    objectId: string,
+    strategy?: "interruptActive" | "queueIfActive"
+  ) => ipcRenderer.invoke("resumeGameDownload", shop, objectId, strategy),
   pauseGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
@@ -83,6 +87,8 @@ contextBridge.exposeInMainWorld("electron", {
       targetArea,
       targetIndex
     ),
+  getDownloadLayoutState: () =>
+    ipcRenderer.invoke("getDownloadLayoutState") as Promise<DownloadLayoutState>,
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

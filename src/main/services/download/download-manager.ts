@@ -30,7 +30,10 @@ import { AllDebridClient } from "./all-debrid";
 import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
-import { getNextQueuedDownload } from "@main/events/torrenting/update-download-queue-position";
+import {
+  getDownloadLayoutStateRecord,
+  getNextQueuedDownloadFromLayout,
+} from "../download-layout-state";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -711,7 +714,11 @@ export class DownloadManager {
 
   private static async processNextQueuedDownload() {
     const downloads = await downloadsSublevel.values().all();
-    const nextItemOnQueue = getNextQueuedDownload(downloads);
+    const layoutState = await getDownloadLayoutStateRecord();
+    const nextItemOnQueue = getNextQueuedDownloadFromLayout(
+      downloads,
+      layoutState
+    );
 
     if (nextItemOnQueue) {
       this.resumeDownload(nextItemOnQueue);

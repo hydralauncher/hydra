@@ -38,6 +38,7 @@ import type {
   ProtonVersion,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
+  DownloadLayoutState,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -64,7 +65,11 @@ declare global {
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      strategy?: "interruptActive" | "queueIfActive"
+    ) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     updateDownloadQueuePosition: (
@@ -88,6 +93,7 @@ declare global {
       targetArea: "hero" | "queue" | "paused",
       targetIndex?: number
     ) => Promise<boolean>;
+    getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;

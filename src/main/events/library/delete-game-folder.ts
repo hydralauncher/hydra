@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 import { getDownloadsPath } from "../helpers/get-downloads-path";
-import { logger } from "@main/services";
+import { DownloadOrchestrator, logger } from "@main/services";
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
@@ -53,6 +53,7 @@ const deleteGameFolder = async (
   }
 
   await downloadsSublevel.del(gameKey);
+  await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
 
   // Clear installer size from game record
   const game = await gamesSublevel.get(gameKey);

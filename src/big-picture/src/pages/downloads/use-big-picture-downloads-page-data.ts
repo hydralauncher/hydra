@@ -1,18 +1,14 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import type { LibraryGame, UserPreferences } from "../../../../types";
-import {
-  getDownloadPlacement,
-  isCompletedLikeDownload,
-} from "../../../../types";
+import { getBigPictureDownloadView } from "../../../../types";
 import { addMilliseconds, format } from "date-fns";
-import { orderBy } from "lodash-es";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../constants";
 import {
   getBigPictureGameDetailsPath,
   resolveImageSource,
 } from "../../helpers";
-import { useDate, useLibrary } from "../../hooks";
+import { useDate, useDownloadLayout, useLibrary } from "../../hooks";
 import {
   initializeBigPictureDownloadsStore,
   useBigPictureDownloadsStore,
@@ -152,7 +148,7 @@ function getDownloadMetaLabel(game: LibraryGame) {
 
 function getErrorStatusLabel(download: LibraryGame["download"]) {
   if (!download) return "Error";
-  return download.status === "error" ? "Error" : "Completed";
+  return download.status === "error" ? "Error" : "Paused";
 }
 
 function formatTransfer(
@@ -200,6 +196,7 @@ function getFinishedAtLabel(timestamp: number | null | undefined) {
 
 export function useBigPictureDownloadsPageData() {
   const { library, updateLibrary } = useLibrary();
+  const { layoutState } = useDownloadLayout();
   const { formatDistance } = useDate();
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
@@ -257,64 +254,46 @@ export function useBigPictureDownloadsPageData() {
     };
   }, [lastPacket, seedingStatuses]);
 
-  const sortedDownloads = useMemo(() => {
-    return orderBy(
-      library.filter(
-        (game) => game.download && game.download.status !== "removed"
-      ),
-      (game) => game.download?.timestamp ?? 0,
-      "desc"
+  const downloadsById = useMemo(() => {
+    return new Map(
+      library
+        .filter((game) => game.download && game.download.status !== "removed")
+        .map((game) => [game.id, game])
     );
   }, [library]);
 
+  const downloadView = useMemo(() => {
+    const downloads = library
+      .map((game) => game.download)
+      .filter((download): download is NonNullable<typeof download> => {
+        return Boolean(download && download.status !== "removed");
+      });
+
+    return getBigPictureDownloadView(downloads, layoutState);
+  }, [layoutState, library]);
+
   const activeGame = useMemo(() => {
-    const heroGame = sortedDownloads.find((game) => {
-      const download = game.download;
-      if (!download) return false;
-
-      return getDownloadPlacement(download) === "hero";
-    });
-
-    return heroGame ?? null;
-  }, [sortedDownloads]);
+    if (!downloadView.heroId) return null;
+    return downloadsById.get(downloadView.heroId) ?? null;
+  }, [downloadView.heroId, downloadsById]);
 
   const queuedGames = useMemo(() => {
-    return orderBy(
-      sortedDownloads.filter((game) => {
-        const download = game.download;
-        if (!download) return false;
-        if (activeGame?.id === game.id) return false;
-
-        return getDownloadPlacement(download) === "queue";
-      }),
-      (game) => game.download?.timestamp ?? 0,
-      "asc"
-    );
-  }, [activeGame?.id, sortedDownloads]);
+    return downloadView.queueIds
+      .map((id) => downloadsById.get(id) ?? null)
+      .filter((game): game is LibraryGame => game !== null);
+  }, [downloadView.queueIds, downloadsById]);
 
   const pausedGames = useMemo(() => {
-    return orderBy(
-      sortedDownloads.filter((game) => {
-        const download = game.download;
-        if (!download) return false;
-        if (activeGame?.id === game.id) return false;
-
-        return getDownloadPlacement(download) === "paused";
-      }),
-      (game) => game.download?.timestamp ?? 0,
-      "asc"
-    );
-  }, [activeGame?.id, sortedDownloads]);
+    return downloadView.pausedIds
+      .map((id) => downloadsById.get(id) ?? null)
+      .filter((game): game is LibraryGame => game !== null);
+  }, [downloadView.pausedIds, downloadsById]);
 
   const completedGames = useMemo(() => {
-    return sortedDownloads.filter((game) => {
-      const download = game.download;
-      if (!download) return false;
-      if (activeGame?.id === game.id) return false;
-
-      return isCompletedLikeDownload(download);
-    });
-  }, [activeGame?.id, sortedDownloads]);
+    return downloadView.completedIds
+      .map((id) => downloadsById.get(id) ?? null)
+      .filter((game): game is LibraryGame => game !== null);
+  }, [downloadView.completedIds, downloadsById]);
 
   const activeDownload = useMemo((): BigPictureActiveDownloadItem | null => {
     if (!activeGame?.download) return null;
@@ -355,7 +334,12 @@ export function useBigPictureDownloadsPageData() {
     let pauseOrResumeAction: "pause" | "resume" = "pause";
     const canPauseOrResume = !isExtracting;
 
-    if (isPausedHero) {
+    if (download.status === "error") {
+      statusLabel = "Error";
+      statusTone = "error";
+      speedLabel = "Retry available";
+      pauseOrResumeAction = "resume";
+    } else if (isPausedHero) {
       statusLabel = "Paused";
       statusTone = "paused";
       speedLabel = "Paused";
@@ -370,7 +354,7 @@ export function useBigPictureDownloadsPageData() {
       statusLabel = "In progress";
     }
 
-    if (!isPausedHero) {
+    if (!isPausedHero && download.status !== "error") {
       speedLabel = isExtracting
         ? "Preparing files"
         : formatSpeed(lastPacket?.downloadSpeed ?? 0, userPreferences);
@@ -442,8 +426,9 @@ export function useBigPictureDownloadsPageData() {
   }, [queuedGames]);
 
   const pausedDownloads = useMemo((): BigPictureDownloadListItem[] => {
-    return pausedGames.map((game) => {
+    return pausedGames.map((game, index) => {
       const download = game.download;
+      const isError = download?.status === "error";
 
       return {
         id: game.id,
@@ -451,8 +436,8 @@ export function useBigPictureDownloadsPageData() {
         href: getBigPictureGameDetailsPath(game),
         coverImageUrl: getDownloadCoverImageUrl(game),
         metaLabel: getDownloadMetaLabel(game),
-        statusLabel: "Paused",
-        statusTone: "paused",
+        statusLabel: isError ? getErrorStatusLabel(download) : "Paused",
+        statusTone: isError ? "error" : "paused",
         progress: download?.progress ?? 0,
         trailingLabel: formatProgress(download?.progress ?? 0),
         secondaryLabel:
@@ -467,8 +452,8 @@ export function useBigPictureDownloadsPageData() {
         sizeLabel: getDownloadSize(download),
         seedAction: null,
         canRemove: false,
-        canMoveUp: false,
-        canMoveDown: false,
+        canMoveUp: index > 0,
+        canMoveDown: index < pausedGames.length - 1,
         game,
       };
     });
@@ -487,11 +472,7 @@ export function useBigPictureDownloadsPageData() {
       let rightStatusLabel = getFinishedAtLabel(download?.timestamp);
       let seedAction: BigPictureDownloadListItem["seedAction"] = null;
 
-      if (download?.status === "error") {
-        statusLabel = getErrorStatusLabel(download);
-        statusTone = "error";
-        rightStatusLabel = statusLabel;
-      } else if (
+      if (
         download?.status === "seeding" ||
         seedingStatus?.status === "seeding"
       ) {
@@ -662,7 +643,8 @@ export function useBigPictureDownloadsPageData() {
 
     await globalThis.window.electron.resumeGameDownload(
       game.shop,
-      game.objectId
+      game.objectId,
+      "queueIfActive"
     );
   }, []);
 

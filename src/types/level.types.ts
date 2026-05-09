@@ -96,6 +96,12 @@ export interface Download {
   selectedFilesSize?: number | null;
 }
 
+export interface DownloadLayoutState {
+  version: 1;
+  queueOrder: string[];
+  pausedOrder: string[];
+}
+
 export interface GameAchievement {
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
