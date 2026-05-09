@@ -134,9 +134,12 @@ export function SettingsContextCompatibility() {
     ns: ["settings", "game_details"],
   });
 
-  const protonSourceCompatibilityTools = t("proton_source_compatibility_tools", {
+  const protonSourceCompatibilityTools = t(
+    "proton_source_compatibility_tools",
+    {
       ns: ["settings", "game_details"],
-  });
+    }
+  );
 
   const handleInstallCommonRedist = async () => {
     setInstallingCommonRedist(true);
@@ -203,9 +206,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_gamemode_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_gamemode_prefix")}</span>
                       <Link
                         to={GAMEMODE_SITE_URL}
                         className="settings-behavior__gamemode-link"
@@ -254,9 +255,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_mangohud_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_mangohud_prefix")}</span>
                       <Link
                         to={MANGOHUD_SITE_URL}
                         className="settings-behavior__mangohud-link"
