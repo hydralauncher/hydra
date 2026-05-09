@@ -4,12 +4,14 @@ import {
   GearIcon,
   HouseIcon,
   MagnifyingGlassIcon,
+  SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
 import { forwardRef, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Divider,
+  FocusItem,
   Input,
   RouteAnchor,
   ScrollArea,
@@ -19,6 +21,7 @@ import { IS_DESKTOP } from "../../constants";
 import { useLibrary, useSearch } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
+  BIG_PICTURE_SIDEBAR_EXIT_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_REGION_ID,
   type BigPictureSidebarRouteKey,
@@ -33,6 +36,7 @@ import "./styles.scss";
 function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const contentEntryTarget =
     getBigPictureContentSidebarReturnTargetFromPathname(pathname);
@@ -41,6 +45,14 @@ function SidebarRouter() {
       type: "block",
     },
     right: contentEntryTarget,
+  };
+  const handleExitBigPicture = () => {
+    if (IS_DESKTOP) {
+      globalThis.close();
+      return;
+    }
+
+    navigate("/");
   };
 
   const routes = (
@@ -103,6 +115,25 @@ function SidebarRouter() {
           />
         );
       })}
+
+      <div className="state-wrapper">
+        <FocusItem
+          id={BIG_PICTURE_SIDEBAR_EXIT_ID}
+          navigationOverrides={sidebarItemNavigationOverrides}
+          asChild
+        >
+          <button
+            type="button"
+            className="route-anchor route-anchor--extra-padding sidebar-action-button"
+            onClick={handleExitBigPicture}
+          >
+            <div className="route-anchor__icon route-anchor__icon--small-size">
+              <SignOutIcon size={24} />
+            </div>
+            <div className="route-anchor__label">Exit Big Picture</div>
+          </button>
+        </FocusItem>
+      </div>
     </div>
   );
 }

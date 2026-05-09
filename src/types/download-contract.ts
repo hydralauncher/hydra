@@ -36,11 +36,43 @@ export const isPausedDownload = (download: Download) => {
 };
 
 export const isCompletedLikeDownload = (download: Download) => {
-  return (
-    download.status === "complete" ||
-    download.status === "seeding" ||
-    download.status === "error"
-  );
+  return download.status === "complete" || download.status === "seeding";
+};
+
+export const isBigPictureCompletedLikeDownload = (download: Download) => {
+  return isCompletedLikeDownload(download) || download.status === "error";
+};
+
+export type LegacyDownloadPlacement =
+  | "queued"
+  | "completed"
+  | "hidden"
+  | "unknown";
+
+export const getLegacyDownloadPlacement = (
+  download: Download
+): LegacyDownloadPlacement => {
+  if (download.status === "removed") {
+    return "hidden";
+  }
+
+  if (
+    download.queued &&
+    download.status !== "complete" &&
+    download.status !== "seeding"
+  ) {
+    return "queued";
+  }
+
+  if (download.status === "paused" || download.status === "error") {
+    return "queued";
+  }
+
+  if (isCompletedLikeDownload(download)) {
+    return "completed";
+  }
+
+  return "unknown";
 };
 
 export const getDownloadPlacement = (download: Download): DownloadPlacement => {
@@ -64,11 +96,9 @@ export const getDownloadPlacement = (download: Download): DownloadPlacement => {
     return "paused";
   }
 
-  if (isCompletedLikeDownload(download)) {
+  if (isBigPictureCompletedLikeDownload(download)) {
     return "completed";
   }
 
-  // Legacy/raw statuses such as "waiting" are tolerated at the type boundary
-  // but are not part of the official product contract or user-facing grouping.
   return "hidden";
 };
