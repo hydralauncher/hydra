@@ -23,7 +23,9 @@ function orderDownloadsByTimestamp(downloads: Download[]) {
 }
 
 function mergeIdsWithFallback(downloads: Download[], preferredOrder: string[]) {
-  const candidateIds = new Set(downloads.map((download) => getDownloadId(download)));
+  const candidateIds = new Set(
+    downloads.map((download) => getDownloadId(download))
+  );
   const orderedIds: string[] = [];
 
   for (const id of uniqueIds(preferredOrder)) {
@@ -44,13 +46,15 @@ function mergeIdsWithFallback(downloads: Download[], preferredOrder: string[]) {
 
 export async function getDownloadLayoutStateRecord() {
   return (
-    (await downloadLayoutStateSublevel.get(DOWNLOAD_LAYOUT_STATE_KEY).catch(
-      () => null
-    )) ?? DEFAULT_DOWNLOAD_LAYOUT_STATE
+    (await downloadLayoutStateSublevel
+      .get(DOWNLOAD_LAYOUT_STATE_KEY)
+      .catch(() => null)) ?? DEFAULT_DOWNLOAD_LAYOUT_STATE
   );
 }
 
-export async function saveDownloadLayoutState(layoutState: DownloadLayoutState) {
+export async function saveDownloadLayoutState(
+  layoutState: DownloadLayoutState
+) {
   await downloadLayoutStateSublevel.put(DOWNLOAD_LAYOUT_STATE_KEY, layoutState);
 }
 
@@ -91,7 +95,10 @@ export function getQueuedDownloadsOrderedByLayout(
       !isCompletedLikeDownload(download)
     );
   });
-  const orderedIds = mergeIdsWithFallback(queueDownloads, layoutState.queueOrder);
+  const orderedIds = mergeIdsWithFallback(
+    queueDownloads,
+    layoutState.queueOrder
+  );
   const downloadById = new Map(
     queueDownloads.map((download) => [getDownloadId(download), download])
   );
@@ -138,7 +145,8 @@ export async function getNormalizedDownloadLayoutState(downloads: Download[]) {
 }
 
 export async function syncDownloadLayoutState(downloads: Download[]) {
-  const normalizedLayoutState = await getNormalizedDownloadLayoutState(downloads);
+  const normalizedLayoutState =
+    await getNormalizedDownloadLayoutState(downloads);
 
   await saveDownloadLayoutState(normalizedLayoutState);
 
@@ -168,7 +176,9 @@ export async function setDownloadLayoutQueues(
   queueOrder: string[],
   pausedOrder: string[]
 ) {
-  const visibleIds = new Set(downloads.map((download) => getDownloadId(download)));
+  const visibleIds = new Set(
+    downloads.map((download) => getDownloadId(download))
+  );
   const nextState: DownloadLayoutState = normalizeDownloadLayoutState(
     downloads,
     {

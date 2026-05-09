@@ -16,9 +16,11 @@ export function useDownloadLayout() {
   useEffect(() => {
     updateLayoutState();
 
-    const unsubscribeDownloadsUpdated = window.electron.onDownloadsUpdated(() => {
-      updateLayoutState();
-    });
+    const unsubscribeDownloadsUpdated = window.electron.onDownloadsUpdated(
+      () => {
+        updateLayoutState();
+      }
+    );
 
     return () => {
       unsubscribeDownloadsUpdated();

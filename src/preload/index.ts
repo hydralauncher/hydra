@@ -88,7 +88,9 @@ contextBridge.exposeInMainWorld("electron", {
       targetIndex
     ),
   getDownloadLayoutState: () =>
-    ipcRenderer.invoke("getDownloadLayoutState") as Promise<DownloadLayoutState>,
+    ipcRenderer.invoke(
+      "getDownloadLayoutState"
+    ) as Promise<DownloadLayoutState>,
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

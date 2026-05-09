@@ -67,7 +67,9 @@ function orderIdsByLayoutState(
   downloads: Download[],
   preferredOrder: string[]
 ) {
-  const downloadById = new Map(downloads.map((download) => [getDownloadId(download), download]));
+  const downloadById = new Map(
+    downloads.map((download) => [getDownloadId(download), download])
+  );
   const fallbackIds = [...downloadById.keys()].sort((leftId, rightId) => {
     const left = downloadById.get(leftId);
     const right = downloadById.get(rightId);
