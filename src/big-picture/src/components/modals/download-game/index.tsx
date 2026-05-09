@@ -335,17 +335,12 @@ function DownloadGameSourceList({
     [localDownloadSources]
   );
   const downloadSources = useMemo(() => {
-    const optionSourceIds = new Set(
-      downloadOptions.map((option) => option.downloadSourceId)
-    );
-
     return localDownloadSources
-      .filter((downloadSource) => optionSourceIds.has(downloadSource.id))
       .map((downloadSource) => ({
         id: downloadSource.id,
         name: downloadSource.name,
       }));
-  }, [downloadOptions, localDownloadSources]);
+  }, [localDownloadSources]);
   const sourceItems = useMemo(
     () =>
       downloadSources.map((source, index) => ({

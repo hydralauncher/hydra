@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
+import { orderBy } from "lodash-es";
 
 export function useGameDownloadOptions(
   game: Pick<Game, "objectId" | "shop">,
@@ -29,10 +30,24 @@ export function useGameDownloadOptions(
         setIsLoading(true);
       }
 
+      let sources: DownloadSource[] = [];
+
       try {
-        const sources = (await globalThis.window.electron.leveldb.values(
+        sources = (await globalThis.window.electron.leveldb.values(
           "downloadSources"
         )) as DownloadSource[];
+        const sortedSources = orderBy(sources, "createdAt", "desc");
+
+        if (!cancelled) {
+          setLocalDownloadSources(sortedSources);
+        }
+      } catch {
+        if (!cancelled) {
+          setLocalDownloadSources([]);
+        }
+      }
+
+      try {
         const endpoint = `/games/${game.shop}/${game.objectId}/download-sources`;
 
         const options = await globalThis.window.electron.hydraApi.get<
@@ -47,13 +62,11 @@ export function useGameDownloadOptions(
         });
 
         if (!cancelled) {
-          setLocalDownloadSources(sources);
           setDownloadOptions(options);
           setIsLoading(false);
         }
       } catch {
         if (!cancelled) {
-          setLocalDownloadSources([]);
           setDownloadOptions([]);
           setIsLoading(false);
         }
