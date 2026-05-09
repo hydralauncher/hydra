@@ -2,7 +2,7 @@ import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import type { LibraryGame, UserPreferences } from "../../../../types";
 import {
   getDownloadPlacement,
-  isBigPictureCompletedLikeDownload,
+  isCompletedLikeDownload,
 } from "../../../../types";
 import { addMilliseconds, format } from "date-fns";
 import { orderBy } from "lodash-es";
@@ -312,7 +312,7 @@ export function useBigPictureDownloadsPageData() {
       if (!download) return false;
       if (activeGame?.id === game.id) return false;
 
-      return isBigPictureCompletedLikeDownload(download);
+      return isCompletedLikeDownload(download);
     });
   }, [activeGame?.id, sortedDownloads]);
 

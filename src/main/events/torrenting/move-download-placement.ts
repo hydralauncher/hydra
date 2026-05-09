@@ -59,30 +59,20 @@ function asPausedHeroDownload(download: Download) {
   };
 }
 
-function normalizeTargetIndex(targetIndex: number, length: number) {
-  return Math.max(0, Math.min(targetIndex, length));
-}
-
-function insertDownloadAt<T>(items: T[], item: T, targetIndex: number): T[] {
-  const nextItems = [...items];
-  nextItems.splice(
-    normalizeTargetIndex(targetIndex, nextItems.length),
-    0,
-    item
-  );
-  return nextItems;
-}
-
 function insertIntoQueue(
   queuedDownloads: Download[],
   download: Download,
   targetIndex: number
 ) {
-  return insertDownloadAt(
-    queuedDownloads,
-    asQueuedDownload(download),
-    targetIndex
+  const nextQueue = [...queuedDownloads];
+  const clampedTargetIndex = Math.max(
+    0,
+    Math.min(targetIndex, nextQueue.length)
   );
+
+  nextQueue.splice(clampedTargetIndex, 0, asQueuedDownload(download));
+
+  return nextQueue;
 }
 
 function insertIntoPaused(
@@ -90,11 +80,15 @@ function insertIntoPaused(
   download: Download,
   targetIndex: number
 ) {
-  return insertDownloadAt(
-    pausedDownloads,
-    asPausedDownload(download),
-    targetIndex
+  const nextPaused = [...pausedDownloads];
+  const clampedTargetIndex = Math.max(
+    0,
+    Math.min(targetIndex, nextPaused.length)
   );
+
+  nextPaused.splice(clampedTargetIndex, 0, asPausedDownload(download));
+
+  return nextPaused;
 }
 
 function isSameDownload(
@@ -102,41 +96,6 @@ function isSameDownload(
   right: Pick<Download, "shop" | "objectId">
 ) {
   return left.shop === right.shop && left.objectId === right.objectId;
-}
-
-function buildListsAfterHeroPromotion(
-  currentHeroDownload: Download | null,
-  queuedDownloadsWithoutSource: Download[],
-  pausedDownloadsWithoutSource: Download[]
-) {
-  const nextQueue =
-    currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
-      ? [asQueuedDownload(currentHeroDownload), ...queuedDownloadsWithoutSource]
-      : queuedDownloadsWithoutSource;
-  const nextPaused =
-    currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
-      ? [asPausedDownload(currentHeroDownload), ...pausedDownloadsWithoutSource]
-      : pausedDownloadsWithoutSource;
-
-  return { nextQueue, nextPaused };
-}
-
-async function persistListsAfterHeroPromotion(
-  currentHeroDownload: Download | null,
-  queuedDownloadsWithoutSource: Download[],
-  pausedDownloadsWithoutSource: Download[]
-) {
-  const { nextQueue, nextPaused } = buildListsAfterHeroPromotion(
-    currentHeroDownload,
-    queuedDownloadsWithoutSource,
-    pausedDownloadsWithoutSource
-  );
-
-  await rewriteQueuedDownloads(nextQueue);
-
-  if (currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)) {
-    await rewritePausedDownloads(nextPaused);
-  }
 }
 
 async function activateDownload(download: Download) {
@@ -176,43 +135,6 @@ async function restoreHeroDownload(download: Download | null) {
       error
     );
   }
-}
-
-async function restoreDownloadPlacement(
-  download: Download,
-  placement: "hero" | "queue" | "paused"
-) {
-  if (placement === "hero") {
-    await restoreHeroDownload(download);
-    return;
-  }
-
-  const restoredDownload =
-    placement === "queue"
-      ? asQueuedDownload(download)
-      : asPausedDownload(download);
-
-  await downloadsSublevel.put(getGameKey(download), restoredDownload);
-}
-
-async function rollbackHeroPromotionFailure(
-  sourceDownload: Download,
-  sourcePlacement: "queue" | "paused",
-  currentHeroDownload: Download | null
-) {
-  await restoreDownloadPlacement(sourceDownload, sourcePlacement);
-  await restoreHeroDownload(currentHeroDownload);
-}
-
-async function rollbackHeroDemotionFailure(
-  sourceDownload: Download,
-  nextQueuedDownload: Download | null
-) {
-  if (nextQueuedDownload) {
-    await restoreDownloadPlacement(nextQueuedDownload, "queue");
-  }
-
-  await restoreHeroDownload(sourceDownload);
 }
 
 async function pauseActiveDownload(download: Download) {
@@ -342,29 +264,42 @@ async function moveDownloadPlacement(
       return finalizeSuccess();
     }
 
-    if (activeDownload) {
-      await pauseActiveDownload(activeDownload);
-    }
+    if (targetArea === "hero") {
+      if (activeDownload) {
+        await pauseActiveDownload(activeDownload);
+      }
 
-    try {
-      await activateDownload(sourceDownload);
-      await persistListsAfterHeroPromotion(
-        currentHeroDownload,
-        queuedDownloadsWithoutSource,
-        pausedDownloadsWithoutSource
-      );
+      try {
+        await activateDownload(sourceDownload);
+      } catch (error) {
+        await restoreHeroDownload(currentHeroDownload);
+        logger.error(
+          "[Downloads] Failed to promote paused download to hero",
+          error
+        );
+        return false;
+      }
+
+      const nextQueue =
+        currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
+          ? [
+              asQueuedDownload(currentHeroDownload),
+              ...queuedDownloadsWithoutSource,
+            ]
+          : queuedDownloadsWithoutSource;
+      const nextPaused =
+        currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
+          ? [
+              asPausedDownload(currentHeroDownload),
+              ...pausedDownloadsWithoutSource,
+            ]
+          : pausedDownloadsWithoutSource;
+
+      await rewriteQueuedDownloads(nextQueue);
+      if (currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)) {
+        await rewritePausedDownloads(nextPaused);
+      }
       return finalizeSuccess();
-    } catch (error) {
-      await rollbackHeroPromotionFailure(
-        sourceDownload,
-        sourcePlacement,
-        currentHeroDownload
-      );
-      logger.error(
-        "[Downloads] Failed to promote paused download to hero",
-        error
-      );
-      return false;
     }
   }
 
@@ -390,30 +325,47 @@ async function moveDownloadPlacement(
       return finalizeSuccess();
     }
 
-    if (activeDownload) {
-      await pauseActiveDownload(activeDownload);
-    }
+    if (targetArea === "hero") {
+      if (activeDownload) {
+        await pauseActiveDownload(activeDownload);
+      }
 
-    try {
-      await activateDownload(sourceDownload);
-      await persistListsAfterHeroPromotion(
-        currentHeroDownload,
-        queuedDownloadsWithoutSource,
-        pausedDownloadsWithoutSource
-      );
+      try {
+        await activateDownload(sourceDownload);
+      } catch (error) {
+        await restoreHeroDownload(currentHeroDownload);
+        logger.error(
+          "[Downloads] Failed to promote queued download to hero",
+          error
+        );
+        return false;
+      }
+
+      const nextQueue =
+        currentHeroDownload && isActiveLikeDownload(currentHeroDownload)
+          ? [
+              asQueuedDownload(currentHeroDownload),
+              ...queuedDownloadsWithoutSource,
+            ]
+          : queuedDownloadsWithoutSource;
+      const nextPaused =
+        currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)
+          ? [
+              asPausedDownload(currentHeroDownload),
+              ...pausedDownloadsWithoutSource,
+            ]
+          : pausedDownloadsWithoutSource;
+
+      await rewriteQueuedDownloads(nextQueue);
+      if (currentHeroDownload && !isActiveLikeDownload(currentHeroDownload)) {
+        await rewritePausedDownloads(nextPaused);
+      }
       return finalizeSuccess();
-    } catch (error) {
-      await rollbackHeroPromotionFailure(
-        sourceDownload,
-        sourcePlacement,
-        currentHeroDownload
-      );
-      logger.error(
-        "[Downloads] Failed to promote queued download to hero",
-        error
-      );
-      return false;
     }
+  }
+
+  if (sourcePlacement !== "hero") {
+    return false;
   }
 
   if (isActiveLikeDownload(sourceDownload)) {
@@ -432,7 +384,7 @@ async function moveDownloadPlacement(
     try {
       await activateDownload(nextQueuedDownload);
     } catch (error) {
-      await rollbackHeroDemotionFailure(sourceDownload, nextQueuedDownload);
+      await restoreHeroDownload(sourceDownload);
       logger.error(
         "[Downloads] Failed to activate next queued download after demoting hero",
         error
@@ -462,8 +414,12 @@ async function moveDownloadPlacement(
     return finalizeSuccess();
   }
 
-  await restoreHeroDownload(sourceDownload);
-  return finalizeSuccess();
+  if (targetArea === "hero") {
+    await restoreHeroDownload(sourceDownload);
+    return finalizeSuccess();
+  }
+
+  return false;
 }
 
 registerEvent("moveDownloadPlacement", moveDownloadPlacement);

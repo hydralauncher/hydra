@@ -18,8 +18,6 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   settings: "big-picture-sidebar-settings",
 } as const;
 
-export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
-
 export type BigPictureSidebarRouteKey =
   keyof typeof BIG_PICTURE_SIDEBAR_ITEM_IDS;
 

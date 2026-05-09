@@ -7,8 +7,13 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { GameShop, LibraryGame, SeedingStatus } from "@types";
-import { getLegacyDownloadPlacement } from "../../../../types";
+import {
+  getDownloadPlacement,
+  isActiveLikeDownload,
+  type GameShop,
+  type LibraryGame,
+  type SeedingStatus,
+} from "../../../../types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
@@ -79,23 +84,30 @@ export default function Downloads() {
       /* Game has been manually added to the library */
       if (!next.download) return prev;
 
-      const isExtracting =
-        next.download.extracting || extraction?.visibleId === next.id;
-      if (lastPacket?.gameId === next.id || isExtracting)
-        return { ...prev, downloading: [...prev.downloading, next] };
-
-      const placement = getLegacyDownloadPlacement(next.download);
-
+      const placement = getDownloadPlacement(next.download);
       if (placement === "hidden") return prev;
 
-      if (placement === "queued")
+      const isExtracting =
+        isActiveLikeDownload(next.download) ||
+        extraction?.visibleId === next.id;
+      const hasLiveActivePacket =
+        lastPacket?.gameId === next.id && next.download.status === "active";
+      const isActiveHero =
+        placement === "hero" && next.download.status !== "paused";
+      const isPausedHero =
+        placement === "hero" && next.download.status === "paused";
+
+      if (isActiveHero || hasLiveActivePacket || isExtracting)
+        return { ...prev, downloading: [...prev.downloading, next] };
+
+      if (placement === "queue" || placement === "paused" || isPausedHero)
         return { ...prev, queued: [...prev.queued, next] };
 
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
     const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
-      "desc",
+      "asc",
     ]);
 
     const complete = orderBy(result.complete, (game) =>
