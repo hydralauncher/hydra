@@ -19,8 +19,8 @@ interface BigPictureDownloadsStoreState {
   clearExtractionProgress: (shop: string, objectId: string) => void;
 }
 
-export const useBigPictureDownloadsStore = create<BigPictureDownloadsStoreState>(
-  (set) => ({
+export const useBigPictureDownloadsStore =
+  create<BigPictureDownloadsStoreState>((set) => ({
     lastPacket: null,
     seedingStatuses: [],
     extractionProgressByGameId: {},
@@ -55,10 +55,7 @@ export const useBigPictureDownloadsStore = create<BigPictureDownloadsStoreState>
         const nextHistory = [...currentHistory, packet.downloadSpeed];
 
         if (nextHistory.length > SPEED_HISTORY_SAMPLE_SIZE) {
-          nextHistory.splice(
-            0,
-            nextHistory.length - SPEED_HISTORY_SAMPLE_SIZE
-          );
+          nextHistory.splice(0, nextHistory.length - SPEED_HISTORY_SAMPLE_SIZE);
         }
 
         const currentPeak = state.peakSpeedByGameId[packet.gameId] ?? 0;
@@ -113,8 +110,7 @@ export const useBigPictureDownloadsStore = create<BigPictureDownloadsStoreState>
         };
       });
     },
-  })
-);
+  }));
 
 let downloadsStoreInitialized = false;
 
@@ -134,9 +130,11 @@ export function initializeBigPictureDownloadsStore() {
     store.getState().setSeedingStatuses(statuses);
   });
 
-  globalThis.window.electron.onExtractionProgress((shop, objectId, progress) => {
-    store.getState().setExtractionProgress(shop, objectId, progress);
-  });
+  globalThis.window.electron.onExtractionProgress(
+    (shop, objectId, progress) => {
+      store.getState().setExtractionProgress(shop, objectId, progress);
+    }
+  );
 
   globalThis.window.electron.onExtractionComplete((shop, objectId) => {
     store.getState().clearExtractionProgress(shop, objectId);

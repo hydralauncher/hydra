@@ -40,6 +40,7 @@ import {
   VerticalFocusGroup,
 } from "../../common";
 import {
+  CheckCircle,
   DownloadSimpleIcon,
   MagnifyingGlassIcon,
   SortAscendingIcon,
@@ -573,15 +574,34 @@ function DownloadGameOptions({
     return availableDownloaderOptions.map((downloaderOption) => ({
       value: String(downloaderOption.downloader),
       label: (
-        <>
-          {downloaderOption.downloader === Downloader.Hydra && (
-            <StarIcon size={14} weight="fill" aria-hidden="true" />
-          )}
-          <span>{DOWNLOADER_NAME[downloaderOption.downloader]}</span>
-        </>
+        <span className="download-game-modal__downloader-option-label">
+          <span className="download-game-modal__downloader-option-slot download-game-modal__downloader-option-slot--left">
+            {downloaderOption.downloader === Downloader.Hydra && (
+              <StarIcon
+                size={14}
+                weight="fill"
+                aria-hidden="true"
+                className="download-game-modal__downloader-option-icon"
+              />
+            )}
+          </span>
+          <span className="download-game-modal__downloader-option-name">
+            {DOWNLOADER_NAME[downloaderOption.downloader]}
+          </span>
+          <span className="download-game-modal__downloader-option-slot download-game-modal__downloader-option-slot--right">
+            {selectedDownloader === String(downloaderOption.downloader) && (
+              <CheckCircle
+                size={16}
+                weight="fill"
+                aria-hidden="true"
+                className="download-game-modal__downloader-option-checkmark"
+              />
+            )}
+          </span>
+        </span>
       ),
     })) satisfies Array<TabsItem<string>>;
-  }, [availableDownloaderOptions]);
+  }, [availableDownloaderOptions, selectedDownloader]);
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
@@ -609,15 +629,24 @@ function DownloadGameOptions({
   );
 
   useEffect(() => {
-    const defaultDownloader = getDefaultDownloader(
-      availableDownloaderOptions.map(
-        (downloaderOption) => downloaderOption.downloader
-      )
+    const availableDownloaders = availableDownloaderOptions.map(
+      (downloaderOption) => downloaderOption.downloader
+    );
+    const defaultDownloader = getDefaultDownloader(availableDownloaders);
+    const availableDownloaderValues = new Set(
+      availableDownloaders.map((downloader) => String(downloader))
     );
 
-    setSelectedDownloader(
-      defaultDownloader != null ? String(defaultDownloader) : undefined
-    );
+    setSelectedDownloader((currentSelectedDownloader) => {
+      if (
+        currentSelectedDownloader &&
+        availableDownloaderValues.has(currentSelectedDownloader)
+      ) {
+        return currentSelectedDownloader;
+      }
+
+      return defaultDownloader != null ? String(defaultDownloader) : undefined;
+    });
   }, [availableDownloaderOptions, getDefaultDownloader]);
 
   useEffect(() => {

@@ -207,11 +207,7 @@ function animatePreviewScroll(container: HTMLElement, targetScrollTop: number) {
 
   const step = (now: number) => {
     const elapsed = now - startTime;
-    const progress = clamp(
-      elapsed / PREVIEW_SCROLL_ANIMATION_DURATION,
-      0,
-      1
-    );
+    const progress = clamp(elapsed / PREVIEW_SCROLL_ANIMATION_DURATION, 0, 1);
     const easedProgress = easeOutCubic(progress);
 
     container.scrollTop = startScrollTop + distance * easedProgress;
@@ -950,9 +946,9 @@ export default function Downloads() {
     resumeSeeding,
   } = useBigPictureDownloadsPageData();
   const pageRef = useRef<HTMLDivElement | null>(null);
-  const previousMoveModePlacementKindRef = useRef<PreviewPlacement["kind"] | null>(
-    null
-  );
+  const previousMoveModePlacementKindRef = useRef<
+    PreviewPlacement["kind"] | null
+  >(null);
   const suppressOpenRef = useRef(false);
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const dragEdgeScrollFrameRef = useRef<number | null>(null);
@@ -1600,7 +1596,8 @@ export default function Downloads() {
           ? getDownloadMainFocusId(completedDownloads[0].id)
           : undefined;
   const moveModePreviewPlacement = useMemo(
-    () => (moveMode ? getPreviewPlacement(moveMode, moveMode.sourceGameId) : null),
+    () =>
+      moveMode ? getPreviewPlacement(moveMode, moveMode.sourceGameId) : null,
     [moveMode]
   );
   const moveModePreviewPlacementKey = useMemo(
@@ -1618,10 +1615,7 @@ export default function Downloads() {
     return previewPlacement.kind === "hero"
       ? getHeroPrimaryFocusId()
       : getDownloadMainFocusId(moveMode.sourceGameId);
-  }, [
-    moveModePreviewPlacement,
-    moveMode?.sourceGameId,
-  ]);
+  }, [moveModePreviewPlacement, moveMode?.sourceGameId]);
   const isCrossSectionMoveModePreview = useMemo(() => {
     const previousKind = previousMoveModePlacementKindRef.current;
     const currentKind = moveModePreviewPlacement?.kind ?? null;
@@ -1723,11 +1717,19 @@ export default function Downloads() {
         (displayedHeroSnapshot ? getHeroPrimaryFocusId() : null)
       );
     },
-    [completedDownloads, displayedHeroSnapshot, renderedPausedDownloads, renderedQueuedDownloads]
+    [
+      completedDownloads,
+      displayedHeroSnapshot,
+      renderedPausedDownloads,
+      renderedQueuedDownloads,
+    ]
   );
 
   const handleRemovalCancel = useCallback(
-    async (game: LibraryGame, section: Exclude<DownloadSection, "completed">) => {
+    async (
+      game: LibraryGame,
+      section: Exclude<DownloadSection, "completed">
+    ) => {
       const nextFocusId = getRemovalFallbackFocusId(section, game.id);
 
       await cancelDownload(game);
@@ -1806,7 +1808,11 @@ export default function Downloads() {
   ]);
 
   useEffect(() => {
-    if (!moveMode || !moveModePreviewPlacementKey || !isCrossSectionMoveModePreview) {
+    if (
+      !moveMode ||
+      !moveModePreviewPlacementKey ||
+      !isCrossSectionMoveModePreview
+    ) {
       return;
     }
 

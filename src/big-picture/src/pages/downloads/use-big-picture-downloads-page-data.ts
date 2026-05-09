@@ -1,8 +1,5 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
-import type {
-  LibraryGame,
-  UserPreferences,
-} from "../../../../types";
+import type { LibraryGame, UserPreferences } from "../../../../types";
 import {
   getDownloadPlacement,
   isCompletedLikeDownload,
@@ -557,7 +554,9 @@ export function useBigPictureDownloadsPageData() {
   );
 
   const networkStats = useMemo((): BigPictureDownloadsNetworkStats => {
-    const speedHistory = activeGame ? (speedHistoryByGameId[activeGame.id] ?? []) : [];
+    const speedHistory = activeGame
+      ? (speedHistoryByGameId[activeGame.id] ?? [])
+      : [];
     const peakSpeed = activeGame ? (peakSpeedByGameId[activeGame.id] ?? 0) : 0;
     const speedHistorySamples =
       speedHistory.length >= SPEED_HISTORY_SAMPLE_SIZE
@@ -720,16 +719,25 @@ export function useBigPictureDownloadsPageData() {
     [lastPacket?.gameId]
   );
 
-  const removeDownload = useCallback(async (game: LibraryGame) => {
-    if (!IS_DESKTOP || !game.download) return;
+  const removeDownload = useCallback(
+    async (game: LibraryGame) => {
+      if (!IS_DESKTOP || !game.download) return;
 
-    if (game.download.status === "seeding") {
-      await globalThis.window.electron.pauseGameSeed(game.shop, game.objectId);
-    }
+      if (game.download.status === "seeding") {
+        await globalThis.window.electron.pauseGameSeed(
+          game.shop,
+          game.objectId
+        );
+      }
 
-    await globalThis.window.electron.deleteGameFolder(game.shop, game.objectId);
-    await updateLibrary();
-  }, [updateLibrary]);
+      await globalThis.window.electron.deleteGameFolder(
+        game.shop,
+        game.objectId
+      );
+      await updateLibrary();
+    },
+    [updateLibrary]
+  );
 
   const moveQueuedDownload = useCallback(
     async (game: LibraryGame, direction: "up" | "down") => {

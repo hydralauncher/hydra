@@ -155,6 +155,45 @@
   &__downloader-tabs {
     width: 100%;
     max-width: 720px;
+
+    .tabs__tab-label--segmented {
+      display: block;
+      width: 100%;
+    }
+  }
+
+  &__downloader-option-label {
+    display: grid;
+    grid-template-columns:
+      calc(var(--spacing-unit) * 4)
+      minmax(0, 1fr)
+      calc(var(--spacing-unit) * 4);
+    align-items: center;
+    column-gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__downloader-option-slot {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  &__downloader-option-slot--left {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  &__downloader-option-name {
+    grid-column: 2;
+    min-width: 0;
+    text-align: center;
+  }
+
+  &__downloader-option-slot--right {
+    justify-self: end;
+    justify-content: flex-end;
   }
 
   &__downloader {

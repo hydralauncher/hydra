@@ -43,6 +43,7 @@ export interface TabsProps<TValue extends string = string> {
 interface TabsButtonProps<TValue extends string = string> {
   item: TabsItem<TValue>;
   resolvedId: string;
+  navigationOrder: number;
   isSelected: boolean;
   variant: "default" | "segmented";
   indicatorLayoutId: string;
@@ -52,6 +53,7 @@ interface TabsButtonProps<TValue extends string = string> {
 function TabsButton<TValue extends string = string>({
   item,
   resolvedId,
+  navigationOrder,
   isSelected,
   variant,
   indicatorLayoutId,
@@ -73,6 +75,7 @@ function TabsButton<TValue extends string = string>({
       id={resolvedId}
       asChild
       navigationState={item.disabled ? "disabled" : "active"}
+      navigationOrder={navigationOrder}
       navigationOverrides={item.navigationOverrides}
     >
       <button
@@ -262,7 +265,7 @@ export function Tabs<TValue extends string = string>({
               />
             )}
 
-            {resolvedItems.map((item) => {
+            {resolvedItems.map((item, index) => {
               const isSelected = selectedItem?.value === item.value;
 
               return (
@@ -270,6 +273,7 @@ export function Tabs<TValue extends string = string>({
                   key={item.value}
                   item={item}
                   resolvedId={item.resolvedId}
+                  navigationOrder={index}
                   isSelected={isSelected}
                   variant={variant}
                   indicatorLayoutId={indicatorLayoutId}
