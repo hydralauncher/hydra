@@ -297,7 +297,7 @@ export function RepacksModal({
 
       <Modal
         visible={visible}
-        title={t("download_options")}
+        title={t("download_options_title")}
         description={t("repacks_modal_description")}
         onClose={onClose}
       >
