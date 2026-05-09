@@ -94,7 +94,6 @@ export interface Download {
   extracting: boolean;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
-  extractionProgress: number;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
 }
