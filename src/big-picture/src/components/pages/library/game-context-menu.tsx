@@ -13,7 +13,6 @@ interface LibraryGameContextMenuProps {
   isFavoriteLoading?: boolean;
   onClose: () => void;
   onLaunchOrDownload: (game: LibraryGame) => Promise<void> | void;
-  onOpenGamePage: (game: LibraryGame) => void;
   onToggleFavorite: (game: LibraryGame) => Promise<void> | void;
   onViewAchievements: (game: LibraryGame) => void;
   onShare: (game: LibraryGame) => void;
@@ -30,7 +29,6 @@ export function LibraryGameContextMenu({
   isFavoriteLoading = false,
   onClose,
   onLaunchOrDownload,
-  onOpenGamePage,
   onToggleFavorite,
   onViewAchievements,
   onShare,
@@ -48,7 +46,6 @@ export function LibraryGameContextMenu({
       game,
       {
         onLaunchOrDownload,
-        onOpenGamePage,
         onToggleFavorite,
         onViewAchievements,
         onShare,
@@ -62,7 +59,6 @@ export function LibraryGameContextMenu({
     game,
     isFavoriteLoading,
     onLaunchOrDownload,
-    onOpenGamePage,
     onOptions,
     onRemoveFromLibrary,
     onShare,

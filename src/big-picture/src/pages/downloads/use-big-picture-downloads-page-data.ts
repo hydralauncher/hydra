@@ -403,7 +403,7 @@ export function useBigPictureDownloadsPageData() {
     let statusTone: DownloadTone = "active";
     let speedLabel = "0 B/s";
     let pauseOrResumeAction: "pause" | "resume" = "pause";
-    let canPauseOrResume = !isExtracting;
+    const canPauseOrResume = !isExtracting;
 
     if (isPausedHero) {
       statusLabel = "Paused";

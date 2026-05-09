@@ -2,7 +2,7 @@ import type { ShopAssets } from "@types";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, PointerEvent as ReactPointerEvent } from "react";
 import { useGamepad } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
@@ -24,6 +24,7 @@ const FADE_TRANSITION_MS = 120;
 const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
 const LEFT_INPUT_HELD_THRESHOLD = -0.5;
+const CLICK_DRAG_THRESHOLD_PX = 8;
 
 type FadeSide = "left" | "right";
 type EmblaApi = ReturnType<typeof useEmblaCarousel>[1];
@@ -57,6 +58,7 @@ interface FocusCarouselSlideProps {
   navigationOverrides?: FocusOverrides;
   onFocused: () => void;
   onActivate?: (game: ShopAssets) => void;
+  onCardClick?: (game: ShopAssets) => void;
   onCarouselItemOpenContextMenu?: (
     game: ShopAssets,
     position: { x: number; y: number },
@@ -444,10 +446,12 @@ function useCarouselControls(emblaApi: EmblaApi) {
 function FocusCarouselCard({
   game,
   cardVariant,
+  onClick,
   onContextMenu,
 }: Readonly<{
   game: ShopAssets;
   cardVariant: "vertical" | "horizontal";
+  onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }>) {
   if (cardVariant === "horizontal") {
@@ -456,6 +460,7 @@ function FocusCarouselCard({
         coverImageUrl={getGameLandscapeImageSource(game)}
         gameTitle={game.title}
         downloadSourceCount={game.downloadSources.length}
+        onClick={onClick}
         onContextMenu={onContextMenu}
       />
     );
@@ -466,6 +471,7 @@ function FocusCarouselCard({
       coverImageUrl={getGameCoverImageSource(game)}
       gameTitle={game.title}
       downloadSourceCount={game.downloadSources.length}
+      onClick={onClick}
       onContextMenu={onContextMenu}
     />
   );
@@ -490,6 +496,7 @@ function FocusCarouselSlide({
   navigationOverrides,
   onFocused,
   onActivate,
+  onCardClick,
   onCarouselItemOpenContextMenu,
 }: Readonly<FocusCarouselSlideProps>) {
   const isFocused = useNavigationIsFocused(itemId);
@@ -520,7 +527,7 @@ function FocusCarouselSlide({
           onActivate
             ? {
                 primary: () => onActivate(game),
-                hold: {
+                press: {
                   y:
                     onCarouselItemOpenContextMenu != null
                       ? () => {
@@ -548,6 +555,7 @@ function FocusCarouselSlide({
         <FocusCarouselCard
           cardVariant={cardVariant}
           game={game}
+          onClick={onCardClick ? () => onCardClick(game) : undefined}
           onContextMenu={handleCardContextMenu}
         />
       </FocusItem>
@@ -578,6 +586,8 @@ export function FocusCarousel({
       : null
   );
   const lastAlignedFocusIdRef = useRef<string | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressPointerClickRef = useRef(false);
   const handleSlideFocused = useThresholdFocusScroll(emblaApi);
   const firstItemId = games[0] ? getItemId?.(games[0]) : undefined;
   const shouldBlockLeftExit = useLeftExitLock(firstItemId);
@@ -637,6 +647,51 @@ export function FocusCarousel({
     lastAlignedFocusIdRef.current = null;
   }, [games, rememberedFocusId]);
 
+  const handleViewportPointerDownCapture = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+
+      pointerStartRef.current = { x: event.clientX, y: event.clientY };
+      suppressPointerClickRef.current = false;
+    },
+    []
+  );
+
+  const handleViewportPointerMoveCapture = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const pointerStart = pointerStartRef.current;
+
+      if (!pointerStart) return;
+
+      const deltaX = event.clientX - pointerStart.x;
+      const deltaY = event.clientY - pointerStart.y;
+      const movedEnoughHorizontally =
+        Math.abs(deltaX) > CLICK_DRAG_THRESHOLD_PX &&
+        Math.abs(deltaX) > Math.abs(deltaY);
+
+      if (movedEnoughHorizontally) {
+        suppressPointerClickRef.current = true;
+      }
+    },
+    []
+  );
+
+  const handleViewportPointerEndCapture = useCallback(() => {
+    pointerStartRef.current = null;
+  }, []);
+
+  const handleCardClick = useCallback(
+    (game: ShopAssets) => {
+      if (suppressPointerClickRef.current) {
+        suppressPointerClickRef.current = false;
+        return;
+      }
+
+      onItemActivate?.(game);
+    },
+    [onItemActivate]
+  );
+
   if (games.length === 0) return null;
 
   return (
@@ -676,7 +731,14 @@ export function FocusCarousel({
         data-fade-side={renderedFadeSide ?? undefined}
         data-fade-visible={isFadeVisible || undefined}
       >
-        <div className="focus-carousel__viewport" ref={emblaRef}>
+        <div
+          className="focus-carousel__viewport"
+          ref={emblaRef}
+          onPointerDownCapture={handleViewportPointerDownCapture}
+          onPointerMoveCapture={handleViewportPointerMoveCapture}
+          onPointerUpCapture={handleViewportPointerEndCapture}
+          onPointerCancelCapture={handleViewportPointerEndCapture}
+        >
           <HorizontalFocusGroup
             className="focus-carousel__container"
             regionId={regionId}
@@ -715,6 +777,7 @@ export function FocusCarousel({
                     }
                     onFocused={() => handleSlideFocused(index)}
                     onActivate={onItemActivate}
+                    onCardClick={handleCardClick}
                   />
                 );
               })}

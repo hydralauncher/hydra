@@ -178,7 +178,7 @@ export function VerticalLibraryGameCard({
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        hold: {
+        press: {
           y: onOpenContextMenu
             ? () => {
                 const buttonRect =
@@ -274,7 +274,7 @@ export function HorizontalLibraryGameListCard({
       id={focusId}
       actions={{
         primary: () => navigate(gameDetailsPath),
-        hold: {
+        press: {
           y: onOpenContextMenu
             ? () => {
                 const buttonRect =

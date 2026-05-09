@@ -2,7 +2,6 @@ import type { LibraryGame, ShopAssets } from "@types";
 import {
   BookmarkSimpleIcon,
   DownloadSimpleIcon,
-  EyeIcon,
   ExportIcon,
   GearIcon,
   HeartIcon,
@@ -17,7 +16,6 @@ import type { ContextMenuItem } from "../../common";
 
 export interface LibraryGameContextMenuHandlers {
   onLaunchOrDownload: (game: LibraryGame) => void | Promise<void>;
-  onOpenGamePage: (game: LibraryGame) => void;
   onToggleFavorite: (game: LibraryGame) => void | Promise<void>;
   onViewAchievements: (game: LibraryGame) => void;
   onShare: (game: LibraryGame) => void;
@@ -34,7 +32,6 @@ export function buildLibraryGameContextMenuItems(
 ): ContextMenuItem[] {
   const {
     onLaunchOrDownload,
-    onOpenGamePage,
     onToggleFavorite,
     onViewAchievements,
     onShare,
@@ -55,13 +52,6 @@ export function buildLibraryGameContextMenuItems(
         <DownloadSimpleIcon size={18} />
       ),
       onSelect: () => onLaunchOrDownload(game),
-    },
-    {
-      id: "open-game-page",
-      label: t("context_menu_open_game_page"),
-      icon: <EyeIcon size={18} />,
-      restoreFocusOnClose: false,
-      onSelect: () => onOpenGamePage(game),
     },
     {
       id: "favorite",
@@ -122,7 +112,6 @@ export interface BuildCatalogGameContextMenuItemsArgs {
   onAddToLibrary: () => void | Promise<void>;
   onViewAchievements: () => void;
   onShare: () => void;
-  onOpenGamePage: () => void;
 }
 
 export function buildCatalogGameContextMenuItems(
@@ -137,7 +126,6 @@ export function buildCatalogGameContextMenuItems(
     onAddToLibrary,
     onViewAchievements,
     onShare,
-    onOpenGamePage,
   } = args;
 
   const nextItems: ContextMenuItem[] = [];
@@ -165,13 +153,6 @@ export function buildCatalogGameContextMenuItems(
   }
 
   nextItems.push(
-    {
-      id: "details",
-      label: t("context_menu_open_game_page"),
-      icon: <EyeIcon aria-hidden size={18} weight="regular" />,
-      restoreFocusOnClose: false,
-      onSelect: onOpenGamePage,
-    },
     {
       id: "view-achievements",
       label: t("context_menu_view_achievements"),

@@ -96,13 +96,6 @@ export default function Home() {
     }, [])
   );
 
-  const handleOpenLibraryGameDetails = useCallback(
-    (game: LibraryGame) => {
-      navigate(getBigPictureGameDetailsPath(game));
-    },
-    [navigate]
-  );
-
   const handleViewAchievementsPlaceholder = useCallback((game: LibraryGame) => {
     logger.log(
       `Big Picture library context menu achievements: ${game.objectId}`
@@ -195,14 +188,6 @@ export default function Home() {
     }
   }, [menuState.catalogGame, refreshLibraryData]);
 
-  const handleCatalogNavigateFromMenu = useCallback(() => {
-    const target = menuState.catalogGame;
-
-    if (!target) return;
-
-    navigate(getBigPictureGameDetailsPath(target));
-  }, [menuState.catalogGame, navigate]);
-
   const handleOpenCatalogDownloadOptions = useCallback(() => {
     const target = menuState.catalogGame;
 
@@ -270,7 +255,6 @@ export default function Home() {
         game,
         {
           onLaunchOrDownload: handleLaunchFromMenu,
-          onOpenGamePage: handleOpenLibraryGameDetails,
           onToggleFavorite: toggleFavorite,
           onViewAchievements: handleViewAchievementsPlaceholder,
           onShare: handleSharePlaceholder,
@@ -290,7 +274,6 @@ export default function Home() {
       isAddingToLibrary: addingCatalogKey === catalogKey,
       onOpenDownloadOptions: handleOpenCatalogDownloadOptions,
       onAddToLibrary: handleAddCatalogGameToLibrary,
-      onOpenGamePage: handleCatalogNavigateFromMenu,
       onShare: handleCatalogShareFromMenu,
       onViewAchievements: handleCatalogViewAchievementsFromMenu,
     });
@@ -298,13 +281,11 @@ export default function Home() {
     addingCatalogKey,
     favoriteLoadingGameId,
     handleAddCatalogGameToLibrary,
-    handleCatalogNavigateFromMenu,
     handleOpenCatalogDownloadOptions,
     handleCatalogShareFromMenu,
     handleCatalogViewAchievementsFromMenu,
     handleLaunchFromMenu,
     handleLibraryOptionsFromMenu,
-    handleOpenLibraryGameDetails,
     handleRequestRemoveFilesFromMenu,
     handleRequestRemoveFromLibraryFromMenu,
     handleSharePlaceholder,
@@ -558,7 +539,7 @@ export default function Home() {
                       primary: () => {
                         navigate(getBigPictureGameDetailsPath(game));
                       },
-                      hold: {
+                      press: {
                         y: () => {
                           openChallengeContextMenuSecondary();
                         },

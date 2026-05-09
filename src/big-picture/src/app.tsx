@@ -30,7 +30,7 @@ import "./styles/globals.scss";
 
 export default function App() {
   const { pathname } = useLocation();
-  const { nodes, regions, setFocus, setFocusRegion } = useNavigation();
+  const { nodes, regions, setFocusRegion } = useNavigation();
   const showNavigationDiagnostics = import.meta.env.DEV;
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
@@ -70,17 +70,13 @@ export default function App() {
 
     if (focusedId) {
       setPendingRouteFocusPathname(null);
-      return;
     }
-
-    setFocus(leftSidebarTargetId);
   }, [
     leftSidebarTargetId,
     nodes,
     pathname,
     pendingRouteFocusPathname,
     regions,
-    setFocus,
     setFocusRegion,
   ]);
 

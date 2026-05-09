@@ -9,11 +9,15 @@ export function useGameDownloadOptions(
   const shouldLoadDownloadOptions =
     visible && IS_DESKTOP && game.shop !== "custom";
   const [downloadOptions, setDownloadOptions] = useState<GameRepack[]>([]);
+  const [localDownloadSources, setLocalDownloadSources] = useState<
+    DownloadSource[]
+  >([]);
   const [isLoading, setIsLoading] = useState(shouldLoadDownloadOptions);
 
   useEffect(() => {
     if (!shouldLoadDownloadOptions) {
       setDownloadOptions([]);
+      setLocalDownloadSources([]);
       setIsLoading(false);
       return;
     }
@@ -43,11 +47,13 @@ export function useGameDownloadOptions(
         });
 
         if (!cancelled) {
+          setLocalDownloadSources(sources);
           setDownloadOptions(options);
           setIsLoading(false);
         }
       } catch {
         if (!cancelled) {
+          setLocalDownloadSources([]);
           setDownloadOptions([]);
           setIsLoading(false);
         }
@@ -61,5 +67,5 @@ export function useGameDownloadOptions(
     };
   }, [game.objectId, game.shop, shouldLoadDownloadOptions]);
 
-  return { downloadOptions, isLoading };
+  return { downloadOptions, localDownloadSources, isLoading };
 }

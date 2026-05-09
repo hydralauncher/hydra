@@ -116,13 +116,13 @@ const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
 const DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID =
   "download-game-modal-delete-archive";
 
-function getSourceFocusId(source: string, index: number) {
-  const normalizedSource = source
+function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
+  const normalizedSource = sourceName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `download-game-source-${normalizedSource || "source"}-${index}`;
+  return `download-game-source-${sourceId}-${normalizedSource || "source"}-${index}`;
 }
 
 function getSourceViewportSlideMetrics(
@@ -320,18 +320,36 @@ function DownloadGameSourceList({
   });
   const lastAlignedFocusIdRef = useRef<string | null>(null);
 
-  const { downloadOptions, isLoading } = useGameDownloadOptions(game, visible);
+  const { downloadOptions, localDownloadSources, isLoading } =
+    useGameDownloadOptions(game, visible);
 
+  const localDownloadSourceNameById = useMemo(
+    () =>
+      new Map(
+        localDownloadSources.map((downloadSource) => [
+          downloadSource.id,
+          downloadSource.name,
+        ])
+      ),
+    [localDownloadSources]
+  );
   const downloadSources = useMemo(() => {
-    return Array.from(
-      new Set(downloadOptions.map((option) => option.downloadSourceName))
+    const optionSourceIds = new Set(
+      downloadOptions.map((option) => option.downloadSourceId)
     );
-  }, [downloadOptions]);
+
+    return localDownloadSources
+      .filter((downloadSource) => optionSourceIds.has(downloadSource.id))
+      .map((downloadSource) => ({
+        id: downloadSource.id,
+        name: downloadSource.name,
+      }));
+  }, [downloadOptions, localDownloadSources]);
   const sourceItems = useMemo(
     () =>
       downloadSources.map((source, index) => ({
-        source,
-        focusId: getSourceFocusId(source, index),
+        ...source,
+        focusId: getSourceFocusId(source.id, source.name, index),
       })),
     [downloadSources]
   );
@@ -344,7 +362,7 @@ function DownloadGameSourceList({
       .filter((option) => {
         if (selectedSources.length === 0) return true;
 
-        return selectedSources.includes(option.downloadSourceName);
+        return selectedSources.includes(option.downloadSourceId);
       });
   }, [downloadOptions, searchTerm, selectedSources]);
 
@@ -401,11 +419,11 @@ function DownloadGameSourceList({
     lastAlignedFocusIdRef.current = null;
   }, [sourceItems]);
 
-  const handleSourceClick = (source: string) => {
+  const handleSourceClick = (sourceId: string) => {
     setSelectedSources((previousSources) =>
-      previousSources.includes(source)
-        ? previousSources.filter((previousSource) => previousSource !== source)
-        : [...previousSources, source]
+      previousSources.includes(sourceId)
+        ? previousSources.filter((previousSource) => previousSource !== sourceId)
+        : [...previousSources, sourceId]
     );
   };
 
@@ -443,7 +461,7 @@ function DownloadGameSourceList({
                 ))}
 
               {!isLoading &&
-                sourceItems.map(({ source, focusId }, index) => (
+                sourceItems.map(({ id, name, focusId }, index) => (
                   <div
                     key={focusId}
                     className="download-game-modal__source-list__source-slide"
@@ -451,10 +469,10 @@ function DownloadGameSourceList({
                   >
                     <SourceAnchor
                       focusId={focusId}
-                      title={source}
+                      title={name}
                       size="large"
-                      isSelected={selectedSources.includes(source)}
-                      onClick={() => handleSourceClick(source)}
+                      isSelected={selectedSources.includes(id)}
+                      onClick={() => handleSourceClick(id)}
                     />
                   </div>
                 ))}
@@ -498,7 +516,17 @@ function DownloadGameSourceList({
               sortedDownloadOptions.map((option) => (
                 <DownloadSourceOption
                   key={option.id}
-                  option={option}
+                  option={
+                    localDownloadSourceNameById.has(option.downloadSourceId)
+                      ? {
+                          ...option,
+                          downloadSourceName:
+                            localDownloadSourceNameById.get(
+                              option.downloadSourceId
+                            ) ?? option.downloadSourceName,
+                        }
+                      : option
+                  }
                   onSelect={() => onSelectOption(option)}
                 />
               ))}

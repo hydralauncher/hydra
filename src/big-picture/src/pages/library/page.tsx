@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
 import { useGameCollections, useLibrary } from "../../hooks";
 import {
@@ -35,8 +34,6 @@ import {
 import { DownloadGameModal } from "../../components/modals";
 import { LIBRARY_PAGE_REGION_ID } from "../../components/pages/library/navigation";
 import { logger } from "@renderer/logger";
-
-import { getBigPictureGameDetailsPath } from "../../helpers";
 
 import "./page.scss";
 
@@ -93,7 +90,6 @@ function getInitialLibraryStoredValue<TValue extends string>(
 
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
-  const navigate = useNavigate();
   const { library, updateLibrary } = useLibrary();
   const { collections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
@@ -170,13 +166,6 @@ export default function LibraryPage() {
     useCallback((game: LibraryGame) => {
       setDownloadModalGame(game);
     }, [])
-  );
-
-  const handleOpenGamePage = useCallback(
-    (game: LibraryGame) => {
-      navigate(getBigPictureGameDetailsPath(game));
-    },
-    [navigate]
   );
 
   const logOptionsPlaceholder = useCallback(
@@ -372,7 +361,6 @@ export default function LibraryPage() {
         isFavoriteLoading={favoriteLoadingGameId === contextMenuState.game?.id}
         onClose={handleCloseGameContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
-        onOpenGamePage={handleOpenGamePage}
         onToggleFavorite={toggleFavorite}
         onViewAchievements={(game) => {
           logger.log("library-context-menu achievements", {
