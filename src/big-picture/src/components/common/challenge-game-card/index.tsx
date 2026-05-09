@@ -9,6 +9,7 @@ export interface ChallengeGameCardProps {
   gameTitle: string;
   genres: string[];
   downloadSources: string[];
+  onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }
 
@@ -19,6 +20,7 @@ export function ChallengeGameCard({
   gameTitle,
   genres,
   downloadSources,
+  onClick,
   onContextMenu,
 }: Readonly<ChallengeGameCardProps>) {
   const visibleSources = downloadSources.slice(0, MAX_VISIBLE_SOURCES);
@@ -28,7 +30,11 @@ export function ChallengeGameCard({
   );
 
   return (
-    <div className="challenge-game-card" onContextMenu={onContextMenu}>
+    <div
+      className="challenge-game-card"
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+    >
       <div className="challenge-game-card__cover">
         {coverImageUrl ? (
           <img src={coverImageUrl} alt={gameTitle} draggable={false} />

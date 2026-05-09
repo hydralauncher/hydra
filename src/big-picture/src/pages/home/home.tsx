@@ -577,6 +577,9 @@ export default function Home() {
                       downloadSources={game.downloadSources}
                       gameTitle={game.title}
                       genres={game.genres}
+                      onClick={() => {
+                        navigate(getBigPictureGameDetailsPath(game));
+                      }}
                       onContextMenu={openChallengePointerMenu}
                     />
                   </FocusItem>
