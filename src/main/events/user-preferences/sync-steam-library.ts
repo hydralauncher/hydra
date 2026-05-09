@@ -1,4 +1,9 @@
-import { db, gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import {
+  db,
+  gamesShopAssetsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
 import { createGame } from "@main/services/library-sync";
 import { HydraApi } from "@main/services/hydra-api";
 import { SteamLibraryApi } from "@main/services/steam-library-api";
@@ -129,10 +134,13 @@ const syncSteamLibrary = async (_event: Electron.IpcMainInvokeEvent) => {
 
   SteamSyncCancellation.reset("library");
 
-  WindowManager.mainWindow?.webContents.send(
-    "on-steam-library-sync-progress",
-    { current: cancelled ? (imported + updated + skipped) : total, total, gameTitle: "", done: true, cancelled }
-  );
+  WindowManager.mainWindow?.webContents.send("on-steam-library-sync-progress", {
+    current: cancelled ? imported + updated + skipped : total,
+    total,
+    gameTitle: "",
+    done: true,
+    cancelled,
+  });
 
   WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
 

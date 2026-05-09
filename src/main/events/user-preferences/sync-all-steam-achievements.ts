@@ -23,9 +23,7 @@ const syncAllSteamAchievements = async (
   }
 
   const allGames = await gamesSublevel.values().all();
-  const steamGames = allGames.filter(
-    (g) => g.shop === "steam" && !g.isDeleted
-  );
+  const steamGames = allGames.filter((g) => g.shop === "steam" && !g.isDeleted);
 
   const total = steamGames.length;
   let synced = 0;
@@ -62,7 +60,13 @@ const syncAllSteamAchievements = async (
 
   WindowManager.mainWindow?.webContents.send(
     "on-steam-achievements-sync-progress",
-    { current: cancelled ? synced : total, total, gameTitle: "", done: true, cancelled }
+    {
+      current: cancelled ? synced : total,
+      total,
+      gameTitle: "",
+      done: true,
+      cancelled,
+    }
   );
 
   WindowManager.mainWindow?.webContents.send("on-library-batch-complete");

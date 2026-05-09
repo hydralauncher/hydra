@@ -11,9 +11,7 @@ import type { UserPreferences } from "@types";
 const buildIconUrl = (appid: number, hash: string) =>
   `https://media.steampowered.com/steamcommunity/public/images/apps/${appid}/${hash}.jpg`;
 
-export const runSteamStartupSync = async (
-  userPreferences: UserPreferences
-) => {
+export const runSteamStartupSync = async (userPreferences: UserPreferences) => {
   const { steamLinkedAccountId, steamApiKey } = userPreferences;
   if (!steamLinkedAccountId || !steamApiKey) return;
 
@@ -91,9 +89,7 @@ export const runSteamStartupSync = async (
   SteamSyncCancellation.reset("achievements");
 
   const allGames = await gamesSublevel.values().all();
-  const steamGames = allGames.filter(
-    (g) => g.shop === "steam" && !g.isDeleted
-  );
+  const steamGames = allGames.filter((g) => g.shop === "steam" && !g.isDeleted);
 
   for (const game of steamGames) {
     if (SteamSyncCancellation.isRequested("achievements")) break;

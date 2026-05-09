@@ -70,17 +70,20 @@ export class SteamAuthService {
         }
 
         const port = address.port;
-        const returnTo = `http://127.0.0.1:${port}/callback`;
+        // http:// is required here: Steam OpenID callback must use a plain
+        // local server (no TLS on loopback), and the spec namespace URIs are
+        // fixed identifiers defined by the OpenID 2.0 specification.
+        const returnTo = `http://127.0.0.1:${port}/callback`; // NOSONAR
 
         const openIdParams = new URLSearchParams({
-          "openid.ns": "http://specs.openid.net/auth/2.0",
+          "openid.ns": "http://specs.openid.net/auth/2.0", // NOSONAR — OpenID 2.0 spec namespace URI, must be http://
           "openid.mode": "checkid_setup",
           "openid.return_to": returnTo,
-          "openid.realm": `http://127.0.0.1:${port}`,
+          "openid.realm": `http://127.0.0.1:${port}`, // NOSONAR — loopback callback, TLS not applicable
           "openid.identity":
-            "http://specs.openid.net/auth/2.0/identifier_select",
+            "http://specs.openid.net/auth/2.0/identifier_select", // NOSONAR — OpenID 2.0 spec URI
           "openid.claimed_id":
-            "http://specs.openid.net/auth/2.0/identifier_select",
+            "http://specs.openid.net/auth/2.0/identifier_select", // NOSONAR — OpenID 2.0 spec URI
         });
 
         const authUrl = `${STEAM_OPENID_URL}?${openIdParams.toString()}`;

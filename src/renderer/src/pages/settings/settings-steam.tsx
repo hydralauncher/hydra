@@ -1,7 +1,13 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { Button, CheckboxField, Link, Modal, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  Link,
+  Modal,
+  TextField,
+} from "@renderer/components";
 import { useAppSelector, useToast } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import {
@@ -51,8 +57,7 @@ export function SettingsSteam() {
 
   const [achievementsSync, setAchievementsSync] =
     useState<SyncState>(INITIAL_SYNC_STATE);
-  const [librarySync, setLibrarySync] =
-    useState<SyncState>(INITIAL_SYNC_STATE);
+  const [librarySync, setLibrarySync] = useState<SyncState>(INITIAL_SYNC_STATE);
 
   const achievementsUnsubRef = useRef<(() => void) | null>(null);
   const libraryUnsubRef = useRef<(() => void) | null>(null);
@@ -153,7 +158,10 @@ export function SettingsSteam() {
           } else if (totalNew > 0) {
             showSuccessToast(
               t("steam_achievements_sync_done"),
-              t("steam_achievements_sync_new", { count: totalNew, total: synced })
+              t("steam_achievements_sync_new", {
+                count: totalNew,
+                total: synced,
+              })
             );
           } else {
             showSuccessToast(
@@ -184,12 +192,9 @@ export function SettingsSteam() {
     [showSuccessToast, showErrorToast, t]
   );
 
-  const handleCancel = useCallback(
-    async (type: SyncType) => {
-      await window.electron.cancelSteamSync(type);
-    },
-    []
-  );
+  const handleCancel = useCallback(async (type: SyncType) => {
+    await window.electron.cancelSteamSync(type);
+  }, []);
 
   const handleCloseModal = useCallback((type: SyncType) => {
     const setState =
@@ -228,9 +233,7 @@ export function SettingsSteam() {
             <div className="settings-steam__account-info__text">
               <div className="settings-steam__linked-info">
                 <CheckCircleFillIcon size={14} />
-                <strong>
-                  {steamDisplayName ?? linkedSteamId}
-                </strong>
+                <strong>{steamDisplayName ?? linkedSteamId}</strong>
               </div>
               <span className="settings-steam__steam-id">
                 {t("steam_id_label")}: {linkedSteamId}
@@ -266,15 +269,16 @@ export function SettingsSteam() {
                     <span>{t("steam_sync_achievements_description")}</span>
                   </div>
                   <div className="settings-steam__sync-action__buttons">
-                    {achievementsSync.running && !achievementsSync.showModal && (
-                      <Button
-                        type="button"
-                        theme="outline"
-                        onClick={() => handleReopenModal("achievements")}
-                      >
-                        {t("steam_view_progress")}
-                      </Button>
-                    )}
+                    {achievementsSync.running &&
+                      !achievementsSync.showModal && (
+                        <Button
+                          type="button"
+                          theme="outline"
+                          onClick={() => handleReopenModal("achievements")}
+                        >
+                          {t("steam_view_progress")}
+                        </Button>
+                      )}
                     <Button
                       type="button"
                       theme="outline"
@@ -361,8 +365,7 @@ export function SettingsSteam() {
 
       {/* Progress modals */}
       {(["achievements", "library"] as SyncType[]).map((type) => {
-        const state =
-          type === "achievements" ? achievementsSync : librarySync;
+        const state = type === "achievements" ? achievementsSync : librarySync;
         const title =
           type === "achievements"
             ? t("steam_sync_achievements_title")
