@@ -55,16 +55,19 @@ export function DownloadSourceOption({
           </div>
         </div>
 
-        <div className="download-source-option__divider" />
+        {/* Footer placeholders intentionally hidden for this release. */}
+        {/*
+          <div className="download-source-option__divider" />
 
-        <div className="download-source-option__footer">
-          <div className="download-source-option__footer__left">
-            todo cache status
+          <div className="download-source-option__footer">
+            <div className="download-source-option__footer__left">
+              todo cache status
+            </div>
+            <div className="download-source-option__footer__right">
+              todo seeders count
+            </div>
           </div>
-          <div className="download-source-option__footer__right">
-            todo seeders count
-          </div>
-        </div>
+        */}
       </button>
     </FocusItem>
   );
