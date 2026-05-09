@@ -206,17 +206,37 @@ function syncThresholdFocusScroll(
 
   const { firstVisibleIndex, visibleCount } = viewportMetrics;
   const visiblePositionOneBased = nextFocusedIndex - firstVisibleIndex + 1;
+  const isMovingRight = nextFocusedIndex > previousFocusedIndex;
+  const rightTriggerPosition = Math.max(1, Math.ceil(visibleCount / 2));
+  const leftTriggerPosition = Math.min(
+    visibleCount,
+    Math.floor(visibleCount / 2) + 1
+  );
 
   const isOutOfBounds =
     visiblePositionOneBased < 1 || visiblePositionOneBased > visibleCount;
 
-  if (isOutOfBounds) return;
+  if (isOutOfBounds) {
+    const selectedPosition = Math.floor(visibleCount / 2) + 1;
+    const slideCount = emblaApi.slideNodes().length;
+    const maxStartIndex = Math.max(0, slideCount - visibleCount);
+    const targetStartIndex = Math.max(
+      0,
+      Math.min(nextFocusedIndex - (selectedPosition - 1), maxStartIndex)
+    );
 
-  const selectedPosition = Math.floor(visibleCount / 2) + 1;
-  const isMovingRight = nextFocusedIndex > previousFocusedIndex;
+    if (viewportMetrics.firstVisibleIndex !== targetStartIndex) {
+      emblaApi.scrollTo(targetStartIndex, true);
+    }
+
+    return;
+  }
+
   const didScroll = isMovingRight
-    ? visiblePositionOneBased > selectedPosition && emblaApi.canScrollNext()
-    : visiblePositionOneBased < selectedPosition && emblaApi.canScrollPrev();
+    ? visiblePositionOneBased > rightTriggerPosition &&
+      emblaApi.canScrollNext()
+    : visiblePositionOneBased < leftTriggerPosition &&
+      emblaApi.canScrollPrev();
 
   if (!didScroll) return;
 

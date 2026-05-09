@@ -1,6 +1,5 @@
 button.vertical-store-game-card {
   appearance: none;
-  border: none;
   margin: 0;
   padding: 0;
   font: inherit;
@@ -110,6 +109,7 @@ button.vertical-store-game-card {
   }
 
   &:hover,
+  &:focus-within,
   &--force-hovered,
   [data-focused="true"] > &,
   [data-focus-visible="true"] > & {

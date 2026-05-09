@@ -133,10 +133,7 @@ export function buildCatalogGameContextMenuItems(
   if (canAddToLibrary) {
     nextItems.push({
       id: "download-options",
-      label: t("open_download_options", { ns: "game_details" }).replace(
-        /\b\p{L}/gu,
-        (char) => char.toUpperCase()
-      ),
+      label: "Download Options",
       icon: <DownloadSimpleIcon aria-hidden size={18} weight="regular" />,
       restoreFocusOnClose: false,
       onSelect: onOpenDownloadOptions,

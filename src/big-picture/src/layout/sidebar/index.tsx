@@ -22,7 +22,7 @@ import {
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_REGION_ID,
   type BigPictureSidebarRouteKey,
-  getBigPictureContentEntryTargetFromPathname,
+  getBigPictureContentSidebarReturnTargetFromPathname,
   getBigPictureGameRouteMatch,
   getBigPictureSidebarLibraryGameFocusId,
   getBigPictureSidebarItemIdFromPathname,
@@ -35,7 +35,7 @@ function SidebarRouter() {
   const { pathname } = useLocation();
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const contentEntryTarget =
-    getBigPictureContentEntryTargetFromPathname(pathname);
+    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
   const sidebarItemNavigationOverrides: FocusOverrides = {
     left: {
       type: "block",
@@ -113,7 +113,7 @@ function SidebarLibrary() {
   const normalizedPathname = normalizeBigPicturePathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
   const contentEntryTarget =
-    getBigPictureContentEntryTargetFromPathname(pathname);
+    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
 
   const sortedLibrary = useMemo(() => {
     return [...library].sort(
