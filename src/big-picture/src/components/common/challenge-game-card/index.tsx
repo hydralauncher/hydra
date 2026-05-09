@@ -9,7 +9,7 @@ export interface ChallengeGameCardProps {
   gameTitle: string;
   genres: string[];
   downloadSources: string[];
-  onClick?: () => void;
+  onClick: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }
 
@@ -30,7 +30,8 @@ export function ChallengeGameCard({
   );
 
   return (
-    <div
+    <button
+      type="button"
       className="challenge-game-card"
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -65,6 +66,6 @@ export function ChallengeGameCard({
           </div>
         ) : null}
       </div>
-    </div>
+    </button>
   );
 }
