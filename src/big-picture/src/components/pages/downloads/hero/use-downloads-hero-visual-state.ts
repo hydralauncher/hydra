@@ -1,5 +1,4 @@
 import { getDominantColorFromImage } from "../../../../helpers";
-import type { BigPictureDownloadListItem } from "../../../../pages/downloads/use-big-picture-downloads-page-data";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface DownloadsHeroProgressPanelState {
@@ -21,11 +20,6 @@ export interface DownloadsHeroNetworkPanelState {
   showSeedsAndPeers: boolean;
 }
 
-export interface DownloadsHeroMenuContext {
-  item: BigPictureDownloadListItem;
-  section: "queue" | "paused";
-}
-
 export interface DownloadsHeroSnapshot {
   id: string;
   title: string;
@@ -38,7 +32,6 @@ export interface DownloadsHeroSnapshot {
   canPauseOrResume: boolean;
   progressPanel: DownloadsHeroProgressPanelState;
   networkPanel: DownloadsHeroNetworkPanelState;
-  menuContext: DownloadsHeroMenuContext | null;
   mode: "normal" | "preview";
 }
 

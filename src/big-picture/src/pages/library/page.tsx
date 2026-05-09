@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { IS_DESKTOP } from "../../constants";
-import { useGameCollections, useLibrary } from "../../hooks";
+import { useGameCollections, useLibrary, useNavigation } from "../../hooks";
 import {
   isBuiltinLibraryTab,
   type LibraryViewMode,
@@ -90,6 +90,8 @@ function getInitialLibraryStoredValue<TValue extends string>(
 
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
+  const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const { setFocus } = useNavigation();
   const { library, updateLibrary } = useLibrary();
   const { collections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
@@ -158,14 +160,38 @@ export default function LibraryPage() {
   const [downloadModalGame, setDownloadModalGame] =
     useState<LibraryGame | null>(null);
 
+  const openDownloadModalFromContextMenu = useCallback(
+    (game: LibraryGame) => {
+      const restoreFocusId = contextMenuState.restoreFocusId;
+      downloadModalRestoreFocusIdRef.current = restoreFocusId;
+
+      globalThis.window.requestAnimationFrame(() => {
+        setDownloadModalGame(game);
+      });
+    },
+    [contextMenuState.restoreFocusId]
+  );
+
   const handleCloseDownloadModal = useCallback(() => {
+    const restoreFocusId = downloadModalRestoreFocusIdRef.current;
+
+    downloadModalRestoreFocusIdRef.current = null;
     setDownloadModalGame(null);
-  }, []);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [setFocus]);
 
   const handleLaunchOrDownload = useLibraryLaunchGame(
-    useCallback((game: LibraryGame) => {
-      setDownloadModalGame(game);
-    }, [])
+    useCallback(
+      (game: LibraryGame) => {
+        openDownloadModalFromContextMenu(game);
+      },
+      [openDownloadModalFromContextMenu]
+    )
   );
 
   const logOptionsPlaceholder = useCallback(

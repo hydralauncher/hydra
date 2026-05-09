@@ -4,12 +4,14 @@ import {
   dropTargetForElements,
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import type { LibraryGame } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
 import { useNavigation, useNavigationScreenActions } from "../../hooks";
+import { BIG_PICTURE_HEADER_REGION_ID } from "../../layout";
 import {
   ContextMenu,
   type ContextMenuItem,
@@ -22,13 +24,11 @@ import {
 } from "../../components";
 import {
   DOWNLOADS_PAGE_REGION_ID,
-  DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
   DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID,
 } from "../../components/pages/downloads/navigation";
 import {
   useDownloadsHeroDisplayState,
   type DownloadsHeroSnapshot,
-  type DownloadsHeroMenuContext,
 } from "../../components/pages/downloads/hero/use-downloads-hero-visual-state";
 import {
   getDownloadCoverImageUrl,
@@ -38,6 +38,7 @@ import {
   type BigPictureDownloadsNetworkStats,
   type BigPictureDownloadListItem,
 } from "./use-big-picture-downloads-page-data";
+import { useNavigationSnapshot } from "../../stores";
 
 import "./downloads.scss";
 
@@ -105,12 +106,17 @@ type DownloadMenuState = {
   visible: boolean;
 };
 
+type DownloadSection = "hero" | "queue" | "paused" | "completed";
+
 type PreviewScrollBehavior = "keep-visible" | "prefer-center";
 
 const PREVIEW_SCROLL_SAFE_MARGIN = 96;
+const PREVIEW_SCROLL_ANIMATION_DURATION = 180;
+const MOVE_MODE_CROSS_SECTION_CENTER_THRESHOLD = 96;
 const DRAG_EDGE_SCROLL_ZONE_PX = 120;
 const DRAG_EDGE_SCROLL_MIN_STEP_PX = 8;
 const DRAG_EDGE_SCROLL_MAX_STEP_PX = 30;
+const previewScrollAnimationFrames = new WeakMap<HTMLElement, number>();
 
 function isDragSourceData(value: unknown): value is DragSourceData {
   if (!value || typeof value !== "object") return false;
@@ -174,6 +180,58 @@ function clampInsertionIndex(targetIndex: number, length: number) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function easeOutCubic(progress: number): number {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function cancelPreviewScrollAnimation(container: HTMLElement) {
+  const animationFrame = previewScrollAnimationFrames.get(container);
+
+  if (animationFrame === undefined) return;
+
+  globalThis.cancelAnimationFrame(animationFrame);
+  previewScrollAnimationFrames.delete(container);
+}
+
+function animatePreviewScroll(container: HTMLElement, targetScrollTop: number) {
+  cancelPreviewScrollAnimation(container);
+
+  const startScrollTop = container.scrollTop;
+  const distance = targetScrollTop - startScrollTop;
+
+  if (distance === 0) return;
+
+  const startTime = performance.now();
+
+  const step = (now: number) => {
+    const elapsed = now - startTime;
+    const progress = clamp(
+      elapsed / PREVIEW_SCROLL_ANIMATION_DURATION,
+      0,
+      1
+    );
+    const easedProgress = easeOutCubic(progress);
+
+    container.scrollTop = startScrollTop + distance * easedProgress;
+
+    if (progress < 1) {
+      previewScrollAnimationFrames.set(
+        container,
+        globalThis.requestAnimationFrame(step)
+      );
+      return;
+    }
+
+    container.scrollTop = targetScrollTop;
+    previewScrollAnimationFrames.delete(container);
+  };
+
+  previewScrollAnimationFrames.set(
+    container,
+    globalThis.requestAnimationFrame(step)
+  );
 }
 
 function insertAtIndex(items: string[], targetIndex: number, gameId: string) {
@@ -334,6 +392,19 @@ function getDownloadMenuPosition(element: HTMLElement) {
   };
 }
 
+function getNextFocusIdInSection(gameIds: string[], removedGameId: string) {
+  const removedIndex = gameIds.indexOf(removedGameId);
+  const remainingGameIds = gameIds.filter((gameId) => gameId !== removedGameId);
+
+  if (!remainingGameIds.length) return null;
+
+  if (removedIndex >= 0 && removedIndex < remainingGameIds.length) {
+    return getDownloadMainFocusId(remainingGameIds[removedIndex]);
+  }
+
+  return getDownloadMainFocusId(remainingGameIds[remainingGameIds.length - 1]);
+}
+
 function getPreviewPlacement(
   state: PreviewLayoutState,
   gameId: string
@@ -415,7 +486,12 @@ function resolvePreviewTargetElement(
 function scrollPreviewTargetIntoView(
   container: HTMLElement,
   target: HTMLElement,
-  behavior: PreviewScrollBehavior
+  behavior: PreviewScrollBehavior,
+  options: {
+    safeMargin?: number;
+    overflowTolerance?: number;
+    centerThreshold?: number;
+  } = {}
 ) {
   const containerRect = container.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
@@ -423,24 +499,41 @@ function scrollPreviewTargetIntoView(
     0,
     container.scrollHeight - container.clientHeight
   );
-  const safeTop = containerRect.top + PREVIEW_SCROLL_SAFE_MARGIN;
-  const safeBottom = containerRect.bottom - PREVIEW_SCROLL_SAFE_MARGIN;
+  const safeMargin = options.safeMargin ?? PREVIEW_SCROLL_SAFE_MARGIN;
+  const overflowTolerance = options.overflowTolerance ?? 0;
+  const centerThreshold = options.centerThreshold ?? 0;
+  const safeTop = containerRect.top + safeMargin;
+  const safeBottom = containerRect.bottom - safeMargin;
 
   let nextScrollTop = container.scrollTop;
 
   if (behavior === "prefer-center") {
     const targetCenterY = targetRect.top + targetRect.height / 2;
     const containerCenterY = containerRect.top + containerRect.height / 2;
-    nextScrollTop = container.scrollTop + (targetCenterY - containerCenterY);
+    const centerDelta = targetCenterY - containerCenterY;
+
+    if (Math.abs(centerDelta) <= centerThreshold) {
+      return;
+    }
+
+    nextScrollTop = container.scrollTop + centerDelta;
   } else if (targetRect.top < safeTop) {
+    if (safeTop - targetRect.top <= overflowTolerance) {
+      return;
+    }
+
     nextScrollTop = container.scrollTop + (targetRect.top - safeTop);
   } else if (targetRect.bottom > safeBottom) {
+    if (targetRect.bottom - safeBottom <= overflowTolerance) {
+      return;
+    }
+
     nextScrollTop = container.scrollTop + (targetRect.bottom - safeBottom);
   } else {
     return;
   }
 
-  container.scrollTop = clamp(nextScrollTop, 0, maxScrollTop);
+  animatePreviewScroll(container, clamp(nextScrollTop, 0, maxScrollTop));
 }
 
 function getDragTargetFromPoint(root: HTMLElement, x: number, y: number) {
@@ -517,11 +610,7 @@ function getNextMoveTarget(
       return { kind: "paused", index: placement.index - 1 };
     }
 
-    if (state.queueIds.length > 0) {
-      return { kind: "queue", index: state.queueIds.length };
-    }
-
-    return canPromoteToHero ? { kind: "hero" } : null;
+    return { kind: "queue", index: state.queueIds.length };
   }
 
   if (placement.kind === "hero") {
@@ -708,9 +797,7 @@ function buildDownloadsMainNavigationOverrides(
               type: "item",
               itemId: previousItemId,
             }
-          : {
-              type: "block",
-            },
+          : undefined,
         down: nextItemId
           ? {
               type: "item",
@@ -813,16 +900,6 @@ function buildPreviewHeroItemFromListItem(
   };
 }
 
-function buildHeroMenuContext(
-  item: BigPictureDownloadListItem,
-  section: "queue" | "paused"
-): DownloadsHeroMenuContext {
-  return {
-    item,
-    section,
-  };
-}
-
 function Section({
   title,
   children,
@@ -851,6 +928,7 @@ export default function Downloads() {
   const navigate = useNavigate();
   const { t } = useTranslation("downloads");
   const { setFocus } = useNavigation();
+  const { currentFocusId, nodes } = useNavigationSnapshot();
   const {
     activeDownload,
     networkStats,
@@ -872,6 +950,9 @@ export default function Downloads() {
     resumeSeeding,
   } = useBigPictureDownloadsPageData();
   const pageRef = useRef<HTMLDivElement | null>(null);
+  const previousMoveModePlacementKindRef = useRef<PreviewPlacement["kind"] | null>(
+    null
+  );
   const suppressOpenRef = useRef(false);
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const dragEdgeScrollFrameRef = useRef<number | null>(null);
@@ -895,6 +976,11 @@ export default function Downloads() {
     restoreFocusId: null,
     visible: false,
   });
+  const currentFocusRegionId = useMemo(() => {
+    if (!currentFocusId) return null;
+
+    return nodes.find((node) => node.id === currentFocusId)?.regionId ?? null;
+  }, [currentFocusId, nodes]);
 
   const queuedById = useMemo(
     () => new Map(queuedDownloads.map((item) => [item.id, item])),
@@ -1408,20 +1494,6 @@ export default function Downloads() {
           ? null
           : (activeDownload?.metaLabel ?? null),
       },
-      menuContext:
-        !isHeroOptimisticLoading && activeDownload
-          ? buildHeroMenuContext(
-              buildPreviewRowItemFromActive(
-                activeDownload,
-                activeDownload.pauseOrResumeAction === "resume"
-                  ? "paused"
-                  : "queue"
-              ),
-              activeDownload.pauseOrResumeAction === "resume"
-                ? "paused"
-                : "queue"
-            )
-          : null,
       mode: isHeroOptimisticLoading ? "preview" : "normal",
     };
   }, [
@@ -1466,7 +1538,6 @@ export default function Downloads() {
           ...neutralNetworkStats,
           downloaderLabel: null,
         },
-        menuContext: null,
         mode: "preview",
       };
     }, [
@@ -1528,23 +1599,42 @@ export default function Downloads() {
         : completedDownloads[0]?.id != null
           ? getDownloadMainFocusId(completedDownloads[0].id)
           : undefined;
-  const moveModeTargetFocusId = useMemo(() => {
-    if (!moveMode) return null;
-
-    return getRepresentativeFocusIdForMoveTarget(
-      moveMode.sourceGameId,
-      moveMode.moveTarget
-    );
-  }, [
-    moveMode?.moveTarget.kind,
-    moveMode?.moveTarget.kind === "hero" ? null : moveMode?.moveTarget.index,
-    moveMode?.sourceGameId,
-  ]);
+  const moveModePreviewPlacement = useMemo(
+    () => (moveMode ? getPreviewPlacement(moveMode, moveMode.sourceGameId) : null),
+    [moveMode]
+  );
   const moveModePreviewPlacementKey = useMemo(
     () =>
       moveMode ? getPreviewPlacementKey(moveMode, moveMode.sourceGameId) : null,
     [moveMode]
   );
+  const moveModeTargetFocusId = useMemo(() => {
+    if (!moveMode) return null;
+
+    const previewPlacement = moveModePreviewPlacement;
+
+    if (!previewPlacement) return null;
+
+    return previewPlacement.kind === "hero"
+      ? getHeroPrimaryFocusId()
+      : getDownloadMainFocusId(moveMode.sourceGameId);
+  }, [
+    moveModePreviewPlacement,
+    moveMode?.sourceGameId,
+  ]);
+  const isCrossSectionMoveModePreview = useMemo(() => {
+    const previousKind = previousMoveModePlacementKindRef.current;
+    const currentKind = moveModePreviewPlacement?.kind ?? null;
+
+    if (!previousKind || !currentKind || previousKind === currentKind) {
+      return false;
+    }
+
+    return (
+      (previousKind === "queue" && currentKind === "paused") ||
+      (previousKind === "paused" && currentKind === "queue")
+    );
+  }, [moveModePreviewPlacement?.kind]);
   const dragPreviewPlacementKey = useMemo(
     () =>
       dragPreviewState && dragSource
@@ -1580,6 +1670,88 @@ export default function Downloads() {
     renderedQueuedDownloads,
   ]);
 
+  const getRemovalFallbackFocusId = useCallback(
+    (sourceSection: DownloadSection, removedGameId: string) => {
+      const queueIds = renderedQueuedDownloads.map((item) => item.id);
+      const pausedIds = renderedPausedDownloads.map((item) => item.id);
+      const completedIds = completedDownloads.map((item) => item.id);
+
+      const sameSectionFocusId =
+        sourceSection === "queue"
+          ? getNextFocusIdInSection(queueIds, removedGameId)
+          : sourceSection === "paused"
+            ? getNextFocusIdInSection(pausedIds, removedGameId)
+            : sourceSection === "completed"
+              ? getNextFocusIdInSection(completedIds, removedGameId)
+              : null;
+
+      if (sameSectionFocusId) {
+        return sameSectionFocusId;
+      }
+
+      const getFirstFocusId = (gameIds: string[]) =>
+        gameIds[0] ? getDownloadMainFocusId(gameIds[0]) : null;
+
+      if (sourceSection === "hero") {
+        return (
+          getFirstFocusId(queueIds) ??
+          getFirstFocusId(pausedIds) ??
+          getFirstFocusId(completedIds) ??
+          null
+        );
+      }
+
+      if (sourceSection === "queue") {
+        return (
+          getFirstFocusId(pausedIds) ??
+          getFirstFocusId(completedIds) ??
+          (displayedHeroSnapshot ? getHeroPrimaryFocusId() : null)
+        );
+      }
+
+      if (sourceSection === "paused") {
+        return (
+          getFirstFocusId(queueIds) ??
+          getFirstFocusId(completedIds) ??
+          (displayedHeroSnapshot ? getHeroPrimaryFocusId() : null)
+        );
+      }
+
+      return (
+        getFirstFocusId(pausedIds) ??
+        getFirstFocusId(queueIds) ??
+        (displayedHeroSnapshot ? getHeroPrimaryFocusId() : null)
+      );
+    },
+    [completedDownloads, displayedHeroSnapshot, renderedPausedDownloads, renderedQueuedDownloads]
+  );
+
+  const handleRemovalCancel = useCallback(
+    async (game: LibraryGame, section: Exclude<DownloadSection, "completed">) => {
+      const nextFocusId = getRemovalFallbackFocusId(section, game.id);
+
+      await cancelDownload(game);
+
+      if (nextFocusId) {
+        setPendingFocusId(nextFocusId);
+      }
+    },
+    [cancelDownload, getRemovalFallbackFocusId]
+  );
+
+  const handleCompletedRemoval = useCallback(
+    async (game: LibraryGame) => {
+      const nextFocusId = getRemovalFallbackFocusId("completed", game.id);
+
+      await removeDownload(game);
+
+      if (nextFocusId) {
+        setPendingFocusId(nextFocusId);
+      }
+    },
+    [getRemovalFallbackFocusId, removeDownload]
+  );
+
   useEffect(() => {
     if (!pendingFocusId) return;
     if (!visibleMainFocusIds.includes(pendingFocusId)) return;
@@ -1603,6 +1775,19 @@ export default function Downloads() {
   ]);
 
   useEffect(() => {
+    if (currentFocusRegionId !== BIG_PICTURE_HEADER_REGION_ID) return;
+
+    const pageElement = pageRef.current;
+    if (!pageElement || pageElement.scrollTop <= 0) return;
+
+    pageElement.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, [currentFocusRegionId]);
+
+  useEffect(() => {
+    if (!moveModePreviewPlacementKey) return;
     if (!moveModeTargetFocusId) return;
     if (!visibleMainFocusIds.includes(moveModeTargetFocusId)) return;
 
@@ -1613,7 +1798,43 @@ export default function Downloads() {
     return () => {
       globalThis.window.cancelAnimationFrame(frameId);
     };
-  }, [moveModeTargetFocusId, setFocus, visibleMainFocusIds]);
+  }, [
+    moveModePreviewPlacementKey,
+    moveModeTargetFocusId,
+    setFocus,
+    visibleMainFocusIds,
+  ]);
+
+  useEffect(() => {
+    if (!moveMode || !moveModePreviewPlacementKey || !isCrossSectionMoveModePreview) {
+      return;
+    }
+
+    const root = pageRef.current;
+    if (!root) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      const target = resolvePreviewTargetElement(
+        root,
+        moveMode,
+        moveMode.sourceGameId
+      );
+      if (!target) return;
+
+      scrollPreviewTargetIntoView(root, target, "prefer-center", {
+        centerThreshold: MOVE_MODE_CROSS_SECTION_CENTER_THRESHOLD,
+      });
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [isCrossSectionMoveModePreview, moveMode, moveModePreviewPlacementKey]);
+
+  useEffect(() => {
+    previousMoveModePlacementKindRef.current =
+      moveModePreviewPlacement?.kind ?? null;
+  }, [moveModePreviewPlacement?.kind]);
 
   useEffect(() => {
     dragSourceRef.current = dragSource;
@@ -1671,32 +1892,6 @@ export default function Downloads() {
     optimisticCommitState,
     pendingFocusId,
   ]);
-
-  useEffect(() => {
-    if (!moveMode || !moveModePreviewPlacementKey) return;
-
-    const root = pageRef.current;
-    if (!root) return;
-
-    const frameId = globalThis.window.requestAnimationFrame(() => {
-      const target = resolvePreviewTargetElement(
-        root,
-        moveMode,
-        moveMode.sourceGameId
-      );
-      if (!target) return;
-
-      scrollPreviewTargetIntoView(
-        root,
-        target,
-        moveMode.moveTarget.kind === "hero" ? "prefer-center" : "keep-visible"
-      );
-    });
-
-    return () => {
-      globalThis.window.cancelAnimationFrame(frameId);
-    };
-  }, [moveMode, moveModePreviewPlacementKey]);
 
   useEffect(() => {
     if (!dragPreviewState || !dragSource || !dragPreviewPlacementKey) return;
@@ -1917,30 +2112,26 @@ export default function Downloads() {
     []
   );
 
-  const heroDownloadMenuContext = displayedHeroSnapshot?.menuContext ?? null;
   const heroPauseTargetDownload =
     displayedHeroSnapshot?.mode === "normal" &&
     activeDownload?.id === displayedHeroSnapshot.id
       ? activeDownload
       : null;
 
-  const handleHeroOptions = useCallback(() => {
-    if (!heroDownloadMenuContext || heroInteractionDisabled) {
-      return;
+  const handleHeroCancel = useCallback(async () => {
+    if (!heroPauseTargetDownload) return;
+
+    const nextFocusId = getRemovalFallbackFocusId(
+      "hero",
+      heroPauseTargetDownload.id
+    );
+
+    await cancelDownload(heroPauseTargetDownload.game);
+
+    if (nextFocusId) {
+      setPendingFocusId(nextFocusId);
     }
-
-    const element = globalThis.document.getElementById(
-      DOWNLOADS_HERO_OPTIONS_BUTTON_ID
-    );
-    if (!(element instanceof HTMLElement)) return;
-
-    openDownloadMenu(
-      heroDownloadMenuContext.item,
-      heroDownloadMenuContext.section,
-      getDownloadMenuPosition(element),
-      DOWNLOADS_HERO_OPTIONS_BUTTON_ID
-    );
-  }, [heroDownloadMenuContext, heroInteractionDisabled, openDownloadMenu]);
+  }, [cancelDownload, getRemovalFallbackFocusId, heroPauseTargetDownload]);
 
   const downloadMenuItems = useMemo<ContextMenuItem[]>(() => {
     if (!menuState.item || !menuState.section) return [];
@@ -1960,7 +2151,8 @@ export default function Downloads() {
           label: t("cancel"),
           danger: true,
           disabled: interactionsLocked,
-          onSelect: () => cancelDownload(item.game),
+          restoreFocusOnClose: false,
+          onSelect: () => handleRemovalCancel(item.game, "queue"),
         },
       ];
     }
@@ -1972,7 +2164,8 @@ export default function Downloads() {
           label: t("cancel"),
           danger: true,
           disabled: interactionsLocked,
-          onSelect: () => cancelDownload(item.game),
+          restoreFocusOnClose: false,
+          onSelect: () => handleRemovalCancel(item.game, "paused"),
         },
       ];
     }
@@ -2004,21 +2197,22 @@ export default function Downloads() {
               label: t("remove"),
               danger: true,
               disabled: interactionsLocked,
-              onSelect: () => removeDownload(item.game),
+              restoreFocusOnClose: false,
+              onSelect: () => handleCompletedRemoval(item.game),
             } satisfies ContextMenuItem,
           ]
         : []),
     ];
   }, [
-    cancelDownload,
     canPromoteToHero,
+    handleCompletedRemoval,
+    handleRemovalCancel,
     interactionsLocked,
     menuState.item,
     menuState.section,
     moveQueuedDownload,
     moveToPaused,
     pauseSeeding,
-    removeDownload,
     resumeSeeding,
     sendToQueue,
     startNow,
@@ -2288,23 +2482,23 @@ export default function Downloads() {
                 beginMoveMode(itemId);
               }
             : undefined,
-      },
-      secondary:
-        optionsDisabled || moveMode
-          ? "off"
-          : () => {
-              const optionsFocusId = getDownloadOptionsActionFocusId(itemId);
-              const element =
-                globalThis.document.getElementById(optionsFocusId);
-              if (!(element instanceof HTMLElement)) return;
+        y:
+          optionsDisabled || moveMode
+            ? undefined
+            : () => {
+                const optionsFocusId = getDownloadOptionsActionFocusId(itemId);
+                const element =
+                  globalThis.document.getElementById(optionsFocusId);
+                if (!(element instanceof HTMLElement)) return;
 
-              openDownloadMenu(
-                listItem,
-                section,
-                getDownloadMenuPosition(element),
-                optionsFocusId
-              );
-            },
+                openDownloadMenu(
+                  listItem,
+                  section,
+                  getDownloadMenuPosition(element),
+                  optionsFocusId
+                );
+              },
+      },
     }),
     [beginMoveMode, moveMode, openDownloadMenu]
   );
@@ -2326,7 +2520,13 @@ export default function Downloads() {
 
   return (
     <VerticalFocusGroup regionId={DOWNLOADS_PAGE_REGION_ID} asChild>
-      <div ref={pageRef} className="downloads-page">
+      <div
+        ref={pageRef}
+        className="downloads-page"
+        data-suppress-navigation-autoscroll={
+          isCrossSectionMoveModePreview ? "true" : undefined
+        }
+      >
         <>
           <DownloadsHero
             snapshot={displayedHeroSnapshot}
@@ -2343,7 +2543,9 @@ export default function Downloads() {
 
               void pauseDownload(heroPauseTargetDownload.game);
             }}
-            onOpenOptions={handleHeroOptions}
+            onCancel={() => {
+              void handleHeroCancel();
+            }}
             onOpenDetails={() => {
               if (!displayedHeroSnapshot) return;
               handleOpen(displayedHeroSnapshot.href);

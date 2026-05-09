@@ -1,5 +1,5 @@
 import type { LibraryGame, ShopAssets } from "@types";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEventHandler } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +47,7 @@ import {
   useLibraryLaunchGame,
 } from "../../components/pages/library";
 import { IS_DESKTOP } from "../../constants";
-import { useGameCollections, useLibrary } from "../../hooks";
+import { useGameCollections, useLibrary, useNavigation } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 
 import "./page.scss";
@@ -72,6 +72,7 @@ interface HomeCatalogMenuState {
 export default function Home() {
   const navigate = useNavigate();
   const { t } = useTranslation(["library", "game_details"]);
+  const { setFocus } = useNavigation();
   const { library, updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
 
@@ -85,16 +86,20 @@ export default function Home() {
 
   const [downloadModalGame, setDownloadModalGame] =
     useState<DownloadModalGame | null>(null);
+  const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
 
   const handleCloseDownloadModal = useCallback(() => {
-    setDownloadModalGame(null);
-  }, []);
+    const restoreFocusId = downloadModalRestoreFocusIdRef.current;
 
-  const handleLaunchFromMenu = useLibraryLaunchGame(
-    useCallback((game: LibraryGame) => {
-      setDownloadModalGame(game);
-    }, [])
-  );
+    downloadModalRestoreFocusIdRef.current = null;
+    setDownloadModalGame(null);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [setFocus]);
 
   const handleViewAchievementsPlaceholder = useCallback((game: LibraryGame) => {
     logger.log(
@@ -145,6 +150,27 @@ export default function Home() {
 
   const [addingCatalogKey, setAddingCatalogKey] = useState<string | null>(null);
 
+  const openDownloadModalFromContextMenu = useCallback(
+    (game: DownloadModalGame) => {
+      const restoreFocusId = menuState.restoreFocusId;
+      downloadModalRestoreFocusIdRef.current = restoreFocusId;
+
+      globalThis.window.requestAnimationFrame(() => {
+        setDownloadModalGame(game);
+      });
+    },
+    [menuState.restoreFocusId]
+  );
+
+  const handleLaunchFromMenu = useLibraryLaunchGame(
+    useCallback(
+      (game: LibraryGame) => {
+        openDownloadModalFromContextMenu(game);
+      },
+      [openDownloadModalFromContextMenu]
+    )
+  );
+
   const closeCatalogMenu = useCallback(() => {
     setMenuState((current) => ({
       ...current,
@@ -193,8 +219,8 @@ export default function Home() {
 
     if (!target) return;
 
-    setDownloadModalGame(target);
-  }, [menuState.catalogGame]);
+    openDownloadModalFromContextMenu(target);
+  }, [menuState.catalogGame, openDownloadModalFromContextMenu]);
 
   const handleCatalogViewAchievementsFromMenu = useCallback(() => {
     const target = menuState.catalogGame;

@@ -1,4 +1,4 @@
-import { GearIcon, PauseIcon, PlayIcon } from "@phosphor-icons/react";
+import { PauseIcon, PlayIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +18,7 @@ import {
 } from "../../../common";
 import {
   DOWNLOADS_HERO_ACTIONS_REGION_ID,
-  DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
+  DOWNLOADS_HERO_CANCEL_BUTTON_ID,
   DOWNLOADS_HERO_PAUSE_RESUME_BUTTON_ID,
 } from "../navigation";
 import type {
@@ -39,7 +39,7 @@ interface DownloadsHeroProps {
   navigationOrder?: number;
   isInteractive?: boolean;
   onPauseOrResume: () => void;
-  onOpenOptions?: () => void;
+  onCancel: () => void;
   onOpenDetails: () => void;
   isMoveGrabbed?: boolean;
   isDragSource?: boolean;
@@ -54,8 +54,8 @@ interface HeroActionButtonProps {
   focusId: string;
   navigationOverrides: FocusOverrides;
   focusActions?: FocusItemActions;
-  variant: "primary" | "secondary";
-  icon: ReactNode;
+  variant: "primary" | "secondary" | "danger";
+  icon?: ReactNode;
   label: string;
   disabled?: boolean;
   style?: CSSProperties;
@@ -95,9 +95,11 @@ function HeroActionButton({
         aria-disabled={disabled}
         style={style}
       >
-        <div className="button__icon-container--left button__icon-container">
-          {icon}
-        </div>
+        {icon ? (
+          <div className="button__icon-container--left button__icon-container">
+            {icon}
+          </div>
+        ) : null}
         <p className="button__text">{label}</p>
       </button>
     </FocusItem>
@@ -111,7 +113,7 @@ export function DownloadsHero({
   navigationOrder = 0,
   isInteractive = true,
   onPauseOrResume,
-  onOpenOptions,
+  onCancel,
   onOpenDetails,
   isMoveGrabbed = false,
   isDragSource = false,
@@ -132,14 +134,14 @@ export function DownloadsHero({
       left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.downloads),
       right: {
         type: "item",
-        itemId: DOWNLOADS_HERO_OPTIONS_BUTTON_ID,
+        itemId: DOWNLOADS_HERO_CANCEL_BUTTON_ID,
       },
       down: getOptionalItemFocusTarget(nextListFocusId),
     }),
     [nextListFocusId]
   );
 
-  const optionsNavigationOverrides = useMemo<FocusOverrides>(
+  const cancelNavigationOverrides = useMemo<FocusOverrides>(
     () => ({
       left: {
         type: "item",
@@ -184,7 +186,7 @@ export function DownloadsHero({
     }),
     []
   );
-  const optionsHeroActions = useMemo<FocusItemActions>(
+  const cancelHeroActions = useMemo<FocusItemActions>(
     () => ({
       primary: "auto",
       secondary: "off",
@@ -284,18 +286,15 @@ export function DownloadsHero({
               />
 
               <HeroActionButton
-                focusId={DOWNLOADS_HERO_OPTIONS_BUTTON_ID}
-                navigationOverrides={optionsNavigationOverrides}
+                focusId={DOWNLOADS_HERO_CANCEL_BUTTON_ID}
+                navigationOverrides={cancelNavigationOverrides}
                 focusActions={
-                  actionsDisabled ? blockedHeroActions : optionsHeroActions
+                  actionsDisabled ? blockedHeroActions : cancelHeroActions
                 }
-                variant="secondary"
-                icon={<GearIcon size={24} />}
-                label="Options"
+                variant="danger"
+                label="Cancel"
                 disabled={actionsDisabled}
-                onClick={() => {
-                  onOpenOptions?.();
-                }}
+                onClick={onCancel}
               />
             </HorizontalFocusGroup>
           </div>

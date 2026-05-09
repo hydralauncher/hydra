@@ -1,8 +1,6 @@
 import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
 import type {
-  DownloadProgress,
   LibraryGame,
-  SeedingStatus,
   UserPreferences,
 } from "../../../../types";
 import {
@@ -18,6 +16,10 @@ import {
   resolveImageSource,
 } from "../../helpers";
 import { useDate, useLibrary } from "../../hooks";
+import {
+  initializeBigPictureDownloadsStore,
+  useBigPictureDownloadsStore,
+} from "../../stores";
 
 type DownloadTone = "default" | "active" | "paused" | "success" | "error";
 
@@ -200,18 +202,33 @@ function getFinishedAtLabel(timestamp: number | null | undefined) {
 }
 
 export function useBigPictureDownloadsPageData() {
-  const { library } = useLibrary();
+  const { library, updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
-  const [lastPacket, setLastPacket] = useState<DownloadProgress | null>(null);
-  const [seedingStatuses, setSeedingStatuses] = useState<SeedingStatus[]>([]);
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [extractionProgressByGameId, setExtractionProgressByGameId] = useState<
-    Record<string, number>
-  >({});
-  const [speedHistory, setSpeedHistory] = useState<number[]>([]);
-  const [peakSpeed, setPeakSpeed] = useState(0);
   const [renderTick, setRenderTick] = useState(0);
+  const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
+  const seedingStatuses = useBigPictureDownloadsStore(
+    (state) => state.seedingStatuses
+  );
+  const extractionProgressByGameId = useBigPictureDownloadsStore(
+    (state) => state.extractionProgressByGameId
+  );
+  const speedHistoryByGameId = useBigPictureDownloadsStore(
+    (state) => state.speedHistoryByGameId
+  );
+  const peakSpeedByGameId = useBigPictureDownloadsStore(
+    (state) => state.peakSpeedByGameId
+  );
+  const setLastPacket = useBigPictureDownloadsStore(
+    (state) => state.setLastPacket
+  );
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    initializeBigPictureDownloadsStore();
+  }, []);
 
   useEffect(() => {
     if (!IS_DESKTOP) return;
@@ -224,70 +241,6 @@ export function useBigPictureDownloadsPageData() {
       .catch(() => {
         setUserPreferences(null);
       });
-  }, []);
-
-  useEffect(() => {
-    if (!IS_DESKTOP) return;
-
-    const unsubscribeDownloadProgress =
-      globalThis.window.electron.onDownloadProgress((downloadProgress) => {
-        if (
-          downloadProgress?.progress === 1 &&
-          !downloadProgress.isCheckingFiles &&
-          !downloadProgress.isDownloadingMetadata
-        ) {
-          setLastPacket(null);
-          return;
-        }
-
-        setLastPacket(downloadProgress);
-      });
-
-    const unsubscribeSeedingStatus = globalThis.window.electron.onSeedingStatus(
-      (value) => {
-        setSeedingStatuses(value);
-      }
-    );
-
-    const unsubscribeExtractionProgress =
-      globalThis.window.electron.onExtractionProgress(
-        (shop, objectId, progress) => {
-          setExtractionProgressByGameId((current) => ({
-            ...current,
-            [`${shop}:${objectId}`]: progress,
-          }));
-        }
-      );
-
-    const clearExtractionState = (shop: string, objectId: string) => {
-      const gameId = `${shop}:${objectId}`;
-
-      setExtractionProgressByGameId((current) => {
-        if (!(gameId in current)) return current;
-
-        const next = { ...current };
-        delete next[gameId];
-        return next;
-      });
-    };
-
-    const unsubscribeExtractionComplete =
-      globalThis.window.electron.onExtractionComplete((shop, objectId) => {
-        clearExtractionState(shop, objectId);
-      });
-
-    const unsubscribeExtractionFailed =
-      globalThis.window.electron.onExtractionFailed((shop, objectId) => {
-        clearExtractionState(shop, objectId);
-      });
-
-    return () => {
-      unsubscribeDownloadProgress();
-      unsubscribeSeedingStatus();
-      unsubscribeExtractionProgress();
-      unsubscribeExtractionComplete();
-      unsubscribeExtractionFailed();
-    };
   }, []);
 
   useEffect(() => {
@@ -457,33 +410,6 @@ export function useBigPictureDownloadsPageData() {
     userPreferences,
   ]);
 
-  useEffect(() => {
-    if (!activeGame) {
-      setSpeedHistory([]);
-      setPeakSpeed(0);
-      return;
-    }
-
-    setSpeedHistory([]);
-    setPeakSpeed(0);
-  }, [activeGame?.id]);
-
-  useEffect(() => {
-    if (!activeGame || lastPacket?.gameId !== activeGame.id) return;
-
-    const speed = lastPacket.downloadSpeed ?? 0;
-
-    setSpeedHistory((current) => {
-      const next = [...current, speed];
-      if (next.length > SPEED_HISTORY_SAMPLE_SIZE) {
-        next.splice(0, next.length - SPEED_HISTORY_SAMPLE_SIZE);
-      }
-      return next;
-    });
-
-    setPeakSpeed((current) => Math.max(current, speed));
-  }, [activeGame, lastPacket?.downloadSpeed, lastPacket?.gameId]);
-
   const queuedDownloads = useMemo((): BigPictureDownloadListItem[] => {
     return queuedGames.map((game, index) => {
       const download = game.download;
@@ -631,6 +557,8 @@ export function useBigPictureDownloadsPageData() {
   );
 
   const networkStats = useMemo((): BigPictureDownloadsNetworkStats => {
+    const speedHistory = activeGame ? (speedHistoryByGameId[activeGame.id] ?? []) : [];
+    const peakSpeed = activeGame ? (peakSpeedByGameId[activeGame.id] ?? 0) : 0;
     const speedHistorySamples =
       speedHistory.length >= SPEED_HISTORY_SAMPLE_SIZE
         ? speedHistory
@@ -699,8 +627,8 @@ export function useBigPictureDownloadsPageData() {
     lastPacket?.isDownloadingMetadata,
     lastPacket?.numPeers,
     lastPacket?.numSeeds,
-    peakSpeed,
-    speedHistory,
+    peakSpeedByGameId,
+    speedHistoryByGameId,
     userPreferences,
   ]);
 
@@ -800,7 +728,8 @@ export function useBigPictureDownloadsPageData() {
     }
 
     await globalThis.window.electron.deleteGameFolder(game.shop, game.objectId);
-  }, []);
+    await updateLibrary();
+  }, [updateLibrary]);
 
   const moveQueuedDownload = useCallback(
     async (game: LibraryGame, direction: "up" | "down") => {
