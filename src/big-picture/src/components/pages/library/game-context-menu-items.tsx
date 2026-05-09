@@ -41,9 +41,7 @@ export function buildLibraryGameContextMenuItems(
   const nextItems: ContextMenuItem[] = [
     {
       id: "launch-or-download",
-      label: game.executablePath
-        ? "Launch Game"
-        : "Download Game",
+      label: game.executablePath ? "Launch Game" : "Download Game",
       icon: game.executablePath ? (
         <PlayIcon size={18} weight="fill" />
       ) : (
@@ -53,9 +51,7 @@ export function buildLibraryGameContextMenuItems(
     },
     {
       id: "favorite",
-      label: game.favorite
-        ? "Remove from Favorites"
-        : "Mark as Favorite",
+      label: game.favorite ? "Remove from Favorites" : "Mark as Favorite",
       icon: <HeartIcon size={18} weight={game.favorite ? "fill" : "regular"} />,
       disabled: isFavoriteLoading,
       onSelect: () => onToggleFavorite(game),

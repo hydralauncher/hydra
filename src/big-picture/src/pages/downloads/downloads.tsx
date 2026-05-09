@@ -1527,11 +1527,7 @@ export default function Downloads() {
         },
         mode: "preview",
       };
-    }, [
-      isHeroMovePreviewActive,
-      neutralNetworkStats,
-      renderedActiveDownload,
-    ]);
+    }, [isHeroMovePreviewActive, neutralNetworkStats, renderedActiveDownload]);
   const targetHeroSnapshot =
     targetPreviewHeroSnapshot ?? targetActiveHeroSnapshot;
   const {
@@ -2172,9 +2168,7 @@ export default function Downloads() {
             {
               id: "toggle-seeding",
               label:
-                item.seedAction === "pause"
-                  ? "Stop Seeding"
-                  : "Resume Seeding",
+                item.seedAction === "pause" ? "Stop Seeding" : "Resume Seeding",
               disabled: interactionsLocked,
               onSelect: () => {
                 if (item.seedAction === "pause") {
