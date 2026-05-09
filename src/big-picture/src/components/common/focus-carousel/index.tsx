@@ -233,10 +233,8 @@ function syncThresholdFocusScroll(
   }
 
   const didScroll = isMovingRight
-    ? visiblePositionOneBased > rightTriggerPosition &&
-      emblaApi.canScrollNext()
-    : visiblePositionOneBased < leftTriggerPosition &&
-      emblaApi.canScrollPrev();
+    ? visiblePositionOneBased > rightTriggerPosition && emblaApi.canScrollNext()
+    : visiblePositionOneBased < leftTriggerPosition && emblaApi.canScrollPrev();
 
   if (!didScroll) return;
 
