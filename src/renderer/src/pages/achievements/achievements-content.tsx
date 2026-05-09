@@ -159,9 +159,13 @@ export function AchievementsContent({
         );
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
       if (msg.includes("no stats")) {
         showErrorToast(t("steam_import_no_stats"));
+      } else if (msg.includes("not public") || msg.includes("private") || msg.includes("access denied")) {
+        showErrorToast(t("steam_import_profile_private"));
+      } else if (msg.includes("steam_not_configured") || msg.includes("403")) {
+        showErrorToast(t("steam_import_invalid_key"));
       } else {
         showErrorToast(t("steam_import_error"));
       }

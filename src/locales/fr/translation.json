@@ -1016,7 +1016,9 @@
     "steam_import_new_count": "{{count}} nouveau(x) succès importé(s) ({{total}} débloqué(s) sur Steam)",
     "steam_import_up_to_date": "Déjà à jour",
     "steam_import_total": "{{count}} succès déjà synchronisé(s) depuis Steam",
-    "steam_import_error": "Échec de l'importation Steam. Vérifiez votre clé API et réessayez.",
+    "steam_import_error": "Échec de l'importation Steam. Veuillez réessayer.",
+    "steam_import_profile_private": "Impossible d'importer les succès — vérifiez que les détails de vos jeux sont définis sur public dans vos paramètres de confidentialité Steam.",
+    "steam_import_invalid_key": "Échec de l'importation Steam. Vérifiez votre clé API et réessayez.",
     "steam_import_no_stats": "Ce jeu n'a pas de statistiques de succès disponibles sur Steam."
   },
   "hydra_cloud": {

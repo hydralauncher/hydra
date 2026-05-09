@@ -1100,7 +1100,9 @@
     "steam_import_new_count": "{{count}} new achievement(s) imported ({{total}} unlocked on Steam)",
     "steam_import_up_to_date": "Already up to date",
     "steam_import_total": "{{count}} achievement(s) already synced from Steam",
-    "steam_import_error": "Steam import failed. Check your API key and try again.",
+    "steam_import_error": "Steam import failed. Please try again.",
+    "steam_import_profile_private": "Could not import achievements — make sure your Steam game details are set to public in your Steam privacy settings.",
+    "steam_import_invalid_key": "Steam import failed. Check your API key and try again.",
     "steam_import_no_stats": "This game has no achievement stats available on Steam."
   },
   "hydra_cloud": {
