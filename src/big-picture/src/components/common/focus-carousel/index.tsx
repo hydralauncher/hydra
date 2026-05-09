@@ -2,7 +2,10 @@ import type { ShopAssets } from "@types";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MouseEventHandler, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  MouseEventHandler,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import { useGamepad } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";

@@ -422,7 +422,9 @@ function DownloadGameSourceList({
   const handleSourceClick = (sourceId: string) => {
     setSelectedSources((previousSources) =>
       previousSources.includes(sourceId)
-        ? previousSources.filter((previousSource) => previousSource !== sourceId)
+        ? previousSources.filter(
+            (previousSource) => previousSource !== sourceId
+          )
         : [...previousSources, sourceId]
     );
   };
