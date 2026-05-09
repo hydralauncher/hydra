@@ -31,7 +31,6 @@ import "./styles/globals.scss";
 export default function App() {
   const { pathname } = useLocation();
   const { nodes, regions, setFocusRegion } = useNavigation();
-  const showNavigationDiagnostics = import.meta.env.DEV;
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
@@ -114,7 +113,7 @@ export default function App() {
                 </div>
               </VerticalFocusGroup>
 
-              {showNavigationDiagnostics && <NavigationDiagnostics />}
+              <NavigationDiagnostics />
             </div>
           </HorizontalFocusGroup>
         </NavigationLayer>
