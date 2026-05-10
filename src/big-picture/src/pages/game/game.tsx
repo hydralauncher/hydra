@@ -29,7 +29,7 @@ import {
   GAME_STATS_REGION_ID,
   GAME_STATS_TITLE_ID,
 } from "../../components/pages/game/navigation";
-import { useGameDetails } from "../../hooks";
+import { useGameDetails, useHeaderTitle } from "../../hooks";
 import { FocusOverrides } from "../../services/navigation.service";
 import "./game.scss";
 
@@ -53,6 +53,8 @@ export default function Game() {
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
+
+  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
