@@ -20,6 +20,7 @@ export function useLibraryFavorite(updateLibrary: () => Promise<void>) {
 
         await toggle(game.shop, game.objectId);
         await updateLibrary();
+        globalThis.window.dispatchEvent(new Event("library-update"));
       } finally {
         setFavoriteLoadingGameId(null);
       }

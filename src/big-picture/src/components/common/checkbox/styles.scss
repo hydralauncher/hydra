@@ -11,6 +11,12 @@
   user-select: none;
   cursor: pointer;
 
+  &:has(.checkbox__input[data-focus-visible="true"]) {
+    outline: 1px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: calc(var(--spacing-unit) * 2);
+  }
+
   &--block {
     width: 100%;
     border-radius: calc(var(--spacing-unit) * 2);
@@ -26,6 +32,14 @@
       &:hover {
         background-color: var(--secondary-hover);
       }
+    }
+
+    &:has(.checkbox__input[data-focus-visible="true"]) {
+      background-color: var(--secondary);
+    }
+
+    &.checkbox--block--active:has(.checkbox__input[data-focus-visible="true"]) {
+      background-color: var(--secondary-hover);
     }
   }
 
@@ -49,6 +63,7 @@
     justify-content: center;
     transition: background-color 0.2s ease-in-out;
     cursor: pointer;
+    outline: none;
 
     &--checked {
       background-color: var(--primary);

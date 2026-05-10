@@ -2,12 +2,14 @@ import type { Download } from "./level.types";
 
 export type DownloadStatus =
   | "active"
+  // Legacy/raw compatibility only. Not part of the official product contract.
   | "waiting"
   | "paused"
   | "error"
   | "complete"
   | "seeding"
   | "removed"
+  // Legacy/raw compatibility only. Official extraction state is the flag on Download.
   | "extracting";
 
 export interface DownloadProgress {
