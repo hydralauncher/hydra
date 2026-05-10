@@ -448,10 +448,9 @@ export class DownloadOrchestrator {
 
     if (targetArea === "queue") {
       if (isHero && isActiveLikeDownload(download)) {
-        await this.pauseDownload(download, {
-          reason: "paused",
-          startNextQueued: false,
-        });
+        await DownloadManager.pauseDownload(getGameKey(download));
+        WindowManager.sendToAppWindows("on-download-progress", null);
+        await this.setDownloadPausedState(download, { queued: true });
       } else {
         await this.setDownloadPausedState(download, { queued: true });
       }

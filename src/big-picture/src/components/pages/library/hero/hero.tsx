@@ -2,7 +2,6 @@ import type { LibraryGame } from "@types";
 import {
   ClockIcon,
   DownloadSimpleIcon,
-  GearIcon,
   HeartIcon,
   PlayIcon,
   TrophyIcon,
@@ -24,7 +23,6 @@ import {
   LIBRARY_HERO_ACTIONS_REGION_ID,
   LIBRARY_HERO_FAVORITE_BUTTON_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
-  LIBRARY_HERO_OPTIONS_BUTTON_ID,
 } from "../navigation";
 import { getHeroPlaytimeLabel } from "../library-data";
 import { useLibraryLaunchGame } from "../use-library-launch-game";
@@ -34,7 +32,6 @@ import "./hero.scss";
 
 interface LibraryHeroProps {
   lastPlayedGames: LibraryGame[];
-  onOpenOptions?: (game: LibraryGame) => void;
   onToggleFavorite?: (game: LibraryGame) => Promise<void> | void;
   favoriteLoadingGameId?: string | null;
 }
@@ -51,7 +48,6 @@ function getLastPlayedLabel(lastTimePlayed: Date | string | null | undefined) {
 
 export function LibraryHero({
   lastPlayedGames,
-  onOpenOptions,
   onToggleFavorite,
   favoriteLoadingGameId = null,
 }: Readonly<LibraryHeroProps>) {
@@ -115,16 +111,11 @@ export function LibraryHero({
   } as const;
   const launchNavigationOverrides: FocusOverrides = {
     left: sidebarLibraryOverride,
-    right: { type: "item", itemId: LIBRARY_HERO_OPTIONS_BUTTON_ID },
-    down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
-  };
-  const optionsNavigationOverrides: FocusOverrides = {
-    left: { type: "item", itemId: LIBRARY_HERO_LAUNCH_BUTTON_ID },
     right: { type: "item", itemId: LIBRARY_HERO_FAVORITE_BUTTON_ID },
     down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
   };
   const favoriteNavigationOverrides: FocusOverrides = {
-    left: { type: "item", itemId: LIBRARY_HERO_OPTIONS_BUTTON_ID },
+    left: { type: "item", itemId: LIBRARY_HERO_LAUNCH_BUTTON_ID },
     right: { type: "block" },
     down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
   };
@@ -211,20 +202,6 @@ export function LibraryHero({
               <div className="hero__action__divider">
                 <Divider orientation="vertical" color="var(--text-secondary)" />
               </div>
-
-              <Button
-                variant="secondary"
-                icon={<GearIcon size={24} />}
-                focusId={LIBRARY_HERO_OPTIONS_BUTTON_ID}
-                focusNavigationOverrides={optionsNavigationOverrides}
-                onClick={() => {
-                  if (featuredGame) {
-                    onOpenOptions?.(featuredGame);
-                  }
-                }}
-              >
-                Options
-              </Button>
 
               <Button
                 variant="secondary"

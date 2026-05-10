@@ -13,11 +13,11 @@ interface LibraryGameContextMenuProps {
   onClose: () => void;
   onLaunchOrDownload: (game: LibraryGame) => Promise<void> | void;
   onToggleFavorite: (game: LibraryGame) => Promise<void> | void;
-  onViewAchievements: (game: LibraryGame) => void;
-  onShare: (game: LibraryGame) => void;
-  onOptions: (game: LibraryGame) => void;
-  onUninstall: (game: LibraryGame) => void;
-  onRemoveFromLibrary: (game: LibraryGame) => void;
+  onViewAchievements?: (game: LibraryGame) => void;
+  onShare?: (game: LibraryGame) => void;
+  onOptions?: (game: LibraryGame) => void;
+  onUninstall?: (game: LibraryGame) => void;
+  onRemoveFromLibrary?: (game: LibraryGame) => void;
 }
 
 export function LibraryGameContextMenu({

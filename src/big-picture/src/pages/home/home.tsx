@@ -38,7 +38,10 @@ import {
   GridFocusGroup,
   VerticalFocusGroup,
 } from "../../components";
-import { DownloadGameModal } from "../../components/modals";
+import {
+  ConfirmationModal,
+  DownloadGameModal,
+} from "../../components/modals";
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
@@ -68,6 +71,12 @@ interface HomeCatalogMenuState {
   restoreFocusId: string | null;
 }
 
+interface PendingHomeAction {
+  type: "remove-files" | "remove-from-library";
+  game: LibraryGame;
+  restoreFocusId: string | null;
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const { setFocus } = useNavigation();
@@ -84,6 +93,16 @@ export default function Home() {
 
   const [downloadModalGame, setDownloadModalGame] =
     useState<DownloadModalGame | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingHomeAction | null>(
+    null
+  );
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [menuState, setMenuState] = useState<HomeCatalogMenuState>({
+    catalogGame: null,
+    visible: false,
+    position: DEFAULT_MENU_POSITION,
+    restoreFocusId: null,
+  });
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
 
   const handleCloseDownloadModal = useCallback(() => {
@@ -99,52 +118,95 @@ export default function Home() {
     });
   }, [setFocus]);
 
-  const handleViewAchievementsPlaceholder = useCallback((game: LibraryGame) => {
-    logger.log(
-      `Big Picture library context menu achievements: ${game.objectId}`
-    );
-  }, []);
-
-  const handleSharePlaceholder = useCallback((game: LibraryGame) => {
-    logger.log(`Big Picture library context menu share: ${game.objectId}`);
-  }, []);
-
-  const handleLibraryOptionsFromMenu = useCallback((game: LibraryGame) => {
-    console.log("big-picture options placeholder", {
-      source: "home-context-menu",
-      id: game.id,
-      objectId: game.objectId,
-      title: game.title,
-    });
-  }, []);
-
   const handleRequestRemoveFilesFromMenu = useCallback((game: LibraryGame) => {
-    console.log("big-picture home uninstall placeholder", {
-      source: "home-context-menu",
-      id: game.id,
-      objectId: game.objectId,
-      title: game.title,
+    setPendingAction({
+      type: "remove-files",
+      game,
+      restoreFocusId: menuState.restoreFocusId,
     });
-  }, []);
+  }, [menuState.restoreFocusId]);
 
   const handleRequestRemoveFromLibraryFromMenu = useCallback(
     (game: LibraryGame) => {
-      console.log("big-picture home remove-from-library placeholder", {
-        source: "home-context-menu",
-        id: game.id,
-        objectId: game.objectId,
-        title: game.title,
+      setPendingAction({
+        type: "remove-from-library",
+        game,
+        restoreFocusId: menuState.restoreFocusId,
       });
     },
-    []
+    [menuState.restoreFocusId]
   );
 
-  const [menuState, setMenuState] = useState<HomeCatalogMenuState>({
-    catalogGame: null,
-    visible: false,
-    position: DEFAULT_MENU_POSITION,
-    restoreFocusId: null,
-  });
+  const handleClosePendingAction = useCallback(() => {
+    const restoreFocusId = pendingAction?.restoreFocusId ?? null;
+
+    setPendingAction(null);
+    setIsSubmittingAction(false);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [pendingAction?.restoreFocusId, setFocus]);
+
+  const handleConfirmPendingAction = useCallback(async () => {
+    const currentAction = pendingAction;
+
+    if (!currentAction || !IS_DESKTOP) return;
+
+    setIsSubmittingAction(true);
+
+    try {
+      const { game } = currentAction;
+
+      if (
+        game.download?.status === "active" ||
+        game.download?.status === "extracting" ||
+        game.download?.extracting
+      ) {
+        await globalThis.window.electron.cancelGameDownload(
+          game.shop,
+          game.objectId
+        );
+      } else if (
+        currentAction.type === "remove-files" &&
+        game.download?.status === "seeding"
+      ) {
+        await globalThis.window.electron.pauseGameSeed(
+          game.shop,
+          game.objectId
+        );
+      }
+
+      if (currentAction.type === "remove-files") {
+        await globalThis.window.electron.deleteGameFolder(
+          game.shop,
+          game.objectId
+        );
+      } else {
+        await globalThis.window.electron.removeGameFromLibrary(
+          game.shop,
+          game.objectId
+        );
+      }
+
+      await refreshLibraryData();
+      setPendingAction(null);
+      setIsSubmittingAction(false);
+
+      const restoreFocusId = currentAction.restoreFocusId;
+
+      if (!restoreFocusId) return;
+
+      globalThis.window.requestAnimationFrame(() => {
+        setFocus(restoreFocusId);
+      });
+    } catch (error) {
+      logger.error("Failed to execute home library action", error);
+      setIsSubmittingAction(false);
+    }
+  }, [pendingAction, refreshLibraryData, setFocus]);
 
   const [addingCatalogKey, setAddingCatalogKey] = useState<string | null>(null);
 
@@ -274,18 +336,15 @@ export default function Home() {
     if (libraryGameForOpenMenu) {
       const game = libraryGameForOpenMenu;
 
-      return buildLibraryGameContextMenuItems(
-        game,
-        {
-          onLaunchOrDownload: handleLaunchFromMenu,
-          onToggleFavorite: toggleFavorite,
-          onViewAchievements: handleViewAchievementsPlaceholder,
-          onShare: handleSharePlaceholder,
-          onOptions: handleLibraryOptionsFromMenu,
-          onUninstall: handleRequestRemoveFilesFromMenu,
-          onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
-        },
-        favoriteLoadingGameId === game.id
+        return buildLibraryGameContextMenuItems(
+          game,
+          {
+            onLaunchOrDownload: handleLaunchFromMenu,
+            onToggleFavorite: toggleFavorite,
+            onUninstall: handleRequestRemoveFilesFromMenu,
+            onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
+          },
+          favoriteLoadingGameId === game.id
       );
     }
 
@@ -308,11 +367,8 @@ export default function Home() {
     handleCatalogShareFromMenu,
     handleCatalogViewAchievementsFromMenu,
     handleLaunchFromMenu,
-    handleLibraryOptionsFromMenu,
     handleRequestRemoveFilesFromMenu,
     handleRequestRemoveFromLibraryFromMenu,
-    handleSharePlaceholder,
-    handleViewAchievementsPlaceholder,
     libraryGameForOpenMenu,
     menuState.catalogGame,
     menuState.visible,
@@ -607,6 +663,29 @@ export default function Home() {
             visible
             onClose={handleCloseDownloadModal}
             game={downloadModalGame}
+          />
+        ) : null}
+
+        {pendingAction ? (
+          <ConfirmationModal
+            visible
+            title={
+              pendingAction.type === "remove-files"
+                ? "Remove downloaded files?"
+                : "Remove from library?"
+            }
+            description={
+              pendingAction.type === "remove-files"
+                ? "This deletes the downloaded game files from disk."
+                : `Remove ${pendingAction.game.title} from your library. Downloaded files will not be deleted.`
+            }
+            confirmLabel={
+              pendingAction.type === "remove-files" ? "Remove files" : "Remove"
+            }
+            danger
+            loading={isSubmittingAction}
+            onClose={handleClosePendingAction}
+            onConfirm={handleConfirmPendingAction}
           />
         ) : null}
       </section>

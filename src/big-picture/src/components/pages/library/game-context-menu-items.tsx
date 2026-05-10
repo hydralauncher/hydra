@@ -16,11 +16,11 @@ import type { ContextMenuItem } from "../../common";
 export interface LibraryGameContextMenuHandlers {
   onLaunchOrDownload: (game: LibraryGame) => void | Promise<void>;
   onToggleFavorite: (game: LibraryGame) => void | Promise<void>;
-  onViewAchievements: (game: LibraryGame) => void;
-  onShare: (game: LibraryGame) => void;
-  onOptions: (game: LibraryGame) => void;
-  onUninstall: (game: LibraryGame) => void;
-  onRemoveFromLibrary: (game: LibraryGame) => void;
+  onViewAchievements?: (game: LibraryGame) => void;
+  onShare?: (game: LibraryGame) => void;
+  onOptions?: (game: LibraryGame) => void;
+  onUninstall?: (game: LibraryGame) => void;
+  onRemoveFromLibrary?: (game: LibraryGame) => void;
 }
 
 export function buildLibraryGameContextMenuItems(
@@ -56,27 +56,36 @@ export function buildLibraryGameContextMenuItems(
       disabled: isFavoriteLoading,
       onSelect: () => onToggleFavorite(game),
     },
-    {
+  ];
+
+  if (onViewAchievements) {
+    nextItems.push({
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon size={18} />,
       onSelect: () => onViewAchievements(game),
-    },
-    {
+    });
+  }
+
+  if (onShare) {
+    nextItems.push({
       id: "share",
       label: "Share",
       icon: <ExportIcon size={18} />,
       onSelect: () => onShare(game),
-    },
-    {
+    });
+  }
+
+  if (onOptions) {
+    nextItems.push({
       id: "options",
       label: "Options",
       icon: <GearIcon size={18} />,
       onSelect: () => onOptions(game),
-    },
-  ];
+    });
+  }
 
-  if (game.download?.downloadPath) {
+  if (onUninstall && game.download?.downloadPath) {
     nextItems.push({
       id: "uninstall",
       label: "Uninstall",
@@ -87,14 +96,16 @@ export function buildLibraryGameContextMenuItems(
     });
   }
 
-  nextItems.push({
-    id: "remove-from-library",
-    label: "Remove from Library",
-    icon: <XCircleIcon size={18} />,
-    danger: true,
-    restoreFocusOnClose: false,
-    onSelect: () => onRemoveFromLibrary(game),
-  });
+  if (onRemoveFromLibrary) {
+    nextItems.push({
+      id: "remove-from-library",
+      label: "Remove from Library",
+      icon: <XCircleIcon size={18} />,
+      danger: true,
+      restoreFocusOnClose: false,
+      onSelect: () => onRemoveFromLibrary(game),
+    });
+  }
 
   return nextItems;
 }

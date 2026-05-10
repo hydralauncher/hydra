@@ -70,7 +70,7 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
       </FocusItem>
 
       {label && (
-        <label className="checkbox__label" id={`${id}-label`}>
+        <label className="checkbox__label" id={`${id}-label`} htmlFor={id}>
           {label}
         </label>
       )}

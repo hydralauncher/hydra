@@ -102,7 +102,6 @@ export function UserDiskItem({
           type="button"
           className={rootClassName}
           onClick={onClick}
-          onFocus={onClick}
           aria-pressed={isSelected}
         >
           {content}
