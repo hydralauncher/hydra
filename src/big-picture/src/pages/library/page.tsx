@@ -31,10 +31,7 @@ import {
   useLibraryLaunchGame,
   useLibraryPageData,
 } from "../../components";
-import {
-  ConfirmationModal,
-  DownloadGameModal,
-} from "../../components/modals";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_PAGE_REGION_ID,
@@ -125,9 +122,8 @@ export default function LibraryPage() {
       position: DEFAULT_MENU_POSITION,
       restoreFocusId: null,
     });
-  const [pendingAction, setPendingAction] = useState<PendingLibraryAction | null>(
-    null
-  );
+  const [pendingAction, setPendingAction] =
+    useState<PendingLibraryAction | null>(null);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
@@ -215,21 +211,27 @@ export default function LibraryPage() {
     )
   );
 
-  const handleRequestRemoveFiles = useCallback((game: LibraryGame) => {
-    setPendingAction({
-      type: "remove-files",
-      game,
-      restoreFocusId: contextMenuState.restoreFocusId,
-    });
-  }, [contextMenuState.restoreFocusId]);
+  const handleRequestRemoveFiles = useCallback(
+    (game: LibraryGame) => {
+      setPendingAction({
+        type: "remove-files",
+        game,
+        restoreFocusId: contextMenuState.restoreFocusId,
+      });
+    },
+    [contextMenuState.restoreFocusId]
+  );
 
-  const handleRequestRemoveFromLibrary = useCallback((game: LibraryGame) => {
-    setPendingAction({
-      type: "remove-from-library",
-      game,
-      restoreFocusId: contextMenuState.restoreFocusId,
-    });
-  }, [contextMenuState.restoreFocusId]);
+  const handleRequestRemoveFromLibrary = useCallback(
+    (game: LibraryGame) => {
+      setPendingAction({
+        type: "remove-from-library",
+        game,
+        restoreFocusId: contextMenuState.restoreFocusId,
+      });
+    },
+    [contextMenuState.restoreFocusId]
+  );
 
   const handleClosePendingAction = useCallback(() => {
     const restoreFocusId = pendingAction?.restoreFocusId ?? null;

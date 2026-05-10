@@ -38,10 +38,7 @@ import {
   GridFocusGroup,
   VerticalFocusGroup,
 } from "../../components";
-import {
-  ConfirmationModal,
-  DownloadGameModal,
-} from "../../components/modals";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
@@ -118,13 +115,16 @@ export default function Home() {
     });
   }, [setFocus]);
 
-  const handleRequestRemoveFilesFromMenu = useCallback((game: LibraryGame) => {
-    setPendingAction({
-      type: "remove-files",
-      game,
-      restoreFocusId: menuState.restoreFocusId,
-    });
-  }, [menuState.restoreFocusId]);
+  const handleRequestRemoveFilesFromMenu = useCallback(
+    (game: LibraryGame) => {
+      setPendingAction({
+        type: "remove-files",
+        game,
+        restoreFocusId: menuState.restoreFocusId,
+      });
+    },
+    [menuState.restoreFocusId]
+  );
 
   const handleRequestRemoveFromLibraryFromMenu = useCallback(
     (game: LibraryGame) => {
@@ -336,15 +336,15 @@ export default function Home() {
     if (libraryGameForOpenMenu) {
       const game = libraryGameForOpenMenu;
 
-        return buildLibraryGameContextMenuItems(
-          game,
-          {
-            onLaunchOrDownload: handleLaunchFromMenu,
-            onToggleFavorite: toggleFavorite,
-            onUninstall: handleRequestRemoveFilesFromMenu,
-            onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
-          },
-          favoriteLoadingGameId === game.id
+      return buildLibraryGameContextMenuItems(
+        game,
+        {
+          onLaunchOrDownload: handleLaunchFromMenu,
+          onToggleFavorite: toggleFavorite,
+          onUninstall: handleRequestRemoveFilesFromMenu,
+          onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
+        },
+        favoriteLoadingGameId === game.id
       );
     }
 
