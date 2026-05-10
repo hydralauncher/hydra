@@ -18,6 +18,10 @@ const readNullableString = (value: unknown): string | null => {
   return typeof value === "string" ? value : null;
 };
 
+export interface HomeChallengeGame extends ShopAssets {
+  genres: string[];
+}
+
 export function normalizeShopAssets(value: unknown): ShopAssets | null {
   if (!isRecord(value)) return null;
 
@@ -69,4 +73,35 @@ export function normalizeTrendingGame(value: unknown): TrendingGame | null {
     description: readNullableString(value.description),
     uri: readNullableString(value.uri) ?? "",
   };
+}
+
+export function normalizeHomeChallengeGame(
+  value: unknown
+): HomeChallengeGame | null {
+  if (!isRecord(value)) return null;
+
+  const assets = normalizeShopAssets(value);
+
+  if (!assets) return null;
+
+  return {
+    ...assets,
+    genres: Array.isArray(value.genres)
+      ? value.genres.filter(
+          (genre): genre is string => typeof genre === "string"
+        )
+      : [],
+  };
+}
+
+export function normalizeHomeChallengeGameList(
+  value: unknown
+): HomeChallengeGame[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((game) => {
+    const normalizedGame = normalizeHomeChallengeGame(game);
+
+    return normalizedGame ? [normalizedGame] : [];
+  });
 }

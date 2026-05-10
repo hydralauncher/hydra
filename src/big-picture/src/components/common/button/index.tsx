@@ -37,6 +37,8 @@ export interface ButtonProps
   className?: string;
   color?: string;
   focusId?: string;
+  /** When false, the control stays clickable but is omitted from gamepad / spatial focus order. */
+  focusable?: boolean;
   focusNavigationOverrides?: FocusOverrides;
 }
 
@@ -61,6 +63,7 @@ export function Button({
   color,
   style,
   focusId,
+  focusable = true,
   focusNavigationOverrides,
   "aria-label": ariaLabel,
   ...props
@@ -90,6 +93,8 @@ export function Button({
     return (
       <FocusItem
         id={focusId}
+        focusable={focusable}
+        navigationState={disabled || loading ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
         asChild
       >
@@ -144,6 +149,8 @@ export function Button({
     return (
       <FocusItem
         id={focusId}
+        focusable={focusable}
+        navigationState={disabled || loading ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
         asChild
       >
@@ -165,6 +172,8 @@ export function Button({
   return (
     <FocusItem
       id={focusId}
+      focusable={focusable}
+      navigationState={disabled || loading ? "disabled" : "active"}
       navigationOverrides={focusNavigationOverrides}
       asChild
     >

@@ -96,6 +96,19 @@ export class WindowManager {
     }
   }
 
+  public static sendToAppWindows(channel: string, ...args: unknown[]) {
+    const windows = [this.mainWindow, this.bigPicture];
+
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static sendDownloadsUpdated() {
+    this.sendToAppWindows("on-downloads-updated");
+  }
+
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
     await db.put(levelKeys.screenState, configScreenWhenClosed, {
       valueEncoding: "json",

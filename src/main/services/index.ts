@@ -3,6 +3,8 @@ export * from "./steam";
 export * from "./steam-250";
 export * from "./window-manager";
 export * from "./download";
+export * from "./download-layout-state";
+export * from "./download-orchestrator";
 export * from "./process-watcher";
 export * from "./main-loop";
 export * from "./hydra-api";

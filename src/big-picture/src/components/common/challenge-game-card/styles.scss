@@ -1,0 +1,115 @@
+.challenge-game-card {
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--spacing-unit) * 4);
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background-color: transparent;
+  outline: none;
+  outline-offset: 3px;
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out,
+    outline-color 0.2s ease-in-out;
+
+  &__cover {
+    flex: 0 0 280px;
+    width: 280px;
+    aspect-ratio: 200 / 103;
+    border-radius: var(--spacing-unit);
+    overflow: hidden;
+    background-color: var(--surface);
+
+    img,
+    &-placeholder {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    img {
+      object-fit: cover;
+    }
+  }
+
+  &__cover-placeholder {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+      ),
+      var(--secondary);
+  }
+
+  &__body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: calc(var(--spacing-unit) * 3);
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2)
+      calc(var(--spacing-unit) * 2) 0;
+  }
+
+  &__info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit);
+  }
+
+  &__title,
+  &__genres {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__title {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  &__genres {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  &__sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &:hover,
+  &:focus-within,
+  [data-focused="true"] > &,
+  [data-focus-visible="true"] > &,
+  &--force-hovered {
+    background-color: var(--surface);
+    border-color: var(--secondary-border);
+  }
+
+  [data-focus-visible="true"] > & {
+    outline: 2px solid var(--primary);
+  }
+}
+
+@media (max-width: 720px) {
+  .challenge-game-card {
+    gap: calc(var(--spacing-unit) * 3);
+
+    &__cover {
+      flex-basis: 280px;
+      width: 280px;
+    }
+  }
+}

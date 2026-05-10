@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { IS_DESKTOP } from "../../constants";
+import { BIG_PICTURE_HEADER_REGION_ID } from "../navigation";
 import type { FocusOverrides } from "../../services";
 import "./styles.scss";
 
@@ -86,7 +87,7 @@ function Header() {
 
   return (
     <div className="header">
-      <HorizontalFocusGroup regionId="header" asChild>
+      <HorizontalFocusGroup regionId={BIG_PICTURE_HEADER_REGION_ID} asChild>
         <header className="header__container">
           <FocusItem id={HEADER_BACK_BUTTON_ID} asChild>
             <button className="header__action" onClick={() => navigate(-1)}>

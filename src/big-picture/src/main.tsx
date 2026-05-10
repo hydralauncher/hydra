@@ -1,10 +1,6 @@
 import ReactDOM from "react-dom/client";
 import { StrictMode } from "react";
-import i18n from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
-import { initReactI18next } from "react-i18next";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import resources from "@locales";
 import App from "./app";
 import Catalogue from "./pages/catalogue/catalogue";
 import Downloads from "./pages/downloads/downloads";
@@ -18,17 +14,6 @@ const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Big Picture root element was not found.");
 }
-
-void i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: "en",
-    interpolation: {
-      escapeValue: false,
-    },
-  });
 
 ReactDOM.createRoot(rootElement).render(
   <StrictMode>

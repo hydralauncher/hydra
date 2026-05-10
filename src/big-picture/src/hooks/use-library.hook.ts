@@ -16,17 +16,22 @@ export function useLibrary() {
 
     if (!IS_DESKTOP) return;
 
-    const unsubscribe = globalThis.window.electron.onLibraryBatchComplete(
-      () => {
+    const unsubscribeLibraryBatch =
+      globalThis.window.electron.onLibraryBatchComplete(() => {
         updateLibrary();
-      }
-    );
+      });
+
+    const unsubscribeDownloadsUpdated =
+      globalThis.window.electron.onDownloadsUpdated(() => {
+        updateLibrary();
+      });
 
     const handleLibraryUpdate = () => updateLibrary();
     globalThis.window.addEventListener("library-update", handleLibraryUpdate);
 
     return () => {
-      unsubscribe();
+      unsubscribeLibraryBatch();
+      unsubscribeDownloadsUpdated();
       globalThis.window.removeEventListener(
         "library-update",
         handleLibraryUpdate

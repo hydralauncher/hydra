@@ -57,7 +57,7 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, setLastPacket } = useDownload();
+  const { clearDownload, setLastPacket, lastPacket } = useDownload();
 
   const workwondersRef = useRef<WorkWonders | null>(null);
 
@@ -126,6 +126,16 @@ export function App() {
 
     return () => unsubscribe();
   }, [updateLibrary]);
+
+  useEffect(() => {
+    if (!lastPacket?.gameId) return;
+
+    const activeGame = library.find((game) => game.id === lastPacket.gameId);
+
+    if (!activeGame || activeGame.download?.status !== "active") {
+      clearDownload();
+    }
+  }, [clearDownload, lastPacket?.gameId, library]);
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {
@@ -274,6 +284,9 @@ export function App() {
     const listeners = [
       window.electron.onSignIn(onSignIn),
       window.electron.onLibraryBatchComplete(() => {
+        updateLibrary();
+      }),
+      window.electron.onDownloadsUpdated(() => {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
