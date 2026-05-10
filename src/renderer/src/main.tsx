@@ -42,6 +42,7 @@ import BigPictureHome from "../../big-picture/src/pages/home/home";
 import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
 import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
+import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
 
 console.log = logger.log;
 
@@ -122,6 +123,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="settings" element={<BigPictureSettings />} />
             <Route path="library" element={<BigPictureLibrary />} />
             <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
+            <Route
+              path="game/:shop/:objectId/achievements"
+              element={<BigPictureGameAchievements />}
+            />
           </Route>
         </Routes>
       </HashRouter>

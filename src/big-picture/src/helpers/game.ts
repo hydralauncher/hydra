@@ -53,6 +53,11 @@ export function getBigPictureGameDetailsPath(
   return `${basePath}/game/${game.shop}/${game.objectId}${querySuffix}`;
 }
 
+export function getBigPictureGameAchievementsPath(game: GameIdentity) {
+  const basePath = IS_DESKTOP ? "/big-picture" : "";
+  return `${basePath}/game/${game.shop}/${game.objectId}/achievements`;
+}
+
 export function getGameIdentityKey(
   game: GameIdentity,
   options: GameIdentityKeyOptions = {}

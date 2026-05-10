@@ -3,37 +3,25 @@ import { ArrowLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
-import { IS_DESKTOP } from "../../constants";
 import { BIG_PICTURE_HEADER_REGION_ID } from "../navigation";
 import type { FocusOverrides } from "../../services";
+import { useNavigationHistoryStore } from "../../stores";
 import "./styles.scss";
-
-const basePath = IS_DESKTOP ? "/big-picture" : "";
-
-const capitalize = (word: string) =>
-  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
 const HEADER_BACK_BUTTON_ID = "header-back-button";
 const HEADER_SEARCH_INPUT_ID = "header-search-input";
 
-const usePageTitle = () => {
-  const { pathname } = useLocation();
-  const { slug } = useParams<{ slug: string }>();
-
-  if (pathname.startsWith("/game/")) {
-    return slug ? slug.split("-").map(capitalize).join(" ") : "Game Details";
-  }
-
-  const relativePath = basePath ? pathname.replace(basePath, "") : pathname;
-  const firstSegment = relativePath.split("/")[1];
-  return firstSegment ? capitalize(firstSegment) : "Home";
+const useBackTargetTitle = () => {
+  const stack = useNavigationHistoryStore((s) => s.stack);
+  if (stack.length >= 2) return stack[stack.length - 2].title;
+  return "Home";
 };
 
 function Header() {
   const navigate = useNavigate();
-  const pageTitle = usePageTitle();
+  const pageTitle = useBackTargetTitle();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLButtonElement>(null);
