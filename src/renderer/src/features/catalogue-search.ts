@@ -13,6 +13,8 @@ export interface CatalogueSearchState {
 const initialState: CatalogueSearchState = {
   filters: {
     title: "",
+    sortBy: "popularity",
+    sortOrder: "desc",
     downloadSourceFingerprints: [],
     tags: [],
     publishers: [],
