@@ -13,7 +13,8 @@ export type SettingsCategoryId =
   | "content_gameplay"
   | "integrations"
   | "compatibility"
-  | "account_privacy";
+  | "account_privacy"
+  | "emulation";
 
 const legacyTabMap: Record<number, SettingsCategoryId> = {
   0: "general",
@@ -33,6 +34,7 @@ const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
     "integrations",
     "compatibility",
     "account_privacy",
+    "emulation",
   ].includes(value);
 };
 

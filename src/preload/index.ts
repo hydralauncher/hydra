@@ -23,6 +23,7 @@ import type {
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorSystem,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -142,6 +143,72 @@ contextBridge.exposeInMainWorld("electron", {
         `on-update-achievements-${objectId}-${shop}`,
         listener
       );
+  },
+
+  /* Emulators */
+  getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
+  detectEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("detectEmulator", system),
+  setEmulatorExecutablePath: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  addRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) => ipcRenderer.invoke("addRomFolder", system, folderPath, scanSubfolders),
+  removeRomFolder: (system: EmulatorSystem, folderId: string) =>
+    ipcRenderer.invoke("removeRomFolder", system, folderId),
+  toggleRomFolderSubfolders: (
+    system: EmulatorSystem,
+    folderId: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleRomFolderSubfolders",
+      system,
+      folderId,
+      scanSubfolders
+    ),
+  rescanEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("rescanEmulator", system),
+  checkPs3Firmware: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  startRomScan: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) => ipcRenderer.invoke("startRomScan", system, folderPath, scanSubfolders),
+  cancelRomScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelRomScan", requestId),
+  getEmulatorRomPaths: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("getEmulatorRomPaths", system),
+  addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
+    ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
+  removeEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("removeEmulator", system),
+  onRomScanProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "progress";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | { type: "done"; fileCount: number; sizeBytes: number }
+        | { type: "cancelled"; fileCount: number; sizeBytes: number }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-rom-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
 
   /* User preferences */

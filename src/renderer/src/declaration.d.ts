@@ -39,6 +39,9 @@ import type {
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorConfig,
+  EmulatorConfigMap,
+  EmulatorSystem,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -294,6 +297,59 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    /* Emulators */
+    getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    detectEmulators: () => Promise<EmulatorConfigMap>;
+    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    setEmulatorExecutablePath: (
+      system: EmulatorSystem,
+      executablePath: string | null
+    ) => Promise<EmulatorConfig>;
+    addRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<EmulatorConfig>;
+    removeRomFolder: (
+      system: EmulatorSystem,
+      folderId: string
+    ) => Promise<EmulatorConfig>;
+    toggleRomFolderSubfolders: (
+      system: EmulatorSystem,
+      folderId: string,
+      scanSubfolders: boolean
+    ) => Promise<EmulatorConfig>;
+    rescanEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    checkPs3Firmware: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean }>;
+    startRomScan: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<{ requestId: string }>;
+    cancelRomScan: (requestId: string) => Promise<void>;
+    getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
+    addEmulatorRomPath: (
+      system: EmulatorSystem,
+      folderPath: string
+    ) => Promise<boolean>;
+    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    onRomScanProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | { type: "done"; fileCount: number; sizeBytes: number }
+          | { type: "cancelled"; fileCount: number; sizeBytes: number }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
