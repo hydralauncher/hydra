@@ -1,12 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-const SNIFF_BYTES = 4 * 1024 * 1024;
+const SNIFF_BYTES = 16 * 1024 * 1024;
 
-export type DiscPlatform = "ps1" | "ps2" | "unknown";
+export type DiscPlatform = "ps1" | "ps2" | "ps3" | "unknown";
 
 const BOOT2_RE = /BOOT2\s*=/;
 const BOOT_RE = /BOOT\s*=/;
+const PS3_MARKERS = ["PS3_GAME", "PS3_DISC.SFB", "PARAM.SFO", "EBOOT.BIN"];
 
 export const sniffDiscImage = async (
   filePath: string
@@ -18,8 +19,16 @@ export const sniffDiscImage = async (
     const { bytesRead } = await fh.read(buffer, 0, SNIFF_BYTES, 0);
     const text = buffer.subarray(0, bytesRead).toString("latin1");
 
+    let ps3Hits = 0;
+    for (const marker of PS3_MARKERS) {
+      if (text.includes(marker)) ps3Hits += 1;
+    }
+    if (ps3Hits >= 2) return "ps3";
+
     if (BOOT2_RE.test(text)) return "ps2";
     if (BOOT_RE.test(text)) return "ps1";
+
+    if (ps3Hits >= 1) return "ps3";
     return "unknown";
   } catch {
     return "unknown";

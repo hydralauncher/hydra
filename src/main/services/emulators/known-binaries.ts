@@ -53,7 +53,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     linuxNames: ["pcsx2-qt", "pcsx2", "PCSX2"],
     windowsNames: ["pcsx2-qt.exe", "pcsx2-qtx64-avx2.exe", "pcsx2.exe"],
     flatpakIds: ["net.pcsx2.PCSX2"],
-    versionFlags: ["--version", "-v"],
+    versionFlags: ["-version"],
     romExtensions: [
       ".iso",
       ".chd",
