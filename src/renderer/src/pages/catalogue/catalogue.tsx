@@ -18,6 +18,7 @@ import {
 import "./catalogue.scss";
 
 import { Button } from "@renderer/components/button/button";
+import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { debounce } from "lodash-es";
@@ -58,7 +59,7 @@ const filterCategoryColors = {
   releaseYear: "hsl(38deg 50% 40%)",
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 30;
 
 const clearAllCategoryFilters = {
   genres: [],
@@ -70,6 +71,18 @@ const clearAllCategoryFilters = {
   deckCompatibility: [],
   releaseYear: undefined,
 };
+
+const sortValues = [
+  "popularity:desc",
+  "releaseDate:desc",
+  "releaseDate:asc",
+  "alphabetical:asc",
+  "alphabetical:desc",
+  "hydraScore:desc",
+  "hydraScore:asc",
+] as const;
+
+type CatalogueSortValue = (typeof sortValues)[number];
 
 const protonCompatibilityThresholds: CompatibilityThreshold<
   CatalogueSearchPayload["protondbSupportBadges"][number]
@@ -396,6 +409,49 @@ export default function Catalogue() {
 
   const selectedFiltersCount = groupedFilters.length;
 
+  const sortOptions = useMemo(
+    () => [
+      {
+        key: "popularity:desc",
+        value: "popularity:desc",
+        label: t("sort_popularity"),
+      },
+      {
+        key: "releaseDate:desc",
+        value: "releaseDate:desc",
+        label: t("sort_newest"),
+      },
+      {
+        key: "releaseDate:asc",
+        value: "releaseDate:asc",
+        label: t("sort_oldest"),
+      },
+      {
+        key: "alphabetical:asc",
+        value: "alphabetical:asc",
+        label: t("sort_title_asc"),
+      },
+      {
+        key: "alphabetical:desc",
+        value: "alphabetical:desc",
+        label: t("sort_title_desc"),
+      },
+      {
+        key: "hydraScore:desc",
+        value: "hydraScore:desc",
+        label: t("sort_highest_rating"),
+      },
+      {
+        key: "hydraScore:asc",
+        value: "hydraScore:asc",
+        label: t("sort_lowest_rating"),
+      },
+    ],
+    [t]
+  );
+
+  const selectedSortValue = `${filters.sortBy}:${filters.sortOrder}`;
+
   const protonThresholdValue =
     protonCompatibilityThresholds.find((threshold) =>
       areSameValues(threshold.values, filters.protondbSupportBadges)
@@ -408,50 +464,93 @@ export default function Catalogue() {
   return (
     <div className="catalogue" ref={cataloguePageRef}>
       <div className="catalogue__header">
-        <div className="catalogue__filters-wrapper">
-          <ul className="catalogue__filters-list">
-            {groupedFilters.map((filter) => (
-              <li key={`${filter.key}-${filter.value}`}>
-                <FilterItem
-                  filter={filter.label ?? ""}
-                  filterType={filter.filterType}
-                  orbColor={filter.orbColor}
-                  onRemove={() => {
-                    if (filter.value === "range") {
-                      dispatch(setFilters({ releaseYear: undefined }));
-                      return;
-                    }
+        <div className="catalogue__header-row">
+          <div className="catalogue__header-summary">
+            <span className="catalogue__result-count">
+              {t("result_count", {
+                resultCount: formatNumber(itemsCount),
+              })}
+            </span>
+            {selectedFiltersCount === 0 && (
+              <span className="catalogue__filters-hint">
+                {t("filters_sidebar_hint")}
+              </span>
+            )}
+          </div>
 
-                    if (filter.value === "threshold") {
-                      dispatch(setFilters({ [filter.key]: [] }));
-                      return;
-                    }
+          <div className="catalogue__sort-inline">
+            <span className="catalogue__sort-label">{t("sort_by")}</span>
+            <SelectField
+              theme="dark"
+              className="catalogue__sort-select"
+              value={
+                sortValues.includes(selectedSortValue as CatalogueSortValue)
+                  ? selectedSortValue
+                  : "popularity:desc"
+              }
+              options={sortOptions}
+              onChange={(event) => {
+                const [sortBy, sortOrder] = event.target.value.split(":") as [
+                  CatalogueSearchPayload["sortBy"],
+                  CatalogueSearchPayload["sortOrder"],
+                ];
 
-                    dispatch(
-                      setFilters({
-                        [filter.key]: filters[filter.key].filter(
-                          (item) => item !== filter.value
-                        ),
-                      })
-                    );
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
+                dispatch(setFilters({ sortBy, sortOrder }));
+              }}
+            />
+          </div>
         </div>
 
         {selectedFiltersCount > 0 && (
-          <Button
-            type="button"
-            theme="outline"
-            className="catalogue__clear-all-button"
-            onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
-          >
-            {t("clear_filters", {
-              filterCount: formatNumber(selectedFiltersCount),
-            })}
-          </Button>
+          <div className="catalogue__header-row catalogue__header-row--filters">
+            <span className="catalogue__active-filters-label">
+              {t("active_filters")}
+            </span>
+
+            <div className="catalogue__filters-wrapper">
+              <ul className="catalogue__filters-list">
+                {groupedFilters.map((filter) => (
+                  <li key={`${filter.key}-${filter.value}`}>
+                    <FilterItem
+                      filter={filter.label ?? ""}
+                      filterType={filter.filterType}
+                      orbColor={filter.orbColor}
+                      onRemove={() => {
+                        if (filter.value === "range") {
+                          dispatch(setFilters({ releaseYear: undefined }));
+                          return;
+                        }
+
+                        if (filter.value === "threshold") {
+                          dispatch(setFilters({ [filter.key]: [] }));
+                          return;
+                        }
+
+                        dispatch(
+                          setFilters({
+                            [filter.key]: filters[filter.key].filter(
+                              (item) => item !== filter.value
+                            ),
+                          })
+                        );
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Button
+              type="button"
+              theme="outline"
+              className="catalogue__clear-all-button"
+              onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
+            >
+              {t("clear_filters", {
+                filterCount: formatNumber(selectedFiltersCount),
+              })}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -472,12 +571,6 @@ export default function Catalogue() {
           )}
 
           <div className="catalogue__pagination-container">
-            <span className="catalogue__result-count">
-              {t("result_count", {
-                resultCount: formatNumber(itemsCount),
-              })}
-            </span>
-
             <Pagination
               page={page}
               totalPages={Math.ceil(itemsCount / PAGE_SIZE)}
