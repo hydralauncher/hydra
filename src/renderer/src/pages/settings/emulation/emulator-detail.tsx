@@ -233,10 +233,6 @@ export function EmulatorDetail({
             <TrashIcon size={14} />
             <span>{t("remove_emulator")}</span>
           </Button>
-          <Button theme="primary" onClick={handleRescan} disabled={busy}>
-            <SyncIcon size={14} />
-            <span>{t("rescan_library")}</span>
-          </Button>
         </div>
       </section>
 
