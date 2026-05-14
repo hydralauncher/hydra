@@ -65,6 +65,42 @@
       justify-content: center;
       opacity: 0.9;
     }
+
+    &-label {
+      flex: 1;
+    }
+
+    &-badge {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      color: #0cf1ca;
+      background: rgba(12, 241, 202, 0.05);
+      border: 1px solid rgba(12, 241, 202, 0.3);
+    }
+  }
+
+  &__sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  &__sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin-bottom: 4px;
+  }
+
+  &__sidebar-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.8px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
   }
 
   &__panel {
