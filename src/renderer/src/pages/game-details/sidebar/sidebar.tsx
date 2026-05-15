@@ -124,7 +124,7 @@ export function Sidebar() {
   const { numberFormatter } = useFormat();
 
   useEffect(() => {
-    if (objectId) {
+    if (objectId && shop !== "launchbox") {
       setHowLongToBeat({ isLoading: true, data: null });
 
       // Directly fetch from API without checking cache
@@ -301,41 +301,47 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      <HowLongToBeatSection
-        howLongToBeatData={howLongToBeat.data}
-        isLoading={howLongToBeat.isLoading}
-      />
-
-      <SidebarSection title={t("requirements")}>
-        <div className="requirement__button-container">
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("minimum")}
-            theme={activeRequirement === "minimum" ? "primary" : "outline"}
-          >
-            {t("minimum")}
-          </Button>
-
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("recommended")}
-            theme={activeRequirement === "recommended" ? "primary" : "outline"}
-          >
-            {t("recommended")}
-          </Button>
-        </div>
-
-        <div
-          className="requirement__details"
-          dangerouslySetInnerHTML={{
-            __html:
-              shopDetails?.pc_requirements?.[activeRequirement] ??
-              t(`no_${activeRequirement}_requirements`, {
-                gameTitle,
-              }),
-          }}
+      {shop !== "launchbox" && (
+        <HowLongToBeatSection
+          howLongToBeatData={howLongToBeat.data}
+          isLoading={howLongToBeat.isLoading}
         />
-      </SidebarSection>
+      )}
+
+      {shop !== "launchbox" && (
+        <SidebarSection title={t("requirements")}>
+          <div className="requirement__button-container">
+            <Button
+              className="requirement__button"
+              onClick={() => setActiveRequirement("minimum")}
+              theme={activeRequirement === "minimum" ? "primary" : "outline"}
+            >
+              {t("minimum")}
+            </Button>
+
+            <Button
+              className="requirement__button"
+              onClick={() => setActiveRequirement("recommended")}
+              theme={
+                activeRequirement === "recommended" ? "primary" : "outline"
+              }
+            >
+              {t("recommended")}
+            </Button>
+          </div>
+
+          <div
+            className="requirement__details"
+            dangerouslySetInnerHTML={{
+              __html:
+                shopDetails?.pc_requirements?.[activeRequirement] ??
+                t(`no_${activeRequirement}_requirements`, {
+                  gameTitle,
+                }),
+            }}
+          />
+        </SidebarSection>
+      )}
 
       <GameLanguageSection />
     </aside>

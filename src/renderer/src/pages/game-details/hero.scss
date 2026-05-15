@@ -141,6 +141,12 @@ $hero-height: 350px;
       height: $hero-height;
       min-height: $hero-height;
     }
+
+    &--blurred {
+      filter: blur(24px) saturate(1.1);
+      transform: scale(1.15);
+      opacity: 0.6;
+    }
   }
 
   &__game-logo {
