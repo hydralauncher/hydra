@@ -188,7 +188,9 @@
     "sort_lowest_rating": "Lowest rating",
     "filters_sidebar_hint": "Use the sidebar to refine your search",
     "active_filters": "Active filters",
-    "no_genres": "No categories"
+    "no_genres": "No categories",
+    "mode_modern_games": "Modern Games",
+    "mode_classics": "Classics"
   },
   "game_details": {
     "open_download_options": "Open download options",

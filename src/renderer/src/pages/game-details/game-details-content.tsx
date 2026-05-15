@@ -144,13 +144,22 @@ export function GameDetailsContent() {
   }, [searchParams, objectId]);
 
   const isCustomGame = game?.shop === "custom";
+  const isLaunchboxGame = shop === "launchbox";
 
-  const heroImage = isCustomGame
+  const resolvedHeroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
         game?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
+
+  const launchboxHeroFallback =
+    isLaunchboxGame && !resolvedHeroImage
+      ? (shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? "")
+      : "";
+
+  const heroImage = resolvedHeroImage || launchboxHeroFallback;
+  const useBlurredHero = Boolean(launchboxHeroFallback);
 
   return (
     <div
@@ -160,7 +169,7 @@ export function GameDetailsContent() {
         <div className="game-details__hero">
           <img
             src={heroImage}
-            className="game-details__hero-image"
+            className={`game-details__hero-image${useBlurredHero ? " game-details__hero-image--blurred" : ""}`}
             alt={game?.title}
           />
 

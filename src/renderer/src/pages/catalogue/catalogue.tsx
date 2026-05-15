@@ -24,9 +24,12 @@ import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { debounce } from "lodash-es";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import cn from "classnames";
+import { CatalogueModeToggle } from "./catalogue-mode-toggle";
 import { FilterItem } from "./filter-item";
 import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
+import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
 
 const ProtonCompatibilitySection = lazy(async () => {
@@ -118,7 +121,7 @@ export default function Catalogue() {
 
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
 
-  const { steamGenres, steamUserTags, filters, page } = useAppSelector(
+  const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
     (state) => state.catalogueSearch
   );
   const deferredTitleFilter = useDeferredValue(filters.title);
@@ -151,9 +154,10 @@ export default function Catalogue() {
         downloadSources: DownloadSource[],
         pageSize: number,
         offset: number,
-        requestId: number
+        requestId: number,
+        mode: "modern" | "classics"
       ) => {
-        const requestData = {
+        const baseRequest = {
           ...filters,
           take: pageSize,
           skip: offset,
@@ -161,6 +165,11 @@ export default function Catalogue() {
             (downloadSource) => downloadSource.id
           ),
         };
+
+        const requestData =
+          mode === "classics"
+            ? { ...baseRequest, shops: ["launchbox"] }
+            : baseRequest;
 
         try {
           const response = await window.electron.hydraApi.post<{
@@ -206,13 +215,14 @@ export default function Catalogue() {
       downloadSources,
       PAGE_SIZE,
       (page - 1) * PAGE_SIZE,
-      requestId
+      requestId,
+      mode
     );
 
     return () => {
       debouncedSearch.cancel();
     };
-  }, [effectiveFilters, downloadSources, page, debouncedSearch]);
+  }, [effectiveFilters, downloadSources, page, debouncedSearch, mode]);
 
   const language = i18n.language.split("-")[0];
 
@@ -501,7 +511,7 @@ export default function Catalogue() {
           </div>
         </div>
 
-        {selectedFiltersCount > 0 && (
+        {mode === "modern" && selectedFiltersCount > 0 && (
           <div className="catalogue__header-row catalogue__header-row--filters">
             <span className="catalogue__active-filters-label">
               {t("active_filters")}
@@ -555,13 +565,26 @@ export default function Catalogue() {
       </div>
 
       <div className="catalogue__content">
-        <div className="catalogue__games-container">
+        <div
+          className={cn("catalogue__games-container", {
+            "catalogue__games-container--classics": mode === "classics",
+          })}
+        >
           {isLoading ? (
             <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                <Skeleton key={i} className="catalogue__skeleton" />
+                <Skeleton
+                  key={i}
+                  className={cn("catalogue__skeleton", {
+                    "catalogue__skeleton--classics": mode === "classics",
+                  })}
+                />
               ))}
             </SkeletonTheme>
+          ) : mode === "classics" ? (
+            results.map((game) => (
+              <GameItemClassics key={game.id} game={game} />
+            ))
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
           )}
@@ -586,7 +609,9 @@ export default function Catalogue() {
 
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
-            {shouldShowProtonFeatures && (
+            <CatalogueModeToggle />
+
+            {mode === "modern" && shouldShowProtonFeatures && (
               <Suspense fallback={null}>
                 <ProtonCompatibilitySection
                   title={t("protondb")}
@@ -629,50 +654,53 @@ export default function Catalogue() {
               </Suspense>
             )}
 
-            <Suspense fallback={null}>
-              <ReleaseYearSection
-                title={t("release_year")}
-                color={filterCategoryColors.releaseYear}
-                value={filters.releaseYear}
-                onChange={(value) =>
-                  dispatch(setFilters({ releaseYear: value }))
-                }
-              />
-            </Suspense>
-
-            {filterSections.map((section) => (
-              <FilterSection
-                key={section.key}
-                title={section.title}
-                onClear={() => dispatch(setFilters({ [section.key]: [] }))}
-                color={filterCategoryColors[section.key]}
-                onSelect={(value) => {
-                  if (filters[section.key].includes(value)) {
-                    dispatch(
-                      setFilters({
-                        [section.key]: filters[
-                          section.key as
-                            | "genres"
-                            | "tags"
-                            | "downloadSourceFingerprints"
-                            | "developers"
-                            | "publishers"
-                            | "protondbSupportBadges"
-                            | "deckCompatibility"
-                        ].filter((item) => item !== value),
-                      })
-                    );
-                  } else {
-                    dispatch(
-                      setFilters({
-                        [section.key]: [...filters[section.key], value],
-                      })
-                    );
+            {mode === "modern" && (
+              <Suspense fallback={null}>
+                <ReleaseYearSection
+                  title={t("release_year")}
+                  color={filterCategoryColors.releaseYear}
+                  value={filters.releaseYear}
+                  onChange={(value) =>
+                    dispatch(setFilters({ releaseYear: value }))
                   }
-                }}
-                items={section.items}
-              />
-            ))}
+                />
+              </Suspense>
+            )}
+
+            {mode === "modern" &&
+              filterSections.map((section) => (
+                <FilterSection
+                  key={section.key}
+                  title={section.title}
+                  onClear={() => dispatch(setFilters({ [section.key]: [] }))}
+                  color={filterCategoryColors[section.key]}
+                  onSelect={(value) => {
+                    if (filters[section.key].includes(value)) {
+                      dispatch(
+                        setFilters({
+                          [section.key]: filters[
+                            section.key as
+                              | "genres"
+                              | "tags"
+                              | "downloadSourceFingerprints"
+                              | "developers"
+                              | "publishers"
+                              | "protondbSupportBadges"
+                              | "deckCompatibility"
+                          ].filter((item) => item !== value),
+                        })
+                      );
+                    } else {
+                      dispatch(
+                        setFilters({
+                          [section.key]: [...filters[section.key], value],
+                        })
+                      );
+                    }
+                  }}
+                  items={section.items}
+                />
+              ))}
           </div>
         </div>
       </div>

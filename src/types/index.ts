@@ -450,6 +450,7 @@ export interface CatalogueSearchPayload {
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };
+  shops?: string[];
 }
 
 export interface ProtonDBData {
@@ -475,6 +476,11 @@ export type CatalogueSearchResult = {
   protondbSupportBadges?: string[];
   deckCompatibility?: string | null;
   deckCompatibilities?: string[];
+  platform?: string;
+  alternateNames?: string[];
+  developers?: string[];
+  publishers?: string[];
+  skus?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
