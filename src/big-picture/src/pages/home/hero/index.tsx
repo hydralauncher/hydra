@@ -3,8 +3,9 @@ import {
   PlayIcon,
   PlusCircleIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { TrendingGame } from "@types";
+import { DownloadGameModal } from "../../../components/modals";
 import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 import {
@@ -14,7 +15,10 @@ import {
 } from "../../../components";
 import { useLibraryLaunchGame } from "../../../components/pages/library/use-library-launch-game";
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
-import { getBigPictureGameDetailsPath } from "../../../helpers";
+import {
+  getBigPictureGameDetailsPath,
+  getItemFocusTarget,
+} from "../../../helpers";
 import { useDominantColor, useLibraryGameState } from "../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../layout";
 import type { FocusOverrideTarget, FocusOverrides } from "../../../services";
@@ -30,11 +34,13 @@ import "./styles.scss";
 interface HomePageHeroProps {
   featuredGame: TrendingGame | null;
   downNavigationTarget?: FocusOverrideTarget;
+  upNavigationTarget?: FocusOverrideTarget;
 }
 
 export function HomePageHero({
   featuredGame,
   downNavigationTarget,
+  upNavigationTarget,
 }: Readonly<HomePageHeroProps>) {
   const navigate = useNavigate();
   const { updateLibrary, ...gameState } = useLibraryGameState(
@@ -43,7 +49,7 @@ export function HomePageHero({
   );
   const launchGame = useLibraryLaunchGame(
     useCallback(() => {
-      console.log("home-hero download");
+      setIsDownloadingGame(true);
     }, [])
   );
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
@@ -58,7 +64,7 @@ export function HomePageHero({
   const secondActionFocusId = isInLibrary
     ? HOME_HERO_DOWNLOAD_ID
     : HOME_HERO_ADD_TO_LIBRARY_ID;
-
+  const [isDownloadingGame, setIsDownloadingGame] = useState(false);
   useEffect(() => {
     updateLibrary();
   }, [updateLibrary]);
@@ -69,7 +75,7 @@ export function HomePageHero({
 
   const openGamePage = () => {
     if (!featuredGame) return;
-    void navigate(
+    navigate(
       getBigPictureGameDetailsPath({
         shop: featuredGame.shop,
         objectId: featuredGame.objectId,
@@ -78,12 +84,12 @@ export function HomePageHero({
     );
   };
 
-  const handleDownloadOrPlayClick = () => {
+  const handleDownloadOrPlayClick = async () => {
     if (!gameState.libraryGame) {
-      console.log("home-hero download");
+      setIsDownloadingGame(true);
       return;
     }
-    void launchGame(gameState.libraryGame);
+    await launchGame(gameState.libraryGame);
   };
 
   const handleAddToLibrary = async () => {
@@ -103,46 +109,89 @@ export function HomePageHero({
     }
   };
 
+  const handleDownloadGameModalClose = () => {
+    setIsDownloadingGame(false);
+  };
+
   if (!featuredGame) return null;
 
   const heroDownNavigationTarget: FocusOverrideTarget =
     downNavigationTarget ?? {
       type: "block",
     };
+  const heroUpNavigationTarget: FocusOverrideTarget = upNavigationTarget ?? {
+    type: "block",
+  };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: HOME_HERO_OPEN_GAME_PAGE_ID,
-    },
+    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     right: {
       type: "block",
     },
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
   const downloadOrPlayNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: HOME_HERO_OPEN_GAME_PAGE_ID,
-    },
+    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     right: {
       type: "block",
     },
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
   const openGamePageNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: secondActionFocusId,
-    },
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+    right: getItemFocusTarget(secondActionFocusId),
+    up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
+
+  let heroSecondaryAction: ReactNode;
+  if (isInLibrary) {
+    if (gameState.hasExecutable) {
+      heroSecondaryAction = (
+        <Button
+          focusId={HOME_HERO_DOWNLOAD_ID}
+          focusNavigationOverrides={downloadOrPlayNavigationOverrides}
+          icon={<PlayIcon size={24} weight="fill" />}
+          onClick={handleDownloadOrPlayClick}
+          size="large"
+          variant="primary"
+        >
+          Launch Game
+        </Button>
+      );
+    } else {
+      heroSecondaryAction = (
+        <Button
+          focusId={HOME_HERO_DOWNLOAD_ID}
+          focusNavigationOverrides={downloadOrPlayNavigationOverrides}
+          icon={<DownloadSimpleIcon size={24} />}
+          onClick={handleDownloadOrPlayClick}
+          size="large"
+          variant="primary"
+        >
+          Download Game
+        </Button>
+      );
+    }
+  } else {
+    heroSecondaryAction = (
+      <Button
+        focusId={HOME_HERO_ADD_TO_LIBRARY_ID}
+        focusNavigationOverrides={addToLibraryNavigationOverrides}
+        icon={<PlusCircleIcon size={24} />}
+        onClick={handleAddToLibrary}
+        loading={isAddingToLibrary}
+        size="large"
+        variant="secondary"
+      >
+        Add to Library
+      </Button>
+    );
+  }
 
   return (
     <section className="home-page-hero" aria-label={featuredGame.title}>
@@ -208,44 +257,16 @@ export function HomePageHero({
               View Details
             </Button>
 
-            {!isInLibrary ? (
-              <Button
-                focusId={HOME_HERO_ADD_TO_LIBRARY_ID}
-                focusNavigationOverrides={addToLibraryNavigationOverrides}
-                icon={<PlusCircleIcon size={24} />}
-                onClick={() => void handleAddToLibrary()}
-                loading={isAddingToLibrary}
-                size="large"
-                variant="secondary"
-              >
-                Add to Library
-              </Button>
-            ) : gameState.hasExecutable ? (
-              <Button
-                focusId={HOME_HERO_DOWNLOAD_ID}
-                focusNavigationOverrides={downloadOrPlayNavigationOverrides}
-                icon={<PlayIcon size={24} weight="fill" />}
-                onClick={handleDownloadOrPlayClick}
-                size="large"
-                variant="primary"
-              >
-                Launch Game
-              </Button>
-            ) : (
-              <Button
-                focusId={HOME_HERO_DOWNLOAD_ID}
-                focusNavigationOverrides={downloadOrPlayNavigationOverrides}
-                icon={<DownloadSimpleIcon size={24} />}
-                onClick={handleDownloadOrPlayClick}
-                size="large"
-                variant="primary"
-              >
-                Launch Game
-              </Button>
-            )}
+            {heroSecondaryAction}
           </HorizontalFocusGroup>
         </div>
       </div>
+
+      <DownloadGameModal
+        visible={isDownloadingGame}
+        onClose={handleDownloadGameModalClose}
+        game={featuredGame}
+      />
     </section>
   );
 }

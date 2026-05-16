@@ -1,6 +1,6 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import { DownloadManager } from "@main/services";
+import { DownloadManager, WindowManager } from "@main/services";
 import type { GameShop } from "@types";
 
 const resumeGameSeed = async (
@@ -18,6 +18,7 @@ const resumeGameSeed = async (
     status: "seeding",
     shouldSeed: true,
   });
+  WindowManager.sendDownloadsUpdated();
 
   await DownloadManager.resumeSeeding(download);
 };

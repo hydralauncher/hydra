@@ -1,18 +1,30 @@
 import { useTranslation } from "react-i18next";
 
-import { useAppSelector, useDownload, useLibrary } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDownload,
+  useDownloadLayout,
+  useLibrary,
+} from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
-import type { GameShop, LibraryGame, SeedingStatus } from "@types";
+import {
+  getDownloadId,
+  getRendererDownloadBucket,
+  type GameShop,
+  type LibraryGame,
+  type SeedingStatus,
+} from "../../../../types";
 import { orderBy } from "lodash-es";
 import { ArrowDownIcon } from "@primer/octicons-react";
 
 export default function Downloads() {
   const { library, updateLibrary } = useLibrary();
+  const { layoutState } = useDownloadLayout();
   const extraction = useAppSelector((state) => state.download.extraction);
 
   const { t } = useTranslation("downloads");
@@ -70,41 +82,57 @@ export default function Downloads() {
       complete: [],
     };
 
-    const result = orderBy(
-      library,
-      (game) => game.download?.timestamp,
-      "desc"
-    ).reduce((prev, next) => {
-      /* Game has been manually added to the library */
+    const queueOrder = layoutState.queueOrder;
+    const pausedOrder = layoutState.pausedOrder;
+    const queueOrderIndex = new Map(queueOrder.map((id, index) => [id, index]));
+    const pausedOrderIndex = new Map(
+      pausedOrder.map((id, index) => [id, index])
+    );
+
+    const result = library.reduce((prev, next) => {
       if (!next.download) return prev;
 
-      if (next.download.status === "removed") return prev;
+      const bucket = getRendererDownloadBucket(next.download, {
+        hasLiveProgress:
+          lastPacket?.gameId === next.id && next.download.status === "active",
+        isExtracting: extraction?.visibleId === next.id,
+      });
 
-      /* Is downloading or extracting */
-      const isExtracting =
-        next.download.extracting || extraction?.visibleId === next.id;
-      if (lastPacket?.gameId === next.id || isExtracting)
+      if (bucket === "hidden") return prev;
+      if (bucket === "inProgress") {
         return { ...prev, downloading: [...prev.downloading, next] };
+      }
 
-      /* Is either queued, paused, or failed */
-      const isQueuedDownload =
-        next.download.queued &&
-        next.download.status !== "complete" &&
-        next.download.status !== "seeding";
-
-      if (
-        isQueuedDownload ||
-        next.download?.status === "paused" ||
-        next.download?.status === "error"
-      )
+      if (bucket === "queued") {
         return { ...prev, queued: [...prev.queued, next] };
+      }
 
       return { ...prev, complete: [...prev.complete, next] };
     }, initialValue);
 
-    const queued = orderBy(result.queued, (game) => game.download?.timestamp, [
-      "desc",
-    ]);
+    const queued = [...result.queued].sort((left, right) => {
+      const leftDownload = left.download!;
+      const rightDownload = right.download!;
+      const leftId = getDownloadId(leftDownload);
+      const rightId = getDownloadId(rightDownload);
+      const leftInQueue = queueOrderIndex.get(leftId);
+      const rightInQueue = queueOrderIndex.get(rightId);
+      const leftInPaused = pausedOrderIndex.get(leftId);
+      const rightInPaused = pausedOrderIndex.get(rightId);
+
+      if (leftInQueue != null && rightInQueue != null) {
+        return leftInQueue - rightInQueue;
+      }
+
+      if (leftInQueue != null) return -1;
+      if (rightInQueue != null) return 1;
+
+      if (leftInPaused != null && rightInPaused != null) {
+        return leftInPaused - rightInPaused;
+      }
+
+      return (leftDownload.timestamp ?? 0) - (rightDownload.timestamp ?? 0);
+    });
 
     const complete = orderBy(result.complete, (game) =>
       game.download?.progress === 1 ? 0 : 1
@@ -115,7 +143,7 @@ export default function Downloads() {
       queued,
       complete,
     };
-  }, [library, lastPacket?.gameId, extraction?.visibleId]);
+  }, [extraction?.visibleId, lastPacket?.gameId, layoutState, library]);
 
   const queuedGameIds = useMemo(
     () => libraryGroup.queued.map((game) => game.id),

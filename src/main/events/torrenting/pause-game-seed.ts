@@ -1,6 +1,6 @@
 import { downloadsSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
-import { DownloadManager } from "@main/services";
+import { DownloadManager, WindowManager } from "@main/services";
 import type { GameShop } from "@types";
 
 const pauseGameSeed = async (
@@ -18,6 +18,7 @@ const pauseGameSeed = async (
     status: "complete",
     shouldSeed: false,
   });
+  WindowManager.sendDownloadsUpdated();
 
   await DownloadManager.pauseSeeding(downloadKey);
 };
