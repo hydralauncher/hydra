@@ -25,6 +25,7 @@ const initialState: CatalogueSearchState = {
     developers: [],
     protondbSupportBadges: [],
     deckCompatibility: [],
+    platforms: [],
   },
   steamUserTags: {},
   steamGenres: {},
@@ -65,19 +66,18 @@ export const catalogueSearchSlice = createSlice({
     setMode: (state, action: PayloadAction<CatalogueMode>) => {
       state.mode = action.payload;
       state.page = initialState.page;
-      if (action.payload === "classics") {
-        state.filters = {
-          ...state.filters,
-          tags: [],
-          genres: [],
-          developers: [],
-          publishers: [],
-          downloadSourceFingerprints: [],
-          protondbSupportBadges: [],
-          deckCompatibility: [],
-          releaseYear: undefined,
-        };
-      }
+      state.filters = {
+        ...state.filters,
+        tags: [],
+        genres: [],
+        developers: [],
+        publishers: [],
+        downloadSourceFingerprints: [],
+        protondbSupportBadges: [],
+        deckCompatibility: [],
+        releaseYear: undefined,
+        platforms: [],
+      };
     },
   },
 });

@@ -294,7 +294,8 @@ export function EmulatorSetupModal({
               systemLabel={systemLabel}
               folders={folders}
               onComplete={(added) => {
-                setGamesAdded(added.fileCount);
+                setGamesAdded(added.matched);
+                refreshConfig();
                 goNext();
               }}
               onCancel={() => {

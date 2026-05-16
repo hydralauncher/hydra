@@ -7,9 +7,16 @@ import type { EmulatorSystem } from "@types";
 
 const MAX_ENTRIES_PER_DIR = 5000;
 
+export interface ScannedGame {
+  primaryPath: string;
+  name: string;
+  sizeBytes: number;
+}
+
 export interface ScanResult {
   fileCount: number;
   sizeBytes: number;
+  games: ScannedGame[];
 }
 
 export interface ScanProgress {
@@ -242,6 +249,7 @@ export const scanRomFolder = async (
   let fileCount = 0;
   let sizeBytes = 0;
   let processed = 0;
+  const scannedGames: ScannedGame[] = [];
 
   options?.onProgress?.({ processed: 0, total, currentFile: null });
 
@@ -250,21 +258,28 @@ export const scanRomFolder = async (
 
     const matches = await shouldCountForSystem(game.primary, binary.system);
     if (matches) {
+      let gameSize = 0;
       try {
         const stat = await fs.stat(game.primary.fullPath);
         fileCount += 1;
-        sizeBytes += stat.size;
+        gameSize += stat.size;
       } catch {
         // unreadable — keep going
       }
       for (const sidecar of game.sidecars) {
         try {
           const stat = await fs.stat(sidecar.fullPath);
-          sizeBytes += stat.size;
+          gameSize += stat.size;
         } catch {
           // unreadable sidecar — skip
         }
       }
+      sizeBytes += gameSize;
+      scannedGames.push({
+        primaryPath: game.primary.fullPath,
+        name: game.primary.name,
+        sizeBytes: gameSize,
+      });
     }
 
     processed += 1;
@@ -275,5 +290,5 @@ export const scanRomFolder = async (
     });
   }
 
-  return { fileCount, sizeBytes };
+  return { fileCount, sizeBytes, games: scannedGames };
 };

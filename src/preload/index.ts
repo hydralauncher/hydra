@@ -210,6 +210,59 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on(channel, listener);
     return () => ipcRenderer.removeListener(channel, listener);
   },
+  importLaunchboxRoms: (
+    system: EmulatorSystem,
+    folders: { path: string; scanSubfolders: boolean }[],
+    language: string
+  ) => ipcRenderer.invoke("importLaunchboxRoms", system, folders, language),
+  cancelLaunchboxImport: (requestId: string) =>
+    ipcRenderer.invoke("cancelLaunchboxImport", requestId),
+  onLaunchboxImportProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "scan_progress";
+            phase: "scanning";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | {
+            type: "match_progress";
+            phase: "matching";
+            processed: number;
+            total: number;
+            currentFile: string;
+            status: "matched" | "unmatched";
+            matched: number;
+            unmatched: number;
+            fileCount: number;
+            sizeBytes: number;
+          }
+        | {
+            type: "done";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+          }
+        | {
+            type: "cancelled";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+          }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-launchbox-import-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),

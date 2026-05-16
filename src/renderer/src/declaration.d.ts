@@ -350,6 +350,52 @@ declare global {
           | { type: "error"; message: string }
       ) => void
     ) => () => Electron.IpcRenderer;
+    importLaunchboxRoms: (
+      system: EmulatorSystem,
+      folders: { path: string; scanSubfolders: boolean }[],
+      language: string
+    ) => Promise<{ requestId: string }>;
+    cancelLaunchboxImport: (requestId: string) => Promise<void>;
+    onLaunchboxImportProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "scan_progress";
+              phase: "scanning";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | {
+              type: "match_progress";
+              phase: "matching";
+              processed: number;
+              total: number;
+              currentFile: string;
+              status: "matched" | "unmatched";
+              matched: number;
+              unmatched: number;
+              fileCount: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+            }
+          | {
+              type: "cancelled";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+            }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
