@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SyncIcon } from "@primer/octicons-react";
+import { CheckIcon, SyncIcon, XIcon } from "@primer/octicons-react";
 
 import type { EmulatorSystem } from "@types";
 
@@ -10,9 +10,16 @@ interface Props {
   system: EmulatorSystem;
   systemLabel: string;
   folders: PendingFolder[];
-  onComplete: (added: { fileCount: number; sizeBytes: number }) => void;
+  onComplete: (added: {
+    fileCount: number;
+    sizeBytes: number;
+    matched: number;
+    unmatched: number;
+  }) => void;
   onCancel: () => void;
 }
+
+type Phase = "scanning" | "matching" | "done";
 
 const formatBytes = (bytes: number): string => {
   if (bytes <= 0) return "0 B";
@@ -32,11 +39,16 @@ export function SetupStepScanning({
   onComplete,
   onCancel,
 }: Readonly<Props>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
 
+  const [phase, setPhase] = useState<Phase>("scanning");
   const [processed, setProcessed] = useState(0);
   const [total, setTotal] = useState(0);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<
+    "matched" | "unmatched" | null
+  >(null);
+  const [matched, setMatched] = useState(0);
   const [accFiles, setAccFiles] = useState(0);
   const [accBytes, setAccBytes] = useState(0);
 
@@ -45,90 +57,65 @@ export function SetupStepScanning({
 
   useEffect(() => {
     let cancelled = false;
-    let cumulativeFiles = 0;
-    let cumulativeBytes = 0;
-    let cumulativeProcessed = 0;
-    let cumulativeTotal = 0;
+    const language = i18n.language.split("-")[0] || "en";
 
-    const runOne = async (folder: PendingFolder) => {
-      const { requestId } = await window.electron.startRomScan(
+    (async () => {
+      const { requestId } = await window.electron.importLaunchboxRoms(
         system,
-        folder.path,
-        folder.scanSubfolders
+        folders.map((f) => ({
+          path: f.path,
+          scanSubfolders: f.scanSubfolders,
+        })),
+        language
       );
       if (cancelled) {
-        window.electron.cancelRomScan(requestId);
+        window.electron.cancelLaunchboxImport(requestId);
         return;
       }
       requestIdRef.current = requestId;
 
-      return new Promise<{ fileCount: number; sizeBytes: number }>(
-        (resolve, reject) => {
-          const unsub = window.electron.onRomScanProgress(
-            requestId,
-            (payload) => {
-              if (payload.type === "progress") {
-                setProcessed(cumulativeProcessed + payload.processed);
-                setTotal(cumulativeTotal + payload.total);
-                setCurrentFile(payload.currentFile);
-              } else if (payload.type === "done") {
-                unsub();
-                resolve({
-                  fileCount: payload.fileCount,
-                  sizeBytes: payload.sizeBytes,
-                });
-              } else if (payload.type === "cancelled") {
-                unsub();
-                resolve({
-                  fileCount: payload.fileCount,
-                  sizeBytes: payload.sizeBytes,
-                });
-              } else {
-                unsub();
-                reject(new Error(payload.message));
-              }
-            }
-          );
-          unsubRef.current = unsub;
+      const unsub = window.electron.onLaunchboxImportProgress(
+        requestId,
+        (payload) => {
+          if (payload.type === "scan_progress") {
+            setPhase("scanning");
+            setProcessed(payload.processed);
+            setTotal(payload.total);
+            setCurrentFile(payload.currentFile);
+            setCurrentStatus(null);
+          } else if (payload.type === "match_progress") {
+            setPhase("matching");
+            setProcessed(payload.processed);
+            setTotal(payload.total);
+            setCurrentFile(payload.currentFile);
+            setCurrentStatus(payload.status);
+            setMatched(payload.matched);
+            setAccFiles(payload.fileCount);
+            setAccBytes(payload.sizeBytes);
+          } else if (payload.type === "done") {
+            unsub();
+            setPhase("done");
+            onComplete({
+              fileCount: payload.fileCount,
+              sizeBytes: payload.sizeBytes,
+              matched: payload.matched,
+              unmatched: payload.unmatched,
+            });
+          } else if (payload.type === "cancelled") {
+            unsub();
+          } else {
+            unsub();
+          }
         }
       );
-    };
-
-    (async () => {
-      // Pre-pass: total file estimate stays flexible; we rely on per-folder totals.
-      for (const folder of folders) {
-        if (cancelled) break;
-        try {
-          const partial = await runOne(folder);
-          if (!partial) break;
-          cumulativeFiles += partial.fileCount;
-          cumulativeBytes += partial.sizeBytes;
-          cumulativeProcessed += partial.fileCount;
-          cumulativeTotal += partial.fileCount;
-          setAccFiles(cumulativeFiles);
-          setAccBytes(cumulativeBytes);
-
-          // Persist this folder via addRomFolder (single source of truth).
-          await window.electron.addRomFolder(
-            system,
-            folder.path,
-            folder.scanSubfolders
-          );
-        } catch {
-          // continue with next folder
-        }
-      }
-
-      if (!cancelled) {
-        onComplete({ fileCount: cumulativeFiles, sizeBytes: cumulativeBytes });
-      }
+      unsubRef.current = unsub;
     })();
 
     return () => {
       cancelled = true;
       unsubRef.current?.();
       if (requestIdRef.current) {
-        window.electron.cancelRomScan(requestIdRef.current);
+        window.electron.cancelLaunchboxImport(requestIdRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,6 +123,9 @@ export function SetupStepScanning({
 
   const percent =
     total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+
+  const phaseLabel =
+    phase === "scanning" ? t("setup_scanning") : t("setup_matching");
 
   return (
     <>
@@ -147,7 +137,7 @@ export function SetupStepScanning({
       <div className="setup-modal__progress-meta">
         <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
           <SyncIcon size={14} />
-          <span>{t("setup_scanning")}</span>
+          <span>{phaseLabel}</span>
         </span>
         <span>
           {t("setup_scan_count", {
@@ -165,13 +155,33 @@ export function SetupStepScanning({
       </div>
 
       {currentFile && (
-        <p className="setup-modal__current-file">{currentFile}</p>
+        <p className="setup-modal__current-file">
+          <span>{currentFile}</span>
+          {currentStatus && (
+            <span
+              className={`setup-modal__match-tag setup-modal__match-tag--${currentStatus}`}
+            >
+              {currentStatus === "matched" ? (
+                <CheckIcon size={11} />
+              ) : (
+                <XIcon size={11} />
+              )}
+              <span>
+                {currentStatus === "matched"
+                  ? t("setup_match_matched")
+                  : t("setup_match_unmatched")}
+              </span>
+            </span>
+          )}
+        </p>
       )}
 
       <div className="setup-modal__stats">
         <div className="setup-modal__stat">
           <span className="setup-modal__stat-label">{t("stat_games")}</span>
-          <span className="setup-modal__stat-value">{accFiles}</span>
+          <span className="setup-modal__stat-value">
+            {phase === "matching" || phase === "done" ? matched : accFiles}
+          </span>
         </div>
         <div className="setup-modal__stat">
           <span className="setup-modal__stat-label">{t("stat_storage")}</span>

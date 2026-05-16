@@ -20,6 +20,7 @@ import {
   StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
+import { LaunchboxDetailsSection } from "./launchbox-details-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -124,7 +125,7 @@ export function Sidebar() {
   const { numberFormatter } = useFormat();
 
   useEffect(() => {
-    if (objectId && shop !== "launchbox") {
+    if (objectId) {
       setHowLongToBeat({ isLoading: true, data: null });
 
       // Directly fetch from API without checking cache
@@ -301,12 +302,18 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      {shop !== "launchbox" && (
-        <HowLongToBeatSection
-          howLongToBeatData={howLongToBeat.data}
-          isLoading={howLongToBeat.isLoading}
+      {shop === "launchbox" && (
+        <LaunchboxDetailsSection
+          platform={shopDetails?.platform}
+          genres={shopDetails?.genres?.map((g) => g.name)}
+          skus={shopDetails?.skus}
         />
       )}
+
+      <HowLongToBeatSection
+        howLongToBeatData={howLongToBeat.data}
+        isLoading={howLongToBeat.isLoading}
+      />
 
       {shop !== "launchbox" && (
         <SidebarSection title={t("requirements")}>

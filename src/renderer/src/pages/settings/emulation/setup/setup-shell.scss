@@ -304,6 +304,33 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__match-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+
+    &--matched {
+      color: #0cf1ca;
+      background: rgba(12, 241, 202, 0.08);
+      border-color: rgba(12, 241, 202, 0.25);
+    }
+
+    &--unmatched {
+      color: #a1a1aa;
+      background: rgba(161, 161, 170, 0.08);
+      border-color: rgba(161, 161, 170, 0.25);
+    }
   }
 
   &__stats {

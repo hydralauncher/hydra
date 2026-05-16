@@ -6,3 +6,4 @@ export * from "./emulators-repository";
 export * from "./firmware-detection";
 export * from "./sniff-disc-platform";
 export * from "./emulator-config";
+export * from "./extract-disc-sku";

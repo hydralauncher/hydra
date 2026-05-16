@@ -39,6 +39,7 @@ interface LaunchboxShopDetailsAssets {
 
 interface LaunchboxShopDetailsData {
   title: string;
+  platform?: string | null;
   description: string | null;
   releaseDate: string | null;
   developers: string[];
@@ -53,19 +54,24 @@ interface LaunchboxShopDetailsData {
 interface LaunchboxShopDetailsEntry {
   objectId: string;
   shop: GameShop;
+  platform?: string | null;
+  skus?: string[];
   data: LaunchboxShopDetailsData;
 }
 
 const mapLaunchboxToShopDetails = (
   objectId: string,
   basic: LaunchboxBasic | null,
-  data: LaunchboxShopDetailsData | null
+  entry: LaunchboxShopDetailsEntry | null
 ): ShopDetails => {
+  const data = entry?.data ?? null;
   const description = data?.description ?? "";
 
   return {
     objectId,
     name: data?.title ?? basic?.title ?? "",
+    platform: entry?.platform ?? data?.platform ?? undefined,
+    skus: entry?.skus ?? undefined,
     steam_appid: 0,
     detailed_description: description,
     about_the_game: description,
@@ -105,7 +111,9 @@ const getLaunchboxShopDetails = async (
     gamesShopAssetsSublevel.get(levelKeys.game(shop, objectId)),
   ]);
 
-  if (cachedData) {
+  const cacheHasNewFields =
+    cachedData && (cachedData.platform || cachedData.skus);
+  if (cachedData && cacheHasNewFields) {
     return { ...cachedData, assets: cachedAssets ?? null };
   }
 
@@ -133,7 +141,7 @@ const getLaunchboxShopDetails = async (
 
   if (!data && !basic) return null;
 
-  const mapped = mapLaunchboxToShopDetails(objectId, basic, data);
+  const mapped = mapLaunchboxToShopDetails(objectId, basic, detailsEntry);
 
   gamesShopCacheSublevel
     .put(levelKeys.gameShopCacheItem(shop, objectId, language), mapped)

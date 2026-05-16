@@ -60,6 +60,8 @@ export interface ShopAssets {
 
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
+  platform?: string;
+  skus?: string[];
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
@@ -451,6 +453,7 @@ export interface CatalogueSearchPayload {
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
+  platforms?: string[];
 }
 
 export interface ProtonDBData {
