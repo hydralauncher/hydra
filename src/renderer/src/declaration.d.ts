@@ -380,6 +380,11 @@ declare global {
       cb: (progress: AxiosProgressEvent) => void
     ) => () => Electron.IpcRenderer;
 
+    /* Clipboard */
+    clipboard: {
+      writeText: (text: string) => Promise<void>;
+    };
+
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
