@@ -177,7 +177,18 @@
     "release_year": "Release Year",
     "filter_by_release_year": "Filter by release year",
     "release_year_gte": "Release year from",
-    "release_year_lte": "Release year to"
+    "release_year_lte": "Release year to",
+    "sort_by": "Sort by",
+    "sort_popularity": "Popularity",
+    "sort_newest": "Newest releases",
+    "sort_oldest": "Oldest releases",
+    "sort_title_asc": "Title (A-Z)",
+    "sort_title_desc": "Title (Z-A)",
+    "sort_highest_rating": "Highest rating",
+    "sort_lowest_rating": "Lowest rating",
+    "filters_sidebar_hint": "Use the sidebar to refine your search",
+    "active_filters": "Active filters",
+    "no_genres": "No categories"
   },
   "game_details": {
     "open_download_options": "Open download options",

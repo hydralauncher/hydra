@@ -177,7 +177,18 @@
     "release_year": "Год выпуска",
     "filter_by_release_year": "Фильтровать по году выпуска",
     "release_year_gte": "Год выпуска от",
-    "release_year_lte": "Год выпуска до"
+    "release_year_lte": "Год выпуска до",
+    "sort_by": "Сортировать по",
+    "sort_popularity": "Популярности",
+    "sort_newest": "Сначала новые",
+    "sort_oldest": "Сначала старые",
+    "sort_title_asc": "По названию (A-Z)",
+    "sort_title_desc": "По названию (Z-A)",
+    "sort_highest_rating": "По высшему рейтингу",
+    "sort_lowest_rating": "По низшему рейтингу",
+    "filters_sidebar_hint": "Используйте боковую панель для уточнения поиска",
+    "active_filters": "Активные фильтры",
+    "no_genres": "Без категорий"
   },
   "game_details": {
     "open_download_options": "Открыть источники",
