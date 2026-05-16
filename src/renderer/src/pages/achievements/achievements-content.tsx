@@ -1,5 +1,9 @@
 import { setHeaderTitle } from "@renderer/features";
-import { useAppDispatch, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useUserDetails,
+} from "@renderer/hooks";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,12 +13,13 @@ import {
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
-import { Link } from "@renderer/components";
+import { Button, Link } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
 import { ComparedAchievementPanel } from "./compared-achievement-panel";
 import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useToast } from "@renderer/hooks";
 import "./achievements-content.scss";
 
 interface UserInfo {
@@ -116,16 +121,68 @@ export function AchievementsContent({
   const heroRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { gameTitle, objectId, shop, shopDetails, achievements } =
     useContext(gameDetailsContext);
 
   const dispatch = useAppDispatch();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const { t } = useTranslation("achievement");
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
+
+  const canImportFromSteam =
+    shop === "steam" &&
+    !otherUser &&
+    Boolean(userPreferences?.steamLinkedAccountId) &&
+    Boolean(userPreferences?.steamApiKey);
+
+  const handleImportFromSteam = async () => {
+    if (!objectId || !shop) return;
+    setIsImporting(true);
+    try {
+      const { importedCount, newCount } =
+        await window.electron.importSteamAchievements(objectId, shop);
+      if (newCount > 0) {
+        showSuccessToast(
+          t("steam_import_success"),
+          t("steam_import_new_count", { count: newCount, total: importedCount })
+        );
+      } else {
+        showSuccessToast(
+          t("steam_import_up_to_date"),
+          t("steam_import_total", { count: importedCount })
+        );
+      }
+    } catch (err: unknown) {
+      const msg = (
+        err instanceof Error ? err.message : String(err)
+      ).toLowerCase();
+      if (msg.includes("no stats")) {
+        showErrorToast(t("steam_import_no_stats"));
+      } else if (
+        msg.includes("not public") ||
+        msg.includes("private") ||
+        msg.includes("access denied")
+      ) {
+        showErrorToast(t("steam_import_profile_private"));
+      } else if (msg.includes("steam_not_configured") || msg.includes("403")) {
+        showErrorToast(t("steam_import_invalid_key"));
+      } else {
+        showErrorToast(t("steam_import_error"));
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const onScroll: React.UIEventHandler<HTMLElement> = (event) => {
     const heroHeight = heroRef.current?.clientHeight ?? 150;
@@ -227,6 +284,21 @@ export function AchievementsContent({
                 {getProfileImage(otherUser)}
               </div>
             </div>
+          </div>
+        )}
+
+        {canImportFromSteam && (
+          <div className="achievements-content__steam-import">
+            <Button
+              theme="outline"
+              type="button"
+              onClick={handleImportFromSteam}
+              disabled={isImporting}
+            >
+              {isImporting
+                ? t("steam_importing")
+                : t("steam_import_achievements")}
+            </Button>
           </div>
         )}
 
