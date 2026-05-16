@@ -13,15 +13,15 @@ import "./styles.scss";
 const HEADER_BACK_BUTTON_ID = "header-back-button";
 const HEADER_SEARCH_INPUT_ID = "header-search-input";
 
-const useBackTargetTitle = () => {
+const useCurrentPageTitle = () => {
   const stack = useNavigationHistoryStore((s) => s.stack);
-  if (stack.length >= 2) return stack[stack.length - 2].title;
+  if (stack.length >= 1) return stack[stack.length - 1].title;
   return "Home";
 };
 
 function Header() {
   const navigate = useNavigate();
-  const pageTitle = useBackTargetTitle();
+  const pageTitle = useCurrentPageTitle();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLButtonElement>(null);
