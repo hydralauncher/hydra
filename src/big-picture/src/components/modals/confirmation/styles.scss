@@ -1,0 +1,16 @@
+.confirmation-modal {
+  width: min(640px, calc(100vw - calc(var(--spacing-unit) * 8)));
+
+  .modal__content {
+    padding: calc(var(--spacing-unit) * 6);
+  }
+
+  &__content {
+    width: 100%;
+  }
+
+  &__actions {
+    justify-content: flex-end;
+    width: 100%;
+  }
+}

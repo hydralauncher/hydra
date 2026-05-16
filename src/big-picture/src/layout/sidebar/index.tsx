@@ -4,12 +4,14 @@ import {
   GearIcon,
   HouseIcon,
   MagnifyingGlassIcon,
+  SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
-import { useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { forwardRef, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Divider,
+  FocusItem,
   Input,
   RouteAnchor,
   ScrollArea,
@@ -19,27 +21,38 @@ import { IS_DESKTOP } from "../../constants";
 import { useLibrary, useSearch } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
-  BIG_PICTURE_CONTENT_REGION_ID,
+  BIG_PICTURE_SIDEBAR_EXIT_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_REGION_ID,
   type BigPictureSidebarRouteKey,
+  getBigPictureContentSidebarReturnTargetFromPathname,
+  getBigPictureGameRouteMatch,
+  getBigPictureSidebarLibraryGameFocusId,
   getBigPictureSidebarItemIdFromPathname,
+  normalizeBigPicturePathname,
 } from "../navigation";
 import "./styles.scss";
 
 function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
+  const contentEntryTarget =
+    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
   const sidebarItemNavigationOverrides: FocusOverrides = {
     left: {
       type: "block",
     },
-    right: {
-      type: "region",
-      regionId: BIG_PICTURE_CONTENT_REGION_ID,
-      entryDirection: "right",
-    },
+    right: contentEntryTarget,
+  };
+  const handleExitBigPicture = () => {
+    if (IS_DESKTOP) {
+      globalThis.close();
+      return;
+    }
+
+    navigate("/");
   };
 
   const routes = (
@@ -82,7 +95,7 @@ function SidebarRouter() {
     }>
   ).filter((route) => {
     if (import.meta.env.DEV) return true;
-    return route.key !== "catalogue" && route.key !== "downloads";
+    return route.key !== "catalogue";
   });
 
   return (
@@ -102,12 +115,36 @@ function SidebarRouter() {
           />
         );
       })}
+
+      <div className="state-wrapper">
+        <FocusItem
+          id={BIG_PICTURE_SIDEBAR_EXIT_ID}
+          navigationOverrides={sidebarItemNavigationOverrides}
+          asChild
+        >
+          <button
+            type="button"
+            className="route-anchor route-anchor--extra-padding sidebar-action-button"
+            onClick={handleExitBigPicture}
+          >
+            <div className="route-anchor__icon route-anchor__icon--small-size">
+              <SignOutIcon size={24} />
+            </div>
+            <div className="route-anchor__label">Exit Big Picture</div>
+          </button>
+        </FocusItem>
+      </div>
     </div>
   );
 }
 
 function SidebarLibrary() {
   const { library } = useLibrary();
+  const { pathname } = useLocation();
+  const normalizedPathname = normalizeBigPicturePathname(pathname);
+  const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
+  const contentEntryTarget =
+    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
 
   const sortedLibrary = useMemo(() => {
     return [...library].sort(
@@ -146,6 +183,14 @@ function SidebarLibrary() {
             <ul className="library-list">
               {filteredItems.map((game) => {
                 const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
+                const focusId = getBigPictureSidebarLibraryGameFocusId({
+                  shop: game.shop,
+                  objectId: game.objectId,
+                });
+                const active =
+                  normalizedPathname === desktopPath ||
+                  (activeGameRoute?.shop === game.shop &&
+                    activeGameRoute.objectId === game.objectId);
 
                 return (
                   <li key={game.id} className="library-list__item">
@@ -155,6 +200,11 @@ function SidebarLibrary() {
                       href={desktopPath}
                       icon={game.iconUrl}
                       isFavorite={game.favorite}
+                      active={active}
+                      focusId={focusId}
+                      focusNavigationOverrides={{
+                        right: contentEntryTarget,
+                      }}
                     />
                   </li>
                 );
@@ -167,9 +217,10 @@ function SidebarLibrary() {
   );
 }
 
-function SidebarContainer({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+const SidebarContainer = forwardRef<
+  HTMLDivElement,
+  Readonly<{ children: React.ReactNode }>
+>(function SidebarContainer({ children }, ref) {
   const handleMouseLeave = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -177,29 +228,30 @@ function SidebarContainer({
   };
 
   return (
-    <>
-      <div
-        role="presentation"
-        className="sidebar-container"
-        onMouseLeave={handleMouseLeave}
-      >
-        {children}
-      </div>
-      <div className="sidebar-spacer" />
-      <div className="sidebar-drawer-overlay" />
-    </>
+    <div
+      ref={ref}
+      role="presentation"
+      className="sidebar-container"
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+    </div>
   );
-}
+});
 
 function Sidebar() {
   return (
-    <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
-      <SidebarContainer>
-        <SidebarRouter />
-        <Divider />
-        <SidebarLibrary />
-      </SidebarContainer>
-    </VerticalFocusGroup>
+    <>
+      <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
+        <SidebarContainer>
+          <SidebarRouter />
+          <Divider />
+          <SidebarLibrary />
+        </SidebarContainer>
+      </VerticalFocusGroup>
+      <div className="sidebar-spacer" />
+      <div className="sidebar-drawer-overlay" />
+    </>
   );
 }
 

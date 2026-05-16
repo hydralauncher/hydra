@@ -129,7 +129,13 @@ export function GameItem({ game }: GameItemProps) {
 
         <div className="game-item__details">
           <span>{game.title}</span>
-          <span className="game-item__genres">{genres.join(", ")}</span>
+          {genres && genres.length > 0 ? (
+            <span className="game-item__genres">{genres.join(", ")}</span>
+          ) : (
+            <span className="game-item__genres game-item__genres--empty">
+              {t("no_genres", { ns: "catalogue" })}
+            </span>
+          )}
 
           <div className="game-item__repackers">
             {game.downloadSources.map((sourceName) => (

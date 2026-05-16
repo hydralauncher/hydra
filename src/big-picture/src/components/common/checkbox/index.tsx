@@ -3,6 +3,8 @@ import "./styles.scss";
 import { CheckIcon } from "@phosphor-icons/react";
 import { useId, type MouseEvent } from "react";
 import cn from "classnames";
+import type { FocusOverrides } from "../../../services";
+import { FocusItem } from "..";
 
 export interface CheckboxProps {
   id?: string;
@@ -10,6 +12,8 @@ export interface CheckboxProps {
   checked?: boolean;
   block?: boolean;
   disabled?: boolean;
+  focusId?: string;
+  navigationOverrides?: FocusOverrides;
   onChange?: (checked: boolean) => void;
 }
 
@@ -25,6 +29,7 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
 
   const handleBlockClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!props.block) return;
+    if ((e.target as HTMLElement).closest(".checkbox__input")) return;
 
     e.preventDefault();
     handleChange(!isChecked);
@@ -40,20 +45,29 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
         "checkbox--disabled": props.disabled,
       })}
     >
-      <button // NOSONAR - custom styled checkbox, not native input
-        id={id}
-        disabled={props.disabled}
-        className={cn("checkbox__input", {
-          "checkbox__input--checked": isChecked,
-        })}
-        onClick={() => handleChange(!isChecked)}
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- styled button
-        role="checkbox"
-        aria-checked={isChecked}
-        aria-labelledby={label ? `${id}-label` : undefined}
+      <FocusItem
+        id={props.focusId}
+        navigationState={props.disabled ? "disabled" : "active"}
+        navigationOverrides={props.navigationOverrides}
+        asChild
       >
-        {isChecked && <CheckIcon className="checkbox__input__icon" size={14} />}
-      </button>
+        <button // NOSONAR - custom styled checkbox, not native input
+          id={id}
+          disabled={props.disabled}
+          className={cn("checkbox__input", {
+            "checkbox__input--checked": isChecked,
+          })}
+          onClick={() => handleChange(!isChecked)}
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- styled button
+          role="checkbox"
+          aria-checked={isChecked}
+          aria-labelledby={label ? `${id}-label` : undefined}
+        >
+          {isChecked && (
+            <CheckIcon className="checkbox__input__icon" size={14} />
+          )}
+        </button>
+      </FocusItem>
 
       {label && (
         <label className="checkbox__label" id={`${id}-label`} htmlFor={id}>
