@@ -2,6 +2,7 @@ import { ChevronDownIcon } from "@primer/octicons-react";
 import { useEffect, useRef, useState } from "react";
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { RadioField } from "@renderer/components/radio-field/radio-field";
+import SteamDeckLogo from "@renderer/assets/steam-deck-logo.svg?url";
 
 import "./proton-compatibility-section.scss";
 
@@ -109,7 +110,13 @@ export function ProtonCompatibilitySection({
           </div>
 
           <div className="proton-compatibility-section__control">
-            <span className="proton-compatibility-section__label">
+            <span className="proton-compatibility-section__label proton-compatibility-section__label--deck">
+              <img
+                src={SteamDeckLogo}
+                alt=""
+                aria-hidden="true"
+                className="proton-compatibility-section__deck-icon"
+              />
               {deckSliderLabel}
             </span>
 

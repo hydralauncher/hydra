@@ -429,6 +429,13 @@ export interface ComparedAchievements {
 
 export interface CatalogueSearchPayload {
   title: string;
+  sortBy:
+    | "popularity"
+    | "reviewScore"
+    | "alphabetical"
+    | "hydraScore"
+    | "releaseDate";
+  sortOrder: "asc" | "desc";
   downloadSourceFingerprints: string[];
   tags: number[];
   publishers: string[];
