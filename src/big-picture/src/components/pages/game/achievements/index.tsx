@@ -1,5 +1,5 @@
-import type { UserAchievement } from "@types";
-import { Link } from "react-router-dom";
+import type { GameShop, UserAchievement } from "@types";
+import { Link, useParams } from "react-router-dom";
 import { Box, FocusItem, Typography } from "../../../common";
 import cn from "classnames";
 import { EyeIcon } from "@phosphor-icons/react/dist/ssr";
@@ -11,6 +11,7 @@ import {
   GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
 } from "../navigation";
 import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
+import { getBigPictureGameAchievementsPath } from "../../../../helpers";
 
 export interface AchievementsBoxProps {
   achievements: UserAchievement[];
@@ -19,6 +20,11 @@ export interface AchievementsBoxProps {
 export function AchievementsBox({
   achievements,
 }: Readonly<AchievementsBoxProps>) {
+  const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
+  const viewAllPath =
+    shop && objectId
+      ? getBigPictureGameAchievementsPath({ shop, objectId })
+      : "";
   const achievementsNavigationOverrides: FocusOverrides = {
     down: {
       type: "item",
@@ -58,14 +64,14 @@ export function AchievementsBox({
         navigationOverrides={achievementsNavigationOverrides}
         asChild
       >
-        <div className="game-page__achievements-title">
+        <Link to={viewAllPath} className="game-page__achievements-title">
           <Typography>Achievements</Typography>
 
           <span>
             {achievements.filter((achievement) => achievement.unlocked).length}{" "}
             / {achievements.length}
           </span>
-        </div>
+        </Link>
       </FocusItem>
 
       {achievements.slice(0, 5).map((achievement) => (
@@ -102,7 +108,7 @@ export function AchievementsBox({
               id={GAME_ACHIEVEMENTS_VIEW_ALL_ID}
               navigationOverrides={viewAllNavigationOverrides}
             >
-              <Link to="/big-picture/library">
+              <Link to={viewAllPath}>
                 <Typography>View All Achievements</Typography>
               </Link>
             </FocusItem>

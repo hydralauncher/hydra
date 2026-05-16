@@ -43,3 +43,4 @@ export * from "./divider";
 export * from "./user-profile";
 export * from "./box";
 export * from "./focus-carousel";
+export * from "./navigation-history-bridge";
