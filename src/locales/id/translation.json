@@ -785,6 +785,7 @@
     "hide_to_tray_on_game_start": "Sembunyikan Hydra ke tray saat game dimulai",
     "downloads": "Unduhan",
     "create_shortcuts_on_download": "Buat pintasan desktop dan Start Menu saat game selesai diunduh",
+    "default_wine_prefix": "Lokasi default prefix Wine",
     "default_proton_version": "Versi Proton default",
     "default_proton_version_description": "Pilih versi Proton yang digunakan oleh mode Otomatis saat game tidak memiliki pengaturan kustom"
   },

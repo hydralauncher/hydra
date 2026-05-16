@@ -817,6 +817,7 @@
     "hide_to_tray_on_game_start": "Ukryj Hydrę do zasobnika przy uruchomieniu gry",
     "downloads": "Pobieranie",
     "create_shortcuts_on_download": "Twórz skróty na pulpicie i w menu Start po zakończeniu pobierania gry",
+    "default_wine_prefix": "Domyślna lokalizacja prefiksu Wine",
     "default_proton_version": "Domyślna wersja Proton",
     "default_proton_version_description": "Wybierz wersję Proton używaną w trybie Auto, gdy gra nie ma niestandardowego nadpisania",
     "downloads_path": "Ścieżka pobierania",

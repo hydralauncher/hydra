@@ -119,6 +119,7 @@ export type AchievementCustomNotificationPosition =
 
 export interface UserPreferences {
   downloadsPath?: string | null;
+  defaultWinePrefixPath?: string | null;
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
