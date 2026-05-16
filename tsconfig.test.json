@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.node.json",
+  "include": [
+    "src/main/**/*.test.ts",
+    "src/main/**/*",
+    "src/shared/**/*",
+    "src/types/**/*"
+  ],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node", "electron-vite/node"]
+  }
+}
