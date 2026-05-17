@@ -9,8 +9,6 @@ import time
 import urllib.parse
 from typing import Any, Optional
 
-import libtorrent as lt
-
 from torrent_downloader import TorrentDownloader
 
 for _stream in (sys.stdin, sys.stdout, sys.stderr):
@@ -87,9 +85,7 @@ metadata_semaphore = threading.BoundedSemaphore(value=2)
 downloading_game_id = -1
 current_download_limit = None
 
-torrent_session = lt.session(
-    {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
-)
+torrent_session = None
 
 MAGNET_HASH_HEX_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 MAGNET_HASH_BASE32_RE = re.compile(r"^[a-zA-Z2-7]{32}$")
@@ -282,7 +278,6 @@ def start_torrent_download(
 
     torrent_downloader = TorrentDownloader(
         torrent_session,
-        flags or lt.torrent_flags.auto_managed,
         session_lock=downloads_lock,
     )
     apply_download_limit(torrent_downloader)
@@ -329,7 +324,6 @@ def bootstrap_downloads():
                     seed["game_id"],
                     seed["url"],
                     seed["save_path"],
-                    flags=lt.torrent_flags.upload_mode,
                 )
             except Exception as error:
                 logger.error("Error starting initial seeding: %s", error, exc_info=True)
@@ -399,7 +393,6 @@ def torrent_files(data: Optional[dict] = None):
 
     temp_downloader = TorrentDownloader(
         torrent_session,
-        lt.torrent_flags.upload_mode,
         session_lock=downloads_lock,
     )
 
@@ -490,7 +483,6 @@ def action(data: Optional[dict] = None):
                 game_id,
                 data["url"],
                 data["save_path"],
-                flags=lt.torrent_flags.upload_mode,
             )
         elif action_name == "pause_seeding":
             with downloads_lock:

@@ -26,7 +26,7 @@ def get_windows_openssl_includes():
 
 
 build_exe_options = {
-    "packages": ["libtorrent"],
+    "packages": [],
     "build_exe": "hydra-python-rpc",
     "include_msvcr": True,
     "include_files": get_windows_openssl_includes(),
