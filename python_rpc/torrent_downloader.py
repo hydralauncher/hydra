@@ -203,7 +203,6 @@ class TorrentDownloader:
         selective_download = file_indices is not None
 
         with self.session_lock:
-            # 1. Gestion du handle existant
             if self.torrent_handle and self.torrent_handle.is_valid():
                 if not selective_download:
                     self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
@@ -214,7 +213,6 @@ class TorrentDownloader:
                 self.session.remove_torrent(self.torrent_handle)
                 self.torrent_handle = None
 
-            # 2. Préparation des flags et trackers
             initial_flags = self.flags | lt.torrent_flags.paused | lt.torrent_flags.auto_managed
             if selective_download:
                 initial_flags |= lt.torrent_flags.default_dont_download
@@ -226,11 +224,9 @@ class TorrentDownloader:
                 "flags": initial_flags,
             }
 
-            # 3. Ajout du torrent
             if self.torrent_handle is None or not self.torrent_handle.is_valid():
                 self.torrent_handle = self.session.add_torrent(params)
 
-        # 4. Post-traitement (Metadata & Selection)
         self.selected_file_indices = None
         self.selected_size_bytes = None
 
