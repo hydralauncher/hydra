@@ -77,7 +77,7 @@ export class DownloadManager {
       }
     }
 
-    if (url.includes("#")) {
+    if (url?.includes("#")) {
       const hashPart = url.split("#")[1];
       if (hashPart && !hashPart.startsWith("http") && hashPart.includes(".")) {
         return hashPart;
@@ -170,6 +170,8 @@ export class DownloadManager {
   }
 
   private static logResolvedUrl(url: string): void {
+    if (!url) return;
+
     let sanitizedUrl = url;
 
     try {

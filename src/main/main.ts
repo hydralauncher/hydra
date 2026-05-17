@@ -117,7 +117,7 @@ export const loadState = async () => {
       game.downloader !== Downloader.Torrent ||
       game.progress !== 1 ||
       game.status !== "seeding" ||
-      game.uri === null
+      !game.uri
     ) {
       continue;
     }
