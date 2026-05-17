@@ -6,6 +6,7 @@ import {
   HydraApi,
   logger,
 } from "@main/services";
+import { Downloader } from "@shared";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
@@ -25,11 +26,16 @@ const startGameDownload = async (
     downloadPath,
     downloader,
     uri,
-    automaticallyExtract,
-    automaticallyDeleteArchiveFiles,
     fileIndices,
     selectedFilesSize,
   } = payload;
+
+  // DirectHttp always extracts and cleans up the archive automatically
+  const isDirectHttp = downloader === Downloader.DirectHttp;
+  const automaticallyExtract = isDirectHttp ? true : payload.automaticallyExtract;
+  const automaticallyDeleteArchiveFiles = isDirectHttp
+    ? true
+    : payload.automaticallyDeleteArchiveFiles;
 
   const gameKey = levelKeys.game(shop, objectId);
 

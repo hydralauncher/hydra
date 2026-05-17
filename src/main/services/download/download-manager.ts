@@ -884,6 +884,8 @@ export class DownloadManager {
         return this.getVikingFileDownloadOptions(download, resumingFilename);
       case Downloader.Rootz:
         return this.getRootzDownloadOptions(download, resumingFilename);
+      case Downloader.DirectHttp:
+        return this.getDirectHttpDownloadOptions(download, resumingFilename);
       default:
         return null;
     }
@@ -1222,6 +1224,20 @@ export class DownloadManager {
       downloadUrl,
       download.downloadPath,
       filename
+    );
+  }
+
+  private static getDirectHttpDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      download.uri
+    );
+    return Promise.resolve(
+      this.buildDownloadOptions(download.uri, download.downloadPath, filename)
     );
   }
 
