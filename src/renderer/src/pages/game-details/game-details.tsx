@@ -72,7 +72,12 @@ export default function GameDetails() {
     }
   };
 
-  const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
+  const selectRepackUri = (
+    repack: GameRepack,
+    downloader: Downloader,
+    uriOverride?: string
+  ) =>
+    uriOverride ??
     repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
 
   return (
@@ -106,8 +111,10 @@ export default function GameDetails() {
             fileIndices?: number[],
             selectedFilesSize?: number | null,
             automaticallyDeleteArchiveFiles = false,
-            signal?: AbortSignal
+            signal?: AbortSignal,
+            uriOverride?: string
           ) => {
+            const uri = selectRepackUri(repack, downloader, uriOverride);
             const response = addToQueueOnly
               ? await addGameToQueue(
                   {
@@ -116,7 +123,7 @@ export default function GameDetails() {
                     downloader,
                     shop,
                     downloadPath,
-                    uri: selectRepackUri(repack, downloader),
+                    uri,
                     automaticallyExtract,
                     automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,
@@ -132,7 +139,7 @@ export default function GameDetails() {
                     downloader,
                     shop,
                     downloadPath,
-                    uri: selectRepackUri(repack, downloader),
+                    uri,
                     automaticallyExtract,
                     automaticallyDeleteArchiveFiles,
                     fileSize: repack.fileSize,

@@ -57,7 +57,8 @@ export interface DownloadSettingsModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    uriOverride?: string
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -264,6 +265,7 @@ export function DownloadSettingsModal({
     null
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
+  const [directHttpUrl, setDirectHttpUrl] = useState("");
   const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
   const [torrentFilesLoading, setTorrentFilesLoading] = useState(false);
   const [torrentFilesError, setTorrentFilesError] = useState<string | null>(
@@ -394,6 +396,16 @@ export function DownloadSettingsModal({
         return true;
       })
       .map((downloader) => {
+        // DirectHttp is always available — the URL is entered manually by the user
+        if (downloader === Downloader.DirectHttp) {
+          return {
+            downloader,
+            isAvailable: true,
+            canHandle: true,
+            isAvailableButNotConfigured: false,
+          };
+        }
+
         const status = downloaderMap.get(downloader);
         const canHandle = status !== undefined;
         const hasAvailableUri = status?.hasAvailable ?? false;
@@ -807,6 +819,7 @@ export function DownloadSettingsModal({
       startAbortControllerRef.current?.abort();
       startAbortControllerRef.current = null;
       setDownloadStarting(false);
+      setDirectHttpUrl("");
       resetTorrentStepState();
     }
   }, [resetTorrentStepState, visible]);
@@ -951,7 +964,10 @@ export function DownloadSettingsModal({
           selectedFileIndices,
           totalSelectedSize,
           deleteArchiveFilesAfterExtraction,
-          abortController.signal
+          abortController.signal,
+          selectedDownloader === Downloader.DirectHttp
+            ? directHttpUrl.trim()
+            : undefined
         );
 
         if (
@@ -1359,6 +1375,22 @@ export function DownloadSettingsModal({
           )}
         </div>
 
+        {selectedDownloader === Downloader.DirectHttp && (
+          <div className="download-settings-modal__downloads-path-field">
+            <TextField
+              label="URL del archivo (.zip / .7z)"
+              placeholder="https://cdn.ejemplo.com/juego.zip"
+              value={directHttpUrl}
+              onChange={(e) => setDirectHttpUrl(e.target.value)}
+              disabled={downloadStarting}
+            />
+            <p className="download-settings-modal__hint-text">
+              Pega la URL directa del archivo comprimido desde tu servidor (pCloud, R2, S3, etc.).
+              El juego se descargará, descomprimirá e instalará automáticamente.
+            </p>
+          </div>
+        )}
+
         <div className="download-settings-modal__downloads-path-field">
           <TextField
             value={selectedPath}
@@ -1418,6 +1450,8 @@ export function DownloadSettingsModal({
             downloadStarting ||
             selectedDownloader === null ||
             !hasWritePermission ||
+            (selectedDownloader === Downloader.DirectHttp &&
+              !directHttpUrl.trim()) ||
             downloadOptions.some(
               (option) =>
                 option.downloader === selectedDownloader &&

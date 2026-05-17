@@ -44,7 +44,8 @@ export interface RepacksModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    uriOverride?: string
   ) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
