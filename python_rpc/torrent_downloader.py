@@ -221,10 +221,18 @@ class TorrentDownloader:
             else:
                 initial_flags |= lt.torrent_flags.auto_managed
 
+            current_trackers = self.trackers
+
+            if self.torrent_handle and self.torrent_handle.is_valid():
+                info = self._get_torrent_info_if_available(self.torrent_handle.status())
+                if info and info.priv():
+                    self.logger.into("Private tracker detected : exclude publics trackers")
+                    current_trackers = []
+
             params = {
                 "url": magnet,
                 "save_path": save_path,
-                "trackers": self.trackers,
+                "trackers": current_trackers,
                 "flags": initial_flags,
             }
 
