@@ -6,6 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 
+// Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
+import flagUS from "./assets/flags/us.png";
+import flagEU from "./assets/flags/eu.png";
+import flagJP from "./assets/flags/jp.png";
+import flagKR from "./assets/flags/kr.png";
+import flagAsia from "./assets/flags/asia.png";
+
 export const formatDownloadProgress = (
   progress?: number,
   fractionDigits?: number
@@ -169,4 +176,76 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
 
 export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
+};
+
+export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
+
+const SKU_REGION_MAP: Record<string, SkuRegion> = {
+  SCUS: "US",
+  SLUS: "US",
+  SCUD: "US",
+  SLUD: "US",
+  BCUS: "US",
+  BLUS: "US",
+  BCUD: "US",
+  NPUA: "US",
+  NPUB: "US",
+  SCES: "EU",
+  SLES: "EU",
+  SCED: "EU",
+  SLED: "EU",
+  BCES: "EU",
+  BLES: "EU",
+  BCED: "EU",
+  NPEA: "EU",
+  NPEB: "EU",
+  SCPS: "JP",
+  SLPS: "JP",
+  SLPM: "JP",
+  SIPS: "JP",
+  PAPX: "JP",
+  PCPX: "JP",
+  SRPM: "JP",
+  BCJS: "JP",
+  BLJS: "JP",
+  BLJM: "JP",
+  NPJA: "JP",
+  NPJB: "JP",
+  NPJD: "JP",
+  SCKA: "KR",
+  SLKA: "KR",
+  BCKS: "KR",
+  BLKS: "KR",
+  BCKD: "KR",
+  BCAS: "ASIA",
+  BLAS: "ASIA",
+  NPHA: "ASIA",
+  NPHB: "ASIA",
+};
+
+const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
+  US: flagUS,
+  EU: flagEU,
+  JP: flagJP,
+  KR: flagKR,
+  ASIA: flagAsia,
+};
+
+const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];
+
+export const getSkuRegion = (sku: string): SkuRegion | null => {
+  const prefix = sku.slice(0, 4).toUpperCase();
+  return SKU_REGION_MAP[prefix] ?? null;
+};
+
+export const getSkuRegionFlag = (region: SkuRegion): string =>
+  SKU_REGION_FLAGS[region];
+
+export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
+  const set = new Set<SkuRegion>();
+  for (const sku of skus) {
+    const region = getSkuRegion(sku);
+    if (region) set.add(region);
+  }
+  return SKU_REGION_ORDER.filter((r) => set.has(r));
 };

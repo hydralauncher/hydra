@@ -39,6 +39,9 @@ import type {
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorConfig,
+  EmulatorConfigMap,
+  EmulatorSystem,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -264,6 +267,25 @@ declare global {
       executablePath: string,
       launchOptions?: string | null
     ) => Promise<void>;
+    openClassicsGame: (
+      shop: GameShop,
+      objectId: string,
+      discPath?: string
+    ) => Promise<void>;
+    updateClassicsDisc: (
+      shop: GameShop,
+      objectId: string,
+      patch: {
+        selectedDiscPath?: string | null;
+        dontAskDiscSelection?: boolean;
+        platform?: string | null;
+        addDisc?: { path: string; label: string; fileName: string };
+        removeDiscPath?: string;
+      }
+    ) => Promise<LibraryGame>;
+    getEmulatorRomExtensions: (
+      system: "ps1" | "ps2" | "ps3"
+    ) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -294,6 +316,112 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    /* Emulators */
+    getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    detectEmulators: () => Promise<EmulatorConfigMap>;
+    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    setEmulatorExecutablePath: (
+      system: EmulatorSystem,
+      executablePath: string | null
+    ) => Promise<EmulatorConfig>;
+    addRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean,
+      language?: string
+    ) => Promise<EmulatorConfig>;
+    removeRomFolder: (
+      system: EmulatorSystem,
+      folderId: string
+    ) => Promise<EmulatorConfig>;
+    toggleRomFolderSubfolders: (
+      system: EmulatorSystem,
+      folderId: string,
+      scanSubfolders: boolean
+    ) => Promise<EmulatorConfig>;
+    rescanEmulator: (
+      system: EmulatorSystem,
+      language?: string
+    ) => Promise<EmulatorConfig>;
+    checkPs3Firmware: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean }>;
+    startRomScan: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<{ requestId: string }>;
+    cancelRomScan: (requestId: string) => Promise<void>;
+    getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
+    addEmulatorRomPath: (
+      system: EmulatorSystem,
+      folderPath: string
+    ) => Promise<boolean>;
+    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    checkEmulatorExecutable: (
+      system: EmulatorSystem
+    ) => Promise<{ exists: boolean }>;
+    onRomScanProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | { type: "done"; fileCount: number; sizeBytes: number }
+          | { type: "cancelled"; fileCount: number; sizeBytes: number }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    importLaunchboxRoms: (
+      system: EmulatorSystem,
+      folders: { path: string; scanSubfolders: boolean }[],
+      language: string
+    ) => Promise<{ requestId: string }>;
+    cancelLaunchboxImport: (requestId: string) => Promise<void>;
+    onLaunchboxImportProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "scan_progress";
+              phase: "scanning";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | {
+              type: "match_progress";
+              phase: "matching";
+              processed: number;
+              total: number;
+              currentFile: string;
+              status: "matched" | "unmatched";
+              matched: number;
+              unmatched: number;
+              fileCount: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+            }
+          | {
+              type: "cancelled";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+            }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;

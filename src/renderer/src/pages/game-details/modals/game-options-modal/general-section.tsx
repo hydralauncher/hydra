@@ -1,10 +1,146 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import { Button, TextField } from "@renderer/components";
+import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  CheckboxField,
+  SelectField,
+  TextField,
+} from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import type { LibraryGame, ShortcutLocation } from "@types";
+import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen } from "lucide-react";
+import { gameDetailsContext } from "@renderer/context";
+
+const platformToSystem = (
+  platform?: string | null
+): "ps1" | "ps2" | "ps3" | null => {
+  if (!platform) return null;
+  const p = platform.toLowerCase();
+  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
+  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
+  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  return null;
+};
+
+interface ClassicsDiscSectionProps {
+  game: LibraryGame;
+}
+
+function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
+  const { t } = useTranslation("game_details");
+  const { updateGame } = useContext(gameDetailsContext);
+  const discs: ClassicsDisc[] = game.discs ?? [];
+  const system = useMemo(
+    () => platformToSystem(game.platform),
+    [game.platform]
+  );
+
+  const handleSelectDisc = async (path: string) => {
+    await window.electron.updateClassicsDisc(game.shop, game.objectId, {
+      selectedDiscPath: path,
+    });
+    await updateGame();
+  };
+
+  const handleToggleDontAsk = async (checked: boolean) => {
+    await window.electron.updateClassicsDisc(game.shop, game.objectId, {
+      dontAskDiscSelection: checked,
+    });
+    await updateGame();
+  };
+
+  const handleAddDisc = async () => {
+    if (!system) return;
+    const extensions = await window.electron.getEmulatorRomExtensions(system);
+    const properties: ("openFile" | "openDirectory")[] = ["openFile"];
+    if (system === "ps3") properties.push("openDirectory");
+
+    const res = await window.electron.showOpenDialog({
+      properties,
+      filters: [
+        { name: t("rom_file"), extensions },
+        { name: t("all_files"), extensions: ["*"] },
+      ],
+    });
+    if (res.canceled || !res.filePaths[0]) return;
+
+    const fullPath = res.filePaths[0];
+    const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
+    const nextIndex = discs.length + 1;
+    await window.electron.updateClassicsDisc(game.shop, game.objectId, {
+      addDisc: {
+        path: fullPath,
+        label: `Disc ${nextIndex}`,
+        fileName,
+      },
+      selectedDiscPath: fullPath,
+    });
+    await updateGame();
+  };
+
+  const handleRemoveDisc = async (path: string) => {
+    await window.electron.updateClassicsDisc(game.shop, game.objectId, {
+      removeDiscPath: path,
+    });
+    await updateGame();
+  };
+
+  return (
+    <div className="game-options-modal__section">
+      <div className="game-options-modal__header">
+        <h2>{t("discs_section_title")}</h2>
+        <h4 className="game-options-modal__header-description">
+          {t("discs_section_description")}
+        </h4>
+      </div>
+
+      {discs.length > 0 ? (
+        <SelectField
+          theme="dark"
+          value={game.selectedDiscPath ?? discs[0]?.path ?? ""}
+          onChange={(e) => void handleSelectDisc(e.target.value)}
+          options={discs.map((d) => ({
+            key: d.path,
+            value: d.path,
+            label: `${d.label} — ${d.fileName}`,
+          }))}
+        />
+      ) : (
+        <p className="game-options-modal__header-description">
+          {t("no_discs_found")}
+        </p>
+      )}
+
+      <div
+        className="game-options-modal__executable-field-buttons"
+        style={{ marginTop: 12 }}
+      >
+        <Button type="button" theme="outline" onClick={handleAddDisc}>
+          <FileIcon />
+          {t("add_disc")}
+        </Button>
+        {game.selectedDiscPath && discs.length > 1 && (
+          <Button
+            type="button"
+            theme="outline"
+            onClick={() => void handleRemoveDisc(game.selectedDiscPath!)}
+          >
+            {t("remove_selected_disc")}
+          </Button>
+        )}
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <CheckboxField
+          label={t("dont_ask_disc_again")}
+          checked={Boolean(game.dontAskDiscSelection)}
+          onChange={(e) => void handleToggleDontAsk(e.target.checked)}
+        />
+      </div>
+    </div>
+  );
+}
 
 interface DriveInfo {
   root: string;
@@ -204,8 +340,13 @@ export function GeneralSettingsSection({
         </div>
       )}
 
+      {/* Classics disc selector (replaces executable for launchbox games) */}
+      {showExecutableSection && game.shop === "launchbox" && (
+        <ClassicsDiscSection game={game} />
+      )}
+
       {/* Executable */}
-      {showExecutableSection && (
+      {showExecutableSection && game.shop !== "launchbox" && (
         <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("executable_section_title")}</h2>

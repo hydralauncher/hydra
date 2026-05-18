@@ -23,6 +23,7 @@ import type {
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorSystem,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -142,6 +143,135 @@ contextBridge.exposeInMainWorld("electron", {
         `on-update-achievements-${objectId}-${shop}`,
         listener
       );
+  },
+
+  /* Emulators */
+  getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
+  detectEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("detectEmulator", system),
+  setEmulatorExecutablePath: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  addRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean,
+    language?: string
+  ) =>
+    ipcRenderer.invoke(
+      "addRomFolder",
+      system,
+      folderPath,
+      scanSubfolders,
+      language
+    ),
+  removeRomFolder: (system: EmulatorSystem, folderId: string) =>
+    ipcRenderer.invoke("removeRomFolder", system, folderId),
+  toggleRomFolderSubfolders: (
+    system: EmulatorSystem,
+    folderId: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleRomFolderSubfolders",
+      system,
+      folderId,
+      scanSubfolders
+    ),
+  rescanEmulator: (system: EmulatorSystem, language?: string) =>
+    ipcRenderer.invoke("rescanEmulator", system, language),
+  checkPs3Firmware: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  startRomScan: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) => ipcRenderer.invoke("startRomScan", system, folderPath, scanSubfolders),
+  cancelRomScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelRomScan", requestId),
+  getEmulatorRomPaths: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("getEmulatorRomPaths", system),
+  addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
+    ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
+  removeEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("removeEmulator", system),
+  checkEmulatorExecutable: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("checkEmulatorExecutable", system),
+  onRomScanProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "progress";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | { type: "done"; fileCount: number; sizeBytes: number }
+        | { type: "cancelled"; fileCount: number; sizeBytes: number }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-rom-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  importLaunchboxRoms: (
+    system: EmulatorSystem,
+    folders: { path: string; scanSubfolders: boolean }[],
+    language: string
+  ) => ipcRenderer.invoke("importLaunchboxRoms", system, folders, language),
+  cancelLaunchboxImport: (requestId: string) =>
+    ipcRenderer.invoke("cancelLaunchboxImport", requestId),
+  onLaunchboxImportProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "scan_progress";
+            phase: "scanning";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | {
+            type: "match_progress";
+            phase: "matching";
+            processed: number;
+            total: number;
+            currentFile: string;
+            status: "matched" | "unmatched";
+            matched: number;
+            unmatched: number;
+            fileCount: number;
+            sizeBytes: number;
+          }
+        | {
+            type: "done";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+          }
+        | {
+            type: "cancelled";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+          }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-launchbox-import-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
 
   /* User preferences */
@@ -328,6 +458,21 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       launchOptions
     ),
+  openClassicsGame: (shop: GameShop, objectId: string, discPath?: string) =>
+    ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath),
+  updateClassicsDisc: (
+    shop: GameShop,
+    objectId: string,
+    patch: {
+      selectedDiscPath?: string | null;
+      dontAskDiscSelection?: boolean;
+      platform?: string | null;
+      addDisc?: { path: string; label: string; fileName: string };
+      removeDiscPath?: string;
+    }
+  ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
+  getEmulatorRomExtensions: (system: "ps1" | "ps2" | "ps3") =>
+    ipcRenderer.invoke("getEmulatorRomExtensions", system),
   closeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("closeGame", shop, objectId),
   removeGameFromLibrary: (shop: GameShop, objectId: string) =>

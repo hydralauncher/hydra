@@ -15,6 +15,15 @@
   }
 
   &__select {
-    min-width: 220px;
+    flex: 0 0 auto;
+    width: auto;
+
+    .select-field {
+      width: 100%;
+    }
+
+    .select-field__option {
+      width: 100%;
+    }
   }
 }
