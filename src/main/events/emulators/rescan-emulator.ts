@@ -1,33 +1,34 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
-import type { EmulatorSystem, RomFolder } from "@types";
+import type { EmulatorSystem } from "@types";
+
+import { runLaunchboxImport } from "./import-launchbox-roms";
 
 const rescanEmulator = async (
   _event: Electron.IpcMainInvokeEvent,
-  system: EmulatorSystem
+  system: EmulatorSystem,
+  language: string = "en"
 ) => {
-  const binary = emulators.KNOWN_BINARIES[system];
   const current = await emulators.getEmulatorConfig(system);
 
-  const rescanned: RomFolder[] = await Promise.all(
-    current.romFolders.map(async (folder) => {
-      const scan = await emulators.scanRomFolder(
-        folder.path,
-        binary,
-        folder.scanSubfolders
-      );
-      return {
-        ...folder,
-        fileCount: scan.fileCount,
-        sizeBytes: scan.sizeBytes,
-        lastScanAt: Date.now(),
-      };
-    })
+  if (current.romFolders.length === 0) {
+    return emulators.updateEmulatorConfig(system, (cfg) =>
+      emulators.recomputeTotals({ ...cfg, romFolders: [] })
+    );
+  }
+
+  const signal = { cancelled: false };
+  await runLaunchboxImport(
+    system,
+    current.romFolders.map((f) => ({
+      path: f.path,
+      scanSubfolders: f.scanSubfolders,
+    })),
+    language,
+    signal
   );
 
-  return emulators.updateEmulatorConfig(system, (cfg) =>
-    emulators.recomputeTotals({ ...cfg, romFolders: rescanned })
-  );
+  return emulators.getEmulatorConfig(system);
 };
 
 registerEvent("rescanEmulator", rescanEmulator);

@@ -223,6 +223,17 @@
     border-radius: 8px;
   }
 
+  &__path-missing {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #ff8a8a;
+    background: rgba(255, 89, 89, 0.12);
+    padding: 4px 12px 4px 10px;
+    border-radius: 8px;
+  }
+
   &__exec-label {
     font-size: 12px;
     font-weight: 500;

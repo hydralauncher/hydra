@@ -86,7 +86,15 @@ const PS2_PAIR_RULES: Record<string, string[]> = {
 
 const PS3_LAUNCHABLE_EXTS = new Set([".iso", ".pkg", ".elf", ".self"]);
 
-const SNIFFABLE_EXTS = new Set([".cue", ".iso", ".img", ".mds", ".ccd"]);
+const SNIFFABLE_EXTS = new Set([
+  ".cue",
+  ".iso",
+  ".img",
+  ".mds",
+  ".ccd",
+  ".bin",
+  ".mdf",
+]);
 
 const shouldCountForSystem = async (
   candidate: Candidate,
@@ -135,14 +143,25 @@ const applyPairedRules = (
     sidecarOf.set(f.fullPath, matched);
   }
 
+  const sidecarExts = new Set<string>();
+  for (const list of Object.values(pairRules)) {
+    for (const ext of list) sidecarExts.add(ext);
+  }
+
   const out: GameGroup[] = [];
   for (const f of group) {
     if (skipped.has(f.fullPath)) continue;
-    if (!primaryExts.has(extOf(f.name))) continue;
-    out.push({
-      primary: f,
-      sidecars: sidecarOf.get(f.fullPath) ?? [],
-    });
+    const ext = extOf(f.name);
+    if (primaryExts.has(ext)) {
+      out.push({
+        primary: f,
+        sidecars: sidecarOf.get(f.fullPath) ?? [],
+      });
+      continue;
+    }
+    if (sidecarExts.has(ext)) {
+      out.push({ primary: f, sidecars: [] });
+    }
   }
   return out;
 };

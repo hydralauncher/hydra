@@ -11,3 +11,4 @@ import "./rom-scan-progress";
 import "./emulator-rom-paths";
 import "./remove-emulator";
 import "./import-launchbox-roms";
+import "./check-emulator-executable";

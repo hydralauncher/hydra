@@ -157,8 +157,16 @@ contextBridge.exposeInMainWorld("electron", {
   addRomFolder: (
     system: EmulatorSystem,
     folderPath: string,
-    scanSubfolders: boolean
-  ) => ipcRenderer.invoke("addRomFolder", system, folderPath, scanSubfolders),
+    scanSubfolders: boolean,
+    language?: string
+  ) =>
+    ipcRenderer.invoke(
+      "addRomFolder",
+      system,
+      folderPath,
+      scanSubfolders,
+      language
+    ),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
   toggleRomFolderSubfolders: (
@@ -172,8 +180,8 @@ contextBridge.exposeInMainWorld("electron", {
       folderId,
       scanSubfolders
     ),
-  rescanEmulator: (system: EmulatorSystem) =>
-    ipcRenderer.invoke("rescanEmulator", system),
+  rescanEmulator: (system: EmulatorSystem, language?: string) =>
+    ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
   startRomScan: (
@@ -189,6 +197,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
   removeEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("removeEmulator", system),
+  checkEmulatorExecutable: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("checkEmulatorExecutable", system),
   onRomScanProgress: (
     requestId: string,
     cb: (

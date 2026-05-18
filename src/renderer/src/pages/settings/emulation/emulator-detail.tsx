@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  AlertIcon,
   ChevronLeftIcon,
   CheckCircleFillIcon,
   FileDirectoryIcon,
@@ -58,11 +59,31 @@ export function EmulatorDetail({
   onChange,
   refresh,
 }: Readonly<EmulatorDetailProps>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
 
   const [busy, setBusy] = useState(false);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [executableExists, setExecutableExists] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!config.executablePath) {
+      setExecutableExists(false);
+      return;
+    }
+    window.electron
+      .checkEmulatorExecutable(config.system)
+      .then(({ exists }) => {
+        if (!cancelled) setExecutableExists(exists);
+      })
+      .catch(() => {
+        if (!cancelled) setExecutableExists(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [config.system, config.executablePath]);
 
   const handleConfirmRemoveEmulator = useCallback(async () => {
     setBusy(true);
@@ -119,16 +140,18 @@ export function EmulatorDetail({
 
     setBusy(true);
     try {
+      const language = i18n.language.split("-")[0] || "en";
       const next = await window.electron.addRomFolder(
         config.system,
         result.filePaths[0],
-        true
+        true,
+        language
       );
       onChange(next);
     } finally {
       setBusy(false);
     }
-  }, [config.system, onChange]);
+  }, [config.system, i18n.language, onChange]);
 
   const handleToggleSubfolders = useCallback(
     async (folder: RomFolder) => {
@@ -165,13 +188,17 @@ export function EmulatorDetail({
   const handleRescan = useCallback(async () => {
     setBusy(true);
     try {
-      const next = await window.electron.rescanEmulator(config.system);
+      const language = i18n.language.split("-")[0] || "en";
+      const next = await window.electron.rescanEmulator(
+        config.system,
+        language
+      );
       onChange(next);
     } finally {
       setBusy(false);
     }
     void refresh;
-  }, [config.system, onChange, refresh]);
+  }, [config.system, i18n.language, onChange, refresh]);
 
   const storageLabel = useMemo(
     () => formatBytes(config.totalSizeBytes),
@@ -273,12 +300,18 @@ export function EmulatorDetail({
                   </span>
                 </>
               )}
-              {isConfigured && (
-                <span className="emulator-detail__synced">
-                  <CheckCircleFillIcon size={14} />
-                  <span>{t("synced")}</span>
-                </span>
-              )}
+              {isConfigured &&
+                (executableExists ? (
+                  <span className="emulator-detail__synced">
+                    <CheckCircleFillIcon size={14} />
+                    <span>{t("synced")}</span>
+                  </span>
+                ) : (
+                  <span className="emulator-detail__path-missing">
+                    <AlertIcon size={14} />
+                    <span>{t("executable_missing")}</span>
+                  </span>
+                ))}
             </div>
             <span className="emulator-detail__exec-label">
               {t("executable_path")}

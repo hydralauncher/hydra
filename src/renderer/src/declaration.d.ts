@@ -308,7 +308,8 @@ declare global {
     addRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
-      scanSubfolders: boolean
+      scanSubfolders: boolean,
+      language?: string
     ) => Promise<EmulatorConfig>;
     removeRomFolder: (
       system: EmulatorSystem,
@@ -319,7 +320,10 @@ declare global {
       folderId: string,
       scanSubfolders: boolean
     ) => Promise<EmulatorConfig>;
-    rescanEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    rescanEmulator: (
+      system: EmulatorSystem,
+      language?: string
+    ) => Promise<EmulatorConfig>;
     checkPs3Firmware: (
       executablePath: string | null
     ) => Promise<{ installed: boolean }>;
@@ -335,6 +339,9 @@ declare global {
       folderPath: string
     ) => Promise<boolean>;
     removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    checkEmulatorExecutable: (
+      system: EmulatorSystem
+    ) => Promise<{ exists: boolean }>;
     onRomScanProgress: (
       requestId: string,
       cb: (

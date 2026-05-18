@@ -238,6 +238,259 @@ const persistRomFolder = async (
   });
 };
 
+export type LaunchboxImportProgress =
+  | {
+      type: "scan_progress";
+      phase: "scanning";
+      processed: number;
+      total: number;
+      currentFile: string | null;
+    }
+  | {
+      type: "match_progress";
+      phase: "matching";
+      processed: number;
+      total: number;
+      currentFile: string;
+      status: "matched" | "unmatched";
+      matched: number;
+      unmatched: number;
+      fileCount: number;
+      sizeBytes: number;
+    };
+
+export interface LaunchboxImportResult {
+  fileCount: number;
+  sizeBytes: number;
+  matched: number;
+  unmatched: number;
+  cancelled: boolean;
+}
+
+export async function runLaunchboxImport(
+  system: EmulatorSystem,
+  folders: FolderInput[],
+  language: string,
+  signal: { cancelled: boolean },
+  onProgress?: (payload: LaunchboxImportProgress) => void
+): Promise<LaunchboxImportResult> {
+  const binary = emulators.KNOWN_BINARIES[system];
+
+  type ScannedGameInfo = {
+    folderPath: string;
+    primaryPath: string;
+    name: string;
+    sizeBytes: number;
+  };
+
+  const collected: ScannedGameInfo[] = [];
+
+  // Phase 1: scan folders (defer persistence until grouping is known)
+  for (const folder of folders) {
+    if (signal.cancelled) break;
+
+    const partial = await emulators.scanRomFolder(
+      folder.path,
+      binary,
+      folder.scanSubfolders,
+      {
+        signal,
+        onProgress: (p) => {
+          onProgress?.({
+            type: "scan_progress",
+            phase: "scanning",
+            processed: p.processed,
+            total: p.total,
+            currentFile: p.currentFile,
+          });
+        },
+      }
+    );
+
+    for (const game of partial.games) {
+      collected.push({ folderPath: folder.path, ...game });
+    }
+  }
+
+  const folderInputBy = new Map(folders.map((f) => [f.path, f]));
+
+  if (signal.cancelled) {
+    return {
+      fileCount: 0,
+      sizeBytes: 0,
+      matched: 0,
+      unmatched: 0,
+      cancelled: true,
+    };
+  }
+
+  // Phase 2: extract SKU per game
+  const totalGames = collected.length;
+  const gameSkus: { game: ScannedGameInfo; sku: string | null }[] = [];
+
+  for (let i = 0; i < collected.length; i++) {
+    if (signal.cancelled) break;
+    const game = collected[i];
+    const sku = await emulators.extractDiscSku(game.primaryPath, system);
+    gameSkus.push({ game, sku });
+  }
+
+  if (signal.cancelled) {
+    return {
+      fileCount: 0,
+      sizeBytes: 0,
+      matched: 0,
+      unmatched: 0,
+      cancelled: true,
+    };
+  }
+
+  // Phase 3: batch fetch shop-details for unique SKUs
+  const uniqueSkus = Array.from(
+    new Set(
+      gameSkus
+        .map((g) => g.sku)
+        .filter((s): s is string => s !== null && s.length > 0)
+    )
+  );
+  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
+
+  if (signal.cancelled) {
+    return {
+      fileCount: 0,
+      sizeBytes: 0,
+      matched: 0,
+      unmatched: 0,
+      cancelled: true,
+    };
+  }
+
+  // Phase 4: per-game match progress + collect unique matched entries
+  let unmatched = 0;
+  const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
+  // titleKey -> per-folder rollup: aggregates size across all discs of the
+  // same title and pins it to the folder of the first disc encountered.
+  const titleByFolder = new Map<
+    string,
+    { folderPath: string; sizeBytes: number }
+  >();
+
+  for (let i = 0; i < gameSkus.length; i++) {
+    if (signal.cancelled) break;
+    const { game, sku } = gameSkus[i];
+    const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
+    const success = Boolean(entry?.objectId && entry?.data);
+
+    const titleKey = success && entry ? entry.objectId : game.primaryPath;
+    const existing = titleByFolder.get(titleKey);
+    if (existing) {
+      existing.sizeBytes += game.sizeBytes;
+    } else {
+      titleByFolder.set(titleKey, {
+        folderPath: game.folderPath,
+        sizeBytes: game.sizeBytes,
+      });
+    }
+
+    if (success && entry) {
+      if (!matchedEntries.has(entry.objectId)) {
+        matchedEntries.set(entry.objectId, entry);
+      }
+    } else {
+      unmatched += 1;
+    }
+
+    const totalUniqueTitlesSoFar = titleByFolder.size;
+    let totalSizeSoFar = 0;
+    for (const v of titleByFolder.values()) totalSizeSoFar += v.sizeBytes;
+
+    onProgress?.({
+      type: "match_progress",
+      phase: "matching",
+      processed: i + 1,
+      total: totalGames,
+      currentFile: game.name,
+      status: success ? "matched" : "unmatched",
+      matched: matchedEntries.size,
+      unmatched,
+      fileCount: totalUniqueTitlesSoFar,
+      sizeBytes: totalSizeSoFar,
+    });
+  }
+
+  const matched = matchedEntries.size;
+
+  // Roll up per-folder unique-title counts and sizes
+  const folderRollup = new Map<
+    string,
+    { fileCount: number; sizeBytes: number }
+  >();
+  for (const folder of folders) {
+    folderRollup.set(folder.path, { fileCount: 0, sizeBytes: 0 });
+  }
+  for (const { folderPath, sizeBytes } of titleByFolder.values()) {
+    const bucket = folderRollup.get(folderPath);
+    if (bucket) {
+      bucket.fileCount += 1;
+      bucket.sizeBytes += sizeBytes;
+    }
+  }
+
+  const totalFileCount = Array.from(folderRollup.values()).reduce(
+    (s, b) => s + b.fileCount,
+    0
+  );
+  const totalSizeBytes = Array.from(folderRollup.values()).reduce(
+    (s, b) => s + b.sizeBytes,
+    0
+  );
+
+  if (signal.cancelled) {
+    return {
+      fileCount: totalFileCount,
+      sizeBytes: totalSizeBytes,
+      matched,
+      unmatched,
+      cancelled: true,
+    };
+  }
+
+  // Phase 5: persist unique matched entries locally
+  for (const entry of matchedEntries.values()) {
+    if (signal.cancelled) break;
+    await persistEntryLocally(entry, language).catch((err) => {
+      logger.error("Failed to persist launchbox entry locally", err);
+    });
+  }
+
+  // Phase 6: persist rom folders with grouped counts
+  for (const [folderPath, rollup] of folderRollup) {
+    const input = folderInputBy.get(folderPath);
+    if (!input) continue;
+    await persistRomFolder(
+      system,
+      input.path,
+      input.scanSubfolders,
+      rollup.fileCount,
+      rollup.sizeBytes
+    ).catch((err) => {
+      logger.error("Could not persist rom folder", err);
+    });
+  }
+
+  // Phase 7: batch sync to remote profile
+  const matchedObjectIds = Array.from(matchedEntries.keys());
+  await syncProfileBatch(matchedObjectIds);
+
+  return {
+    fileCount: totalFileCount,
+    sizeBytes: totalSizeBytes,
+    matched,
+    unmatched,
+    cancelled: signal.cancelled,
+  };
+}
+
 const importLaunchboxRoms = async (
   _event: Electron.IpcMainInvokeEvent,
   system: EmulatorSystem,
@@ -249,174 +502,25 @@ const importLaunchboxRoms = async (
   inflight.set(requestId, signal);
 
   const channel = `on-launchbox-import-progress-${requestId}`;
-  const binary = emulators.KNOWN_BINARIES[system];
 
   void (async () => {
     try {
-      type ScannedGameInfo = {
-        primaryPath: string;
-        name: string;
-        sizeBytes: number;
-      };
-
-      const collected: ScannedGameInfo[] = [];
-      let totalFileCount = 0;
-      let totalSizeBytes = 0;
-
-      // Phase 1: scan folders, persist rom folders
-      for (const folder of folders) {
-        if (signal.cancelled) break;
-
-        const partial = await emulators.scanRomFolder(
-          folder.path,
-          binary,
-          folder.scanSubfolders,
-          {
-            signal,
-            onProgress: (p) => {
-              WindowManager.mainWindow?.webContents.send(channel, {
-                type: "scan_progress",
-                phase: "scanning",
-                processed: p.processed,
-                total: p.total,
-                currentFile: p.currentFile,
-              });
-            },
-          }
-        );
-
-        totalFileCount += partial.fileCount;
-        totalSizeBytes += partial.sizeBytes;
-        collected.push(...partial.games);
-
-        await persistRomFolder(
-          system,
-          folder.path,
-          folder.scanSubfolders,
-          partial.fileCount,
-          partial.sizeBytes
-        ).catch((err) => {
-          logger.error("Could not persist rom folder", err);
-        });
-      }
-
-      if (signal.cancelled) {
-        WindowManager.mainWindow?.webContents.send(channel, {
-          type: "cancelled",
-          fileCount: totalFileCount,
-          sizeBytes: totalSizeBytes,
-          matched: 0,
-          unmatched: 0,
-        });
-        return;
-      }
-
-      // Phase 2: extract SKU per game
-      const totalGames = collected.length;
-      const gameSkus: { game: ScannedGameInfo; sku: string | null }[] = [];
-
-      for (let i = 0; i < collected.length; i++) {
-        if (signal.cancelled) break;
-        const game = collected[i];
-        const sku = await emulators.extractDiscSku(game.primaryPath, system);
-        gameSkus.push({ game, sku });
-      }
-
-      if (signal.cancelled) {
-        WindowManager.mainWindow?.webContents.send(channel, {
-          type: "cancelled",
-          fileCount: totalFileCount,
-          sizeBytes: totalSizeBytes,
-          matched: 0,
-          unmatched: 0,
-        });
-        return;
-      }
-
-      // Phase 3: batch fetch shop-details for unique SKUs
-      const uniqueSkus = Array.from(
-        new Set(
-          gameSkus
-            .map((g) => g.sku)
-            .filter((s): s is string => s !== null && s.length > 0)
-        )
-      );
-      const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
-
-      if (signal.cancelled) {
-        WindowManager.mainWindow?.webContents.send(channel, {
-          type: "cancelled",
-          fileCount: totalFileCount,
-          sizeBytes: totalSizeBytes,
-          matched: 0,
-          unmatched: 0,
-        });
-        return;
-      }
-
-      // Phase 4: per-game match progress + collect unique matched entries
-      let matched = 0;
-      let unmatched = 0;
-      const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
-
-      for (let i = 0; i < gameSkus.length; i++) {
-        if (signal.cancelled) break;
-        const { game, sku } = gameSkus[i];
-        const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
-        const success = Boolean(entry?.objectId && entry?.data);
-
-        if (success && entry) {
-          matched += 1;
-          if (!matchedEntries.has(entry.objectId)) {
-            matchedEntries.set(entry.objectId, entry);
-          }
-        } else {
-          unmatched += 1;
+      const result = await runLaunchboxImport(
+        system,
+        folders,
+        language,
+        signal,
+        (payload) => {
+          WindowManager.mainWindow?.webContents.send(channel, payload);
         }
-
-        WindowManager.mainWindow?.webContents.send(channel, {
-          type: "match_progress",
-          phase: "matching",
-          processed: i + 1,
-          total: totalGames,
-          currentFile: game.name,
-          status: success ? "matched" : "unmatched",
-          matched,
-          unmatched,
-          fileCount: totalFileCount,
-          sizeBytes: totalSizeBytes,
-        });
-      }
-
-      if (signal.cancelled) {
-        WindowManager.mainWindow?.webContents.send(channel, {
-          type: "cancelled",
-          fileCount: totalFileCount,
-          sizeBytes: totalSizeBytes,
-          matched,
-          unmatched,
-        });
-        return;
-      }
-
-      // Phase 5: persist unique matched entries locally
-      for (const entry of matchedEntries.values()) {
-        if (signal.cancelled) break;
-        await persistEntryLocally(entry, language).catch((err) => {
-          logger.error("Failed to persist launchbox entry locally", err);
-        });
-      }
-
-      // Phase 6: batch sync to remote profile
-      const matchedObjectIds = Array.from(matchedEntries.keys());
-      await syncProfileBatch(matchedObjectIds);
+      );
 
       WindowManager.mainWindow?.webContents.send(channel, {
-        type: signal.cancelled ? "cancelled" : "done",
-        fileCount: totalFileCount,
-        sizeBytes: totalSizeBytes,
-        matched,
-        unmatched,
+        type: result.cancelled ? "cancelled" : "done",
+        fileCount: result.fileCount,
+        sizeBytes: result.sizeBytes,
+        matched: result.matched,
+        unmatched: result.unmatched,
       });
     } catch (err) {
       WindowManager.mainWindow?.webContents.send(channel, {

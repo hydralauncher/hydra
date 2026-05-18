@@ -46,6 +46,9 @@ export function EmulatorSetupModal({
   const [folders, setFolders] = useState<PendingFolder[]>([]);
   const [firmwareOk, setFirmwareOk] = useState(false);
   const [gamesAdded, setGamesAdded] = useState(0);
+  const [detecting, setDetecting] = useState(false);
+
+  const autoDetectRef = useRef(false);
 
   useEffect(() => {
     if (visible) {
@@ -54,8 +57,33 @@ export function EmulatorSetupModal({
       setFolders([]);
       setFirmwareOk(false);
       setGamesAdded(0);
+      autoDetectRef.current = false;
     }
   }, [visible, initialConfig]);
+
+  useEffect(() => {
+    if (!visible || !system) return;
+    if (autoDetectRef.current) return;
+    if (initialConfig?.executablePath) return;
+    autoDetectRef.current = true;
+
+    let cancelled = false;
+    setDetecting(true);
+    (async () => {
+      try {
+        const next = await window.electron.detectEmulator(system);
+        if (cancelled) return;
+        // If the user already picked an executable while we were detecting,
+        // don't clobber their choice.
+        setConfig((curr) => (curr?.executablePath ? curr : next));
+      } finally {
+        if (!cancelled) setDetecting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, system, initialConfig?.executablePath]);
 
   const prefilledRef = useRef(false);
 
@@ -268,6 +296,7 @@ export function EmulatorSetupModal({
           {currentStep === "find_emulator" && config && (
             <SetupStepFindEmulator
               config={config}
+              detecting={detecting}
               onBrowse={handleBrowseExecutable}
             />
           )}
