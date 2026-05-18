@@ -325,7 +325,9 @@ export function Tabs<TValue extends string = string>({
               aria-label={ariaLabel}
               className="tabs__tablist"
             >
-              {beforeTabs && <div className="tabs__before-tabs">{beforeTabs}</div>}
+              {beforeTabs && (
+                <div className="tabs__before-tabs">{beforeTabs}</div>
+              )}
 
               {resolvedItems.map((item) => {
                 const isSelected = selectedItem?.value === item.value;
