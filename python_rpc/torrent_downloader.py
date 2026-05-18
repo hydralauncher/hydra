@@ -400,14 +400,3 @@ class TorrentDownloader:
         }
 
         return response
-          """
-          Determines whether to include public trackers.
-          We check the default magnet link to avoid adding 80 trackers to a private torrent.
-          """
-          is_private_magnet = "x.pe=" in magnet or "&priv=1" in magnet.lower() or "&tr=" in magnet.lower()
-          
-          if is_private_magnet:
-              self.logger.info("Private magnet detected: excluding public trackers.")
-              return []
-              
-          return self.trackers
