@@ -7,6 +7,7 @@ import {
   FileDirectoryIcon,
   InfoIcon,
   PackageIcon,
+  PencilIcon,
   PlusIcon,
   SyncIcon,
   TrashIcon,
@@ -14,10 +15,12 @@ import {
 } from "@primer/octicons-react";
 
 import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig, RomFolder } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
+import { EmulatorScanModal, type ScanFolderInput } from "./emulator-scan-modal";
 
 import "./emulator-detail.scss";
 
@@ -59,12 +62,16 @@ export function EmulatorDetail({
   onChange,
   refresh,
 }: Readonly<EmulatorDetailProps>) {
-  const { t, i18n } = useTranslation("settings");
+  const { t } = useTranslation("settings");
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [busy, setBusy] = useState(false);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
+  const [scanFolders, setScanFolders] = useState<ScanFolderInput[] | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -103,16 +110,43 @@ export function EmulatorDetail({
   const handleRedetect = useCallback(async () => {
     setBusy(true);
     try {
+      const previousPath = config.executablePath;
+      const previousVersion = config.detectedVersion;
       const next = await window.electron.detectEmulator(config.system);
       onChange(next);
+
+      if (next.executablePath === null) {
+        showErrorToast(t("redetect_not_found", { name: binaryName }));
+      } else if (next.executablePath !== previousPath) {
+        showSuccessToast(t("redetect_path_updated"));
+      } else if (
+        next.detectedVersion &&
+        next.detectedVersion !== previousVersion
+      ) {
+        showSuccessToast(
+          t("redetect_version_updated", { version: next.detectedVersion })
+        );
+      } else {
+        showSuccessToast(t("redetect_unchanged"));
+      }
     } finally {
       setBusy(false);
     }
-  }, [config.system, onChange]);
+  }, [
+    config.system,
+    config.executablePath,
+    config.detectedVersion,
+    onChange,
+    showSuccessToast,
+    showErrorToast,
+    t,
+    binaryName,
+  ]);
 
   const handleBrowseExecutable = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
       properties: ["openFile"],
+      defaultPath: config.executablePath ?? undefined,
       filters:
         window.electron.platform === "win32"
           ? [{ name: "Executable", extensions: ["exe"] }]
@@ -130,7 +164,7 @@ export function EmulatorDetail({
     } finally {
       setBusy(false);
     }
-  }, [config.system, onChange]);
+  }, [config.system, config.executablePath, onChange]);
 
   const handleAddFolder = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -138,20 +172,14 @@ export function EmulatorDetail({
     });
     if (result.canceled || result.filePaths.length === 0) return;
 
-    setBusy(true);
-    try {
-      const language = i18n.language.split("-")[0] || "en";
-      const next = await window.electron.addRomFolder(
-        config.system,
-        result.filePaths[0],
-        true,
-        language
-      );
-      onChange(next);
-    } finally {
-      setBusy(false);
+    const folderPath = result.filePaths[0];
+    if (config.romFolders.some((f) => f.path === folderPath)) {
+      showErrorToast(t("folder_already_added"));
+      return;
     }
-  }, [config.system, i18n.language, onChange]);
+
+    setScanFolders([{ path: folderPath, scanSubfolders: true }]);
+  }, [config.romFolders, showErrorToast, t]);
 
   const handleToggleSubfolders = useCallback(
     async (folder: RomFolder) => {
@@ -185,20 +213,42 @@ export function EmulatorDetail({
     }
   }, [config.system, folderToRemove, onChange]);
 
-  const handleRescan = useCallback(async () => {
-    setBusy(true);
-    try {
-      const language = i18n.language.split("-")[0] || "en";
-      const next = await window.electron.rescanEmulator(
-        config.system,
-        language
-      );
-      onChange(next);
-    } finally {
-      setBusy(false);
+  const handleRescan = useCallback(() => {
+    if (config.romFolders.length === 0) {
+      showErrorToast(t("no_rom_folder"));
+      return;
     }
-    void refresh;
-  }, [config.system, i18n.language, onChange, refresh]);
+    setScanFolders(
+      config.romFolders.map((f) => ({
+        path: f.path,
+        scanSubfolders: f.scanSubfolders,
+      }))
+    );
+  }, [config.romFolders, showErrorToast, t]);
+
+  const handleScanComplete = useCallback(
+    async (stats: {
+      fileCount: number;
+      sizeBytes: number;
+      matched: number;
+      unmatched: number;
+    }) => {
+      setScanFolders(null);
+      await refresh();
+      showSuccessToast(
+        t("scan_complete_toast", {
+          matched: stats.matched,
+          unmatched: stats.unmatched,
+        })
+      );
+    },
+    [refresh, showSuccessToast, t]
+  );
+
+  const handleScanCancel = useCallback(async () => {
+    setScanFolders(null);
+    await refresh();
+  }, [refresh]);
 
   const storageLabel = useMemo(
     () => formatBytes(config.totalSizeBytes),
@@ -316,21 +366,32 @@ export function EmulatorDetail({
             <span className="emulator-detail__exec-label">
               {t("executable_path")}
             </span>
-            <span className="emulator-detail__exec-path">
-              {config.executablePath ?? "—"}
-            </span>
+            <button
+              type="button"
+              className="emulator-detail__exec-path-button"
+              onClick={handleBrowseExecutable}
+              disabled={busy}
+              title={t("change_executable_path")}
+              aria-label={t("change_executable_path")}
+            >
+              <span className="emulator-detail__exec-path-text">
+                {config.executablePath ?? "—"}
+              </span>
+              <PencilIcon
+                size={12}
+                className="emulator-detail__exec-path-pencil"
+              />
+            </button>
           </div>
           <div className="emulator-detail__exec-actions">
             <Button theme="outline" onClick={handleRedetect} disabled={busy}>
-              {t("re_detect")}
-            </Button>
-            <Button
-              theme="primary"
-              onClick={handleBrowseExecutable}
-              disabled={busy}
-            >
-              <FileDirectoryIcon size={14} />
-              <span>{t("browse_files")}</span>
+              <SyncIcon
+                size={13}
+                className={
+                  busy ? "emulator-detail__redetect-icon--spinning" : undefined
+                }
+              />
+              <span>{t("re_detect")}</span>
             </Button>
           </div>
         </div>
@@ -482,6 +543,15 @@ export function EmulatorDetail({
         onConfirm={handleConfirmRemoveEmulator}
         onClose={() => setRemoveOpen(false)}
         buttonsIsDisabled={busy}
+      />
+
+      <EmulatorScanModal
+        visible={scanFolders !== null}
+        system={config.system}
+        systemLabel={systemLabel}
+        folders={scanFolders ?? []}
+        onComplete={handleScanComplete}
+        onCancel={handleScanCancel}
       />
     </div>
   );

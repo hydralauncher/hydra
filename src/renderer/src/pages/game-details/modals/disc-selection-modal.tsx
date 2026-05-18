@@ -1,9 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, Modal } from "@renderer/components";
 import { DotIcon } from "@primer/octicons-react";
+import {
+  getSkuRegion,
+  getSkuRegionFlag,
+  type SkuRegion,
+} from "@renderer/helpers";
 import type { ClassicsDisc } from "@types";
 import "./disc-selection-modal.scss";
+
+const REGION_TRANSLATION_KEYS: Record<SkuRegion, string> = {
+  US: "region_us",
+  EU: "region_eu",
+  JP: "region_jp",
+  KR: "region_kr",
+  ASIA: "region_asia",
+};
 
 interface DiscSelectionModalProps {
   visible: boolean;
@@ -23,6 +37,7 @@ export function DiscSelectionModal({
   onConfirm,
 }: Readonly<DiscSelectionModalProps>) {
   const { t } = useTranslation("game_details");
+  const tooltipId = useId();
 
   const initialSelected = useMemo(
     () => defaultDiscPath ?? discs[0]?.path ?? null,
@@ -54,6 +69,8 @@ export function DiscSelectionModal({
       <div className="disc-selection-modal__body">
         {discs.map((disc) => {
           const isActive = selected === disc.path;
+          const region = disc.sku ? getSkuRegion(disc.sku) : null;
+          const regionName = region ? t(REGION_TRANSLATION_KEYS[region]) : null;
           return (
             <button
               key={disc.path}
@@ -73,10 +90,20 @@ export function DiscSelectionModal({
                   {disc.fileName}
                 </span>
               </div>
+              {region && regionName && (
+                <img
+                  src={getSkuRegionFlag(region)}
+                  alt={regionName}
+                  className="disc-selection-modal__option-flag"
+                  data-tooltip-id={tooltipId}
+                  data-tooltip-content={regionName}
+                />
+              )}
             </button>
           );
         })}
       </div>
+      <Tooltip id={tooltipId} />
 
       <div className="disc-selection-modal__footer">
         <CheckboxField

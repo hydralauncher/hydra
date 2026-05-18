@@ -35,7 +35,12 @@
   }
 
   &__flag {
-    font-size: 16px;
-    line-height: 1;
+    width: 24px;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    border-radius: 2px;
+    display: block;
   }
 }

@@ -69,15 +69,14 @@ export function LaunchboxDetailsSection({
               {regions.map((region) => {
                 const name = t(REGION_TRANSLATION_KEYS[region]);
                 return (
-                  <span
+                  <img
                     key={region}
+                    src={getSkuRegionFlag(region)}
+                    alt={name}
                     className="launchbox-details__flag"
                     data-tooltip-id={tooltipId}
                     data-tooltip-content={name}
-                    aria-label={name}
-                  >
-                    {getSkuRegionFlag(region)}
-                  </span>
+                  />
                 );
               })}
             </span>
