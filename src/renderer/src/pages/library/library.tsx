@@ -36,6 +36,8 @@ import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
+import { CategoryFilter, LibraryCategory } from "./category-filter";
+import { PlatformFilter } from "./platform-filter";
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
@@ -99,6 +101,23 @@ export default function Library() {
   const [showDeleteCollectionModal, setShowDeleteCollectionModal] =
     useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+
+  const [category, setCategory] = useState<LibraryCategory>(() => {
+    const saved = localStorage.getItem("library-category");
+    if (saved === "all" || saved === "pc" || saved === "classics") {
+      return saved;
+    }
+    return "all";
+  });
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+
+  const handleCategoryChange = useCallback((next: LibraryCategory) => {
+    setCategory(next);
+    localStorage.setItem("library-category", next);
+    if (next !== "classics") {
+      setSelectedPlatform(null);
+    }
+  }, []);
 
   const searchQuery = useAppSelector((state) => state.library.searchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -447,6 +466,17 @@ export default function Library() {
       }
     }
 
+    if (category === "pc") {
+      filtered = filtered.filter((game) => game.shop !== "launchbox");
+    } else if (category === "classics") {
+      filtered = filtered.filter((game) => game.shop === "launchbox");
+      if (selectedPlatform) {
+        filtered = filtered.filter(
+          (game) => game.platform === selectedPlatform
+        );
+      }
+    }
+
     if (!deferredSearchQuery.trim()) return filtered;
 
     const queryLower = deferredSearchQuery.toLowerCase();
@@ -466,7 +496,25 @@ export default function Library() {
 
       return queryIndex === queryLower.length;
     });
-  }, [sortedLibrary, deferredSearchQuery, selectedCollectionId]);
+  }, [
+    sortedLibrary,
+    deferredSearchQuery,
+    selectedCollectionId,
+    category,
+    selectedPlatform,
+  ]);
+
+  const uniquePlatforms = useMemo(() => {
+    const set = new Set<string>();
+    for (const game of library) {
+      if (game.shop === "launchbox" && game.platform) {
+        set.add(game.platform);
+      }
+    }
+    return Array.from(set).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+  }, [library]);
 
   const favoritesCount = useMemo(() => {
     return library.filter((game) => game.favorite).length;
@@ -502,10 +550,20 @@ export default function Library() {
         <div className="library__page-header">
           <div className="library__controls-row">
             <div className="library__controls-left">
-              <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
+              <CategoryFilter
+                category={category}
+                onCategoryChange={handleCategoryChange}
+              />
             </div>
 
             <div className="library__controls-right">
+              <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
+              <PlatformFilter
+                platform={selectedPlatform}
+                platforms={uniquePlatforms}
+                disabled={category !== "classics"}
+                onPlatformChange={setSelectedPlatform}
+              />
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}

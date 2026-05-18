@@ -458,6 +458,21 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       launchOptions
     ),
+  openClassicsGame: (shop: GameShop, objectId: string, discPath?: string) =>
+    ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath),
+  updateClassicsDisc: (
+    shop: GameShop,
+    objectId: string,
+    patch: {
+      selectedDiscPath?: string | null;
+      dontAskDiscSelection?: boolean;
+      platform?: string | null;
+      addDisc?: { path: string; label: string; fileName: string };
+      removeDiscPath?: string;
+    }
+  ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
+  getEmulatorRomExtensions: (system: "ps1" | "ps2" | "ps3") =>
+    ipcRenderer.invoke("getEmulatorRomExtensions", system),
   closeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("closeGame", shop, objectId),
   removeGameFromLibrary: (shop: GameShop, objectId: string) =>

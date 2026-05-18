@@ -12,3 +12,4 @@ import "./emulator-rom-paths";
 import "./remove-emulator";
 import "./import-launchbox-roms";
 import "./check-emulator-executable";
+import "./get-emulator-rom-extensions";

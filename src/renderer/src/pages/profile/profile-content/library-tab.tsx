@@ -19,6 +19,9 @@ interface LibraryTabProps {
   userStats: { libraryCount: number } | null;
   onLoadMore: () => void;
   isMe: boolean;
+  titleKey?: string;
+  panelKey?: string;
+  count?: number | null;
 }
 
 export function LibraryTab({
@@ -31,6 +34,9 @@ export function LibraryTab({
   userStats,
   onLoadMore,
   isMe,
+  titleKey = "library",
+  panelKey = "library",
+  count,
 }: Readonly<LibraryTabProps>) {
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
@@ -39,9 +45,12 @@ export function LibraryTab({
   const hasPinnedGames = pinnedGames.length > 0;
   const hasAnyGames = hasGames || hasPinnedGames;
 
+  const resolvedCount =
+    count !== undefined ? count : (userStats?.libraryCount ?? null);
+
   return (
     <div
-      key="library"
+      key={panelKey}
       className="profile-content__tab-panel"
       aria-hidden={false}
     >
@@ -90,10 +99,10 @@ export function LibraryTab({
             <div>
               <div className="profile-content__section-header">
                 <div className="profile-content__section-title-group">
-                  <h2>{t("library")}</h2>
-                  {userStats && (
+                  <h2>{t(titleKey)}</h2>
+                  {resolvedCount !== null && (
                     <span className="profile-content__section-badge">
-                      {numberFormatter.format(userStats.libraryCount)}
+                      {numberFormatter.format(resolvedCount)}
                     </span>
                   )}
                 </div>

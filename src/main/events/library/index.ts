@@ -28,6 +28,8 @@ import "./open-game-installer";
 import "./open-game-winetricks";
 import "./open-game-save-folder";
 import "./open-game";
+import "./open-classics-game";
+import "./update-classics-disc";
 import "./refresh-library-assets";
 import "./remove-game-from-favorites";
 import "./remove-game-from-library";

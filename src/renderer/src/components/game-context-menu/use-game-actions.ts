@@ -30,7 +30,10 @@ export function useGameActions(game: LibraryGame) {
   const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
 
-  const canPlay = Boolean(game.executablePath);
+  const isClassics = game.shop === "launchbox";
+  const hasClassicsDiscs = (game.discs?.length ?? 0) > 0;
+  const canPlay =
+    Boolean(game.executablePath) || (isClassics && hasClassicsDiscs);
   const isDeleting = isGameDeleting(game.id);
   const isGameDownloading =
     game.download?.status === "active" && lastPacket?.gameId === game.id;
@@ -77,6 +80,47 @@ export function useGameActions(game: LibraryGame) {
         } catch (e) {
           void e;
         }
+      }
+      return;
+    }
+
+    if (isClassics) {
+      const multipleDiscs = (game.discs?.length ?? 0) > 1;
+      const needsModal =
+        multipleDiscs && !(game.dontAskDiscSelection && game.selectedDiscPath);
+
+      if (needsModal) {
+        const path = buildGameDetailsPath({
+          ...game,
+          objectId: game.objectId,
+        });
+        navigate(path, { state: { openDiscSelection: true } });
+        try {
+          window.dispatchEvent(
+            new CustomEvent("hydra:openDiscSelection", {
+              detail: { objectId: game.objectId },
+            })
+          );
+        } catch (e) {
+          void e;
+        }
+        return;
+      }
+
+      try {
+        await window.electron.openClassicsGame(
+          game.shop,
+          game.objectId,
+          game.selectedDiscPath ?? undefined
+        );
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "EMULATOR_NOT_CONFIGURED") {
+          showErrorToast("Emulator not configured. Open Settings → Emulation.");
+        } else {
+          showErrorToast("Failed to start game");
+        }
+        logger.error("Failed to start classics game", error);
       }
       return;
     }
