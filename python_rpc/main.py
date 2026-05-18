@@ -87,9 +87,23 @@ metadata_semaphore = threading.BoundedSemaphore(value=2)
 downloading_game_id = -1
 current_download_limit = None
 
-torrent_session = lt.session(
-    {"listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port)}
-)
+# Advanced configuration for accepting private tracker like c411
+session_settings = {
+    "listen_interfaces": "0.0.0.0:{port}".format(port=torrent_port),
+    "user_agent": "qBittorrent/4.6.3",
+    "peer_fingerprint": "-qB4630-",
+    "announce_to_all_trackers": True,
+    "announce_to_all_tiers": True,
+    "validate_https_trackers": False,
+    "anonymous_mode": False,
+    "enable_dht": False, 
+    "enable_lsd": False,
+    "enable_upnp": True,
+    "enable_natpmp": True,
+}
+
+torrent_session = lt.session(session_settings)
+
 
 MAGNET_HASH_HEX_RE = re.compile(r"^[a-fA-F0-9]{40}$")
 MAGNET_HASH_BASE32_RE = re.compile(r"^[a-zA-Z2-7]{32}$")
