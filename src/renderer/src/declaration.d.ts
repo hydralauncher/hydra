@@ -267,6 +267,25 @@ declare global {
       executablePath: string,
       launchOptions?: string | null
     ) => Promise<void>;
+    openClassicsGame: (
+      shop: GameShop,
+      objectId: string,
+      discPath?: string
+    ) => Promise<void>;
+    updateClassicsDisc: (
+      shop: GameShop,
+      objectId: string,
+      patch: {
+        selectedDiscPath?: string | null;
+        dontAskDiscSelection?: boolean;
+        platform?: string | null;
+        addDisc?: { path: string; label: string; fileName: string };
+        removeDiscPath?: string;
+      }
+    ) => Promise<LibraryGame>;
+    getEmulatorRomExtensions: (
+      system: "ps1" | "ps2" | "ps3"
+    ) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;

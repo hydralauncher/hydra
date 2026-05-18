@@ -24,3 +24,9 @@ export interface EmulatorConfig {
 }
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
+
+export interface ClassicsDisc {
+  path: string;
+  label: string;
+  fileName: string;
+}

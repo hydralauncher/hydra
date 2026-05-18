@@ -18,7 +18,9 @@ import {
 } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
+import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
 import { useEffect } from "react";
@@ -53,9 +55,34 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
+
+  const navigate = useNavigate();
+
+  const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
 
   const { t } = useTranslation("game_details");
+
+  useEffect(() => {
+    const onOpenDiscSelection = (event: Event) => {
+      const detail = (event as CustomEvent<{ objectId?: string }>).detail;
+      if (!detail?.objectId || detail.objectId === game?.objectId) {
+        if (game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 1) {
+          setShowDiscSelectionModal(true);
+        }
+      }
+    };
+    window.addEventListener(
+      "hydra:openDiscSelection",
+      onOpenDiscSelection as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "hydra:openDiscSelection",
+        onOpenDiscSelection as EventListener
+      );
+    };
+  }, [game?.objectId, game?.shop, game?.discs?.length]);
 
   useEffect(() => {
     const onFavoriteToggled = () => {
@@ -163,27 +190,93 @@ export function HeroPanelActions() {
     }
   };
 
-  const openGame = async () => {
-    if (game) {
-      if (game.executablePath) {
-        window.electron.openGame(
-          game.shop,
-          game.objectId,
-          game.executablePath,
-          game.launchOptions
-        );
-        return;
+  const launchClassicsWithErrorHandling = async (
+    discPath?: string
+  ): Promise<void> => {
+    if (!game) return;
+    try {
+      await window.electron.openClassicsGame(
+        game.shop,
+        game.objectId,
+        discPath
+      );
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code === "EMULATOR_NOT_CONFIGURED") {
+        showErrorToast(t("emulator_not_configured_toast"));
+        navigate("/settings?tab=emulation");
+      } else if (code === "PLATFORM_UNKNOWN") {
+        showErrorToast(t("platform_unknown_toast"));
+      } else if (code === "NO_DISC") {
+        showErrorToast(t("no_disc_toast"));
+      } else {
+        showErrorToast(t("launch_failed_toast"));
       }
-
-      const gameExecutablePath = await selectGameExecutable();
-      if (gameExecutablePath)
-        window.electron.openGame(
-          game.shop,
-          game.objectId,
-          gameExecutablePath,
-          game.launchOptions
-        );
     }
+  };
+
+  const openClassicsGame = async () => {
+    if (!game) return;
+
+    const discs = game.discs ?? [];
+
+    if (discs.length <= 1) {
+      await launchClassicsWithErrorHandling();
+      return;
+    }
+
+    if (game.dontAskDiscSelection && game.selectedDiscPath) {
+      await launchClassicsWithErrorHandling(game.selectedDiscPath);
+      return;
+    }
+
+    setShowDiscSelectionModal(true);
+  };
+
+  const handleDiscSelectionConfirm = async (
+    discPath: string,
+    dontAskAgain: boolean
+  ) => {
+    if (!game) return;
+    setShowDiscSelectionModal(false);
+    try {
+      await window.electron.updateClassicsDisc(game.shop, game.objectId, {
+        selectedDiscPath: discPath,
+        dontAskDiscSelection: dontAskAgain,
+      });
+      updateGame();
+    } catch (error) {
+      // non-fatal; still try to launch
+    }
+    await launchClassicsWithErrorHandling(discPath);
+  };
+
+  const openGame = async () => {
+    if (!game) return;
+
+    if (game.shop === "launchbox") {
+      await openClassicsGame();
+      return;
+    }
+
+    if (game.executablePath) {
+      window.electron.openGame(
+        game.shop,
+        game.objectId,
+        game.executablePath,
+        game.launchOptions
+      );
+      return;
+    }
+
+    const gameExecutablePath = await selectGameExecutable();
+    if (gameExecutablePath)
+      window.electron.openGame(
+        game.shop,
+        game.objectId,
+        gameExecutablePath,
+        game.launchOptions
+      );
   };
 
   const closeGame = () => {
@@ -246,7 +339,10 @@ export function HeroPanelActions() {
       );
     }
 
-    if (game?.executablePath) {
+    const isPlayableClassics =
+      game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 0;
+
+    if (game?.executablePath || isPlayableClassics) {
       return (
         <Button
           onClick={openGame}
@@ -319,6 +415,17 @@ export function HeroPanelActions() {
           <GearIcon />
           {t("options")}
         </Button>
+
+        {game.shop === "launchbox" && (
+          <DiscSelectionModal
+            visible={showDiscSelectionModal}
+            discs={game.discs ?? []}
+            defaultDiscPath={game.selectedDiscPath ?? null}
+            defaultDontAsk={Boolean(game.dontAskDiscSelection)}
+            onClose={() => setShowDiscSelectionModal(false)}
+            onConfirm={handleDiscSelectionConfirm}
+          />
+        )}
       </div>
     );
   }

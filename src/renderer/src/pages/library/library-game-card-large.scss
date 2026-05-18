@@ -56,6 +56,30 @@
     z-index: 0;
   }
 
+  &--classics &__background {
+    filter: blur(18px) saturate(1.1);
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+
+  &__classics-foreground {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 60%;
+    max-height: 80%;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 11px 7px rgba(0, 0, 0, 0.05),
+      0 5px 5px rgba(0, 0, 0, 0.09),
+      0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    pointer-events: none;
+  }
+
   &__gradient {
     position: absolute;
     top: 0;

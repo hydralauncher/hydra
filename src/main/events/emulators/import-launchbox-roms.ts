@@ -12,6 +12,7 @@ import {
 } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import type {
+  ClassicsDisc,
   EmulatorSystem,
   RomFolder,
   ShopAssets,
@@ -100,9 +101,51 @@ const mapToShopDetails = (
   };
 };
 
+const DISC_LABEL_REGEX = /\b(?:disc|cd|disk)\s*([0-9]+)\b/i;
+
+const parseDiscNumber = (fileName: string): number | null => {
+  const match = DISC_LABEL_REGEX.exec(fileName);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return Number.isFinite(num) ? num : null;
+};
+
+const baseNameWithoutExt = (fileName: string): string => {
+  const dot = fileName.lastIndexOf(".");
+  return dot > 0 ? fileName.slice(0, dot) : fileName;
+};
+
+const buildDiscList = (
+  files: { primaryPath: string; name: string }[]
+): ClassicsDisc[] => {
+  const sorted = [...files].sort((a, b) => {
+    const ad = parseDiscNumber(a.name);
+    const bd = parseDiscNumber(b.name);
+    if (ad !== null && bd !== null) return ad - bd;
+    if (ad !== null) return -1;
+    if (bd !== null) return 1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+
+  return sorted.map((f, index) => {
+    const detected = parseDiscNumber(f.name);
+    const discNumber = detected ?? index + 1;
+    const label =
+      detected !== null || sorted.length > 1
+        ? `Disc ${discNumber}`
+        : baseNameWithoutExt(f.name);
+    return {
+      path: f.primaryPath,
+      label,
+      fileName: f.name,
+    };
+  });
+};
+
 const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
-  language: string
+  language: string,
+  discs: ClassicsDisc[]
 ) => {
   const shop = "launchbox" as const;
   const objectId = entry.objectId;
@@ -135,11 +178,23 @@ const persistEntryLocally = async (
       logger.error("Could not cache launchbox assets", err);
     });
 
+  const platform = entry.platform ?? entry.data?.platform ?? null;
+
   const existing = await gamesSublevel.get(gameKey);
   if (existing) {
     await downloadsSublevel.del(gameKey).catch(() => {});
     existing.isDeleted = false;
     existing.addedToLibraryAt ??= new Date();
+    if (platform && !existing.platform) {
+      existing.platform = platform;
+    }
+    existing.discs = discs;
+    if (
+      !existing.selectedDiscPath ||
+      !discs.some((d) => d.path === existing.selectedDiscPath)
+    ) {
+      existing.selectedDiscPath = discs[0]?.path ?? null;
+    }
     await gamesSublevel.put(gameKey, existing);
   } else {
     await gamesSublevel.put(gameKey, {
@@ -154,6 +209,9 @@ const persistEntryLocally = async (
       playTimeInMilliseconds: 0,
       lastTimePlayed: null,
       addedToLibraryAt: new Date(),
+      platform,
+      discs,
+      selectedDiscPath: discs[0]?.path ?? null,
     });
   }
 
@@ -374,6 +432,10 @@ export async function runLaunchboxImport(
     string,
     { folderPath: string; sizeBytes: number }
   >();
+  const discsByTitle = new Map<
+    string,
+    { primaryPath: string; name: string }[]
+  >();
 
   for (let i = 0; i < gameSkus.length; i++) {
     if (signal.cancelled) break;
@@ -391,6 +453,12 @@ export async function runLaunchboxImport(
         sizeBytes: game.sizeBytes,
       });
     }
+
+    const discsForTitle = discsByTitle.get(titleKey) ?? [];
+    if (!discsForTitle.some((d) => d.primaryPath === game.primaryPath)) {
+      discsForTitle.push({ primaryPath: game.primaryPath, name: game.name });
+    }
+    discsByTitle.set(titleKey, discsForTitle);
 
     if (success && entry) {
       if (!matchedEntries.has(entry.objectId)) {
@@ -458,7 +526,9 @@ export async function runLaunchboxImport(
   // Phase 5: persist unique matched entries locally
   for (const entry of matchedEntries.values()) {
     if (signal.cancelled) break;
-    await persistEntryLocally(entry, language).catch((err) => {
+    const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
+    const discs = buildDiscList(titleDiscs);
+    await persistEntryLocally(entry, language, discs).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
     });
   }

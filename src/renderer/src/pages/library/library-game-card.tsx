@@ -159,6 +159,24 @@ export const LibraryGameCard = memo(function LibraryGameCard({
         <div className="library-game-card__cover-placeholder">
           <ImageIcon size={48} />
         </div>
+      ) : game.shop === "launchbox" ? (
+        <div className="library-game-card__classics-cover">
+          <img
+            src={activeImageSource}
+            alt=""
+            aria-hidden="true"
+            className="library-game-card__classics-backdrop"
+            loading="lazy"
+            onError={handleImageError}
+          />
+          <img
+            src={activeImageSource}
+            alt={game.title}
+            className="library-game-card__classics-image"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </div>
       ) : (
         <img
           src={activeImageSource}

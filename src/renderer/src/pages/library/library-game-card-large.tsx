@@ -126,6 +126,13 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
   }, [heroIndex, heroSources]);
 
+  const isClassics = game.shop === "launchbox";
+  const classicsForegroundUrl = useMemo(() => {
+    if (!isClassics) return null;
+    const url = heroSources[heroIndex];
+    return url ? normalizePathForCss(url) : null;
+  }, [isClassics, heroIndex, heroSources]);
+
   const achievementBarStyle = useMemo(
     () => ({
       width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
@@ -138,7 +145,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   return (
     <button
       type="button"
-      className="library-game-card-large"
+      className={`library-game-card-large ${isClassics ? "library-game-card-large--classics" : ""}`}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -146,6 +153,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         className="library-game-card-large__background"
         style={backgroundStyle}
       />
+      {classicsForegroundUrl && (
+        <img
+          src={classicsForegroundUrl}
+          alt={game.title}
+          className="library-game-card-large__classics-foreground"
+          loading="lazy"
+        />
+      )}
       <div className="library-game-card-large__gradient" />
 
       <div className="library-game-card-large__overlay">
