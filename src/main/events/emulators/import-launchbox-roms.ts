@@ -110,6 +110,20 @@ const parseDiscNumber = (fileName: string): number | null => {
   return Number.isFinite(num) ? num : null;
 };
 
+// Strips disc markers from a filename so multi-disc siblings collapse to the
+// same key. Handles "(Disc 1)", "[CD 2]", "(Disc 1 of 3)", " - Disc 1",
+// " Disc 1".
+const stripDiscMarker = (fileName: string): string => {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  return base
+    .replace(/\s*[([][^()\]]*?(?:disc|cd|disk)\s*\d+[^()\]]*?[)\]]/gi, "")
+    .replace(/\s*-\s*(?:disc|cd|disk)\s*\d+\b/gi, "")
+    .replace(/\s+(?:disc|cd|disk)\s*\d+\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+};
+
 const baseNameWithoutExt = (fileName: string): string => {
   const dot = fileName.lastIndexOf(".");
   return dot > 0 ? fileName.slice(0, dot) : fileName;
@@ -390,6 +404,11 @@ export async function runLaunchboxImport(
     if (signal.cancelled) break;
     const game = collected[i];
     const sku = await emulators.extractDiscSku(game.primaryPath, system);
+    logger.log("[launchbox-import] SKU extract", {
+      system,
+      file: game.primaryPath,
+      sku,
+    });
     gameSkus.push({ game, sku });
   }
 
@@ -423,11 +442,45 @@ export async function runLaunchboxImport(
     };
   }
 
-  // Phase 4: per-game match progress + collect unique matched entries
+  // Phase 4: per-game match progress + collect unique matched entries.
+  // Step 4a: for each scanned file, resolve its API entry (if any) and compute
+  // a filename-based group key. Multi-disc siblings (FF VII Disc 1/2/3) share
+  // the same group key even though each disc has a different SKU/objectId.
+  const enriched = gameSkus.map(({ game, sku }) => {
+    const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
+    const success = Boolean(entry?.objectId && entry?.data);
+    const groupKey = `${game.folderPath}::${stripDiscMarker(game.name)}`;
+    logger.log("[launchbox-import] match", {
+      file: game.primaryPath,
+      sku,
+      normalizedSku: sku ? normalizeSku(sku) : null,
+      matched: success,
+      objectId: success ? entry?.objectId : null,
+      title: success ? entry?.data?.title : null,
+      groupKey,
+    });
+    return {
+      game,
+      entry: success ? entry : null,
+      groupKey,
+    };
+  });
+
+  // Step 4b: pick a canonical entry per group (first disc that matches wins).
+  // All other discs in the group fold into that canonical title.
+  const groupCanonical = new Map<string, LaunchboxShopDetailsEntry>();
+  for (const { entry, groupKey } of enriched) {
+    if (entry && !groupCanonical.has(groupKey)) {
+      groupCanonical.set(groupKey, entry);
+    }
+  }
+
   let unmatched = 0;
+  const seenUnmatchedGroups = new Set<string>();
   const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
-  // titleKey -> per-folder rollup: aggregates size across all discs of the
-  // same title and pins it to the folder of the first disc encountered.
+  for (const entry of groupCanonical.values()) {
+    matchedEntries.set(entry.objectId, entry);
+  }
   const titleByFolder = new Map<
     string,
     { folderPath: string; sizeBytes: number }
@@ -437,13 +490,12 @@ export async function runLaunchboxImport(
     { primaryPath: string; name: string }[]
   >();
 
-  for (let i = 0; i < gameSkus.length; i++) {
+  for (let i = 0; i < enriched.length; i++) {
     if (signal.cancelled) break;
-    const { game, sku } = gameSkus[i];
-    const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
-    const success = Boolean(entry?.objectId && entry?.data);
+    const { game, groupKey } = enriched[i];
+    const canonical = groupCanonical.get(groupKey);
+    const titleKey = canonical ? canonical.objectId : groupKey;
 
-    const titleKey = success && entry ? entry.objectId : game.primaryPath;
     const existing = titleByFolder.get(titleKey);
     if (existing) {
       existing.sizeBytes += game.sizeBytes;
@@ -460,11 +512,8 @@ export async function runLaunchboxImport(
     }
     discsByTitle.set(titleKey, discsForTitle);
 
-    if (success && entry) {
-      if (!matchedEntries.has(entry.objectId)) {
-        matchedEntries.set(entry.objectId, entry);
-      }
-    } else {
+    if (!canonical && !seenUnmatchedGroups.has(groupKey)) {
+      seenUnmatchedGroups.add(groupKey);
       unmatched += 1;
     }
 
@@ -478,7 +527,7 @@ export async function runLaunchboxImport(
       processed: i + 1,
       total: totalGames,
       currentFile: game.name,
-      status: success ? "matched" : "unmatched",
+      status: canonical ? "matched" : "unmatched",
       matched: matchedEntries.size,
       unmatched,
       fileCount: totalUniqueTitlesSoFar,
