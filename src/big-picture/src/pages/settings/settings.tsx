@@ -33,20 +33,17 @@ export default function Settings() {
   );
   const selectedTabMeta = SETTINGS_TABS[selectedTabIndex] ?? SETTINGS_TABS[0];
 
-  const selectTabByIndex = useCallback(
-    (nextIndex: number) => {
-      const clampedIndex = Math.max(
-        0,
-        Math.min(nextIndex, SETTINGS_TABS.length - 1)
-      );
-      const nextTab = SETTINGS_TABS[clampedIndex];
+  const selectTabByIndex = useCallback((nextIndex: number) => {
+    const clampedIndex = Math.max(
+      0,
+      Math.min(nextIndex, SETTINGS_TABS.length - 1)
+    );
+    const nextTab = SETTINGS_TABS[clampedIndex];
 
-      if (!nextTab) return;
+    if (!nextTab) return;
 
-      setSelectedTab(nextTab.id);
-    },
-    []
-  );
+    setSelectedTab(nextTab.id);
+  }, []);
 
   useEffect(() => {
     const removeLeftBumper = onButtonPressed(
