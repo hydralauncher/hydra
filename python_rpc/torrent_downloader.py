@@ -203,7 +203,6 @@ class TorrentDownloader:
         selective_download = file_indices is not None
 
         with self.session_lock:
-            # 1. Gestion du handle existant
             if self.torrent_handle and self.torrent_handle.is_valid():
                 if not selective_download:
                     self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
@@ -221,31 +220,27 @@ class TorrentDownloader:
             params = {
                 "url": magnet,
                 "save_path": save_path,
-                "trackers": self._get_filtered_trackers(magnet),
+                "trackers": [],
                 "flags": initial_flags,
             }
 
-            # 3. Ajout du torrent
             if self.torrent_handle is None or not self.torrent_handle.is_valid():
                 self.torrent_handle = self.session.add_torrent(params)
 
-        # 4. Post-traitement (Metadata & Selection)
         self.selected_file_indices = None
         self.selected_size_bytes = None
 
-        if selective_download:
-            try:
-                self._run_selective_logic(file_indices, wait_timeout_seconds)
-                self._run_selective_logic(file_indices, wait_timeout_seconds)
-            except Exception:
-                self.cancel_download()
-                raise
+        try:
+            self._run_selective_logic(file_indices, wait_timeout_seconds)
+        except Exception as e:
+            self.logger.error(f"Error during download initialization: {e}")
+            self.cancel_download()
+            raise
 
         self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
         self.torrent_handle.resume()
 
     def _run_selective_logic(self, file_indices, timeout):
-        """Sous-méthode pour extraire la logique lourde de sélection."""
         self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
         self.torrent_handle.resume()
 
@@ -253,17 +248,32 @@ class TorrentDownloader:
             raise TimeoutError("metadata_timeout")
 
         info = self.torrent_handle.get_torrent_info()
-        files_storage = info.files()
 
+        if not info.priv():
+            self.logger.info(f"Torrent '{info.name()}' is PUBLIC. Injecting {len(self.trackers)} trackers.")
+            for t in self.trackers:
+                self.torrent_handle.add_tracker({"url": t})
+            
+            actual_trackers = [t.get('url') if isinstance(t, dict) else t.url for t in self.torrent_handle.trackers()]
+            self.logger.info(f"Successfully added trackers. Total count: {len(actual_trackers)}")
+            self.logger.debug(f"Trackers list: {actual_trackers}")
+        else:
+            existing_trackers = [t.get('url') if isinstance(t, dict) else t.url for t in self.torrent_handle.trackers()]
+            self.logger.info(f"Torrent '{info.name()}' is PRIVATE. Staying with: {existing_trackers}")
+
+        files_storage = info.files()
         self.torrent_handle.pause()
         self.torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
 
-        sanitized = self._sanitize_file_indices(file_indices, files_storage)
-        self._set_selected_file_priorities(sanitized, files_storage)
-
-        self.selected_file_indices = sanitized
-        self.selected_size_bytes = sum(files_storage.file_size(i) for i in sanitized)
-
+        if file_indices is not None:
+            sanitized = self._sanitize_file_indices(file_indices, files_storage)
+            self._set_selected_file_priorities(sanitized, files_storage)
+            self.selected_file_indices = sanitized
+            self.selected_size_bytes = sum(files_storage.file_size(i) for i in sanitized)
+        else:
+            self.selected_file_indices = list(range(files_storage.num_files()))
+            self.selected_size_bytes = info.total_size()
+    
     def get_torrent_files(self, timeout_seconds: float = 30.0, max_files: int = 100000):
         if not self._wait_for_metadata(timeout_seconds=timeout_seconds):
             raise TimeoutError("metadata_timeout")
@@ -390,8 +400,6 @@ class TorrentDownloader:
         }
 
         return response
-
-    def _get_filtered_trackers(self, magnet: str) -> List[str]:
           """
           Determines whether to include public trackers.
           We check the default magnet link to avoid adding 80 trackers to a private torrent.
@@ -403,29 +411,3 @@ class TorrentDownloader:
               return []
               
           return self.trackers
-
-    def _get_filtered_trackers(self, magnet: str) -> List[str]:
-          """
-          Determines whether to include public trackers.
-          We check the default magnet link to avoid adding 80 trackers to a private torrent.
-          """
-          is_private_magnet = "x.pe=" in magnet or "&priv=1" in magnet.lower() or "&tr=" in magnet.lower()
-          
-          if is_private_magnet:
-              self.logger.info("Private magnet detected: excluding public trackers.")
-              return []
-              
-          return self.trackers
-
-    def _get_filtered_trackers(self, magnet: str) -> List[str]:
-        """
-        Determines whether to include public trackers.
-        We check the default magnet link to avoid adding 80 trackers to a private torrent.
-        """
-        is_private_magnet = "x.pe=" in magnet or "&priv=1" in magnet.lower() or "&tr=" in magnet.lower()
-        
-        if is_private_magnet:
-            self.logger.info("Private magnet detected: excluding public trackers.")
-            return []
-            
-        return self.trackers
