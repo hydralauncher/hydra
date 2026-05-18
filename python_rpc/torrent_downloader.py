@@ -214,7 +214,6 @@ class TorrentDownloader:
                 self.session.remove_torrent(self.torrent_handle)
                 self.torrent_handle = None
 
-            # 2. Préparation des flags et trackers
             initial_flags = self.flags | lt.torrent_flags.paused | lt.torrent_flags.auto_managed
             if selective_download:
                 initial_flags |= lt.torrent_flags.default_dont_download
@@ -236,6 +235,7 @@ class TorrentDownloader:
 
         if selective_download:
             try:
+                self._run_selective_logic(file_indices, wait_timeout_seconds)
                 self._run_selective_logic(file_indices, wait_timeout_seconds)
             except Exception:
                 self.cancel_download()
@@ -390,6 +390,32 @@ class TorrentDownloader:
         }
 
         return response
+
+    def _get_filtered_trackers(self, magnet: str) -> List[str]:
+          """
+          Determines whether to include public trackers.
+          We check the default magnet link to avoid adding 80 trackers to a private torrent.
+          """
+          is_private_magnet = "x.pe=" in magnet or "&priv=1" in magnet.lower() or "&tr=" in magnet.lower()
+          
+          if is_private_magnet:
+              self.logger.info("Private magnet detected: excluding public trackers.")
+              return []
+              
+          return self.trackers
+
+    def _get_filtered_trackers(self, magnet: str) -> List[str]:
+          """
+          Determines whether to include public trackers.
+          We check the default magnet link to avoid adding 80 trackers to a private torrent.
+          """
+          is_private_magnet = "x.pe=" in magnet or "&priv=1" in magnet.lower() or "&tr=" in magnet.lower()
+          
+          if is_private_magnet:
+              self.logger.info("Private magnet detected: excluding public trackers.")
+              return []
+              
+          return self.trackers
 
     def _get_filtered_trackers(self, magnet: str) -> List[str]:
         """
