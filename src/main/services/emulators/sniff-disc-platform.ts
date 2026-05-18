@@ -63,6 +63,13 @@ export const resolveSniffTarget = async (
   }
   if (lower.endsWith(".mds")) return replaceExt(filePath, ".mds", ".mdf");
   if (lower.endsWith(".ccd")) return replaceExt(filePath, ".ccd", ".img");
-  if (lower.endsWith(".iso") || lower.endsWith(".img")) return filePath;
+  if (
+    lower.endsWith(".iso") ||
+    lower.endsWith(".img") ||
+    lower.endsWith(".bin") ||
+    lower.endsWith(".mdf")
+  ) {
+    return filePath;
+  }
   return null;
 };

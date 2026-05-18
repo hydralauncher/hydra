@@ -1,5 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { CheckCircleFillIcon, AlertIcon } from "@primer/octicons-react";
+import {
+  CheckCircleFillIcon,
+  AlertIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
 
 import type { EmulatorConfig } from "@types";
 
@@ -7,10 +11,15 @@ import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
 
 interface Props {
   config: EmulatorConfig;
+  detecting?: boolean;
   onBrowse: () => void;
 }
 
-export function SetupStepFindEmulator({ config, onBrowse }: Readonly<Props>) {
+export function SetupStepFindEmulator({
+  config,
+  detecting = false,
+  onBrowse,
+}: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const name = KNOWN_BINARY_LABELS[config.binary];
   const found = config.executablePath !== null;
@@ -27,19 +36,29 @@ export function SetupStepFindEmulator({ config, onBrowse }: Readonly<Props>) {
       <div className="setup-modal__row-card">
         <div
           className={`setup-modal__row-icon ${
-            found
-              ? "setup-modal__row-icon--success"
-              : "setup-modal__row-icon--warn"
+            detecting
+              ? "setup-modal__row-icon--warn"
+              : found
+                ? "setup-modal__row-icon--success"
+                : "setup-modal__row-icon--warn"
           }`}
         >
-          {found ? <CheckCircleFillIcon size={18} /> : <AlertIcon size={18} />}
+          {detecting ? (
+            <SyncIcon size={18} />
+          ) : found ? (
+            <CheckCircleFillIcon size={18} />
+          ) : (
+            <AlertIcon size={18} />
+          )}
         </div>
         <div className="setup-modal__row-text">
           <div className="setup-modal__row-heading">
             <span className="setup-modal__row-title">
-              {found
-                ? t("setup_emulator_found", { name })
-                : t("setup_emulator_not_found", { name })}
+              {detecting
+                ? t("setup_emulator_detecting", { name })
+                : found
+                  ? t("setup_emulator_found", { name })
+                  : t("setup_emulator_not_found", { name })}
             </span>
             {config.detectedVersion && (
               <span className="setup-modal__row-version">
