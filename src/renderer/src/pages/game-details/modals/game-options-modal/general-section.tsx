@@ -341,7 +341,9 @@ export function GeneralSettingsSection({
       )}
 
       {/* Classics disc selector (replaces executable for launchbox games) */}
-      {game.shop === "launchbox" && <ClassicsDiscSection game={game} />}
+      {showExecutableSection && game.shop === "launchbox" && (
+        <ClassicsDiscSection game={game} />
+      )}
 
       {/* Executable */}
       {showExecutableSection && game.shop !== "launchbox" && (
