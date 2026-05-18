@@ -3,6 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Tabs, type TabsItem } from "../../components";
 import { useGamepad } from "../../hooks";
 import { GamepadButtonType } from "../../types";
+import { AccountPrivacySettingsSection } from "./account-privacy";
+import { CompatibilitySettingsSection } from "./compatibility";
+import { ContentGameplaySettingsSection } from "./content-gameplay";
+import { DownloadsSettingsSection } from "./downloads";
+import { GeneralSettingsSection } from "./general";
+import { IntegrationsSettingsSection } from "./integrations";
+import { NotificationsSettingsSection } from "./notifications";
 
 import "./page.scss";
 
@@ -17,10 +24,26 @@ const SETTINGS_TABS = [
 ] as const;
 
 type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
+type SettingsSectionComponentProps = {
+  className?: string;
+};
 
 function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
   return <div className="settings-page__bumper">{label}</div>;
 }
+
+const SETTINGS_TAB_CONTENT: Record<
+  SettingsTabId,
+  (props: SettingsSectionComponentProps) => React.JSX.Element
+> = {
+  general: GeneralSettingsSection,
+  downloads: DownloadsSettingsSection,
+  notifications: NotificationsSettingsSection,
+  "content-gameplay": ContentGameplaySettingsSection,
+  integrations: IntegrationsSettingsSection,
+  compatibility: CompatibilitySettingsSection,
+  "account-privacy": AccountPrivacySettingsSection,
+};
 
 export default function Settings() {
   const [selectedTab, setSelectedTab] = useState<SettingsTabId>(
@@ -31,7 +54,8 @@ export default function Settings() {
   const selectedTabIndex = SETTINGS_TABS.findIndex(
     (tab) => tab.id === selectedTab
   );
-  const selectedTabMeta = SETTINGS_TABS[selectedTabIndex] ?? SETTINGS_TABS[0];
+  const SelectedTabContent =
+    SETTINGS_TAB_CONTENT[selectedTab] ?? GeneralSettingsSection;
 
   const selectTabByIndex = useCallback((nextIndex: number) => {
     const clampedIndex = Math.max(
@@ -104,9 +128,7 @@ export default function Settings() {
         />
 
         <section className="settings-page__content">
-          <p className="settings-page__copy">
-            {selectedTabMeta.label} content coming soon.
-          </p>
+          <SelectedTabContent className="settings-page__copy" />
         </section>
       </div>
     </section>
