@@ -31,7 +31,8 @@ export interface TabsProps<TValue extends string = string> {
   value?: TValue;
   defaultValue?: TValue;
   onValueChange?: (value: TValue) => void;
-  variant?: "default" | "segmented";
+  variant?: "default" | "segmented" | "settings";
+  beforeTabs?: ReactNode;
   afterTabs?: ReactNode;
   trailingAction?: ReactNode;
   regionId?: string;
@@ -45,12 +46,12 @@ interface TabsButtonProps<TValue extends string = string> {
   resolvedId: string;
   navigationOrder: number;
   isSelected: boolean;
-  variant: "default" | "segmented";
+  variant: "default" | "segmented" | "settings";
   indicatorLayoutId: string;
   onSelect: (value: TValue) => void;
 }
 
-function TabsButton<TValue extends string = string>({
+function FocusableTabsButton<TValue extends string = string>({
   item,
   resolvedId,
   navigationOrder,
@@ -85,6 +86,7 @@ function TabsButton<TValue extends string = string>({
         disabled={item.disabled}
         className={cn("tabs__tab", {
           "tabs__tab--segmented": variant === "segmented",
+          "tabs__tab--settings": variant === "settings",
           "tabs__tab--active": isSelected,
           "tabs__tab--disabled": item.disabled,
         })}
@@ -93,9 +95,19 @@ function TabsButton<TValue extends string = string>({
         <span
           className={cn("tabs__tab-label", {
             "tabs__tab-label--segmented": variant === "segmented",
+            "tabs__tab-label--settings": variant === "settings",
           })}
         >
-          {item.label}
+          {variant === "settings" ? (
+            <>
+              <span className="tabs__tab-label-sizer" aria-hidden="true">
+                {item.label}
+              </span>
+              <span className="tabs__tab-label-text">{item.label}</span>
+            </>
+          ) : (
+            item.label
+          )}
         </span>
 
         {isSelected && variant === "default" && (
@@ -110,8 +122,74 @@ function TabsButton<TValue extends string = string>({
             }}
           />
         )}
+
+        {isSelected && variant === "settings" && (
+          <motion.span
+            className="tabs__settings-indicator"
+            layoutId={indicatorLayoutId}
+            transition={{
+              type: "spring",
+              stiffness: 420,
+              damping: 34,
+              mass: 0.8,
+            }}
+          />
+        )}
       </button>
     </FocusItem>
+  );
+}
+
+interface SettingsTabsButtonProps<TValue extends string = string> {
+  item: TabsItem<TValue>;
+  isSelected: boolean;
+  indicatorLayoutId: string;
+  onSelect: (value: TValue) => void;
+}
+
+function SettingsTabsButton<TValue extends string = string>({
+  item,
+  isSelected,
+  indicatorLayoutId,
+  onSelect,
+}: Readonly<SettingsTabsButtonProps<TValue>>) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      tabIndex={-1}
+      aria-selected={isSelected}
+      disabled={item.disabled}
+      className={cn("tabs__tab", {
+        "tabs__tab--settings": true,
+        "tabs__tab--active": isSelected,
+        "tabs__tab--disabled": item.disabled,
+      })}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
+      onClick={() => onSelect(item.value)}
+    >
+      <span className="tabs__tab-label tabs__tab-label--settings">
+        <span className="tabs__tab-label-sizer" aria-hidden="true">
+          {item.label}
+        </span>
+        <span className="tabs__tab-label-text">{item.label}</span>
+      </span>
+
+      {isSelected && (
+        <motion.span
+          className="tabs__settings-indicator"
+          layoutId={indicatorLayoutId}
+          transition={{
+            type: "spring",
+            stiffness: 420,
+            damping: 34,
+            mass: 0.8,
+          }}
+        />
+      )}
+    </button>
   );
 }
 
@@ -121,6 +199,7 @@ export function Tabs<TValue extends string = string>({
   defaultValue,
   onValueChange,
   variant = "default",
+  beforeTabs,
   afterTabs,
   trailingAction,
   regionId,
@@ -139,6 +218,7 @@ export function Tabs<TValue extends string = string>({
   } | null>(null);
   const selectedValue = value ?? internalValue;
   const indicatorLayoutId = `tabs-indicator-${generatedId}`;
+  const settingsIndicatorLayoutId = `tabs-settings-indicator-${generatedId}`;
   const resolvedItems = useMemo(
     () =>
       items.map((item) => ({
@@ -222,69 +302,114 @@ export function Tabs<TValue extends string = string>({
     <div
       className={cn("tabs", className, {
         "tabs--segmented": variant === "segmented",
+        "tabs--settings": variant === "settings",
       })}
     >
       <div className="tabs__content">
-        <HorizontalFocusGroup
-          regionId={regionId}
-          navigationOverrides={navigationOverrides}
-          autoScrollMode="region"
-          className={cn("tabs__list", {
-            "tabs__list--segmented": variant === "segmented",
-          })}
-          style={
-            {
-              gap: "calc(var(--spacing-unit) * 12)",
-              alignItems: "flex-start",
-              flexWrap: "nowrap",
-            } as CSSProperties
-          }
-        >
+        {variant === "settings" ? (
           <div
-            ref={tabListRef}
-            role="tablist"
-            aria-label={ariaLabel}
-            className={cn("tabs__tablist", {
-              "tabs__tablist--segmented": variant === "segmented",
+            className={cn("tabs__list", {
+              "tabs__list--segmented": false,
             })}
+            style={
+              {
+                gap: "calc(var(--spacing-unit) * 12)",
+                alignItems: "flex-start",
+                flexWrap: "nowrap",
+              } as CSSProperties
+            }
           >
-            {variant === "segmented" && segmentedIndicatorStyle && (
-              <motion.span
-                className="tabs__segmented-indicator"
-                initial={false}
-                animate={{
-                  x: segmentedIndicatorStyle.x,
-                  width: segmentedIndicatorStyle.width,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 420,
-                  damping: 34,
-                  mass: 0.8,
-                }}
-              />
-            )}
+            <div
+              ref={tabListRef}
+              role="tablist"
+              aria-label={ariaLabel}
+              className="tabs__tablist"
+            >
+              {beforeTabs && <div className="tabs__before-tabs">{beforeTabs}</div>}
 
-            {resolvedItems.map((item, index) => {
-              const isSelected = selectedItem?.value === item.value;
+              {resolvedItems.map((item) => {
+                const isSelected = selectedItem?.value === item.value;
 
-              return (
-                <TabsButton
-                  key={item.value}
-                  item={item}
-                  resolvedId={item.resolvedId}
-                  navigationOrder={index}
-                  isSelected={isSelected}
-                  variant={variant}
-                  indicatorLayoutId={indicatorLayoutId}
-                  onSelect={handleSelect}
-                />
-              );
-            })}
+                return (
+                  <SettingsTabsButton
+                    key={item.value}
+                    item={item}
+                    isSelected={isSelected}
+                    indicatorLayoutId={settingsIndicatorLayoutId}
+                    onSelect={handleSelect}
+                  />
+                );
+              })}
+
+              {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
+            </div>
           </div>
+        ) : (
+          <HorizontalFocusGroup
+            regionId={regionId}
+            navigationOverrides={navigationOverrides}
+            autoScrollMode="region"
+            className={cn("tabs__list", {
+              "tabs__list--segmented": variant === "segmented",
+            })}
+            style={
+              {
+                gap: "calc(var(--spacing-unit) * 12)",
+                alignItems: "flex-start",
+                flexWrap: "nowrap",
+              } as CSSProperties
+            }
+          >
+            <div
+              ref={tabListRef}
+              role="tablist"
+              aria-label={ariaLabel}
+              className={cn("tabs__tablist", {
+                "tabs__tablist--segmented": variant === "segmented",
+              })}
+            >
+              {variant === "segmented" && segmentedIndicatorStyle && (
+                <motion.span
+                  className="tabs__segmented-indicator"
+                  initial={false}
+                  animate={{
+                    x: segmentedIndicatorStyle.x,
+                    width: segmentedIndicatorStyle.width,
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 34,
+                    mass: 0.8,
+                  }}
+                />
+              )}
 
-          {afterTabs}
-        </HorizontalFocusGroup>
+              {beforeTabs && (
+                <div className="tabs__before-tabs">{beforeTabs}</div>
+              )}
+
+              {resolvedItems.map((item, index) => {
+                const isSelected = selectedItem?.value === item.value;
+
+                return (
+                  <FocusableTabsButton
+                    key={item.value}
+                    item={item}
+                    resolvedId={item.resolvedId}
+                    navigationOrder={index}
+                    isSelected={isSelected}
+                    variant={variant}
+                    indicatorLayoutId={indicatorLayoutId}
+                    onSelect={handleSelect}
+                  />
+                );
+              })}
+
+              {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
+            </div>
+          </HorizontalFocusGroup>
+        )}
 
         {trailingAction && (
           <div className="tabs__trailing-action">{trailingAction}</div>
