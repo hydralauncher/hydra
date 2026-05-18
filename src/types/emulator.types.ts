@@ -29,4 +29,5 @@ export interface ClassicsDisc {
   path: string;
   label: string;
   fileName: string;
+  sku?: string | null;
 }

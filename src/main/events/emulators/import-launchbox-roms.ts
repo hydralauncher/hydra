@@ -130,7 +130,7 @@ const baseNameWithoutExt = (fileName: string): string => {
 };
 
 const buildDiscList = (
-  files: { primaryPath: string; name: string }[]
+  files: { primaryPath: string; name: string; sku: string | null }[]
 ): ClassicsDisc[] => {
   const sorted = [...files].sort((a, b) => {
     const ad = parseDiscNumber(a.name);
@@ -152,6 +152,7 @@ const buildDiscList = (
       path: f.primaryPath,
       label,
       fileName: f.name,
+      sku: f.sku,
     };
   });
 };
@@ -461,6 +462,7 @@ export async function runLaunchboxImport(
     });
     return {
       game,
+      sku,
       entry: success ? entry : null,
       groupKey,
     };
@@ -487,12 +489,12 @@ export async function runLaunchboxImport(
   >();
   const discsByTitle = new Map<
     string,
-    { primaryPath: string; name: string }[]
+    { primaryPath: string; name: string; sku: string | null }[]
   >();
 
   for (let i = 0; i < enriched.length; i++) {
     if (signal.cancelled) break;
-    const { game, groupKey } = enriched[i];
+    const { game, sku, groupKey } = enriched[i];
     const canonical = groupCanonical.get(groupKey);
     const titleKey = canonical ? canonical.objectId : groupKey;
 
@@ -508,7 +510,11 @@ export async function runLaunchboxImport(
 
     const discsForTitle = discsByTitle.get(titleKey) ?? [];
     if (!discsForTitle.some((d) => d.primaryPath === game.primaryPath)) {
-      discsForTitle.push({ primaryPath: game.primaryPath, name: game.name });
+      discsForTitle.push({
+        primaryPath: game.primaryPath,
+        name: game.name,
+        sku,
+      });
     }
     discsByTitle.set(titleKey, discsForTitle);
 

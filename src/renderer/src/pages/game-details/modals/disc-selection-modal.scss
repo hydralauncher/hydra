@@ -64,6 +64,17 @@
     white-space: nowrap;
   }
 
+  &__option-flag {
+    flex-shrink: 0;
+    width: 24px;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    border-radius: 2px;
+    display: block;
+  }
+
   &__footer {
     margin-top: 16px;
     display: flex;

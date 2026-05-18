@@ -6,6 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 
+// Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
+import flagUS from "./assets/flags/us.png";
+import flagEU from "./assets/flags/eu.png";
+import flagJP from "./assets/flags/jp.png";
+import flagKR from "./assets/flags/kr.png";
+import flagAsia from "./assets/flags/asia.png";
+
 export const formatDownloadProgress = (
   progress?: number,
   fractionDigits?: number
@@ -217,11 +224,11 @@ const SKU_REGION_MAP: Record<string, SkuRegion> = {
 };
 
 const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
-  US: "🇺🇸",
-  EU: "🇪🇺",
-  JP: "🇯🇵",
-  KR: "🇰🇷",
-  ASIA: "🌏",
+  US: flagUS,
+  EU: flagEU,
+  JP: flagJP,
+  KR: flagKR,
+  ASIA: flagAsia,
 };
 
 const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];

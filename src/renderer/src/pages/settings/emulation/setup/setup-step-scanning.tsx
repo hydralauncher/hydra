@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckIcon, SyncIcon, XIcon } from "@primer/octicons-react";
+import { CheckIcon, SyncIcon, TrashIcon, XIcon } from "@primer/octicons-react";
 
+import { Button } from "@renderer/components";
 import type { EmulatorSystem } from "@types";
 
 import type { PendingFolder } from "./types";
@@ -195,14 +196,18 @@ export function SetupStepScanning({
         {t("setup_scan_keep_open")}
       </p>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          className="setup-modal__ghost-button"
-          onClick={onCancel}
-        >
-          {t("setup_cancel_scan")}
-        </button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: "auto",
+          paddingTop: 16,
+        }}
+      >
+        <Button theme="danger" onClick={onCancel}>
+          <TrashIcon size={14} />
+          <span>{t("setup_cancel_scan")}</span>
+        </Button>
       </div>
     </>
   );
