@@ -51,7 +51,6 @@
   flex: 1 1 auto;
   width: 100%;
   max-width: 100%;
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .settings-page__copy {
@@ -59,7 +58,6 @@
   width: 100%;
   max-width: 100%;
   color: var(--text-secondary);
-  padding: calc(var(--spacing-unit) * 4);
   font-size: 14px;
   line-height: 1.4;
 }

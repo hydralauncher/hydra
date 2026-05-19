@@ -1,0 +1,46 @@
+.settings-general {
+  width: 100%;
+  max-width: 720px;
+
+  &__controls {
+    display: flex;
+    align-items: stretch;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  &__select {
+    flex: 1 1 320px;
+    min-width: 0;
+
+    .dropdown-select__trigger {
+      height: 40px;
+      padding-inline: calc(var(--spacing-unit) * 2);
+      border-radius: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  &__add-button {
+    flex: 0 0 auto;
+    min-width: 152px;
+    white-space: nowrap;
+  }
+
+  &__disks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--spacing-unit) * 2);
+    margin-top: calc(var(--spacing-unit) * 4);
+    width: 100%;
+  }
+
+  &__disk {
+    width: 100%;
+    min-width: 0;
+
+    &:last-child:nth-child(3n + 1) {
+      grid-column: 1 / -1;
+    }
+  }
+}
