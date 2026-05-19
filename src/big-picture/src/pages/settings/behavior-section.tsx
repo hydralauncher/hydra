@@ -45,9 +45,7 @@ const DEFAULT_FORM: BehaviorForm = {
   enableAutoInstall: false,
 };
 
-export function BehaviorSection({
-  className,
-}: Readonly<BehaviorSectionProps>) {
+export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
   const [form, setForm] = useState<BehaviorForm>(DEFAULT_FORM);
@@ -238,19 +236,19 @@ export function BehaviorSection({
     >
       <VerticalFocusGroup regionId={BEHAVIOR_SECTION_REGION_ID} asChild>
         <div className="behavior-section__content">
-        {items.map((item) => (
-          <Checkbox
-            key={item.id}
-            id={item.id}
-            label={item.label}
-            checked={item.checked}
-            disabled={item.disabled}
-            focusId={item.focusId}
-            navigationOverrides={navigationOverridesByFocusId[item.focusId]}
-            block
-            onChange={item.onChange}
-          />
-        ))}
+          {items.map((item) => (
+            <Checkbox
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              checked={item.checked}
+              disabled={item.disabled}
+              focusId={item.focusId}
+              navigationOverrides={navigationOverridesByFocusId[item.focusId]}
+              block
+              onChange={item.onChange}
+            />
+          ))}
         </div>
       </VerticalFocusGroup>
     </SettingsSection>

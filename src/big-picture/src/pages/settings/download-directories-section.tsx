@@ -82,7 +82,9 @@ function getDirectoryCardFocusId(path: string) {
   return `download-directories-${path.replaceAll(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
 }
 
-function getDirectoryGridRows(directoryCount: number): Array<Array<DirectoryGridSlot>> {
+function getDirectoryGridRows(
+  directoryCount: number
+): Array<Array<DirectoryGridSlot>> {
   switch (Math.min(directoryCount, MAX_DOWNLOAD_DIRECTORIES)) {
     case 1:
       return [[{ index: 0, startColumn: 1, endColumn: 6 }]];
@@ -148,7 +150,10 @@ function getDirectoryCardControlUpTargetId(
     : DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
 }
 
-function getGridColumnOverlap(left: DirectoryGridSlot, right: DirectoryGridSlot) {
+function getGridColumnOverlap(
+  left: DirectoryGridSlot,
+  right: DirectoryGridSlot
+) {
   return Math.max(
     0,
     Math.min(left.endColumn, right.endColumn) -
@@ -217,8 +222,12 @@ function getDirectoryCardNavigationOverrides(
   const nextSlot = slotIndex < row.length - 1 ? row[slotIndex + 1] : null;
   const rowAbove = rowIndex > 0 ? rows[rowIndex - 1] : null;
   const rowBelow = rowIndex < rows.length - 1 ? rows[rowIndex + 1] : null;
-  const aboveSlot = rowAbove ? getClosestVerticalNeighbor(slot, rowAbove) : null;
-  const belowSlot = rowBelow ? getClosestVerticalNeighbor(slot, rowBelow) : null;
+  const aboveSlot = rowAbove
+    ? getClosestVerticalNeighbor(slot, rowAbove)
+    : null;
+  const belowSlot = rowBelow
+    ? getClosestVerticalNeighbor(slot, rowBelow)
+    : null;
 
   return {
     left: previousSlot
@@ -384,7 +393,8 @@ export function DownloadDirectoriesSection({
     MAX_DOWNLOAD_DIRECTORIES
   )}`;
   const directoryFocusIds = useMemo(
-    () => directories.map((directory) => getDirectoryCardFocusId(directory.path)),
+    () =>
+      directories.map((directory) => getDirectoryCardFocusId(directory.path)),
     [directories]
   );
   const directoryNavigationOverridesByFocusId = useMemo(
