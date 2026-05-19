@@ -106,10 +106,7 @@ export function App() {
           return;
         }
 
-        if (
-          preferences.language &&
-          preferences.language !== i18n.language
-        ) {
+        if (preferences.language && preferences.language !== i18n.language) {
           void i18n.changeLanguage(preferences.language);
         }
 

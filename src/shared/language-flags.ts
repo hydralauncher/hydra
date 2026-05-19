@@ -40,7 +40,9 @@ export function resolveLanguageKey(
   supportedLanguages: string[]
 ) {
   return (
-    supportedLanguages.find((supportedLanguage) => supportedLanguage === language) ??
+    supportedLanguages.find(
+      (supportedLanguage) => supportedLanguage === language
+    ) ??
     supportedLanguages.find((supportedLanguage) =>
       supportedLanguage.startsWith(language?.split("-")[0] ?? "")
     ) ??
@@ -49,7 +51,9 @@ export function resolveLanguageKey(
 }
 
 export function getLanguageFlagCountryCode(languageKey: string) {
-  return LANGUAGE_FLAG_MAP[languageKey as keyof typeof LANGUAGE_FLAG_MAP] ?? null;
+  return (
+    LANGUAGE_FLAG_MAP[languageKey as keyof typeof LANGUAGE_FLAG_MAP] ?? null
+  );
 }
 
 export function getFlagEmojiFromCountryCode(countryCode: string | null) {
