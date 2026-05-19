@@ -1,4 +1,7 @@
+import "./general.scss";
+
 import { DownloadDirectoriesSection } from "./download-directories-section";
+import { LanguageSection } from "./language-section";
 
 interface SettingsSectionProps {
   className?: string;
@@ -7,5 +10,16 @@ interface SettingsSectionProps {
 export function GeneralSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
-  return <DownloadDirectoriesSection className={className} />;
+  return (
+    <div
+      className={
+        className
+          ? `general-settings-section ${className}`
+          : "general-settings-section"
+      }
+    >
+      <DownloadDirectoriesSection />
+      <LanguageSection />
+    </div>
+  );
 }
