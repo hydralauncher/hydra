@@ -99,12 +99,7 @@ function FocusableTabsButton<TValue extends string = string>({
           })}
         >
           {variant === "settings" ? (
-            <>
-              <span className="tabs__tab-label-sizer" aria-hidden="true">
-                {item.label}
-              </span>
-              <span className="tabs__tab-label-text">{item.label}</span>
-            </>
+            <span className="tabs__tab-label-text">{item.label}</span>
           ) : (
             item.label
           )}
@@ -123,18 +118,6 @@ function FocusableTabsButton<TValue extends string = string>({
           />
         )}
 
-        {isSelected && variant === "settings" && (
-          <motion.span
-            className="tabs__settings-indicator"
-            layoutId={indicatorLayoutId}
-            transition={{
-              type: "spring",
-              stiffness: 420,
-              damping: 34,
-              mass: 0.8,
-            }}
-          />
-        )}
       </button>
     </FocusItem>
   );
@@ -143,14 +126,14 @@ function FocusableTabsButton<TValue extends string = string>({
 interface SettingsTabsButtonProps<TValue extends string = string> {
   item: TabsItem<TValue>;
   isSelected: boolean;
-  indicatorLayoutId: string;
+  labelRef: (node: HTMLSpanElement | null) => void;
   onSelect: (value: TValue) => void;
 }
 
 function SettingsTabsButton<TValue extends string = string>({
   item,
   isSelected,
-  indicatorLayoutId,
+  labelRef,
   onSelect,
 }: Readonly<SettingsTabsButtonProps<TValue>>) {
   return (
@@ -171,24 +154,10 @@ function SettingsTabsButton<TValue extends string = string>({
       onClick={() => onSelect(item.value)}
     >
       <span className="tabs__tab-label tabs__tab-label--settings">
-        <span className="tabs__tab-label-sizer" aria-hidden="true">
+        <span ref={labelRef} className="tabs__tab-label-text">
           {item.label}
         </span>
-        <span className="tabs__tab-label-text">{item.label}</span>
       </span>
-
-      {isSelected && (
-        <motion.span
-          className="tabs__settings-indicator"
-          layoutId={indicatorLayoutId}
-          transition={{
-            type: "spring",
-            stiffness: 420,
-            damping: 34,
-            mass: 0.8,
-          }}
-        />
-      )}
     </button>
   );
 }
@@ -216,9 +185,13 @@ export function Tabs<TValue extends string = string>({
     x: number;
     width: number;
   } | null>(null);
+  const [settingsIndicatorStyle, setSettingsIndicatorStyle] = useState<{
+    x: number;
+    width: number;
+  } | null>(null);
   const selectedValue = value ?? internalValue;
   const indicatorLayoutId = `tabs-indicator-${generatedId}`;
-  const settingsIndicatorLayoutId = `tabs-settings-indicator-${generatedId}`;
+  const settingsLabelRefs = useRef(new Map<TValue, HTMLSpanElement>());
   const resolvedItems = useMemo(
     () =>
       items.map((item) => ({
@@ -265,9 +238,48 @@ export function Tabs<TValue extends string = string>({
     });
   }, [selectedItem, variant]);
 
+  const updateSettingsIndicator = useCallback(() => {
+    if (variant !== "settings" || !selectedItem) {
+      setSettingsIndicatorStyle(null);
+      return;
+    }
+
+    const tabList = tabListRef.current;
+    const activeLabel = settingsLabelRefs.current.get(selectedItem.value);
+
+    if (!(tabList instanceof HTMLElement) || !(activeLabel instanceof HTMLElement)) {
+      setSettingsIndicatorStyle(null);
+      return;
+    }
+
+    const tabListRect = tabList.getBoundingClientRect();
+    const labelRect = activeLabel.getBoundingClientRect();
+
+    setSettingsIndicatorStyle({
+      x: labelRect.left - tabListRect.left,
+      width: labelRect.width,
+    });
+  }, [selectedItem, variant]);
+
+  const createSettingsLabelRef = useCallback(
+    (value: TValue) => (node: HTMLSpanElement | null) => {
+      if (node) {
+        settingsLabelRefs.current.set(value, node);
+        return;
+      }
+
+      settingsLabelRefs.current.delete(value);
+    },
+    []
+  );
+
   useLayoutEffect(() => {
     updateSegmentedIndicator();
   }, [updateSegmentedIndicator]);
+
+  useLayoutEffect(() => {
+    updateSettingsIndicator();
+  }, [updateSettingsIndicator]);
 
   useEffect(() => {
     if (variant !== "segmented") return;
@@ -293,6 +305,34 @@ export function Tabs<TValue extends string = string>({
       resizeObserver.disconnect();
     };
   }, [selectedItem, updateSegmentedIndicator, variant]);
+
+  useEffect(() => {
+    if (variant !== "settings") return;
+
+    const tabList = tabListRef.current;
+    const activeLabel = selectedItem
+      ? settingsLabelRefs.current.get(selectedItem.value)
+      : null;
+
+    if (
+      !(tabList instanceof HTMLElement) ||
+      !(activeLabel instanceof HTMLElement) ||
+      typeof ResizeObserver === "undefined"
+    ) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateSettingsIndicator();
+    });
+
+    resizeObserver.observe(tabList);
+    resizeObserver.observe(activeLabel);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedItem, updateSettingsIndicator, variant]);
 
   if (items.length === 0) {
     return null;
@@ -337,13 +377,30 @@ export function Tabs<TValue extends string = string>({
                     key={item.value}
                     item={item}
                     isSelected={isSelected}
-                    indicatorLayoutId={settingsIndicatorLayoutId}
+                    labelRef={createSettingsLabelRef(item.value)}
                     onSelect={handleSelect}
                   />
                 );
               })}
 
               {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
+
+              {settingsIndicatorStyle && (
+                <motion.span
+                  className="tabs__settings-indicator"
+                  initial={false}
+                  animate={{
+                    x: settingsIndicatorStyle.x,
+                    width: settingsIndicatorStyle.width,
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 34,
+                    mass: 0.8,
+                  }}
+                />
+              )}
             </div>
           </div>
         ) : (

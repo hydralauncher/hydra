@@ -28,10 +28,6 @@ type SettingsSectionComponentProps = {
   className?: string;
 };
 
-function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
-  return <div className="settings-page__bumper">{label}</div>;
-}
-
 const SETTINGS_TAB_CONTENT: Record<
   SettingsTabId,
   (props: SettingsSectionComponentProps) => React.JSX.Element
@@ -123,8 +119,6 @@ export default function Settings() {
           onValueChange={setSelectedTab}
           variant="settings"
           ariaLabel="Settings categories"
-          beforeTabs={<SettingsBumper label="LB" />}
-          afterTabs={<SettingsBumper label="RB" />}
         />
 
         <section className="settings-page__content">
