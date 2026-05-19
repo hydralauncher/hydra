@@ -98,6 +98,18 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onUserPreferencesUpdated(
+      (preferences) => {
+        dispatch(setUserPreferences(preferences));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
         if (

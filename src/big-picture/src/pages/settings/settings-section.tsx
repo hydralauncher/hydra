@@ -16,7 +16,11 @@ export function SettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   return (
-    <section className={className ? `settings-section ${className}` : "settings-section"}>
+    <section
+      className={
+        className ? `settings-section ${className}` : "settings-section"
+      }
+    >
       <div className="settings-section__header">
         <p className="settings-section__title">{title}</p>
         <p className="settings-section__description">{description}</p>
