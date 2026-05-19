@@ -1,8 +1,7 @@
 import type { DownloadDirectoryPreference, UserPreferences } from "@types";
 
 export const MAX_DOWNLOAD_DIRECTORIES = 5;
-export const MAX_OPTIONAL_DOWNLOAD_DIRECTORIES =
-  MAX_DOWNLOAD_DIRECTORIES - 1;
+export const MAX_OPTIONAL_DOWNLOAD_DIRECTORIES = MAX_DOWNLOAD_DIRECTORIES - 1;
 
 export interface ResolvedDownloadDirectories {
   persistedDefaultPath: string | null;
