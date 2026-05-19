@@ -21,6 +21,7 @@ import { AchievementNotificationInfo } from "@types";
 export * from "./constants";
 export * from "./download-directories";
 export * from "./html-sanitizer";
+export * from "./language-flags";
 export * from "./use-hls-video";
 
 export class UserNotLoggedInError extends Error {

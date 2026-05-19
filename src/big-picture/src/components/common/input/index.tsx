@@ -26,6 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   {
     type = "text",
     placeholder = "Placeholder",
+    className,
     label,
     hint,
     error = false,
@@ -54,7 +55,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   };
 
   return (
-    <div className="input-container">
+    <div className={cn("input-container", className)}>
       {label && (
         <Typography variant="label" className="input-label">
           {label}
