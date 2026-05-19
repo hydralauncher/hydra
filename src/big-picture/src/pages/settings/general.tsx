@@ -1,5 +1,6 @@
 import "./general.scss";
 
+import { BehaviorSection } from "./behavior-section";
 import { DownloadDirectoriesSection } from "./download-directories-section";
 import { LanguageSection } from "./language-section";
 
@@ -20,6 +21,7 @@ export function GeneralSettingsSection({
     >
       <DownloadDirectoriesSection />
       <LanguageSection />
+      <BehaviorSection />
     </div>
   );
 }

@@ -41,7 +41,6 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
       onClick={handleBlockClick}
       className={cn("checkbox", {
         "checkbox--block": props.block,
-        "checkbox--block--active": props.block && isChecked,
         "checkbox--disabled": props.disabled,
       })}
     >

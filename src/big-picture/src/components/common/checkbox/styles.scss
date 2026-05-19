@@ -26,20 +26,8 @@
       background-color: var(--secondary);
     }
 
-    &--active {
-      background-color: var(--secondary-hover);
-
-      &:hover {
-        background-color: var(--secondary-hover);
-      }
-    }
-
     &:has(.checkbox__input[data-focus-visible="true"]) {
       background-color: var(--secondary);
-    }
-
-    &.checkbox--block--active:has(.checkbox__input[data-focus-visible="true"]) {
-      background-color: var(--secondary-hover);
     }
   }
 

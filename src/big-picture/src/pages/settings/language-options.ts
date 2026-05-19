@@ -31,14 +31,16 @@ export function getLanguageOptions(): LanguageOption[] {
       localeKey: language,
       nativeName: value.language_name,
       englishName: getEnglishLanguageName(language),
-      flag: getFlagEmojiFromCountryCode(
-        getLanguageFlagCountryCode(language)
-      ),
+      flag: getFlagEmojiFromCountryCode(getLanguageFlagCountryCode(language)),
     }))
     .sort((firstLanguage, secondLanguage) =>
-      firstLanguage.nativeName.localeCompare(secondLanguage.nativeName, undefined, {
-        sensitivity: "base",
-      })
+      firstLanguage.nativeName.localeCompare(
+        secondLanguage.nativeName,
+        undefined,
+        {
+          sensitivity: "base",
+        }
+      )
     );
 }
 

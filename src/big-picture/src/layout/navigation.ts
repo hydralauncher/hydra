@@ -2,6 +2,7 @@ import type { FocusOverrideTarget } from "../services";
 import { DOWNLOADS_PAGE_REGION_ID } from "../components/pages/downloads/navigation";
 import { GAME_PAGE_REGION_ID } from "../components/pages/game/navigation";
 import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
+import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
 
 export const BIG_PICTURE_APP_LAYER_ID = "big-picture-app-layer";
@@ -106,6 +107,10 @@ export function getBigPictureContentEntryRegionIdFromPathname(
 
   if (normalizedPathname.startsWith("/downloads")) {
     return DOWNLOADS_PAGE_REGION_ID;
+  }
+
+  if (normalizedPathname.startsWith("/settings")) {
+    return SETTINGS_PAGE_REGION_ID;
   }
 
   if (getBigPictureGameRouteMatch(normalizedPathname)) {

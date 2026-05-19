@@ -7,6 +7,10 @@ import { Button } from "../../components";
 import { useNavigation, useUserPreferences } from "../../hooks";
 import { LanguagePickerModal } from "./language-picker-modal";
 import { resolveCurrentLanguageOption } from "./language-options";
+import {
+  BEHAVIOR_SECTION_REGION_ID,
+  LANGUAGE_SECTION_BUTTON_ID,
+} from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
 interface LanguageSectionProps {
@@ -14,11 +18,8 @@ interface LanguageSectionProps {
 }
 
 const GITHUB_REPOSITORY_URL = "https://github.com/hydralauncher/hydra";
-const LANGUAGE_SECTION_BUTTON_ID = "language-section-button";
 
-export function LanguageSection({
-  className,
-}: Readonly<LanguageSectionProps>) {
+export function LanguageSection({ className }: Readonly<LanguageSectionProps>) {
   const userPreferences = useUserPreferences();
   const { setFocus } = useNavigation();
   const [isLanguagePickerOpen, setIsLanguagePickerOpen] = useState(false);
@@ -79,6 +80,14 @@ export function LanguageSection({
             size="small"
             className="language-section__button"
             focusId={LANGUAGE_SECTION_BUTTON_ID}
+            focusNavigationOverrides={{
+              down: {
+                type: "region",
+                regionId: BEHAVIOR_SECTION_REGION_ID,
+                entryDirection: "down",
+                preferRememberedFocus: false,
+              },
+            }}
             onClick={() => setIsLanguagePickerOpen(true)}
             icon={<CaretRightIcon size={18} aria-hidden="true" />}
             iconPosition="right"

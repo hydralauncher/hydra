@@ -209,10 +209,7 @@ export function LanguagePickerModal({
           }}
         />
 
-        <div
-          ref={gridScrollRef}
-          className="language-picker-modal__grid-scroll"
-        >
+        <div ref={gridScrollRef} className="language-picker-modal__grid-scroll">
           {filteredLanguageOptions.length > 0 ? (
             <GridFocusGroup
               className="language-picker-modal__grid"
@@ -253,7 +250,10 @@ export function LanguagePickerModal({
                             {languageItem.flag}
                           </span>
                         ) : (
-                          <GlobeHemisphereWestIcon size={18} aria-hidden="true" />
+                          <GlobeHemisphereWestIcon
+                            size={18}
+                            aria-hidden="true"
+                          />
                         )}
 
                         <span className="language-picker-modal__card-label">

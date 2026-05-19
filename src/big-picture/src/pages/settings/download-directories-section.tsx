@@ -62,6 +62,12 @@ interface DirectoryMenuState {
   restoreFocusId: string | null;
 }
 
+interface DirectoryGridSlot {
+  index: number;
+  startColumn: number;
+  endColumn: number;
+}
+
 const EMPTY_DISK_USAGE: DiskUsage = { free: 0, total: 0 };
 const DOWNLOAD_DIRECTORIES_REGION_ID = "download-directories-region";
 const DOWNLOAD_DIRECTORIES_CONTROLS_REGION_ID =
@@ -74,6 +80,164 @@ const DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID = "download-directories-add-button";
 
 function getDirectoryCardFocusId(path: string) {
   return `download-directories-${path.replaceAll(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
+}
+
+function getDirectoryGridRows(directoryCount: number): Array<Array<DirectoryGridSlot>> {
+  switch (Math.min(directoryCount, MAX_DOWNLOAD_DIRECTORIES)) {
+    case 1:
+      return [[{ index: 0, startColumn: 1, endColumn: 6 }]];
+    case 2:
+      return [
+        [
+          { index: 0, startColumn: 1, endColumn: 3 },
+          { index: 1, startColumn: 4, endColumn: 6 },
+        ],
+      ];
+    case 3:
+      return [
+        [
+          { index: 0, startColumn: 1, endColumn: 2 },
+          { index: 1, startColumn: 3, endColumn: 4 },
+          { index: 2, startColumn: 5, endColumn: 6 },
+        ],
+      ];
+    case 4:
+      return [
+        [
+          { index: 0, startColumn: 1, endColumn: 3 },
+          { index: 1, startColumn: 4, endColumn: 6 },
+        ],
+        [
+          { index: 2, startColumn: 1, endColumn: 3 },
+          { index: 3, startColumn: 4, endColumn: 6 },
+        ],
+      ];
+    case 5:
+      return [
+        [
+          { index: 0, startColumn: 1, endColumn: 2 },
+          { index: 1, startColumn: 3, endColumn: 4 },
+          { index: 2, startColumn: 5, endColumn: 6 },
+        ],
+        [
+          { index: 3, startColumn: 1, endColumn: 3 },
+          { index: 4, startColumn: 4, endColumn: 6 },
+        ],
+      ];
+    default:
+      return [];
+  }
+}
+
+function getDirectoryCardControlUpTargetId(
+  directoryCount: number,
+  index: number
+): string {
+  if (directoryCount <= 1) {
+    return DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
+  }
+
+  if (directoryCount === 2) {
+    return index === 0
+      ? DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID
+      : DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID;
+  }
+
+  return index === 2
+    ? DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID
+    : DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
+}
+
+function getGridColumnOverlap(left: DirectoryGridSlot, right: DirectoryGridSlot) {
+  return Math.max(
+    0,
+    Math.min(left.endColumn, right.endColumn) -
+      Math.max(left.startColumn, right.startColumn) +
+      1
+  );
+}
+
+function getGridColumnCenter(slot: DirectoryGridSlot) {
+  return (slot.startColumn + slot.endColumn) / 2;
+}
+
+function getClosestVerticalNeighbor(
+  currentSlot: DirectoryGridSlot,
+  candidateRow: Array<DirectoryGridSlot>
+) {
+  return candidateRow
+    .map((candidateSlot) => ({
+      candidateSlot,
+      overlap: getGridColumnOverlap(currentSlot, candidateSlot),
+      centerDistance: Math.abs(
+        getGridColumnCenter(currentSlot) - getGridColumnCenter(candidateSlot)
+      ),
+    }))
+    .sort((left, right) => {
+      if (left.overlap !== right.overlap) {
+        return right.overlap - left.overlap;
+      }
+
+      if (left.centerDistance !== right.centerDistance) {
+        return left.centerDistance - right.centerDistance;
+      }
+
+      return left.candidateSlot.index - right.candidateSlot.index;
+    })[0]?.candidateSlot;
+}
+
+function getDirectoryCardNavigationOverrides(
+  directoryCount: number,
+  index: number,
+  focusIds: Array<string>
+): FocusOverrides | undefined {
+  const rows = getDirectoryGridRows(directoryCount);
+
+  if (rows.length === 0) {
+    return undefined;
+  }
+
+  const rowIndex = rows.findIndex((row) =>
+    row.some((slot) => slot.index === index)
+  );
+
+  if (rowIndex === -1) {
+    return undefined;
+  }
+
+  const row = rows[rowIndex];
+  const slotIndex = row.findIndex((slot) => slot.index === index);
+  const slot = row[slotIndex];
+
+  if (!slot) {
+    return undefined;
+  }
+
+  const previousSlot = slotIndex > 0 ? row[slotIndex - 1] : null;
+  const nextSlot = slotIndex < row.length - 1 ? row[slotIndex + 1] : null;
+  const rowAbove = rowIndex > 0 ? rows[rowIndex - 1] : null;
+  const rowBelow = rowIndex < rows.length - 1 ? rows[rowIndex + 1] : null;
+  const aboveSlot = rowAbove ? getClosestVerticalNeighbor(slot, rowAbove) : null;
+  const belowSlot = rowBelow ? getClosestVerticalNeighbor(slot, rowBelow) : null;
+
+  return {
+    left: previousSlot
+      ? getItemFocusTarget(focusIds[previousSlot.index])
+      : { type: "block" },
+    right: nextSlot
+      ? getItemFocusTarget(focusIds[nextSlot.index])
+      : { type: "block" },
+    up:
+      aboveSlot != null
+        ? getItemFocusTarget(focusIds[aboveSlot.index])
+        : getItemFocusTarget(
+            getDirectoryCardControlUpTargetId(directoryCount, index)
+          ),
+    down:
+      belowSlot != null
+        ? getItemFocusTarget(focusIds[belowSlot.index])
+        : undefined,
+  };
 }
 
 function buildDirectoryMenuPosition(target: HTMLElement) {
@@ -219,6 +383,24 @@ export function DownloadDirectoriesSection({
     directories.length,
     MAX_DOWNLOAD_DIRECTORIES
   )}`;
+  const directoryFocusIds = useMemo(
+    () => directories.map((directory) => getDirectoryCardFocusId(directory.path)),
+    [directories]
+  );
+  const directoryNavigationOverridesByFocusId = useMemo(
+    () =>
+      Object.fromEntries(
+        directoryFocusIds.map((focusId, index) => [
+          focusId,
+          getDirectoryCardNavigationOverrides(
+            directories.length,
+            index,
+            directoryFocusIds
+          ),
+        ])
+      ),
+    [directories.length, directoryFocusIds]
+  );
 
   const controlsNavigationOverrides: FocusOverrides = useMemo(
     () => ({
@@ -368,14 +550,8 @@ export function DownloadDirectoriesSection({
           regionId={DOWNLOAD_DIRECTORIES_DISKS_REGION_ID}
           navigationOverrides={disksNavigationOverrides}
         >
-          {directories.map((directory, index) => {
+          {directories.map((directory) => {
             const cardFocusId = getDirectoryCardFocusId(directory.path);
-            const upTargetId =
-              directories.length === 1
-                ? DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID
-                : index % 3 === 2
-                  ? DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID
-                  : DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
 
             return (
               <UserDiskItem
@@ -387,9 +563,9 @@ export function DownloadDirectoriesSection({
                 isSelected={directory.isSelected}
                 className="download-directories-section__disk"
                 focusId={cardFocusId}
-                focusNavigationOverrides={{
-                  up: getItemFocusTarget(upTargetId),
-                }}
+                focusNavigationOverrides={
+                  directoryNavigationOverridesByFocusId[cardFocusId]
+                }
                 focusActions={{
                   primary: "off",
                   press: directory.canRemove

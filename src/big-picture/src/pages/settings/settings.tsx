@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Tabs, type TabsItem } from "../../components";
+import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
 import { useGamepad } from "../../hooks";
 import { GamepadButtonType } from "../../types";
 import { AccountPrivacySettingsSection } from "./account-privacy";
@@ -9,6 +9,7 @@ import { ContentGameplaySettingsSection } from "./content-gameplay";
 import { DownloadsSettingsSection } from "./downloads";
 import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
+import { SETTINGS_PAGE_REGION_ID } from "./navigation";
 import { NotificationsSettingsSection } from "./notifications";
 
 import "./page.scss";
@@ -110,23 +111,25 @@ export default function Settings() {
   }, []);
 
   return (
-    <section className="settings-page">
-      <div className="settings-page__stack">
-        <div className="settings-page__tabs-wrap">
-          <Tabs
-            className="settings-page__tabs"
-            items={tabItems}
-            value={selectedTab}
-            onValueChange={setSelectedTab}
-            variant="settings"
-            ariaLabel="Settings categories"
-          />
-        </div>
+    <VerticalFocusGroup regionId={SETTINGS_PAGE_REGION_ID} asChild>
+      <section className="settings-page">
+        <div className="settings-page__stack">
+          <div className="settings-page__tabs-wrap">
+            <Tabs
+              className="settings-page__tabs"
+              items={tabItems}
+              value={selectedTab}
+              onValueChange={setSelectedTab}
+              variant="settings"
+              ariaLabel="Settings categories"
+            />
+          </div>
 
-        <section className="settings-page__content">
-          <SelectedTabContent className="settings-page__copy" />
-        </section>
-      </div>
-    </section>
+          <section className="settings-page__content">
+            <SelectedTabContent className="settings-page__copy" />
+          </section>
+        </div>
+      </section>
+    </VerticalFocusGroup>
   );
 }

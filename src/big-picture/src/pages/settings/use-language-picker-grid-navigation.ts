@@ -17,7 +17,10 @@ interface BuildLanguagePickerGridNavigationOptions {
   columnCount: number;
 }
 
-function getCoordinates(index: number, columnCount: number): GridItemCoordinates {
+function getCoordinates(
+  index: number,
+  columnCount: number
+): GridItemCoordinates {
   return {
     rowIndex: Math.floor(index / columnCount),
     columnIndex: index % columnCount,
@@ -147,7 +150,9 @@ export function findLanguagePickerReplacementFocusId(options: {
     const rightCoordinates = options.coordinatesByItemId[rightItemId];
 
     return (
-      Math.abs(leftCoordinates.rowIndex - options.previousCoordinates!.rowIndex) -
+      Math.abs(
+        leftCoordinates.rowIndex - options.previousCoordinates!.rowIndex
+      ) -
       Math.abs(
         rightCoordinates.rowIndex - options.previousCoordinates!.rowIndex
       )
