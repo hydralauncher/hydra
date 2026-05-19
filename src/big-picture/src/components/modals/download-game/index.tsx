@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Downloader } from "@shared";
+import {
+  Downloader,
+  getDownloadDirectoryTitle,
+  resolveDownloadDirectories,
+} from "@shared";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../../constants";
 import useEmblaCarousel from "embla-carousel-react";
 import {
@@ -14,17 +18,12 @@ import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
 } from "../../skeletons";
-import type {
-  DiskUsage,
-  Game,
-  GameRepack,
-  LibraryGame,
-  UserPreferences,
-} from "@types";
+import type { DiskUsage, Game, GameRepack, LibraryGame } from "@types";
 import {
   useGameDownloadOptions,
   useFeature,
   useNavigationScreenActions,
+  useUserPreferences,
 } from "../../../hooks";
 import { useNavigationStore } from "../../../stores";
 import {
@@ -543,8 +542,6 @@ function DownloadGameOptions({
   const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
   const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
     useState<DownloadDirectorySuggestion[]>([]);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
   const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
     useState(true);
   const [
@@ -555,6 +552,7 @@ function DownloadGameOptions({
   const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { features } = useFeature();
+  const userPreferences = useUserPreferences();
 
   const availableDownloaderOptions = useMemo(() => {
     return getDownloaderAvailabilityOptions(
@@ -675,7 +673,6 @@ function DownloadGameOptions({
     if (!visible || !IS_DESKTOP) {
       setSelectedDownloadPath("");
       setDownloadDirectorySuggestions([]);
-      setUserPreferences(null);
       setSelectedDownloader(undefined);
       setAutomaticExtractionEnabled(true);
       setDeleteArchiveFilesAfterExtraction(false);
@@ -685,27 +682,16 @@ function DownloadGameOptions({
 
     let cancelled = false;
 
-    const getDirectoryTitle = (path: string) => {
-      const segments = path.split(/[\\/]/).filter(Boolean);
-      return segments.at(-1) || path;
-    };
-
     const buildDownloadDirectorySuggestions = async () => {
-      const preferences = await globalThis.window.electron.getUserPreferences();
       const defaultDownloadsPath =
         await globalThis.window.electron.getDefaultDownloadsPath();
-      const initialDownloadPath =
-        preferences?.downloadsPath || defaultDownloadsPath;
-      const uniquePaths = Array.from(
-        new Set(
-          [preferences?.downloadsPath, defaultDownloadsPath].filter(
-            (value): value is string => Boolean(value)
-          )
-        )
+      const resolvedDirectories = resolveDownloadDirectories(
+        userPreferences,
+        defaultDownloadsPath
       );
 
       const suggestions = await Promise.all(
-        uniquePaths.map(async (path) => {
+        resolvedDirectories.allPaths.map(async (path) => {
           let diskUsage: DiskUsage = { free: 0, total: 0 };
 
           try {
@@ -715,7 +701,7 @@ function DownloadGameOptions({
           }
 
           return {
-            title: getDirectoryTitle(path),
+            title: getDownloadDirectoryTitle(path),
             path,
             freeBytes: diskUsage.free,
             totalBytes: diskUsage.total,
@@ -725,12 +711,13 @@ function DownloadGameOptions({
 
       if (cancelled) return;
 
-      setUserPreferences(preferences);
-      setSelectedDownloadPath(initialDownloadPath);
+      setSelectedDownloadPath(resolvedDirectories.defaultPath);
       setDownloadDirectorySuggestions(suggestions);
-      setAutomaticExtractionEnabled(preferences?.extractFilesByDefault ?? true);
+      setAutomaticExtractionEnabled(
+        userPreferences?.extractFilesByDefault ?? true
+      );
       setDeleteArchiveFilesAfterExtraction(
-        preferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
       );
     };
 
@@ -739,7 +726,7 @@ function DownloadGameOptions({
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, [userPreferences, visible]);
 
   const resolvedDownloader = useMemo(() => {
     if (!selectedDownloader) return null;
@@ -894,6 +881,7 @@ function DownloadGameOptions({
                 freeBytes={directory.freeBytes}
                 totalBytes={directory.totalBytes}
                 isSelected={selectedDownloadPath === directory.path}
+                showSelectedIndicator
                 onClick={() => setSelectedDownloadPath(directory.path)}
                 className="download-game-modal__directory-disk"
               />

@@ -8,6 +8,7 @@ export * from "./use-dominant-color.hook";
 export * from "./use-user-details.hook";
 export * from "./use-gamepad.hook";
 export * from "./use-feature.hook";
+export * from "./use-user-preferences.hook";
 export * from "./use-navigation.hook";
 export * from "./use-navigation-focus-bridge.hook";
 export * from "./use-navigation-screen-actions.hook";

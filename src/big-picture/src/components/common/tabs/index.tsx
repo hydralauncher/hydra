@@ -117,7 +117,6 @@ function FocusableTabsButton<TValue extends string = string>({
             }}
           />
         )}
-
       </button>
     </FocusItem>
   );
@@ -247,7 +246,10 @@ export function Tabs<TValue extends string = string>({
     const tabList = tabListRef.current;
     const activeLabel = settingsLabelRefs.current.get(selectedItem.value);
 
-    if (!(tabList instanceof HTMLElement) || !(activeLabel instanceof HTMLElement)) {
+    if (
+      !(tabList instanceof HTMLElement) ||
+      !(activeLabel instanceof HTMLElement)
+    ) {
       setSettingsIndicatorStyle(null);
       return;
     }

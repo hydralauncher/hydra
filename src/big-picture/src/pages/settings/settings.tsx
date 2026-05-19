@@ -112,14 +112,16 @@ export default function Settings() {
   return (
     <section className="settings-page">
       <div className="settings-page__stack">
-        <Tabs
-          className="settings-page__tabs"
-          items={tabItems}
-          value={selectedTab}
-          onValueChange={setSelectedTab}
-          variant="settings"
-          ariaLabel="Settings categories"
-        />
+        <div className="settings-page__tabs-wrap">
+          <Tabs
+            className="settings-page__tabs"
+            items={tabItems}
+            value={selectedTab}
+            onValueChange={setSelectedTab}
+            variant="settings"
+            ariaLabel="Settings categories"
+          />
+        </div>
 
         <section className="settings-page__content">
           <SelectedTabContent className="settings-page__copy" />

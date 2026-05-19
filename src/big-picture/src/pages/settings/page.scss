@@ -32,6 +32,12 @@
   max-width: 100%;
 }
 
+.settings-page__tabs-wrap {
+  flex-shrink: 0;
+  width: max-content;
+  max-width: 100%;
+}
+
 .settings-page__bumper {
   display: inline-flex;
   align-items: center;
@@ -48,8 +54,9 @@
 }
 
 .settings-page__content {
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 0 0 auto;
+  width: 0;
+  min-width: 100%;
   max-width: 100%;
 }
 
