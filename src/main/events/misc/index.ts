@@ -16,3 +16,4 @@ import "./reset-common-redist-preflight";
 import "./save-temp-file";
 import "./show-item-in-folder";
 import "./show-open-dialog";
+import "./add-windows-defender-exclusion";

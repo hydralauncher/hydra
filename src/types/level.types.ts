@@ -146,6 +146,7 @@ export interface UserPreferences {
   downloadNotificationsEnabled?: boolean;
   repackUpdatesNotificationsEnabled?: boolean;
   achievementNotificationsEnabled?: boolean;
+  hasWindowsDefenderExclusion?: boolean;
   achievementCustomNotificationsEnabled?: boolean;
   achievementCustomNotificationPosition?: AchievementCustomNotificationPosition;
   achievementSoundVolume?: number;

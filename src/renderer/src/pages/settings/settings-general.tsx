@@ -14,7 +14,7 @@ import {
 } from "@renderer/components";
 import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useWindowsDefenderExclusion } from "@renderer/hooks";
 import { changeLanguage } from "i18next";
 import languageResources from "@locales";
 import { orderBy } from "lodash-es";
@@ -65,6 +65,7 @@ export function SettingsGeneral() {
     achievementSoundVolume: 15,
     language: "",
     customStyles: window.localStorage.getItem("customStyles") || "",
+    hasWindowsDefenderExclusion: false,
   });
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
@@ -145,6 +146,8 @@ export function SettingsGeneral() {
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
         language: language ?? "en",
+        hasWindowsDefenderExclusion:
+          userPreferences.hasWindowsDefenderExclusion ?? false,
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
@@ -177,6 +180,17 @@ export function SettingsGeneral() {
     setForm((prev) => ({ ...prev, ...values }));
     await updateUserPreferences(values);
   };
+
+  const {
+    isWindows,
+    handleToggleExclusion,
+    syncExclusionOnPathChange,
+    exclusionButtonLabel,
+  } = useWindowsDefenderExclusion({
+    downloadsPath: form.downloadsPath,
+    hasExclusion: form.hasWindowsDefenderExclusion,
+    onPreferenceChange: handleChange,
+  });
 
   const handleVolumeChange = useCallback(
     (newVolume: number) => {
@@ -215,6 +229,8 @@ export function SettingsGeneral() {
       return;
     }
 
+    const oldPath = form.downloadsPath;
+
     const nextAction = prepareDefaultDownloadPathSync(
       userPreferences,
       path,
@@ -234,6 +250,7 @@ export function SettingsGeneral() {
         downloadsPath: nextAction.nextDefaultPath,
       }));
       await updateUserPreferences(nextAction.nextPreferences);
+      await syncExclusionOnPathChange(oldPath, nextAction.nextDefaultPath);
       return;
     }
 
@@ -299,6 +316,15 @@ export function SettingsGeneral() {
           </Button>
         }
       />
+      {isWindows && (
+        <Button
+          theme="outline"
+          onClick={handleToggleExclusion}
+          style={{ alignSelf: "flex-start", marginTop: -8, marginBottom: 16 }}
+        >
+          {exclusionButtonLabel}
+        </Button>
+      )}
 
       <SelectField
         label={t("language")}

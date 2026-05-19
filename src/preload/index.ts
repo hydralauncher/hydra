@@ -307,6 +307,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
+  verifyGameIntegrity: (
+    shop: GameShop,
+    objectId: string,
+    uri?: string,
+    downloadPath?: string
+  ) =>
+    ipcRenderer.invoke(
+      "verifyGameIntegrity",
+      shop,
+      objectId,
+      uri,
+      downloadPath
+    ),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
@@ -503,6 +516,12 @@ contextBridge.exposeInMainWorld("electron", {
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   isStaging: () => ipcRenderer.invoke("isStaging"),
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
+  addWindowsDefenderExclusion: (path: string) =>
+    ipcRenderer.invoke("addWindowsDefenderExclusion", path),
+  removeWindowsDefenderExclusion: (path: string) =>
+    ipcRenderer.invoke("removeWindowsDefenderExclusion", path),
+  updateWindowsDefenderExclusion: (oldPath: string, newPath: string) =>
+    ipcRenderer.invoke("updateWindowsDefenderExclusion", oldPath, newPath),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
