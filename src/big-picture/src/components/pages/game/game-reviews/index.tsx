@@ -226,9 +226,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
                         </Typography>
 
                         <Typography className="game-page__comment-date">
-                          {formatDistance(new Date(review.createdAt), new Date(), {
-                            addSuffix: true,
-                          })}
+                          {formatDistance(
+                            new Date(review.createdAt),
+                            new Date(),
+                            {
+                              addSuffix: true,
+                            }
+                          )}
                         </Typography>
                       </div>
                     </div>

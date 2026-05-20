@@ -488,6 +488,12 @@
   &__detailed-description {
     color: rgba(255, 255, 255, 0.8);
 
+    p {
+      font-size: 16px;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
     img,
     video {
       border-radius: 5px;
@@ -499,6 +505,14 @@
       object-fit: contain;
       margin-left: auto;
       margin-right: auto;
+    }
+
+    img {
+      width: 100%;
+    }
+
+    video {
+      width: 100%;
     }
 
     a {
@@ -541,7 +555,6 @@
         outline-offset: -2px;
       }
     }
-
   }
 
   &__requirements-to-play {
