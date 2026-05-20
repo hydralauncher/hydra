@@ -47,17 +47,10 @@ export const Checkbox = ({
     handleChange(!isChecked);
   };
 
-  const handleLabelClick = (e: MouseEvent<HTMLLabelElement>) => {
-    if (
-      props.disabled ||
-      (e.target as HTMLElement).closest(
-        "a, button, input, select, textarea, [role='button']"
-      )
-    ) {
-      return;
-    }
-
+  const handleLabelClick = (e: MouseEvent<HTMLButtonElement>) => {
+    if (props.disabled) return;
     e.preventDefault();
+    e.stopPropagation();
     handleChange(!isChecked);
   };
 
@@ -97,14 +90,15 @@ export const Checkbox = ({
       {label || secondaryText ? (
         <div className="checkbox__copy">
           {label ? (
-            <label
+            <button
+              type="button"
               className="checkbox__label"
               id={`${id}-label`}
-              htmlFor={id}
+              disabled={props.disabled}
               onClick={handleLabelClick}
             >
               <span className="checkbox__label-primary">{label}</span>
-            </label>
+            </button>
           ) : null}
 
           {secondaryText ? (
