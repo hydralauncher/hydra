@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { EmulatorConfigMap, EmulatorSystem } from "@types";
@@ -6,6 +6,10 @@ import type { EmulatorConfigMap, EmulatorSystem } from "@types";
 import { ConsoleCard } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
+import {
+  ClassicsOnboardingModal,
+  hasDismissedClassicsOnboarding,
+} from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
 import "./settings-context-emulation.scss";
 
@@ -25,6 +29,19 @@ export function SettingsContextEmulation() {
     { kind: "grid" } | { kind: "detail"; system: EmulatorSystem }
   >({ kind: "grid" });
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
+
+  const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
+  const classicsOnboardingTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      !classicsOnboardingTriggeredRef.current &&
+      !hasDismissedClassicsOnboarding()
+    ) {
+      classicsOnboardingTriggeredRef.current = true;
+      setShowClassicsOnboarding(true);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
@@ -121,6 +138,10 @@ export function SettingsContextEmulation() {
 
   return (
     <div className="settings-emulation">
+      <ClassicsOnboardingModal
+        visible={showClassicsOnboarding}
+        onClose={() => setShowClassicsOnboarding(false)}
+      />
       <header className="settings-emulation__header">
         <div className="settings-emulation__title-row">
           <h2 className="settings-emulation__title">{t("emulation")}</h2>

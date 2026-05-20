@@ -71,6 +71,8 @@ export const launchClassicsGame = async (
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
 
+  const selectedDisc = game?.discs?.find((d) => d.path === discPath) ?? null;
+
   if (game) {
     await gamesSublevel.put(gameKey, {
       ...game,
@@ -108,6 +110,16 @@ export const launchClassicsGame = async (
         },
       }
     );
+
+    if (game) {
+      await emulators.startEmulatorSession({
+        game,
+        system,
+        executablePath: config.executablePath,
+        sku: selectedDisc?.sku ?? null,
+        child: processRef,
+      });
+    }
 
     processRef.unref();
   } catch (error) {

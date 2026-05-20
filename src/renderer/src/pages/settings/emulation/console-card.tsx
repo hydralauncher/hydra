@@ -45,7 +45,9 @@ export function ConsoleCard({
 
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const isConfigured = config.executablePath !== null;
-  const hasRoms = config.romFolders.length > 0 && config.totalFiles > 0;
+  const hasRomFolders = config.romFolders.length > 0;
+  const hasRoms = hasRomFolders && config.totalFiles > 0;
+  const isReady = isConfigured && hasRomFolders;
   const relative = formatRelative(config.lastScanAt);
 
   return (
@@ -124,7 +126,7 @@ export function ConsoleCard({
       <div className="console-card__divider" />
 
       <div className="console-card__footer">
-        {isConfigured ? (
+        {isReady ? (
           <span className="console-card__chip console-card__chip--ready">
             <span className="console-card__chip-dot" />
             {t("ready_to_play")}

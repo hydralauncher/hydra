@@ -11,17 +11,7 @@ import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
-
-const platformToSystem = (
-  platform?: string | null
-): "ps1" | "ps2" | "ps3" | null => {
-  if (!platform) return null;
-  const p = platform.toLowerCase();
-  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
-  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
-  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
-  return null;
-};
+import { platformToSystem } from "@renderer/helpers";
 
 interface ClassicsDiscSectionProps {
   game: LibraryGame;

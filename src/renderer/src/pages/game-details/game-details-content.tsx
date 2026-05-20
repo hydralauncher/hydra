@@ -15,6 +15,8 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import { useUserDetails, useLibrary } from "@renderer/hooks";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -153,32 +155,89 @@ export function GameDetailsContent() {
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
-  const launchboxHeroFallback =
-    isLaunchboxGame && !resolvedHeroImage
-      ? (shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? "")
-      : "";
+  const launchboxCover = isLaunchboxGame
+    ? (shopDetails?.assets?.libraryImageUrl ??
+      game?.libraryImageUrl ??
+      shopDetails?.assets?.iconUrl ??
+      game?.iconUrl ??
+      "")
+    : "";
 
-  const heroImage = resolvedHeroImage || launchboxHeroFallback;
-  const useBlurredHero = Boolean(launchboxHeroFallback);
+  const launchboxSystem = isLaunchboxGame
+    ? platformToSystem(game?.platform)
+    : null;
+
+  const launchboxEmulatorIcon = launchboxSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
+    : undefined;
 
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
     >
       <section className="game-details__container">
-        <div className="game-details__hero">
-          <img
-            src={heroImage}
-            className={`game-details__hero-image${useBlurredHero ? " game-details__hero-image--blurred" : ""}`}
-            alt={game?.title}
-          />
+        <div
+          className={`game-details__hero${isLaunchboxGame ? " game-details__hero--classics-wrapper" : ""}`}
+        >
+          {isLaunchboxGame ? (
+            <div className="game-details__hero--classics">
+              <div className="game-details__hero-classics-backdrop">
+                {launchboxCover && (
+                  <img src={launchboxCover} alt="" aria-hidden="true" />
+                )}
+                <div className="game-details__hero-classics-backdrop-overlay" />
+              </div>
+              <div
+                className="game-details__hero-classics-rainbow"
+                aria-hidden="true"
+              >
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue" />
+              </div>
+              <div className="game-details__hero-classics-content">
+                <div className="game-details__hero-classics-cover">
+                  {launchboxCover && (
+                    <img src={launchboxCover} alt={game?.title} />
+                  )}
+                </div>
+                <div className="game-details__hero-classics-meta">
+                  <h1 className="game-details__hero-classics-title">
+                    {game?.title}
+                  </h1>
+                  {game?.platform && (
+                    <div className="game-details__hero-classics-chips">
+                      <span className="game-details__hero-classics-chip">
+                        {game.platform}
+                      </span>
+                      {launchboxEmulatorIcon && (
+                        <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
+                          <img src={launchboxEmulatorIcon} alt="" />
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={resolvedHeroImage}
+              className="game-details__hero-image"
+              alt={game?.title}
+            />
+          )}
 
           <div
             className="game-details__hero-logo-backdrop"
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              <GameLogo game={game} shopDetails={shopDetails} />
+              {!isLaunchboxGame && (
+                <GameLogo game={game} shopDetails={shopDetails} />
+              )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
                 {game && (

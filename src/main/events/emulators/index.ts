@@ -1,6 +1,7 @@
 import "./get-emulator-configs";
 import "./detect-emulator";
 import "./detect-emulators";
+import "./preview-emulator-executable";
 import "./set-emulator-executable-path";
 import "./add-rom-folder";
 import "./remove-rom-folder";

@@ -71,11 +71,17 @@ export function EmulatorSetupModal({
     setDetecting(true);
     (async () => {
       try {
-        const next = await window.electron.detectEmulator(system);
-        if (cancelled) return;
-        // If the user already picked an executable while we were detecting,
-        // don't clobber their choice.
-        setConfig((curr) => (curr?.executablePath ? curr : next));
+        const preview = await window.electron.previewEmulatorExecutable(system);
+        if (cancelled || !preview) return;
+        setConfig((curr) => {
+          if (curr?.executablePath) return curr;
+          if (!curr) return curr;
+          return {
+            ...curr,
+            executablePath: preview.executablePath,
+            detectedVersion: preview.detectedVersion,
+          };
+        });
       } finally {
         if (!cancelled) setDetecting(false);
       }
@@ -96,6 +102,22 @@ export function EmulatorSetupModal({
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
   const goBack = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
 
+  const handleContinue = useCallback(async () => {
+    if (
+      currentStep === "find_emulator" &&
+      system &&
+      config?.executablePath &&
+      config.executablePath !== initialConfig?.executablePath
+    ) {
+      const next = await window.electron.setEmulatorExecutablePath(
+        system,
+        config.executablePath
+      );
+      setConfig(next);
+    }
+    goNext();
+  }, [currentStep, system, config, initialConfig?.executablePath, goNext]);
+
   const refreshConfig = useCallback(async () => {
     if (!system) return null;
     const all = await window.electron.getEmulatorConfigs();
@@ -113,11 +135,20 @@ export function EmulatorSetupModal({
           : undefined,
     });
     if (result.canceled || result.filePaths.length === 0) return;
-    const next = await window.electron.setEmulatorExecutablePath(
+    const preview = await window.electron.previewEmulatorExecutable(
       system,
       result.filePaths[0]
     );
-    setConfig(next);
+    if (!preview) return;
+    setConfig((curr) =>
+      curr
+        ? {
+            ...curr,
+            executablePath: preview.executablePath,
+            detectedVersion: preview.detectedVersion,
+          }
+        : curr
+    );
   }, [system]);
 
   const previewFolder = useCallback(
@@ -355,7 +386,7 @@ export function EmulatorSetupModal({
           continueHidden={continueHidden}
           onBack={goBack}
           onSkip={handleSkip}
-          onContinue={goNext}
+          onContinue={handleContinue}
         />
       </div>
     </Modal>

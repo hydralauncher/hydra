@@ -7,7 +7,7 @@ import type { EmulatorSystem } from "@types";
 const SECTION_RE = /^\s*\[(.+?)\]\s*$/;
 const RECURSIVE_RE = /^\s*RecursivePaths\s*=\s*(.+?)\s*$/i;
 
-const duckstationConfigCandidates = (): string[] => {
+export const duckstationConfigCandidates = (): string[] => {
   const home = homedir();
   if (process.platform === "win32") {
     const local =
@@ -31,7 +31,9 @@ const duckstationConfigCandidates = (): string[] => {
   ];
 };
 
-const pcsx2ConfigCandidates = (executablePath: string | null): string[] => {
+export const pcsx2ConfigCandidates = (
+  executablePath: string | null
+): string[] => {
   const home = homedir();
   const beside = executablePath
     ? path.join(path.dirname(executablePath), "inis", "PCSX2.ini")
@@ -71,7 +73,49 @@ const configCandidates = (
   return [];
 };
 
-const findExistingConfig = (paths: string[]): string | null => {
+export const rpcs3GuiConfigsCandidates = (
+  executablePath: string | null
+): string[] => {
+  const home = homedir();
+  const beside = executablePath
+    ? path.join(
+        path.dirname(executablePath),
+        "GuiConfigs",
+        "persistent_settings.dat"
+      )
+    : null;
+
+  if (process.platform === "win32") {
+    const appData =
+      process.env["APPDATA"] ?? path.join(home, "AppData", "Roaming");
+    return [
+      path.join(appData, "rpcs3", "GuiConfigs", "persistent_settings.dat"),
+      ...(beside ? [beside] : []),
+    ];
+  }
+  return [
+    path.join(
+      home,
+      ".config",
+      "rpcs3",
+      "GuiConfigs",
+      "persistent_settings.dat"
+    ),
+    path.join(
+      home,
+      ".var",
+      "app",
+      "net.rpcs3.RPCS3",
+      "config",
+      "rpcs3",
+      "GuiConfigs",
+      "persistent_settings.dat"
+    ),
+    ...(beside ? [beside] : []),
+  ];
+};
+
+export const findExistingConfig = (paths: string[]): string | null => {
   for (const p of paths) {
     if (existsSync(p)) return p;
   }

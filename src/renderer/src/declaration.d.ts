@@ -320,6 +320,13 @@ declare global {
     getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    previewEmulatorExecutable: (
+      system: EmulatorSystem,
+      executablePath?: string | null
+    ) => Promise<{
+      executablePath: string;
+      detectedVersion: string | null;
+    } | null>;
     setEmulatorExecutablePath: (
       system: EmulatorSystem,
       executablePath: string | null
