@@ -7,3 +7,5 @@ export * from "./firmware-detection";
 export * from "./sniff-disc-platform";
 export * from "./emulator-config";
 export * from "./extract-disc-sku";
+export * from "./playtime-files";
+export * from "./emulator-session-tracker";

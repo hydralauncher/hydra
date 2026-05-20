@@ -150,6 +150,10 @@ contextBridge.exposeInMainWorld("electron", {
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("detectEmulator", system),
+  previewEmulatorExecutable: (
+    system: EmulatorSystem,
+    executablePath?: string | null
+  ) => ipcRenderer.invoke("previewEmulatorExecutable", system, executablePath),
   setEmulatorExecutablePath: (
     system: EmulatorSystem,
     executablePath: string | null

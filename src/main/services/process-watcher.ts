@@ -11,6 +11,7 @@ import { AchievementWatcherManager } from "./achievements/achievement-watcher-ma
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
+import { emulatorSessions } from "./emulators/emulator-session-tracker";
 
 export const gamesPlaytime = new Map<
   string,
@@ -253,12 +254,20 @@ export const watchProcesses = async () => {
   currentTick++;
 
   if (WindowManager.mainWindow) {
+    const now = performance.now();
     const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
       return {
         id: entry[0],
-        sessionDurationInMillis: performance.now() - entry[1].firstTick,
+        sessionDurationInMillis: now - entry[1].firstTick,
       } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
     });
+
+    for (const [gameKey, session] of emulatorSessions) {
+      gamesRunning.push({
+        id: gameKey,
+        sessionDurationInMillis: now - session.startedAt,
+      });
+    }
 
     WindowManager.mainWindow.webContents.send("on-games-running", gamesRunning);
   }
