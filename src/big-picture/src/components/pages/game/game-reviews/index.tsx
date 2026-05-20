@@ -8,17 +8,38 @@ import { sanitizeHtml } from "@shared";
 import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
+import { getItemFocusTarget } from "../../../../helpers";
 import { useDate, useFormat } from "../../../../hooks";
-import { Button, Typography } from "../../../common";
+import type { FocusOverrideTarget } from "../../../../services";
+import {
+  GAME_COMMENTS_REGION_ID,
+  GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_COMMENTS_LOAD_MORE_ID,
+  getGameCommentVoteItemId,
+} from "../navigation";
+import {
+  Button,
+  FocusItem,
+  HorizontalFocusGroup,
+  Typography,
+  VerticalFocusGroup,
+} from "../../../common";
 
 interface GameReviewsProps {
   shop: GameShop;
   objectId: string;
+  topNavigationTarget?: FocusOverrideTarget;
+  onHasNavigableActionsChange?: (hasNavigableActions: boolean) => void;
 }
 
 const REVIEWS_PER_PAGE = 24;
 
-export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
+export function GameReviews({
+  shop,
+  objectId,
+  topNavigationTarget,
+  onHasNavigableActionsChange,
+}: Readonly<GameReviewsProps>) {
   const [reviews, setReviews] = useState<GameReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [totalReviewCount, setTotalReviewCount] = useState(0);
@@ -183,6 +204,10 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
     };
   }, []);
 
+  useEffect(() => {
+    onHasNavigableActionsChange?.(reviews.length > 0);
+  }, [onHasNavigableActionsChange, reviews.length]);
+
   if (reviewsLoading && reviews.length === 0) {
     return null;
   }
@@ -201,113 +226,214 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
           <Typography>No comments yet</Typography>
         </div>
       ) : (
-        <div className="game-page__comments-feed">
-          {reviews.map((review) => (
-            <article key={review.id} className="game-page__comment-card">
-              <div className="game-page__comment-card-top">
-                <div className="game-page__comment-header">
-                  <div className="game-page__comment-user">
-                    {review.user.profileImageUrl ? (
-                      <img
-                        src={review.user.profileImageUrl}
-                        alt={review.user.displayName || "Anonymous"}
-                        className="game-page__comment-avatar"
-                      />
-                    ) : (
-                      <div className="game-page__comment-avatar game-page__comment-avatar--placeholder">
-                        <UserIcon size={20} weight="regular" />
-                      </div>
-                    )}
+        <VerticalFocusGroup regionId={GAME_COMMENTS_REGION_ID} asChild>
+          <div className="game-page__comments-navigation">
+            <VerticalFocusGroup
+              regionId={GAME_COMMENTS_ACTION_ROWS_REGION_ID}
+              className="game-page__comments-feed"
+              asChild
+            >
+              <div>
+                {reviews.map((review, index) => {
+                  const previousReview = reviews[index - 1];
+                  const nextReview = reviews[index + 1];
+                  const likeFocusId = getGameCommentVoteItemId(
+                    review.id,
+                    "upvote"
+                  );
+                  const dislikeFocusId = getGameCommentVoteItemId(
+                    review.id,
+                    "downvote"
+                  );
 
-                    <div className="game-page__comment-meta">
-                      <div className="game-page__comment-name-row">
-                        <Typography className="game-page__comment-display-name">
-                          {review.user.displayName || "Anonymous"}
-                        </Typography>
+                  return (
+                    <article key={review.id} className="game-page__comment-card">
+                      <div className="game-page__comment-card-top">
+                        <div className="game-page__comment-header">
+                          <div className="game-page__comment-user">
+                            {review.user.profileImageUrl ? (
+                              <img
+                                src={review.user.profileImageUrl}
+                                alt={review.user.displayName || "Anonymous"}
+                                className="game-page__comment-avatar"
+                              />
+                            ) : (
+                              <div className="game-page__comment-avatar game-page__comment-avatar--placeholder">
+                                <UserIcon size={20} weight="regular" />
+                              </div>
+                            )}
 
-                        <Typography className="game-page__comment-date">
-                          {formatDistance(
-                            new Date(review.createdAt),
-                            new Date(),
-                            {
-                              addSuffix: true,
-                            }
-                          )}
-                        </Typography>
+                            <div className="game-page__comment-meta">
+                              <div className="game-page__comment-name-row">
+                                <Typography className="game-page__comment-display-name">
+                                  {review.user.displayName || "Anonymous"}
+                                </Typography>
+
+                                <Typography className="game-page__comment-date">
+                                  {formatDistance(
+                                    new Date(review.createdAt),
+                                    new Date(),
+                                    {
+                                      addSuffix: true,
+                                    }
+                                  )}
+                                </Typography>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className="game-page__comment-body"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(review.reviewHtml),
+                          }}
+                        />
                       </div>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className="game-page__comment-body"
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizeHtml(review.reviewHtml),
+
+                      <HorizontalFocusGroup asChild>
+                        <div className="game-page__comment-card-bottom">
+                          <div className="game-page__comment-feedback">
+                            <FocusItem
+                              id={likeFocusId}
+                              navigationOverrides={{
+                                up: previousReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        previousReview.id,
+                                        "upvote"
+                                      )
+                                    )
+                                  : topNavigationTarget ?? { type: "block" },
+                                down: nextReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        nextReview.id,
+                                        "upvote"
+                                      )
+                                    )
+                                  : hasMore
+                                    ? getItemFocusTarget(
+                                        GAME_COMMENTS_LOAD_MORE_ID
+                                      )
+                                    : { type: "block" },
+                                left: { type: "block" },
+                                right: getItemFocusTarget(dislikeFocusId),
+                              }}
+                              asChild
+                            >
+                              <button
+                                className={`game-page__comment-feedback-item ${review.hasUpvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                                type="button"
+                                onClick={() => handleVote(review.id, "upvote")}
+                                disabled={votingReviews.has(review.id)}
+                                aria-label="Like comment"
+                              >
+                                <ThumbsUpIcon
+                                  size={20}
+                                  weight={
+                                    review.hasUpvoted ? "fill" : "regular"
+                                  }
+                                />
+                                <Typography>{review.upvotes ?? 0}</Typography>
+                              </button>
+                            </FocusItem>
+
+                            <FocusItem
+                              id={dislikeFocusId}
+                              navigationOverrides={{
+                                up: previousReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        previousReview.id,
+                                        "downvote"
+                                      )
+                                    )
+                                  : topNavigationTarget ?? { type: "block" },
+                                down: nextReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        nextReview.id,
+                                        "downvote"
+                                      )
+                                    )
+                                  : hasMore
+                                    ? getItemFocusTarget(
+                                        GAME_COMMENTS_LOAD_MORE_ID
+                                      )
+                                    : { type: "block" },
+                                left: getItemFocusTarget(likeFocusId),
+                                right: { type: "block" },
+                              }}
+                              asChild
+                            >
+                              <button
+                                className={`game-page__comment-feedback-item ${review.hasDownvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                                type="button"
+                                onClick={() =>
+                                  handleVote(review.id, "downvote")
+                                }
+                                disabled={votingReviews.has(review.id)}
+                                aria-label="Dislike comment"
+                              >
+                                <ThumbsDownIcon
+                                  size={20}
+                                  weight={
+                                    review.hasDownvoted ? "fill" : "regular"
+                                  }
+                                />
+                                <Typography>{review.downvotes ?? 0}</Typography>
+                              </button>
+                            </FocusItem>
+                          </div>
+
+                          <div className="game-page__comment-review-meta">
+                            <div className="game-page__comment-review-rating">
+                              <StarIcon size={20} weight="fill" />
+                              <span className="game-page__comment-review-rating-value">
+                                {review.score}/5
+                              </span>
+                              <span className="game-page__comment-review-rating-copy">
+                                {review.playTimeInSeconds &&
+                                review.playTimeInSeconds > 0
+                                  ? `after playing for ${formatPlayTime(review.playTimeInSeconds)}`
+                                  : "rating"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </HorizontalFocusGroup>
+                    </article>
+                  );
+                })}
+              </div>
+            </VerticalFocusGroup>
+
+            {hasMore && reviews.length > 0 && (
+              <div className="game-page__comments-load-more">
+                <Button
+                  focusId={GAME_COMMENTS_LOAD_MORE_ID}
+                  focusNavigationOverrides={{
+                    up: {
+                      type: "region",
+                      regionId: GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+                      entryDirection: "up",
+                      preferRememberedFocus: true,
+                    },
+                    down: { type: "block" },
+                    left: { type: "block" },
+                    right: { type: "block" },
                   }}
-                />
+                  variant="rounded"
+                  onClick={loadMore}
+                  disabled={reviewsLoading}
+                  loading={reviewsLoading}
+                >
+                  Load More
+                </Button>
               </div>
-
-              <div className="game-page__comment-card-bottom">
-                <div className="game-page__comment-feedback">
-                  <button
-                    className={`game-page__comment-feedback-item ${review.hasUpvoted ? "game-page__comment-feedback-item--active" : ""}`}
-                    type="button"
-                    onClick={() => handleVote(review.id, "upvote")}
-                    disabled={votingReviews.has(review.id)}
-                    aria-label="Like comment"
-                  >
-                    <ThumbsUpIcon
-                      size={20}
-                      weight={review.hasUpvoted ? "fill" : "regular"}
-                    />
-                    <Typography>{review.upvotes ?? 0}</Typography>
-                  </button>
-
-                  <button
-                    className={`game-page__comment-feedback-item ${review.hasDownvoted ? "game-page__comment-feedback-item--active" : ""}`}
-                    type="button"
-                    onClick={() => handleVote(review.id, "downvote")}
-                    disabled={votingReviews.has(review.id)}
-                    aria-label="Dislike comment"
-                  >
-                    <ThumbsDownIcon
-                      size={20}
-                      weight={review.hasDownvoted ? "fill" : "regular"}
-                    />
-                    <Typography>{review.downvotes ?? 0}</Typography>
-                  </button>
-                </div>
-
-                <div className="game-page__comment-review-meta">
-                  <div className="game-page__comment-review-rating">
-                    <StarIcon size={20} weight="fill" />
-                    <span className="game-page__comment-review-rating-value">
-                      {review.score}/5
-                    </span>
-                    <span className="game-page__comment-review-rating-copy">
-                      {review.playTimeInSeconds && review.playTimeInSeconds > 0
-                        ? `after playing for ${formatPlayTime(review.playTimeInSeconds)}`
-                        : "rating"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {hasMore && reviews.length > 0 && (
-        <div className="game-page__comments-load-more">
-          <Button
-            focusable={false}
-            variant="rounded"
-            onClick={loadMore}
-            disabled={reviewsLoading}
-            loading={reviewsLoading}
-          >
-            Load More
-          </Button>
-        </div>
+            )}
+          </div>
+        </VerticalFocusGroup>
       )}
     </section>
   );
