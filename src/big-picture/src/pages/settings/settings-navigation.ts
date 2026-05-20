@@ -22,9 +22,14 @@ export const NOTIFICATIONS_ACHIEVEMENTS_POSITION_SELECT_ID =
 export const NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID =
   "notifications-achievements-test-button";
 export const CONTENT_SECTION_REGION_ID = "content-section-region";
+export const COMPATIBILITY_SECTION_REGION_ID = "compatibility-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
   "account-privacy-profile-visibility";
+export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
+export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
+export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
+  "compatibility-common-redist";
 export const ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID =
   "account-privacy-update-email";
 export const ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID =
@@ -77,6 +82,9 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   enableSteamAchievements: "content-enable-steam-achievements",
 } as const;
 
+export const COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID =
+  "compatibility-proton-option-auto";
+
 export type IntegrationProviderId =
   | "real-debrid"
   | "premiumize"
@@ -115,6 +123,10 @@ export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
 
 export function getDownloadsSourceRemoveButtonFocusId(sourceId: string) {
   return `downloads-source-remove-${sourceId}`;
+}
+
+export function getCompatibilityProtonOptionFocusId(path: string) {
+  return `compatibility-proton-option-${path.replaceAll(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
 }
 
 export function getAccountPrivacyBlockedUserButtonFocusId(userId: string) {

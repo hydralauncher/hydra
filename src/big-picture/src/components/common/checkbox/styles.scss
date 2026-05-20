@@ -64,5 +64,30 @@
 
   &__label {
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    color: var(--text);
+  }
+
+  &__label-primary,
+  &__label-secondary {
+    min-width: 0;
+  }
+
+  &__label-primary {
+    color: var(--text);
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__label-secondary {
+    color: var(--text);
+    opacity: 0.5;
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
   }
 }

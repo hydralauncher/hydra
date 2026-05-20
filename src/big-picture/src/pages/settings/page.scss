@@ -58,6 +58,8 @@
   width: 0;
   min-width: 100%;
   max-width: 100%;
+  padding-inline: calc(var(--spacing-unit) * 18);
+  box-sizing: border-box;
 }
 
 .settings-page__copy {

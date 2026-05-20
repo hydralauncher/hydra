@@ -15,6 +15,12 @@
   user-select: none;
   cursor: pointer;
 
+  &:has(.radio__input[data-focus-visible="true"]) {
+    outline: 1px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: calc(var(--spacing-unit) * 2);
+  }
+
   &--block {
     width: 100%;
     border-radius: calc(var(--spacing-unit) * 2);
@@ -24,12 +30,8 @@
       background-color: var(--secondary);
     }
 
-    &--active {
-      background-color: var(--secondary-hover);
-
-      &:hover {
-        background-color: var(--secondary-hover);
-      }
+    &:has(.radio__input[data-focus-visible="true"]) {
+      background-color: var(--secondary);
     }
   }
 
@@ -56,8 +58,6 @@
 
     &:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 calc(var(--spacing-unit) * 2)
-        color-mix(in srgb, var(--primary) 25%, transparent);
     }
 
     &--checked {
