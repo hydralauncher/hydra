@@ -24,11 +24,7 @@ interface SettingsSectionProps {
   className?: string;
 }
 
-type DebridUser =
-  | RealDebridUser
-  | PremiumizeUser
-  | AllDebridUser
-  | TorBoxUser;
+type DebridUser = RealDebridUser | PremiumizeUser | AllDebridUser | TorBoxUser;
 
 type IntegrationPreferenceKey = Extract<
   keyof UserPreferences,

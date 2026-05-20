@@ -99,9 +99,7 @@ function FocusableTabsButton<TValue extends string = string>({
           })}
         >
           {variant === "settings" ? (
-            <span className="tabs__tab-label-text">
-              {item.label}
-            </span>
+            <span className="tabs__tab-label-text">{item.label}</span>
           ) : (
             item.label
           )}
@@ -155,9 +153,7 @@ function SettingsTabsButton<TValue extends string = string>({
       onClick={() => onSelect(item.value)}
     >
       <span className="tabs__tab-label tabs__tab-label--settings">
-        <span className="tabs__tab-label-text">
-          {item.label}
-        </span>
+        <span className="tabs__tab-label-text">{item.label}</span>
       </span>
 
       {isSelected && (
@@ -307,7 +303,9 @@ export function Tabs<TValue extends string = string>({
               aria-label={ariaLabel}
               className="tabs__tablist"
             >
-              {beforeTabs && <div className="tabs__before-tabs">{beforeTabs}</div>}
+              {beforeTabs && (
+                <div className="tabs__before-tabs">{beforeTabs}</div>
+              )}
 
               {resolvedItems.map((item) => {
                 const isSelected = selectedItem?.value === item.value;
@@ -315,10 +313,10 @@ export function Tabs<TValue extends string = string>({
                 return (
                   <SettingsTabsButton
                     key={item.value}
-                  item={item}
-                  isSelected={isSelected}
-                  indicatorLayoutId={indicatorLayoutId}
-                  onSelect={handleSelect}
+                    item={item}
+                    isSelected={isSelected}
+                    indicatorLayoutId={indicatorLayoutId}
+                    onSelect={handleSelect}
                   />
                 );
               })}
