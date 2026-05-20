@@ -224,7 +224,13 @@ export function ScreenshotCarousel({
     }
 
     isFocusDrivenScrollRef.current = false;
-  }, [currentFocusId, emblaApi, isFocusInsideCarousel, itemFocusIds, navigation]);
+  }, [
+    currentFocusId,
+    emblaApi,
+    isFocusInsideCarousel,
+    itemFocusIds,
+    navigation,
+  ]);
 
   useEffect(() => {
     if (!emblaApi) return;

@@ -52,7 +52,9 @@ export function SupportedLanguages({
             <Typography className="game-page__languages-label">
               Caption
             </Typography>
-            <Typography className="game-page__languages-label">Audio</Typography>
+            <Typography className="game-page__languages-label">
+              Audio
+            </Typography>
           </div>
         </div>
 
