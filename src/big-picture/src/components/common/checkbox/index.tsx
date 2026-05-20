@@ -1,14 +1,15 @@
 import "./styles.scss";
 
 import { CheckIcon } from "@phosphor-icons/react";
-import { useId, type MouseEvent } from "react";
+import { type ReactNode, useId, type MouseEvent } from "react";
 import cn from "classnames";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "..";
 
 export interface CheckboxProps {
   id?: string;
-  label?: string;
+  label?: ReactNode;
+  secondaryText?: ReactNode;
   checked?: boolean;
   block?: boolean;
   disabled?: boolean;
@@ -17,7 +18,11 @@ export interface CheckboxProps {
   onChange?: (checked: boolean) => void;
 }
 
-export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
+export const Checkbox = ({
+  label,
+  secondaryText,
+  ...props
+}: Readonly<CheckboxProps>) => {
   const generatedId = useId();
   const id = props.id ?? generatedId;
 
@@ -70,7 +75,10 @@ export const Checkbox = ({ label, ...props }: Readonly<CheckboxProps>) => {
 
       {label && (
         <label className="checkbox__label" id={`${id}-label`} htmlFor={id}>
-          {label}
+          <span className="checkbox__label-primary">{label}</span>
+          {secondaryText ? (
+            <span className="checkbox__label-secondary">{secondaryText}</span>
+          ) : null}
         </label>
       )}
     </div>
