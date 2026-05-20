@@ -8,7 +8,6 @@ import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS,
   DOWNLOADS_BEHAVIOR_SECTION_REGION_ID,
-  SETTINGS_TAB_FOCUS_IDS,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -143,10 +142,7 @@ export function DownloadsBehaviorSection({
                   type: "item",
                   itemId: previousItem.focusId,
                 }
-              : {
-                  type: "item",
-                  itemId: SETTINGS_TAB_FOCUS_IDS.downloads,
-                },
+              : { type: "block" },
             down: nextItem
               ? {
                   type: "item",
