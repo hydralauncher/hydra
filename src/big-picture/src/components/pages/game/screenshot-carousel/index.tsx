@@ -79,10 +79,10 @@ function ScreenshotCarouselSlide({
         }}
         asChild
       >
-        <div
+        <button
+          type="button"
           className="game-page__media-carousel-surface"
           onClick={() => onSelectItem(index)}
-          role="button"
           aria-label={`Media item ${index + 1}`}
         >
           {item.type === "video" ? (
@@ -112,7 +112,7 @@ function ScreenshotCarouselSlide({
               className="game-page__media-carousel-image"
             />
           )}
-        </div>
+        </button>
       </FocusItem>
     </article>
   );
