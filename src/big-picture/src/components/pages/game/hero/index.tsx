@@ -40,6 +40,8 @@ export interface HeroProps {
   onClose: () => void;
   isAddingToLibrary: boolean;
   canAddToLibrary: boolean;
+  mediaCarouselEntryTarget?: FocusOverrideTarget;
+  sidebarEntryTarget?: FocusOverrideTarget;
 }
 
 export function Hero({
@@ -55,11 +57,14 @@ export function Hero({
   onClose,
   isAddingToLibrary,
   canAddToLibrary,
+  mediaCarouselEntryTarget,
+  sidebarEntryTarget,
 }: Readonly<HeroProps>) {
   const dominantColor = useDominantColor(
     game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
   );
-  const heroDownNavigationTarget: FocusOverrideTarget = { type: "block" };
+  const heroDownNavigationTarget: FocusOverrideTarget =
+    mediaCarouselEntryTarget ?? { type: "block" };
   const hasPrimaryAction =
     isGameRunning ||
     Boolean(game?.executablePath) ||
@@ -67,7 +72,8 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
-  const lastActionRightTarget: FocusOverrideTarget = { type: "block" };
+  const lastActionRightTarget: FocusOverrideTarget =
+    sidebarEntryTarget ?? { type: "block" };
   const favoriteLeftTargetId =
     shouldShowCatalogActions && hasPrimaryAction
       ? GAME_HERO_DOWNLOAD_OPTIONS_ID
