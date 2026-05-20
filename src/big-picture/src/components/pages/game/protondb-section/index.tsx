@@ -28,10 +28,10 @@ export function ProtonDBSection({
   if (!protonDBData) return null;
 
   const tier = protonDBData.tier?.toLowerCase().trim() ?? null;
-  const tierLabel = tier ? protonTierLabels[tier] ?? "-" : "-";
+  const tierLabel = tier ? (protonTierLabels[tier] ?? "-") : "-";
 
   const deckLabel = protonDBData.deckCompatibility
-    ? deckCompatibilityLabels[protonDBData.deckCompatibility] ?? "Unknown"
+    ? (deckCompatibilityLabels[protonDBData.deckCompatibility] ?? "Unknown")
     : null;
 
   const scoreLabel =
@@ -96,9 +96,7 @@ export function ProtonDBSection({
             aria-hidden="true"
             className="game-page__protondb-icon"
           />
-          <Typography className="game-page__protondb-label">
-            Score
-          </Typography>
+          <Typography className="game-page__protondb-label">Score</Typography>
         </div>
 
         <Typography className="game-page__protondb-value">

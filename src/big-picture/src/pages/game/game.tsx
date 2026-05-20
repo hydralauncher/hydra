@@ -2,11 +2,7 @@ import { formatNumber } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Typography,
-  VerticalFocusGroup,
-  Divider,
-} from "../../components";
+import { Typography, VerticalFocusGroup, Divider } from "../../components";
 import { DownloadGameModal } from "../../components/modals";
 import {
   AchievementsBox,
