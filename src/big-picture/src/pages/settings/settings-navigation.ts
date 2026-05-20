@@ -1,14 +1,3 @@
-export const SETTINGS_TABS_REGION_ID = "settings-tabs-region";
-export const SETTINGS_TAB_FOCUS_IDS = {
-  general: "settings-tab-general",
-  downloads: "settings-tab-downloads",
-  notifications: "settings-tab-notifications",
-  "content-gameplay": "settings-tab-content-gameplay",
-  integrations: "settings-tab-integrations",
-  compatibility: "settings-tab-compatibility",
-  "account-privacy": "settings-tab-account-privacy",
-} as const;
-
 export const DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID =
   "download-directories-default-select";
 export const LANGUAGE_SECTION_BUTTON_ID = "language-section-button";
@@ -22,6 +11,18 @@ export const DOWNLOADS_SOURCES_ACTIONS_REGION_ID =
 export const DOWNLOADS_SOURCES_SYNC_BUTTON_ID = "downloads-sources-sync-button";
 export const DOWNLOADS_SOURCES_DELETE_ALL_BUTTON_ID =
   "downloads-sources-delete-all-button";
+export const NOTIFICATIONS_LIBRARY_SECTION_REGION_ID =
+  "notifications-library-section-region";
+export const NOTIFICATIONS_ACHIEVEMENTS_SECTION_REGION_ID =
+  "notifications-achievements-section-region";
+export const NOTIFICATIONS_ACHIEVEMENTS_ACTIONS_REGION_ID =
+  "notifications-achievements-actions-region";
+export const NOTIFICATIONS_ACHIEVEMENTS_POSITION_SELECT_ID =
+  "notifications-achievements-position-select";
+export const NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID =
+  "notifications-achievements-test-button";
+export const CONTENT_SECTION_REGION_ID = "content-section-region";
+export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 
 export const BEHAVIOR_ITEM_FOCUS_IDS = {
   preferQuitInsteadOfHiding: "behavior-prefer-quit-instead-of-hiding",
@@ -42,6 +43,59 @@ export const DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS = {
     "downloads-behavior-delete-archive-files-after-extraction-by-default",
   createStartMenuShortcut: "downloads-behavior-create-start-menu-shortcut",
 } as const;
+
+export const NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS = {
+  downloadNotificationsEnabled: "notifications-library-download-notifications",
+  repackUpdatesNotificationsEnabled:
+    "notifications-library-repack-updates-notifications",
+  friendRequestNotificationsEnabled:
+    "notifications-library-friend-request-notifications",
+  friendStartGameNotificationsEnabled:
+    "notifications-library-friend-start-game-notifications",
+} as const;
+
+export const NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS = {
+  achievementNotificationsEnabled:
+    "notifications-achievements-achievement-notifications",
+  achievementCustomNotificationsEnabled:
+    "notifications-achievements-custom-achievement-notifications",
+} as const;
+
+export const CONTENT_ITEM_FOCUS_IDS = {
+  autoplayGameTrailers: "content-autoplay-game-trailers",
+  disableNsfwAlert: "content-disable-nsfw-alert",
+  showHiddenAchievementsDescription:
+    "content-show-hidden-achievements-description",
+  enableSteamAchievements: "content-enable-steam-achievements",
+} as const;
+
+export type IntegrationProviderId =
+  | "real-debrid"
+  | "premiumize"
+  | "all-debrid"
+  | "torbox";
+
+export function getIntegrationProviderRegionId(providerId: IntegrationProviderId) {
+  return `integrations-${providerId}-region`;
+}
+
+export function getIntegrationProviderCheckboxFocusId(
+  providerId: IntegrationProviderId
+) {
+  return `integrations-${providerId}-checkbox`;
+}
+
+export function getIntegrationProviderInputFocusId(
+  providerId: IntegrationProviderId
+) {
+  return `integrations-${providerId}-input`;
+}
+
+export function getIntegrationProviderSaveButtonFocusId(
+  providerId: IntegrationProviderId
+) {
+  return `integrations-${providerId}-save`;
+}
 
 export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
   return isWindows
