@@ -189,31 +189,31 @@ export function Hero({
     }
 
     return {
-        primaryActionButton: (
-          <Button
-            focusId={GAME_HERO_PRIMARY_ACTION_ID}
-            focusNavigationOverrides={primaryActionNavigationOverrides}
-            variant="primary"
-            color={dominantColor ?? undefined}
-            icon={<PlusCircleIcon size={24} />}
-            onClick={onAddToLibrary}
-            loading={isAddingToLibrary}
+      primaryActionButton: (
+        <Button
+          focusId={GAME_HERO_PRIMARY_ACTION_ID}
+          focusNavigationOverrides={primaryActionNavigationOverrides}
+          variant="primary"
+          color={dominantColor ?? undefined}
+          icon={<PlusCircleIcon size={24} />}
+          onClick={onAddToLibrary}
+          loading={isAddingToLibrary}
         >
           Add to Library
         </Button>
       ),
       downloadOptionsButton: (
-          <Button
-            focusId={GAME_HERO_DOWNLOAD_OPTIONS_ID}
-            focusNavigationOverrides={downloadOptionsNavigationOverrides}
-            variant="secondary"
-            icon={<DownloadSimpleIcon size={24} />}
-            onClick={onOpenDownloadOptions}
-          >
-            Download Game
-          </Button>
-        ),
-      };
+        <Button
+          focusId={GAME_HERO_DOWNLOAD_OPTIONS_ID}
+          focusNavigationOverrides={downloadOptionsNavigationOverrides}
+          variant="secondary"
+          icon={<DownloadSimpleIcon size={24} />}
+          onClick={onOpenDownloadOptions}
+        >
+          Download Game
+        </Button>
+      ),
+    };
   }, [
     canAddToLibrary,
     dominantColor,
@@ -275,10 +275,7 @@ export function Hero({
 
           {primaryActionButton && shouldShowFavoriteButton && (
             <div className="game-page__hero-action-divider">
-              <Divider
-                orientation="vertical"
-                color="var(--text-secondary)"
-              />
+              <Divider orientation="vertical" color="var(--text-secondary)" />
             </div>
           )}
 
