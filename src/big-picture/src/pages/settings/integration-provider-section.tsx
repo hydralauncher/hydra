@@ -1,6 +1,7 @@
 import "./integration-provider-section.scss";
 
 import type { UserPreferences } from "@types";
+import { FloppyDiskIcon } from "@phosphor-icons/react";
 import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -141,8 +142,7 @@ export function IntegrationProviderSection<TUser>({
 
   const isProviderEnabled = form.enabled;
   const isTokenInputDisabled = !isProviderEnabled || isLoading;
-  const isSaveButtonDisabled =
-    !isProviderEnabled || !form.token?.trim() || isLoading;
+  const isSaveButtonDisabled = !isProviderEnabled || !form.token?.trim();
 
   const checkboxNavigationOverrides = useMemo<FocusOverrides>(
     () => ({
@@ -304,7 +304,8 @@ export function IntegrationProviderSection<TUser>({
             <Button
               type="submit"
               className="integration-provider-section__save-button"
-              color="white"
+              variant="secondary"
+              icon={<FloppyDiskIcon size={18} />}
               loading={isLoading}
               disabled={isSaveButtonDisabled}
               focusId={saveButtonFocusId}

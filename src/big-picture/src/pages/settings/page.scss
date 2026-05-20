@@ -8,7 +8,7 @@
   height: calc(100% + var(--big-picture-header-height));
   min-height: calc(100% + var(--big-picture-header-height));
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   background: var(--background);
   color: var(--text);
   box-sizing: border-box;

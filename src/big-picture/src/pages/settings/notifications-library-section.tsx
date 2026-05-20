@@ -8,6 +8,7 @@ import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS,
   NOTIFICATIONS_LIBRARY_SECTION_REGION_ID,
+  SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -132,7 +133,7 @@ export function NotificationsLibrarySection({
                   type: "item",
                   itemId: previousItem.focusId,
                 }
-              : { type: "block" },
+              : SETTINGS_HEADER_RETURN_TARGET,
             down: nextItem
               ? {
                   type: "item",

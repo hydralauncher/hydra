@@ -35,6 +35,27 @@ export const Checkbox = ({
   const handleBlockClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!props.block) return;
     if ((e.target as HTMLElement).closest(".checkbox__input")) return;
+    if (
+      (e.target as HTMLElement).closest(
+        "a, button, input, select, textarea, [role='button']"
+      )
+    ) {
+      return;
+    }
+
+    e.preventDefault();
+    handleChange(!isChecked);
+  };
+
+  const handleLabelClick = (e: MouseEvent<HTMLLabelElement>) => {
+    if (
+      props.disabled ||
+      (e.target as HTMLElement).closest(
+        "a, button, input, select, textarea, [role='button']"
+      )
+    ) {
+      return;
+    }
 
     e.preventDefault();
     handleChange(!isChecked);
@@ -73,14 +94,24 @@ export const Checkbox = ({
         </button>
       </FocusItem>
 
-      {label && (
-        <label className="checkbox__label" id={`${id}-label`} htmlFor={id}>
-          <span className="checkbox__label-primary">{label}</span>
-          {secondaryText ? (
-            <span className="checkbox__label-secondary">{secondaryText}</span>
+      {label || secondaryText ? (
+        <div className="checkbox__copy">
+          {label ? (
+            <label
+              className="checkbox__label"
+              id={`${id}-label`}
+              htmlFor={id}
+              onClick={handleLabelClick}
+            >
+              <span className="checkbox__label-primary">{label}</span>
+            </label>
           ) : null}
-        </label>
-      )}
+
+          {secondaryText ? (
+            <div className="checkbox__label-secondary">{secondaryText}</div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 };

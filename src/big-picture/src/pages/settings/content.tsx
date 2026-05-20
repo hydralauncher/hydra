@@ -8,6 +8,7 @@ import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
   CONTENT_SECTION_REGION_ID,
+  SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -117,7 +118,7 @@ export function ContentSettingsSection({
                   type: "item",
                   itemId: previousItem.focusId,
                 }
-              : { type: "block" },
+              : SETTINGS_HEADER_RETURN_TARGET,
             down: nextItem
               ? {
                   type: "item",

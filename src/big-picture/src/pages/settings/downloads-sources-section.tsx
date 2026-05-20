@@ -14,7 +14,7 @@ import {
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
 import { getItemFocusTarget } from "../../helpers";
-import { useFormat } from "../../hooks";
+import { useFormat, useNavigation } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
@@ -45,7 +45,7 @@ function isSyncingStatus(status: DownloadSourceStatus) {
 function getStatusLabel(status: DownloadSourceStatus) {
   switch (status) {
     case DownloadSourceStatus.Matched:
-      return "Up-to-date";
+      return "Up to Date";
     case DownloadSourceStatus.Failed:
       return "Error";
     case DownloadSourceStatus.PendingMatching:
@@ -69,6 +69,7 @@ export function DownloadsSourcesSection({
   className,
 }: Readonly<DownloadsSourcesSectionProps>) {
   const { formatNumber } = useFormat();
+  const { setFocus, setFocusRegion } = useNavigation();
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -205,6 +206,17 @@ export function DownloadsSourcesSection({
 
   const handleRemoveSource = useCallback(
     async (downloadSourceId: string) => {
+      const currentIndex = downloadSources.findIndex(
+        (downloadSource) => downloadSource.id === downloadSourceId
+      );
+      const nextSource = downloadSources[currentIndex + 1];
+      const previousSource = downloadSources[currentIndex - 1];
+      const nextFocusId = nextSource
+        ? getDownloadsSourceRemoveButtonFocusId(nextSource.id)
+        : previousSource
+          ? getDownloadsSourceRemoveButtonFocusId(previousSource.id)
+          : null;
+
       setIsRemoving(true);
 
       try {
@@ -213,11 +225,35 @@ export function DownloadsSourcesSection({
           downloadSourceId
         );
         await refreshDownloadSources();
+        globalThis.window.requestAnimationFrame(() => {
+          if (nextFocusId) {
+            setFocus(nextFocusId);
+            return;
+          }
+
+          const regionFocusId = setFocusRegion(
+            DOWNLOADS_SOURCES_ACTIONS_REGION_ID,
+            "up",
+            {
+              preferRememberedFocus: true,
+            }
+          );
+
+          if (!regionFocusId) {
+            setFocus(lastBehaviorFocusId);
+          }
+        });
       } finally {
         setIsRemoving(false);
       }
     },
-    [refreshDownloadSources]
+    [
+      downloadSources,
+      lastBehaviorFocusId,
+      refreshDownloadSources,
+      setFocus,
+      setFocusRegion,
+    ]
   );
 
   const handleDeleteAllSources = useCallback(async () => {
@@ -255,7 +291,8 @@ export function DownloadsSourcesSection({
                 icon={<ArrowsClockwiseIcon size={18} />}
                 focusId={DOWNLOADS_SOURCES_SYNC_BUTTON_ID}
                 focusNavigationOverrides={syncButtonNavigationOverrides}
-                disabled={!hasSources || isBusy}
+                loading={isSyncing}
+                disabled={!hasSources || isRemoving}
                 onClick={() => {
                   void handleSync();
                 }}

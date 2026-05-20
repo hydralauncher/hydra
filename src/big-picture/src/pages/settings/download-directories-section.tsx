@@ -41,6 +41,10 @@ import { getItemFocusTarget } from "../../helpers";
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import { SettingsSection } from "./settings-section";
+import {
+  SETTINGS_HEADER_RETURN_TARGET,
+  SETTINGS_SIDEBAR_RETURN_TARGET,
+} from "./settings-navigation";
 
 interface DownloadDirectoriesSectionProps {
   className?: string;
@@ -231,7 +235,9 @@ function getDirectoryCardNavigationOverrides(
   return {
     left: previousSlot
       ? getItemFocusTarget(focusIds[previousSlot.index])
-      : { type: "block" },
+      : index === 0
+        ? SETTINGS_SIDEBAR_RETURN_TARGET
+        : { type: "block" },
     right: nextSlot
       ? getItemFocusTarget(focusIds[nextSlot.index])
       : { type: "block" },
@@ -413,6 +419,7 @@ export function DownloadDirectoriesSection({
 
   const controlsNavigationOverrides: FocusOverrides = useMemo(
     () => ({
+      up: SETTINGS_HEADER_RETURN_TARGET,
       down: firstDirectoryFocusId
         ? getItemFocusTarget(firstDirectoryFocusId)
         : undefined,
@@ -526,7 +533,7 @@ export function DownloadDirectoriesSection({
             ariaLabel="Default download directory"
             focusId={DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID}
             focusNavigationOverrides={{
-              up: { type: "block" },
+              up: SETTINGS_HEADER_RETURN_TARGET,
               right: getItemFocusTarget(DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID),
               down: firstDirectoryFocusId
                 ? getItemFocusTarget(firstDirectoryFocusId)
@@ -542,7 +549,7 @@ export function DownloadDirectoriesSection({
             disabled={!canAddDirectory}
             focusId={DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID}
             focusNavigationOverrides={{
-              up: { type: "block" },
+              up: SETTINGS_HEADER_RETURN_TARGET,
               left: getItemFocusTarget(DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID),
               down: firstDirectoryFocusId
                 ? getItemFocusTarget(firstDirectoryFocusId)

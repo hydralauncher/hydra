@@ -1,7 +1,13 @@
 import "./compatibility.scss";
 
 import type { ProtonVersion } from "@types";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
@@ -13,6 +19,7 @@ import {
   COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID,
   COMPATIBILITY_SECTION_REGION_ID,
   getCompatibilityProtonOptionFocusId,
+  SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -208,6 +215,15 @@ export function CompatibilitySettingsSection({
     }
   }, []);
 
+  const handleOpenExternalLink = useCallback(
+    async (event: ReactMouseEvent<HTMLAnchorElement>, url: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      await globalThis.window.electron.openExternal(url);
+    },
+    []
+  );
+
   const protonOptions = useMemo<ProtonOption[]>(() => {
     const options: ProtonOption[] = [
       {
@@ -291,6 +307,9 @@ export function CompatibilitySettingsSection({
                       href={GAMEMODE_SITE_URL}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(event) => {
+                        void handleOpenExternalLink(event, GAMEMODE_SITE_URL);
+                      }}
                     >
                       Learn more
                     </a>
@@ -335,6 +354,9 @@ export function CompatibilitySettingsSection({
                       href={MANGOHUD_SITE_URL}
                       target="_blank"
                       rel="noreferrer"
+                      onClick={(event) => {
+                        void handleOpenExternalLink(event, MANGOHUD_SITE_URL);
+                      }}
                     >
                       Learn more
                     </a>
@@ -366,19 +388,12 @@ export function CompatibilitySettingsSection({
     if (shouldRenderCommonRedistSection) {
       nextItems.push({
         focusId: COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
-        disabled:
-          !canUseCommonRedistSection ||
-          !canInstallCommonRedist ||
-          installingCommonRedist,
+        disabled: !canUseCommonRedistSection || !canInstallCommonRedist,
         render: (navigationOverrides: FocusOverrides) => (
           <Button
             key={COMPATIBILITY_COMMON_REDIST_BUTTON_ID}
             className="compatibility-settings-section__common-redist-button"
-            disabled={
-              !canUseCommonRedistSection ||
-              !canInstallCommonRedist ||
-              installingCommonRedist
-            }
+            disabled={!canUseCommonRedistSection || !canInstallCommonRedist}
             loading={installingCommonRedist}
             focusId={COMPATIBILITY_COMMON_REDIST_BUTTON_ID}
             focusNavigationOverrides={navigationOverrides}
@@ -434,7 +449,7 @@ export function CompatibilitySettingsSection({
                   type: "item",
                   itemId: previousItem.focusId,
                 }
-              : { type: "block" },
+              : SETTINGS_HEADER_RETURN_TARGET,
             down: nextItem
               ? {
                   type: "item",
