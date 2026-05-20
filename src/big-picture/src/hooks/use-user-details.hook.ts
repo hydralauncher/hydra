@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { IS_DESKTOP } from "../constants";
-import type {
-  UpdateProfileRequest,
-  UserDetails,
-  UserProfile,
-} from "@types";
+import type { UpdateProfileRequest, UserDetails, UserProfile } from "@types";
 
 function mergeUserProfileIntoDetails(
   currentUserDetails: UserDetails | null,
@@ -49,9 +45,9 @@ export function useUserDetails() {
 
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
-      const updatedProfile = await window.electron.updateProfile(
+      const updatedProfile = (await window.electron.updateProfile(
         values
-      ) as UserProfile;
+      )) as UserProfile;
       const nextUserDetails = mergeUserProfileIntoDetails(
         userDetails,
         updatedProfile
@@ -73,11 +69,10 @@ export function useUserDetails() {
   }, [fetchUserDetails]);
 
   useEffect(() => {
-    const unsubscribeAccountUpdated = globalThis.window.electron.onAccountUpdated(
-      () => {
+    const unsubscribeAccountUpdated =
+      globalThis.window.electron.onAccountUpdated(() => {
         void fetchUserDetails();
-      }
-    );
+      });
     const unsubscribeSignIn = globalThis.window.electron.onSignIn(() => {
       void fetchUserDetails();
     });
