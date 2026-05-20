@@ -1,45 +1,37 @@
 import {
-  ClockIcon,
   StarIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
+  UserIcon,
 } from "@phosphor-icons/react";
 import { sanitizeHtml } from "@shared";
 import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
 import { useDate, useFormat } from "../../../../hooks";
-import { Box, Button, Typography } from "../../../common";
-
-type ReviewSortOption =
-  | "newest"
-  | "oldest"
-  | "score_high"
-  | "score_low"
-  | "most_voted";
+import { Button, Typography } from "../../../common";
 
 interface GameReviewsProps {
   shop: GameShop;
   objectId: string;
 }
 
-const REVIEWS_PER_PAGE = 5;
+const REVIEWS_PER_PAGE = 24;
 
 export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   const [reviews, setReviews] = useState<GameReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [totalReviewCount, setTotalReviewCount] = useState(0);
-  const [sortBy, setSortBy] = useState<ReviewSortOption>("newest");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
 
   const { formatDistance } = useDate();
-  const { formatNumber, formatPlayTime } = useFormat();
+  const { formatPlayTime } = useFormat();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadReviews = useCallback(
-    async (reset = false) => {
+    async (requestedPage: number, reset = false) => {
       if (!IS_DESKTOP || !objectId || shop === "custom") return;
 
       if (abortControllerRef.current) {
@@ -50,12 +42,12 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       abortControllerRef.current = abortController;
 
       setReviewsLoading(true);
+
       try {
-        const skip = reset ? 0 : page * REVIEWS_PER_PAGE;
+        const skip = reset ? 0 : requestedPage * REVIEWS_PER_PAGE;
         const params = new URLSearchParams({
           take: String(REVIEWS_PER_PAGE),
           skip: String(skip),
-          sortBy,
         });
 
         const response = await globalThis.window.electron.hydraApi.get<{
@@ -89,47 +81,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         }
       }
     },
-    [objectId, shop, page, sortBy]
+    [objectId, shop]
   );
 
-  const applyVote = (
-    review: GameReview,
-    voteType: "upvote" | "downvote"
-  ): GameReview => {
-    const updated = { ...review };
-
-    const isToggleOff =
-      (voteType === "upvote" && updated.hasUpvoted) ||
-      (voteType === "downvote" && updated.hasDownvoted);
-
-    if (isToggleOff) {
-      if (voteType === "upvote") {
-        updated.hasUpvoted = false;
-        updated.upvotes = Math.max(0, (updated.upvotes || 0) - 1);
-      } else {
-        updated.hasDownvoted = false;
-        updated.downvotes = Math.max(0, (updated.downvotes || 0) - 1);
-      }
-      return updated;
+  const loadMore = () => {
+    if (!reviewsLoading && hasMore) {
+      setPage((prev) => prev + 1);
     }
-
-    if (voteType === "upvote") {
-      updated.hasUpvoted = true;
-      updated.upvotes = (updated.upvotes || 0) + 1;
-    } else if (voteType === "downvote") {
-      updated.hasDownvoted = true;
-      updated.downvotes = (updated.downvotes || 0) + 1;
-    }
-
-    if (voteType === "upvote" && updated.hasDownvoted) {
-      updated.hasDownvoted = false;
-      updated.downvotes = Math.max(0, (updated.downvotes || 0) - 1);
-    } else if (voteType === "downvote" && updated.hasUpvoted) {
-      updated.hasUpvoted = false;
-      updated.upvotes = Math.max(0, (updated.upvotes || 0) - 1);
-    }
-
-    return updated;
   };
 
   const handleVote = async (
@@ -140,7 +98,8 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
 
     setVotingReviews((prev) => new Set(prev).add(reviewId));
 
-    const reviewIndex = reviews.findIndex((r) => r.id === reviewId);
+    const reviewIndex = reviews.findIndex((review) => review.id === reviewId);
+
     if (reviewIndex === -1) {
       setVotingReviews((prev) => {
         const next = new Set(prev);
@@ -150,9 +109,40 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       return;
     }
 
-    const originalReview = { ...reviews[reviewIndex] };
+    const review = reviews[reviewIndex];
+    const originalReview = { ...review };
     const updatedReviews = [...reviews];
-    updatedReviews[reviewIndex] = applyVote(originalReview, voteType);
+    const updatedReview = { ...review };
+
+    if (voteType === "upvote") {
+      if (review.hasUpvoted) {
+        updatedReview.hasUpvoted = false;
+        updatedReview.upvotes = Math.max(0, (review.upvotes || 0) - 1);
+      } else {
+        updatedReview.hasUpvoted = true;
+        updatedReview.upvotes = (review.upvotes || 0) + 1;
+
+        if (review.hasDownvoted) {
+          updatedReview.hasDownvoted = false;
+          updatedReview.downvotes = Math.max(0, (review.downvotes || 0) - 1);
+        }
+      }
+    } else {
+      if (review.hasDownvoted) {
+        updatedReview.hasDownvoted = false;
+        updatedReview.downvotes = Math.max(0, (review.downvotes || 0) - 1);
+      } else {
+        updatedReview.hasDownvoted = true;
+        updatedReview.downvotes = (review.downvotes || 0) + 1;
+
+        if (review.hasUpvoted) {
+          updatedReview.hasUpvoted = false;
+          updatedReview.upvotes = Math.max(0, (review.upvotes || 0) - 1);
+        }
+      }
+    }
+
+    updatedReviews[reviewIndex] = updatedReview;
     setReviews(updatedReviews);
 
     try {
@@ -160,10 +150,12 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         `/games/${shop}/${objectId}/reviews/${reviewId}/${voteType}`,
         { data: {} }
       );
-    } catch {
-      const rolledBack = [...reviews];
-      rolledBack[reviewIndex] = originalReview;
-      setReviews(rolledBack);
+    } catch (error) {
+      console.error(`Failed to ${voteType} review:`, error);
+
+      const rolledBackReviews = [...reviews];
+      rolledBackReviews[reviewIndex] = originalReview;
+      setReviews(rolledBackReviews);
     } finally {
       setTimeout(() => {
         setVotingReviews((prev) => {
@@ -175,27 +167,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
     }
   };
 
-  const handleSortChange = (newSortBy: ReviewSortOption) => {
-    if (newSortBy !== sortBy) {
-      setSortBy(newSortBy);
-      setPage(0);
-      setHasMore(true);
-    }
-  };
-
-  const loadMore = () => {
-    if (!reviewsLoading && hasMore) {
-      setPage((prev) => prev + 1);
-    }
-  };
-
   useEffect(() => {
-    loadReviews(true);
-  }, [sortBy, objectId, loadReviews]);
+    loadReviews(0, true);
+  }, [objectId, shop, loadReviews]);
 
   useEffect(() => {
     if (page > 0) {
-      loadReviews(false);
+      loadReviews(page, false);
     }
   }, [page, loadReviews]);
 
@@ -210,167 +188,123 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   }
 
   return (
-    <div className="game-page__box-group">
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Typography>Reviews</Typography>
-
-        <div
-          style={{
-            color: "rgba(255, 255, 255, 0.5)",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            backgroundColor: "rgba(255, 255, 255, 0.05)",
-          }}
-        >
+    <section className="game-page__comments">
+      <div className="game-page__comments-header">
+        <Typography className="game-page__comments-title">Comments</Typography>
+        <Typography className="game-page__comments-count">
           {totalReviewCount}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Button
-          focusable={false}
-          variant="link"
-          size="small"
-          onClick={() =>
-            handleSortChange(sortBy === "newest" ? "oldest" : "newest")
-          }
-        >
-          {sortBy === "oldest" ? "Oldest" : "Newest"}
-        </Button>
-
-        <Button
-          focusable={false}
-          variant="link"
-          size="small"
-          onClick={() =>
-            handleSortChange(
-              sortBy === "score_high" ? "score_low" : "score_high"
-            )
-          }
-        >
-          {sortBy === "score_low" ? "Lowest Score" : "Highest Score"}
-        </Button>
-
-        <Button
-          focusable={false}
-          variant="link"
-          size="small"
-          onClick={() => handleSortChange("most_voted")}
-        >
-          Most Voted
-        </Button>
+        </Typography>
       </div>
 
       {reviews.length === 0 ? (
-        <Box>
-          <Typography
-            style={{ color: "rgba(255, 255, 255, 0.5)", textAlign: "center" }}
-          >
-            No reviews yet
-          </Typography>
-        </Box>
+        <div className="game-page__comments-empty">
+          <Typography>No comments yet</Typography>
+        </div>
       ) : (
-        reviews.map((review) => {
-          const isVoting = votingReviews.has(review.id);
-
-          const row = (
-            <Box key={review.id} className="game-page__review-item">
-              <div className="game-page__review-header">
-                <div className="game-page__review-user">
-                  {review.user.profileImageUrl ? (
-                    <img
-                      src={review.user.profileImageUrl}
-                      alt={review.user.displayName}
-                      className="game-page__review-avatar"
-                    />
-                  ) : (
-                    <div className="game-page__review-avatar game-page__review-avatar--placeholder" />
-                  )}
-
-                  <div className="game-page__review-user-info">
-                    <Typography className="game-page__review-display-name">
-                      {review.user.displayName || "Anonymous"}
-                    </Typography>
-
-                    <div className="game-page__review-meta">
-                      <div className="game-page__review-score">
-                        <StarIcon size={12} weight="fill" />
-                        <span>{review.score}/5</span>
+        <div className="game-page__comments-feed">
+          {reviews.map((review) => (
+            <article key={review.id} className="game-page__comment-card">
+              <div className="game-page__comment-card-top">
+                <div className="game-page__comment-header">
+                  <div className="game-page__comment-user">
+                    {review.user.profileImageUrl ? (
+                      <img
+                        src={review.user.profileImageUrl}
+                        alt={review.user.displayName || "Anonymous"}
+                        className="game-page__comment-avatar"
+                      />
+                    ) : (
+                      <div className="game-page__comment-avatar game-page__comment-avatar--placeholder">
+                        <UserIcon size={20} weight="regular" />
                       </div>
+                    )}
 
-                      {Boolean(
-                        review.playTimeInSeconds && review.playTimeInSeconds > 0
-                      ) && (
-                        <div className="game-page__review-playtime">
-                          <ClockIcon size={12} />
-                          <span>
-                            {formatPlayTime(review.playTimeInSeconds ?? 0)}
-                          </span>
-                        </div>
-                      )}
+                    <div className="game-page__comment-meta">
+                      <div className="game-page__comment-name-row">
+                        <Typography className="game-page__comment-display-name">
+                          {review.user.displayName || "Anonymous"}
+                        </Typography>
+
+                        <Typography className="game-page__comment-date">
+                          {formatDistance(new Date(review.createdAt), new Date(), {
+                            addSuffix: true,
+                          })}
+                        </Typography>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <Typography className="game-page__review-date">
-                  {formatDistance(new Date(review.createdAt), new Date(), {
-                    addSuffix: true,
-                  })}
-                </Typography>
+                <div
+                  className="game-page__comment-body"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(review.reviewHtml),
+                  }}
+                />
               </div>
 
-              <div
-                className="game-page__review-content"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(review.reviewHtml),
-                }}
-              />
+              <div className="game-page__comment-card-bottom">
+                <div className="game-page__comment-feedback">
+                  <button
+                    className={`game-page__comment-feedback-item ${review.hasUpvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                    type="button"
+                    onClick={() => handleVote(review.id, "upvote")}
+                    disabled={votingReviews.has(review.id)}
+                    aria-label="Like comment"
+                  >
+                    <ThumbsUpIcon
+                      size={20}
+                      weight={review.hasUpvoted ? "fill" : "regular"}
+                    />
+                    <Typography>{review.upvotes ?? 0}</Typography>
+                  </button>
 
-              <div className="game-page__review-votes">
-                <button
-                  className={`game-page__review-vote-button ${review.hasUpvoted ? "game-page__review-vote-button--active" : ""}`}
-                  onClick={() => handleVote(review.id, "upvote")}
-                  disabled={isVoting}
-                  aria-label="Upvote"
-                >
-                  <ThumbsUpIcon
-                    size={14}
-                    weight={review.hasUpvoted ? "fill" : "regular"}
-                  />
-                  <span>{formatNumber(review.upvotes || 0)}</span>
-                </button>
+                  <button
+                    className={`game-page__comment-feedback-item ${review.hasDownvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                    type="button"
+                    onClick={() => handleVote(review.id, "downvote")}
+                    disabled={votingReviews.has(review.id)}
+                    aria-label="Dislike comment"
+                  >
+                    <ThumbsDownIcon
+                      size={20}
+                      weight={review.hasDownvoted ? "fill" : "regular"}
+                    />
+                    <Typography>{review.downvotes ?? 0}</Typography>
+                  </button>
+                </div>
 
-                <button
-                  className={`game-page__review-vote-button ${review.hasDownvoted ? "game-page__review-vote-button--active-down" : ""}`}
-                  onClick={() => handleVote(review.id, "downvote")}
-                  disabled={isVoting}
-                  aria-label="Downvote"
-                >
-                  <ThumbsDownIcon
-                    size={14}
-                    weight={review.hasDownvoted ? "fill" : "regular"}
-                  />
-                  <span>{formatNumber(review.downvotes || 0)}</span>
-                </button>
+                <div className="game-page__comment-review-meta">
+                  <div className="game-page__comment-review-rating">
+                    <StarIcon size={20} weight="fill" />
+                    <span className="game-page__comment-review-rating-value">
+                      {review.score}/5
+                    </span>
+                    <span className="game-page__comment-review-rating-copy">
+                      {review.playTimeInSeconds && review.playTimeInSeconds > 0
+                        ? `after playing for ${formatPlayTime(review.playTimeInSeconds)}`
+                        : "rating"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </Box>
-          );
-
-          return row;
-        })
+            </article>
+          ))}
+        </div>
       )}
 
       {hasMore && reviews.length > 0 && (
-        <Button
-          focusable={false}
-          variant="rounded"
-          onClick={loadMore}
-          disabled={reviewsLoading}
-          loading={reviewsLoading}
-        >
-          Load More
-        </Button>
+        <div className="game-page__comments-load-more">
+          <Button
+            focusable={false}
+            variant="rounded"
+            onClick={loadMore}
+            disabled={reviewsLoading}
+            loading={reviewsLoading}
+          >
+            Load More
+          </Button>
+        </div>
       )}
-    </div>
+    </section>
   );
 }

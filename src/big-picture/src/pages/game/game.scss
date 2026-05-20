@@ -71,7 +71,7 @@
 
   &__main-layout {
     display: flex;
-    gap: 16px;
+    gap: 64px;
     padding: 64px 0;
 
     #game-screenshot-carousel-prev-button {
@@ -91,6 +91,10 @@
 
   &__main-column {
     flex: 1;
+
+    > .divider-container {
+      padding-inline: 0;
+    }
   }
 
   &__sidebar-stats {
@@ -251,10 +255,36 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    background-color: #0e0e0e;
-    height: 76px;
-    border-radius: 8px;
-    padding: calc(var(--spacing-unit) * 4);
+    background-color: var(--secondary);
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 76px;
+  }
+
+  &__playtime-bar-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__playtime-bar-title {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  &__playtime-bar-value {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  &__playtime-bar-subtitle {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.2;
   }
 
   &__hero {
@@ -512,36 +542,6 @@
       }
     }
 
-    #game-reviews-primary-filter-button {
-      &[data-focused="true"] {
-        outline: 2px solid #fff !important;
-        outline-offset: -2px;
-      }
-    }
-
-    #game-reviews-secondary-filter-button {
-      &[data-focused="true"] {
-        outline: 2px solid #fff !important;
-        outline-offset: -2px;
-      }
-    }
-
-    #game-reviews-third-filter-button {
-      &[data-focused="true"] {
-        outline: 2px solid #fff !important;
-        outline-offset: -2px;
-      }
-    }
-
-    [id^="game-review-vote-button-upvote-"][data-focused="true"] {
-      outline: 2px solid #fbbf24 !important;
-      outline-offset: -2px;
-    }
-
-    [id^="game-review-vote-button-downvote-"][data-focused="true"] {
-      outline: 2px solid #f87171 !important;
-      outline-offset: -2px;
-    }
   }
 
   &__requirements-to-play {
@@ -730,123 +730,203 @@
     opacity: 0.45;
   }
 
-  &__reviews-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #0e0e0e;
-    padding: 8px;
-  }
-
-  &__review-item {
+  &__comments {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 16px;
+    width: 100%;
   }
 
-  &__review-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-
-  &__review-user {
+  &__comments-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
   }
 
-  &__review-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+  &__comments-title {
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  &__comments-count {
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  &__comments-empty {
+    padding: 24px 0;
+
+    .typography {
+      color: var(--text-secondary);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: center;
+    }
+  }
+
+  &__comments-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  &__comment-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__comment-card-top,
+  &__comment-card-bottom {
+    background-color: var(--secondary);
+  }
+
+  &__comment-card-top {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  &__comment-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px 10px 8px;
+    border-radius: 0 0 12px 12px;
+  }
+
+  &__comment-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+
+  &__comment-user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  &__comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
     object-fit: cover;
     flex-shrink: 0;
 
     &--placeholder {
-      background-color: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
     }
   }
 
-  &__review-user-info {
+  &__comment-meta {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
-  &__review-display-name {
+  &__comment-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+
+  &__comment-display-name {
+    color: var(--text);
+    font-size: 16px;
     font-weight: 600;
-    font-size: 13px;
+    line-height: 1.1;
+    min-width: 0;
   }
 
-  &__review-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
-  }
-
-  &__review-score {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #fbbf24;
-  }
-
-  &__review-playtime {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  &__review-date {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 11px;
+  &__comment-date {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.1;
+    margin-left: auto;
     flex-shrink: 0;
   }
 
-  &__review-content {
-    font-size: 13px;
+  &__comment-body {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 400;
     line-height: 1.5;
-    color: rgba(255, 255, 255, 0.8);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+    word-break: break-word;
 
     p {
       margin: 0;
     }
+
+    p + p {
+      margin-top: 16px;
+    }
+
+    a {
+      color: inherit;
+    }
   }
 
-  &__reviews-sort {
-    display: flex;
-    gap: 4px;
-    padding: 4px 0;
-  }
-
-  &__review-votes {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  &__review-vote-button {
+  &__comment-feedback {
     display: flex;
     align-items: center;
-    gap: 4px;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 12px;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    padding: 4px 8px;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  &__comment-feedback-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    appearance: none;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    padding: 6px 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
 
-    &:hover {
-      color: rgba(255, 255, 255, 0.7);
+    svg {
+      flex-shrink: 0;
+    }
+
+    .typography {
+      color: inherit;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
     }
 
     &:disabled {
@@ -855,14 +935,50 @@
     }
 
     &--active {
-      color: #4ade80;
-      border-color: rgba(74, 222, 128, 0.3);
-    }
+      color: var(--text);
 
-    &--active-down {
-      color: #f87171;
-      border-color: rgba(248, 113, 113, 0.3);
+      svg {
+        fill: currentColor;
+      }
     }
+  }
+
+  &__comment-review-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    line-height: 1.2;
+    text-align: right;
+    min-width: 0;
+  }
+
+  &__comment-review-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 400;
+    min-width: 0;
+
+    svg {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+  }
+
+  &__comment-review-rating-value {
+    color: var(--text);
+  }
+
+  &__comment-review-rating-copy {
+    color: var(--text-secondary);
+  }
+
+  &__comments-load-more {
+    display: flex;
+    justify-content: center;
+    padding-top: 8px;
   }
 
   &__legal-notice {
