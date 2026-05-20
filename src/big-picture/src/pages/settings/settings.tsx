@@ -75,7 +75,8 @@ export default function Settings() {
     setSelectedTab(fallbackTab);
   }, [selectedTab, visibleTabs]);
 
-  const selectTabByIndex = useCallback((nextIndex: number) => {
+  const selectTabByIndex = useCallback(
+    (nextIndex: number) => {
       const clampedIndex = Math.max(
         0,
         Math.min(nextIndex, visibleTabs.length - 1)
@@ -85,7 +86,9 @@ export default function Settings() {
       if (!nextTab) return;
 
       setSelectedTab(nextTab.id);
-    }, [visibleTabs]);
+    },
+    [visibleTabs]
+  );
 
   useEffect(() => {
     const removeLeftBumper = onButtonPressed(

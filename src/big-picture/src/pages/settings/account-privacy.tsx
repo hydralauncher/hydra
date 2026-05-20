@@ -73,12 +73,8 @@ export function AccountPrivacySettingsSection({
 }: Readonly<SettingsSectionProps>) {
   const { formatDate } = useDate();
   const { setFocus } = useNavigation();
-  const {
-    userDetails,
-    hasActiveSubscription,
-    patchUser,
-    unblockUser,
-  } = useUserDetails();
+  const { userDetails, hasActiveSubscription, patchUser, unblockUser } =
+    useUserDetails();
   const [profileVisibility, setProfileVisibility] =
     useState<ProfileVisibility>("PUBLIC");
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
@@ -101,7 +97,7 @@ export function AccountPrivacySettingsSection({
       .get<UserBlocks>("/profile/blocks", {
         params: { take: 12, skip: 0 },
       })
-      .catch(() => ({ totalBlocks: 0, blocks: [] } satisfies UserBlocks));
+      .catch(() => ({ totalBlocks: 0, blocks: [] }) satisfies UserBlocks);
 
     const nextBlockedUsers = response.blocks ?? [];
     setBlockedUsers(nextBlockedUsers);
@@ -189,7 +185,10 @@ export function AccountPrivacySettingsSection({
   const updateEmailButtonOverrides = useMemo<FocusOverrides>(
     () => ({
       up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
-      right: { type: "item", itemId: ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID },
+      right: {
+        type: "item",
+        itemId: ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID,
+      },
       down: { type: "item", itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID },
     }),
     []
