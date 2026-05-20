@@ -11,10 +11,11 @@ import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
 import { NotificationsSettingsSection } from "./notifications";
+import { useUserDetails } from "../../hooks";
 
 import "./page.scss";
 
-const SETTINGS_TABS = [
+const ALL_SETTINGS_TABS = [
   { id: "general", label: "General" },
   { id: "downloads", label: "Downloads" },
   { id: "notifications", label: "Notifications" },
@@ -24,7 +25,7 @@ const SETTINGS_TABS = [
   { id: "account-privacy", label: "Account and Privacy" },
 ] as const;
 
-type SettingsTabId = (typeof SETTINGS_TABS)[number]["id"];
+type SettingsTabId = (typeof ALL_SETTINGS_TABS)[number]["id"];
 type SettingsSectionComponentProps = {
   className?: string;
 };
@@ -35,7 +36,7 @@ function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
 
 const SETTINGS_TAB_CONTENT: Record<
   SettingsTabId,
-  (props: SettingsSectionComponentProps) => React.JSX.Element
+  (props: SettingsSectionComponentProps) => React.JSX.Element | null
 > = {
   general: GeneralSettingsSection,
   downloads: DownloadsSettingsSection,
@@ -47,28 +48,44 @@ const SETTINGS_TAB_CONTENT: Record<
 };
 
 export default function Settings() {
+  const { userDetails } = useUserDetails();
   const [selectedTab, setSelectedTab] = useState<SettingsTabId>(
-    SETTINGS_TABS[0].id
+    ALL_SETTINGS_TABS[0].id
   );
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
 
-  const selectedTabIndex = SETTINGS_TABS.findIndex(
+  const visibleTabs = useMemo(() => {
+    return ALL_SETTINGS_TABS.filter((tab) => {
+      if (tab.id !== "account-privacy") return true;
+
+      return Boolean(userDetails);
+    });
+  }, [userDetails]);
+
+  const selectedTabIndex = visibleTabs.findIndex(
     (tab) => tab.id === selectedTab
   );
   const SelectedTabContent =
     SETTINGS_TAB_CONTENT[selectedTab] ?? GeneralSettingsSection;
 
+  useEffect(() => {
+    if (visibleTabs.some((tab) => tab.id === selectedTab)) return;
+
+    const fallbackTab = visibleTabs[0]?.id ?? ALL_SETTINGS_TABS[0].id;
+    setSelectedTab(fallbackTab);
+  }, [selectedTab, visibleTabs]);
+
   const selectTabByIndex = useCallback((nextIndex: number) => {
-    const clampedIndex = Math.max(
-      0,
-      Math.min(nextIndex, SETTINGS_TABS.length - 1)
-    );
-    const nextTab = SETTINGS_TABS[clampedIndex];
+      const clampedIndex = Math.max(
+        0,
+        Math.min(nextIndex, visibleTabs.length - 1)
+      );
+      const nextTab = visibleTabs[clampedIndex];
 
-    if (!nextTab) return;
+      if (!nextTab) return;
 
-    setSelectedTab(nextTab.id);
-  }, []);
+      setSelectedTab(nextTab.id);
+    }, [visibleTabs]);
 
   useEffect(() => {
     const removeLeftBumper = onButtonPressed(
@@ -85,7 +102,7 @@ export default function Settings() {
       (event) => {
         if (
           !isActiveGamepadEvent(event) ||
-          selectedTabIndex >= SETTINGS_TABS.length - 1
+          selectedTabIndex >= visibleTabs.length - 1
         ) {
           return;
         }
@@ -103,16 +120,17 @@ export default function Settings() {
     onButtonPressed,
     selectTabByIndex,
     selectedTabIndex,
+    visibleTabs.length,
   ]);
 
   const tabItems = useMemo(() => {
-    return SETTINGS_TABS.map(
+    return visibleTabs.map(
       (tab): TabsItem<SettingsTabId> => ({
         value: tab.id,
         label: tab.label,
       })
     );
-  }, []);
+  }, [visibleTabs]);
 
   return (
     <VerticalFocusGroup regionId={SETTINGS_PAGE_REGION_ID} asChild>

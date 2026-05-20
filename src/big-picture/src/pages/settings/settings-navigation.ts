@@ -23,6 +23,14 @@ export const NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID =
   "notifications-achievements-test-button";
 export const CONTENT_SECTION_REGION_ID = "content-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
+export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
+  "account-privacy-profile-visibility";
+export const ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID =
+  "account-privacy-update-email";
+export const ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID =
+  "account-privacy-update-password";
+export const ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID =
+  "account-privacy-hydra-cloud";
 
 export const BEHAVIOR_ITEM_FOCUS_IDS = {
   preferQuitInsteadOfHiding: "behavior-prefer-quit-instead-of-hiding",
@@ -107,4 +115,8 @@ export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
 
 export function getDownloadsSourceRemoveButtonFocusId(sourceId: string) {
   return `downloads-source-remove-${sourceId}`;
+}
+
+export function getAccountPrivacyBlockedUserButtonFocusId(userId: string) {
+  return `account-privacy-blocked-user-${userId}`;
 }
