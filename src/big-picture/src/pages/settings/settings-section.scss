@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 4);
   width: 100%;
   min-width: 0;
 
@@ -35,6 +35,8 @@
     opacity: 0.5;
     font-size: 14px;
     font-weight: 400;
+    max-width: 72ch;
+    line-height: 1.4;
   }
 
   &__content {
