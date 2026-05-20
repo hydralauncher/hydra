@@ -75,7 +75,9 @@ export type IntegrationProviderId =
   | "all-debrid"
   | "torbox";
 
-export function getIntegrationProviderRegionId(providerId: IntegrationProviderId) {
+export function getIntegrationProviderRegionId(
+  providerId: IntegrationProviderId
+) {
   return `integrations-${providerId}-region`;
 }
 

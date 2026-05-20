@@ -4,12 +4,7 @@ import type { UserPreferences } from "@types";
 import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import {
-  Button,
-  Checkbox,
-  Input,
-  VerticalFocusGroup,
-} from "../../components";
+import { Button, Checkbox, Input, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
@@ -253,7 +248,10 @@ export function IntegrationProviderSection<TUser>({
       className="integration-provider-section"
     >
       <VerticalFocusGroup regionId={getIntegrationProviderRegionId(id)} asChild>
-        <form className="integration-provider-section__content" onSubmit={handleSubmit}>
+        <form
+          className="integration-provider-section__content"
+          onSubmit={handleSubmit}
+        >
           <Checkbox
             id={`${id}-enabled`}
             label={checkboxLabel}
@@ -274,7 +272,9 @@ export function IntegrationProviderSection<TUser>({
               value={form.token ?? ""}
               disabled={isTokenInputDisabled}
               focusId={inputFocusId}
-              focusNavigationState={isTokenInputDisabled ? "disabled" : "active"}
+              focusNavigationState={
+                isTokenInputDisabled ? "disabled" : "active"
+              }
               focusNavigationOverrides={inputNavigationOverrides}
               autoComplete="off"
               spellCheck={false}
@@ -287,7 +287,9 @@ export function IntegrationProviderSection<TUser>({
                     isTokenVisible ? "Hide API Token" : "Show API Token"
                   }
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => setIsTokenVisible((currentValue) => !currentValue)}
+                  onClick={() =>
+                    setIsTokenVisible((currentValue) => !currentValue)
+                  }
                   disabled={isTokenInputDisabled}
                 >
                   {isTokenVisible ? (
