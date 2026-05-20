@@ -460,7 +460,10 @@ export function CompatibilitySettingsSection({
           title="Default Proton Version"
           description="Choose which Proton version Hydra should use by default for compatible games."
         >
-          <VerticalFocusGroup regionId={COMPATIBILITY_SECTION_REGION_ID} asChild>
+          <VerticalFocusGroup
+            regionId={COMPATIBILITY_SECTION_REGION_ID}
+            asChild
+          >
             <div className="compatibility-settings-section__proton-options">
               {protonOptions.map((option) =>
                 items
@@ -499,8 +502,7 @@ export function CompatibilitySettingsSection({
           <div className="compatibility-settings-section__content">
             {items
               .filter(
-                (item) =>
-                  item.focusId === COMPATIBILITY_COMMON_REDIST_BUTTON_ID
+                (item) => item.focusId === COMPATIBILITY_COMMON_REDIST_BUTTON_ID
               )
               .map((item) =>
                 item.render(navigationOverridesByFocusId[item.focusId] ?? {})
