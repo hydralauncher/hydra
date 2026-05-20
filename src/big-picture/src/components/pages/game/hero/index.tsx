@@ -25,8 +25,6 @@ import {
   GAME_HERO_DOWNLOAD_OPTIONS_ID,
   GAME_HERO_PRIMARY_ACTION_ID,
   GAME_HERO_TOGGLE_FAVORITE_ID,
-  GAME_STATS_REGION_ID,
-  GAME_STATS_TITLE_ID,
 } from "../navigation";
 
 export interface HeroProps {
@@ -61,11 +59,7 @@ export function Hero({
   const dominantColor = useDominantColor(
     game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
   );
-  const heroDownNavigationTarget: FocusOverrideTarget = {
-    type: "region",
-    regionId: GAME_STATS_REGION_ID,
-    entryDirection: "down",
-  };
+  const heroDownNavigationTarget: FocusOverrideTarget = { type: "block" };
   const hasPrimaryAction =
     isGameRunning ||
     Boolean(game?.executablePath) ||
@@ -73,10 +67,7 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
-  const lastActionRightTarget: FocusOverrideTarget = {
-    type: "item",
-    itemId: GAME_STATS_TITLE_ID,
-  };
+  const lastActionRightTarget: FocusOverrideTarget = { type: "block" };
   const favoriteLeftTargetId =
     shouldShowCatalogActions && hasPrimaryAction
       ? GAME_HERO_DOWNLOAD_OPTIONS_ID

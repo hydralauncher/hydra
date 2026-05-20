@@ -3,12 +3,9 @@ import type { GameShop } from "@types";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  Divider,
-  FocusItem,
-  HorizontalFocusGroup,
-  SingleLineBox,
-  TitleBox,
+  Typography,
   VerticalFocusGroup,
+  Divider,
 } from "../../components";
 import { DownloadGameModal } from "../../components/modals";
 import {
@@ -17,20 +14,13 @@ import {
   Hero,
   HowLongToBeatBox,
   PlaytimeBar,
+  ProtonDBSection,
   RequirementsToPlay,
   ScreenshotCarousel,
   SupportedLanguages,
 } from "../../components/pages/game";
-import {
-  GAME_HERO_TOGGLE_FAVORITE_ID,
-  GAME_HOW_LONG_TO_BEAT_TITLE_ID,
-  GAME_PAGE_REGION_ID,
-  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
-  GAME_STATS_REGION_ID,
-  GAME_STATS_TITLE_ID,
-} from "../../components/pages/game/navigation";
+import { GAME_PAGE_REGION_ID } from "../../components/pages/game/navigation";
 import { useGameDetails, useHeaderTitle } from "../../hooks";
-import { FocusOverrides } from "../../services/navigation.service";
 import "./game.scss";
 
 export default function Game() {
@@ -44,6 +34,7 @@ export default function Game() {
     isGameRunning,
     isLoading,
     howLongToBeat,
+    protonDBData,
     achievements,
     openGame,
     closeGame,
@@ -110,24 +101,6 @@ export default function Game() {
     );
   }
 
-  const statsNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
-    },
-    right: {
-      type: "block",
-    },
-    down: {
-      type: "item",
-      itemId: GAME_HOW_LONG_TO_BEAT_TITLE_ID,
-    },
-  };
-
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div className="game-page">
@@ -149,80 +122,103 @@ export default function Game() {
         <section className="game-page__content">
           <PlaytimeBar game={game} />
 
-          <HorizontalFocusGroup regionId="game-main-content" asChild>
-            <div className="game-page__main-layout">
-              <VerticalFocusGroup regionId="game-main-content-1" asChild>
-                <div className="game-page__main-column">
-                  <ScreenshotCarousel
-                    videos={shopDetails.movies ?? []}
-                    screenshots={shopDetails.screenshots ?? []}
-                  />
+          <div className="game-page__main-layout">
+            <div className="game-page__main-column">
+              <ScreenshotCarousel
+                videos={shopDetails.movies ?? []}
+                screenshots={shopDetails.screenshots ?? []}
+              />
 
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: shopDetails.detailed_description,
-                    }}
-                    className="game-page__detailed-description"
-                  />
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: shopDetails.detailed_description,
+                }}
+                className="game-page__detailed-description"
+              />
 
-                  <Divider />
+              <Divider />
 
-                  <GameReviews shop={shop!} objectId={objectId!} />
-                </div>
-              </VerticalFocusGroup>
-
-              <VerticalFocusGroup regionId="sidebar-actions" asChild>
-                <div className="game-page__sidebar">
-                  <HorizontalFocusGroup
-                    className="game-page__sidebar-stats"
-                    regionId={GAME_STATS_REGION_ID}
-                  >
-                    <div className="game-page__box-group">
-                      <FocusItem
-                        id={GAME_STATS_TITLE_ID}
-                        navigationOverrides={statsNavigationOverrides}
-                      >
-                        <TitleBox title="Stats" />
-                      </FocusItem>
-
-                      <SingleLineBox
-                        title="Rating"
-                        value={formatNumber(stats?.averageScore ?? 0)}
-                      />
-                      <SingleLineBox
-                        title="Downloads"
-                        value={formatNumber(stats?.downloadCount ?? 0)}
-                      />
-                      <SingleLineBox
-                        title="Playing Now"
-                        value={formatNumber(stats?.playerCount ?? 0)}
-                      />
-                    </div>
-                  </HorizontalFocusGroup>
-
-                  <HowLongToBeatBox howLongToBeat={howLongToBeat ?? []} />
-
-                  <AchievementsBox achievements={achievements ?? []} />
-
-                  <div className="game-page__box-group">
-                    <SingleLineBox
-                      title="Published by"
-                      value={shopDetails.publishers[0]}
-                    />
-
-                    <SingleLineBox
-                      title="Release Date"
-                      value={shopDetails.release_date.date}
-                    />
-                  </div>
-
-                  <RequirementsToPlay shopDetails={shopDetails} />
-
-                  <SupportedLanguages shopDetails={shopDetails} />
-                </div>
-              </VerticalFocusGroup>
+              <GameReviews shop={shop!} objectId={objectId!} />
             </div>
-          </HorizontalFocusGroup>
+
+            <div className="game-page__sidebar">
+              <section className="game-page__stats" aria-label="Stats">
+                <div className="game-page__stats-title">
+                  <Typography>Stats</Typography>
+                </div>
+
+                <div className="game-page__stats-row">
+                  <Typography className="game-page__stats-label">
+                    Rating
+                  </Typography>
+                  <Typography className="game-page__stats-value">
+                    {formatNumber(stats?.averageScore ?? 0)}
+                  </Typography>
+                </div>
+
+                <div className="game-page__stats-row">
+                  <Typography className="game-page__stats-label">
+                    Downloads
+                  </Typography>
+                  <Typography className="game-page__stats-value">
+                    {formatNumber(stats?.downloadCount ?? 0)}
+                  </Typography>
+                </div>
+
+                <div className="game-page__stats-row">
+                  <Typography className="game-page__stats-label">
+                    Playing now
+                  </Typography>
+                  <Typography className="game-page__stats-value">
+                    {formatNumber(stats?.playerCount ?? 0)}
+                  </Typography>
+                </div>
+              </section>
+
+              <HowLongToBeatBox howLongToBeat={howLongToBeat ?? []} />
+
+              <ProtonDBSection protonDBData={protonDBData} />
+
+              <AchievementsBox achievements={achievements ?? []} />
+
+              <section className="game-page__metadata" aria-label="Game info">
+                {shopDetails.developers[0] && (
+                  <div className="game-page__metadata-row">
+                    <Typography className="game-page__metadata-label">
+                      Developed by
+                    </Typography>
+                    <Typography className="game-page__metadata-value">
+                      {shopDetails.developers[0]}
+                    </Typography>
+                  </div>
+                )}
+
+                {shopDetails.publishers[0] && (
+                  <div className="game-page__metadata-row">
+                    <Typography className="game-page__metadata-label">
+                      Published by
+                    </Typography>
+                    <Typography className="game-page__metadata-value">
+                      {shopDetails.publishers[0]}
+                    </Typography>
+                  </div>
+                )}
+
+                <div className="game-page__metadata-row">
+                  <Typography className="game-page__metadata-label">
+                    Release Date
+                  </Typography>
+                  <Typography className="game-page__metadata-value">
+                    {shopDetails.release_date.date}
+                  </Typography>
+                </div>
+              </section>
+
+              <RequirementsToPlay shopDetails={shopDetails} />
+
+              <SupportedLanguages shopDetails={shopDetails} />
+            </div>
+          </div>
         </section>
 
         <DownloadGameModal

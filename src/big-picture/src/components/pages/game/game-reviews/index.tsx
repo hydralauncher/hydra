@@ -9,30 +9,7 @@ import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
 import { useDate, useFormat } from "../../../../hooks";
-import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
-import {
-  FocusOverrides,
-  NavigationService,
-} from "../../../../services/navigation.service";
-import {
-  Box,
-  Button,
-  FocusItem,
-  HorizontalFocusGroup,
-  Typography,
-} from "../../../common";
-import {
-  GAME_REVIEWS_LOAD_MORE_ID,
-  GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
-  GAME_REVIEWS_REGION_ID,
-  GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-  GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
-  GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-  GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-  getGameReviewVoteButtonDownvoteId,
-  getGameReviewVoteButtonUpvoteId,
-  getGameReviewVotesRegionId,
-} from "../navigation";
+import { Box, Button, Typography } from "../../../common";
 
 type ReviewSortOption =
   | "newest"
@@ -60,7 +37,6 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   const { formatDistance } = useDate();
   const { formatNumber, formatPlayTime } = useFormat();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const prevHasMoreRef = useRef(true);
 
   const loadReviews = useCallback(
     async (reset = false) => {
@@ -224,17 +200,6 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   }, [page, loadReviews]);
 
   useEffect(() => {
-    if (prevHasMoreRef.current && !hasMore && reviews.length > 0) {
-      const lastReview = reviews[reviews.length - 1];
-      const targetId = getGameReviewVoteButtonUpvoteId(lastReview.id);
-      requestAnimationFrame(() => {
-        NavigationService.getInstance().setFocus(targetId);
-      });
-    }
-    prevHasMoreRef.current = hasMore;
-  }, [hasMore, reviews]);
-
-  useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
     };
@@ -243,85 +208,6 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
   if (reviewsLoading && reviews.length === 0) {
     return null;
   }
-
-  const primaryFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-    },
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-    },
-  };
-
-  const secondaryFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
-    },
-  };
-
-  const thirdFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-  };
-
-  const upvoteButtonNavigationOverrides = (
-    reviewId: string
-  ): FocusOverrides => ({
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: getGameReviewVoteButtonDownvoteId(reviewId),
-    },
-  });
-
-  const downvoteButtonNavigationOverrides = (
-    reviewId: string
-  ): FocusOverrides => ({
-    left: {
-      type: "item",
-      itemId: getGameReviewVoteButtonUpvoteId(reviewId),
-    },
-    right: {
-      type: "block",
-    },
-  });
-
-  const loadMoreNavigationOverrides: FocusOverrides = {
-    right: {
-      type: "block",
-    },
-    down: {
-      type: "block",
-    },
-  };
 
   return (
     <div className="game-page__box-group">
@@ -340,45 +226,40 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         </div>
       </div>
 
-      <HorizontalFocusGroup regionId={GAME_REVIEWS_REGION_ID} asChild>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button
-            focusId={GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID}
-            focusNavigationOverrides={primaryFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() =>
-              handleSortChange(sortBy === "newest" ? "oldest" : "newest")
-            }
-          >
-            {sortBy === "oldest" ? "Oldest" : "Newest"}
-          </Button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Button
+          focusable={false}
+          variant="link"
+          size="small"
+          onClick={() =>
+            handleSortChange(sortBy === "newest" ? "oldest" : "newest")
+          }
+        >
+          {sortBy === "oldest" ? "Oldest" : "Newest"}
+        </Button>
 
-          <Button
-            focusId={GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID}
-            focusNavigationOverrides={secondaryFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() =>
-              handleSortChange(
-                sortBy === "score_high" ? "score_low" : "score_high"
-              )
-            }
-          >
-            {sortBy === "score_low" ? "Lowest Score" : "Highest Score"}
-          </Button>
+        <Button
+          focusable={false}
+          variant="link"
+          size="small"
+          onClick={() =>
+            handleSortChange(
+              sortBy === "score_high" ? "score_low" : "score_high"
+            )
+          }
+        >
+          {sortBy === "score_low" ? "Lowest Score" : "Highest Score"}
+        </Button>
 
-          <Button
-            focusId={GAME_REVIEWS_THIRD_FILTER_BUTTON_ID}
-            focusNavigationOverrides={thirdFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() => handleSortChange("most_voted")}
-          >
-            Most Voted
-          </Button>
-        </div>
-      </HorizontalFocusGroup>
+        <Button
+          focusable={false}
+          variant="link"
+          size="small"
+          onClick={() => handleSortChange("most_voted")}
+        >
+          Most Voted
+        </Button>
+      </div>
 
       {reviews.length === 0 ? (
         <Box>
@@ -445,54 +326,33 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
                 }}
               />
 
-              <HorizontalFocusGroup
-                regionId={getGameReviewVotesRegionId(review.id)}
-                asChild
-              >
-                <div className="game-page__review-votes">
-                  <FocusItem
-                    id={getGameReviewVoteButtonUpvoteId(review.id)}
-                    navigationOverrides={upvoteButtonNavigationOverrides(
-                      review.id
-                    )}
-                    asChild
-                  >
-                    <button
-                      className={`game-page__review-vote-button ${review.hasUpvoted ? "game-page__review-vote-button--active" : ""}`}
-                      onClick={() => handleVote(review.id, "upvote")}
-                      disabled={isVoting}
-                      aria-label="Upvote"
-                    >
-                      <ThumbsUpIcon
-                        size={14}
-                        weight={review.hasUpvoted ? "fill" : "regular"}
-                      />
-                      <span>{formatNumber(review.upvotes || 0)}</span>
-                    </button>
-                  </FocusItem>
+              <div className="game-page__review-votes">
+                <button
+                  className={`game-page__review-vote-button ${review.hasUpvoted ? "game-page__review-vote-button--active" : ""}`}
+                  onClick={() => handleVote(review.id, "upvote")}
+                  disabled={isVoting}
+                  aria-label="Upvote"
+                >
+                  <ThumbsUpIcon
+                    size={14}
+                    weight={review.hasUpvoted ? "fill" : "regular"}
+                  />
+                  <span>{formatNumber(review.upvotes || 0)}</span>
+                </button>
 
-                  <FocusItem
-                    id={getGameReviewVoteButtonDownvoteId(review.id)}
-                    navigationOverrides={downvoteButtonNavigationOverrides(
-                      review.id
-                    )}
-                    asChild
-                  >
-                    <button
-                      className={`game-page__review-vote-button ${review.hasDownvoted ? "game-page__review-vote-button--active-down" : ""}`}
-                      onClick={() => handleVote(review.id, "downvote")}
-                      disabled={isVoting}
-                      aria-label="Downvote"
-                    >
-                      <ThumbsDownIcon
-                        size={14}
-                        weight={review.hasDownvoted ? "fill" : "regular"}
-                      />
-                      <span>{formatNumber(review.downvotes || 0)}</span>
-                    </button>
-                  </FocusItem>
-                </div>
-              </HorizontalFocusGroup>
+                <button
+                  className={`game-page__review-vote-button ${review.hasDownvoted ? "game-page__review-vote-button--active-down" : ""}`}
+                  onClick={() => handleVote(review.id, "downvote")}
+                  disabled={isVoting}
+                  aria-label="Downvote"
+                >
+                  <ThumbsDownIcon
+                    size={14}
+                    weight={review.hasDownvoted ? "fill" : "regular"}
+                  />
+                  <span>{formatNumber(review.downvotes || 0)}</span>
+                </button>
+              </div>
             </Box>
           );
 
@@ -502,12 +362,11 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
 
       {hasMore && reviews.length > 0 && (
         <Button
-          focusId={GAME_REVIEWS_LOAD_MORE_ID}
+          focusable={false}
           variant="rounded"
           onClick={loadMore}
           disabled={reviewsLoading}
           loading={reviewsLoading}
-          focusNavigationOverrides={loadMoreNavigationOverrides}
         >
           Load More
         </Button>

@@ -1,17 +1,7 @@
-import type { GameShop, UserAchievement } from "@types";
-import { Link, useParams } from "react-router-dom";
-import { Box, FocusItem, Typography } from "../../../common";
+import type { UserAchievement } from "@types";
 import cn from "classnames";
 import { EyeIcon } from "@phosphor-icons/react/dist/ssr";
-import {
-  GAME_ACHIEVEMENTS_TITLE_ID,
-  GAME_ACHIEVEMENTS_VIEW_ALL_ID,
-  GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
-  GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
-  GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-} from "../navigation";
-import { FocusOverrides } from "src/big-picture/src/services/navigation.service";
-import { getBigPictureGameAchievementsPath } from "../../../../helpers";
+import { Typography } from "../../../common";
 
 export interface AchievementsBoxProps {
   achievements: UserAchievement[];
@@ -20,62 +10,22 @@ export interface AchievementsBoxProps {
 export function AchievementsBox({
   achievements,
 }: Readonly<AchievementsBoxProps>) {
-  const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
-  const viewAllPath =
-    shop && objectId
-      ? getBigPictureGameAchievementsPath({ shop, objectId })
-      : "";
-  const achievementsNavigationOverrides: FocusOverrides = {
-    down: {
-      type: "item",
-      itemId: GAME_ACHIEVEMENTS_VIEW_ALL_ID,
-    },
-    right: {
-      type: "block",
-    },
-    left: {
-      type: "item",
-      itemId: GAME_SCREENSHOT_CAROUSEL_NEXT_BUTTON_ID,
-    },
-  };
-
-  const viewAllNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_ACHIEVEMENTS_TITLE_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-    },
-    right: {
-      type: "block",
-    },
-    down: {
-      type: "item",
-      itemId: GAME_REQUIREMENTS_TO_PLAY_MINIMUM_BUTTON_ID,
-    },
-  };
+  const unlockedCount = achievements.filter(
+    (achievement) => achievement.unlocked
+  ).length;
 
   return (
-    <div className="game-page__box-group">
-      <FocusItem
-        id={GAME_ACHIEVEMENTS_TITLE_ID}
-        navigationOverrides={achievementsNavigationOverrides}
-        asChild
-      >
-        <Link to={viewAllPath} className="game-page__achievements-title">
-          <Typography>Achievements</Typography>
+    <section className="game-page__achievements" aria-label="Achievements">
+      <div className="game-page__achievements-title">
+        <Typography>Achievements</Typography>
 
-          <span>
-            {achievements.filter((achievement) => achievement.unlocked).length}{" "}
-            / {achievements.length}
-          </span>
-        </Link>
-      </FocusItem>
+        <Typography className="game-page__achievements-progress">
+          {unlockedCount} / {achievements.length}
+        </Typography>
+      </div>
 
-      {achievements.slice(0, 5).map((achievement) => (
-        <Box key={achievement.name} className="game-page__achievement">
+      {achievements.slice(0, 6).map((achievement) => (
+        <div key={achievement.name} className="game-page__achievement">
           <img
             src={achievement.icon}
             width={56}
@@ -88,36 +38,38 @@ export function AchievementsBox({
           />
 
           <div className="game-page__achievement-info">
-            <Typography>{achievement.displayName}</Typography>
+            <Typography className="game-page__achievement-name">
+              {achievement.displayName}
+            </Typography>
 
-            <Typography style={{ color: "rgba(255, 255, 255, 0.5)" }}>
+            <Typography className="game-page__achievement-description">
               {achievement.description}
             </Typography>
           </div>
-        </Box>
+        </div>
       ))}
 
-      <Box className="game-page__achievement-box">
+      <div className="game-page__achievement-view-all">
         <div className="game-page__achievement-icon-locked">
           <EyeIcon size={24} />
         </div>
 
-        <div className="game-page__achievement-box-content">
-          <div className="game-page__achievement-box-link">
-            <FocusItem
-              id={GAME_ACHIEVEMENTS_VIEW_ALL_ID}
-              navigationOverrides={viewAllNavigationOverrides}
-            >
-              <Link to={viewAllPath}>
-                <Typography>View All Achievements</Typography>
-              </Link>
-            </FocusItem>
-            <span>Time to platinum!</span>
+        <div className="game-page__achievement-view-all-content">
+          <div className="game-page__achievement-view-all-copy">
+            <Typography className="game-page__achievement-view-all-title">
+              View All Achievements
+            </Typography>
+
+            <Typography className="game-page__achievement-view-all-description">
+              Time to platinum!
+            </Typography>
           </div>
 
-          <span>{achievements.length}</span>
+          <Typography className="game-page__achievement-view-all-count">
+            {achievements.length}
+          </Typography>
         </div>
-      </Box>
-    </div>
+      </div>
+    </section>
   );
 }
