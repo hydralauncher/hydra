@@ -46,8 +46,7 @@ export const DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS = {
 export function getLastDownloadsBehaviorItemFocusId(isWindows: boolean) {
   return isWindows
     ? DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut
-    : DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS
-        .deleteArchiveFilesAfterExtractionByDefault;
+    : DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.deleteArchiveFilesAfterExtractionByDefault;
 }
 
 export function getDownloadsSourceRemoveButtonFocusId(sourceId: string) {

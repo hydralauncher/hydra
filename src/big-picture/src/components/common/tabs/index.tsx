@@ -353,7 +353,9 @@ export function Tabs<TValue extends string = string>({
               />
             )}
 
-            {beforeTabs && <div className="tabs__before-tabs">{beforeTabs}</div>}
+            {beforeTabs && (
+              <div className="tabs__before-tabs">{beforeTabs}</div>
+            )}
 
             {resolvedItems.map((item, index) => {
               const isSelected = selectedItem?.value === item.value;

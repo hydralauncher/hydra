@@ -94,8 +94,7 @@ export function DownloadsBehaviorSection({
       },
       {
         id: "show-download-speed-in-megabytes",
-        focusId:
-          DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.showDownloadSpeedInMegabytes,
+        focusId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.showDownloadSpeedInMegabytes,
         label: "Show download speed in megabytes",
         checked: form.showDownloadSpeedInMegabytes,
         onChange: (checked: boolean) =>
@@ -168,7 +167,10 @@ export function DownloadsBehaviorSection({
       description="Control how downloads behave by default."
       className={className}
     >
-      <VerticalFocusGroup regionId={DOWNLOADS_BEHAVIOR_SECTION_REGION_ID} asChild>
+      <VerticalFocusGroup
+        regionId={DOWNLOADS_BEHAVIOR_SECTION_REGION_ID}
+        asChild
+      >
         <div className="downloads-behavior-section__content">
           {items.map((item) => (
             <Checkbox
