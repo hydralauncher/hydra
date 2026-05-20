@@ -126,36 +126,34 @@ export default function Settings() {
   ]);
 
   const tabItems = useMemo(() => {
-    return SETTINGS_TABS.map(
-      (tab, index): TabsItem<SettingsTabId> => {
-        const previousTab = SETTINGS_TABS[index - 1];
-        const nextTab = SETTINGS_TABS[index + 1];
+    return SETTINGS_TABS.map((tab, index): TabsItem<SettingsTabId> => {
+      const previousTab = SETTINGS_TABS[index - 1];
+      const nextTab = SETTINGS_TABS[index + 1];
 
-        const downTarget =
-          tab.id === "downloads"
-            ? getItemFocusTarget(
-                DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.seedAfterDownloadComplete
-              )
-            : tab.id === "general"
-              ? getItemFocusTarget(DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID)
-              : { type: "block" as const };
+      const downTarget =
+        tab.id === "downloads"
+          ? getItemFocusTarget(
+              DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.seedAfterDownloadComplete
+            )
+          : tab.id === "general"
+            ? getItemFocusTarget(DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID)
+            : { type: "block" as const };
 
-        return {
-          id: SETTINGS_TAB_FOCUS_IDS[tab.id],
-          value: tab.id,
-          label: tab.label,
-          navigationOverrides: {
-            left: previousTab
-              ? getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS[previousTab.id])
-              : { type: "block" },
-            right: nextTab
-              ? getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS[nextTab.id])
-              : { type: "block" },
-            down: downTarget,
-          },
-        };
-      }
-    );
+      return {
+        id: SETTINGS_TAB_FOCUS_IDS[tab.id],
+        value: tab.id,
+        label: tab.label,
+        navigationOverrides: {
+          left: previousTab
+            ? getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS[previousTab.id])
+            : { type: "block" },
+          right: nextTab
+            ? getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS[nextTab.id])
+            : { type: "block" },
+          down: downTarget,
+        },
+      };
+    });
   }, []);
 
   return (
