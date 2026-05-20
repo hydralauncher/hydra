@@ -13,6 +13,7 @@ import { useFeature } from "../../hooks";
 import type { FocusOverrideTarget } from "../../services";
 import {
   getIntegrationProviderCheckboxFocusId,
+  SETTINGS_HEADER_RETURN_TARGET,
   type IntegrationProviderId,
 } from "./settings-navigation";
 import {
@@ -149,7 +150,7 @@ export function IntegrationsSettingsSection({
                 previousProvider.id as IntegrationProviderId
               ),
             }
-          : { type: "block" };
+          : SETTINGS_HEADER_RETURN_TARGET;
 
         const downTarget: FocusOverrideTarget = nextProvider
           ? {

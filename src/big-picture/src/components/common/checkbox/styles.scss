@@ -62,8 +62,7 @@
     }
   }
 
-  &__label {
-    cursor: pointer;
+  &__copy {
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -71,9 +70,14 @@
     color: var(--text);
   }
 
+  &__label,
   &__label-primary,
   &__label-secondary {
     min-width: 0;
+  }
+
+  &__label {
+    cursor: pointer;
   }
 
   &__label-primary {

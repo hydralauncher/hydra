@@ -1,3 +1,10 @@
+import type { FocusOverrideTarget } from "../../services";
+import { getItemFocusTarget } from "../../helpers";
+import {
+  BIG_PICTURE_HEADER_REGION_ID,
+  BIG_PICTURE_SIDEBAR_ITEM_IDS,
+} from "../../layout/navigation";
+
 export const DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID =
   "download-directories-default-select";
 export const LANGUAGE_SECTION_BUTTON_ID = "language-section-button";
@@ -84,6 +91,16 @@ export const CONTENT_ITEM_FOCUS_IDS = {
 
 export const COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID =
   "compatibility-proton-option-auto";
+
+export const SETTINGS_HEADER_RETURN_TARGET: FocusOverrideTarget = {
+  type: "region",
+  regionId: BIG_PICTURE_HEADER_REGION_ID,
+  entryDirection: "down",
+};
+
+export const SETTINGS_SIDEBAR_RETURN_TARGET = getItemFocusTarget(
+  BIG_PICTURE_SIDEBAR_ITEM_IDS.settings
+);
 
 export type IntegrationProviderId =
   | "real-debrid"

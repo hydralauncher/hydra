@@ -1,7 +1,8 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
-import { useGamepad } from "../../hooks";
+import { useGamepad, useNavigation } from "../../hooks";
 import { GamepadButtonType } from "../../types";
 import { AccountPrivacySettingsSection } from "./account-privacy";
 import { CompatibilitySettingsSection } from "./compatibility";
@@ -12,6 +13,16 @@ import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
 import { NotificationsSettingsSection } from "./notifications";
 import { useUserDetails } from "../../hooks";
+import {
+  ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
+  COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID,
+  CONTENT_ITEM_FOCUS_IDS,
+  DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS,
+  DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID,
+  getIntegrationProviderCheckboxFocusId,
+  NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS,
+} from "./settings-navigation";
 
 import "./page.scss";
 
@@ -24,6 +35,16 @@ const ALL_SETTINGS_TABS = [
   { id: "compatibility", label: "Compatibility" },
   { id: "account-privacy", label: "Account and Privacy" },
 ] as const;
+
+const SETTINGS_PAGE_FADE_TRANSITION = {
+  duration: 0.24,
+  ease: "easeOut",
+} as const;
+
+const SETTINGS_TAB_FADE_TRANSITION = {
+  duration: 0.18,
+  ease: "easeOut",
+} as const;
 
 type SettingsTabId = (typeof ALL_SETTINGS_TABS)[number]["id"];
 type SettingsSectionComponentProps = {
@@ -46,6 +67,42 @@ const SETTINGS_TAB_CONTENT: Record<
   compatibility: CompatibilitySettingsSection,
   "account-privacy": AccountPrivacySettingsSection,
 };
+
+function SettingsTabPanel({
+  selectedTab,
+  firstFocusableItemId,
+  children,
+}: Readonly<{
+  selectedTab: SettingsTabId;
+  firstFocusableItemId: string | null;
+  children: React.JSX.Element;
+}>) {
+  const { setFocus } = useNavigation();
+
+  useEffect(() => {
+    if (!firstFocusableItemId) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      setFocus(firstFocusableItemId);
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [firstFocusableItemId, setFocus]);
+
+  return (
+    <motion.div
+      key={selectedTab}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={SETTINGS_TAB_FADE_TRANSITION}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function Settings() {
   const { userDetails } = useUserDetails();
@@ -135,9 +192,39 @@ export default function Settings() {
     );
   }, [visibleTabs]);
 
+  const firstFocusableItemId = useMemo(() => {
+    const platform = globalThis.window.electron.platform;
+
+    switch (selectedTab) {
+      case "general":
+        return DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
+      case "downloads":
+        return DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.seedAfterDownloadComplete;
+      case "notifications":
+        return NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.downloadNotificationsEnabled;
+      case "content":
+        return CONTENT_ITEM_FOCUS_IDS.autoplayGameTrailers;
+      case "integrations":
+        return getIntegrationProviderCheckboxFocusId("real-debrid");
+      case "compatibility":
+        return platform === "win32"
+          ? COMPATIBILITY_COMMON_REDIST_BUTTON_ID
+          : COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID;
+      case "account-privacy":
+        return userDetails ? ACCOUNT_PRIVACY_PRIVACY_SELECT_ID : null;
+      default:
+        return null;
+    }
+  }, [selectedTab, userDetails]);
+
   return (
     <VerticalFocusGroup regionId={SETTINGS_PAGE_REGION_ID} asChild>
-      <section className="settings-page">
+      <motion.section
+        className="settings-page"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={SETTINGS_PAGE_FADE_TRANSITION}
+      >
         <div className="settings-page__stack">
           <div className="settings-page__tabs-wrap">
             <Tabs
@@ -153,10 +240,17 @@ export default function Settings() {
           </div>
 
           <section className="settings-page__content">
-            <SelectedTabContent className="settings-page__copy" />
+            <AnimatePresence mode="wait" initial={false}>
+              <SettingsTabPanel
+                selectedTab={selectedTab}
+                firstFocusableItemId={firstFocusableItemId}
+              >
+                <SelectedTabContent className="settings-page__copy" />
+              </SettingsTabPanel>
+            </AnimatePresence>
           </section>
         </div>
-      </section>
+      </motion.section>
     </VerticalFocusGroup>
   );
 }

@@ -19,6 +19,7 @@ import {
   NOTIFICATIONS_ACHIEVEMENTS_POSITION_SELECT_ID,
   NOTIFICATIONS_ACHIEVEMENTS_SECTION_REGION_ID,
   NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID,
+  SETTINGS_SIDEBAR_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -249,9 +250,7 @@ export function NotificationsAchievementsSection({
                     focusId={NOTIFICATIONS_ACHIEVEMENTS_POSITION_SELECT_ID}
                     focusNavigationOverrides={{
                       ...actionsNavigationOverrides,
-                      left: {
-                        type: "block",
-                      },
+                      left: SETTINGS_SIDEBAR_RETURN_TARGET,
                       right: {
                         type: "item",
                         itemId: NOTIFICATIONS_ACHIEVEMENTS_TEST_BUTTON_ID,

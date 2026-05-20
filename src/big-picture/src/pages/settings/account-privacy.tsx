@@ -21,6 +21,7 @@ import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  SETTINGS_HEADER_RETURN_TARGET,
   ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID,
   ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
@@ -264,7 +265,7 @@ export function AccountPrivacySettingsSection({
             options={visibilityOptions}
             focusId={ACCOUNT_PRIVACY_PRIVACY_SELECT_ID}
             focusNavigationOverrides={{
-              up: { type: "block" },
+              up: SETTINGS_HEADER_RETURN_TARGET,
               down: {
                 type: "item",
                 itemId: ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID,
@@ -401,7 +402,6 @@ export function AccountPrivacySettingsSection({
 
                   <Button
                     variant="secondary"
-                    disabled={unblockingUserId === user.id}
                     loading={unblockingUserId === user.id}
                     focusId={focusId}
                     focusNavigationOverrides={
