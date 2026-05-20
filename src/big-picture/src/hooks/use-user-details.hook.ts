@@ -1,19 +1,108 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IS_DESKTOP } from "../constants";
-import type { UserDetails } from "@types";
+import type {
+  UpdateProfileRequest,
+  UserDetails,
+  UserProfile,
+} from "@types";
+
+function mergeUserProfileIntoDetails(
+  currentUserDetails: UserDetails | null,
+  updatedProfile: UserProfile
+): UserDetails {
+  return {
+    id: updatedProfile.id,
+    username: currentUserDetails?.username ?? "",
+    email: updatedProfile.email,
+    displayName: updatedProfile.displayName,
+    profileImageUrl: updatedProfile.profileImageUrl,
+    backgroundImageUrl: updatedProfile.backgroundImageUrl,
+    profileVisibility: updatedProfile.profileVisibility,
+    bio: updatedProfile.bio,
+    workwondersJwt: currentUserDetails?.workwondersJwt ?? "",
+    subscription: currentUserDetails?.subscription ?? null,
+    karma: currentUserDetails?.karma ?? 0,
+    quirks: updatedProfile.quirks,
+  };
+}
 
 export function useUserDetails() {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
 
   const fetchUserDetails = useCallback(async () => {
     if (!IS_DESKTOP) return;
-    const details = await window.electron.getMe();
-    setUserDetails(details);
+
+    try {
+      const details = await window.electron.getMe();
+      setUserDetails(details);
+      return details;
+    } catch {
+      setUserDetails(null);
+      return null;
+    }
+  }, []);
+
+  const updateUserDetails = useCallback((nextDetails: UserDetails | null) => {
+    setUserDetails(nextDetails);
+    return nextDetails;
+  }, []);
+
+  const patchUser = useCallback(
+    async (values: UpdateProfileRequest) => {
+      const updatedProfile = await window.electron.updateProfile(
+        values
+      ) as UserProfile;
+      const nextUserDetails = mergeUserProfileIntoDetails(
+        userDetails,
+        updatedProfile
+      );
+
+      setUserDetails(nextUserDetails);
+
+      return nextUserDetails;
+    },
+    [userDetails]
+  );
+
+  const unblockUser = useCallback(async (userId: string) => {
+    return globalThis.window.electron.hydraApi.post(`/users/${userId}/unblock`);
   }, []);
 
   useEffect(() => {
-    fetchUserDetails();
+    void fetchUserDetails();
   }, [fetchUserDetails]);
 
-  return { userDetails, fetchUserDetails };
+  useEffect(() => {
+    const unsubscribeAccountUpdated = globalThis.window.electron.onAccountUpdated(
+      () => {
+        void fetchUserDetails();
+      }
+    );
+    const unsubscribeSignIn = globalThis.window.electron.onSignIn(() => {
+      void fetchUserDetails();
+    });
+    const unsubscribeSignOut = globalThis.window.electron.onSignOut(() => {
+      setUserDetails(null);
+    });
+
+    return () => {
+      unsubscribeAccountUpdated();
+      unsubscribeSignIn();
+      unsubscribeSignOut();
+    };
+  }, [fetchUserDetails]);
+
+  const hasActiveSubscription = useMemo(() => {
+    const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
+    return expiresAt > new Date();
+  }, [userDetails]);
+
+  return {
+    userDetails,
+    hasActiveSubscription,
+    fetchUserDetails,
+    updateUserDetails,
+    patchUser,
+    unblockUser,
+  };
 }
