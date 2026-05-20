@@ -3,7 +3,12 @@ import type { GameShop } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getItemFocusTarget } from "../../helpers";
-import { Typography, VerticalFocusGroup, Divider, FocusItem } from "../../components";
+import {
+  Typography,
+  VerticalFocusGroup,
+  Divider,
+  FocusItem,
+} from "../../components";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import { DownloadGameModal } from "../../components/modals";
 import {
@@ -76,7 +81,9 @@ function preprocessSteamDescriptionDocument(html: string) {
   const parser = new DOMParser();
   const document = parser.parseFromString(html, "text/html");
 
-  for (const element of document.querySelectorAll(DESCRIPTION_DISALLOWED_SELECTORS)) {
+  for (const element of document.querySelectorAll(
+    DESCRIPTION_DISALLOWED_SELECTORS
+  )) {
     element.remove();
   }
 
@@ -554,7 +561,9 @@ export default function Game() {
                         key={block.id}
                         id={block.id}
                         navigationOverrides={{
-                          left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+                          left: getItemFocusTarget(
+                            BIG_PICTURE_SIDEBAR_ITEM_IDS.home
+                          ),
                           right: sidebarEntryTarget,
                           up:
                             index === 0
@@ -567,7 +576,7 @@ export default function Game() {
                               : undefined,
                           down:
                             index === descriptionBlocks.length - 1
-                              ? commentsEntryTarget ?? { type: "block" }
+                              ? (commentsEntryTarget ?? { type: "block" })
                               : undefined,
                         }}
                         asChild
@@ -659,7 +668,9 @@ export default function Game() {
                   achievements={achievements ?? []}
                   focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
                   focusNavigationOrder={3}
-                  focusNavigationOverrides={sidebarDescriptionNavigationOverrides}
+                  focusNavigationOverrides={
+                    sidebarDescriptionNavigationOverrides
+                  }
                 />
 
                 <FocusItem
@@ -709,7 +720,9 @@ export default function Game() {
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
                   focusNavigationOrder={5}
-                  focusNavigationOverrides={sidebarDescriptionNavigationOverrides}
+                  focusNavigationOverrides={
+                    sidebarDescriptionNavigationOverrides
+                  }
                 />
 
                 <SupportedLanguages

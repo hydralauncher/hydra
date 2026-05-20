@@ -72,8 +72,9 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
-  const lastActionRightTarget: FocusOverrideTarget =
-    sidebarEntryTarget ?? { type: "block" };
+  const lastActionRightTarget: FocusOverrideTarget = sidebarEntryTarget ?? {
+    type: "block",
+  };
   const favoriteLeftTargetId =
     shouldShowCatalogActions && hasPrimaryAction
       ? GAME_HERO_DOWNLOAD_OPTIONS_ID

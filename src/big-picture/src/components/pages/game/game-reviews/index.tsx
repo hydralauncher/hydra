@@ -247,7 +247,10 @@ export function GameReviews({
                   );
 
                   return (
-                    <article key={review.id} className="game-page__comment-card">
+                    <article
+                      key={review.id}
+                      className="game-page__comment-card"
+                    >
                       <div className="game-page__comment-card-top">
                         <div className="game-page__comment-header">
                           <div className="game-page__comment-user">
@@ -303,7 +306,7 @@ export function GameReviews({
                                         "upvote"
                                       )
                                     )
-                                  : topNavigationTarget ?? { type: "block" },
+                                  : (topNavigationTarget ?? { type: "block" }),
                                 down: nextReview
                                   ? getItemFocusTarget(
                                       getGameCommentVoteItemId(
@@ -348,7 +351,7 @@ export function GameReviews({
                                         "downvote"
                                       )
                                     )
-                                  : topNavigationTarget ?? { type: "block" },
+                                  : (topNavigationTarget ?? { type: "block" }),
                                 down: nextReview
                                   ? getItemFocusTarget(
                                       getGameCommentVoteItemId(
