@@ -87,10 +87,35 @@
 
   &__hero-actions {
     display: flex;
+    align-items: center;
     gap: 16px;
 
     & .divider-container {
       padding: 0;
+    }
+  }
+
+  &__hero-action-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1px;
+    width: 1px;
+    height: 28px;
+    pointer-events: none;
+
+    .divider-container--vertical {
+      width: 1px;
+      height: 28px;
+      flex-basis: 1px;
+    }
+
+    .divider--vertical {
+      width: 1px;
+      height: 28px;
+      min-height: 28px;
+      background-color: var(--text-secondary);
+      opacity: 0.7;
     }
   }
 
