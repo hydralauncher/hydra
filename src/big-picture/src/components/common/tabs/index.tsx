@@ -49,6 +49,7 @@ interface TabsButtonProps<TValue extends string = string> {
   variant: "default" | "segmented" | "settings";
   indicatorLayoutId: string;
   onSelect: (value: TValue) => void;
+  labelRef?: (node: HTMLSpanElement | null) => void;
 }
 
 function FocusableTabsButton<TValue extends string = string>({
@@ -59,6 +60,7 @@ function FocusableTabsButton<TValue extends string = string>({
   variant,
   indicatorLayoutId,
   onSelect,
+  labelRef,
 }: Readonly<TabsButtonProps<TValue>>) {
   const isFocused = useNavigationIsFocused(resolvedId);
   const wasFocusedRef = useRef(false);
@@ -99,7 +101,9 @@ function FocusableTabsButton<TValue extends string = string>({
           })}
         >
           {variant === "settings" ? (
-            <span className="tabs__tab-label-text">{item.label}</span>
+            <span ref={labelRef} className="tabs__tab-label-text">
+              {item.label}
+            </span>
           ) : (
             item.label
           )}
@@ -119,45 +123,6 @@ function FocusableTabsButton<TValue extends string = string>({
         )}
       </button>
     </FocusItem>
-  );
-}
-
-interface SettingsTabsButtonProps<TValue extends string = string> {
-  item: TabsItem<TValue>;
-  isSelected: boolean;
-  labelRef: (node: HTMLSpanElement | null) => void;
-  onSelect: (value: TValue) => void;
-}
-
-function SettingsTabsButton<TValue extends string = string>({
-  item,
-  isSelected,
-  labelRef,
-  onSelect,
-}: Readonly<SettingsTabsButtonProps<TValue>>) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      tabIndex={-1}
-      aria-selected={isSelected}
-      disabled={item.disabled}
-      className={cn("tabs__tab", {
-        "tabs__tab--settings": true,
-        "tabs__tab--active": isSelected,
-        "tabs__tab--disabled": item.disabled,
-      })}
-      onMouseDown={(event) => {
-        event.preventDefault();
-      }}
-      onClick={() => onSelect(item.value)}
-    >
-      <span className="tabs__tab-label tabs__tab-label--settings">
-        <span ref={labelRef} className="tabs__tab-label-text">
-          {item.label}
-        </span>
-      </span>
-    </button>
   );
 }
 
@@ -348,129 +313,90 @@ export function Tabs<TValue extends string = string>({
       })}
     >
       <div className="tabs__content">
-        {variant === "settings" ? (
+        <HorizontalFocusGroup
+          regionId={regionId}
+          navigationOverrides={navigationOverrides}
+          autoScrollMode="region"
+          className={cn("tabs__list", {
+            "tabs__list--segmented": variant === "segmented",
+          })}
+          style={
+            {
+              gap: "calc(var(--spacing-unit) * 12)",
+              alignItems: "flex-start",
+              flexWrap: "nowrap",
+            } as CSSProperties
+          }
+        >
           <div
-            className={cn("tabs__list", {
-              "tabs__list--segmented": false,
+            ref={tabListRef}
+            role="tablist"
+            aria-label={ariaLabel}
+            className={cn("tabs__tablist", {
+              "tabs__tablist--segmented": variant === "segmented",
             })}
-            style={
-              {
-                gap: "calc(var(--spacing-unit) * 12)",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-              } as CSSProperties
-            }
           >
-            <div
-              ref={tabListRef}
-              role="tablist"
-              aria-label={ariaLabel}
-              className="tabs__tablist"
-            >
-              {beforeTabs && (
-                <div className="tabs__before-tabs">{beforeTabs}</div>
-              )}
+            {variant === "segmented" && segmentedIndicatorStyle && (
+              <motion.span
+                className="tabs__segmented-indicator"
+                initial={false}
+                animate={{
+                  x: segmentedIndicatorStyle.x,
+                  width: segmentedIndicatorStyle.width,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 420,
+                  damping: 34,
+                  mass: 0.8,
+                }}
+              />
+            )}
 
-              {resolvedItems.map((item) => {
-                const isSelected = selectedItem?.value === item.value;
+            {beforeTabs && <div className="tabs__before-tabs">{beforeTabs}</div>}
 
-                return (
-                  <SettingsTabsButton
-                    key={item.value}
-                    item={item}
-                    isSelected={isSelected}
-                    labelRef={createSettingsLabelRef(item.value)}
-                    onSelect={handleSelect}
-                  />
-                );
-              })}
+            {resolvedItems.map((item, index) => {
+              const isSelected = selectedItem?.value === item.value;
 
-              {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
-
-              {settingsIndicatorStyle && (
-                <motion.span
-                  className="tabs__settings-indicator"
-                  initial={false}
-                  animate={{
-                    x: settingsIndicatorStyle.x,
-                    width: settingsIndicatorStyle.width,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.8,
-                  }}
+              return (
+                <FocusableTabsButton
+                  key={item.value}
+                  item={item}
+                  resolvedId={item.resolvedId}
+                  navigationOrder={index}
+                  isSelected={isSelected}
+                  variant={variant}
+                  indicatorLayoutId={indicatorLayoutId}
+                  onSelect={handleSelect}
+                  labelRef={
+                    variant === "settings"
+                      ? createSettingsLabelRef(item.value)
+                      : undefined
+                  }
                 />
-              )}
-            </div>
+              );
+            })}
+
+            {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
+
+            {variant === "settings" && settingsIndicatorStyle && (
+              <motion.span
+                className="tabs__settings-indicator"
+                initial={false}
+                animate={{
+                  x: settingsIndicatorStyle.x,
+                  width: settingsIndicatorStyle.width,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 420,
+                  damping: 34,
+                  mass: 0.8,
+                }}
+              />
+            )}
           </div>
-        ) : (
-          <HorizontalFocusGroup
-            regionId={regionId}
-            navigationOverrides={navigationOverrides}
-            autoScrollMode="region"
-            className={cn("tabs__list", {
-              "tabs__list--segmented": variant === "segmented",
-            })}
-            style={
-              {
-                gap: "calc(var(--spacing-unit) * 12)",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-              } as CSSProperties
-            }
-          >
-            <div
-              ref={tabListRef}
-              role="tablist"
-              aria-label={ariaLabel}
-              className={cn("tabs__tablist", {
-                "tabs__tablist--segmented": variant === "segmented",
-              })}
-            >
-              {variant === "segmented" && segmentedIndicatorStyle && (
-                <motion.span
-                  className="tabs__segmented-indicator"
-                  initial={false}
-                  animate={{
-                    x: segmentedIndicatorStyle.x,
-                    width: segmentedIndicatorStyle.width,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.8,
-                  }}
-                />
-              )}
-
-              {beforeTabs && (
-                <div className="tabs__before-tabs">{beforeTabs}</div>
-              )}
-
-              {resolvedItems.map((item, index) => {
-                const isSelected = selectedItem?.value === item.value;
-
-                return (
-                  <FocusableTabsButton
-                    key={item.value}
-                    item={item}
-                    resolvedId={item.resolvedId}
-                    navigationOrder={index}
-                    isSelected={isSelected}
-                    variant={variant}
-                    indicatorLayoutId={indicatorLayoutId}
-                    onSelect={handleSelect}
-                  />
-                );
-              })}
-
-              {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
-            </div>
-          </HorizontalFocusGroup>
-        )}
+        </HorizontalFocusGroup>
 
         {trailingAction && (
           <div className="tabs__trailing-action">{trailingAction}</div>

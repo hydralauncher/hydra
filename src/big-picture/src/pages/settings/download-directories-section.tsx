@@ -2,6 +2,10 @@ import "./download-directories-section.scss";
 
 import type { DiskUsage, UserPreferences } from "@types";
 import {
+  DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID,
+  SETTINGS_TAB_FOCUS_IDS,
+} from "./settings-navigation";
+import {
   MAX_DOWNLOAD_DIRECTORIES,
   MAX_OPTIONAL_DOWNLOAD_DIRECTORIES,
   addOptionalDownloadDirectory,
@@ -74,8 +78,6 @@ const DOWNLOAD_DIRECTORIES_CONTROLS_REGION_ID =
   "download-directories-controls-region";
 const DOWNLOAD_DIRECTORIES_DISKS_REGION_ID =
   "download-directories-disks-region";
-const DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID =
-  "download-directories-default-select";
 const DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID = "download-directories-add-button";
 
 function getDirectoryCardFocusId(path: string) {
@@ -527,6 +529,7 @@ export function DownloadDirectoriesSection({
             ariaLabel="Default download directory"
             focusId={DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID}
             focusNavigationOverrides={{
+              up: getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS.general),
               right: getItemFocusTarget(DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID),
               down: firstDirectoryFocusId
                 ? getItemFocusTarget(firstDirectoryFocusId)
@@ -542,6 +545,7 @@ export function DownloadDirectoriesSection({
             disabled={!canAddDirectory}
             focusId={DOWNLOAD_DIRECTORIES_ADD_BUTTON_ID}
             focusNavigationOverrides={{
+              up: getItemFocusTarget(SETTINGS_TAB_FOCUS_IDS.general),
               left: getItemFocusTarget(DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID),
               down: firstDirectoryFocusId
                 ? getItemFocusTarget(firstDirectoryFocusId)
