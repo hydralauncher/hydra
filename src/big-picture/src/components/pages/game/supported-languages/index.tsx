@@ -65,15 +65,15 @@ export function SupportedLanguages({
             </Typography>
 
             <div className="game-page__languages-cell game-page__languages-cell--center">
-              <CheckIcon size={16} weight="bold" />
+              <CheckIcon size={18} weight="bold" />
             </div>
 
             <div className="game-page__languages-cell game-page__languages-cell--center">
               {lang.hasAudio ? (
-                <CheckIcon size={16} weight="bold" />
+                <CheckIcon size={18} weight="bold" />
               ) : (
                 <XIcon
-                  size={16}
+                  size={18}
                   weight="bold"
                   className="game-page__languages-cross"
                 />

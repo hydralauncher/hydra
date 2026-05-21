@@ -212,9 +212,21 @@
   &__metadata-value,
   &__protondb-value {
     color: var(--text);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 500;
     text-align: right;
+  }
+
+  &__stats-rating-value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  &__stats-rating-icon {
+    color: var(--text);
+    flex-shrink: 0;
   }
 
   &__metadata-value {

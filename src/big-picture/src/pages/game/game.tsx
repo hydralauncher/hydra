@@ -1,3 +1,4 @@
+import { StarIcon } from "@phosphor-icons/react";
 import { formatNumber } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -985,19 +986,27 @@ export default function Game() {
                 >
                   <section
                     className="game-page__sidebar-section game-page__stats"
-                    aria-label="Stats"
+                    aria-label="Game stats"
                   >
                     <div className="game-page__stats-title">
-                      <Typography>Stats</Typography>
+                      <Typography>Game Stats</Typography>
                     </div>
 
                     <div className="game-page__stats-row">
                       <Typography className="game-page__stats-label">
                         Rating
                       </Typography>
-                      <Typography className="game-page__stats-value">
-                        {formatNumber(stats?.averageScore ?? 0)}
-                      </Typography>
+                      <div className="game-page__stats-rating-value">
+                        <StarIcon
+                          size={16}
+                          weight="fill"
+                          aria-hidden="true"
+                          className="game-page__stats-rating-icon"
+                        />
+                        <Typography className="game-page__stats-value">
+                          {formatNumber(stats?.averageScore ?? 0)}
+                        </Typography>
+                      </div>
                     </div>
 
                     <div className="game-page__stats-row">
