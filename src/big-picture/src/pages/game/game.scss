@@ -597,10 +597,27 @@
     line-height: 1.25;
   }
 
+  &__detailed-description-region {
+    width: 100%;
+  }
+
   &__detailed-description {
     color: rgba(255, 255, 255, 0.8);
     display: flex;
     flex-direction: column;
+    gap: 24px;
+    border-radius: 12px;
+    outline: none;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &[data-focused="true"] {
+      outline: 2px solid #fff;
+      outline-offset: 4px;
+    }
 
     p {
       font-size: 16px;
@@ -637,6 +654,11 @@
       margin-top: 0;
       margin-bottom: 0;
     }
+  }
+
+  &__detailed-description-block {
+    display: flex;
+    flex-direction: column;
   }
 
   &__detailed-description-block-content {

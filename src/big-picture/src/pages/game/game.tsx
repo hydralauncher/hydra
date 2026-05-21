@@ -22,7 +22,18 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import {
+  useGameDetails,
+  useHeaderTitle,
+  useNavigationScreenActions,
+} from "../../hooks";
+import {
+  BIG_PICTURE_SIDEBAR_ITEM_IDS,
+  BIG_PICTURE_SIDEBAR_REGION_ID,
+} from "../../layout";
+import {
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_DESCRIPTION_BODY_ID,
+  GAME_DESCRIPTION_REGION_ID,
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
@@ -35,7 +46,8 @@ import {
   GAME_SIDEBAR_REQUIREMENTS_ID,
   GAME_SIDEBAR_STATS_ID,
 } from "../../components/pages/game/navigation";
-import { useGameDetails, useHeaderTitle } from "../../hooks";
+import { NavigationService, type FocusOverrideTarget } from "../../services";
+import { useNavigationStore } from "../../stores";
 import "./game.scss";
 
 const DESCRIPTION_HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
@@ -61,6 +73,19 @@ const DESCRIPTION_DISALLOWED_SELECTORS = [
   "link",
   "meta",
 ].join(", ");
+const DESCRIPTION_SCROLL_STEP = 180;
+const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
+const DESCRIPTION_FOCUS_ENTRY_MARGIN = 32;
+const DESCRIPTION_SCROLL_ANIMATION_DURATION = 220;
+const DESCRIPTION_RETURN_MIN_VISIBLE_RATIO = 0.5;
+
+function easeOutCubic(progress: number) {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function normalizeDescriptionUrl(url: string) {
   return url.startsWith("http://") ? url.replace("http://", "https://") : url;
@@ -243,8 +268,59 @@ export default function Game() {
   const [activeMediaItemId, setActiveMediaItemId] = useState<string | null>(
     null
   );
+  const navigation = NavigationService.getInstance();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const descriptionContainerRef = useRef<HTMLDivElement | null>(null);
+  const previousFocusIdRef = useRef<string | null>(null);
+  const lastMainContentFocusIdRef = useRef<string | null>(null);
+  const descriptionScrollAnimationFrameRef = useRef<number | null>(null);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const navigationNodes = useNavigationStore((state) => state.nodes);
+  const navigationRegions = useNavigationStore((state) => state.regions);
+  const navigationNodesById = useMemo(
+    () => new Map(navigationNodes.map((node) => [node.id, node])),
+    [navigationNodes]
+  );
+  const navigationRegionsById = useMemo(
+    () => new Map(navigationRegions.map((region) => [region.id, region])),
+    [navigationRegions]
+  );
+  const isRegionWithinTree = useCallback(
+    (regionId: string | null, targetRegionId: string) => {
+      let currentRegionId = regionId;
+
+      while (currentRegionId) {
+        if (currentRegionId === targetRegionId) {
+          return true;
+        }
+
+        currentRegionId =
+          navigationRegionsById.get(currentRegionId)?.parentRegionId ?? null;
+      }
+
+      return false;
+    },
+    [navigationRegionsById]
+  );
+  const isMainContentFocusId = useCallback(
+    (focusId: string | null) => {
+      if (!focusId) {
+        return false;
+      }
+
+      const regionId = navigationNodesById.get(focusId)?.regionId ?? null;
+
+      if (!isRegionWithinTree(regionId, GAME_PAGE_REGION_ID)) {
+        return false;
+      }
+
+      return (
+        !isRegionWithinTree(regionId, GAME_SIDEBAR_REGION_ID) &&
+        !isRegionWithinTree(regionId, BIG_PICTURE_SIDEBAR_REGION_ID)
+      );
+    },
+    [isRegionWithinTree, navigationNodesById]
+  );
   const {
     shopDetails,
     game,
@@ -262,6 +338,9 @@ export default function Game() {
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
+  const shouldShowProtonSection =
+    Boolean(protonDBData) &&
+    (import.meta.env.DEV || globalThis.window.electron?.platform === "linux");
   const descriptionBlocks = useMemo(() => {
     const document = preprocessSteamDescriptionDocument(
       shopDetails?.detailed_description ?? ""
@@ -269,9 +348,15 @@ export default function Game() {
 
     return buildDescriptionSections(document);
   }, [shopDetails?.detailed_description]);
+  const hasDescription = descriptionBlocks.length > 0;
   const hasMedia =
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
+  const descriptionEntryTarget = useMemo(
+    () =>
+      hasDescription ? getItemFocusTarget(GAME_DESCRIPTION_BODY_ID) : undefined,
+    [hasDescription]
+  );
   const commentsEntryTarget = useMemo(() => {
     if (!hasNavigableComments) {
       return undefined;
@@ -284,6 +369,35 @@ export default function Game() {
       preferRememberedFocus: true,
     };
   }, [hasNavigableComments]);
+  const bodyUpNavigationTarget = useMemo<FocusOverrideTarget>(() => {
+    if (activeMediaItemId) {
+      return getItemFocusTarget(activeMediaItemId);
+    }
+
+    if (hasMedia) {
+      return {
+        type: "region",
+        regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
+        entryDirection: "up",
+        preferRememberedFocus: true,
+      };
+    }
+
+    return {
+      type: "region",
+      regionId: GAME_HERO_ACTIONS_REGION_ID,
+      entryDirection: "up",
+      preferRememberedFocus: true,
+    };
+  }, [activeMediaItemId, hasMedia]);
+  const sidebarStatsEntryTarget = useMemo(
+    () => getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
+    []
+  );
+  const bodyRightNavigationTarget = useMemo<FocusOverrideTarget>(
+    () => sidebarStatsEntryTarget,
+    [sidebarStatsEntryTarget]
+  );
   const contentBelowHeroTarget = useMemo(() => {
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
@@ -298,20 +412,16 @@ export default function Game() {
       };
     }
 
-    return commentsEntryTarget;
-  }, [activeMediaItemId, commentsEntryTarget, hasMedia]);
+    return descriptionEntryTarget ?? commentsEntryTarget;
+  }, [
+    activeMediaItemId,
+    commentsEntryTarget,
+    descriptionEntryTarget,
+    hasMedia,
+  ]);
   const sidebarEntryTarget = useMemo(
-    () => ({
-      type: "region" as const,
-      regionId: GAME_SIDEBAR_REGION_ID,
-      entryDirection: "right" as const,
-      preferRememberedFocus: true,
-    }),
-    []
-  );
-  const sidebarStatsEntryTarget = useMemo(
-    () => getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
-    []
+    () => sidebarStatsEntryTarget,
+    [sidebarStatsEntryTarget]
   );
   const heroActionsLeftNavigationTarget = useMemo(
     () => ({
@@ -322,42 +432,22 @@ export default function Game() {
     }),
     []
   );
-  const sidebarCarouselLeftNavigationTarget = useMemo(
-    () =>
-      hasMedia
-        ? (contentBelowHeroTarget ?? heroActionsLeftNavigationTarget)
-        : heroActionsLeftNavigationTarget,
-    [contentBelowHeroTarget, hasMedia, heroActionsLeftNavigationTarget]
-  );
-  const sidebarCarouselNavigationOverrides = useMemo(
-    () => ({
-      left: sidebarCarouselLeftNavigationTarget,
-      right: { type: "block" as const },
-    }),
-    [sidebarCarouselLeftNavigationTarget]
-  );
   const commentsTopNavigationTarget = useMemo(() => {
+    if (descriptionEntryTarget) {
+      return descriptionEntryTarget;
+    }
+
     if (hasMedia) {
       return contentBelowHeroTarget ?? heroActionsLeftNavigationTarget;
     }
 
     return heroActionsLeftNavigationTarget;
-  }, [contentBelowHeroTarget, hasMedia, heroActionsLeftNavigationTarget]);
-  const sidebarStatsNavigationOverrides = useMemo(
-    () => ({
-      ...sidebarCarouselNavigationOverrides,
-      up: { type: "block" as const },
-    }),
-    [sidebarCarouselNavigationOverrides]
-  );
-  const sidebarLanguagesNavigationOverrides = useMemo(
-    () => ({
-      ...sidebarCarouselNavigationOverrides,
-      down: { type: "block" as const },
-    }),
-    [sidebarCarouselNavigationOverrides]
-  );
-
+  }, [
+    contentBelowHeroTarget,
+    descriptionEntryTarget,
+    hasMedia,
+    heroActionsLeftNavigationTarget,
+  ]);
   useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
 
   const handleOpenDownloadModal = useCallback(() => {
@@ -403,6 +493,343 @@ export default function Game() {
     shopDetails,
     updateGame,
   ]);
+
+  const focusNavigationTarget = useCallback(
+    (target?: FocusOverrideTarget) => {
+      if (!target || target.type === "block") {
+        return false;
+      }
+
+      if (target.type === "item") {
+        return navigation.setFocus(target.itemId) !== null;
+      }
+
+      return (
+        navigation.setFocusRegion(
+          target.regionId,
+          target.entryDirection ?? "right",
+          {
+            preferRememberedFocus: target.preferRememberedFocus,
+          }
+        ) !== null
+      );
+    },
+    [navigation]
+  );
+
+  const getDescriptionScrollBounds = useCallback(() => {
+    const descriptionContainer = descriptionContainerRef.current;
+    const pageElement = pageRef.current;
+
+    if (!descriptionContainer || !pageElement) {
+      return null;
+    }
+
+    const pageRect = pageElement.getBoundingClientRect();
+    const descriptionRect = descriptionContainer.getBoundingClientRect();
+    const descriptionTop =
+      pageElement.scrollTop + (descriptionRect.top - pageRect.top);
+    const descriptionBottom = descriptionTop + descriptionRect.height;
+
+    return {
+      pageElement,
+      descriptionTop,
+      descriptionBottom,
+      pageClientHeight: pageElement.clientHeight,
+      maxScrollTop: Math.max(
+        0,
+        pageElement.scrollHeight - pageElement.clientHeight
+      ),
+      viewportTop: pageElement.scrollTop,
+      viewportBottom: pageElement.scrollTop + pageElement.clientHeight,
+    };
+  }, []);
+
+  const isDescriptionVisibleEnoughForReturn = useCallback(() => {
+    const bounds = getDescriptionScrollBounds();
+
+    if (!bounds) {
+      return false;
+    }
+
+    const descriptionHeight = bounds.descriptionBottom - bounds.descriptionTop;
+
+    if (descriptionHeight <= 0) {
+      return false;
+    }
+
+    const visibleHeight = Math.max(
+      0,
+      Math.min(bounds.descriptionBottom, bounds.viewportBottom) -
+        Math.max(bounds.descriptionTop, bounds.viewportTop)
+    );
+
+    return (
+      visibleHeight / descriptionHeight >= DESCRIPTION_RETURN_MIN_VISIBLE_RATIO
+    );
+  }, [getDescriptionScrollBounds]);
+
+  const sidebarMainContentReturnTarget = (() => {
+    const lastMainContentFocusId = lastMainContentFocusIdRef.current;
+
+    if (
+      lastMainContentFocusId &&
+      isMainContentFocusId(lastMainContentFocusId) &&
+      lastMainContentFocusId !== GAME_DESCRIPTION_BODY_ID
+    ) {
+      return getItemFocusTarget(lastMainContentFocusId);
+    }
+
+    if (
+      lastMainContentFocusId === GAME_DESCRIPTION_BODY_ID &&
+      isMainContentFocusId(lastMainContentFocusId) &&
+      isDescriptionVisibleEnoughForReturn()
+    ) {
+      return getItemFocusTarget(lastMainContentFocusId);
+    }
+
+    if (activeMediaItemId) {
+      return getItemFocusTarget(activeMediaItemId);
+    }
+
+    if (hasMedia) {
+      return {
+        type: "region" as const,
+        regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
+        entryDirection: "left" as const,
+        preferRememberedFocus: true,
+      };
+    }
+
+    return heroActionsLeftNavigationTarget;
+  })();
+
+  const sidebarCarouselLeftNavigationTarget = useMemo(
+    () => sidebarMainContentReturnTarget,
+    [sidebarMainContentReturnTarget]
+  );
+
+  const sidebarCarouselNavigationOverrides = useMemo(
+    () => ({
+      left: sidebarCarouselLeftNavigationTarget,
+      right: { type: "block" as const },
+    }),
+    [sidebarCarouselLeftNavigationTarget]
+  );
+
+  const sidebarStatsNavigationOverrides = useMemo(
+    () => ({
+      ...sidebarCarouselNavigationOverrides,
+      up: { type: "block" as const },
+    }),
+    [sidebarCarouselNavigationOverrides]
+  );
+
+  const sidebarLanguagesNavigationOverrides = useMemo(
+    () => ({
+      ...sidebarCarouselNavigationOverrides,
+      down: { type: "block" as const },
+    }),
+    [sidebarCarouselNavigationOverrides]
+  );
+
+  const scrollPageBy = useCallback((delta: number) => {
+    const pageElement = pageRef.current;
+
+    if (!pageElement) {
+      return false;
+    }
+
+    const nextScrollTop = Math.max(
+      0,
+      Math.min(
+        pageElement.scrollTop + delta,
+        pageElement.scrollHeight - pageElement.clientHeight
+      )
+    );
+
+    if (nextScrollTop === pageElement.scrollTop) {
+      return false;
+    }
+
+    if (globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      pageElement.scrollTop = nextScrollTop;
+      return true;
+    }
+
+    if (descriptionScrollAnimationFrameRef.current !== null) {
+      globalThis.cancelAnimationFrame(
+        descriptionScrollAnimationFrameRef.current
+      );
+      descriptionScrollAnimationFrameRef.current = null;
+    }
+
+    const startScrollTop = pageElement.scrollTop;
+    const distance = nextScrollTop - startScrollTop;
+    const startTime = globalThis.performance.now();
+
+    const animate = (now: number) => {
+      const progress = clamp(
+        (now - startTime) / DESCRIPTION_SCROLL_ANIMATION_DURATION,
+        0,
+        1
+      );
+      const easedProgress = easeOutCubic(progress);
+
+      pageElement.scrollTop = startScrollTop + distance * easedProgress;
+
+      if (progress < 1) {
+        descriptionScrollAnimationFrameRef.current =
+          globalThis.requestAnimationFrame(animate);
+        return;
+      }
+
+      pageElement.scrollTop = nextScrollTop;
+      descriptionScrollAnimationFrameRef.current = null;
+    };
+
+    descriptionScrollAnimationFrameRef.current =
+      globalThis.requestAnimationFrame(animate);
+    return true;
+  }, []);
+
+  useNavigationScreenActions(
+    currentFocusId === GAME_DESCRIPTION_BODY_ID
+      ? {
+          direction: {
+            up: () => {
+              const bounds = getDescriptionScrollBounds();
+
+              if (
+                bounds &&
+                bounds.viewportTop >
+                  bounds.descriptionTop + DESCRIPTION_SCROLL_EDGE_TOLERANCE
+              ) {
+                scrollPageBy(-DESCRIPTION_SCROLL_STEP);
+                return;
+              }
+
+              focusNavigationTarget(bodyUpNavigationTarget);
+            },
+            down: () => {
+              const bounds = getDescriptionScrollBounds();
+
+              if (
+                bounds &&
+                bounds.viewportBottom <
+                  bounds.descriptionBottom - DESCRIPTION_SCROLL_EDGE_TOLERANCE
+              ) {
+                scrollPageBy(DESCRIPTION_SCROLL_STEP);
+                return;
+              }
+
+              focusNavigationTarget(commentsEntryTarget);
+            },
+            left: () => {
+              navigation.setFocus(BIG_PICTURE_SIDEBAR_ITEM_IDS.home);
+            },
+            right: () => {
+              focusNavigationTarget(bodyRightNavigationTarget);
+            },
+          },
+        }
+      : {}
+  );
+
+  useEffect(() => {
+    if (currentFocusId !== GAME_DESCRIPTION_BODY_ID) {
+      previousFocusIdRef.current = currentFocusId;
+      return;
+    }
+
+    const bounds = getDescriptionScrollBounds();
+
+    if (!bounds) {
+      previousFocusIdRef.current = currentFocusId;
+      return;
+    }
+
+    const previousFocusId = previousFocusIdRef.current;
+    const previousRegionId = previousFocusId
+      ? (navigationNodesById.get(previousFocusId)?.regionId ?? null)
+      : null;
+    const enteredFromComments = isRegionWithinTree(
+      previousRegionId,
+      GAME_COMMENTS_ACTION_ROWS_REGION_ID
+    );
+    const enteredFromSidebar = isRegionWithinTree(
+      previousRegionId,
+      GAME_SIDEBAR_REGION_ID
+    );
+    const enteredFromGlobalSidebar = isRegionWithinTree(
+      previousRegionId,
+      BIG_PICTURE_SIDEBAR_REGION_ID
+    );
+    if (enteredFromSidebar || enteredFromGlobalSidebar) {
+      previousFocusIdRef.current = currentFocusId;
+      return;
+    }
+
+    const targetScrollTop = enteredFromComments
+      ? bounds.descriptionBottom -
+        bounds.pageClientHeight +
+        DESCRIPTION_FOCUS_ENTRY_MARGIN
+      : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
+    const nextScrollTop = Math.min(
+      Math.max(0, targetScrollTop),
+      bounds.maxScrollTop
+    );
+
+    const frameId = globalThis.requestAnimationFrame(() => {
+      scrollPageBy(nextScrollTop - bounds.pageElement.scrollTop);
+    });
+
+    previousFocusIdRef.current = currentFocusId;
+
+    return () => {
+      globalThis.cancelAnimationFrame(frameId);
+    };
+  }, [
+    currentFocusId,
+    getDescriptionScrollBounds,
+    isRegionWithinTree,
+    navigationNodesById,
+    scrollPageBy,
+  ]);
+
+  useEffect(() => {
+    if (currentFocusId === GAME_DESCRIPTION_BODY_ID) {
+      return;
+    }
+
+    if (descriptionScrollAnimationFrameRef.current !== null) {
+      globalThis.cancelAnimationFrame(
+        descriptionScrollAnimationFrameRef.current
+      );
+      descriptionScrollAnimationFrameRef.current = null;
+    }
+
+    previousFocusIdRef.current = currentFocusId;
+  }, [currentFocusId]);
+
+  useEffect(() => {
+    if (!isMainContentFocusId(currentFocusId)) {
+      return;
+    }
+
+    lastMainContentFocusIdRef.current = currentFocusId;
+  }, [currentFocusId, isMainContentFocusId]);
+
+  useEffect(
+    () => () => {
+      if (descriptionScrollAnimationFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(
+          descriptionScrollAnimationFrameRef.current
+        );
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const descriptionContainer = descriptionContainerRef.current;
@@ -492,29 +919,50 @@ export default function Game() {
                 videos={shopDetails.movies ?? []}
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
-                nextContentEntryTarget={commentsEntryTarget}
+                nextContentEntryTarget={
+                  descriptionEntryTarget ?? commentsEntryTarget
+                }
                 sidebarEntryTarget={sidebarStatsEntryTarget}
               />
 
-              {descriptionBlocks.length > 0 && (
-                <div
-                  ref={descriptionContainerRef}
-                  className="game-page__detailed-description"
+              {hasDescription && (
+                <VerticalFocusGroup
+                  regionId={GAME_DESCRIPTION_REGION_ID}
+                  className="game-page__detailed-description-region"
                 >
-                  {descriptionBlocks.map((block, index) => (
+                  <FocusItem
+                    id={GAME_DESCRIPTION_BODY_ID}
+                    navigationOverrides={{
+                      left: getItemFocusTarget(
+                        BIG_PICTURE_SIDEBAR_ITEM_IDS.home
+                      ),
+                      right: bodyRightNavigationTarget,
+                      up: { type: "block" },
+                      down: { type: "block" },
+                    }}
+                    asChild
+                  >
                     <div
-                      key={`description-block-${index}`}
-                      className="game-page__detailed-description-block"
+                      ref={descriptionContainerRef}
+                      className="game-page__detailed-description"
+                      data-suppress-navigation-autoscroll="true"
                     >
-                      <div
-                        className="game-page__detailed-description-block-content"
-                        dangerouslySetInnerHTML={{
-                          __html: block,
-                        }}
-                      />
+                      {descriptionBlocks.map((block, index) => (
+                        <div
+                          key={`description-block-${index}`}
+                          className="game-page__detailed-description-block"
+                        >
+                          <div
+                            className="game-page__detailed-description-block-content"
+                            dangerouslySetInnerHTML={{
+                              __html: block,
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </FocusItem>
+                </VerticalFocusGroup>
               )}
 
               <Divider />
@@ -579,12 +1027,16 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                <ProtonDBSection
-                  protonDBData={protonDBData}
-                  focusId={GAME_SIDEBAR_PROTONDB_ID}
-                  focusNavigationOrder={2}
-                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                />
+                {shouldShowProtonSection && (
+                  <ProtonDBSection
+                    protonDBData={protonDBData}
+                    focusId={GAME_SIDEBAR_PROTONDB_ID}
+                    focusNavigationOrder={2}
+                    focusNavigationOverrides={
+                      sidebarCarouselNavigationOverrides
+                    }
+                  />
+                )}
 
                 <AchievementsBox
                   achievements={achievements ?? []}
