@@ -6,6 +6,7 @@ export const GAME_HERO_TOGGLE_FAVORITE_ID = "game-hero-toggle-favorite";
 export const GAME_MEDIA_CAROUSEL_REGION_ID = "game-media-carousel";
 export const GAME_DESCRIPTION_REGION_ID = "game-description";
 export const GAME_DESCRIPTION_BODY_ID = "game-description-body";
+export const GAME_DESCRIPTION_BOTTOM_ENTRY_ID = "game-description-bottom-entry";
 export const GAME_COMMENTS_REGION_ID = "game-comments";
 export const GAME_COMMENTS_ACTION_ROWS_REGION_ID = "game-comments-action-rows";
 export const GAME_COMMENTS_LOAD_MORE_ID = "game-comments-load-more";
