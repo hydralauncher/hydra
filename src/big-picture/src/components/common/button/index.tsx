@@ -3,7 +3,12 @@ import "./styles.scss";
 import { SpinnerIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { Link } from "react-router-dom";
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from "react";
 import { getContrastTextColor } from "../../../helpers";
 import { FocusItem } from "..";
 import type { FocusOverrides } from "../../../services";
@@ -68,13 +73,14 @@ export function Button({
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
+  const isEffectivelyDisabled = disabled || loading;
   const buttonClassName = cn(
     "button",
     variants[variant],
     sizes[size],
     className,
     {
-      "button--disabled": disabled || loading,
+      "button--disabled": isEffectivelyDisabled,
     }
   );
 
@@ -89,19 +95,36 @@ export function Button({
       : {}),
   } as CSSProperties;
 
+  const handleLinkClick = (event: ReactMouseEvent<HTMLElement>) => {
+    if (isEffectivelyDisabled) {
+      event.preventDefault();
+      return;
+    }
+
+    onClick?.(event as never);
+  };
+
   if (!href) {
     return (
       <FocusItem
         id={focusId}
         focusable={focusable}
-        navigationState={disabled || loading ? "disabled" : "active"}
+        navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
         asChild
       >
         <button
-          onClick={onClick}
-          disabled={disabled || loading}
+          onClick={(event) => {
+            if (isEffectivelyDisabled) {
+              event.preventDefault();
+              return;
+            }
+
+            onClick?.(event);
+          }}
+          disabled={disabled}
           aria-busy={loading}
+          aria-disabled={isEffectivelyDisabled}
           aria-label={size === "icon" ? ariaLabel : undefined}
           className={buttonClassName}
           style={buttonStyle}
@@ -150,7 +173,7 @@ export function Button({
       <FocusItem
         id={focusId}
         focusable={focusable}
-        navigationState={disabled || loading ? "disabled" : "active"}
+        navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
         asChild
       >
@@ -159,9 +182,10 @@ export function Button({
           target={target}
           rel={target === "_blank" ? "noreferrer" : undefined}
           aria-label={size === "icon" ? ariaLabel : undefined}
+          aria-disabled={isEffectivelyDisabled}
           className={buttonClassName}
           style={buttonStyle}
-          onClick={onClick as never}
+          onClick={handleLinkClick as never}
         >
           {linkContent}
         </a>
@@ -173,16 +197,17 @@ export function Button({
     <FocusItem
       id={focusId}
       focusable={focusable}
-      navigationState={disabled || loading ? "disabled" : "active"}
+      navigationState={disabled ? "disabled" : "active"}
       navigationOverrides={focusNavigationOverrides}
       asChild
     >
       <Link
         to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
+        aria-disabled={isEffectivelyDisabled}
         className={buttonClassName}
         style={buttonStyle}
-        onClick={onClick as never}
+        onClick={handleLinkClick as never}
       >
         {linkContent}
       </Link>

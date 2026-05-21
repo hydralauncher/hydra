@@ -1,6 +1,8 @@
 .user-disk-item {
   position: relative;
-  width: min(420px, 100%);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: calc(var(--spacing-unit) * 4);
   border: 1px solid var(--secondary-border);
   border-radius: calc(var(--spacing-unit) * 2);
@@ -11,6 +13,14 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
   text-align: left;
+
+  &[data-focused="true"],
+  &:focus,
+  &:focus-visible {
+    outline: 1px solid var(--primary);
+    outline-offset: 3px;
+    box-shadow: none;
+  }
 
   &--selected {
     background: var(--surface);
@@ -25,14 +35,6 @@
 
     &:hover {
       border-color: var(--text-secondary);
-    }
-
-    &[data-focused="true"],
-    &:focus,
-    &:focus-visible {
-      outline: 1px solid var(--primary);
-      outline-offset: 3px;
-      box-shadow: none;
     }
 
     &:not(.user-disk-item--selected):focus,
@@ -60,12 +62,22 @@
     flex-shrink: 0;
   }
 
-  &__selected-icon {
+  &__top-right {
     position: absolute;
     top: calc(var(--spacing-unit) * 3);
     right: calc(var(--spacing-unit) * 3);
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 1.5);
+  }
+
+  &__top-right-action {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__selected-icon {
     color: var(--primary);
-    pointer-events: none;
     opacity: 0;
     transition: opacity 0.18s ease-in-out;
 
@@ -93,7 +105,25 @@
   &__path {
     color: var(--text-secondary);
     font-weight: 400;
-    overflow-wrap: anywhere;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
+  }
+
+  &__path-wrapper {
+    width: 100%;
+    min-width: 0;
+
+    .tooltip {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+    }
   }
 
   &__usage {

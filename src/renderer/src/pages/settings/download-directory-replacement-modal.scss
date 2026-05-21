@@ -1,0 +1,55 @@
+@use "../../scss/globals.scss";
+
+.download-directory-replacement-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  &__summary {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__label {
+    color: globals.$muted-color;
+    font-size: 13px;
+    margin: 0;
+  }
+
+  &__path {
+    color: globals.$body-color;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  &__controls {
+    display: flex;
+    gap: globals.$spacing-unit;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  &__select {
+    flex: 1 1 320px;
+    min-width: 0;
+
+    .select-field {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .select-field__option {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+
+  &__confirm {
+    flex: 0 1 auto;
+    align-self: flex-end;
+  }
+}

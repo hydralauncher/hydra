@@ -2,9 +2,12 @@ import { registerEvent } from "../register-event";
 
 import type { UserPreferences } from "@types";
 import i18next from "i18next";
+import { defaultDownloadsPath } from "@main/constants";
 import { db, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
 import { DownloadManager } from "@main/services";
+import { WindowManager } from "@main/services/window-manager";
+import { getDownloadDirectoryPreferences } from "@shared";
 
 const updateUserPreferences = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -24,15 +27,28 @@ const updateUserPreferences = async (
     patchUserProfile({ language: preferences.language }).catch(() => {});
   }
 
+  const mergedPreferences = {
+    ...userPreferences,
+    ...preferences,
+  };
+  const normalizedDownloadDirectoryPreferences =
+    getDownloadDirectoryPreferences(mergedPreferences, defaultDownloadsPath);
+  const updatedPreferences = {
+    ...mergedPreferences,
+    ...normalizedDownloadDirectoryPreferences,
+  };
+
   await db.put<string, UserPreferences>(
     levelKeys.userPreferences,
-    {
-      ...userPreferences,
-      ...preferences,
-    },
+    updatedPreferences,
     {
       valueEncoding: "json",
     }
+  );
+
+  WindowManager.sendToAppWindows(
+    "on-user-preferences-updated",
+    updatedPreferences
   );
 
   if (Object.hasOwn(preferences, "maxDownloadSpeedBytesPerSecond")) {
