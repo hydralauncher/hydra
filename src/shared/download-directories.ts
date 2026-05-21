@@ -78,6 +78,22 @@ const sanitizeCreatedAt = (value: string | null | undefined) => {
   return new Date(timestamp).toISOString();
 };
 
+const sanitizeDirectorySource = (
+  value: DownloadDirectoryPreference["source"] | null | undefined
+): DownloadDirectoryPreference["source"] => {
+  return value === "auto" ? "auto" : "manual";
+};
+
+const createDownloadDirectoryRecord = (
+  path: string,
+  createdAt: string,
+  source: DownloadDirectoryPreference["source"]
+): DownloadDirectoryPreference => ({
+  path,
+  createdAt,
+  source,
+});
+
 const normalizeDownloadDirectoryRecords = (
   records: Array<DownloadDirectoryPreference | null | undefined>,
   fixedPath: string
@@ -92,10 +108,12 @@ const normalizeDownloadDirectoryRecords = (
     }
 
     const createdAt = sanitizeCreatedAt(record?.createdAt);
+    const source = sanitizeDirectorySource(record?.source);
 
     result.push({
       path: sanitizedPath,
       createdAt,
+      source,
       timestamp: new Date(createdAt).getTime(),
       originalIndex,
     });
@@ -123,10 +141,9 @@ const normalizeDownloadDirectoryRecords = (
       return true;
     })
     .slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES)
-    .map<DownloadDirectoryPreference>(({ path, createdAt }) => ({
-      path,
-      createdAt,
-    }));
+    .map<DownloadDirectoryPreference>(({ path, createdAt, source }) =>
+      createDownloadDirectoryRecord(path, createdAt, source)
+    );
 };
 
 const buildLegacyDownloadDirectoryRecords = (
@@ -152,12 +169,15 @@ const buildLegacyDownloadDirectoryRecords = (
   return orderedPaths
     .filter((path) => path !== fallbackDefaultPath)
     .slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES)
-    .map<DownloadDirectoryPreference>((path, index) => ({
-      path,
-      createdAt: new Date(
-        syntheticBaseTimestamp - index * SYNTHETIC_CREATED_AT_STEP_MS
-      ).toISOString(),
-    }));
+    .map<DownloadDirectoryPreference>((path, index) =>
+      createDownloadDirectoryRecord(
+        path,
+        new Date(
+          syntheticBaseTimestamp - index * SYNTHETIC_CREATED_AT_STEP_MS
+        ).toISOString(),
+        "manual"
+      )
+    );
 };
 
 export function resolveDownloadDirectories(
@@ -312,6 +332,33 @@ export function prepareDefaultDownloadPathSync(
     };
   }
 
+  const mostRecentSavedDirectory = resolvedDirectories.directories[0];
+
+  if (mostRecentSavedDirectory?.source === "auto") {
+    return {
+      type: "add-and-set",
+      nextPreferences: getDownloadDirectoryPreferences(
+        {
+          downloadsPath: sanitizedNextPath,
+          downloadDirectories: [
+            createDownloadDirectoryRecord(
+              sanitizedNextPath,
+              new Date().toISOString(),
+              "auto"
+            ),
+            ...resolvedDirectories.directories.filter(
+              (directory) =>
+                directory.path !== mostRecentSavedDirectory.path &&
+                directory.path !== sanitizedNextPath
+            ),
+          ],
+        },
+        fallbackDefaultPath
+      ),
+      nextDefaultPath: sanitizedNextPath,
+    };
+  }
+
   if (
     resolvedDirectories.savedPaths.length < MAX_OPTIONAL_DOWNLOAD_DIRECTORIES
   ) {
@@ -321,10 +368,11 @@ export function prepareDefaultDownloadPathSync(
         {
           downloadsPath: sanitizedNextPath,
           downloadDirectories: [
-            {
-              path: sanitizedNextPath,
-              createdAt: new Date().toISOString(),
-            },
+            createDownloadDirectoryRecord(
+              sanitizedNextPath,
+              new Date().toISOString(),
+              "auto"
+            ),
             ...resolvedDirectories.directories,
           ],
         },
@@ -386,10 +434,11 @@ export function replaceSavedDownloadDirectoryAndSetDefault(
       {
         downloadsPath: sanitizedNextPath,
         downloadDirectories: [
-          {
-            path: sanitizedNextPath,
-            createdAt: new Date().toISOString(),
-          },
+          createDownloadDirectoryRecord(
+            sanitizedNextPath,
+            new Date().toISOString(),
+            "auto"
+          ),
           ...resolvedDirectories.directories.filter(
             (directory) =>
               directory.path !== sanitizedPathToReplace &&
@@ -427,10 +476,11 @@ export function addOptionalDownloadDirectory(
     {
       downloadsPath: resolvedDirectories.persistedDefaultPath,
       downloadDirectories: [
-        {
-          path: sanitizedNextPath,
-          createdAt: new Date().toISOString(),
-        },
+        createDownloadDirectoryRecord(
+          sanitizedNextPath,
+          new Date().toISOString(),
+          "manual"
+        ),
         ...resolvedDirectories.directories,
       ],
     },

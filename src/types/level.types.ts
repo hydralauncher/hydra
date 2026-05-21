@@ -120,6 +120,7 @@ export type AchievementCustomNotificationPosition =
 export interface DownloadDirectoryPreference {
   path: string;
   createdAt: string;
+  source: "manual" | "auto";
 }
 
 export interface UserPreferences {
