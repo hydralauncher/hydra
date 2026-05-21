@@ -291,19 +291,11 @@ export function Hero({
               focusId={GAME_HERO_TOGGLE_FAVORITE_ID}
               focusNavigationOverrides={toggleFavoriteNavigationOverrides}
             >
-              <motion.span
-                key={isFavorite ? "filled" : "empty"}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {isFavorite ? (
-                  <HeartIcon size={24} weight="fill" />
-                ) : (
-                  <HeartIcon size={24} />
-                )}
-              </motion.span>
+              {isFavorite ? (
+                <HeartIcon size={24} weight="fill" />
+              ) : (
+                <HeartIcon size={24} />
+              )}
             </Button>
           )}
         </HorizontalFocusGroup>
