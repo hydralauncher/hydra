@@ -117,8 +117,16 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export interface DownloadDirectoryPreference {
+  path: string;
+  createdAt: string;
+  source: "manual" | "auto";
+}
+
 export interface UserPreferences {
   downloadsPath?: string | null;
+  downloadDirectories?: DownloadDirectoryPreference[];
+  optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;

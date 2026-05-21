@@ -7,7 +7,6 @@ import {
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
 import { motion } from "framer-motion";
-import { DownloadIcon } from "lucide-react";
 import { useMemo } from "react";
 import {
   FocusOverrides,
@@ -19,7 +18,6 @@ import {
   Button,
   Divider,
   HorizontalFocusGroup,
-  Tooltip,
   Typography,
 } from "../../../common";
 import {
@@ -27,8 +25,6 @@ import {
   GAME_HERO_DOWNLOAD_OPTIONS_ID,
   GAME_HERO_PRIMARY_ACTION_ID,
   GAME_HERO_TOGGLE_FAVORITE_ID,
-  GAME_STATS_REGION_ID,
-  GAME_STATS_TITLE_ID,
 } from "../navigation";
 
 export interface HeroProps {
@@ -44,6 +40,8 @@ export interface HeroProps {
   onClose: () => void;
   isAddingToLibrary: boolean;
   canAddToLibrary: boolean;
+  downNavigationTarget?: FocusOverrideTarget;
+  sidebarEntryTarget?: FocusOverrideTarget;
 }
 
 export function Hero({
@@ -59,50 +57,61 @@ export function Hero({
   onClose,
   isAddingToLibrary,
   canAddToLibrary,
+  downNavigationTarget,
+  sidebarEntryTarget,
 }: Readonly<HeroProps>) {
-  const dominantColor = useDominantColor(game?.libraryHeroImageUrl ?? null);
-  const heroDownNavigationTarget: FocusOverrideTarget = {
-    type: "region",
-    regionId: GAME_STATS_REGION_ID,
-    entryDirection: "down",
-  };
+  const dominantColor = useDominantColor(
+    game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
+  );
+  const heroDownNavigationTarget = useMemo<FocusOverrideTarget>(
+    () => downNavigationTarget ?? { type: "block" },
+    [downNavigationTarget]
+  );
   const hasPrimaryAction =
     isGameRunning ||
     Boolean(game?.executablePath) ||
     Boolean(game) ||
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
-  const favoriteLeftTargetId = shouldShowCatalogActions
-    ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-    : hasPrimaryAction
-      ? GAME_HERO_PRIMARY_ACTION_ID
-      : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+  const shouldShowFavoriteButton = Boolean(game);
+  const lastActionRightTarget = useMemo<FocusOverrideTarget>(
+    () => sidebarEntryTarget ?? { type: "block" },
+    [sidebarEntryTarget]
+  );
+  const favoriteLeftTargetId =
+    shouldShowCatalogActions && hasPrimaryAction
+      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
+      : hasPrimaryAction
+        ? GAME_HERO_PRIMARY_ACTION_ID
+        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
 
   const toggleFavoriteNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
       itemId: favoriteLeftTargetId,
     },
-    right: {
-      type: "item",
-      itemId: GAME_STATS_TITLE_ID,
-    },
+    right: lastActionRightTarget,
     down: heroDownNavigationTarget,
   };
 
   const { primaryActionButton, downloadOptionsButton } = useMemo(() => {
-    const primaryActionRightTargetId = shouldShowCatalogActions
-      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-      : GAME_HERO_TOGGLE_FAVORITE_ID;
+    const primaryActionRightTarget = shouldShowCatalogActions
+      ? {
+          type: "item" as const,
+          itemId: GAME_HERO_DOWNLOAD_OPTIONS_ID,
+        }
+      : shouldShowFavoriteButton
+        ? {
+            type: "item" as const,
+            itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
+          }
+        : lastActionRightTarget;
     const primaryActionNavigationOverrides: FocusOverrides = {
       left: {
         type: "item",
         itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
       },
-      right: {
-        type: "item",
-        itemId: primaryActionRightTargetId,
-      },
+      right: primaryActionRightTarget,
       down: heroDownNavigationTarget,
     };
     const downloadOptionsNavigationOverrides: FocusOverrides = {
@@ -110,10 +119,12 @@ export function Hero({
         type: "item",
         itemId: GAME_HERO_PRIMARY_ACTION_ID,
       },
-      right: {
-        type: "item",
-        itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
-      },
+      right: shouldShowFavoriteButton
+        ? {
+            type: "item",
+            itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
+          }
+        : lastActionRightTarget,
       down: heroDownNavigationTarget,
     };
 
@@ -122,6 +133,7 @@ export function Hero({
         primaryActionButton: (
           <Button
             focusId={GAME_HERO_PRIMARY_ACTION_ID}
+            focusNavigationOverrides={primaryActionNavigationOverrides}
             variant="primary"
             icon={<XCircleIcon size={24} />}
             onClick={onClose}
@@ -158,7 +170,9 @@ export function Hero({
           <Button
             focusId={GAME_HERO_PRIMARY_ACTION_ID}
             focusNavigationOverrides={primaryActionNavigationOverrides}
-            icon={<DownloadIcon size={24} />}
+            variant="primary"
+            color={dominantColor ?? undefined}
+            icon={<DownloadSimpleIcon size={24} />}
             onClick={onDownload}
           >
             Download Game
@@ -180,7 +194,8 @@ export function Hero({
         <Button
           focusId={GAME_HERO_PRIMARY_ACTION_ID}
           focusNavigationOverrides={primaryActionNavigationOverrides}
-          variant="secondary"
+          variant="primary"
+          color={dominantColor ?? undefined}
           icon={<PlusCircleIcon size={24} />}
           onClick={onAddToLibrary}
           loading={isAddingToLibrary}
@@ -196,7 +211,7 @@ export function Hero({
           icon={<DownloadSimpleIcon size={24} />}
           onClick={onOpenDownloadOptions}
         >
-          Download Options
+          Download Game
         </Button>
       ),
     };
@@ -213,10 +228,12 @@ export function Hero({
     onOpenDownloadOptions,
     onPlay,
     shouldShowCatalogActions,
+    shouldShowFavoriteButton,
+    lastActionRightTarget,
   ]);
 
   return (
-    <section style={{ position: "relative", height: 620, overflow: "hidden" }}>
+    <section className="game-page__hero-shell">
       <motion.div
         initial={{ scale: 1, x: 0, y: 0 }}
         animate={{
@@ -239,12 +256,12 @@ export function Hero({
       <div className="game-page__hero-overlay">
         <img
           src={shopDetails.assets?.logoImageUrl || ""}
-          style={{ width: 337 }}
           alt={shopDetails.assets?.title || ""}
+          className="game-page__hero-logo"
         />
 
         <Typography
-          style={{ maxWidth: 512, color: "rgba(255, 255, 255, 0.8)" }}
+          className="game-page__hero-description"
           dangerouslySetInnerHTML={{
             __html: shopDetails.short_description || "",
           }}
@@ -257,32 +274,30 @@ export function Hero({
           {primaryActionButton}
           {downloadOptionsButton}
 
-          {primaryActionButton && <Divider orientation="vertical" />}
+          {primaryActionButton && shouldShowFavoriteButton && (
+            <div className="game-page__hero-action-divider">
+              <Divider orientation="vertical" color="var(--text-secondary)" />
+            </div>
+          )}
 
-          <Tooltip
-            content={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-          >
+          {shouldShowFavoriteButton && (
             <Button
               variant="secondary"
+              size="icon"
+              aria-label={
+                isFavorite ? "Remove from favorites" : "Add to favorites"
+              }
               onClick={() => toggleFavorite()}
               focusId={GAME_HERO_TOGGLE_FAVORITE_ID}
               focusNavigationOverrides={toggleFavoriteNavigationOverrides}
             >
-              <motion.span
-                key={isFavorite ? "filled" : "empty"}
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {isFavorite ? (
-                  <HeartIcon size={24} weight="fill" />
-                ) : (
-                  <HeartIcon size={24} />
-                )}
-              </motion.span>
+              {isFavorite ? (
+                <HeartIcon size={24} weight="fill" />
+              ) : (
+                <HeartIcon size={24} />
+              )}
             </Button>
-          </Tooltip>
+          )}
         </HorizontalFocusGroup>
       </div>
     </section>

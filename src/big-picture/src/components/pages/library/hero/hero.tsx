@@ -195,7 +195,7 @@ export function LibraryHero({
                   disabled={!featuredGame}
                   onClick={handlePlayOrDownloadClick}
                 >
-                  Launch Game
+                  Download Game
                 </Button>
               )}
 
