@@ -68,6 +68,7 @@ type GamepadEchoRecord = {
 type RepeatLane = "horizontal" | "vertical";
 type ButtonRepeatTimers = Map<GamepadButtonType, number>;
 type RepeatLaneOwners = Map<RepeatLane, GamepadInputDescriptor>;
+type RepeatLaneCandidates = Map<RepeatLane, GamepadInputDescriptor[]>;
 type StickPosition = { x: number; y: number };
 type StickPositions = Record<GamepadStickSide, StickPosition>;
 
@@ -109,6 +110,10 @@ export class GamepadService {
     ButtonRepeatTimers
   >();
   private readonly repeatOwnersByGamepad = new Map<number, RepeatLaneOwners>();
+  private readonly repeatCandidatesByGamepad = new Map<
+    number,
+    RepeatLaneCandidates
+  >();
   private recentAcceptedInputs: GamepadEchoRecord[] = [];
 
   public static getInstance(): GamepadService {
@@ -180,6 +185,17 @@ export class GamepadService {
     }
 
     return owners;
+  }
+
+  private getRepeatCandidates(gamepadIndex: number): RepeatLaneCandidates {
+    let candidates = this.repeatCandidatesByGamepad.get(gamepadIndex);
+
+    if (!candidates) {
+      candidates = new Map();
+      this.repeatCandidatesByGamepad.set(gamepadIndex, candidates);
+    }
+
+    return candidates;
   }
 
   private readonly handleNewGamepadConnection = (event: GamepadEvent) => {
@@ -401,6 +417,33 @@ export class GamepadService {
     this.clearStickTimer(this.getStickState(gamepadIndex, input.side));
   }
 
+  private isInputStillActive(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): boolean {
+    if (input.kind === "button") {
+      return this.isButtonPressed(gamepadIndex, input.button);
+    }
+
+    return (
+      this.getStickState(gamepadIndex, input.side).direction === input.direction
+    );
+  }
+
+  private resumeRepeatForInput(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): void {
+    if (input.kind === "button") {
+      this.clearButtonRepeatTimer(gamepadIndex, input.button);
+      this.repeatButtonCallback(gamepadIndex, input.button);
+      return;
+    }
+
+    this.clearStickTimer(this.getStickState(gamepadIndex, input.side));
+    this.repeatStickCallback(gamepadIndex, input.side, input.direction);
+  }
+
   private claimRepeatOwnership(
     gamepadIndex: number,
     input: GamepadInputDescriptor
@@ -410,7 +453,15 @@ export class GamepadService {
     if (!lane) return;
 
     const owners = this.getRepeatOwners(gamepadIndex);
+    const candidates = this.getRepeatCandidates(gamepadIndex);
     const previousOwner = owners.get(lane);
+    const laneCandidates = candidates.get(lane) ?? [];
+    const nextLaneCandidates = laneCandidates.filter(
+      (candidate) => !this.isSameInputDescriptor(candidate, input)
+    );
+
+    nextLaneCandidates.push(input);
+    candidates.set(lane, nextLaneCandidates);
 
     if (previousOwner && !this.isSameInputDescriptor(previousOwner, input)) {
       this.clearRepeatForInput(gamepadIndex, previousOwner);
@@ -428,8 +479,24 @@ export class GamepadService {
     if (!lane) return;
 
     const owners = this.repeatOwnersByGamepad.get(gamepadIndex);
+    const candidates = this.repeatCandidatesByGamepad.get(gamepadIndex);
 
     if (!owners) return;
+
+    const laneCandidates = candidates?.get(lane) ?? [];
+    const nextLaneCandidates = laneCandidates.filter(
+      (candidate) => !this.isSameInputDescriptor(candidate, input)
+    );
+
+    if (nextLaneCandidates.length > 0) {
+      candidates?.set(lane, nextLaneCandidates);
+    } else {
+      candidates?.delete(lane);
+    }
+
+    if (candidates && candidates.size === 0) {
+      this.repeatCandidatesByGamepad.delete(gamepadIndex);
+    }
 
     const currentOwner = owners.get(lane);
 
@@ -437,7 +504,16 @@ export class GamepadService {
       return;
     }
 
-    owners.delete(lane);
+    const restoredOwner = [...nextLaneCandidates]
+      .reverse()
+      .find((candidate) => this.isInputStillActive(gamepadIndex, candidate));
+
+    if (restoredOwner) {
+      owners.set(lane, restoredOwner);
+      this.resumeRepeatForInput(gamepadIndex, restoredOwner);
+    } else {
+      owners.delete(lane);
+    }
 
     if (owners.size === 0) {
       this.repeatOwnersByGamepad.delete(gamepadIndex);
@@ -1044,6 +1120,7 @@ export class GamepadService {
     this.stickStatesByGamepad.clear();
     this.clearAllButtonRepeatTimers();
     this.repeatOwnersByGamepad.clear();
+    this.repeatCandidatesByGamepad.clear();
   }
 
   private clearTimersForGamepad(gamepadIndex: number) {
@@ -1056,6 +1133,7 @@ export class GamepadService {
 
     this.clearButtonRepeatTimersForGamepad(gamepadIndex);
     this.repeatOwnersByGamepad.delete(gamepadIndex);
+    this.repeatCandidatesByGamepad.delete(gamepadIndex);
   }
 
   private triggerStickCallbacks(
