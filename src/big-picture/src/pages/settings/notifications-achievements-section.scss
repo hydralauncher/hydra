@@ -1,0 +1,26 @@
+.notifications-achievements-section {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(var(--spacing-unit) * 4);
+    width: 100%;
+  }
+
+  &__actions-item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  &__select,
+  &__test-button {
+    width: 100%;
+  }
+}

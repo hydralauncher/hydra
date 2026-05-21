@@ -90,12 +90,10 @@ export function DropdownSelect<TValue extends string = string>({
     optionIds.get(value) ?? optionIds.get(options[0]?.value ?? "");
 
   const restoreTriggerFocus = useCallback(() => {
-    if (!focusId) return;
-
     globalThis.window?.requestAnimationFrame(() => {
-      setFocus(focusId);
+      setFocus(resolvedBaseId);
     });
-  }, [focusId, setFocus]);
+  }, [resolvedBaseId, setFocus]);
 
   const closeMenu = useCallback(
     (restoreFocus = false) => {
@@ -173,6 +171,14 @@ export function DropdownSelect<TValue extends string = string>({
     };
   }, [closeMenu, floatingRef, isOpen]);
 
+  const handleTriggerClick = useCallback(() => {
+    if (!isOpen) {
+      setFocus(resolvedBaseId);
+    }
+
+    setIsOpen((currentOpen) => !currentOpen);
+  }, [isOpen, resolvedBaseId, setFocus]);
+
   useNavigationScreenActions(
     isOpen
       ? {
@@ -210,7 +216,7 @@ export function DropdownSelect<TValue extends string = string>({
 
       <div ref={referenceRef} className="dropdown-select__trigger-anchor">
         <FocusItem
-          id={focusId}
+          id={resolvedBaseId}
           asChild
           navigationOverrides={focusNavigationOverrides}
         >
@@ -221,7 +227,7 @@ export function DropdownSelect<TValue extends string = string>({
             aria-haspopup="listbox"
             aria-expanded={isOpen}
             data-open={isOpen || undefined}
-            onClick={() => setIsOpen((currentOpen) => !currentOpen)}
+            onClick={handleTriggerClick}
           >
             <span className="dropdown-select__trigger-main">
               {leadingIcon ? (

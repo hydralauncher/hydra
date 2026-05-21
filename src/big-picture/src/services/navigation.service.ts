@@ -1286,7 +1286,7 @@ export class NavigationService {
           nodeId: string;
           rect: DOMRect;
           score: { overlap: number; primary: number; cross: number };
-        } => candidate !== null
+        } => candidate !== null && candidate.score !== null
       )
       .sort((a, b) => {
         if (a.score.overlap !== b.score.overlap) {

@@ -1,0 +1,104 @@
+.download-source-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 5);
+  width: 100%;
+  padding: calc(var(--spacing-unit) * 4);
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 3);
+  background: var(--surface);
+  box-sizing: border-box;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 1.5);
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  &__count {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__status {
+    margin: 0;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: right;
+
+    &--success {
+      color: var(--text-secondary);
+    }
+
+    &--error {
+      color: var(--error);
+    }
+  }
+
+  &__field-row {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+  }
+
+  &__field {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__field-label {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__field-value {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    width: 100%;
+    min-width: 0;
+    padding: 0 calc(var(--spacing-unit) * 3);
+    border: 1px solid var(--secondary-border);
+    border-radius: calc(var(--spacing-unit) * 2);
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+
+  &__remove-button {
+    flex: 0 0 auto;
+    min-width: 176px;
+    border-radius: calc(var(--spacing-unit) * 2);
+  }
+}

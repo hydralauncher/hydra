@@ -15,11 +15,14 @@ export function PlaytimeBar({ game }: Readonly<PlaytimeBarProps>) {
 
   return (
     <div className="game-page__playtime-bar">
-      <div>
-        <Typography>
-          Played for <strong>{formatPlayTime(playTimeInSeconds)}</strong>
+      <div className="game-page__playtime-bar-copy">
+        <Typography className="game-page__playtime-bar-title">
+          Played for{" "}
+          <strong className="game-page__playtime-bar-value">
+            {formatPlayTime(playTimeInSeconds)}
+          </strong>
         </Typography>
-        <Typography style={{ color: "rgba(255, 255, 255, 0.5)" }}>
+        <Typography className="game-page__playtime-bar-subtitle">
           {game?.lastTimePlayed ? (
             <>
               Last played{" "}

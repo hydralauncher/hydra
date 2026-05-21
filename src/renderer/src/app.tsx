@@ -8,6 +8,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import i18n from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WorkWonders } from "workwonders-sdk";
 
@@ -96,6 +97,27 @@ export function App() {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onUserPreferencesUpdated(
+      (preferences) => {
+        if (!preferences) {
+          dispatch(setUserPreferences(null));
+          return;
+        }
+
+        if (preferences.language && preferences.language !== i18n.language) {
+          void i18n.changeLanguage(preferences.language);
+        }
+
+        dispatch(setUserPreferences(preferences));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(

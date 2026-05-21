@@ -1,11 +1,17 @@
 .game-achievements-page {
-  height: 100%;
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow-x: hidden;
   overflow-y: auto;
   position: relative;
+  background: var(--background);
 
   &__hero {
     position: relative;
-    height: 440px;
+    height: 460px;
     overflow: hidden;
   }
 
@@ -24,8 +30,11 @@
     height: 100%;
     display: flex;
     align-items: flex-end;
-    padding: calc(var(--spacing-unit) * 12) calc(var(--spacing-unit) * 24)
-      calc(var(--spacing-unit) * 32) calc(var(--spacing-unit) * 24);
+    padding: calc(
+        var(--big-picture-header-height) + calc(var(--spacing-unit) * 12)
+      )
+      calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 12);
+    gap: calc(var(--spacing-unit) * 6);
     background:
       linear-gradient(
         90deg,
@@ -47,8 +56,9 @@
   &__content {
     position: relative;
     z-index: 2;
-    margin-top: -64px;
-    padding: 0 calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 16);
+    margin-top: 0;
+    padding: calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 24)
+      calc(var(--spacing-unit) * 16);
     display: flex;
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 6);
@@ -57,8 +67,11 @@
   &__summary {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: calc(var(--spacing-unit) * 4);
     width: 100%;
+    background-color: var(--secondary);
+    border-radius: 12px;
+    padding: 16px;
   }
 
   &__summary-avatar {
@@ -71,8 +84,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(8, 8, 8, 1);
+    color: var(--text-secondary);
 
     img {
       width: 100%;
@@ -108,7 +121,8 @@
     font-family: inherit;
     font-weight: 700;
     font-size: 16px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text);
+    line-height: 1.2;
     margin: 0;
   }
 
@@ -116,26 +130,29 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.2;
   }
 
   &__summary-percentage {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 14px;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
     white-space: nowrap;
   }
 
   &__summary-progress {
     position: relative;
     width: 100%;
-    height: 4px;
+    height: 6px;
   }
 
   &__summary-progress-track {
     position: absolute;
     inset: 0;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.12);
     border-radius: 300px;
   }
 
@@ -144,7 +161,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: var(--text);
     border-radius: 300px;
     transition: width 0.4s ease;
   }
@@ -152,25 +169,33 @@
   &__points-bar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
-    background-color: #0e0e0e;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    background-color: var(--secondary);
+    border-radius: 12px 12px 0 0;
     padding: 16px;
   }
 
   &__points-label {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
     font-size: 14px;
+    line-height: 1;
   }
 
   &__points-value {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  &__list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   &__list {
@@ -182,35 +207,38 @@
     padding: 0;
 
     > *:last-child .game-achievements-row {
-      border-bottom-left-radius: 8px;
-      border-bottom-right-radius: 8px;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
     }
   }
 }
 
 .game-achievements-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
-  background-color: #0e0e0e;
-  padding: 8px;
+  background-color: var(--secondary);
+  padding: 16px;
   outline: none;
   cursor: default;
+  min-height: 88px;
 
   &[data-focused="true"] {
-    outline: 2px solid #fff !important;
-    outline-offset: -2px;
+    z-index: 1;
+    outline: 2px solid #fff;
+    outline-offset: 4px;
   }
 
   &__icon {
     flex-shrink: 0;
-    border-radius: 4px;
+    border-radius: 8px;
     box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   }
 
   &__icon--locked {
     filter: grayscale(100%);
-    opacity: 0.6;
+    opacity: 0.55;
   }
 
   &__info {
@@ -225,19 +253,22 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 14px;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
   }
 
-  &__hidden-icon {
-    display: inline-flex;
-    align-items: center;
-    color: #fbbf24;
+  &__hidden-note {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.25;
   }
 
   &__description {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
     font-size: 14px;
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -256,15 +287,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text);
     font-size: 14px;
-    font-weight: 700;
-  }
-
-  &__unlock-time {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 12px;
-    white-space: nowrap;
+    font-weight: 500;
+    line-height: 1;
   }
 
   &__status {
@@ -273,10 +299,6 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    color: rgba(255, 255, 255, 0.5);
-
-    [data-focused="true"] & {
-      color: rgba(255, 255, 255, 0.9);
-    }
+    color: var(--text-secondary);
   }
 }
