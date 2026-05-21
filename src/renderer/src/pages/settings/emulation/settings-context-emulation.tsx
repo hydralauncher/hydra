@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import type { EmulatorConfigMap, EmulatorSystem } from "@types";
 
@@ -23,6 +24,7 @@ const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
 
 export function SettingsContextEmulation() {
   const { t } = useTranslation("settings");
+  const navigate = useNavigate();
 
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [view, setView] = useState<
@@ -95,14 +97,11 @@ export function SettingsContextEmulation() {
     setSetupSystem(system);
   }, []);
 
-  const handleSetupComplete = useCallback(
-    async (system: EmulatorSystem) => {
-      setSetupSystem(null);
-      await refresh();
-      setView({ kind: "detail", system });
-    },
-    [refresh]
-  );
+  const handleSetupComplete = useCallback(() => {
+    setSetupSystem(null);
+    localStorage.setItem("library-category", "classics");
+    navigate("/library");
+  }, [navigate]);
 
   const handleSetupClose = useCallback(async () => {
     setSetupSystem(null);

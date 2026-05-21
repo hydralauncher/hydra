@@ -125,6 +125,8 @@ export function SetupStepScanning({
   const percent =
     total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
+  const indeterminate = phase !== "done" && (total === 0 || processed >= total);
+
   const phaseLabel =
     phase === "scanning" ? t("setup_scanning") : t("setup_matching");
 
@@ -150,14 +152,16 @@ export function SetupStepScanning({
 
       <div className="setup-modal__progress-bar">
         <div
-          className="setup-modal__progress-fill"
-          style={{ width: `${percent}%` }}
+          className={`setup-modal__progress-fill${
+            indeterminate ? " setup-modal__progress-fill--indeterminate" : ""
+          }`}
+          style={indeterminate ? undefined : { width: `${percent}%` }}
         />
       </div>
 
       {currentFile && (
         <p className="setup-modal__current-file">
-          <span>{currentFile}</span>
+          <span className="setup-modal__current-file-name">{currentFile}</span>
           {currentStatus && (
             <span
               className={`setup-modal__match-tag setup-modal__match-tag--${currentStatus}`}

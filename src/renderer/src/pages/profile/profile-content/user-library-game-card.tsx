@@ -135,7 +135,9 @@ export function UserLibraryGameCard({
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
-          <div className="user-library-game__overlay">
+          <div
+            className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
+          >
             {isMe && (
               <div className="user-library-game__actions-container">
                 <button

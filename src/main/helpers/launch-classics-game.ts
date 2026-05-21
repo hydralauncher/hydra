@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger } from "@main/services";
@@ -48,7 +49,7 @@ export const launchClassicsGame = async (
   const { shop, objectId, discPath, system } = options;
 
   const config = await emulators.getEmulatorConfig(system);
-  if (!config.executablePath) {
+  if (!config.executablePath || !existsSync(config.executablePath)) {
     throw new EmulatorNotConfiguredError(system);
   }
 
@@ -110,6 +111,19 @@ export const launchClassicsGame = async (
         },
       }
     );
+
+    await new Promise<void>((resolve, reject) => {
+      const onSpawn = () => {
+        processRef.off("error", onError);
+        resolve();
+      };
+      const onError = (error: Error) => {
+        processRef.off("spawn", onSpawn);
+        reject(error);
+      };
+      processRef.once("spawn", onSpawn);
+      processRef.once("error", onError);
+    });
 
     if (game) {
       await emulators.startEmulatorSession({

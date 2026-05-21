@@ -39,9 +39,34 @@ export function DiscSelectionModal({
   const { t } = useTranslation("game_details");
   const tooltipId = useId();
 
+  const sortedDiscs = useMemo(() => {
+    const regionOrder = new Map<string, number>();
+    for (const disc of discs) {
+      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      if (region && !regionOrder.has(region)) {
+        regionOrder.set(region, regionOrder.size);
+      }
+    }
+
+    const rankOf = (disc: ClassicsDisc): number => {
+      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      if (!region) return Number.MAX_SAFE_INTEGER;
+      return regionOrder.get(region) ?? Number.MAX_SAFE_INTEGER;
+    };
+
+    const numberOf = (disc: ClassicsDisc): number => {
+      const match = /\d+/.exec(disc.label);
+      return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+    };
+
+    return [...discs].sort(
+      (a, b) => rankOf(a) - rankOf(b) || numberOf(a) - numberOf(b)
+    );
+  }, [discs]);
+
   const initialSelected = useMemo(
-    () => defaultDiscPath ?? discs[0]?.path ?? null,
-    [defaultDiscPath, discs]
+    () => defaultDiscPath ?? sortedDiscs[0]?.path ?? null,
+    [defaultDiscPath, sortedDiscs]
   );
 
   const [selected, setSelected] = useState<string | null>(initialSelected);
@@ -67,7 +92,7 @@ export function DiscSelectionModal({
       onClose={onClose}
     >
       <div className="disc-selection-modal__body">
-        {discs.map((disc) => {
+        {sortedDiscs.map((disc) => {
           const isActive = selected === disc.path;
           const region = disc.sku ? getSkuRegion(disc.sku) : null;
           const regionName = region ? t(REGION_TRANSLATION_KEYS[region]) : null;

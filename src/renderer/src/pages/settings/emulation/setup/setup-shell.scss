@@ -288,6 +288,21 @@
     background: #0cf1ca;
     border-radius: 999px;
     transition: width 0.15s ease;
+
+    &--indeterminate {
+      width: 35%;
+      transition: none;
+      animation: setup-progress-indeterminate 1.1s ease-in-out infinite;
+    }
+  }
+
+  @keyframes setup-progress-indeterminate {
+    from {
+      transform: translateX(-110%);
+    }
+    to {
+      transform: translateX(330%);
+    }
   }
 
   &__progress-meta {
@@ -302,17 +317,25 @@
     color: #71717a;
     font-family: "JetBrains Mono", monospace;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     display: flex;
     align-items: center;
     gap: 8px;
+
+    &-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   &__match-tag {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    flex-shrink: 0;
     font-size: 11px;
     font-family: "Inter", sans-serif;
     font-weight: 600;

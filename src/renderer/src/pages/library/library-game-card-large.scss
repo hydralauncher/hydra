@@ -90,6 +90,10 @@
     z-index: 1;
   }
 
+  &--classics &__gradient {
+    background: none;
+  }
+
   &__overlay {
     position: relative;
     z-index: 2;
