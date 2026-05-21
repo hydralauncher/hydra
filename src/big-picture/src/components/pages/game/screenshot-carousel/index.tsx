@@ -19,7 +19,7 @@ interface ScreenshotCarouselProps {
   screenshots: SteamScreenshot[];
   videos: SteamMovie[];
   onActiveItemChange?: (itemId: string | null) => void;
-  descriptionEntryTarget?: FocusOverrideTarget;
+  nextContentEntryTarget?: FocusOverrideTarget;
   sidebarEntryTarget?: FocusOverrideTarget;
 }
 
@@ -122,7 +122,7 @@ export function ScreenshotCarousel({
   screenshots,
   videos,
   onActiveItemChange,
-  descriptionEntryTarget,
+  nextContentEntryTarget,
   sidebarEntryTarget,
 }: Readonly<ScreenshotCarouselProps>) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
@@ -323,7 +323,7 @@ export function ScreenshotCarousel({
                     ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home)
                     : getItemFocusTarget(mediaItems[index - 1].focusId)
                 }
-                downNavigationTarget={descriptionEntryTarget}
+                downNavigationTarget={nextContentEntryTarget}
                 rightNavigationTarget={
                   index === mediaItems.length - 1
                     ? (sidebarEntryTarget ?? { type: "block" })
