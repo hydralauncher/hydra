@@ -1,15 +1,11 @@
 import languageResources from "@locales";
-import {
-  getFlagEmojiFromCountryCode,
-  getLanguageFlagCountryCode,
-  resolveLanguageKey,
-} from "@shared";
+import { getLanguageFlagCountryCode, resolveLanguageKey } from "@shared";
 
 export interface LanguageOption {
   localeKey: string;
   nativeName: string;
   englishName: string;
-  flag: string | null;
+  flagCountryCode: string | null;
 }
 
 const englishLanguageNames =
@@ -31,7 +27,7 @@ export function getLanguageOptions(): LanguageOption[] {
       localeKey: language,
       nativeName: value.language_name,
       englishName: getEnglishLanguageName(language),
-      flag: getFlagEmojiFromCountryCode(getLanguageFlagCountryCode(language)),
+      flagCountryCode: getLanguageFlagCountryCode(language),
     }))
     .sort((firstLanguage, secondLanguage) =>
       firstLanguage.nativeName.localeCompare(
@@ -60,7 +56,7 @@ export function resolveCurrentLanguageOption(
       localeKey: "en",
       nativeName: languageResources.en.language_name,
       englishName: getEnglishLanguageName("en"),
-      flag: getFlagEmojiFromCountryCode(getLanguageFlagCountryCode("en")),
+      flagCountryCode: getLanguageFlagCountryCode("en"),
     }
   );
 }

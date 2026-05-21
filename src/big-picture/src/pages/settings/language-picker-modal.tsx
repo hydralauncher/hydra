@@ -1,10 +1,6 @@
 import "./language-picker-modal.scss";
 
-import {
-  CheckCircleIcon,
-  GlobeHemisphereWestIcon,
-  MagnifyingGlassIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -20,6 +16,7 @@ import {
   getLanguageOptions,
   resolveCurrentLanguageOption,
 } from "./language-options";
+import { LanguageFlag } from "./language-flag";
 import {
   buildLanguagePickerGridNavigation,
   findLanguagePickerReplacementFocusId,
@@ -242,19 +239,10 @@ export function LanguagePickerModal({
                       }}
                     >
                       <div className="language-picker-modal__card-main">
-                        {languageItem.flag ? (
-                          <span
-                            className="language-picker-modal__flag"
-                            aria-hidden="true"
-                          >
-                            {languageItem.flag}
-                          </span>
-                        ) : (
-                          <GlobeHemisphereWestIcon
-                            size={18}
-                            aria-hidden="true"
-                          />
-                        )}
+                        <LanguageFlag
+                          countryCode={languageItem.flagCountryCode}
+                          className="language-picker-modal__flag"
+                        />
 
                         <span className="language-picker-modal__card-label">
                           {languageItem.nativeName}
