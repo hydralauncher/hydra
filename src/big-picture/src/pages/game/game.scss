@@ -487,8 +487,7 @@
         #080808 99.53%
       ),
       linear-gradient(180deg, rgba(8, 8, 8, 0) 0%, #080808 97%);
-    padding:
-      calc(
+    padding: calc(
         var(--big-picture-header-height) + calc(var(--spacing-unit) * 12)
       )
       calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 12);

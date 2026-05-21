@@ -1,8 +1,4 @@
-import {
-  CheckCircleIcon,
-  LockIcon,
-  MedalIcon,
-} from "@phosphor-icons/react";
+import { CheckCircleIcon, LockIcon, MedalIcon } from "@phosphor-icons/react";
 import type { UserAchievement } from "@types";
 import cn from "classnames";
 import { useDate } from "../../../../hooks";

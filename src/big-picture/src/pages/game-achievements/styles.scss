@@ -30,8 +30,7 @@
     height: 100%;
     display: flex;
     align-items: flex-end;
-    padding:
-      calc(
+    padding: calc(
         var(--big-picture-header-height) + calc(var(--spacing-unit) * 12)
       )
       calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 12);
