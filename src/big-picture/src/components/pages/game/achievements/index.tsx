@@ -1,7 +1,9 @@
-import type { UserAchievement } from "@types";
+import type { GameShop, UserAchievement } from "@types";
 import cn from "classnames";
 import { EyeIcon } from "@phosphor-icons/react/dist/ssr";
+import { Link, useParams } from "react-router-dom";
 import type { FocusOverrides } from "../../../../services";
+import { getBigPictureGameAchievementsPath } from "../../../../helpers";
 import { FocusItem, Typography } from "../../../common";
 
 export interface AchievementsBoxProps {
@@ -17,9 +19,14 @@ export function AchievementsBox({
   focusNavigationOverrides,
   focusNavigationOrder,
 }: Readonly<AchievementsBoxProps>) {
+  const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const unlockedCount = achievements.filter(
     (achievement) => achievement.unlocked
   ).length;
+  const achievementsPath =
+    shop && objectId
+      ? getBigPictureGameAchievementsPath({ shop, objectId })
+      : "#";
 
   return (
     <FocusItem
@@ -28,7 +35,8 @@ export function AchievementsBox({
       navigationOrder={focusNavigationOrder}
       asChild
     >
-      <section
+      <Link
+        to={achievementsPath}
         className="game-page__sidebar-section game-page__achievements"
         aria-label="Achievements"
       >
@@ -86,7 +94,7 @@ export function AchievementsBox({
             </Typography>
           </div>
         </div>
-      </section>
+      </Link>
     </FocusItem>
   );
 }

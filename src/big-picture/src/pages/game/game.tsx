@@ -460,6 +460,8 @@ export default function Game() {
   ]);
   useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
 
+  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
+
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
   }, []);

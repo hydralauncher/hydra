@@ -1,6 +1,12 @@
 .game-page {
-  height: 100%;
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow-x: hidden;
   overflow-y: auto;
+  background: var(--background);
 
   &__how-long-to-beat {
     display: flex;
@@ -424,6 +430,12 @@
     z-index: 0;
   }
 
+  &__hero-shell {
+    position: relative;
+    height: 620px;
+    overflow: hidden;
+  }
+
   &__hero-actions {
     display: flex;
     align-items: center;
@@ -475,8 +487,24 @@
         #080808 99.53%
       ),
       linear-gradient(180deg, rgba(8, 8, 8, 0) 0%, #080808 97%);
-    padding: calc(var(--spacing-unit) * 12) calc(var(--spacing-unit) * 24);
+    padding:
+      calc(
+        var(--big-picture-header-height) + calc(var(--spacing-unit) * 12)
+      )
+      calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 12);
     gap: calc(var(--spacing-unit) * 6);
+  }
+
+  &__hero-logo {
+    width: 337px;
+    max-width: 50%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  &__hero-description {
+    max-width: 512px;
+    color: rgba(255, 255, 255, 0.8);
   }
 
   &__achievements {
@@ -484,6 +512,8 @@
     flex-direction: column;
     gap: 4px;
     width: 100%;
+    color: inherit;
+    text-decoration: none;
   }
 
   &__achievements-title {
