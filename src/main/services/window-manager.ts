@@ -331,6 +331,7 @@ export class WindowManager {
       backgroundColor: "#0a0a0a",
       icon,
       frame: false,
+      fullscreen: true,
       show: false,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
