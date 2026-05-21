@@ -78,12 +78,12 @@
   }
 
   &__flag {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
+    display: block;
+    width: 24px;
+    height: auto;
     flex-shrink: 0;
+    border-radius: 2px;
+    overflow: hidden;
   }
 
   &__card-label {

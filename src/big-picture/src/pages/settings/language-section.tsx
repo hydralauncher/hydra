@@ -1,11 +1,12 @@
 import "./language-section.scss";
 
-import { CaretRightIcon, GlobeHemisphereWestIcon } from "@phosphor-icons/react";
+import { CaretRightIcon } from "@phosphor-icons/react";
 import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "../../components";
 import { useNavigation, useUserPreferences } from "../../hooks";
 import { LanguagePickerModal } from "./language-picker-modal";
+import { LanguageFlag } from "./language-flag";
 import { resolveCurrentLanguageOption } from "./language-options";
 import {
   BEHAVIOR_SECTION_REGION_ID,
@@ -93,13 +94,10 @@ export function LanguageSection({ className }: Readonly<LanguageSectionProps>) {
             iconPosition="right"
           >
             <span className="language-section__button-content">
-              {currentLanguage.flag ? (
-                <span className="language-section__flag" aria-hidden="true">
-                  {currentLanguage.flag}
-                </span>
-              ) : (
-                <GlobeHemisphereWestIcon size={18} aria-hidden="true" />
-              )}
+              <LanguageFlag
+                countryCode={currentLanguage.flagCountryCode}
+                className="language-section__flag"
+              />
 
               <span className="language-section__label">
                 {currentLanguage.nativeName}

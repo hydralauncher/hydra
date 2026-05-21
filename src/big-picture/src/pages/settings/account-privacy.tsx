@@ -6,14 +6,11 @@ import type {
   UserBlocks,
   UserFriend,
 } from "@types";
-import { AuthPage } from "@shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Button,
   DropdownSelect,
-  HorizontalFocusGroup,
-  Input,
   type DropdownSelectOption,
 } from "../../components";
 import { useDate, useNavigation, useUserDetails } from "../../hooks";
@@ -21,10 +18,8 @@ import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
-  SETTINGS_HEADER_RETURN_TARGET,
-  ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID,
-  ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
+  SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 
@@ -183,30 +178,9 @@ export function AccountPrivacySettingsSection({
     [blockedUsers, fetchBlockedUsers, setFocus, unblockUser]
   );
 
-  const updateEmailButtonOverrides = useMemo<FocusOverrides>(
-    () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
-      right: {
-        type: "item",
-        itemId: ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID,
-      },
-      down: { type: "item", itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID },
-    }),
-    []
-  );
-
-  const updatePasswordButtonOverrides = useMemo<FocusOverrides>(
-    () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
-      left: { type: "item", itemId: ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID },
-      down: { type: "item", itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID },
-    }),
-    []
-  );
-
   const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
-      up: { type: "item", itemId: ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID },
+      up: { type: "item", itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID },
       down: blockedUserFocusIds[0]
         ? {
             type: "item",
@@ -268,7 +242,7 @@ export function AccountPrivacySettingsSection({
               up: SETTINGS_HEADER_RETURN_TARGET,
               down: {
                 type: "item",
-                itemId: ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID,
+                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
               },
             }}
             onValueChange={(value) => {
@@ -278,7 +252,7 @@ export function AccountPrivacySettingsSection({
         </div>
       </SettingsSection>
 
-      <SettingsSection
+      {/* <SettingsSection
         title="Account"
         description="Review your current account details and update your security settings."
       >
@@ -336,7 +310,7 @@ export function AccountPrivacySettingsSection({
             </div>
           </HorizontalFocusGroup>
         </div>
-      </SettingsSection>
+      </SettingsSection> */}
 
       <SettingsSection
         title="Hydra Cloud"
