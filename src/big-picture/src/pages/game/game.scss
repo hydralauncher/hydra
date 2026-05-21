@@ -598,8 +598,6 @@
   }
 
   &__detailed-description {
-    --detailed-description-outline-width: 2px;
-    --detailed-description-outline-offset: 4px;
     color: rgba(255, 255, 255, 0.8);
     display: flex;
     flex-direction: column;
@@ -638,21 +636,6 @@
     .bb_tag {
       margin-top: 0;
       margin-bottom: 0;
-    }
-  }
-
-  &__detailed-description-block {
-    outline: none;
-    border-radius: 8px;
-
-    &:focus,
-    &:focus-visible {
-      outline: none;
-    }
-
-    &[data-focused="true"] {
-      outline: var(--detailed-description-outline-width) solid #fff;
-      outline-offset: var(--detailed-description-outline-offset);
     }
   }
 

@@ -40,7 +40,7 @@ export interface HeroProps {
   onClose: () => void;
   isAddingToLibrary: boolean;
   canAddToLibrary: boolean;
-  mediaCarouselEntryTarget?: FocusOverrideTarget;
+  downNavigationTarget?: FocusOverrideTarget;
   sidebarEntryTarget?: FocusOverrideTarget;
 }
 
@@ -57,14 +57,16 @@ export function Hero({
   onClose,
   isAddingToLibrary,
   canAddToLibrary,
-  mediaCarouselEntryTarget,
+  downNavigationTarget,
   sidebarEntryTarget,
 }: Readonly<HeroProps>) {
   const dominantColor = useDominantColor(
     game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
   );
-  const heroDownNavigationTarget: FocusOverrideTarget =
-    mediaCarouselEntryTarget ?? { type: "block" };
+  const heroDownNavigationTarget = useMemo<FocusOverrideTarget>(
+    () => downNavigationTarget ?? { type: "block" },
+    [downNavigationTarget]
+  );
   const hasPrimaryAction =
     isGameRunning ||
     Boolean(game?.executablePath) ||
@@ -72,9 +74,10 @@ export function Hero({
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
   const shouldShowFavoriteButton = Boolean(game);
-  const lastActionRightTarget: FocusOverrideTarget = sidebarEntryTarget ?? {
-    type: "block",
-  };
+  const lastActionRightTarget = useMemo<FocusOverrideTarget>(
+    () => sidebarEntryTarget ?? { type: "block" },
+    [sidebarEntryTarget]
+  );
   const favoriteLeftTargetId =
     shouldShowCatalogActions && hasPrimaryAction
       ? GAME_HERO_DOWNLOAD_OPTIONS_ID

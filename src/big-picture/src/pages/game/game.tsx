@@ -9,7 +9,6 @@ import {
   Divider,
   FocusItem,
 } from "../../components";
-import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import { DownloadGameModal } from "../../components/modals";
 import {
   AchievementsBox,
@@ -24,7 +23,6 @@ import {
 } from "../../components/pages/game";
 import {
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
-  GAME_DESCRIPTION_REGION_ID,
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
@@ -36,7 +34,6 @@ import {
   GAME_SIDEBAR_REGION_ID,
   GAME_SIDEBAR_REQUIREMENTS_ID,
   GAME_SIDEBAR_STATS_ID,
-  getGameDescriptionBlockItemId,
 } from "../../components/pages/game/navigation";
 import { useGameDetails, useHeaderTitle } from "../../hooks";
 import "./game.scss";
@@ -235,10 +232,7 @@ function buildDescriptionSections(document: Document | null) {
 
   flushCurrentSection();
 
-  return sections.map((sectionHtml, index) => ({
-    id: getGameDescriptionBlockItemId(index),
-    html: sectionHtml,
-  }));
+  return sections;
 }
 
 export default function Game() {
@@ -278,19 +272,19 @@ export default function Game() {
   const hasMedia =
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
-  const descriptionEntryTarget = useMemo(() => {
-    if (descriptionBlocks.length === 0) {
+  const commentsEntryTarget = useMemo(() => {
+    if (!hasNavigableComments) {
       return undefined;
     }
 
     return {
       type: "region" as const,
-      regionId: GAME_DESCRIPTION_REGION_ID,
+      regionId: GAME_COMMENTS_ACTION_ROWS_REGION_ID,
       entryDirection: "down" as const,
-      preferRememberedFocus: false,
+      preferRememberedFocus: true,
     };
-  }, [descriptionBlocks.length]);
-  const mediaCarouselEntryTarget = useMemo(() => {
+  }, [hasNavigableComments]);
+  const contentBelowHeroTarget = useMemo(() => {
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
     }
@@ -304,8 +298,8 @@ export default function Game() {
       };
     }
 
-    return descriptionEntryTarget;
-  }, [activeMediaItemId, descriptionEntryTarget, hasMedia]);
+    return commentsEntryTarget;
+  }, [activeMediaItemId, commentsEntryTarget, hasMedia]);
   const sidebarEntryTarget = useMemo(
     () => ({
       type: "region" as const,
@@ -319,18 +313,6 @@ export default function Game() {
     () => getItemFocusTarget(GAME_SIDEBAR_STATS_ID),
     []
   );
-  const commentsEntryTarget = useMemo(() => {
-    if (!hasNavigableComments) {
-      return undefined;
-    }
-
-    return {
-      type: "region" as const,
-      regionId: GAME_COMMENTS_ACTION_ROWS_REGION_ID,
-      entryDirection: "down" as const,
-      preferRememberedFocus: true,
-    };
-  }, [hasNavigableComments]);
   const heroActionsLeftNavigationTarget = useMemo(
     () => ({
       type: "region" as const,
@@ -340,36 +322,12 @@ export default function Game() {
     }),
     []
   );
-  const sidebarDescriptionLeftNavigationTarget = useMemo(() => {
-    if (descriptionBlocks.length > 0) {
-      return {
-        type: "region" as const,
-        regionId: GAME_DESCRIPTION_REGION_ID,
-        entryDirection: "left" as const,
-        preferRememberedFocus: true,
-      };
-    }
-
-    return heroActionsLeftNavigationTarget;
-  }, [descriptionBlocks.length, heroActionsLeftNavigationTarget]);
-  const sidebarCarouselLeftNavigationTarget = useMemo(() => {
-    if (hasMedia) {
-      return mediaCarouselEntryTarget ?? heroActionsLeftNavigationTarget;
-    }
-
-    return sidebarDescriptionLeftNavigationTarget;
-  }, [
-    hasMedia,
-    heroActionsLeftNavigationTarget,
-    mediaCarouselEntryTarget,
-    sidebarDescriptionLeftNavigationTarget,
-  ]);
-  const sidebarDescriptionNavigationOverrides = useMemo(
-    () => ({
-      left: sidebarDescriptionLeftNavigationTarget,
-      right: { type: "block" as const },
-    }),
-    [sidebarDescriptionLeftNavigationTarget]
+  const sidebarCarouselLeftNavigationTarget = useMemo(
+    () =>
+      hasMedia
+        ? (contentBelowHeroTarget ?? heroActionsLeftNavigationTarget)
+        : heroActionsLeftNavigationTarget,
+    [contentBelowHeroTarget, hasMedia, heroActionsLeftNavigationTarget]
   );
   const sidebarCarouselNavigationOverrides = useMemo(
     () => ({
@@ -379,23 +337,12 @@ export default function Game() {
     [sidebarCarouselLeftNavigationTarget]
   );
   const commentsTopNavigationTarget = useMemo(() => {
-    if (descriptionBlocks.length > 0) {
-      return getItemFocusTarget(
-        getGameDescriptionBlockItemId(descriptionBlocks.length - 1)
-      );
-    }
-
     if (hasMedia) {
-      return mediaCarouselEntryTarget ?? heroActionsLeftNavigationTarget;
+      return contentBelowHeroTarget ?? heroActionsLeftNavigationTarget;
     }
 
     return heroActionsLeftNavigationTarget;
-  }, [
-    descriptionBlocks.length,
-    hasMedia,
-    heroActionsLeftNavigationTarget,
-    mediaCarouselEntryTarget,
-  ]);
+  }, [contentBelowHeroTarget, hasMedia, heroActionsLeftNavigationTarget]);
   const sidebarStatsNavigationOverrides = useMemo(
     () => ({
       ...sidebarCarouselNavigationOverrides,
@@ -405,10 +352,10 @@ export default function Game() {
   );
   const sidebarLanguagesNavigationOverrides = useMemo(
     () => ({
-      ...sidebarDescriptionNavigationOverrides,
+      ...sidebarCarouselNavigationOverrides,
       down: { type: "block" as const },
     }),
-    [sidebarDescriptionNavigationOverrides]
+    [sidebarCarouselNavigationOverrides]
   );
 
   useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
@@ -532,7 +479,7 @@ export default function Game() {
           onClose={closeGame}
           isAddingToLibrary={isAddingToLibrary}
           canAddToLibrary={canAddToLibrary}
-          mediaCarouselEntryTarget={mediaCarouselEntryTarget}
+          downNavigationTarget={contentBelowHeroTarget}
           sidebarEntryTarget={sidebarEntryTarget}
         />
 
@@ -545,54 +492,29 @@ export default function Game() {
                 videos={shopDetails.movies ?? []}
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
-                descriptionEntryTarget={descriptionEntryTarget}
+                nextContentEntryTarget={commentsEntryTarget}
                 sidebarEntryTarget={sidebarStatsEntryTarget}
               />
 
               {descriptionBlocks.length > 0 && (
-                <VerticalFocusGroup
-                  regionId={GAME_DESCRIPTION_REGION_ID}
+                <div
+                  ref={descriptionContainerRef}
                   className="game-page__detailed-description"
-                  asChild
                 >
-                  <div ref={descriptionContainerRef}>
-                    {descriptionBlocks.map((block, index) => (
-                      <FocusItem
-                        key={block.id}
-                        id={block.id}
-                        navigationOverrides={{
-                          left: getItemFocusTarget(
-                            BIG_PICTURE_SIDEBAR_ITEM_IDS.home
-                          ),
-                          right: sidebarEntryTarget,
-                          up:
-                            index === 0
-                              ? {
-                                  type: "region",
-                                  regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
-                                  entryDirection: "up",
-                                  preferRememberedFocus: true,
-                                }
-                              : undefined,
-                          down:
-                            index === descriptionBlocks.length - 1
-                              ? (commentsEntryTarget ?? { type: "block" })
-                              : undefined,
+                  {descriptionBlocks.map((block, index) => (
+                    <div
+                      key={`description-block-${index}`}
+                      className="game-page__detailed-description-block"
+                    >
+                      <div
+                        className="game-page__detailed-description-block-content"
+                        dangerouslySetInnerHTML={{
+                          __html: block,
                         }}
-                        asChild
-                      >
-                        <div className="game-page__detailed-description-block">
-                          <div
-                            className="game-page__detailed-description-block-content"
-                            dangerouslySetInnerHTML={{
-                              __html: block.html,
-                            }}
-                          />
-                        </div>
-                      </FocusItem>
-                    ))}
-                  </div>
-                </VerticalFocusGroup>
+                      />
+                    </div>
+                  ))}
+                </div>
               )}
 
               <Divider />
@@ -668,15 +590,13 @@ export default function Game() {
                   achievements={achievements ?? []}
                   focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
                   focusNavigationOrder={3}
-                  focusNavigationOverrides={
-                    sidebarDescriptionNavigationOverrides
-                  }
+                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
                   navigationOrder={4}
-                  navigationOverrides={sidebarDescriptionNavigationOverrides}
+                  navigationOverrides={sidebarCarouselNavigationOverrides}
                   asChild
                 >
                   <section
@@ -720,9 +640,7 @@ export default function Game() {
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
                   focusNavigationOrder={5}
-                  focusNavigationOverrides={
-                    sidebarDescriptionNavigationOverrides
-                  }
+                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
                 <SupportedLanguages

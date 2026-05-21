@@ -4,7 +4,6 @@ export const GAME_HERO_PRIMARY_ACTION_ID = "game-hero-primary-action";
 export const GAME_HERO_DOWNLOAD_OPTIONS_ID = "game-hero-download-options";
 export const GAME_HERO_TOGGLE_FAVORITE_ID = "game-hero-toggle-favorite";
 export const GAME_MEDIA_CAROUSEL_REGION_ID = "game-media-carousel";
-export const GAME_DESCRIPTION_REGION_ID = "game-description";
 export const GAME_COMMENTS_REGION_ID = "game-comments";
 export const GAME_COMMENTS_ACTION_ROWS_REGION_ID = "game-comments-action-rows";
 export const GAME_COMMENTS_LOAD_MORE_ID = "game-comments-load-more";
@@ -19,10 +18,6 @@ export const GAME_SIDEBAR_LANGUAGES_ID = "game-sidebar-languages";
 
 export function getGameMediaCarouselItemId(index: number) {
   return `game-media-carousel-item-${index}`;
-}
-
-export function getGameDescriptionBlockItemId(index: number) {
-  return `game-description-block-${index}`;
 }
 
 export function getGameCommentVoteItemId(
