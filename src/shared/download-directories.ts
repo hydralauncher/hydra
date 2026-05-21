@@ -12,6 +12,26 @@ export interface ResolvedDownloadDirectories {
   allPaths: string[];
 }
 
+export type PreparedDefaultDownloadPathSync =
+  | { type: "noop" }
+  | {
+      type: "set-existing";
+      nextPreferences: DownloadDirectoryPreferences;
+      nextDefaultPath: string;
+    }
+  | {
+      type: "add-and-set";
+      nextPreferences: DownloadDirectoryPreferences;
+      nextDefaultPath: string;
+    }
+  | {
+      type: "replace-required";
+      nextPath: string;
+      nextDefaultPath: string;
+      replaceableDirectories: DownloadDirectoryPreference[];
+      recommendedReplacementPath: string;
+    };
+
 type DownloadDirectoryPreferences = Pick<
   UserPreferences,
   "downloadsPath" | "downloadDirectories" | "optionalDownloadsPaths"
@@ -243,6 +263,144 @@ export function setDefaultDownloadDirectory(
     },
     fallbackDefaultPath
   );
+}
+
+export function prepareDefaultDownloadPathSync(
+  preferences: DownloadDirectoryPreferences | null | undefined,
+  nextPath: string,
+  fallbackDefaultPath: string
+): PreparedDefaultDownloadPathSync {
+  const resolvedDirectories = resolveDownloadDirectories(
+    preferences,
+    fallbackDefaultPath
+  );
+  const sanitizedNextPath = sanitizePath(nextPath);
+  const sanitizedFallbackDefaultPath = sanitizePath(fallbackDefaultPath);
+  const rawPersistedDefaultPath = sanitizePath(preferences?.downloadsPath);
+  const currentDefaultPath =
+    rawPersistedDefaultPath ?? sanitizedFallbackDefaultPath ?? "";
+
+  if (!sanitizedNextPath || sanitizedNextPath === currentDefaultPath) {
+    return { type: "noop" };
+  }
+
+  if (sanitizedNextPath === sanitizedFallbackDefaultPath) {
+    return {
+      type: "set-existing",
+      nextPreferences: getDownloadDirectoryPreferences(
+        {
+          downloadsPath: null,
+          downloadDirectories: resolvedDirectories.directories,
+        },
+        fallbackDefaultPath
+      ),
+      nextDefaultPath: sanitizedFallbackDefaultPath ?? "",
+    };
+  }
+
+  if (resolvedDirectories.savedPaths.includes(sanitizedNextPath)) {
+    return {
+      type: "set-existing",
+      nextPreferences: getDownloadDirectoryPreferences(
+        {
+          downloadsPath: sanitizedNextPath,
+          downloadDirectories: resolvedDirectories.directories,
+        },
+        fallbackDefaultPath
+      ),
+      nextDefaultPath: sanitizedNextPath,
+    };
+  }
+
+  if (
+    resolvedDirectories.savedPaths.length < MAX_OPTIONAL_DOWNLOAD_DIRECTORIES
+  ) {
+    return {
+      type: "add-and-set",
+      nextPreferences: getDownloadDirectoryPreferences(
+        {
+          downloadsPath: sanitizedNextPath,
+          downloadDirectories: [
+            {
+              path: sanitizedNextPath,
+              createdAt: new Date().toISOString(),
+            },
+            ...resolvedDirectories.directories,
+          ],
+        },
+        fallbackDefaultPath
+      ),
+      nextDefaultPath: sanitizedNextPath,
+    };
+  }
+
+  const currentSavedDefaultPath =
+    rawPersistedDefaultPath &&
+    resolvedDirectories.savedPaths.includes(rawPersistedDefaultPath)
+      ? rawPersistedDefaultPath
+      : null;
+  const recommendedReplacementPath =
+    currentSavedDefaultPath ??
+    resolvedDirectories.directories.at(-1)?.path ??
+    resolvedDirectories.directories[0]?.path ??
+    sanitizedNextPath;
+
+  return {
+    type: "replace-required",
+    nextPath: sanitizedNextPath,
+    nextDefaultPath: sanitizedNextPath,
+    replaceableDirectories: resolvedDirectories.directories,
+    recommendedReplacementPath,
+  };
+}
+
+export function replaceSavedDownloadDirectoryAndSetDefault(
+  preferences: DownloadDirectoryPreferences | null | undefined,
+  nextPath: string,
+  pathToReplace: string,
+  fallbackDefaultPath: string
+) {
+  const resolvedDirectories = resolveDownloadDirectories(
+    preferences,
+    fallbackDefaultPath
+  );
+  const sanitizedNextPath = sanitizePath(nextPath);
+  const sanitizedPathToReplace = sanitizePath(pathToReplace);
+
+  if (
+    !sanitizedNextPath ||
+    !sanitizedPathToReplace ||
+    !resolvedDirectories.savedPaths.includes(sanitizedPathToReplace)
+  ) {
+    return {
+      nextPreferences: getDownloadDirectoryPreferences(
+        preferences,
+        fallbackDefaultPath
+      ),
+      nextDefaultPath: resolvedDirectories.defaultPath,
+    };
+  }
+
+  return {
+    nextPreferences: getDownloadDirectoryPreferences(
+      {
+        downloadsPath: sanitizedNextPath,
+        downloadDirectories: [
+          {
+            path: sanitizedNextPath,
+            createdAt: new Date().toISOString(),
+          },
+          ...resolvedDirectories.directories.filter(
+            (directory) =>
+              directory.path !== sanitizedPathToReplace &&
+              directory.path !== sanitizedNextPath
+          ),
+        ],
+      },
+      fallbackDefaultPath
+    ),
+    nextDefaultPath: sanitizedNextPath,
+  };
 }
 
 export function addOptionalDownloadDirectory(
