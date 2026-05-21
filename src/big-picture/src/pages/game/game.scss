@@ -677,6 +677,14 @@
     display: flow-root;
   }
 
+  &__detailed-description-bottom-entry {
+    width: 1px;
+    height: 1px;
+    margin-top: -1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   &__box-group {
     display: flex;
     flex-direction: column;

@@ -33,6 +33,7 @@ import {
 } from "../../layout";
 import {
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_DESCRIPTION_BOTTOM_ENTRY_ID,
   GAME_DESCRIPTION_BODY_ID,
   GAME_DESCRIPTION_REGION_ID,
   GAME_HERO_ACTIONS_REGION_ID,
@@ -275,6 +276,7 @@ export default function Game() {
   const previousFocusIdRef = useRef<string | null>(null);
   const lastMainContentFocusIdRef = useRef<string | null>(null);
   const descriptionScrollAnimationFrameRef = useRef<number | null>(null);
+  const preserveDescriptionScrollOnNextBodyFocusRef = useRef(false);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const navigationNodes = useNavigationStore((state) => state.nodes);
   const navigationRegions = useNavigationStore((state) => state.regions);
@@ -358,6 +360,13 @@ export default function Game() {
       hasDescription ? getItemFocusTarget(GAME_DESCRIPTION_BODY_ID) : undefined,
     [hasDescription]
   );
+  const descriptionBottomEntryTarget = useMemo(
+    () =>
+      hasDescription
+        ? getItemFocusTarget(GAME_DESCRIPTION_BOTTOM_ENTRY_ID)
+        : undefined,
+    [hasDescription]
+  );
   const commentsEntryTarget = useMemo(() => {
     if (!hasNavigableComments) {
       return undefined;
@@ -434,8 +443,8 @@ export default function Game() {
     []
   );
   const commentsTopNavigationTarget = useMemo(() => {
-    if (descriptionEntryTarget) {
-      return descriptionEntryTarget;
+    if (descriptionBottomEntryTarget) {
+      return descriptionBottomEntryTarget;
     }
 
     if (hasMedia) {
@@ -445,7 +454,7 @@ export default function Game() {
     return heroActionsLeftNavigationTarget;
   }, [
     contentBelowHeroTarget,
-    descriptionEntryTarget,
+    descriptionBottomEntryTarget,
     hasMedia,
     heroActionsLeftNavigationTarget,
   ]);
@@ -738,14 +747,55 @@ export default function Game() {
   );
 
   useEffect(() => {
-    if (currentFocusId !== GAME_DESCRIPTION_BODY_ID) {
-      previousFocusIdRef.current = currentFocusId;
+    if (currentFocusId !== GAME_DESCRIPTION_BOTTOM_ENTRY_ID) {
       return;
     }
 
     const bounds = getDescriptionScrollBounds();
 
     if (!bounds) {
+      return;
+    }
+
+    const nextScrollTop = Math.min(
+      Math.max(
+        0,
+        bounds.descriptionBottom -
+          bounds.pageClientHeight +
+          DESCRIPTION_FOCUS_ENTRY_MARGIN
+      ),
+      bounds.maxScrollTop
+    );
+
+    preserveDescriptionScrollOnNextBodyFocusRef.current = true;
+    bounds.pageElement.scrollTop = nextScrollTop;
+
+    const frameId = globalThis.requestAnimationFrame(() => {
+      navigation.setFocus(GAME_DESCRIPTION_BODY_ID);
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(frameId);
+    };
+  }, [currentFocusId, getDescriptionScrollBounds, navigation]);
+
+  useEffect(() => {
+    if (currentFocusId !== GAME_DESCRIPTION_BODY_ID) {
+      if (currentFocusId) {
+        previousFocusIdRef.current = currentFocusId;
+      }
+      return;
+    }
+
+    const bounds = getDescriptionScrollBounds();
+
+    if (!bounds) {
+      previousFocusIdRef.current = currentFocusId;
+      return;
+    }
+
+    if (preserveDescriptionScrollOnNextBodyFocusRef.current) {
+      preserveDescriptionScrollOnNextBodyFocusRef.current = false;
       previousFocusIdRef.current = currentFocusId;
       return;
     }
@@ -810,7 +860,9 @@ export default function Game() {
       descriptionScrollAnimationFrameRef.current = null;
     }
 
-    previousFocusIdRef.current = currentFocusId;
+    if (currentFocusId) {
+      previousFocusIdRef.current = currentFocusId;
+    }
   }, [currentFocusId]);
 
   useEffect(() => {
@@ -962,6 +1014,25 @@ export default function Game() {
                         </div>
                       ))}
                     </div>
+                  </FocusItem>
+
+                  <FocusItem
+                    id={GAME_DESCRIPTION_BOTTOM_ENTRY_ID}
+                    navigationOverrides={{
+                      left: getItemFocusTarget(
+                        BIG_PICTURE_SIDEBAR_ITEM_IDS.home
+                      ),
+                      right: bodyRightNavigationTarget,
+                      up: { type: "block" },
+                      down: { type: "block" },
+                    }}
+                    asChild
+                  >
+                    <div
+                      className="game-page__detailed-description-bottom-entry"
+                      data-suppress-navigation-autoscroll="true"
+                      aria-hidden="true"
+                    />
                   </FocusItem>
                 </VerticalFocusGroup>
               )}
