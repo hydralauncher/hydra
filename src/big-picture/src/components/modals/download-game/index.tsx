@@ -539,6 +539,9 @@ function DownloadGameOptions({
   visible,
   onClose,
 }: Readonly<DownloadGameOptionsProps>) {
+  const downloadPathTouchedRef = useRef(false);
+  const automaticExtractionTouchedRef = useRef(false);
+  const deleteArchiveTouchedRef = useRef(false);
   const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
   const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
     useState<DownloadDirectorySuggestion[]>([]);
@@ -671,6 +674,9 @@ function DownloadGameOptions({
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
+      downloadPathTouchedRef.current = false;
+      automaticExtractionTouchedRef.current = false;
+      deleteArchiveTouchedRef.current = false;
       setSelectedDownloadPath("");
       setDownloadDirectorySuggestions([]);
       setSelectedDownloader(undefined);
@@ -711,14 +717,23 @@ function DownloadGameOptions({
 
       if (cancelled) return;
 
-      setSelectedDownloadPath(resolvedDirectories.defaultPath);
+      if (!downloadPathTouchedRef.current) {
+        setSelectedDownloadPath(resolvedDirectories.defaultPath);
+      }
+
       setDownloadDirectorySuggestions(suggestions);
-      setAutomaticExtractionEnabled(
-        userPreferences?.extractFilesByDefault ?? true
-      );
-      setDeleteArchiveFilesAfterExtraction(
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
-      );
+
+      if (!automaticExtractionTouchedRef.current) {
+        setAutomaticExtractionEnabled(
+          userPreferences?.extractFilesByDefault ?? true
+        );
+      }
+
+      if (!deleteArchiveTouchedRef.current) {
+        setDeleteArchiveFilesAfterExtraction(
+          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        );
+      }
     };
 
     void buildDownloadDirectorySuggestions();
@@ -727,6 +742,24 @@ function DownloadGameOptions({
       cancelled = true;
     };
   }, [userPreferences, visible]);
+
+  const handleSelectDownloadPath = useCallback((path: string) => {
+    downloadPathTouchedRef.current = true;
+    setSelectedDownloadPath(path);
+  }, []);
+
+  const handleAutomaticExtractionChange = useCallback((checked: boolean) => {
+    automaticExtractionTouchedRef.current = true;
+    setAutomaticExtractionEnabled(checked);
+  }, []);
+
+  const handleDeleteArchiveFilesAfterExtractionChange = useCallback(
+    (checked: boolean) => {
+      deleteArchiveTouchedRef.current = true;
+      setDeleteArchiveFilesAfterExtraction(checked);
+    },
+    []
+  );
 
   const resolvedDownloader = useMemo(() => {
     if (!selectedDownloader) return null;
@@ -882,7 +915,7 @@ function DownloadGameOptions({
                 totalBytes={directory.totalBytes}
                 isSelected={selectedDownloadPath === directory.path}
                 showSelectedIndicator
-                onClick={() => setSelectedDownloadPath(directory.path)}
+                onClick={() => handleSelectDownloadPath(directory.path)}
                 className="download-game-modal__directory-disk"
               />
             ))}
@@ -895,7 +928,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID}
             label="Automatically extract downloaded files"
             checked={automaticExtractionEnabled}
-            onChange={setAutomaticExtractionEnabled}
+            onChange={handleAutomaticExtractionChange}
           />
 
           <Checkbox
@@ -903,7 +936,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID}
             label="Always delete archive files after extraction"
             checked={deleteArchiveFilesAfterExtraction}
-            onChange={setDeleteArchiveFilesAfterExtraction}
+            onChange={handleDeleteArchiveFilesAfterExtractionChange}
           />
         </div>
 

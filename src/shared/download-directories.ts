@@ -96,7 +96,8 @@ const createDownloadDirectoryRecord = (
 
 const normalizeDownloadDirectoryRecords = (
   records: Array<DownloadDirectoryPreference | null | undefined>,
-  fixedPath: string
+  fixedPath: string,
+  preservedPath?: string | null
 ) => {
   const normalizedRecords = records.reduce<
     DownloadDirectoryRecordWithTimestamp[]
@@ -131,19 +132,38 @@ const normalizeDownloadDirectoryRecords = (
 
   const seenPaths = new Set<string>();
 
-  return normalizedRecords
-    .filter((record) => {
-      if (seenPaths.has(record.path)) {
-        return false;
-      }
+  const uniqueRecords = normalizedRecords.filter((record) => {
+    if (seenPaths.has(record.path)) {
+      return false;
+    }
 
-      seenPaths.add(record.path);
-      return true;
-    })
-    .slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES)
-    .map<DownloadDirectoryPreference>(({ path, createdAt, source }) =>
+    seenPaths.add(record.path);
+    return true;
+  });
+
+  const normalizedPreservedPath =
+    sanitizePath(preservedPath) !== fixedPath
+      ? sanitizePath(preservedPath)
+      : null;
+
+  const preservedRecordIndex = normalizedPreservedPath
+    ? uniqueRecords.findIndex(
+        (record) => record.path === normalizedPreservedPath
+      )
+    : -1;
+
+  const limitedRecords =
+    preservedRecordIndex >= MAX_OPTIONAL_DOWNLOAD_DIRECTORIES
+      ? [
+          ...uniqueRecords.slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES - 1),
+          uniqueRecords[preservedRecordIndex],
+        ]
+      : uniqueRecords.slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES);
+
+  return limitedRecords.map<DownloadDirectoryPreference>(
+    ({ path, createdAt, source }) =>
       createDownloadDirectoryRecord(path, createdAt, source)
-    );
+  );
 };
 
 const buildLegacyDownloadDirectoryRecords = (
@@ -168,7 +188,6 @@ const buildLegacyDownloadDirectoryRecords = (
 
   return orderedPaths
     .filter((path) => path !== fallbackDefaultPath)
-    .slice(0, MAX_OPTIONAL_DOWNLOAD_DIRECTORIES)
     .map<DownloadDirectoryPreference>((path, index) =>
       createDownloadDirectoryRecord(
         path,
@@ -191,17 +210,24 @@ export function resolveDownloadDirectories(
   }
 
   const rawPersistedDefaultPath = sanitizePath(preferences?.downloadsPath);
+  const preservedDefaultPath =
+    rawPersistedDefaultPath &&
+    rawPersistedDefaultPath !== sanitizedFallbackDefaultPath
+      ? rawPersistedDefaultPath
+      : null;
   const directories = Array.isArray(preferences?.downloadDirectories)
     ? normalizeDownloadDirectoryRecords(
         preferences?.downloadDirectories,
-        sanitizedFallbackDefaultPath
+        sanitizedFallbackDefaultPath,
+        preservedDefaultPath
       )
     : normalizeDownloadDirectoryRecords(
         buildLegacyDownloadDirectoryRecords(
           preferences,
           sanitizedFallbackDefaultPath
         ),
-        sanitizedFallbackDefaultPath
+        sanitizedFallbackDefaultPath,
+        preservedDefaultPath
       );
 
   const savedPaths = directories.map((directory) => directory.path);
