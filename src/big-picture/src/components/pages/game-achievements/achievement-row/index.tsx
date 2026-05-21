@@ -1,13 +1,12 @@
 import {
   CheckCircleIcon,
-  EyeClosedIcon,
   LockIcon,
   MedalIcon,
 } from "@phosphor-icons/react";
 import type { UserAchievement } from "@types";
 import cn from "classnames";
 import { useDate } from "../../../../hooks";
-import { FocusItem, Typography } from "../../../common";
+import { FocusItem, Tooltip, Typography } from "../../../common";
 import { getAchievementRowId } from "../navigation";
 
 export interface AchievementRowProps {
@@ -16,6 +15,10 @@ export interface AchievementRowProps {
 
 export function AchievementRow({ achievement }: Readonly<AchievementRowProps>) {
   const { formatDateTime } = useDate();
+  const unlockedAt =
+    achievement.unlockTime != null
+      ? formatDateTime(achievement.unlockTime)
+      : undefined;
 
   return (
     <FocusItem
@@ -37,18 +40,14 @@ export function AchievementRow({ achievement }: Readonly<AchievementRowProps>) {
 
         <div className="game-achievements-row__info">
           <Typography className="game-achievements-row__title">
-            {achievement.hidden ? (
-              <span
-                className="game-achievements-row__hidden-icon"
-                title="Hidden achievement"
-              >
-                <EyeClosedIcon size={12} />
-              </span>
-            ) : null}
             {achievement.displayName}
           </Typography>
 
-          {achievement.description ? (
+          {achievement.hidden ? (
+            <Typography className="game-achievements-row__hidden-note">
+              Hidden achievement
+            </Typography>
+          ) : achievement.description ? (
             <Typography className="game-achievements-row__description">
               {achievement.description}
             </Typography>
@@ -66,15 +65,15 @@ export function AchievementRow({ achievement }: Readonly<AchievementRowProps>) {
             </div>
           ) : null}
 
-          {achievement.unlocked && achievement.unlockTime != null ? (
-            <span className="game-achievements-row__unlock-time">
-              {formatDateTime(achievement.unlockTime)}
-            </span>
-          ) : null}
-
           <div className="game-achievements-row__status">
             {achievement.unlocked ? (
-              <CheckCircleIcon size={24} weight="fill" />
+              <Tooltip
+                content={unlockedAt ?? ""}
+                position="left"
+                active={unlockedAt != undefined}
+              >
+                <CheckCircleIcon size={24} />
+              </Tooltip>
             ) : (
               <LockIcon size={24} />
             )}

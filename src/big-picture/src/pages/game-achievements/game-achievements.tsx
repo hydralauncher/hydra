@@ -78,24 +78,26 @@ export default function GameAchievements() {
             totalCount={achievements.length}
           />
 
-          <AvailablePointsBar
-            earnedPoints={earnedPoints}
-            totalPoints={totalPoints}
-          />
+          <section className="game-achievements-page__list-section">
+            <AvailablePointsBar
+              earnedPoints={earnedPoints}
+              totalPoints={totalPoints}
+            />
 
-          <VerticalFocusGroup
-            regionId={GAME_ACHIEVEMENTS_LIST_REGION_ID}
-            asChild
-          >
-            <ul className="game-achievements-page__list">
-              {achievements.map((achievement) => (
-                <AchievementRow
-                  key={achievement.name}
-                  achievement={achievement}
-                />
-              ))}
-            </ul>
-          </VerticalFocusGroup>
+            <VerticalFocusGroup
+              regionId={GAME_ACHIEVEMENTS_LIST_REGION_ID}
+              asChild
+            >
+              <ul className="game-achievements-page__list">
+                {achievements.map((achievement) => (
+                  <AchievementRow
+                    key={achievement.name}
+                    achievement={achievement}
+                  />
+                ))}
+              </ul>
+            </VerticalFocusGroup>
+          </section>
         </div>
       </div>
     </VerticalFocusGroup>

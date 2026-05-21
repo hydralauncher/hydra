@@ -233,7 +233,7 @@ export function Hero({
   ]);
 
   return (
-    <section style={{ position: "relative", height: 620, overflow: "hidden" }}>
+    <section className="game-page__hero-shell">
       <motion.div
         initial={{ scale: 1, x: 0, y: 0 }}
         animate={{
@@ -256,12 +256,12 @@ export function Hero({
       <div className="game-page__hero-overlay">
         <img
           src={shopDetails.assets?.logoImageUrl || ""}
-          style={{ width: 337 }}
           alt={shopDetails.assets?.title || ""}
+          className="game-page__hero-logo"
         />
 
         <Typography
-          style={{ maxWidth: 512, color: "rgba(255, 255, 255, 0.8)" }}
+          className="game-page__hero-description"
           dangerouslySetInnerHTML={{
             __html: shopDetails.short_description || "",
           }}
