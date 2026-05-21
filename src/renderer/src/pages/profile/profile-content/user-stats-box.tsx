@@ -126,7 +126,6 @@ export function UserStatsBox() {
           </li>
         )}
       </ul>
-
     </div>
   );
 }
