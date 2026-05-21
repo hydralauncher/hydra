@@ -101,7 +101,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
-      <div className="library-game-card__overlay">
+      <div
+        className={`library-game-card__overlay${game.shop === "launchbox" ? " library-game-card__overlay--classics" : ""}`}
+      >
         <div className="library-game-card__top-section">
           <div className="library-game-card__playtime">
             {game.hasManuallyUpdatedPlaytime ? (

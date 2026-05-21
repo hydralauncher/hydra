@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -96,7 +103,10 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
+    useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
   const isGameInLibrary = useMemo(() => {
@@ -109,6 +119,35 @@ export function GameDetailsContent() {
   useEffect(() => {
     setBackdropOpacity(1);
   }, [objectId]);
+
+  useLayoutEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) {
+      setIsDescriptionOverflowing(false);
+      return;
+    }
+
+    const measure = () => {
+      const collapsedMaxHeight = 300;
+      setIsDescriptionOverflowing(el.scrollHeight > collapsedMaxHeight);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+
+    const images = Array.from(el.querySelectorAll("img"));
+    const onMediaLoad = () => measure();
+    images.forEach((img) => {
+      if (!img.complete) img.addEventListener("load", onMediaLoad);
+    });
+
+    return () => {
+      observer.disconnect();
+      images.forEach((img) => img.removeEventListener("load", onMediaLoad));
+    };
+  }, [aboutTheGame]);
 
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
@@ -282,6 +321,7 @@ export function GameDetailsContent() {
             <GallerySlider />
 
             <div
+              ref={descriptionRef}
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
@@ -292,7 +332,7 @@ export function GameDetailsContent() {
               }`}
             />
 
-            {aboutTheGame && aboutTheGame.length > 500 && (
+            {aboutTheGame && isDescriptionOverflowing && (
               <button
                 type="button"
                 className="game-details__description-toggle"

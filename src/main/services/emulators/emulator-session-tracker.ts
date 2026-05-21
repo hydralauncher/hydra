@@ -3,7 +3,7 @@ import type { ChildProcess } from "node:child_process";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { EmulatorSystem, Game, GameShop } from "@types";
 
-import { createGame, trackGamePlaytime } from "../library-sync";
+import { trackGamePlaytime } from "../library-sync";
 import { logger } from "../logger";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 
@@ -15,9 +15,22 @@ export interface EmulatorSession {
   sku: string | null;
   beforeTotalSeconds: number | null;
   startedAt: number;
+  heartbeat: ReturnType<typeof setInterval> | null;
+  child: ChildProcess;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
+
+const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
+
+const sendPresencePing = async (gameKey: string): Promise<void> => {
+  const game = await gamesSublevel.get(gameKey);
+  if (!game || game.shop === "custom") return;
+
+  await trackGamePlaytime(game, 0, new Date()).catch((error) => {
+    logger.error("Failed to send emulator presence ping", error);
+  });
+};
 
 interface StartEmulatorSessionOptions {
   game: Game;
@@ -48,9 +61,19 @@ export const startEmulatorSession = async ({
     sku,
     beforeTotalSeconds: before,
     startedAt: performance.now(),
+    heartbeat: null,
+    child,
   };
 
   emulatorSessions.set(gameKey, session);
+
+  if (game.shop !== "custom") {
+    void sendPresencePing(gameKey);
+    session.heartbeat = setInterval(() => {
+      void sendPresencePing(gameKey);
+    }, PRESENCE_HEARTBEAT_INTERVAL_MS);
+    session.heartbeat.unref?.();
+  }
 
   const finalize = () => {
     if (!emulatorSessions.has(gameKey)) return;
@@ -59,12 +82,31 @@ export const startEmulatorSession = async ({
 
   child.once("exit", finalize);
   child.once("error", finalize);
+
+  if (child.exitCode !== null || child.signalCode !== null) {
+    finalize();
+  }
+};
+
+export const closeEmulatorSession = (gameKey: string): boolean => {
+  const session = emulatorSessions.get(gameKey);
+  if (!session) return false;
+
+  try {
+    session.child.kill();
+  } catch (error) {
+    logger.error("Failed to close emulator session", error);
+    return false;
+  }
+
+  return true;
 };
 
 const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
   emulatorSessions.delete(gameKey);
+  if (session.heartbeat) clearInterval(session.heartbeat);
 
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
@@ -101,11 +143,8 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
 
   const pendingDelta =
     deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
-  const syncPromise = game.remoteId
-    ? trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
-    : createGame(updated);
 
-  syncPromise
+  trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
     .then(() =>
       gamesSublevel.put(gameKey, {
         ...updated,

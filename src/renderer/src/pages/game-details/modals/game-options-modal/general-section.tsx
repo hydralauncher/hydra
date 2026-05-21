@@ -1,17 +1,16 @@
 import { Trans, useTranslation } from "react-i18next";
-import { useContext, useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  CheckboxField,
-  SelectField,
-  TextField,
-} from "@renderer/components";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen } from "lucide-react";
+import { DotIcon, FileIcon } from "@primer/octicons-react";
+import { HardDrive, X, FolderOpen, ChevronDown } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
-import { platformToSystem } from "@renderer/helpers";
+import {
+  getSkuRegion,
+  getSkuRegionFlag,
+  platformToSystem,
+} from "@renderer/helpers";
 
 interface ClassicsDiscSectionProps {
   game: LibraryGame;
@@ -26,7 +25,30 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedDisc =
+    discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
+
+  useEffect(() => {
+    if (!isDropdownOpen) return undefined;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
+
   const handleSelectDisc = async (path: string) => {
+    setIsDropdownOpen(false);
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       selectedDiscPath: path,
     });
@@ -41,8 +63,9 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleAddDisc = async () => {
-    if (!system) return;
-    const extensions = await window.electron.getEmulatorRomExtensions(system);
+    const extensions = system
+      ? await window.electron.getEmulatorRomExtensions(system)
+      : ["*"];
     const properties: ("openFile" | "openDirectory")[] = ["openFile"];
     if (system === "ps3") properties.push("openDirectory");
 
@@ -76,6 +99,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await updateGame();
   };
 
+  const handleOpenDiscLocation = () => {
+    if (selectedDisc) window.electron.showItemInFolder(selectedDisc.path);
+  };
+
   return (
     <div className="game-options-modal__section">
       <div className="game-options-modal__header">
@@ -85,43 +112,101 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
         </h4>
       </div>
 
-      {discs.length > 0 ? (
-        <SelectField
-          theme="dark"
-          value={game.selectedDiscPath ?? discs[0]?.path ?? ""}
-          onChange={(e) => void handleSelectDisc(e.target.value)}
-          options={discs.map((d) => ({
-            key: d.path,
-            value: d.path,
-            label: `${d.label} — ${d.fileName}`,
-          }))}
-        />
-      ) : (
-        <p className="game-options-modal__header-description">
-          {t("no_discs_found")}
-        </p>
-      )}
+      <div className="disc-field">
+        <div className="disc-field__row">
+          {discs.length > 0 ? (
+            <div className="disc-field__dropdown" ref={dropdownRef}>
+              <button
+                type="button"
+                className="disc-field__trigger"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+              >
+                <DotIcon size={18} className="disc-field__icon" />
+                <span className="disc-field__text">
+                  <span className="disc-field__label">
+                    {selectedDisc?.label}
+                  </span>
+                  <span className="disc-field__filename">
+                    {selectedDisc?.fileName}
+                  </span>
+                </span>
+                <ChevronDown
+                  size={18}
+                  className={`disc-field__chevron ${
+                    isDropdownOpen ? "disc-field__chevron--open" : ""
+                  }`}
+                />
+              </button>
 
-      <div
-        className="game-options-modal__executable-field-buttons"
-        style={{ marginTop: 12 }}
-      >
-        <Button type="button" theme="outline" onClick={handleAddDisc}>
-          <FileIcon />
-          {t("add_disc")}
-        </Button>
-        {game.selectedDiscPath && discs.length > 1 && (
-          <Button
-            type="button"
-            theme="outline"
-            onClick={() => void handleRemoveDisc(game.selectedDiscPath!)}
-          >
-            {t("remove_selected_disc")}
+              {isDropdownOpen && (
+                <div className="disc-field__menu">
+                  {discs.map((disc) => {
+                    const isActive = selectedDisc?.path === disc.path;
+                    const region = disc.sku ? getSkuRegion(disc.sku) : null;
+                    return (
+                      <button
+                        key={disc.path}
+                        type="button"
+                        className={`disc-field__option ${
+                          isActive ? "disc-field__option--active" : ""
+                        }`}
+                        onClick={() => void handleSelectDisc(disc.path)}
+                      >
+                        <DotIcon size={18} className="disc-field__icon" />
+                        <span className="disc-field__text">
+                          <span className="disc-field__label">
+                            {disc.label}
+                          </span>
+                          <span className="disc-field__filename">
+                            {disc.fileName}
+                          </span>
+                        </span>
+                        {region && (
+                          <img
+                            src={getSkuRegionFlag(region)}
+                            alt={region}
+                            className="disc-field__flag"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="game-options-modal__header-description disc-field__empty">
+              {t("no_discs_found")}
+            </p>
+          )}
+
+          <Button type="button" theme="outline" onClick={handleAddDisc}>
+            <FileIcon />
+            {t("add_disc")}
           </Button>
-        )}
-      </div>
+        </div>
 
-      <div style={{ marginTop: 12 }}>
+        {selectedDisc && (
+          <div className="disc-field__actions">
+            <Button
+              type="button"
+              theme="outline"
+              onClick={handleOpenDiscLocation}
+            >
+              <FolderOpen size={14} />
+              {t("open_disc_location")}
+            </Button>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={() => void handleRemoveDisc(selectedDisc.path)}
+            >
+              <X size={14} />
+              {t("remove_selected_disc")}
+            </Button>
+          </div>
+        )}
+
         <CheckboxField
           label={t("dont_ask_disc_again")}
           checked={Boolean(game.dontAskDiscSelection)}
