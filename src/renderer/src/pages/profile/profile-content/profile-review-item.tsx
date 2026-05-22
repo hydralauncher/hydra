@@ -6,8 +6,9 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { GameShop } from "@types";
 import { sanitizeHtml } from "@shared";
-import { useDate } from "@renderer/hooks";
+import { useDate, useUserDetails } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
+import { ReviewAnswers } from "@renderer/pages/game-details/review-answers";
 import "./profile-content.scss";
 
 interface UserReview {
@@ -21,6 +22,7 @@ interface UserReview {
   hasDownvoted: boolean;
   createdAt: string;
   updatedAt: string;
+  answerCount: number;
   user: {
     id: string;
   };
@@ -57,9 +59,14 @@ export function ProfileReviewItem({
 }: Readonly<ProfileReviewItemProps>) {
   const navigate = useNavigate();
   const { formatDistance } = useDate();
+  const { userDetails } = useUserDetails();
   const { t } = useTranslation("user_profile");
   const { t: tGameDetails, i18n } = useTranslation("game_details");
   const [showOriginal, setShowOriginal] = useState(false);
+  const [answersExpanded, setAnswersExpanded] = useState(false);
+  const [localAnswerCount, setLocalAnswerCount] = useState(
+    review.answerCount || 0
+  );
 
   const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
@@ -246,7 +253,37 @@ export function ProfileReviewItem({
             <span>{t("delete_review")}</span>
           </button>
         )}
+
+        <div className="game-details__answers-action-row">
+          <button
+            className="game-details__answers-toggle-button"
+            onClick={() => setAnswersExpanded((v) => !v)}
+          >
+            {answersExpanded
+              ? tGameDetails("hide_answers")
+              : tGameDetails("answers_count", { count: localAnswerCount })}
+          </button>
+          {userDetails && !answersExpanded && (
+            <button
+              className="game-details__answers-reply-button"
+              onClick={() => setAnswersExpanded(true)}
+            >
+              {tGameDetails("reply")}
+            </button>
+          )}
+        </div>
       </div>
+
+      {answersExpanded && (
+        <ReviewAnswers
+          reviewId={review.id}
+          shop={review.game.shop}
+          objectId={review.game.objectId}
+          userDetailsId={userDetails?.id}
+          initialAnswerCount={localAnswerCount}
+          onAnswerCountChange={setLocalAnswerCount}
+        />
+      )}
     </motion.div>
   );
 }

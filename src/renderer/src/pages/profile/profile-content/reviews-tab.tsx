@@ -15,6 +15,7 @@ interface UserReview {
   hasDownvoted: boolean;
   createdAt: string;
   updatedAt: string;
+  answerCount: number;
   user: {
     id: string;
   };

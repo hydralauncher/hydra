@@ -1,16 +1,25 @@
-import { TrashIcon, ClockIcon } from "@primer/octicons-react";
-import { ThumbsUp, ThumbsDown, Star, Languages } from "lucide-react";
+import { ClockIcon } from "@primer/octicons-react";
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Star,
+  Languages,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import type { GameReview } from "@types";
+import type { GameReview, GameShop } from "@types";
 
 import { sanitizeHtml } from "@shared";
 import { useDate, useFormat } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
+import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { ReviewAnswers } from "./review-answers";
 
 import "./review-item.scss";
 
@@ -21,6 +30,8 @@ interface ReviewItemProps {
   isVisible: boolean;
   isVoting: boolean;
   previousVotes: { upvotes: number; downvotes: number };
+  shop: GameShop;
+  objectId: string;
   onVote: (reviewId: string, voteType: "upvote" | "downvote") => void;
   onDelete: (reviewId: string) => void;
   onToggleVisibility: (reviewId: string) => void;
@@ -28,6 +39,8 @@ interface ReviewItemProps {
     reviewId: string,
     votes: { upvotes: number; downvotes: number }
   ) => void;
+  onAnswerCountChange: (newCount: number) => void;
+  onReviewNotFound?: () => void;
 }
 
 const getRatingText = (score: number, t: (key: string) => string): string => {
@@ -54,10 +67,14 @@ export function ReviewItem({
   isVisible,
   isVoting,
   previousVotes,
+  shop,
+  objectId,
   onVote,
   onDelete,
   onToggleVisibility,
   onAnimationComplete,
+  onAnswerCountChange,
+  onReviewNotFound,
 }: Readonly<ReviewItemProps>) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("game_details");
@@ -109,7 +126,7 @@ export function ReviewItem({
 
   if (isBlocked && !isVisible) {
     return (
-      <div className="game-details__review-item">
+      <div className="game-details__review-item" id={`review-${review.id}`}>
         <div className="game-details__blocked-review-simple">
           {t("review_from_blocked_user")}
           <button
@@ -124,7 +141,7 @@ export function ReviewItem({
   }
 
   return (
-    <div className="game-details__review-item">
+    <div className="game-details__review-item" id={`review-${review.id}`}>
       <div className="game-details__review-header">
         <div className="game-details__review-header-top">
           <div className="game-details__review-user">
@@ -316,25 +333,49 @@ export function ReviewItem({
             </AnimatePresence>
           </motion.button>
         </div>
-        {userDetailsId === review.user.id && (
-          <button
-            className="game-details__delete-review-button"
-            onClick={() => onDelete(review.id)}
-            title={t("delete_review")}
-          >
-            <TrashIcon size={16} />
-            <span>{t("remove_review")}</span>
-          </button>
-        )}
-        {isBlocked && isVisible && (
-          <button
-            className="game-details__blocked-review-hide-link"
-            onClick={() => onToggleVisibility(review.id)}
-          >
-            {t("hide")}
-          </button>
-        )}
+
+        <div className="game-details__review-actions-right">
+          {(isOwnReview || (isBlocked && isVisible)) && (
+            <DropdownMenu
+              items={[
+                ...(isOwnReview
+                  ? [
+                      {
+                        label: t("remove_review"),
+                        icon: <Trash2 size={14} />,
+                        onClick: () => onDelete(review.id),
+                      },
+                    ]
+                  : []),
+                ...(isBlocked && isVisible
+                  ? [
+                      {
+                        label: t("hide"),
+                        icon: <ThumbsDown size={14} />,
+                        onClick: () => onToggleVisibility(review.id),
+                      },
+                    ]
+                  : []),
+              ]}
+            >
+              <button className="game-details__review-more-button">
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
+
+      <ReviewAnswers
+        reviewId={review.id}
+        shop={shop}
+        objectId={objectId}
+        userDetailsId={userDetailsId}
+        initialAnswerCount={review.answerCount || 0}
+        initialAnswers={review.answers}
+        onAnswerCountChange={onAnswerCountChange}
+        onReviewNotFound={onReviewNotFound}
+      />
     </div>
   );
 }

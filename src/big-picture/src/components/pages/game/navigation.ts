@@ -29,3 +29,7 @@ export function getGameCommentVoteItemId(
 ) {
   return `game-comment-${reviewId}-${voteType}`;
 }
+
+export function getGameCommentAnswersToggleId(reviewId: string) {
+  return `game-comment-${reviewId}-answers`;
+}

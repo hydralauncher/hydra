@@ -133,6 +133,8 @@ export function GameDetailsContent() {
     getGameArtifacts();
   }, [getGameArtifacts]);
 
+  const targetReviewId = searchParams.get("reviewId") ?? undefined;
+
   // Scroll to reviews section if reviews=true in URL
   useEffect(() => {
     const shouldScrollToReviews = searchParams.get("reviews") === "true";
@@ -244,6 +246,7 @@ export function GameDetailsContent() {
                   isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
                   onUserReviewedChange={setHasUserReviewed}
+                  targetReviewId={targetReviewId}
                 />
               </div>
             )}

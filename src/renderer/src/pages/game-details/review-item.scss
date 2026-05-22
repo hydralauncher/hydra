@@ -2,13 +2,8 @@
 
 .game-details {
   &__review-item {
-    overflow: hidden;
     word-wrap: break-word;
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 12px;
-    padding: calc(globals.$spacing-unit * 1.75);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: calc(globals.$spacing-unit * 2.5) 0;
   }
 
   &__review-header {
@@ -72,39 +67,42 @@
   }
 
   &__review-actions {
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
   }
 
   &__review-votes {
     display: flex;
-    gap: 12px;
+    gap: 8px;
   }
 
   &__vote-button {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    border: none;
     border-radius: 6px;
-    padding: 6px 12px;
-    color: #ccc;
-    font-size: 14px;
+    padding: 6px 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.8);
     }
 
     &--active {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+
       &.game-details__vote-button--upvote {
         svg {
           fill: white;
@@ -126,23 +124,27 @@
     }
   }
 
-  &__delete-review-button {
+  &__review-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__review-more-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
+    background: transparent;
+    border: none;
     border-radius: 6px;
     padding: 6px;
-    color: #f44336;
+    color: rgba(255, 255, 255, 0.5);
     cursor: pointer;
     transition: all 0.2s ease;
-    gap: 6px;
 
     &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: #f44336;
-      color: #ff5722;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
     }
   }
 
@@ -166,21 +168,6 @@
 
     &:hover {
       color: #ffeb3b;
-    }
-  }
-
-  &__blocked-review-hide-link {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: globals.$small-font-size;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-    transition: color 0.2s ease;
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.8);
     }
   }
 

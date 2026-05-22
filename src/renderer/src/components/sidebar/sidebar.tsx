@@ -585,6 +585,7 @@ export function Sidebar() {
                 >
                   <VideoIcon />
                   <span>{t("big_picture")}</span>
+                  <span className="sidebar__beta-badge">BETA</span>
                 </button>
               </li>
 
