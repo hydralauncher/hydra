@@ -6,6 +6,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
   ScreenState,
   UserPreferences,
 } from "@types";
@@ -482,10 +483,39 @@ export class WindowManager {
     };
   }
 
+  /**
+   * Sends an achievement toast to the focused Hydra window (Big Picture or
+   * main) to be rendered as an in-app overlay. Used on Linux/Wayland, where a
+   * standalone overlay window cannot be positioned or kept above other windows.
+   * Returns whether a focused window received it.
+   */
+  public static sendAchievementToFocusedWindow(
+    position: AchievementCustomNotificationPosition,
+    achievements: AchievementNotificationInfo[]
+  ): boolean {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    for (const window of candidates) {
+      if (window && !window.isDestroyed() && window.isFocused()) {
+        window.webContents.send(
+          "on-achievement-unlocked-in-app",
+          position,
+          achievements
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
-    if (process.platform === "darwin") {
+    // The standalone overlay window relies on client-side positioning and
+    // always-on-top, which Wayland forbids. Linux uses the in-app overlay
+    // (sendAchievementToFocusedWindow) or an OS notification instead.
+    if (process.platform === "darwin" || process.platform === "linux") {
       return;
     }
 
@@ -544,20 +574,28 @@ export class WindowManager {
     );
 
     const language = userPreferences.language ?? "en";
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+    const testAchievements = [
+      generateAchievementCustomNotificationTest(t, language),
+      generateAchievementCustomNotificationTest(t, language, {
+        isRare: true,
+        isHidden: true,
+      }),
+      generateAchievementCustomNotificationTest(t, language, {
+        isPlatinum: true,
+      }),
+    ];
+
+    if (process.platform === "linux") {
+      this.sendAchievementToFocusedWindow(position, testAchievements);
+      return;
+    }
 
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      [
-        generateAchievementCustomNotificationTest(t, language),
-        generateAchievementCustomNotificationTest(t, language, {
-          isRare: true,
-          isHidden: true,
-        }),
-        generateAchievementCustomNotificationTest(t, language, {
-          isPlatinum: true,
-        }),
-      ]
+      position,
+      testAchievements
     );
   }
 

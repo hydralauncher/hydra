@@ -530,6 +530,12 @@ declare global {
         achievements?: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
+    onInAppAchievementUnlocked: (
+      cb: (
+        position: AchievementCustomNotificationPosition,
+        achievements: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (
       cb: (
         gameCount: number,

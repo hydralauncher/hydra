@@ -142,18 +142,14 @@ export const mergeAchievements = async (
       game.title
     );
 
-    const shouldUseCustomNotification =
+    const customEnabled =
       userPreferences.achievementCustomNotificationsEnabled !== false &&
-      process.platform !== "darwin" &&
-      !!WindowManager.notificationWindow;
+      process.platform !== "darwin";
 
-    if (shouldUseCustomNotification) {
-      WindowManager.notificationWindow?.webContents.send(
-        "on-achievement-unlocked",
-        userPreferences.achievementCustomNotificationPosition ?? "top-left",
-        achievementsInfo
-      );
-    } else {
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+
+    const publishOsNotification = () =>
       publishNewAchievementNotification({
         achievements: achievementsInfo,
         unlockedAchievementCount: mergedLocalAchievements.length,
@@ -161,6 +157,35 @@ export const mergeAchievements = async (
         gameTitle: game.title,
         gameIcon: game.iconUrl,
       });
+
+    if (process.platform === "linux") {
+      // Wayland forbids client-side window positioning and always-on-top, so a
+      // standalone overlay window can't work. Render the toast in-app when a
+      // Hydra window is focused; otherwise fall back to an OS notification,
+      // which the compositor draws on top (even over fullscreen games).
+      const shownInApp =
+        customEnabled &&
+        WindowManager.sendAchievementToFocusedWindow(
+          position,
+          achievementsInfo
+        );
+
+      if (!shownInApp) {
+        publishOsNotification();
+      }
+    } else {
+      const shouldUseCustomNotification =
+        customEnabled && !!WindowManager.notificationWindow;
+
+      if (shouldUseCustomNotification) {
+        WindowManager.notificationWindow?.webContents.send(
+          "on-achievement-unlocked",
+          position,
+          achievementsInfo
+        );
+      } else {
+        publishOsNotification();
+      }
     }
   }
 
