@@ -27,6 +27,7 @@ interface GameReviewsProps {
   isGameInLibrary: boolean;
   hasUserReviewed: boolean;
   onUserReviewedChange: (hasReviewed: boolean) => void;
+  targetReviewId?: string;
 }
 
 const MAX_REVIEW_CHARS = 1000;
@@ -39,6 +40,7 @@ export function GameReviews({
   isGameInLibrary,
   hasUserReviewed,
   onUserReviewedChange,
+  targetReviewId,
 }: Readonly<GameReviewsProps>) {
   const { t, i18n } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
@@ -405,6 +407,12 @@ export function GameReviews({
     previousVotesRef.current.set(reviewId, votes);
   };
 
+  const updateAnswerCount = (reviewId: string, newCount: number) => {
+    setReviews((prev) =>
+      prev.map((r) => (r.id === reviewId ? { ...r, answerCount: newCount } : r))
+    );
+  };
+
   useEffect(() => {
     if (objectId) {
       loadReviews(true);
@@ -437,6 +445,18 @@ export function GameReviews({
       }
     });
   }, [reviews]);
+
+  useEffect(() => {
+    if (!targetReviewId || reviews.length === 0) return;
+    const target = reviews.find((r) => r.id === targetReviewId);
+    if (!target) return;
+
+    setTimeout(() => {
+      document
+        .getElementById(`review-${targetReviewId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+  }, [targetReviewId, reviews]);
 
   return (
     <div className="game-details__reviews-section">
@@ -519,10 +539,16 @@ export function GameReviews({
                 downvotes: 0,
               }
             }
+            shop={shop}
+            objectId={objectId}
             onVote={handleVoteReview}
             onDelete={handleDeleteReview}
             onToggleVisibility={toggleBlockedReview}
             onAnimationComplete={handleVoteAnimationComplete}
+            onAnswerCountChange={(newCount) =>
+              updateAnswerCount(review.id, newCount)
+            }
+            onReviewNotFound={() => loadReviews(true)}
           />
         ))}
       </div>

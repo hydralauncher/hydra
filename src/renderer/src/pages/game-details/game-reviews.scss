@@ -47,7 +47,8 @@
   &__reviews-container {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 4);
+    gap: 0;
+
   }
 
   &__reviews-separator {

@@ -278,6 +278,8 @@ export interface GameReview {
   hasUpvoted: boolean;
   hasDownvoted: boolean;
   playTimeInSeconds?: number;
+  answerCount: number;
+  answers?: GameReviewAnswer[];
   user: {
     id: string;
     displayName: string;
@@ -287,6 +289,26 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+}
+
+export interface GameReviewAnswer {
+  id: string;
+  answerHtml: string;
+  upvotes: number;
+  downvotes: number;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; displayName: string; profileImageUrl: string | null };
+  isBlocked: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
+  translations: Record<string, string>;
+  detectedLanguage: string;
+}
+
+export interface GetReviewAnswersResponse {
+  totalCount: number;
+  answers: GameReviewAnswer[];
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -348,7 +370,9 @@ export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
   | "BADGE_RECEIVED"
-  | "REVIEW_UPVOTE";
+  | "REVIEW_UPVOTE"
+  | "REVIEW_ANSWER"
+  | "REVIEW_ANSWER_UPVOTE";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

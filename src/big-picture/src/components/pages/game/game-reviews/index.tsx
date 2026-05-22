@@ -5,7 +5,7 @@ import {
   UserIcon,
 } from "@phosphor-icons/react";
 import { sanitizeHtml } from "@shared";
-import type { GameReview, GameShop } from "@types";
+import type { GameReview, GameReviewAnswer, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
 import { getItemFocusTarget } from "../../../../helpers";
@@ -15,6 +15,7 @@ import {
   GAME_COMMENTS_REGION_ID,
   GAME_COMMENTS_ACTION_ROWS_REGION_ID,
   GAME_COMMENTS_LOAD_MORE_ID,
+  getGameCommentAnswersToggleId,
   getGameCommentVoteItemId,
 } from "../navigation";
 import {
@@ -34,6 +35,15 @@ interface GameReviewsProps {
 
 const REVIEWS_PER_PAGE = 24;
 
+const getEmbeddedAnswersByReview = (reviews: GameReview[]) =>
+  reviews.reduce<Record<string, GameReviewAnswer[]>>((acc, review) => {
+    if (review.answers !== undefined) {
+      acc[review.id] = review.answers;
+    }
+
+    return acc;
+  }, {});
+
 export function GameReviews({
   shop,
   objectId,
@@ -46,6 +56,13 @@ export function GameReviews({
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
+  const [expandedAnswerReviews, setExpandedAnswerReviews] = useState<
+    Set<string>
+  >(new Set());
+  const [answersByReview, setAnswersByReview] = useState<
+    Record<string, GameReviewAnswer[]>
+  >({});
+  const [loadingAnswers, setLoadingAnswers] = useState<Set<string>>(new Set());
 
   const { formatDistance } = useDate();
   const { formatPlayTime } = useFormat();
@@ -85,9 +102,14 @@ export function GameReviews({
 
         if (reset) {
           setReviews(reviewsData);
+          setAnswersByReview(getEmbeddedAnswersByReview(reviewsData));
           setPage(0);
         } else {
           setReviews((prev) => [...prev, ...reviewsData]);
+          setAnswersByReview((prev) => ({
+            ...prev,
+            ...getEmbeddedAnswersByReview(reviewsData),
+          }));
         }
 
         setTotalReviewCount(reviewCount);
@@ -188,6 +210,45 @@ export function GameReviews({
     }
   };
 
+  const loadAnswers = async (reviewId: string) => {
+    if (loadingAnswers.has(reviewId) || answersByReview[reviewId]) return;
+    setLoadingAnswers((prev) => new Set(prev).add(reviewId));
+    try {
+      const response = await globalThis.window.electron.hydraApi.get<{
+        answers: GameReviewAnswer[];
+        totalCount: number;
+      }>(
+        `/games/${shop}/${objectId}/reviews/${reviewId}/answers?take=20&skip=0`,
+        { needsAuth: false }
+      );
+      setAnswersByReview((prev) => ({
+        ...prev,
+        [reviewId]: response?.answers ?? [],
+      }));
+    } catch {
+      // silently ignore
+    } finally {
+      setLoadingAnswers((prev) => {
+        const next = new Set(prev);
+        next.delete(reviewId);
+        return next;
+      });
+    }
+  };
+
+  const toggleAnswers = (reviewId: string) => {
+    setExpandedAnswerReviews((prev) => {
+      const next = new Set(prev);
+      if (next.has(reviewId)) {
+        next.delete(reviewId);
+      } else {
+        next.add(reviewId);
+        loadAnswers(reviewId);
+      }
+      return next;
+    });
+  };
+
   useEffect(() => {
     loadReviews(0, true);
   }, [objectId, shop, loadReviews]);
@@ -244,6 +305,10 @@ export function GameReviews({
                   const dislikeFocusId = getGameCommentVoteItemId(
                     review.id,
                     "downvote"
+                  );
+                  const hasAnswers = (review.answerCount || 0) > 0;
+                  const answersFocusId = getGameCommentAnswersToggleId(
+                    review.id
                   );
 
                   return (
@@ -365,7 +430,9 @@ export function GameReviews({
                                       )
                                     : { type: "block" },
                                 left: getItemFocusTarget(likeFocusId),
-                                right: { type: "block" },
+                                right: hasAnswers
+                                  ? getItemFocusTarget(answersFocusId)
+                                  : { type: "block" },
                               }}
                               asChild
                             >
@@ -387,6 +454,64 @@ export function GameReviews({
                                 <Typography>{review.downvotes ?? 0}</Typography>
                               </button>
                             </FocusItem>
+
+                            {hasAnswers && (
+                              <FocusItem
+                                id={answersFocusId}
+                                navigationOverrides={{
+                                  up: previousReview
+                                    ? getItemFocusTarget(
+                                        (previousReview.answerCount || 0) > 0
+                                          ? getGameCommentAnswersToggleId(
+                                              previousReview.id
+                                            )
+                                          : getGameCommentVoteItemId(
+                                              previousReview.id,
+                                              "downvote"
+                                            )
+                                      )
+                                    : (topNavigationTarget ?? {
+                                        type: "block",
+                                      }),
+                                  down: nextReview
+                                    ? getItemFocusTarget(
+                                        (nextReview.answerCount || 0) > 0
+                                          ? getGameCommentAnswersToggleId(
+                                              nextReview.id
+                                            )
+                                          : getGameCommentVoteItemId(
+                                              nextReview.id,
+                                              "downvote"
+                                            )
+                                      )
+                                    : hasMore
+                                      ? getItemFocusTarget(
+                                          GAME_COMMENTS_LOAD_MORE_ID
+                                        )
+                                      : { type: "block" },
+                                  left: getItemFocusTarget(dislikeFocusId),
+                                  right: { type: "block" },
+                                }}
+                                asChild
+                              >
+                                <button
+                                  className="game-page__comment-feedback-item"
+                                  type="button"
+                                  onClick={() => toggleAnswers(review.id)}
+                                  aria-label={
+                                    expandedAnswerReviews.has(review.id)
+                                      ? "Hide answers"
+                                      : `Show ${review.answerCount} answers`
+                                  }
+                                >
+                                  <Typography>
+                                    {expandedAnswerReviews.has(review.id)
+                                      ? "Hide answers"
+                                      : `${review.answerCount} answers`}
+                                  </Typography>
+                                </button>
+                              </FocusItem>
+                            )}
                           </div>
 
                           <div className="game-page__comment-review-meta">
@@ -405,6 +530,33 @@ export function GameReviews({
                           </div>
                         </div>
                       </HorizontalFocusGroup>
+
+                      {expandedAnswerReviews.has(review.id) && (
+                        <div className="game-page__comment-answers">
+                          {loadingAnswers.has(review.id) && (
+                            <Typography className="game-page__comment-answer-loading">
+                              Loading answers...
+                            </Typography>
+                          )}
+
+                          {(answersByReview[review.id] ?? []).map((answer) => (
+                            <div
+                              key={answer.id}
+                              className="game-page__comment-answer"
+                            >
+                              <Typography className="game-page__comment-answer-author">
+                                {answer.user.displayName || "Anonymous"}
+                              </Typography>
+                              <div
+                                className="game-page__comment-answer-body"
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeHtml(answer.answerHtml),
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </article>
                   );
                 })}
