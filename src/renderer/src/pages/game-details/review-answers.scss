@@ -1,0 +1,219 @@
+@use "../../scss/globals.scss";
+
+.game-details {
+  &__answers-section {
+    margin-top: 12px;
+    padding-left: 16px;
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__answers-toggle-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__answers-loading {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$small-font-size;
+    padding: 8px 0;
+  }
+
+  &__answers-empty {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: globals.$small-font-size;
+    padding: 4px 0;
+  }
+
+  &__answers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  &__answers-load-more {
+    align-self: flex-start;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__answer-form {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__answer-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__answer-editor-toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &__answer-editor-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover,
+    &.is-active {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  &__answer-input {
+    .ProseMirror {
+      outline: none;
+      min-height: 80px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: globals.$body-font-size;
+      line-height: 1.6;
+
+      &.ProseMirror-focused {
+        background: transparent;
+      }
+
+      &:has(> p:only-child:empty)::before {
+        content: attr(data-placeholder);
+        color: rgba(255, 255, 255, 0.3);
+        pointer-events: none;
+        position: absolute;
+      }
+
+      position: relative;
+    }
+  }
+
+  &__reply-toggle-button {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  &__answer-form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__answer-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__answer-cancel-button {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  &__answer-char-counter {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+
+    .over-limit {
+      color: #f44336;
+    }
+  }
+
+  &__answer-submit-button {
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
