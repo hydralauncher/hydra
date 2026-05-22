@@ -24,12 +24,6 @@ const anchorByPosition: Record<
   "bottom-right": { justifyContent: "flex-end", alignItems: "flex-end" },
 };
 
-/**
- * Renders achievement toasts inside the focused Hydra window. Used on Linux,
- * where Wayland prevents a standalone overlay window from being positioned or
- * kept on top. The toast is anchored to the requested viewport corner and is
- * click-through so it never blocks the UI beneath it.
- */
 export function AchievementNotificationOverlay() {
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);

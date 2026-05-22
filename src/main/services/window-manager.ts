@@ -483,12 +483,6 @@ export class WindowManager {
     };
   }
 
-  /**
-   * Sends an achievement toast to the focused Hydra window (Big Picture or
-   * main) to be rendered as an in-app overlay. Used on Linux/Wayland, where a
-   * standalone overlay window cannot be positioned or kept above other windows.
-   * Returns whether a focused window received it.
-   */
   public static sendAchievementToFocusedWindow(
     position: AchievementCustomNotificationPosition,
     achievements: AchievementNotificationInfo[]
@@ -512,9 +506,6 @@ export class WindowManager {
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
-    // The standalone overlay window relies on client-side positioning and
-    // always-on-top, which Wayland forbids. Linux uses the in-app overlay
-    // (sendAchievementToFocusedWindow) or an OS notification instead.
     if (process.platform === "darwin" || process.platform === "linux") {
       return;
     }

@@ -159,10 +159,6 @@ export const mergeAchievements = async (
       });
 
     if (process.platform === "linux") {
-      // Wayland forbids client-side window positioning and always-on-top, so a
-      // standalone overlay window can't work. Render the toast in-app when a
-      // Hydra window is focused; otherwise fall back to an OS notification,
-      // which the compositor draws on top (even over fullscreen games).
       const shownInApp =
         customEnabled &&
         WindowManager.sendAchievementToFocusedWindow(
