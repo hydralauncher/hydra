@@ -914,6 +914,7 @@
     "redetect_version_updated": "Detected version {{version}}",
     "redetect_unchanged": "Executable still valid — no changes",
     "redetect_not_found": "Could not auto-detect {{name}}",
+    "emulator_invalid_executable": "That file is not a valid emulator executable. Pick the emulator program.",
     "folder_already_added": "This folder is already in your library",
     "scan_complete_toast": "{{matched}} games matched, {{unmatched}} games unmatched",
     "add_folder": "Add folder",

@@ -20,6 +20,7 @@ import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
+import { getClassicsLaunchErrorCode } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 
 import "./hero-panel-actions.scss";
@@ -201,7 +202,7 @@ export function HeroPanelActions() {
         discPath
       );
     } catch (error) {
-      const code = (error as { code?: string })?.code;
+      const code = getClassicsLaunchErrorCode(error);
       if (code === "EMULATOR_NOT_CONFIGURED") {
         showErrorToast(t("emulator_not_configured_toast"));
         navigate("/settings?tab=emulation");

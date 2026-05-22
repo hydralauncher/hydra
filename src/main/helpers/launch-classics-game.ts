@@ -117,9 +117,9 @@ export const launchClassicsGame = async (
         processRef.off("error", onError);
         resolve();
       };
-      const onError = (error: Error) => {
+      const onError = () => {
         processRef.off("spawn", onSpawn);
-        reject(error);
+        reject(new EmulatorNotConfiguredError(system));
       };
       processRef.once("spawn", onSpawn);
       processRef.once("error", onError);

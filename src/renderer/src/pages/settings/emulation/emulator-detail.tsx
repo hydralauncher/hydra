@@ -156,6 +156,14 @@ export function EmulatorDetail({
 
     setBusy(true);
     try {
+      const preview = await window.electron.previewEmulatorExecutable(
+        config.system,
+        result.filePaths[0]
+      );
+      if (!preview) {
+        showErrorToast(t("emulator_invalid_executable"));
+        return;
+      }
       const next = await window.electron.setEmulatorExecutablePath(
         config.system,
         result.filePaths[0]
@@ -164,7 +172,7 @@ export function EmulatorDetail({
     } finally {
       setBusy(false);
     }
-  }, [config.system, config.executablePath, onChange]);
+  }, [config.system, config.executablePath, onChange, showErrorToast, t]);
 
   const handleAddFolder = useCallback(async () => {
     const result = await window.electron.showOpenDialog({

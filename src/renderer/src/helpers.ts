@@ -266,3 +266,21 @@ export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
   }
   return SKU_REGION_ORDER.filter((r) => set.has(r));
 };
+
+const CLASSICS_LAUNCH_ERROR_CODES = [
+  "EMULATOR_NOT_CONFIGURED",
+  "PLATFORM_UNKNOWN",
+  "NO_DISC",
+] as const;
+
+export const getClassicsLaunchErrorCode = (
+  error: unknown
+): (typeof CLASSICS_LAUNCH_ERROR_CODES)[number] | undefined => {
+  const direct = (error as { code?: string })?.code;
+  if (direct && CLASSICS_LAUNCH_ERROR_CODES.includes(direct as never)) {
+    return direct as (typeof CLASSICS_LAUNCH_ERROR_CODES)[number];
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return CLASSICS_LAUNCH_ERROR_CODES.find((code) => message.includes(code));
+};
