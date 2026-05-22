@@ -92,11 +92,21 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return false;
 
+  const { pid } = session.child;
+
   try {
-    session.child.kill();
-  } catch (error) {
-    logger.error("Failed to close emulator session", error);
-    return false;
+    if (pid && process.platform !== "win32") {
+      process.kill(-pid, "SIGKILL");
+    } else {
+      session.child.kill();
+    }
+  } catch {
+    try {
+      session.child.kill();
+    } catch (error) {
+      logger.error("Failed to close emulator session", error);
+      return false;
+    }
   }
 
   return true;

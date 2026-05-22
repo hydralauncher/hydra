@@ -8,7 +8,10 @@ import {
   useToast,
 } from "@renderer/hooks";
 import { useNavigate, useLocation } from "react-router-dom";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  getClassicsLaunchErrorCode,
+} from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 
 export function useGameActions(game: LibraryGame) {
@@ -114,11 +117,16 @@ export function useGameActions(game: LibraryGame) {
           game.selectedDiscPath ?? undefined
         );
       } catch (error) {
-        const code = (error as { code?: string })?.code;
+        const code = getClassicsLaunchErrorCode(error);
         if (code === "EMULATOR_NOT_CONFIGURED") {
-          showErrorToast("Emulator not configured. Open Settings → Emulation.");
+          showErrorToast(t("emulator_not_configured_toast"));
+          navigate("/settings?tab=emulation");
+        } else if (code === "PLATFORM_UNKNOWN") {
+          showErrorToast(t("platform_unknown_toast"));
+        } else if (code === "NO_DISC") {
+          showErrorToast(t("no_disc_toast"));
         } else {
-          showErrorToast("Failed to start game");
+          showErrorToast(t("launch_failed_toast"));
         }
         logger.error("Failed to start classics game", error);
       }

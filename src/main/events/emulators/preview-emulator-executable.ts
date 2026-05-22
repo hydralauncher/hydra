@@ -15,6 +15,7 @@ const previewEmulatorExecutable = async (
   const binary = emulators.KNOWN_BINARIES[system];
 
   if (executablePath) {
+    if (!emulators.isValidEmulatorExecutable(executablePath)) return null;
     return {
       executablePath,
       detectedVersion: emulators.getEmulatorVersion(executablePath, binary),

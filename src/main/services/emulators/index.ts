@@ -1,6 +1,7 @@
 export * from "./known-binaries";
 export * from "./detect-emulator";
 export * from "./get-emulator-version";
+export * from "./validate-emulator-executable";
 export * from "./scan-rom-folder";
 export * from "./emulators-repository";
 export * from "./firmware-detection";

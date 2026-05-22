@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Modal } from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 
 import { SetupFooter } from "./setup-footer";
@@ -40,6 +41,7 @@ export function EmulatorSetupModal({
   onComplete,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
+  const { showErrorToast } = useToast();
 
   const [config, setConfig] = useState<EmulatorConfig | null>(initialConfig);
   const [stepIndex, setStepIndex] = useState(0);
@@ -139,7 +141,10 @@ export function EmulatorSetupModal({
       system,
       result.filePaths[0]
     );
-    if (!preview) return;
+    if (!preview) {
+      showErrorToast(t("emulator_invalid_executable"));
+      return;
+    }
     setConfig((curr) =>
       curr
         ? {
@@ -149,7 +154,7 @@ export function EmulatorSetupModal({
           }
         : curr
     );
-  }, [system]);
+  }, [system, showErrorToast, t]);
 
   const previewFolder = useCallback(
     async (folderPath: string, scanSubfolders: boolean) => {

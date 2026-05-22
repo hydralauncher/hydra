@@ -24,7 +24,7 @@ const openClassicsGame = async (
   const system = platformToSystem(game.platform);
   if (!system) {
     const error: Error & { code?: string } = new Error(
-      `Unknown platform for game ${objectId}`
+      `PLATFORM_UNKNOWN: Unknown platform for game ${objectId}`
     );
     error.code = "PLATFORM_UNKNOWN";
     throw error;
@@ -35,7 +35,7 @@ const openClassicsGame = async (
 
   if (!resolvedDiscPath) {
     const error: Error & { code?: string } = new Error(
-      `No disc available for game ${objectId}`
+      `NO_DISC: No disc available for game ${objectId}`
     );
     error.code = "NO_DISC";
     throw error;
@@ -56,7 +56,7 @@ const openClassicsGame = async (
       error.code === "EMULATOR_NOT_CONFIGURED"
     ) {
       const wrapped: Error & { code?: string; system?: string } = new Error(
-        `Emulator not configured for ${system}`
+        `EMULATOR_NOT_CONFIGURED: Emulator not configured for ${system}`
       );
       wrapped.code = "EMULATOR_NOT_CONFIGURED";
       wrapped.system = system;
