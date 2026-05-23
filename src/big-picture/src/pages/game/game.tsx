@@ -1051,6 +1051,12 @@ export default function Game() {
 
             <VerticalFocusGroup regionId={GAME_SIDEBAR_REGION_ID} asChild>
               <div className="game-page__sidebar">
+                <AchievementsBox
+                  achievements={achievements ?? []}
+                  focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
+                  focusNavigationOrder={3}
+                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
+                />
                 <FocusItem
                   id={GAME_SIDEBAR_STATS_ID}
                   navigationOrder={0}
@@ -1119,13 +1125,13 @@ export default function Game() {
                     }
                   />
                 )}
-
+                {/* 
                 <AchievementsBox
                   achievements={achievements ?? []}
                   focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
                   focusNavigationOrder={3}
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                />
+                /> */}
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
