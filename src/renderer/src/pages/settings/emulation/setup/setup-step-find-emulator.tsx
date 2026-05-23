@@ -39,14 +39,14 @@ export function SetupStepFindEmulator({
             detecting
               ? "setup-modal__row-icon--warn"
               : found
-                ? "setup-modal__row-icon--success"
+                ? "setup-modal__row-icon--found"
                 : "setup-modal__row-icon--warn"
           }`}
         >
           {detecting ? (
             <SyncIcon size={18} />
           ) : found ? (
-            <CheckCircleFillIcon size={18} />
+            <CheckCircleFillIcon size={20} />
           ) : (
             <AlertIcon size={18} />
           )}

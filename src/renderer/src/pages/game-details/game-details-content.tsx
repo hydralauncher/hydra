@@ -195,11 +195,12 @@ export function GameDetailsContent() {
       );
 
   const launchboxCover = isLaunchboxGame
-    ? (shopDetails?.assets?.libraryImageUrl ??
-      game?.libraryImageUrl ??
-      shopDetails?.assets?.iconUrl ??
-      game?.iconUrl ??
-      "")
+    ? game?.customIconUrl ||
+      shopDetails?.assets?.libraryImageUrl ||
+      game?.libraryImageUrl ||
+      shopDetails?.assets?.iconUrl ||
+      game?.iconUrl ||
+      ""
     : "";
 
   const launchboxSystem = isLaunchboxGame

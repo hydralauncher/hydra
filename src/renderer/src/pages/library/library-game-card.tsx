@@ -7,8 +7,16 @@ import {
   TrophyIcon,
   ImageIcon,
 } from "@primer/octicons-react";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  ps1: "PlayStation",
+  ps2: "PlayStation 2",
+  ps3: "PlayStation 3",
+};
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -73,6 +81,15 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const activeImageSource = resolveImageSource(sources[fallbackIndex]);
 
+  const classicsSystem =
+    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
+  const classicsPlatformLabel = classicsSystem
+    ? PLATFORM_LABELS[classicsSystem]
+    : null;
+  const classicsEmulatorIcon = classicsSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
+    : undefined;
+
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
@@ -121,6 +138,19 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               {formatPlayTime(game.playTimeInMilliseconds, true)}
             </span>
           </div>
+
+          {classicsPlatformLabel && (
+            <div className="library-game-card__classics-badges">
+              <span className="library-game-card__platform-badge">
+                {classicsPlatformLabel}
+              </span>
+              {classicsEmulatorIcon && (
+                <span className="library-game-card__emulator-badge">
+                  <img src={classicsEmulatorIcon} alt="" />
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (

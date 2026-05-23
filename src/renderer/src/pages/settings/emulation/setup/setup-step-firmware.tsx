@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertIcon,
+  ClockIcon,
   CheckCircleFillIcon,
   SyncIcon,
 } from "@primer/octicons-react";
@@ -11,11 +11,13 @@ import type { EmulatorConfig } from "@types";
 
 interface Props {
   config: EmulatorConfig;
+  systemLabel: string;
   onFirmwareStatusChange: (installed: boolean) => void;
 }
 
 export function SetupStepFirmware({
   config,
+  systemLabel,
   onFirmwareStatusChange,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
@@ -42,7 +44,9 @@ export function SetupStepFirmware({
 
   return (
     <>
-      <h3 className="setup-modal__body-title">{t("setup_step_firmware")}</h3>
+      <h3 className="setup-modal__body-title">
+        {t("setup_step_firmware", { system: systemLabel })}
+      </h3>
       <div>
         <p className="setup-modal__body-intro" style={{ margin: 0 }}>
           {t("setup_firmware_intro_1")}
@@ -59,7 +63,6 @@ export function SetupStepFirmware({
             {t("setup_firmware_step_1")}
           </span>
         </div>
-        <div className="setup-modal__numbered-divider" />
         <div className="setup-modal__numbered-item">
           <span className="setup-modal__numbered-marker">2</span>
           <span className="setup-modal__numbered-text">
@@ -70,21 +73,24 @@ export function SetupStepFirmware({
 
       <div
         className={`setup-modal__alert ${
-          installed ? "setup-modal__alert--success" : "setup-modal__alert--warn"
+          installed
+            ? "setup-modal__alert--success"
+            : "setup-modal__alert--neutral"
         }`}
+        style={{ marginTop: "auto" }}
       >
         <div
           className={`setup-modal__row-icon ${
             installed
               ? "setup-modal__row-icon--success"
-              : "setup-modal__row-icon--warn"
+              : "setup-modal__row-icon--neutral"
           }`}
-          style={{ width: 28, height: 28 }}
+          style={{ width: 36, height: 36 }}
         >
           {installed ? (
-            <CheckCircleFillIcon size={14} />
+            <CheckCircleFillIcon size={16} />
           ) : (
-            <AlertIcon size={14} />
+            <ClockIcon size={16} />
           )}
         </div>
         <div className="setup-modal__alert-text">
