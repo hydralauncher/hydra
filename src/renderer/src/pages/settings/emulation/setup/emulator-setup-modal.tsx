@@ -13,14 +13,6 @@ import { SetupStepScanning } from "./setup-step-scanning";
 import { SetupStepDone } from "./setup-step-done";
 import { type PendingFolder, stepListForSystem, type StepKind } from "./types";
 
-const stepLabelKey: Record<StepKind, string> = {
-  find_emulator: "setup_step_label_find_emulator",
-  firmware: "setup_step_label_firmware",
-  rom_folder: "setup_step_label_rom_folder",
-  scanning: "setup_step_label_scanning",
-  done: "setup_step_label_done",
-};
-
 import "./setup-shell.scss";
 
 interface Props {
@@ -100,6 +92,7 @@ export function EmulatorSetupModal({
     [system]
   );
   const currentStep = steps[stepIndex];
+  const systemShort = system ? system.toUpperCase() : "";
 
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
   const goBack = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
@@ -305,10 +298,14 @@ export function EmulatorSetupModal({
     if (currentStep === "firmware") {
       goNext();
     } else if (currentStep === "rom_folder") {
-      // skip past scanning and done — emulator path is committed but no folders
       refreshConfig();
       onComplete(system);
     }
+  };
+
+  const handleScanCancel = () => {
+    refreshConfig();
+    onClose();
   };
 
   return (
@@ -319,9 +316,6 @@ export function EmulatorSetupModal({
           <h2 className="setup-modal__header-title">
             {t("setup_modal_title", { system: systemLabel })}
           </h2>
-          <p className="setup-modal__header-subtitle">
-            {t(stepLabelKey[currentStep])}
-          </p>
         </div>
       }
       onClose={handleClose}
@@ -339,13 +333,14 @@ export function EmulatorSetupModal({
           {currentStep === "firmware" && config && (
             <SetupStepFirmware
               config={config}
+              systemLabel={systemShort}
               onFirmwareStatusChange={setFirmwareOk}
             />
           )}
           {currentStep === "rom_folder" && (
             <SetupStepRomFolder
               system={system}
-              systemLabel={systemLabel}
+              systemLabel={systemShort}
               folders={folders}
               onAddFolder={handleAddFolder}
               onChangeFolder={handleChangeFolder}
@@ -356,16 +351,12 @@ export function EmulatorSetupModal({
           {currentStep === "scanning" && (
             <SetupStepScanning
               system={system}
-              systemLabel={systemLabel}
+              systemLabel={systemShort}
               folders={folders}
               onComplete={(added) => {
                 setGamesAdded(added.matched);
                 refreshConfig();
                 goNext();
-              }}
-              onCancel={() => {
-                refreshConfig();
-                onClose();
               }}
             />
           )}
@@ -386,10 +377,17 @@ export function EmulatorSetupModal({
             currentStep !== "scanning" &&
             currentStep !== "done"
           }
+          showCancel={currentStep === "find_emulator"}
           showSkip={currentStep === "firmware" || currentStep === "rom_folder"}
           continueDisabled={continueDisabled}
           continueHidden={continueHidden}
+          endAction={
+            currentStep === "scanning"
+              ? { label: t("setup_cancel_scan"), onClick: handleScanCancel }
+              : null
+          }
           onBack={goBack}
+          onCancel={handleClose}
           onSkip={handleSkip}
           onContinue={handleContinue}
         />

@@ -74,11 +74,22 @@
       font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.4px;
-      padding: 1px 7px;
+      padding: 2px 8px;
       border-radius: 999px;
-      color: #0cf1ca;
-      background: rgba(12, 241, 202, 0.05);
-      border: 1px solid rgba(12, 241, 202, 0.3);
+      color: #fafafa;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(#3f3f3f, #3f3f3f) padding-box,
+        conic-gradient(
+            from 0deg,
+            #fcdc33 5deg,
+            #4cbd47 70deg,
+            #13aceb 145deg,
+            #ee473b 220deg,
+            #ef833a 290deg,
+            #fcdc33 365deg
+          )
+          border-box;
     }
   }
 

@@ -157,26 +157,11 @@
     gap: 4px;
   }
 
-  &__step {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(142, 145, 155, 0.12);
-    border: 1px solid rgba(142, 145, 155, 0.12);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 500;
-    color: #8e919b;
-  }
-
   &__row {
     background: #0d0d0d;
     border: 1px solid #1c1c1c;
     border-radius: 12px;
     padding: 16px 24px;
-    margin-left: 40px;
     display: flex;
     align-items: center;
     gap: 24px;
@@ -294,6 +279,10 @@
   &__exec-path-text {
     word-break: break-all;
     min-width: 0;
+
+    &--placeholder {
+      color: #8e919b;
+    }
   }
 
   &__exec-path-pencil {
@@ -319,7 +308,6 @@
   }
 
   &__empty {
-    margin-left: 40px;
     color: #8e919b;
     font-size: 13px;
   }
@@ -381,7 +369,6 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
-    margin-left: 40px;
   }
 
   &__stat {

@@ -326,10 +326,8 @@ export function EmulatorDetail({
         <span>{t("bios_note", { name: binaryName })}</span>
       </p>
 
-      {/* Section 1: Emulator */}
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">
-          <span className="emulator-detail__step">1</span>
           <div className="emulator-detail__section-text">
             <h3>{t("emulator_section_title")}</h3>
             <p>{t("emulator_section_description")}</p>
@@ -382,8 +380,10 @@ export function EmulatorDetail({
               title={t("change_executable_path")}
               aria-label={t("change_executable_path")}
             >
-              <span className="emulator-detail__exec-path-text">
-                {config.executablePath ?? "—"}
+              <span
+                className={`emulator-detail__exec-path-text${config.executablePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
+              >
+                {config.executablePath ?? t("select_executable_placeholder")}
               </span>
               <PencilIcon
                 size={12}
@@ -405,10 +405,8 @@ export function EmulatorDetail({
         </div>
       </section>
 
-      {/* Section 2: ROM folders */}
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">
-          <span className="emulator-detail__step">2</span>
           <div className="emulator-detail__section-text">
             <h3>{t("rom_folders_section_title")}</h3>
             <p>{t("rom_folders_section_description")}</p>
@@ -469,10 +467,8 @@ export function EmulatorDetail({
         </div>
       </section>
 
-      {/* Section 3: Library */}
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">
-          <span className="emulator-detail__step">3</span>
           <div className="emulator-detail__section-text">
             <h3>{t("library_section_title")}</h3>
             <p>{t("library_section_description", { system: systemLabel })}</p>

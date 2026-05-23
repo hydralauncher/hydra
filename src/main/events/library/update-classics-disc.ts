@@ -1,5 +1,7 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
+import { emulators } from "@main/services";
+import { platformToSystem } from "@main/helpers";
 import type { ClassicsDisc, GameShop } from "@types";
 
 interface ClassicsDiscPatch {
@@ -27,7 +29,14 @@ const updateClassicsDisc = async (
 
   if (patch.addDisc) {
     if (!discs.some((d) => d.path === patch.addDisc!.path)) {
-      discs.push(patch.addDisc);
+      const disc = patch.addDisc;
+      if (!disc.sku) {
+        const system = platformToSystem(patch.platform ?? game.platform);
+        if (system) {
+          disc.sku = await emulators.extractDiscSku(disc.path, system);
+        }
+      }
+      discs.push(disc);
     }
   }
 

@@ -63,9 +63,6 @@ export function EmulatorScanModal({
           <h2 className="setup-modal__header-title">
             {t("setup_modal_title", { system: systemLabel })}
           </h2>
-          <p className="setup-modal__header-subtitle">
-            {t("setup_step_label_scanning")}
-          </p>
         </div>
       }
       onClose={onCancel}
@@ -75,11 +72,23 @@ export function EmulatorScanModal({
         <div className="setup-modal__body">
           <SetupStepScanning
             system={system}
-            systemLabel={systemLabel}
+            systemLabel={system.toUpperCase()}
             folders={pendingFolders}
             onComplete={handleComplete}
-            onCancel={onCancel}
           />
+        </div>
+
+        <div className="setup-modal__footer">
+          <div className="setup-modal__footer-side" />
+          <div className="setup-modal__footer-side setup-modal__footer-side--end">
+            <button
+              type="button"
+              className="setup-modal__ghost-button"
+              onClick={onCancel}
+            >
+              {t("setup_cancel_scan")}
+            </button>
+          </div>
         </div>
       </div>
     </Modal>

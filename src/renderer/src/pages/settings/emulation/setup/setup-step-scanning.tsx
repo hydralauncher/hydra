@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckIcon, SyncIcon, TrashIcon, XIcon } from "@primer/octicons-react";
+import {
+  DatabaseIcon,
+  FileDirectoryIcon,
+  SyncIcon,
+} from "@primer/octicons-react";
+import { Gamepad2 } from "lucide-react";
 
-import { Button } from "@renderer/components";
 import type { EmulatorSystem } from "@types";
 
 import type { PendingFolder } from "./types";
@@ -17,7 +21,6 @@ interface Props {
     matched: number;
     unmatched: number;
   }) => void;
-  onCancel: () => void;
 }
 
 type Phase = "scanning" | "matching" | "done";
@@ -38,7 +41,6 @@ export function SetupStepScanning({
   systemLabel,
   folders,
   onComplete,
-  onCancel,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation("settings");
 
@@ -139,7 +141,7 @@ export function SetupStepScanning({
 
       <div className="setup-modal__progress-meta">
         <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          <SyncIcon size={14} />
+          <SyncIcon size={14} className="setup-modal__spin" />
           <span>{phaseLabel}</span>
         </span>
         <span>
@@ -160,35 +162,40 @@ export function SetupStepScanning({
       </div>
 
       {currentFile && (
-        <p className="setup-modal__current-file">
-          <span className="setup-modal__current-file-name">{currentFile}</span>
+        <div className="setup-modal__scan-file">
+          <FileDirectoryIcon
+            size={14}
+            className="setup-modal__scan-file-icon"
+          />
+          <span className="setup-modal__scan-file-name">{currentFile}</span>
           {currentStatus && (
             <span
-              className={`setup-modal__match-tag setup-modal__match-tag--${currentStatus}`}
+              className={`setup-modal__scan-file-status setup-modal__scan-file-status--${currentStatus}`}
             >
-              {currentStatus === "matched" ? (
-                <CheckIcon size={11} />
-              ) : (
-                <XIcon size={11} />
-              )}
-              <span>
-                {currentStatus === "matched"
+              {`→ ${
+                currentStatus === "matched"
                   ? t("setup_match_matched")
-                  : t("setup_match_unmatched")}
-              </span>
+                  : t("setup_match_unmatched")
+              }`}
             </span>
           )}
-        </p>
+        </div>
       )}
 
       <div className="setup-modal__stats">
         <div className="setup-modal__stat">
+          <span className="setup-modal__stat-icon">
+            <Gamepad2 size={16} />
+          </span>
           <span className="setup-modal__stat-label">{t("stat_games")}</span>
           <span className="setup-modal__stat-value">
             {phase === "matching" || phase === "done" ? matched : accFiles}
           </span>
         </div>
         <div className="setup-modal__stat">
+          <span className="setup-modal__stat-icon">
+            <DatabaseIcon size={16} />
+          </span>
           <span className="setup-modal__stat-label">{t("stat_storage")}</span>
           <span className="setup-modal__stat-value">
             {formatBytes(accBytes)}
@@ -196,23 +203,7 @@ export function SetupStepScanning({
         </div>
       </div>
 
-      <p className="setup-modal__body-intro" style={{ fontSize: 12 }}>
-        {t("setup_scan_keep_open")}
-      </p>
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: "auto",
-          paddingTop: 16,
-        }}
-      >
-        <Button theme="danger" onClick={onCancel}>
-          <TrashIcon size={14} />
-          <span>{t("setup_cancel_scan")}</span>
-        </Button>
-      </div>
+      <p className="setup-modal__scan-keep-open">{t("setup_scan_keep_open")}</p>
     </>
   );
 }
