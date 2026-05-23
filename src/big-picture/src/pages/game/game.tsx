@@ -1125,13 +1125,6 @@ export default function Game() {
                     }
                   />
                 )}
-                {/* 
-                <AchievementsBox
-                  achievements={achievements ?? []}
-                  focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
-                  focusNavigationOrder={3}
-                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                /> */}
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
