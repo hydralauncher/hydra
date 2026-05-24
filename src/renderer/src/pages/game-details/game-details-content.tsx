@@ -21,7 +21,7 @@ import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary } from "@renderer/hooks";
+import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
@@ -184,8 +184,15 @@ export function GameDetailsContent() {
     }
   }, [searchParams, objectId]);
 
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const hideClassicsBookmark = userPreferences?.hideClassicsBookmark ?? false;
+  const classicsUseHeroLayout = userPreferences?.classicsUseHeroLayout ?? false;
+
   const isCustomGame = game?.shop === "custom";
   const isLaunchboxGame = shop === "launchbox";
+  const renderClassicsHero = isLaunchboxGame && !classicsUseHeroLayout;
 
   const resolvedHeroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
@@ -217,25 +224,15 @@ export function GameDetailsContent() {
     >
       <section className="game-details__container">
         <div
-          className={`game-details__hero${isLaunchboxGame ? " game-details__hero--classics-wrapper" : ""}`}
+          className={`game-details__hero${renderClassicsHero ? " game-details__hero--classics-wrapper" : ""}`}
         >
-          {isLaunchboxGame ? (
+          {renderClassicsHero ? (
             <div className="game-details__hero--classics">
               <div className="game-details__hero-classics-backdrop">
                 {launchboxCover && (
                   <img src={launchboxCover} alt="" aria-hidden="true" />
                 )}
                 <div className="game-details__hero-classics-backdrop-overlay" />
-              </div>
-              <div
-                className="game-details__hero-classics-rainbow"
-                aria-hidden="true"
-              >
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue" />
               </div>
               <div className="game-details__hero-classics-content">
                 <div className="game-details__hero-classics-cover">
@@ -264,10 +261,26 @@ export function GameDetailsContent() {
             </div>
           ) : (
             <img
-              src={resolvedHeroImage}
+              src={
+                isLaunchboxGame
+                  ? resolvedHeroImage || launchboxCover
+                  : resolvedHeroImage
+              }
               className="game-details__hero-image"
               alt={game?.title}
             />
+          )}
+
+          {isLaunchboxGame && !hideClassicsBookmark && (
+            <div className="game-details__hero-bookmark" aria-hidden="true">
+              <div className="game-details__hero-classics-rainbow">
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue" />
+              </div>
+            </div>
           )}
 
           <div
@@ -275,7 +288,7 @@ export function GameDetailsContent() {
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              {!isLaunchboxGame && (
+              {!renderClassicsHero && (
                 <GameLogo game={game} shopDetails={shopDetails} />
               )}
 
