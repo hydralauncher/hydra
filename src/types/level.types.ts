@@ -160,6 +160,8 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  hideClassicsBookmark?: boolean;
+  classicsUseHeroLayout?: boolean;
 }
 
 export interface ScreenState {

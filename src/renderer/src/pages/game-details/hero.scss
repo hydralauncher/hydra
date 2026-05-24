@@ -146,6 +146,15 @@ $hero-height: 350px;
     }
   }
 
+  &__hero-bookmark {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 0 0 8px 8px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
   &__hero-classics-rainbow {
     position: absolute;
     top: 0;
