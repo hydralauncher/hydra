@@ -1,0 +1,46 @@
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit));
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__title,
+  &__description {
+    margin: 0;
+    font-family: var(--font-space-grotesk), sans-serif;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  &__title {
+    color: var(--text);
+    opacity: 0.8;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  &__description {
+    color: var(--text);
+    opacity: 0.5;
+    font-size: 14px;
+    font-weight: 400;
+    max-width: 72ch;
+    line-height: 1.4;
+  }
+
+  &__content {
+    width: 100%;
+    min-width: 0;
+  }
+}

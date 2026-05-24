@@ -5,6 +5,7 @@ import App from "./app";
 import Catalogue from "./pages/catalogue/catalogue";
 import Downloads from "./pages/downloads/downloads";
 import Game from "./pages/game/game";
+import GameAchievements from "./pages/game-achievements/game-achievements";
 import Home from "./pages/home/home";
 import LibraryPage from "./pages/library/page";
 import Settings from "./pages/settings/settings";
@@ -26,6 +27,10 @@ ReactDOM.createRoot(rootElement).render(
           <Route path="settings" element={<Settings />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="game/:shop/:objectId" element={<Game />} />
+          <Route
+            path="game/:shop/:objectId/achievements"
+            element={<GameAchievements />}
+          />
         </Route>
       </Routes>
     </BrowserRouter>
