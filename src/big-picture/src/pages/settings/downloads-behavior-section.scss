@@ -1,0 +1,7 @@
+.downloads-behavior-section {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+}

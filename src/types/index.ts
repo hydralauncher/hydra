@@ -4,6 +4,7 @@ import type { Download, Game, Subscription } from "./level.types";
 import type { GameShop, UnlockedAchievement } from "./game.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
+export * from "./download-contract";
 
 export type HydraCloudFeature =
   | "achievements"
@@ -428,6 +429,13 @@ export interface ComparedAchievements {
 
 export interface CatalogueSearchPayload {
   title: string;
+  sortBy:
+    | "popularity"
+    | "reviewScore"
+    | "alphabetical"
+    | "hydraScore"
+    | "releaseDate";
+  sortOrder: "asc" | "desc";
   downloadSourceFingerprints: string[];
   tags: number[];
   publishers: string[];

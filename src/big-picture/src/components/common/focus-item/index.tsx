@@ -16,12 +16,23 @@ import {
   type NavigationNodeState,
 } from "../../../services";
 import { useNavigationIsFocused } from "../../../stores";
-import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import {
+  type FocusEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+} from "react";
 
 interface FocusItemProps {
   id?: string;
   actions?: FocusItemActions;
+  /** When false and navigation would be active, the item is skipped in spatial navigation (same as `navigationState="hidden"`). */
+  focusable?: boolean;
   navigationState?: NavigationNodeState;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   asChild?: boolean;
   children: ReactNode;
@@ -30,18 +41,26 @@ interface FocusItemProps {
 export function FocusItem({
   id,
   actions,
-  navigationState = "active",
+  focusable = true,
+  navigationState: navigationStateProp = "active",
+  navigationOrder,
   navigationOverrides,
   asChild = false,
   children,
 }: Readonly<FocusItemProps>) {
+  const effectiveNavigationState: NavigationNodeState =
+    !focusable && navigationStateProp === "active"
+      ? "hidden"
+      : navigationStateProp;
+
   const generatedId = useId();
   const regionId = useFocusRegionId();
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
   const navigationItemActions = NavigationItemActionsService.getInstance();
   const ref = useRef<HTMLDivElement | null>(null);
-  const initialNavigationStateRef = useRef(navigationState);
+  const initialNavigationStateRef = useRef(effectiveNavigationState);
+  const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
@@ -66,6 +85,7 @@ export function FocusItem({
       regionId,
       layerId,
       navigationState: initialNavigationStateRef.current,
+      navigationOrder: initialNavigationOrderRef.current,
       navigationOverrides: initialNavigationOverridesRef.current,
       getElement: () => ref.current,
     });
@@ -73,10 +93,17 @@ export function FocusItem({
 
   useEffect(() => {
     navigation.updateNavigationNode(resolvedId, {
-      navigationState,
+      navigationState: effectiveNavigationState,
+      navigationOrder,
       navigationOverrides,
     });
-  }, [navigation, navigationOverrides, navigationState, resolvedId]);
+  }, [
+    navigation,
+    effectiveNavigationState,
+    navigationOrder,
+    navigationOverrides,
+    resolvedId,
+  ]);
 
   useEffect(() => {
     return navigationItemActions.registerItemActions({
@@ -100,6 +127,21 @@ export function FocusItem({
     }
   }, [isFocused]);
 
+  const handleDomFocus = useCallback(
+    (_event: FocusEvent<HTMLElement>) => {
+      if (effectiveNavigationState !== "active") {
+        return;
+      }
+
+      if (navigation.getCurrentFocusId() === resolvedId) {
+        return;
+      }
+
+      navigation.setFocus(resolvedId);
+    },
+    [effectiveNavigationState, navigation, resolvedId]
+  );
+
   const Component = asChild ? Slot : "div";
 
   return (
@@ -117,9 +159,11 @@ export function FocusItem({
         data-has-hold-a={actionsMeta.hasHoldA || undefined}
         data-has-hold-b={actionsMeta.hasHoldB || undefined}
         data-has-hold-x={actionsMeta.hasHoldX || undefined}
-        data-navigation-state={navigationState}
+        data-has-hold-y={actionsMeta.hasHoldY || undefined}
+        data-navigation-state={effectiveNavigationState}
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}
+        onFocus={handleDomFocus}
         style={asChild ? undefined : { outline: "none" }}
       >
         {children}

@@ -96,6 +96,39 @@ export class WindowManager {
     }
   }
 
+  private static disableMainWindowWhileBigPictureIsOpen() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setFocusable(false);
+    main.setIgnoreMouseEvents(true);
+    main.hide();
+  }
+
+  private static restoreMainWindowAfterBigPictureCloses() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setIgnoreMouseEvents(false);
+    main.setFocusable(true);
+    main.setSkipTaskbar(false);
+  }
+
+  public static sendToAppWindows(channel: string, ...args: unknown[]) {
+    const windows = [this.mainWindow, this.bigPicture];
+
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static sendDownloadsUpdated() {
+    this.sendToAppWindows("on-downloads-updated");
+  }
+
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
     await db.put(levelKeys.screenState, configScreenWhenClosed, {
       valueEncoding: "json",
@@ -282,10 +315,23 @@ export class WindowManager {
       return;
     }
 
+    const targetDisplay = this.mainWindow?.isDestroyed()
+      ? null
+      : this.mainWindow
+        ? screen.getDisplayMatching(this.mainWindow.getBounds())
+        : screen.getPrimaryDisplay();
+    const targetBounds =
+      targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
+
     this.bigPicture = new BrowserWindow({
-      fullscreen: true,
+      x: targetBounds.x,
+      y: targetBounds.y,
+      width: targetBounds.width,
+      height: targetBounds.height,
       backgroundColor: "#0a0a0a",
       icon,
+      frame: false,
+      fullscreen: true,
       show: false,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
@@ -305,20 +351,22 @@ export class WindowManager {
       const main = this.mainWindow;
       if (main && !main.isDestroyed()) {
         main.setOpacity(1);
-        main.hide();
+        this.disableMainWindowWhileBigPictureIsOpen();
       }
+      this.bigPicture?.setBounds(targetBounds);
       this.bigPicture?.show();
+      this.bigPicture?.focus();
     });
 
     this.bigPicture.on("closed", () => {
       this.bigPicture = null;
       const main = this.mainWindow;
       if (main && !main.isDestroyed()) {
+        this.restoreMainWindowAfterBigPictureCloses();
         if (WindowManager.deferredMainMaximize) {
           main.maximize();
           WindowManager.deferredMainMaximize = false;
         }
-        main.setSkipTaskbar(false);
         main.show();
         main.focus();
       }
@@ -659,6 +707,11 @@ export class WindowManager {
   }
 
   public static openMainWindow() {
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.focus();
+      return;
+    }
+
     if (this.mainWindow) {
       this.mainWindow.show();
       if (this.mainWindow.isMinimized()) {
@@ -673,6 +726,10 @@ export class WindowManager {
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
     this.loadMainWindowURL(hash);
+
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      return;
+    }
 
     if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
     this.mainWindow?.focus();

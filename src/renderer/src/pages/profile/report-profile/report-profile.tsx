@@ -10,7 +10,13 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useToast } from "@renderer/hooks";
 import "./report-profile.scss";
 
-const reportReasons = ["hate", "sexual_content", "violence", "spam", "other_option"];
+const reportReasons = [
+  "hate",
+  "sexual_content",
+  "violence",
+  "spam",
+  "other_option",
+];
 
 interface FormValues {
   reason: string;

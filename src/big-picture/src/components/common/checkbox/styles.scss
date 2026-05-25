@@ -11,6 +11,12 @@
   user-select: none;
   cursor: pointer;
 
+  &:has(.checkbox__input[data-focus-visible="true"]) {
+    outline: 1px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: calc(var(--spacing-unit) * 2);
+  }
+
   &--block {
     width: 100%;
     border-radius: calc(var(--spacing-unit) * 2);
@@ -20,12 +26,8 @@
       background-color: var(--secondary);
     }
 
-    &--active {
-      background-color: var(--secondary-hover);
-
-      &:hover {
-        background-color: var(--secondary-hover);
-      }
+    &:has(.checkbox__input[data-focus-visible="true"]) {
+      background-color: var(--secondary);
     }
   }
 
@@ -49,6 +51,7 @@
     justify-content: center;
     transition: background-color 0.2s ease-in-out;
     cursor: pointer;
+    outline: none;
 
     &--checked {
       background-color: var(--primary);
@@ -59,7 +62,36 @@
     }
   }
 
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    color: var(--text);
+  }
+
+  &__label,
+  &__label-primary,
+  &__label-secondary {
+    min-width: 0;
+  }
+
   &__label {
     cursor: pointer;
+  }
+
+  &__label-primary {
+    color: var(--text);
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__label-secondary {
+    color: var(--text);
+    opacity: 0.5;
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
   }
 }

@@ -1,4 +1,5 @@
 import type {
+  NavigationDirectionAction,
   NavigationActionButton,
   NavigationActionMode,
   NavigationScreenActionTarget,
@@ -104,6 +105,41 @@ export class NavigationScreenActionsService {
   public hasAction(mode: NavigationActionMode, button: NavigationActionButton) {
     for (let index = this.stack.length - 1; index >= 0; index -= 1) {
       if (this.stack[index]?.actions[mode]?.[button]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public triggerDirection(
+    direction: NavigationDirectionAction,
+    originalEvent: Event | null = null
+  ) {
+    for (let index = this.stack.length - 1; index >= 0; index -= 1) {
+      const action = this.stack[index]?.actions.direction?.[direction];
+
+      if (!action) continue;
+
+      const context: NavigationScreenActionContext = {
+        currentFocusId: this.navigation.getCurrentFocusId(),
+        originalEvent,
+      };
+
+      if (typeof action === "function") {
+        action(context);
+        return true;
+      }
+
+      return this.resolveTargetAction(action, context);
+    }
+
+    return false;
+  }
+
+  public hasDirection(direction: NavigationDirectionAction) {
+    for (let index = this.stack.length - 1; index >= 0; index -= 1) {
+      if (this.stack[index]?.actions.direction?.[direction]) {
         return true;
       }
     }

@@ -24,6 +24,7 @@ const addGameToLibrary = async (
     await downloadsSublevel.del(gameKey);
 
     game.isDeleted = false;
+    game.addedToLibraryAt ??= new Date();
 
     await gamesSublevel.put(gameKey, game);
   } else {
@@ -38,6 +39,7 @@ const addGameToLibrary = async (
       isDeleted: false,
       playTimeInMilliseconds: 0,
       lastTimePlayed: null,
+      addedToLibraryAt: new Date(),
     };
 
     await gamesSublevel.put(gameKey, game);

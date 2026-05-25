@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { ShopAssets } from "@types";
 import {
   Accordion,
   Button,
@@ -15,6 +16,7 @@ import {
   SourceAnchor,
   Tooltip,
   Typography,
+  UserDiskItem,
   UserProfile,
   VerticalGameCard,
 } from "../../components";
@@ -34,7 +36,10 @@ import {
   XCircle,
 } from "@phosphor-icons/react";
 import { formatPlayedTime } from "../../helpers";
+import { IS_DESKTOP } from "../../constants";
 import "./page.scss";
+
+const STEAM_SAMPLE_OBJECT_ID = "2379780";
 
 const CARD_IMAGE =
   "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=700&q=80";
@@ -46,6 +51,8 @@ const POSTER_IMAGE =
   "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80";
 const HOVER_POSTER_IMAGE =
   "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=900&q=80";
+const SAMPLE_FREE_BYTES = Math.round(145.3 * 1024 ** 3);
+const SAMPLE_TOTAL_BYTES = 480 * 1024 ** 3;
 
 interface ShowcaseSectionProps {
   title: string;
@@ -75,11 +82,28 @@ export default function Catalogue() {
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [steamAssets3357650, setSteamAssets3357650] =
+    useState<ShopAssets | null>(null);
   const [chips, setChips] = useState([
     { label: "Library", color: "#8aeb13" },
     { label: "Cloud", color: "#67e8f9" },
     { label: "Beta", color: "#f3c611" },
   ]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    globalThis.window.electron
+      .getGameAssets(STEAM_SAMPLE_OBJECT_ID, "steam")
+      .then(setSteamAssets3357650)
+      .catch(() => setSteamAssets3357650(null));
+  }, []);
+
+  useEffect(() => {
+    if (!steamAssets3357650) return;
+
+    console.log("catalogue steam assets 3357650", steamAssets3357650);
+  }, [steamAssets3357650]);
 
   const restoreChips = () => {
     setChips([
@@ -401,6 +425,27 @@ export default function Catalogue() {
         </ShowcaseSection>
 
         <ShowcaseSection
+          title="Storage"
+          description="Card de disco do usuario com uso e espaco livre."
+        >
+          <div className="catalogue-page__cards">
+            <UserDiskItem
+              title="eight's blazing fast SSD"
+              path="C:\\Others\\Games"
+              freeBytes={SAMPLE_FREE_BYTES}
+              totalBytes={SAMPLE_TOTAL_BYTES}
+            />
+            <UserDiskItem
+              title="Hydra archive drive"
+              path="D:\\Hydra\\Library"
+              freeBytes={Math.round(82.6 * 1024 ** 3)}
+              totalBytes={2 * 1024 ** 4}
+              isSelected
+            />
+          </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection
           title="ScrollArea"
           description="Container com scrollbar visível e conteúdo extenso."
         >
@@ -433,7 +478,7 @@ export default function Catalogue() {
 
         <ShowcaseSection
           title="Overlays"
-          description="Modal e ImageLightbox acionados por botões."
+          description="Modal base e ImageLightbox acionados por botões."
         >
           <div className="catalogue-page__component-row">
             <Button onClick={() => setIsModalOpen(true)}>Open Modal</Button>
@@ -444,20 +489,16 @@ export default function Catalogue() {
         </ShowcaseSection>
       </div>
 
-      <Modal visible={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="catalogue-page__modal-content">
-          <Typography variant="h3">Modal</Typography>
-          <Typography variant="body">
-            Overlay component with backdrop, outside click and Escape close.
-          </Typography>
-
-          <div className="catalogue-page__component-row">
-            <Button onClick={() => setIsModalOpen(false)}>Confirm</Button>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
+      <Modal
+        title={`Download ${steamAssets3357650?.title}`}
+        description="17.9 GB left on disk"
+        coverImage={steamAssets3357650?.libraryHeroImageUrl ?? undefined}
+        onBack={() => setIsModalOpen(false)}
+        visible={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        ariaLabel="Catalogue Example"
+      >
+        <div>testing</div>
       </Modal>
 
       {isLightboxOpen && (

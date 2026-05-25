@@ -8,6 +8,7 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import i18n from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WorkWonders } from "workwonders-sdk";
 
@@ -57,7 +58,7 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, setLastPacket } = useDownload();
+  const { clearDownload, setLastPacket, lastPacket } = useDownload();
 
   const workwondersRef = useRef<WorkWonders | null>(null);
 
@@ -98,6 +99,27 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onUserPreferencesUpdated(
+      (preferences) => {
+        if (!preferences) {
+          dispatch(setUserPreferences(null));
+          return;
+        }
+
+        if (preferences.language && preferences.language !== i18n.language) {
+          void i18n.changeLanguage(preferences.language);
+        }
+
+        dispatch(setUserPreferences(preferences));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
         if (
@@ -126,6 +148,16 @@ export function App() {
 
     return () => unsubscribe();
   }, [updateLibrary]);
+
+  useEffect(() => {
+    if (!lastPacket?.gameId) return;
+
+    const activeGame = library.find((game) => game.id === lastPacket.gameId);
+
+    if (!activeGame || activeGame.download?.status !== "active") {
+      clearDownload();
+    }
+  }, [clearDownload, lastPacket?.gameId, library]);
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {
@@ -274,6 +306,9 @@ export function App() {
     const listeners = [
       window.electron.onSignIn(onSignIn),
       window.electron.onLibraryBatchComplete(() => {
+        updateLibrary();
+      }),
+      window.electron.onDownloadsUpdated(() => {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),

@@ -54,9 +54,12 @@ export function SettingsBehavior() {
     ns: ["settings", "game_details"],
   });
 
-  const protonSourceCompatibilityTools = t("proton_source_compatibility_tools", {
+  const protonSourceCompatibilityTools = t(
+    "proton_source_compatibility_tools",
+    {
       ns: ["settings", "game_details"],
-  });
+    }
+  );
 
   useEffect(() => {
     if (userPreferences) {

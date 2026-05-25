@@ -5,7 +5,13 @@ import {
   WSClient,
   gamesPlaytime,
 } from "@main/services";
-import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import {
+  db,
+  downloadLayoutStateSublevel,
+  downloadsSublevel,
+  gamesSublevel,
+  levelKeys,
+} from "@main/level";
 
 const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   const databaseOperations = db
@@ -23,7 +29,11 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
       /* Removes all games being played */
       gamesPlaytime.clear();
 
-      return Promise.all([gamesSublevel.clear(), downloadsSublevel.clear()]);
+      return Promise.all([
+        gamesSublevel.clear(),
+        downloadsSublevel.clear(),
+        downloadLayoutStateSublevel.clear(),
+      ]);
     });
 
   /* Cancels any ongoing downloads */
