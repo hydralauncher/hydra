@@ -64,11 +64,36 @@
   &__component-row,
   &__block-row,
   &__input-row,
-  &__cards {
+  &__cards,
+  &__toast-actions {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: calc(var(--spacing-unit) * 3);
+  }
+
+  &__toast-actions {
+    align-items: stretch;
+  }
+
+  &__toast-notes {
+    display: grid;
+    gap: calc(var(--spacing-unit) * 2);
+    padding: calc(var(--spacing-unit) * 3);
+    border: 1px solid var(--secondary-border);
+    border-radius: calc(var(--spacing-unit) * 2);
+    background-color: rgba(255, 255, 255, 0.02);
+
+    > p {
+      color: var(--text-secondary);
+    }
+  }
+
+  &__toast-preview {
+    width: min(100%, 32rem);
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   &__input-row {

@@ -58,6 +58,7 @@
     "auto-launch": "^5.0.6",
     "axios": "^1.15.2",
     "axios-cookiejar-support": "^5.0.5",
+    "canvas-confetti": "^1.9.4",
     "check-disk-space": "^3.4.0",
     "classic-level": "^2.0.0",
     "classnames": "^2.5.1",

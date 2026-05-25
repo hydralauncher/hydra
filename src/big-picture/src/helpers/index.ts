@@ -7,6 +7,7 @@ export * from "./game";
 export * from "./gamepad-layout";
 export * from "./image";
 export * from "./library-game-state";
+export * from "./library-toast";
 export * from "./language";
 export * from "./navigation";
 export * from "./strings";
