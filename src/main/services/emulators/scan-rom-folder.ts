@@ -96,13 +96,28 @@ const SNIFFABLE_EXTS = new Set([
   ".mdf",
 ]);
 
+// Disc-internal files that must never be counted as standalone games even when
+// their extension is otherwise launchable.
+const PS3_INTERNAL_FILES = new Set(["eboot.bin", "param.sfo", "ps3_disc.sfb"]);
+
 const shouldCountForSystem = async (
   candidate: Candidate,
   system: EmulatorSystem
 ): Promise<boolean> => {
-  if (system === "ps3") return true;
   if (candidate.isMarkerDir) return true;
   const ext = extOf(candidate.name);
+
+  if (system === "ps3") {
+    if (PS3_INTERNAL_FILES.has(candidate.name.toLowerCase())) return false;
+    if (ext === ".iso") {
+      const target = await resolveSniffTarget(candidate.fullPath);
+      if (!target) return true;
+      const detected = await sniffDiscImage(target);
+      return detected === "ps3" || detected === "unknown";
+    }
+    return ext === ".pkg" || ext === ".elf" || ext === ".self";
+  }
+
   if (!SNIFFABLE_EXTS.has(ext)) return true;
   const target = await resolveSniffTarget(candidate.fullPath);
   if (!target) return true;

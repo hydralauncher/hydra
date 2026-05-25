@@ -364,6 +364,11 @@ declare global {
       system: EmulatorSystem,
       folderPath: string
     ) => Promise<boolean>;
+    getRpcs3DefaultSources: () => Promise<{
+      gamesDir: string | null;
+      gamesYmlPath: string | null;
+      gamesYmlEntries: { titleId: string; path: string }[];
+    }>;
     removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
     checkEmulatorExecutable: (
       system: EmulatorSystem

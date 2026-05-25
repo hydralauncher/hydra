@@ -974,6 +974,8 @@
     "setup_rom_subfolder_hint": "Useful if you organize games into per-title folders.",
     "setup_rom_change": "Change",
     "setup_rom_add_another": "Add New Folder",
+    "setup_rom_yml_registered_one": "{{count}} game is already registered in RPCS3 and will be matched automatically.",
+    "setup_rom_yml_registered_other": "{{count}} games are already registered in RPCS3 and will be matched automatically.",
     "setup_scan_title": "Building your {{system}} library",
     "setup_scan_intro": "Matching your files to the LaunchBox catalogue. This usually takes under a minute.",
     "setup_scanning": "Scanning files…",

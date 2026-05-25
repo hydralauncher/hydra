@@ -77,20 +77,9 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     windowsNames: ["rpcs3.exe"],
     flatpakIds: ["net.rpcs3.RPCS3"],
     versionFlags: ["--version"],
-    romExtensions: [
-      ".iso",
-      ".pkg",
-      ".elf",
-      ".self",
-      ".rap",
-      ".rif",
-      ".edat",
-      ".sfb",
-      ".bin",
-      ".sprx",
-      ".dat",
-      ".pup",
-    ],
+    // Only formats RPCS3 launches as a game. Disc dumps are caught via
+    // romDirectoryMarkers; license/internal files (.rap/.sfb/.bin/...) excluded.
+    romExtensions: [".iso", ".pkg", ".elf", ".self"],
     romDirectoryMarkers: ["PS3_GAME", "ps3_game"],
   },
 };

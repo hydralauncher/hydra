@@ -199,6 +199,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getEmulatorRomPaths", system),
   addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
     ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
+  getRpcs3DefaultSources: () => ipcRenderer.invoke("getRpcs3DefaultSources"),
   removeEmulator: (system: EmulatorSystem) =>
     ipcRenderer.invoke("removeEmulator", system),
   checkEmulatorExecutable: (system: EmulatorSystem) =>

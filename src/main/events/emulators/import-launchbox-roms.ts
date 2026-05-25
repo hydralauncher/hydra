@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { chunk } from "lodash-es";
 
 import { registerEvent } from "../register-event";
@@ -62,6 +63,29 @@ const inflight = new Map<string, { cancelled: boolean }>();
 
 const normalizeSku = (raw: string): string =>
   raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+// Resolve a scanned path against the games.yml path->titleId index. Tries the
+// normalized full path, then basename, then the parent's basename (so a scanned
+// .../Game/PS3_GAME marker dir matches a yml value pointing at .../Game).
+const lookupYmlSku = (
+  index: Map<string, string>,
+  primaryPath: string
+): string | null => {
+  const norm = path.normalize(primaryPath).replace(/[\\/]+$/, "");
+  return (
+    index.get(norm) ??
+    index.get(path.basename(norm)) ??
+    index.get(path.basename(path.dirname(norm))) ??
+    null
+  );
+};
+
+// games.yml registers a disc dump by its game folder (the parent of PS3_GAME),
+// and a single-file game by its file path.
+const ymlValueForGame = (primaryPath: string): string =>
+  path.basename(primaryPath).toUpperCase() === "PS3_GAME"
+    ? path.dirname(primaryPath)
+    : primaryPath;
 
 const mapToShopDetails = (
   objectId: string,
@@ -397,18 +421,46 @@ export async function runLaunchboxImport(
     };
   }
 
-  // Phase 2: extract SKU per game
+  // Phase 2: extract SKU per game.
+  // For ps3, prefer the games.yml title-id (cheap, no disc parsing) and collect
+  // freshly-extracted title-ids to merge back into games.yml afterwards.
   const totalGames = collected.length;
   const gameSkus: { game: ScannedGameInfo; sku: string | null }[] = [];
+
+  let ps3Exe: string | null = null;
+  let ps3PathIndex: Map<string, string> | null = null;
+  const ps3ExtractedForYml = new Map<string, string>();
+  if (system === "ps3") {
+    const cfg = await emulators.getEmulatorConfig("ps3");
+    ps3Exe = cfg.executablePath;
+    ps3PathIndex = emulators.buildPathToTitleIdIndex(
+      await emulators.readGamesYml(ps3Exe)
+    );
+  }
 
   for (let i = 0; i < collected.length; i++) {
     if (signal.cancelled) break;
     const game = collected[i];
-    const sku = await emulators.extractDiscSku(game.primaryPath, system);
+
+    let sku = ps3PathIndex
+      ? lookupYmlSku(ps3PathIndex, game.primaryPath)
+      : null;
+    const fromYml = sku !== null;
+    if (!sku) {
+      sku = await emulators.extractDiscSku(game.primaryPath, system);
+      if (system === "ps3" && sku) {
+        ps3ExtractedForYml.set(
+          normalizeSku(sku),
+          ymlValueForGame(game.primaryPath)
+        );
+      }
+    }
+
     logger.log("[launchbox-import] SKU extract", {
       system,
       file: game.primaryPath,
       sku,
+      source: fromYml ? "games.yml" : "disc",
     });
     gameSkus.push({ game, sku });
   }
@@ -606,6 +658,14 @@ export async function runLaunchboxImport(
   // Phase 7: batch sync to remote profile
   const matchedObjectIds = Array.from(matchedEntries.keys());
   await syncProfileBatch(matchedObjectIds);
+
+  // Phase 8 (ps3): merge newly-discovered title-ids into RPCS3's games.yml so the
+  // emulator sees them. Additive + silent; never overwrites existing entries.
+  if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
+    await emulators
+      .mergeWriteGamesYml(ps3Exe, ps3ExtractedForYml)
+      .catch((err) => logger.error("Could not merge-write games.yml", err));
+  }
 
   return {
     fileCount: totalFileCount,

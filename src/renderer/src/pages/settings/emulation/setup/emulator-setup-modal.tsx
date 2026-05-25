@@ -41,6 +41,7 @@ export function EmulatorSetupModal({
   const [firmwareOk, setFirmwareOk] = useState(false);
   const [gamesAdded, setGamesAdded] = useState(0);
   const [detecting, setDetecting] = useState(false);
+  const [ymlEntryCount, setYmlEntryCount] = useState(0);
 
   const autoDetectRef = useRef(false);
 
@@ -51,6 +52,7 @@ export function EmulatorSetupModal({
       setFolders([]);
       setFirmwareOk(false);
       setGamesAdded(0);
+      setYmlEntryCount(0);
       autoDetectRef.current = false;
     }
   }, [visible, initialConfig]);
@@ -184,11 +186,30 @@ export function EmulatorSetupModal({
     if (steps[stepIndex] !== "rom_folder") return;
     if (prefilledRef.current) return;
     if (folders.length > 0) return;
-    if (system !== "ps1" && system !== "ps2") return;
 
     prefilledRef.current = true;
 
     (async () => {
+      if (system === "ps3") {
+        const sources = await window.electron.getRpcs3DefaultSources();
+        setYmlEntryCount(sources.gamesYmlEntries.length);
+        const gamesDir = sources.gamesDir;
+        if (gamesDir) {
+          setFolders([
+            { path: gamesDir, scanSubfolders: true, previewCount: null },
+          ]);
+          const count = await previewFolder(gamesDir, true);
+          setFolders((prev) =>
+            prev.map((x) =>
+              x.path === gamesDir ? { ...x, previewCount: count } : x
+            )
+          );
+        }
+        return;
+      }
+
+      if (system !== "ps1" && system !== "ps2") return;
+
       const paths = await window.electron.getEmulatorRomPaths(system);
       if (paths.length === 0) return;
       const initial: PendingFolder[] = paths.map((p) => ({
@@ -342,6 +363,7 @@ export function EmulatorSetupModal({
               system={system}
               systemLabel={systemShort}
               folders={folders}
+              ymlEntryCount={ymlEntryCount}
               onAddFolder={handleAddFolder}
               onChangeFolder={handleChangeFolder}
               onRemoveFolder={handleRemoveFolder}
