@@ -10,6 +10,7 @@ interface Props {
   system: EmulatorSystem;
   systemLabel: string;
   folders: PendingFolder[];
+  ymlEntryCount?: number;
   onAddFolder: () => void;
   onChangeFolder: (index: number) => void;
   onRemoveFolder: (index: number) => void;
@@ -19,6 +20,7 @@ interface Props {
 export function SetupStepRomFolder({
   systemLabel,
   folders,
+  ymlEntryCount = 0,
   onAddFolder,
   onChangeFolder,
   onRemoveFolder,
@@ -35,6 +37,17 @@ export function SetupStepRomFolder({
       <p className="setup-modal__body-intro">
         {t("setup_rom_intro", { system: systemLabel })}
       </p>
+
+      {ymlEntryCount > 0 && (
+        <p className="setup-modal__body-intro">
+          {t(
+            ymlEntryCount === 1
+              ? "setup_rom_yml_registered_one"
+              : "setup_rom_yml_registered_other",
+            { count: ymlEntryCount }
+          )}
+        </p>
+      )}
 
       <div className="setup-modal__folder-list">
         {!hasFolders && (
