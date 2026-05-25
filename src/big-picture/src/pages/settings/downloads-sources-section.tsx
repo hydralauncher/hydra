@@ -210,13 +210,10 @@ export function DownloadsSourcesSection({
     try {
       await globalThis.window.electron.syncDownloadSources();
       await refreshDownloadSources();
-      showSuccessToast(
-        "Download sources synced successfully",
-        {
-          ...SETTINGS_TOAST_OPTIONS,
-          message: `Last synced on ${formatDateTime(new Date())}.`,
-        }
-      );
+      showSuccessToast("Download sources synced successfully", {
+        ...SETTINGS_TOAST_OPTIONS,
+        message: `Last synced on ${formatDateTime(new Date())}.`,
+      });
     } catch {
       showErrorToast("Failed to sync download sources", SETTINGS_TOAST_OPTIONS);
     } finally {
@@ -254,7 +251,9 @@ export function DownloadsSourcesSection({
         );
         await refreshDownloadSources();
         showSuccessToast(
-          removedSource ? `${removedSource.name} was removed` : "Download source removed",
+          removedSource
+            ? `${removedSource.name} was removed`
+            : "Download source removed",
           removedSource
             ? {
                 ...SETTINGS_TOAST_OPTIONS,
