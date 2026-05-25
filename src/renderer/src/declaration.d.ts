@@ -434,6 +434,9 @@ declare global {
           | { type: "error"; message: string }
       ) => void
     ) => () => Electron.IpcRenderer;
+    onUserPreferencesUpdated: (
+      cb: (preferences: UserPreferences | null) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;

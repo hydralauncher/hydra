@@ -1,0 +1,6 @@
+.content-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 8);
+  width: 100%;
+}

@@ -281,8 +281,19 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
-  updateUserPreferences: (preferences: UserPreferences) =>
+  updateUserPreferences: (preferences: Partial<UserPreferences>) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  onUserPreferencesUpdated: (
+    cb: (preferences: UserPreferences | null) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      preferences: UserPreferences | null
+    ) => cb(preferences);
+    ipcRenderer.on("on-user-preferences-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-user-preferences-updated", listener);
+  },
   autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>

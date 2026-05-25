@@ -16,6 +16,7 @@ import { IS_DESKTOP } from "./constants";
 import { useNavigation } from "./hooks";
 import {
   HorizontalFocusGroup,
+  NavigationHistoryBridge,
   NavigationLayer,
   NavigationAutoScrollBridge,
   NavigationInputProvider,
@@ -83,6 +84,7 @@ export default function App() {
     <Fragment>
       <NavigationStateBridge />
       <NavigationAutoScrollBridge />
+      <NavigationHistoryBridge />
 
       <NavigationInputProvider>
         <NavigationLayer

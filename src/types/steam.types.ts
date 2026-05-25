@@ -32,6 +32,7 @@ export interface SteamAppDetails {
   detailed_description: string;
   about_the_game: string;
   short_description: string;
+  developers: string[];
   publishers: string[];
   genres: SteamGenre[];
   movies?: SteamMovie[];

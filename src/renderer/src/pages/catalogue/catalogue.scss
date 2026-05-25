@@ -93,6 +93,14 @@
 
   &__sort-select {
     min-width: 180px;
+
+    .select-field {
+      width: 100%;
+
+      &__option {
+        width: 100%;
+      }
+    }
   }
 
   &__content {

@@ -22,6 +22,7 @@ import {
   HOME_WEEKLY_GAMES_CAROUSEL_REGION_ID,
 } from "./navigation";
 import {
+  getBigPictureGameAchievementsPath,
   getBigPictureGameDetailsPath,
   getGameLandscapeImageSource,
   getItemFocusTarget,
@@ -287,8 +288,7 @@ export default function Home() {
 
     if (!target) return;
 
-    const basePath = getBigPictureGameDetailsPath(target);
-    navigate(`${basePath}#game-achievements-title`);
+    navigate(getBigPictureGameAchievementsPath(target));
   }, [menuState.catalogGame, navigate]);
 
   const handleCatalogShareFromMenu = useCallback(async () => {
