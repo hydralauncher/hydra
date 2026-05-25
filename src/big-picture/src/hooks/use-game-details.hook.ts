@@ -144,7 +144,8 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     const toastSource = {
       title: shopDetails?.assets?.title ?? game.title,
       iconUrl: shopDetails?.assets?.iconUrl ?? game.iconUrl ?? null,
-      coverImageUrl: shopDetails?.assets?.coverImageUrl ?? game.coverImageUrl ?? null,
+      coverImageUrl:
+        shopDetails?.assets?.coverImageUrl ?? game.coverImageUrl ?? null,
       libraryImageUrl:
         shopDetails?.assets?.libraryImageUrl ?? game.libraryImageUrl ?? null,
       libraryHeroImageUrl:
@@ -155,7 +156,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
     try {
       if (game.favorite) {
-        await globalThis.window.electron.removeGameFromFavorites(shop, objectId);
+        await globalThis.window.electron.removeGameFromFavorites(
+          shop,
+          objectId
+        );
       } else {
         await globalThis.window.electron.addGameToFavorites(shop, objectId);
       }

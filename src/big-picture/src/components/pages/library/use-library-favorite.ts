@@ -1,7 +1,10 @@
 import type { LibraryGame } from "@types";
 import { useCallback, useState } from "react";
 import { IS_DESKTOP } from "../../../constants";
-import { buildFavoriteToastOptions, buildGameToastVisualOptions } from "../../../helpers";
+import {
+  buildFavoriteToastOptions,
+  buildGameToastVisualOptions,
+} from "../../../helpers";
 import { useBigPictureToast } from "../../../hooks";
 
 export function useLibraryFavorite(updateLibrary: () => Promise<void>) {

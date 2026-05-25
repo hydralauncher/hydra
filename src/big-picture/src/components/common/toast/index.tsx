@@ -81,7 +81,10 @@ function fireToastConfetti(
       spread: 84,
       startVelocity: 32,
       angle: 90,
-      origin: { x: centerX, y: launchY + rect.height * 0.02 / viewportHeight },
+      origin: {
+        x: centerX,
+        y: launchY + (rect.height * 0.02) / viewportHeight,
+      },
     });
   }, 90);
 }
@@ -131,7 +134,11 @@ export function BigPictureToastCard({
         className="big-picture-toast__fallback-symbol"
       />
     ) : (
-      <img src={hydraIconUrl} alt="" className="big-picture-toast__fallback-image" />
+      <img
+        src={hydraIconUrl}
+        alt=""
+        className="big-picture-toast__fallback-image"
+      />
     );
 
   return (
@@ -294,9 +301,9 @@ export function BigPictureToastHost() {
   const closeToast = useBigPictureToastStore((state) => state.closeToast);
   const confettiCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const toastContainerRef = useRef<HTMLDivElement | null>(null);
-  const confettiInstanceRef = useRef<ReturnType<
-    typeof confetti.create
-  > | null>(null);
+  const confettiInstanceRef = useRef<ReturnType<typeof confetti.create> | null>(
+    null
+  );
 
   useEffect(() => {
     const canvas = confettiCanvasRef.current;
@@ -317,10 +324,7 @@ export function BigPictureToastHost() {
   useEffect(() => {
     if (!visible || celebration !== "confetti") return;
 
-    fireToastConfetti(
-      confettiInstanceRef.current,
-      toastContainerRef.current
-    );
+    fireToastConfetti(confettiInstanceRef.current, toastContainerRef.current);
   }, [celebration, version, visible]);
 
   return (

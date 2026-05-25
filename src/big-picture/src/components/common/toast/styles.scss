@@ -70,10 +70,7 @@
     height: 56px;
     border-radius: 6px;
     background-color: rgba(255, 255, 255, 0.06);
-    color: var(
-      --toast-fallback-icon-color,
-      rgba(255, 255, 255, 0.5)
-    );
+    color: var(--toast-fallback-icon-color, rgba(255, 255, 255, 0.5));
   }
 
   &__fallback-image,

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { ShopAssets } from "@types";
 import {
   Accordion,
@@ -144,10 +150,13 @@ export default function Catalogue() {
       imageUrl: toastImageUrl ?? undefined,
     });
 
-  const presentToastDemo = useCallback((toast: BigPictureToastPayload) => {
-    setCatalogueToastPreview(toast);
-    showToast(toast);
-  }, [showToast]);
+  const presentToastDemo = useCallback(
+    (toast: BigPictureToastPayload) => {
+      setCatalogueToastPreview(toast);
+      showToast(toast);
+    },
+    [showToast]
+  );
 
   const getToastGameAccentColor = useCallback(async () => {
     const { color } = await buildLibraryToastOptions(toastGame, "added");
@@ -181,7 +190,12 @@ export default function Catalogue() {
       imageUrl: toastImageUrl ?? undefined,
       color,
     });
-  }, [getToastGameAccentColor, presentToastDemo, toastGame.title, toastImageUrl]);
+  }, [
+    getToastGameAccentColor,
+    presentToastDemo,
+    toastGame.title,
+    toastImageUrl,
+  ]);
 
   const handleActionToast = useCallback(async () => {
     const color = await getToastGameAccentColor();
@@ -243,7 +257,8 @@ export default function Catalogue() {
     presentToastDemo({
       type: "error",
       title: "Unable to sync cloud save",
-      message: "Hydra couldn't reach the cloud right now. Try again in a few minutes.",
+      message:
+        "Hydra couldn't reach the cloud right now. Try again in a few minutes.",
       imageUrl: toastImageUrl ?? undefined,
     });
   }, [presentToastDemo, toastImageUrl]);
@@ -544,16 +559,32 @@ export default function Catalogue() {
             <Button size="small" onClick={handleBasicToast}>
               Basic
             </Button>
-            <Button size="small" variant="secondary" onClick={handleFallbackToast}>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={handleFallbackToast}
+            >
               Fallback
             </Button>
-            <Button size="small" variant="secondary" onClick={handleAccentToast}>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={handleAccentToast}
+            >
               Accent
             </Button>
-            <Button size="small" variant="secondary" onClick={handleActionToast}>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={handleActionToast}
+            >
               Action
             </Button>
-            <Button size="small" variant="secondary" onClick={handleLibraryAddedToast}>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={handleLibraryAddedToast}
+            >
               Library Added
             </Button>
             <Button
@@ -569,7 +600,9 @@ export default function Catalogue() {
           </div>
 
           <div className="catalogue-page__toast-notes">
-            <Typography variant="label">Basic: image, title and description.</Typography>
+            <Typography variant="label">
+              Basic: image, title and description.
+            </Typography>
             <Typography variant="label">
               Fallback: no image so the Hydra icon should render.
             </Typography>
@@ -577,7 +610,8 @@ export default function Catalogue() {
               Accent and Action: highlighted background with game art.
             </Typography>
             <Typography variant="label">
-              Library Added and Removed: same copy pattern used in the real library flows.
+              Library Added and Removed: same copy pattern used in the real
+              library flows.
             </Typography>
             <Typography variant="label">
               Error: alternate tone for failure states.

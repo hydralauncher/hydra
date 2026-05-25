@@ -1233,7 +1233,9 @@ export default function Game() {
               game?.libraryHeroImageUrl ??
               null,
             libraryImageUrl:
-              shopDetails.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
+              shopDetails.assets?.libraryImageUrl ??
+              game?.libraryImageUrl ??
+              null,
             coverImageUrl:
               shopDetails.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
           }}

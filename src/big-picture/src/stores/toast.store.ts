@@ -1,10 +1,7 @@
 import { create } from "zustand";
 
 export type BigPictureToastType = "success" | "error" | "warning";
-export type BigPictureToastFallbackVisual =
-  | "hydra"
-  | "settings"
-  | "downloads";
+export type BigPictureToastFallbackVisual = "hydra" | "settings" | "downloads";
 export type BigPictureToastCelebration = "confetti";
 
 export interface BigPictureToastAction {
@@ -40,18 +37,9 @@ interface BigPictureToastState {
   visible: boolean;
   version: number;
   showToast: (toast: BigPictureToastPayload) => void;
-  showSuccessToast: (
-    title: string,
-    options?: BigPictureToastOptions
-  ) => void;
-  showErrorToast: (
-    title: string,
-    options?: BigPictureToastOptions
-  ) => void;
-  showWarningToast: (
-    title: string,
-    options?: BigPictureToastOptions
-  ) => void;
+  showSuccessToast: (title: string, options?: BigPictureToastOptions) => void;
+  showErrorToast: (title: string, options?: BigPictureToastOptions) => void;
+  showWarningToast: (title: string, options?: BigPictureToastOptions) => void;
   closeToast: (version?: number) => void;
 }
 
@@ -131,10 +119,7 @@ export const useBigPictureToastStore = create<BigPictureToastState>((set) => ({
   },
   closeToast: (expectedVersion) => {
     set((state) => {
-      if (
-        expectedVersion !== undefined &&
-        state.version !== expectedVersion
-      ) {
+      if (expectedVersion !== undefined && state.version !== expectedVersion) {
         return state;
       }
 
