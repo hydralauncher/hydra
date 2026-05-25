@@ -43,7 +43,16 @@ export function AchievementNotification() {
     const volume = await getAchievementSoundVolume();
     const audio = new Audio(soundUrl);
     audio.volume = volume;
-    audio.play();
+
+    const cleanup = () => {
+      if (soundUrl.startsWith("blob:")) URL.revokeObjectURL(soundUrl);
+    };
+    audio.addEventListener("ended", cleanup, { once: true });
+
+    audio.play().catch((error) => {
+      console.error("Failed to play achievement sound", error);
+      cleanup();
+    });
   }, []);
 
   useEffect(() => {
