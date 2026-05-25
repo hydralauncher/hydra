@@ -173,7 +173,18 @@
     "deck_verified_only": "Solo verificado",
     "result_count": "{{resultCount}} resultados",
     "filter_count": "{{filterCount}} disponible",
-    "clear_filters": "Limpiar {{filterCount}} seleccionados"
+    "clear_filters": "Limpiar {{filterCount}} seleccionados",
+    "sort_by": "Ordenar por",
+    "sort_popularity": "Popularidad",
+    "sort_newest": "Más nuevos",
+    "sort_oldest": "Más viejos",
+    "sort_title_asc": "Título (A-Z)",
+    "sort_title_desc": "Título (Z-A)",
+    "sort_highest_rating": "Mejor valorados",
+    "sort_lowest_rating": "Peor valorados",
+    "filters_sidebar_hint": "Usa la barra lateral para refinar tu búsqueda",
+    "active_filters": "Filtros activos",
+    "no_genres": "Sin categorías"
   },
   "game_details": {
     "open_download_options": "Abrir opciones de descargas",

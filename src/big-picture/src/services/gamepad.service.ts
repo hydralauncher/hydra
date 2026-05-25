@@ -65,7 +65,10 @@ type GamepadEchoRecord = {
   signatureKey: string;
   acceptedAt: number;
 };
-type DpadRepeatTimers = Map<GamepadButtonType, number>;
+type RepeatLane = "horizontal" | "vertical";
+type ButtonRepeatTimers = Map<GamepadButtonType, number>;
+type RepeatLaneOwners = Map<RepeatLane, GamepadInputDescriptor>;
+type RepeatLaneCandidates = Map<RepeatLane, GamepadInputDescriptor[]>;
 type StickPosition = { x: number; y: number };
 type StickPositions = Record<GamepadStickSide, StickPosition>;
 
@@ -102,9 +105,14 @@ export class GamepadService {
     number,
     GamepadStickStateSet
   >();
-  private readonly dpadRepeatTimersByGamepad = new Map<
+  private readonly buttonRepeatTimersByGamepad = new Map<
     number,
-    DpadRepeatTimers
+    ButtonRepeatTimers
+  >();
+  private readonly repeatOwnersByGamepad = new Map<number, RepeatLaneOwners>();
+  private readonly repeatCandidatesByGamepad = new Map<
+    number,
+    RepeatLaneCandidates
   >();
   private recentAcceptedInputs: GamepadEchoRecord[] = [];
 
@@ -166,6 +174,28 @@ export class GamepadService {
     }
 
     return stickStateSet[side];
+  }
+
+  private getRepeatOwners(gamepadIndex: number): RepeatLaneOwners {
+    let owners = this.repeatOwnersByGamepad.get(gamepadIndex);
+
+    if (!owners) {
+      owners = new Map();
+      this.repeatOwnersByGamepad.set(gamepadIndex, owners);
+    }
+
+    return owners;
+  }
+
+  private getRepeatCandidates(gamepadIndex: number): RepeatLaneCandidates {
+    let candidates = this.repeatCandidatesByGamepad.get(gamepadIndex);
+
+    if (!candidates) {
+      candidates = new Map();
+      this.repeatCandidatesByGamepad.set(gamepadIndex, candidates);
+    }
+
+    return candidates;
   }
 
   private readonly handleNewGamepadConnection = (event: GamepadEvent) => {
@@ -259,37 +289,45 @@ export class GamepadService {
     });
 
     if (buttonState.pressed && !prevState?.pressed) {
+      const input = {
+        kind: "button" as const,
+        button: type,
+      };
       const inputMeta = this.resolveGamepadInput(index, {
         allowSwitch: true,
-        input: {
-          kind: "button",
-          button: type,
-        },
+        input,
         now,
       });
 
       this.triggerButtonPressCallbacks(index, type, inputMeta);
 
       if (inputMeta.accepted) {
-        this.setupDpadRepeat(index, type);
+        this.claimRepeatOwnership(index, input);
+        this.setupButtonRepeat(index, type);
       }
     }
 
     if (!buttonState.pressed && prevState?.pressed) {
-      this.clearDpadRepeatTimer(index, type);
+      this.releaseRepeatOwnership(index, {
+        kind: "button",
+        button: type,
+      });
+      this.clearButtonRepeatTimer(index, type);
     }
   }
 
-  private isDpadButton(type: GamepadButtonType): boolean {
+  private isRepeatableButton(type: GamepadButtonType): boolean {
     return (
       type === GamepadButtonType.DPAD_UP ||
       type === GamepadButtonType.DPAD_DOWN ||
       type === GamepadButtonType.DPAD_LEFT ||
-      type === GamepadButtonType.DPAD_RIGHT
+      type === GamepadButtonType.DPAD_RIGHT ||
+      type === GamepadButtonType.LEFT_BUMPER ||
+      type === GamepadButtonType.RIGHT_BUMPER
     );
   }
 
-  private isDpadPressed(
+  private isButtonPressed(
     gamepadIndex: number,
     type: GamepadButtonType
   ): boolean {
@@ -298,12 +336,12 @@ export class GamepadService {
     );
   }
 
-  private getDpadRepeatTimers(gamepadIndex: number): DpadRepeatTimers {
-    let timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+  private getButtonRepeatTimers(gamepadIndex: number): ButtonRepeatTimers {
+    let timers = this.buttonRepeatTimersByGamepad.get(gamepadIndex);
 
     if (!timers) {
       timers = new Map();
-      this.dpadRepeatTimersByGamepad.set(gamepadIndex, timers);
+      this.buttonRepeatTimersByGamepad.set(gamepadIndex, timers);
     }
 
     return timers;
@@ -322,44 +360,234 @@ export class GamepadService {
     return Math.max(this.repeatMinInterval, interval);
   }
 
-  private setupDpadRepeat(gamepadIndex: number, type: GamepadButtonType): void {
-    if (!this.isDpadButton(type)) return;
+  private getRepeatLane(input: GamepadInputDescriptor): RepeatLane | null {
+    if (input.kind === "button") {
+      switch (input.button) {
+        case GamepadButtonType.DPAD_LEFT:
+        case GamepadButtonType.DPAD_RIGHT:
+        case GamepadButtonType.LEFT_BUMPER:
+        case GamepadButtonType.RIGHT_BUMPER:
+          return "horizontal";
+        case GamepadButtonType.DPAD_UP:
+        case GamepadButtonType.DPAD_DOWN:
+          return "vertical";
+        default:
+          return null;
+      }
+    }
 
-    this.clearDpadRepeatTimer(gamepadIndex, type);
+    switch (input.direction) {
+      case GamepadAxisDirection.LEFT:
+      case GamepadAxisDirection.RIGHT:
+        return "horizontal";
+      case GamepadAxisDirection.UP:
+      case GamepadAxisDirection.DOWN:
+        return "vertical";
+      default:
+        return null;
+    }
+  }
 
-    const timers = this.getDpadRepeatTimers(gamepadIndex);
+  private isSameInputDescriptor(
+    left: GamepadInputDescriptor,
+    right: GamepadInputDescriptor
+  ): boolean {
+    if (left.kind !== right.kind) return false;
+
+    if (left.kind === "button" && right.kind === "button") {
+      return left.button === right.button;
+    }
+
+    if (left.kind === "stick" && right.kind === "stick") {
+      return left.side === right.side && left.direction === right.direction;
+    }
+
+    return false;
+  }
+
+  private clearRepeatForInput(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): void {
+    if (input.kind === "button") {
+      this.clearButtonRepeatTimer(gamepadIndex, input.button);
+      return;
+    }
+
+    this.clearStickTimer(this.getStickState(gamepadIndex, input.side));
+  }
+
+  private isInputStillActive(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): boolean {
+    if (input.kind === "button") {
+      return this.isButtonPressed(gamepadIndex, input.button);
+    }
+
+    return (
+      this.getStickState(gamepadIndex, input.side).direction === input.direction
+    );
+  }
+
+  private resumeRepeatForInput(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): void {
+    if (input.kind === "button") {
+      this.clearButtonRepeatTimer(gamepadIndex, input.button);
+      this.repeatButtonCallback(gamepadIndex, input.button);
+      return;
+    }
+
+    this.clearStickTimer(this.getStickState(gamepadIndex, input.side));
+    this.repeatStickCallback(gamepadIndex, input.side, input.direction);
+  }
+
+  private claimRepeatOwnership(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): void {
+    const lane = this.getRepeatLane(input);
+
+    if (!lane) return;
+
+    const owners = this.getRepeatOwners(gamepadIndex);
+    const candidates = this.getRepeatCandidates(gamepadIndex);
+    const previousOwner = owners.get(lane);
+    const laneCandidates = candidates.get(lane) ?? [];
+    const nextLaneCandidates = laneCandidates.filter(
+      (candidate) => !this.isSameInputDescriptor(candidate, input)
+    );
+
+    nextLaneCandidates.push(input);
+    candidates.set(lane, nextLaneCandidates);
+
+    if (previousOwner && !this.isSameInputDescriptor(previousOwner, input)) {
+      this.clearRepeatForInput(gamepadIndex, previousOwner);
+    }
+
+    owners.set(lane, input);
+  }
+
+  private releaseRepeatOwnership(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): void {
+    const lane = this.getRepeatLane(input);
+
+    if (!lane) return;
+
+    const owners = this.repeatOwnersByGamepad.get(gamepadIndex);
+    const candidates = this.repeatCandidatesByGamepad.get(gamepadIndex);
+
+    if (!owners) return;
+
+    const laneCandidates = candidates?.get(lane) ?? [];
+    const nextLaneCandidates = laneCandidates.filter(
+      (candidate) => !this.isSameInputDescriptor(candidate, input)
+    );
+
+    if (nextLaneCandidates.length > 0) {
+      candidates?.set(lane, nextLaneCandidates);
+    } else {
+      candidates?.delete(lane);
+    }
+
+    if (candidates && candidates.size === 0) {
+      this.repeatCandidatesByGamepad.delete(gamepadIndex);
+    }
+
+    const currentOwner = owners.get(lane);
+
+    if (!currentOwner || !this.isSameInputDescriptor(currentOwner, input)) {
+      return;
+    }
+
+    const restoredOwner = [...nextLaneCandidates]
+      .reverse()
+      .find((candidate) => this.isInputStillActive(gamepadIndex, candidate));
+
+    if (restoredOwner) {
+      owners.set(lane, restoredOwner);
+      this.resumeRepeatForInput(gamepadIndex, restoredOwner);
+    } else {
+      owners.delete(lane);
+    }
+
+    if (owners.size === 0) {
+      this.repeatOwnersByGamepad.delete(gamepadIndex);
+    }
+  }
+
+  private isRepeatOwner(
+    gamepadIndex: number,
+    input: GamepadInputDescriptor
+  ): boolean {
+    const lane = this.getRepeatLane(input);
+
+    if (!lane) return false;
+
+    const owners = this.repeatOwnersByGamepad.get(gamepadIndex);
+
+    if (!owners) return false;
+
+    const owner = owners.get(lane);
+
+    if (!owner) return false;
+
+    return this.isSameInputDescriptor(owner, input);
+  }
+
+  private setupButtonRepeat(
+    gamepadIndex: number,
+    type: GamepadButtonType
+  ): void {
+    if (!this.isRepeatableButton(type)) return;
+
+    this.clearButtonRepeatTimer(gamepadIndex, type);
+
+    const input = {
+      kind: "button" as const,
+      button: type,
+    };
+    const timers = this.getButtonRepeatTimers(gamepadIndex);
     const timer = globalThis.window.setTimeout(() => {
-      if (!this.isDpadPressed(gamepadIndex, type)) {
-        this.clearDpadRepeatTimer(gamepadIndex, type);
+      if (
+        !this.isButtonPressed(gamepadIndex, type) ||
+        !this.isRepeatOwner(gamepadIndex, input)
+      ) {
+        this.clearButtonRepeatTimer(gamepadIndex, type);
         return;
       }
 
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: false,
-        input: {
-          kind: "button",
-          button: type,
-        },
+        input,
         now: Date.now(),
       });
 
       this.triggerButtonPressCallbacks(gamepadIndex, type, inputMeta);
 
       if (inputMeta.accepted) {
-        this.repeatDpadCallback(gamepadIndex, type);
+        this.repeatButtonCallback(gamepadIndex, type);
       } else {
-        this.clearDpadRepeatTimer(gamepadIndex, type);
+        this.clearButtonRepeatTimer(gamepadIndex, type);
       }
     }, this.sticksInitialRepeatDelay);
 
     timers.set(type, timer);
   }
 
-  private repeatDpadCallback(
+  private repeatButtonCallback(
     gamepadIndex: number,
     type: GamepadButtonType
   ): void {
-    const timers = this.getDpadRepeatTimers(gamepadIndex);
+    const input = {
+      kind: "button" as const,
+      button: type,
+    };
+    const timers = this.getButtonRepeatTimers(gamepadIndex);
     let repeatCount = 0;
 
     const scheduleRepeat = (callback: () => void) => {
@@ -373,24 +601,24 @@ export class GamepadService {
     };
 
     const repeat = () => {
-      if (!this.isDpadPressed(gamepadIndex, type)) {
-        this.clearDpadRepeatTimer(gamepadIndex, type);
+      if (
+        !this.isButtonPressed(gamepadIndex, type) ||
+        !this.isRepeatOwner(gamepadIndex, input)
+      ) {
+        this.clearButtonRepeatTimer(gamepadIndex, type);
         return;
       }
 
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: false,
-        input: {
-          kind: "button",
-          button: type,
-        },
+        input,
         now: Date.now(),
       });
 
       this.triggerButtonPressCallbacks(gamepadIndex, type, inputMeta);
 
       if (!inputMeta.accepted) {
-        this.clearDpadRepeatTimer(gamepadIndex, type);
+        this.clearButtonRepeatTimer(gamepadIndex, type);
         return;
       }
 
@@ -724,22 +952,32 @@ export class GamepadService {
       stickState.repeatTimer = null;
     }
 
+    if (prevDirection) {
+      this.releaseRepeatOwnership(gamepadIndex, {
+        kind: "stick",
+        side,
+        direction: prevDirection,
+      });
+    }
+
     stickState.direction = newDirection;
 
     if (newDirection) {
+      const input = {
+        kind: "stick" as const,
+        side,
+        direction: newDirection,
+      };
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: true,
-        input: {
-          kind: "stick",
-          side,
-          direction: newDirection,
-        },
+        input,
         now,
       });
 
       this.triggerStickCallbacks(gamepadIndex, side, newDirection, inputMeta);
 
       if (inputMeta.accepted) {
+        this.claimRepeatOwnership(gamepadIndex, input);
         this.setupStickRepeat(gamepadIndex, side, newDirection);
       }
     }
@@ -751,16 +989,20 @@ export class GamepadService {
     direction: GamepadAxisDirection
   ) {
     const stickState = this.getStickState(gamepadIndex, side);
+    const input = {
+      kind: "stick" as const,
+      side,
+      direction,
+    };
 
     stickState.repeatTimer = globalThis.window.setTimeout(() => {
-      if (stickState.direction === direction) {
+      if (
+        stickState.direction === direction &&
+        this.isRepeatOwner(gamepadIndex, input)
+      ) {
         const inputMeta = this.resolveGamepadInput(gamepadIndex, {
           allowSwitch: false,
-          input: {
-            kind: "stick",
-            side,
-            direction,
-          },
+          input,
           now: Date.now(),
         });
 
@@ -783,6 +1025,11 @@ export class GamepadService {
     direction: GamepadAxisDirection
   ) {
     const stickState = this.getStickState(gamepadIndex, side);
+    const input = {
+      kind: "stick" as const,
+      side,
+      direction,
+    };
     let repeatCount = 0;
 
     const scheduleRepeat = (callback: () => void) => {
@@ -795,18 +1042,17 @@ export class GamepadService {
     };
 
     const repeat = () => {
-      if (stickState.direction !== direction) {
+      if (
+        stickState.direction !== direction ||
+        !this.isRepeatOwner(gamepadIndex, input)
+      ) {
         stickState.repeatTimer = null;
         return;
       }
 
       const inputMeta = this.resolveGamepadInput(gamepadIndex, {
         allowSwitch: false,
-        input: {
-          kind: "stick",
-          side,
-          direction,
-        },
+        input,
         now: Date.now(),
       });
 
@@ -830,11 +1076,11 @@ export class GamepadService {
     }
   }
 
-  private clearDpadRepeatTimer(
+  private clearButtonRepeatTimer(
     gamepadIndex: number,
     type: GamepadButtonType
   ): void {
-    const timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+    const timers = this.buttonRepeatTimersByGamepad.get(gamepadIndex);
 
     if (!timers) return;
 
@@ -846,24 +1092,24 @@ export class GamepadService {
     timers.delete(type);
 
     if (timers.size === 0) {
-      this.dpadRepeatTimersByGamepad.delete(gamepadIndex);
+      this.buttonRepeatTimersByGamepad.delete(gamepadIndex);
     }
   }
 
-  private clearDpadRepeatTimersForGamepad(gamepadIndex: number): void {
-    const timers = this.dpadRepeatTimersByGamepad.get(gamepadIndex);
+  private clearButtonRepeatTimersForGamepad(gamepadIndex: number): void {
+    const timers = this.buttonRepeatTimersByGamepad.get(gamepadIndex);
 
     if (!timers) return;
 
     timers.forEach((timer) => globalThis.window.clearTimeout(timer));
-    this.dpadRepeatTimersByGamepad.delete(gamepadIndex);
+    this.buttonRepeatTimersByGamepad.delete(gamepadIndex);
   }
 
-  private clearAllDpadRepeatTimers(): void {
-    this.dpadRepeatTimersByGamepad.forEach((timers) => {
+  private clearAllButtonRepeatTimers(): void {
+    this.buttonRepeatTimersByGamepad.forEach((timers) => {
       timers.forEach((timer) => globalThis.window.clearTimeout(timer));
     });
-    this.dpadRepeatTimersByGamepad.clear();
+    this.buttonRepeatTimersByGamepad.clear();
   }
 
   private clearAllTimers() {
@@ -872,7 +1118,9 @@ export class GamepadService {
       this.clearStickTimer(stickStateSet.right);
     });
     this.stickStatesByGamepad.clear();
-    this.clearAllDpadRepeatTimers();
+    this.clearAllButtonRepeatTimers();
+    this.repeatOwnersByGamepad.clear();
+    this.repeatCandidatesByGamepad.clear();
   }
 
   private clearTimersForGamepad(gamepadIndex: number) {
@@ -883,7 +1131,9 @@ export class GamepadService {
       this.clearStickTimer(stickStateSet.right);
     }
 
-    this.clearDpadRepeatTimersForGamepad(gamepadIndex);
+    this.clearButtonRepeatTimersForGamepad(gamepadIndex);
+    this.repeatOwnersByGamepad.delete(gamepadIndex);
+    this.repeatCandidatesByGamepad.delete(gamepadIndex);
   }
 
   private triggerStickCallbacks(

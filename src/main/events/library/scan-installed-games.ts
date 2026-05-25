@@ -102,7 +102,7 @@ const scanInstalledGames = async (
     }
   }
 
-  WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
+  WindowManager.sendToAppWindows("on-library-batch-complete");
   await publishScanNotification(foundGames.length);
 
   return { foundGames, total: gamesToScan.length };

@@ -1,0 +1,22 @@
+@use "../../common/source-anchor/styles.scss";
+
+.source-anchor-skeleton {
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: default;
+
+  &.source-anchor--small {
+    width: 68px;
+    min-height: 24px;
+  }
+
+  &.source-anchor--medium {
+    width: 92px;
+    min-height: 32px;
+  }
+
+  &.source-anchor--large {
+    width: 58px;
+    min-height: 40px;
+  }
+}

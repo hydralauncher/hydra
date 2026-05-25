@@ -5,9 +5,11 @@ import type {
   GameStats,
   HowLongToBeatCategory,
   LibraryGame,
+  ProtonDBData,
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
+import { getSteamLanguage } from "../helpers";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
@@ -19,6 +21,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [howLongToBeat, setHowLongToBeat] = useState<
     HowLongToBeatCategory[] | null
   >(null);
+  const [protonDBData, setProtonDBData] = useState<ProtonDBData | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,17 +39,24 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
     setIsLoading(true);
 
-    const [shopDetailsResult, statsResult, assets] = await Promise.all([
-      globalThis.window.electron.getGameShopDetails(
-        objectId,
-        shop,
-        navigator.language
-      ),
+    const [userPreferences, statsResult, assets] = await Promise.all([
+      globalThis.window.electron
+        .getUserPreferences()
+        .catch(() => ({ language: "en" })),
       shop === "custom"
         ? Promise.resolve(null)
         : globalThis.window.electron.getGameStats(objectId, shop),
       globalThis.window.electron.getGameAssets(objectId, shop),
     ]);
+
+    const shopDetailsResult =
+      shop === "custom"
+        ? null
+        : await globalThis.window.electron.getGameShopDetails(
+            objectId,
+            shop,
+            getSteamLanguage(userPreferences?.language ?? "en")
+          );
 
     if (shopDetailsResult) {
       shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
@@ -70,6 +80,13 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         .then(setHowLongToBeat)
         .catch(() => setHowLongToBeat(null));
 
+      globalThis.window.electron.hydraApi
+        .get<ProtonDBData | null>(`/games/${shop}/${objectId}/protondb`, {
+          needsAuth: false,
+        })
+        .then(setProtonDBData)
+        .catch(() => setProtonDBData(null));
+
       globalThis.window.electron
         .getUnlockedAchievements(objectId, shop)
         .then((result) => {
@@ -78,6 +95,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           }
         })
         .catch(() => setAchievements([]));
+    } else {
+      setHowLongToBeat(null);
+      setProtonDBData(null);
+      setAchievements([]);
     }
   }, [fetchGameDetails, updateGame, objectId, shop]);
 
@@ -131,9 +152,11 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     isGameRunning,
     isLoading,
     howLongToBeat,
+    protonDBData,
     achievements,
     openGame,
     closeGame,
     toggleFavorite,
+    updateGame,
   };
 }

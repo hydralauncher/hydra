@@ -48,6 +48,7 @@ export interface Game {
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
+  addedToLibraryAt?: Date | null;
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
@@ -85,12 +86,20 @@ export interface Download {
   shouldSeed: boolean;
   status: DownloadStatus | null;
   queued: boolean;
+  pinnedToHero?: boolean;
   timestamp: number;
   extracting: boolean;
+  extractionProgress?: number;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
+}
+
+export interface DownloadLayoutState {
+  version: 1;
+  queueOrder: string[];
+  pausedOrder: string[];
 }
 
 export interface GameAchievement {
@@ -108,9 +117,17 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export interface DownloadDirectoryPreference {
+  path: string;
+  createdAt: string;
+  source: "manual" | "auto";
+}
+
 export interface UserPreferences {
   downloadsPath?: string | null;
   defaultWinePrefixPath?: string | null;
+  downloadDirectories?: DownloadDirectoryPreference[];
+  optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;

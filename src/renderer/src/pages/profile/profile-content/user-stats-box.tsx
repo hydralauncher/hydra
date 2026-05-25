@@ -1,4 +1,4 @@
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
 import { useFormat, useUserDetails } from "@renderer/hooks";
@@ -7,11 +7,9 @@ import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { ClockIcon, TrophyIcon } from "@primer/octicons-react";
 import { Award } from "lucide-react";
-import { WrappedFullscreenModal } from "./wrapped-tab";
 import "./user-stats-box.scss";
 
 export function UserStatsBox() {
-  const [showWrappedModal, setShowWrappedModal] = useState(false);
   const { showHydraCloudModal } = useSubscription();
   const { userStats, isMe, userProfile } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
@@ -43,18 +41,6 @@ export function UserStatsBox() {
   return (
     <div className="user-stats__box">
       <ul className="user-stats__list">
-        {userProfile?.hasCompletedWrapped2025 && (
-          <li className="user-stats__list-item user-stats__list-item--wrapped">
-            <button
-              type="button"
-              onClick={() => setShowWrappedModal(true)}
-              className="user-stats__wrapped-link"
-            >
-              Wrapped 2025
-            </button>
-          </li>
-        )}
-
         {(isMe || userStats.unlockedAchievementSum !== undefined) && (
           <li className="user-stats__list-item">
             <h3 className="user-stats__list-title">
@@ -140,14 +126,6 @@ export function UserStatsBox() {
           </li>
         )}
       </ul>
-
-      {userProfile && (
-        <WrappedFullscreenModal
-          userId={userProfile.id}
-          isOpen={showWrappedModal}
-          onClose={() => setShowWrappedModal(false)}
-        />
-      )}
     </div>
   );
 }

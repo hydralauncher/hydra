@@ -11,16 +11,59 @@
 
   &__filters-container {
     width: 100%;
-    padding: 4px;
     align-self: flex-start;
   }
 
   &__header {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__header-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
+
+    &--filters {
+      align-items: flex-start;
+    }
+  }
+
+  &__header-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__filters-hint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &__sort-inline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__sort-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+  }
+
+  &__active-filters-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    align-self: center;
   }
 
   &__filters-wrapper {
@@ -48,6 +91,18 @@
     align-self: center;
   }
 
+  &__sort-select {
+    min-width: 180px;
+
+    .select-field {
+      width: 100%;
+
+      &__option {
+        width: 100%;
+      }
+    }
+  }
+
   &__content {
     display: grid;
     grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 380px);
@@ -66,12 +121,14 @@
   &__pagination-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     margin-top: 16px;
   }
 
   &__result-count {
     font-size: 12px;
+    font-weight: 500;
+    color: globals.$body-color;
   }
 
   &__filters-sections {
@@ -93,8 +150,18 @@
   }
 
   @media (max-width: 768px) {
-    &__header {
+    &__header-row {
+      flex-direction: column;
       align-items: stretch;
+    }
+
+    &__sort-inline {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    &__sort-select {
+      flex: 1;
     }
 
     &__clear-all-button {

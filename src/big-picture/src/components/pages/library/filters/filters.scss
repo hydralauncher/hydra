@@ -6,24 +6,104 @@
 
   &__toolbar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: calc(var(--spacing-unit) * 4);
   }
 
+  &__search-and-filters {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Mirrors `.hero__action__divider` / `Divider` vertical in LibraryHero */
+  &__toolbar-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1px;
+    width: 1px;
+    height: 28px;
+    pointer-events: none;
+
+    .divider-container--vertical {
+      width: 1px;
+      height: 28px;
+      flex-basis: 1px;
+    }
+
+    .divider--vertical {
+      width: 1px;
+      height: 28px;
+      min-height: 28px;
+      background-color: var(--text-secondary);
+      opacity: 0.7;
+    }
+  }
+
   &__search {
     flex: 1;
-    max-width: 600px;
+    min-width: 0;
+    max-width: 450px;
+  }
+
+  &__select {
+    flex-shrink: 0;
+    width: fit-content;
+    max-width: 100%;
+
+    .dropdown-select__trigger-anchor {
+      width: max-content;
+      max-width: 100%;
+    }
+
+    .dropdown-select__trigger {
+      width: max-content;
+      max-width: 100%;
+    }
   }
 
   &__view-actions {
     display: flex;
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
+    flex-shrink: 0;
   }
 
   &__tabs {
     flex-shrink: 0;
     padding: calc(var(--spacing-unit) * 6) 0 calc(var(--spacing-unit) * 4) 0;
+
+    .library-filters-tabs .tabs__divider {
+      background-color: color-mix(
+        in srgb,
+        var(--primary) 14%,
+        var(--background)
+      );
+    }
+  }
+
+  @media (max-width: 1440px) {
+    &__toolbar {
+      flex-wrap: wrap;
+    }
+
+    &__search-and-filters {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    &__search {
+      width: 100%;
+      max-width: none;
+    }
+
+    &__view-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 }
