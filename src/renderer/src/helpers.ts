@@ -143,7 +143,8 @@ export const getAchievementSoundUrl = async (): Promise<string> => {
         activeTheme.id
       );
       if (soundDataUrl) {
-        return soundDataUrl;
+        const blob = await fetch(soundDataUrl).then((res) => res.blob());
+        return URL.createObjectURL(blob);
       }
     }
   } catch (error) {

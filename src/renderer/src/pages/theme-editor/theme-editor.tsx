@@ -167,11 +167,12 @@ export default function ThemeEditor() {
     let soundUrl: string;
 
     if (theme.hasCustomSound) {
-      const themeSoundUrl = await window.electron.getThemeSoundDataUrl(
+      const themeSoundDataUrl = await window.electron.getThemeSoundDataUrl(
         theme.id
       );
-      if (themeSoundUrl) {
-        soundUrl = themeSoundUrl;
+      if (themeSoundDataUrl) {
+        const blob = await fetch(themeSoundDataUrl).then((res) => res.blob());
+        soundUrl = URL.createObjectURL(blob);
       } else {
         const defaultSound = (
           await import("@renderer/assets/audio/achievement.wav")
@@ -188,7 +189,16 @@ export default function ThemeEditor() {
     const volume = await getAchievementSoundVolume();
     const audio = new Audio(soundUrl);
     audio.volume = volume;
-    audio.play();
+
+    const cleanup = () => {
+      if (soundUrl.startsWith("blob:")) URL.revokeObjectURL(soundUrl);
+    };
+    audio.addEventListener("ended", cleanup, { once: true });
+
+    audio.play().catch((error) => {
+      console.error("Failed to play achievement sound", error);
+      cleanup();
+    });
   }, [theme]);
 
   const achievementCustomNotificationPositionOptions = useMemo(() => {
