@@ -291,23 +291,7 @@ export function NotificationsAchievementsSection({
                       void globalThis.window.electron
                         .showAchievementTestNotification()
                         .then(() => {
-                          showSuccessToast(
-                            "Download Finished - The Elder Scrolls IV: Oblivion Remastered",
-                            {
-                              ...SETTINGS_TOAST_OPTIONS,
-                              message: "Install now and start playing!",
-                              action: {
-                                label: "Install",
-                                onClick: () => {
-                                  showSuccessToast("Install queued", {
-                                    ...SETTINGS_TOAST_OPTIONS,
-                                    message:
-                                      "Hydra started the install action.",
-                                  });
-                                },
-                              },
-                            }
-                          );
+                          showSuccessToast("Achievement unlocked");
                         })
                         .catch(() => {
                           showErrorToast("Notification failed", {
