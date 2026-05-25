@@ -76,6 +76,7 @@ const mapLaunchboxToShopDetails = (
     detailed_description: description,
     about_the_game: description,
     short_description: "",
+    developers: data?.developers ?? [],
     publishers: data?.publishers ?? [],
     genres: (data?.genres ?? []).map((name, index) => ({
       id: String(index),
