@@ -16,7 +16,15 @@ import {
   type NavigationNodeState,
 } from "../../../services";
 import { useNavigationIsFocused } from "../../../stores";
-import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import {
+  type FocusEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+} from "react";
 
 interface FocusItemProps {
   id?: string;
@@ -119,6 +127,21 @@ export function FocusItem({
     }
   }, [isFocused]);
 
+  const handleDomFocus = useCallback(
+    (_event: FocusEvent<HTMLElement>) => {
+      if (effectiveNavigationState !== "active") {
+        return;
+      }
+
+      if (navigation.getCurrentFocusId() === resolvedId) {
+        return;
+      }
+
+      navigation.setFocus(resolvedId);
+    },
+    [effectiveNavigationState, navigation, resolvedId]
+  );
+
   const Component = asChild ? Slot : "div";
 
   return (
@@ -140,6 +163,7 @@ export function FocusItem({
         data-navigation-state={effectiveNavigationState}
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={isFocused ? 0 : -1}
+        onFocus={handleDomFocus}
         style={asChild ? undefined : { outline: "none" }}
       >
         {children}

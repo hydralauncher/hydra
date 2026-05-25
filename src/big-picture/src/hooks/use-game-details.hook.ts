@@ -5,6 +5,7 @@ import type {
   GameStats,
   HowLongToBeatCategory,
   LibraryGame,
+  ProtonDBData,
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
@@ -20,6 +21,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [howLongToBeat, setHowLongToBeat] = useState<
     HowLongToBeatCategory[] | null
   >(null);
+  const [protonDBData, setProtonDBData] = useState<ProtonDBData | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -78,6 +80,13 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         .then(setHowLongToBeat)
         .catch(() => setHowLongToBeat(null));
 
+      globalThis.window.electron.hydraApi
+        .get<ProtonDBData | null>(`/games/${shop}/${objectId}/protondb`, {
+          needsAuth: false,
+        })
+        .then(setProtonDBData)
+        .catch(() => setProtonDBData(null));
+
       globalThis.window.electron
         .getUnlockedAchievements(objectId, shop)
         .then((result) => {
@@ -86,6 +95,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           }
         })
         .catch(() => setAchievements([]));
+    } else {
+      setHowLongToBeat(null);
+      setProtonDBData(null);
+      setAchievements([]);
     }
   }, [fetchGameDetails, updateGame, objectId, shop]);
 
@@ -139,6 +152,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     isGameRunning,
     isLoading,
     howLongToBeat,
+    protonDBData,
     achievements,
     openGame,
     closeGame,

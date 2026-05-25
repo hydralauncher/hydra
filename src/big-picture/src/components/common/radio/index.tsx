@@ -1,14 +1,18 @@
 import "./styles.scss";
 
-import { useId, type MouseEvent } from "react";
+import { type ReactNode, useId, type MouseEvent } from "react";
 import cn from "classnames";
+import type { FocusOverrides } from "../../../services";
+import { FocusItem } from "..";
 
 export interface RadioProps {
   id?: string;
-  label?: string;
+  label?: ReactNode;
   checked?: boolean;
   block?: boolean;
   disabled?: boolean;
+  focusId?: string;
+  navigationOverrides?: FocusOverrides;
   onChange?: (checked: boolean) => void;
 }
 
@@ -19,14 +23,17 @@ export const Radio = ({ label, ...props }: Readonly<RadioProps>) => {
   const isChecked = props.checked ?? false;
 
   const handleChange = (checked: boolean) => {
+    if (isChecked && checked) return;
+
     props.onChange?.(checked);
   };
 
   const handleBlockClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!props.block) return;
+    if ((e.target as HTMLElement).closest(".radio__input")) return;
 
     e.preventDefault();
-    handleChange(!isChecked);
+    handleChange(true);
   };
 
   return (
@@ -39,22 +46,29 @@ export const Radio = ({ label, ...props }: Readonly<RadioProps>) => {
         "radio--disabled": props.disabled,
       })}
     >
-      <button // NOSONAR - custom styled radio, not native input
-        id={id}
-        disabled={props.disabled}
-        className={cn("radio__input", {
-          "radio__input--checked": isChecked,
-        })}
-        onClick={() => handleChange(!isChecked)}
-        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- styled button
-        role="radio"
-        aria-checked={isChecked}
-        aria-labelledby={label ? `${id}-label` : undefined}
+      <FocusItem
+        id={props.focusId}
+        navigationState={props.disabled ? "disabled" : "active"}
+        navigationOverrides={props.navigationOverrides}
+        asChild
       >
-        {isChecked ? (
-          <span className="radio__input__dot" aria-hidden="true" />
-        ) : null}
-      </button>
+        <button // NOSONAR - custom styled radio, not native input
+          id={id}
+          disabled={props.disabled}
+          className={cn("radio__input", {
+            "radio__input--checked": isChecked,
+          })}
+          onClick={() => handleChange(true)}
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- styled button
+          role="radio"
+          aria-checked={isChecked}
+          aria-labelledby={label ? `${id}-label` : undefined}
+        >
+          {isChecked ? (
+            <span className="radio__input__dot" aria-hidden="true" />
+          ) : null}
+        </button>
+      </FocusItem>
 
       {label ? (
         <label className="radio__label" id={`${id}-label`} htmlFor={id}>

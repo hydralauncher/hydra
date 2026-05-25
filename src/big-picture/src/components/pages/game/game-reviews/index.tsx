@@ -1,69 +1,58 @@
 import {
-  ClockIcon,
   StarIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
+  UserIcon,
 } from "@phosphor-icons/react";
 import { sanitizeHtml } from "@shared";
 import type { GameReview, GameShop } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { IS_DESKTOP } from "../../../../constants";
+import { getItemFocusTarget } from "../../../../helpers";
 import { useDate, useFormat } from "../../../../hooks";
-import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
+import type { FocusOverrideTarget } from "../../../../services";
 import {
-  FocusOverrides,
-  NavigationService,
-} from "../../../../services/navigation.service";
+  GAME_COMMENTS_REGION_ID,
+  GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+  GAME_COMMENTS_LOAD_MORE_ID,
+  getGameCommentVoteItemId,
+} from "../navigation";
 import {
-  Box,
   Button,
   FocusItem,
   HorizontalFocusGroup,
   Typography,
+  VerticalFocusGroup,
 } from "../../../common";
-import {
-  GAME_REVIEWS_LOAD_MORE_ID,
-  GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
-  GAME_REVIEWS_REGION_ID,
-  GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-  GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
-  GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-  GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-  getGameReviewVoteButtonDownvoteId,
-  getGameReviewVoteButtonUpvoteId,
-  getGameReviewVotesRegionId,
-} from "../navigation";
-
-type ReviewSortOption =
-  | "newest"
-  | "oldest"
-  | "score_high"
-  | "score_low"
-  | "most_voted";
 
 interface GameReviewsProps {
   shop: GameShop;
   objectId: string;
+  topNavigationTarget?: FocusOverrideTarget;
+  onHasNavigableActionsChange?: (hasNavigableActions: boolean) => void;
 }
 
-const REVIEWS_PER_PAGE = 5;
+const REVIEWS_PER_PAGE = 24;
 
-export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
+export function GameReviews({
+  shop,
+  objectId,
+  topNavigationTarget,
+  onHasNavigableActionsChange,
+}: Readonly<GameReviewsProps>) {
   const [reviews, setReviews] = useState<GameReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [totalReviewCount, setTotalReviewCount] = useState(0);
-  const [sortBy, setSortBy] = useState<ReviewSortOption>("newest");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [votingReviews, setVotingReviews] = useState<Set<string>>(new Set());
 
   const { formatDistance } = useDate();
-  const { formatNumber, formatPlayTime } = useFormat();
+  const { formatPlayTime } = useFormat();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const prevHasMoreRef = useRef(true);
 
   const loadReviews = useCallback(
-    async (reset = false) => {
+    async (requestedPage: number, reset = false) => {
       if (!IS_DESKTOP || !objectId || shop === "custom") return;
 
       if (abortControllerRef.current) {
@@ -74,12 +63,12 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       abortControllerRef.current = abortController;
 
       setReviewsLoading(true);
+
       try {
-        const skip = reset ? 0 : page * REVIEWS_PER_PAGE;
+        const skip = reset ? 0 : requestedPage * REVIEWS_PER_PAGE;
         const params = new URLSearchParams({
           take: String(REVIEWS_PER_PAGE),
           skip: String(skip),
-          sortBy,
         });
 
         const response = await globalThis.window.electron.hydraApi.get<{
@@ -113,47 +102,13 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         }
       }
     },
-    [objectId, shop, page, sortBy]
+    [objectId, shop]
   );
 
-  const applyVote = (
-    review: GameReview,
-    voteType: "upvote" | "downvote"
-  ): GameReview => {
-    const updated = { ...review };
-
-    const isToggleOff =
-      (voteType === "upvote" && updated.hasUpvoted) ||
-      (voteType === "downvote" && updated.hasDownvoted);
-
-    if (isToggleOff) {
-      if (voteType === "upvote") {
-        updated.hasUpvoted = false;
-        updated.upvotes = Math.max(0, (updated.upvotes || 0) - 1);
-      } else {
-        updated.hasDownvoted = false;
-        updated.downvotes = Math.max(0, (updated.downvotes || 0) - 1);
-      }
-      return updated;
+  const loadMore = () => {
+    if (!reviewsLoading && hasMore) {
+      setPage((prev) => prev + 1);
     }
-
-    if (voteType === "upvote") {
-      updated.hasUpvoted = true;
-      updated.upvotes = (updated.upvotes || 0) + 1;
-    } else if (voteType === "downvote") {
-      updated.hasDownvoted = true;
-      updated.downvotes = (updated.downvotes || 0) + 1;
-    }
-
-    if (voteType === "upvote" && updated.hasDownvoted) {
-      updated.hasDownvoted = false;
-      updated.downvotes = Math.max(0, (updated.downvotes || 0) - 1);
-    } else if (voteType === "downvote" && updated.hasUpvoted) {
-      updated.hasUpvoted = false;
-      updated.upvotes = Math.max(0, (updated.upvotes || 0) - 1);
-    }
-
-    return updated;
   };
 
   const handleVote = async (
@@ -164,7 +119,8 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
 
     setVotingReviews((prev) => new Set(prev).add(reviewId));
 
-    const reviewIndex = reviews.findIndex((r) => r.id === reviewId);
+    const reviewIndex = reviews.findIndex((review) => review.id === reviewId);
+
     if (reviewIndex === -1) {
       setVotingReviews((prev) => {
         const next = new Set(prev);
@@ -174,9 +130,40 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
       return;
     }
 
-    const originalReview = { ...reviews[reviewIndex] };
+    const review = reviews[reviewIndex];
+    const originalReview = { ...review };
     const updatedReviews = [...reviews];
-    updatedReviews[reviewIndex] = applyVote(originalReview, voteType);
+    const updatedReview = { ...review };
+
+    if (voteType === "upvote") {
+      if (review.hasUpvoted) {
+        updatedReview.hasUpvoted = false;
+        updatedReview.upvotes = Math.max(0, (review.upvotes || 0) - 1);
+      } else {
+        updatedReview.hasUpvoted = true;
+        updatedReview.upvotes = (review.upvotes || 0) + 1;
+
+        if (review.hasDownvoted) {
+          updatedReview.hasDownvoted = false;
+          updatedReview.downvotes = Math.max(0, (review.downvotes || 0) - 1);
+        }
+      }
+    } else {
+      if (review.hasDownvoted) {
+        updatedReview.hasDownvoted = false;
+        updatedReview.downvotes = Math.max(0, (review.downvotes || 0) - 1);
+      } else {
+        updatedReview.hasDownvoted = true;
+        updatedReview.downvotes = (review.downvotes || 0) + 1;
+
+        if (review.hasUpvoted) {
+          updatedReview.hasUpvoted = false;
+          updatedReview.upvotes = Math.max(0, (review.upvotes || 0) - 1);
+        }
+      }
+    }
+
+    updatedReviews[reviewIndex] = updatedReview;
     setReviews(updatedReviews);
 
     try {
@@ -184,10 +171,12 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
         `/games/${shop}/${objectId}/reviews/${reviewId}/${voteType}`,
         { data: {} }
       );
-    } catch {
-      const rolledBack = [...reviews];
-      rolledBack[reviewIndex] = originalReview;
-      setReviews(rolledBack);
+    } catch (error) {
+      console.error(`Failed to ${voteType} review:`, error);
+
+      const rolledBackReviews = [...reviews];
+      rolledBackReviews[reviewIndex] = originalReview;
+      setReviews(rolledBackReviews);
     } finally {
       setTimeout(() => {
         setVotingReviews((prev) => {
@@ -199,40 +188,15 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
     }
   };
 
-  const handleSortChange = (newSortBy: ReviewSortOption) => {
-    if (newSortBy !== sortBy) {
-      setSortBy(newSortBy);
-      setPage(0);
-      setHasMore(true);
-    }
-  };
-
-  const loadMore = () => {
-    if (!reviewsLoading && hasMore) {
-      setPage((prev) => prev + 1);
-    }
-  };
-
   useEffect(() => {
-    loadReviews(true);
-  }, [sortBy, objectId, loadReviews]);
+    loadReviews(0, true);
+  }, [objectId, shop, loadReviews]);
 
   useEffect(() => {
     if (page > 0) {
-      loadReviews(false);
+      loadReviews(page, false);
     }
   }, [page, loadReviews]);
-
-  useEffect(() => {
-    if (prevHasMoreRef.current && !hasMore && reviews.length > 0) {
-      const lastReview = reviews[reviews.length - 1];
-      const targetId = getGameReviewVoteButtonUpvoteId(lastReview.id);
-      requestAnimationFrame(() => {
-        NavigationService.getInstance().setFocus(targetId);
-      });
-    }
-    prevHasMoreRef.current = hasMore;
-  }, [hasMore, reviews]);
 
   useEffect(() => {
     return () => {
@@ -240,278 +204,240 @@ export function GameReviews({ shop, objectId }: Readonly<GameReviewsProps>) {
     };
   }, []);
 
+  useEffect(() => {
+    onHasNavigableActionsChange?.(reviews.length > 0);
+  }, [onHasNavigableActionsChange, reviews.length]);
+
   if (reviewsLoading && reviews.length === 0) {
     return null;
   }
 
-  const primaryFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SCREENSHOT_CAROUSEL_PREV_BUTTON_ID,
-    },
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-    },
-  };
-
-  const secondaryFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_REVIEWS_THIRD_FILTER_BUTTON_ID,
-    },
-  };
-
-  const thirdFilterNavigationOverrides: FocusOverrides = {
-    up: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-    left: {
-      type: "item",
-      itemId: GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID,
-    },
-    right: {
-      type: "item",
-      itemId: GAME_SUPPORTED_LANGUAGES_LAST_ROW_ID,
-    },
-  };
-
-  const upvoteButtonNavigationOverrides = (
-    reviewId: string
-  ): FocusOverrides => ({
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-    },
-    right: {
-      type: "item",
-      itemId: getGameReviewVoteButtonDownvoteId(reviewId),
-    },
-  });
-
-  const downvoteButtonNavigationOverrides = (
-    reviewId: string
-  ): FocusOverrides => ({
-    left: {
-      type: "item",
-      itemId: getGameReviewVoteButtonUpvoteId(reviewId),
-    },
-    right: {
-      type: "block",
-    },
-  });
-
-  const loadMoreNavigationOverrides: FocusOverrides = {
-    right: {
-      type: "block",
-    },
-    down: {
-      type: "block",
-    },
-  };
-
   return (
-    <div className="game-page__box-group">
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Typography>Reviews</Typography>
-
-        <div
-          style={{
-            color: "rgba(255, 255, 255, 0.5)",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            backgroundColor: "rgba(255, 255, 255, 0.05)",
-          }}
-        >
+    <section className="game-page__comments">
+      <div className="game-page__comments-header">
+        <Typography className="game-page__comments-title">Comments</Typography>
+        <Typography className="game-page__comments-count">
           {totalReviewCount}
-        </div>
+        </Typography>
       </div>
 
-      <HorizontalFocusGroup regionId={GAME_REVIEWS_REGION_ID} asChild>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button
-            focusId={GAME_REVIEWS_PRIMARY_FILTER_BUTTON_ID}
-            focusNavigationOverrides={primaryFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() =>
-              handleSortChange(sortBy === "newest" ? "oldest" : "newest")
-            }
-          >
-            {sortBy === "oldest" ? "Oldest" : "Newest"}
-          </Button>
-
-          <Button
-            focusId={GAME_REVIEWS_SECONDARY_FILTER_BUTTON_ID}
-            focusNavigationOverrides={secondaryFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() =>
-              handleSortChange(
-                sortBy === "score_high" ? "score_low" : "score_high"
-              )
-            }
-          >
-            {sortBy === "score_low" ? "Lowest Score" : "Highest Score"}
-          </Button>
-
-          <Button
-            focusId={GAME_REVIEWS_THIRD_FILTER_BUTTON_ID}
-            focusNavigationOverrides={thirdFilterNavigationOverrides}
-            variant="link"
-            size="small"
-            onClick={() => handleSortChange("most_voted")}
-          >
-            Most Voted
-          </Button>
-        </div>
-      </HorizontalFocusGroup>
-
       {reviews.length === 0 ? (
-        <Box>
-          <Typography
-            style={{ color: "rgba(255, 255, 255, 0.5)", textAlign: "center" }}
-          >
-            No reviews yet
-          </Typography>
-        </Box>
+        <div className="game-page__comments-empty">
+          <Typography>No comments yet</Typography>
+        </div>
       ) : (
-        reviews.map((review) => {
-          const isVoting = votingReviews.has(review.id);
+        <VerticalFocusGroup regionId={GAME_COMMENTS_REGION_ID} asChild>
+          <div className="game-page__comments-navigation">
+            <VerticalFocusGroup
+              regionId={GAME_COMMENTS_ACTION_ROWS_REGION_ID}
+              className="game-page__comments-feed"
+              asChild
+            >
+              <div>
+                {reviews.map((review, index) => {
+                  const previousReview = reviews[index - 1];
+                  const nextReview = reviews[index + 1];
+                  const likeFocusId = getGameCommentVoteItemId(
+                    review.id,
+                    "upvote"
+                  );
+                  const dislikeFocusId = getGameCommentVoteItemId(
+                    review.id,
+                    "downvote"
+                  );
 
-          const row = (
-            <Box key={review.id} className="game-page__review-item">
-              <div className="game-page__review-header">
-                <div className="game-page__review-user">
-                  {review.user.profileImageUrl ? (
-                    <img
-                      src={review.user.profileImageUrl}
-                      alt={review.user.displayName}
-                      className="game-page__review-avatar"
-                    />
-                  ) : (
-                    <div className="game-page__review-avatar game-page__review-avatar--placeholder" />
-                  )}
+                  return (
+                    <article
+                      key={review.id}
+                      className="game-page__comment-card"
+                    >
+                      <div className="game-page__comment-card-top">
+                        <div className="game-page__comment-header">
+                          <div className="game-page__comment-user">
+                            {review.user.profileImageUrl ? (
+                              <img
+                                src={review.user.profileImageUrl}
+                                alt={review.user.displayName || "Anonymous"}
+                                className="game-page__comment-avatar"
+                              />
+                            ) : (
+                              <div className="game-page__comment-avatar game-page__comment-avatar--placeholder">
+                                <UserIcon size={20} weight="regular" />
+                              </div>
+                            )}
 
-                  <div className="game-page__review-user-info">
-                    <Typography className="game-page__review-display-name">
-                      {review.user.displayName || "Anonymous"}
-                    </Typography>
+                            <div className="game-page__comment-meta">
+                              <div className="game-page__comment-name-row">
+                                <Typography className="game-page__comment-display-name">
+                                  {review.user.displayName || "Anonymous"}
+                                </Typography>
 
-                    <div className="game-page__review-meta">
-                      <div className="game-page__review-score">
-                        <StarIcon size={12} weight="fill" />
-                        <span>{review.score}/5</span>
+                                <Typography className="game-page__comment-date">
+                                  {formatDistance(
+                                    new Date(review.createdAt),
+                                    new Date(),
+                                    {
+                                      addSuffix: true,
+                                    }
+                                  )}
+                                </Typography>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          className="game-page__comment-body"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(review.reviewHtml),
+                          }}
+                        />
                       </div>
 
-                      {Boolean(
-                        review.playTimeInSeconds && review.playTimeInSeconds > 0
-                      ) && (
-                        <div className="game-page__review-playtime">
-                          <ClockIcon size={12} />
-                          <span>
-                            {formatPlayTime(review.playTimeInSeconds ?? 0)}
-                          </span>
+                      <HorizontalFocusGroup asChild>
+                        <div className="game-page__comment-card-bottom">
+                          <div className="game-page__comment-feedback">
+                            <FocusItem
+                              id={likeFocusId}
+                              navigationOverrides={{
+                                up: previousReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        previousReview.id,
+                                        "upvote"
+                                      )
+                                    )
+                                  : (topNavigationTarget ?? { type: "block" }),
+                                down: nextReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        nextReview.id,
+                                        "upvote"
+                                      )
+                                    )
+                                  : hasMore
+                                    ? getItemFocusTarget(
+                                        GAME_COMMENTS_LOAD_MORE_ID
+                                      )
+                                    : { type: "block" },
+                                left: { type: "block" },
+                                right: getItemFocusTarget(dislikeFocusId),
+                              }}
+                              asChild
+                            >
+                              <button
+                                className={`game-page__comment-feedback-item ${review.hasUpvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                                type="button"
+                                onClick={() => handleVote(review.id, "upvote")}
+                                disabled={votingReviews.has(review.id)}
+                                aria-label="Like comment"
+                              >
+                                <ThumbsUpIcon
+                                  size={20}
+                                  weight={
+                                    review.hasUpvoted ? "fill" : "regular"
+                                  }
+                                />
+                                <Typography>{review.upvotes ?? 0}</Typography>
+                              </button>
+                            </FocusItem>
+
+                            <FocusItem
+                              id={dislikeFocusId}
+                              navigationOverrides={{
+                                up: previousReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        previousReview.id,
+                                        "downvote"
+                                      )
+                                    )
+                                  : (topNavigationTarget ?? { type: "block" }),
+                                down: nextReview
+                                  ? getItemFocusTarget(
+                                      getGameCommentVoteItemId(
+                                        nextReview.id,
+                                        "downvote"
+                                      )
+                                    )
+                                  : hasMore
+                                    ? getItemFocusTarget(
+                                        GAME_COMMENTS_LOAD_MORE_ID
+                                      )
+                                    : { type: "block" },
+                                left: getItemFocusTarget(likeFocusId),
+                                right: { type: "block" },
+                              }}
+                              asChild
+                            >
+                              <button
+                                className={`game-page__comment-feedback-item ${review.hasDownvoted ? "game-page__comment-feedback-item--active" : ""}`}
+                                type="button"
+                                onClick={() =>
+                                  handleVote(review.id, "downvote")
+                                }
+                                disabled={votingReviews.has(review.id)}
+                                aria-label="Dislike comment"
+                              >
+                                <ThumbsDownIcon
+                                  size={20}
+                                  weight={
+                                    review.hasDownvoted ? "fill" : "regular"
+                                  }
+                                />
+                                <Typography>{review.downvotes ?? 0}</Typography>
+                              </button>
+                            </FocusItem>
+                          </div>
+
+                          <div className="game-page__comment-review-meta">
+                            <div className="game-page__comment-review-rating">
+                              <StarIcon size={20} weight="fill" />
+                              <span className="game-page__comment-review-rating-value">
+                                {review.score}/5
+                              </span>
+                              <span className="game-page__comment-review-rating-copy">
+                                {review.playTimeInSeconds &&
+                                review.playTimeInSeconds > 0
+                                  ? `after playing for ${formatPlayTime(review.playTimeInSeconds)}`
+                                  : "rating"}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Typography className="game-page__review-date">
-                  {formatDistance(new Date(review.createdAt), new Date(), {
-                    addSuffix: true,
-                  })}
-                </Typography>
+                      </HorizontalFocusGroup>
+                    </article>
+                  );
+                })}
               </div>
+            </VerticalFocusGroup>
 
-              <div
-                className="game-page__review-content"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(review.reviewHtml),
-                }}
-              />
-
-              <HorizontalFocusGroup
-                regionId={getGameReviewVotesRegionId(review.id)}
-                asChild
-              >
-                <div className="game-page__review-votes">
-                  <FocusItem
-                    id={getGameReviewVoteButtonUpvoteId(review.id)}
-                    navigationOverrides={upvoteButtonNavigationOverrides(
-                      review.id
-                    )}
-                    asChild
-                  >
-                    <button
-                      className={`game-page__review-vote-button ${review.hasUpvoted ? "game-page__review-vote-button--active" : ""}`}
-                      onClick={() => handleVote(review.id, "upvote")}
-                      disabled={isVoting}
-                      aria-label="Upvote"
-                    >
-                      <ThumbsUpIcon
-                        size={14}
-                        weight={review.hasUpvoted ? "fill" : "regular"}
-                      />
-                      <span>{formatNumber(review.upvotes || 0)}</span>
-                    </button>
-                  </FocusItem>
-
-                  <FocusItem
-                    id={getGameReviewVoteButtonDownvoteId(review.id)}
-                    navigationOverrides={downvoteButtonNavigationOverrides(
-                      review.id
-                    )}
-                    asChild
-                  >
-                    <button
-                      className={`game-page__review-vote-button ${review.hasDownvoted ? "game-page__review-vote-button--active-down" : ""}`}
-                      onClick={() => handleVote(review.id, "downvote")}
-                      disabled={isVoting}
-                      aria-label="Downvote"
-                    >
-                      <ThumbsDownIcon
-                        size={14}
-                        weight={review.hasDownvoted ? "fill" : "regular"}
-                      />
-                      <span>{formatNumber(review.downvotes || 0)}</span>
-                    </button>
-                  </FocusItem>
-                </div>
-              </HorizontalFocusGroup>
-            </Box>
-          );
-
-          return row;
-        })
+            {hasMore && reviews.length > 0 && (
+              <div className="game-page__comments-load-more">
+                <Button
+                  focusId={GAME_COMMENTS_LOAD_MORE_ID}
+                  focusNavigationOverrides={{
+                    up: {
+                      type: "region",
+                      regionId: GAME_COMMENTS_ACTION_ROWS_REGION_ID,
+                      entryDirection: "up",
+                      preferRememberedFocus: true,
+                    },
+                    down: { type: "block" },
+                    left: { type: "block" },
+                    right: { type: "block" },
+                  }}
+                  variant="rounded"
+                  onClick={loadMore}
+                  disabled={reviewsLoading}
+                  loading={reviewsLoading}
+                >
+                  Load More
+                </Button>
+              </div>
+            )}
+          </div>
+        </VerticalFocusGroup>
       )}
-
-      {hasMore && reviews.length > 0 && (
-        <Button
-          focusId={GAME_REVIEWS_LOAD_MORE_ID}
-          variant="rounded"
-          onClick={loadMore}
-          disabled={reviewsLoading}
-          loading={reviewsLoading}
-          focusNavigationOverrides={loadMoreNavigationOverrides}
-        >
-          Load More
-        </Button>
-      )}
-    </div>
+    </section>
   );
 }
