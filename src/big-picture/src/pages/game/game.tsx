@@ -1,9 +1,9 @@
 import { StarIcon } from "@phosphor-icons/react";
 import { formatNumber } from "@renderer/helpers";
-import type { GameShop } from "@types";
+import type { GameShop, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getItemFocusTarget } from "../../helpers";
+import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
 import {
   Typography,
   VerticalFocusGroup,
@@ -23,6 +23,7 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import {
+  useBigPictureToast,
   useGameDetails,
   useHeaderTitle,
   useNavigationScreenActions,
@@ -263,6 +264,7 @@ function buildDescriptionSections(document: Document | null) {
 }
 
 export default function Game() {
+  const { showSuccessToast } = useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
@@ -341,6 +343,28 @@ export default function Game() {
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
+  const gameToastSource = useMemo<ShopAssets>(
+    () => ({
+      objectId: objectId ?? "",
+      shop: shop ?? "steam",
+      title: resolvedGameTitle,
+      iconUrl: shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? null,
+      libraryHeroImageUrl:
+        shopDetails?.assets?.libraryHeroImageUrl ??
+        game?.libraryHeroImageUrl ??
+        null,
+      libraryImageUrl:
+        shopDetails?.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
+      logoImageUrl:
+        shopDetails?.assets?.logoImageUrl ?? game?.logoImageUrl ?? null,
+      logoPosition:
+        shopDetails?.assets?.logoPosition ?? game?.logoPosition ?? null,
+      coverImageUrl:
+        shopDetails?.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
+      downloadSources: shopDetails?.assets?.downloadSources ?? [],
+    }),
+    [game, objectId, resolvedGameTitle, shop, shopDetails?.assets]
+  );
   const shouldShowProtonSection =
     Boolean(protonDBData) &&
     (import.meta.env.DEV || globalThis.window.electron?.platform === "linux");
@@ -492,16 +516,24 @@ export default function Game() {
       );
       await updateGame();
       globalThis.window.dispatchEvent(new Event("library-update"));
+
+      const { title, ...toastOptions } = await buildLibraryToastOptions(
+        gameToastSource,
+        "added"
+      );
+      showSuccessToast(title, toastOptions);
     } finally {
       setIsAddingToLibrary(false);
     }
   }, [
     canAddToLibrary,
     game,
+    gameToastSource,
     isAddingToLibrary,
     objectId,
     resolvedGameTitle,
     shop,
+    showSuccessToast,
     shopDetails,
     updateGame,
   ]);
@@ -1195,8 +1227,15 @@ export default function Game() {
             objectId: objectId!,
             shop: shop!,
             title: shopDetails.assets?.title ?? game?.title ?? "Download Game",
+            iconUrl: shopDetails.assets?.iconUrl ?? game?.iconUrl ?? null,
             libraryHeroImageUrl:
-              shopDetails.assets?.libraryHeroImageUrl ?? null,
+              shopDetails.assets?.libraryHeroImageUrl ??
+              game?.libraryHeroImageUrl ??
+              null,
+            libraryImageUrl:
+              shopDetails.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
+            coverImageUrl:
+              shopDetails.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
           }}
         />
       </div>

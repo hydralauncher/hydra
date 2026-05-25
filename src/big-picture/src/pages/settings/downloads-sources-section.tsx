@@ -14,7 +14,12 @@ import {
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
 import { getItemFocusTarget } from "../../helpers";
-import { useFormat, useNavigation } from "../../hooks";
+import {
+  useBigPictureToast,
+  useDate,
+  useFormat,
+  useNavigation,
+} from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
@@ -65,10 +70,16 @@ function getStatusTone(status: DownloadSourceStatus) {
   }
 }
 
+const SETTINGS_TOAST_OPTIONS = {
+  fallbackVisual: "settings" as const,
+};
+
 export function DownloadsSourcesSection({
   className,
 }: Readonly<DownloadsSourcesSectionProps>) {
+  const { formatDateTime } = useDate();
   const { formatNumber } = useFormat();
+  const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus, setFocusRegion } = useNavigation();
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -199,13 +210,30 @@ export function DownloadsSourcesSection({
     try {
       await globalThis.window.electron.syncDownloadSources();
       await refreshDownloadSources();
+      showSuccessToast(
+        "Download sources synced successfully",
+        {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: `Last synced on ${formatDateTime(new Date())}.`,
+        }
+      );
+    } catch {
+      showErrorToast("Failed to sync download sources", SETTINGS_TOAST_OPTIONS);
     } finally {
       setIsSyncing(false);
     }
-  }, [refreshDownloadSources]);
+  }, [refreshDownloadSources, showErrorToast, showSuccessToast]);
 
   const handleRemoveSource = useCallback(
     async (downloadSourceId: string) => {
+      const removedSource = downloadSources.find(
+        (downloadSource) => downloadSource.id === downloadSourceId
+      );
+      const removedDownloadOptionsLabel = removedSource
+        ? `${formatNumber(removedSource.downloadCount)} download option${
+            removedSource.downloadCount === 1 ? "" : "s"
+          } ${removedSource.downloadCount === 1 ? "is" : "are"} no longer available.`
+        : undefined;
       const currentIndex = downloadSources.findIndex(
         (downloadSource) => downloadSource.id === downloadSourceId
       );
@@ -225,6 +253,15 @@ export function DownloadsSourcesSection({
           downloadSourceId
         );
         await refreshDownloadSources();
+        showSuccessToast(
+          removedSource ? `${removedSource.name} was removed` : "Download source removed",
+          removedSource
+            ? {
+                ...SETTINGS_TOAST_OPTIONS,
+                message: removedDownloadOptionsLabel,
+              }
+            : SETTINGS_TOAST_OPTIONS
+        );
         globalThis.window.requestAnimationFrame(() => {
           if (nextFocusId) {
             setFocus(nextFocusId);
@@ -243,30 +280,68 @@ export function DownloadsSourcesSection({
             setFocus(lastBehaviorFocusId);
           }
         });
+      } catch {
+        showErrorToast(
+          "Failed to remove download source",
+          SETTINGS_TOAST_OPTIONS
+        );
       } finally {
         setIsRemoving(false);
       }
     },
     [
       downloadSources,
+      formatNumber,
       lastBehaviorFocusId,
       refreshDownloadSources,
       setFocus,
       setFocusRegion,
+      showErrorToast,
+      showSuccessToast,
     ]
   );
 
   const handleDeleteAllSources = useCallback(async () => {
+    const removedSourceCount = downloadSources.length;
+    const removedDownloadOptionCount = downloadSources.reduce(
+      (total, downloadSource) => total + downloadSource.downloadCount,
+      0
+    );
+    const removedSourcesLabel = `${removedSourceCount} download source${
+      removedSourceCount === 1 ? " was" : "s were"
+    } removed`;
+    const removedDownloadOptionsLabel = `${formatNumber(
+      removedDownloadOptionCount
+    )} download option${
+      removedDownloadOptionCount === 1 ? "" : "s"
+    } are no longer available.`;
+
     setIsRemoving(true);
 
     try {
       await globalThis.window.electron.removeDownloadSource(true);
       await refreshDownloadSources();
+      showSuccessToast(removedSourcesLabel, {
+        ...SETTINGS_TOAST_OPTIONS,
+        message: removedDownloadOptionsLabel,
+      });
       setShowDeleteAllConfirmation(false);
+    } catch {
+      showErrorToast(
+        "Failed to remove download sources",
+        SETTINGS_TOAST_OPTIONS
+      );
     } finally {
       setIsRemoving(false);
     }
-  }, [refreshDownloadSources]);
+  }, [
+    downloadSources.length,
+    downloadSources,
+    formatNumber,
+    refreshDownloadSources,
+    showErrorToast,
+    showSuccessToast,
+  ]);
 
   return (
     <>

@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { ShopAssets } from "@types";
 import {
   Accordion,
+  BigPictureToastCard,
   Button,
   Checkbox,
   Chip,
@@ -35,8 +36,10 @@ import {
   Star,
   XCircle,
 } from "@phosphor-icons/react";
-import { formatPlayedTime } from "../../helpers";
+import { buildLibraryToastOptions, formatPlayedTime } from "../../helpers";
 import { IS_DESKTOP } from "../../constants";
+import { useBigPictureToast } from "../../hooks";
+import type { BigPictureToastPayload } from "../../stores";
 import "./page.scss";
 
 const STEAM_SAMPLE_OBJECT_ID = "2379780";
@@ -78,6 +81,7 @@ function ShowcaseSection({
 }
 
 export default function Catalogue() {
+  const { showToast, showSuccessToast } = useBigPictureToast();
   const [checked, setChecked] = useState(true);
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,6 +116,137 @@ export default function Catalogue() {
       { label: "Beta", color: "#f3c611" },
     ]);
   };
+
+  const toastGame = useMemo<ShopAssets>(() => {
+    return (
+      steamAssets3357650 ?? {
+        objectId: STEAM_SAMPLE_OBJECT_ID,
+        shop: "steam",
+        title: "The Elder Scrolls IV: Oblivion Remastered",
+        iconUrl: ALT_CARD_IMAGE,
+        libraryHeroImageUrl: POSTER_IMAGE,
+        libraryImageUrl: HOVER_POSTER_IMAGE,
+        logoImageUrl: null,
+        logoPosition: null,
+        coverImageUrl: CARD_IMAGE,
+        downloadSources: [],
+      }
+    );
+  }, [steamAssets3357650]);
+
+  const toastImageUrl =
+    toastGame.coverImageUrl ?? toastGame.libraryImageUrl ?? toastGame.iconUrl;
+  const [catalogueToastPreview, setCatalogueToastPreview] =
+    useState<BigPictureToastPayload>({
+      type: "success",
+      title: "New friend request",
+      message: "Irlan has sent you a friend request.",
+      imageUrl: toastImageUrl ?? undefined,
+    });
+
+  const presentToastDemo = useCallback((toast: BigPictureToastPayload) => {
+    setCatalogueToastPreview(toast);
+    showToast(toast);
+  }, [showToast]);
+
+  const getToastGameAccentColor = useCallback(async () => {
+    const { color } = await buildLibraryToastOptions(toastGame, "added");
+    return color;
+  }, [toastGame]);
+
+  const handleBasicToast = useCallback(() => {
+    presentToastDemo({
+      type: "success",
+      title: "New friend request",
+      message: "Irlan has sent you a friend request.",
+      imageUrl: toastImageUrl ?? undefined,
+    });
+  }, [presentToastDemo, toastImageUrl]);
+
+  const handleFallbackToast = useCallback(() => {
+    presentToastDemo({
+      type: "warning",
+      title: "Controller battery running low",
+      message: "Plug it in now so your session keeps going uninterrupted.",
+    });
+  }, [presentToastDemo]);
+
+  const handleAccentToast = useCallback(async () => {
+    const color = await getToastGameAccentColor();
+
+    presentToastDemo({
+      type: "success",
+      title: `Download finished - ${toastGame.title}`,
+      message: "Install now and jump back in right away.",
+      imageUrl: toastImageUrl ?? undefined,
+      color,
+    });
+  }, [getToastGameAccentColor, presentToastDemo, toastGame.title, toastImageUrl]);
+
+  const handleActionToast = useCallback(async () => {
+    const color = await getToastGameAccentColor();
+
+    const toastPayload: BigPictureToastPayload = {
+      type: "success",
+      title: `Download finished - ${toastGame.title}`,
+      message: "Install now and start playing.",
+      imageUrl: toastImageUrl ?? undefined,
+      color,
+      action: {
+        label: "Install",
+        onClick: async () => {
+          const queuedColor = await getToastGameAccentColor();
+
+          showSuccessToast("Install queued", {
+            message: `${toastGame.title} is now preparing in the background.`,
+            imageUrl: toastImageUrl ?? undefined,
+            color: queuedColor,
+          });
+        },
+      },
+    };
+
+    presentToastDemo(toastPayload);
+  }, [
+    getToastGameAccentColor,
+    presentToastDemo,
+    showSuccessToast,
+    toastGame.title,
+    toastImageUrl,
+  ]);
+
+  const handleLibraryAddedToast = useCallback(async () => {
+    const { title, ...toastOptions } = await buildLibraryToastOptions(
+      toastGame,
+      "added"
+    );
+    presentToastDemo({
+      type: "success",
+      title,
+      ...toastOptions,
+    });
+  }, [presentToastDemo, toastGame]);
+
+  const handleLibraryRemovedToast = useCallback(async () => {
+    const { title, ...toastOptions } = await buildLibraryToastOptions(
+      toastGame,
+      "removed"
+    );
+    presentToastDemo({
+      type: "success",
+      title,
+      ...toastOptions,
+    });
+  }, [presentToastDemo, toastGame]);
+
+  const handleErrorToast = useCallback(() => {
+    presentToastDemo({
+      type: "error",
+      title: "Unable to sync cloud save",
+      message: "Hydra couldn't reach the cloud right now. Try again in a few minutes.",
+      imageUrl: toastImageUrl ?? undefined,
+    });
+  }, [presentToastDemo, toastImageUrl]);
 
   return (
     <section className="catalogue-page">
@@ -397,6 +532,69 @@ export default function Catalogue() {
               image={PROFILE_IMAGE}
               name="UserProfile"
               friendCode="HYDRA-2026"
+            />
+          </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection
+          title="Toast"
+          description="Playground para validar conteúdo, fallbacks, accent e action do toast do Big Picture."
+        >
+          <div className="catalogue-page__toast-actions">
+            <Button size="small" onClick={handleBasicToast}>
+              Basic
+            </Button>
+            <Button size="small" variant="secondary" onClick={handleFallbackToast}>
+              Fallback
+            </Button>
+            <Button size="small" variant="secondary" onClick={handleAccentToast}>
+              Accent
+            </Button>
+            <Button size="small" variant="secondary" onClick={handleActionToast}>
+              Action
+            </Button>
+            <Button size="small" variant="secondary" onClick={handleLibraryAddedToast}>
+              Library Added
+            </Button>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={handleLibraryRemovedToast}
+            >
+              Library Removed
+            </Button>
+            <Button size="small" variant="danger" onClick={handleErrorToast}>
+              Error
+            </Button>
+          </div>
+
+          <div className="catalogue-page__toast-notes">
+            <Typography variant="label">Basic: image, title and description.</Typography>
+            <Typography variant="label">
+              Fallback: no image so the Hydra icon should render.
+            </Typography>
+            <Typography variant="label">
+              Accent and Action: highlighted background with game art.
+            </Typography>
+            <Typography variant="label">
+              Library Added and Removed: same copy pattern used in the real library flows.
+            </Typography>
+            <Typography variant="label">
+              Error: alternate tone for failure states.
+            </Typography>
+          </div>
+
+          <div className="catalogue-page__toast-preview">
+            <BigPictureToastCard
+              title={catalogueToastPreview.title}
+              message={catalogueToastPreview.message}
+              imageUrl={catalogueToastPreview.imageUrl}
+              color={catalogueToastPreview.color}
+              action={catalogueToastPreview.action}
+              progress={100}
+              announce={false}
+              closeOnAction={false}
+              onClose={() => undefined}
             />
           </div>
         </ShowcaseSection>

@@ -23,6 +23,7 @@ import {
   useGameDownloadOptions,
   useFeature,
   useNavigationScreenActions,
+  useBigPictureToast,
   useUserPreferences,
 } from "../../../hooks";
 import { useNavigationStore } from "../../../stores";
@@ -51,17 +52,25 @@ import "./styles.scss";
 interface DownloadGameModalProps {
   visible: boolean;
   onClose: () => void;
-  game: Pick<Game, "objectId" | "shop" | "title" | "libraryHeroImageUrl">;
+  game: {
+    objectId: string;
+    shop: Game["shop"];
+    title: string;
+    libraryHeroImageUrl: string | null;
+    iconUrl?: string | null;
+    libraryImageUrl?: string | null;
+    coverImageUrl?: string | null;
+  };
 }
 
 interface DownloadGameSourceListProps {
-  game: Pick<Game, "objectId" | "shop" | "title" | "libraryHeroImageUrl">;
+  game: DownloadGameModalProps["game"];
   visible: boolean;
   onSelectOption: (option: GameRepack) => void;
 }
 
 interface DownloadGameOptionsProps {
-  game: Pick<Game, "objectId" | "shop" | "title" | "libraryHeroImageUrl">;
+  game: DownloadGameModalProps["game"];
   option: GameRepack;
   visible: boolean;
   onClose: () => void;
@@ -539,6 +548,7 @@ function DownloadGameOptions({
   visible,
   onClose,
 }: Readonly<DownloadGameOptionsProps>) {
+  const { showErrorToast } = useBigPictureToast();
   const downloadPathTouchedRef = useRef(false);
   const automaticExtractionTouchedRef = useRef(false);
   const deleteArchiveTouchedRef = useRef(false);
@@ -824,6 +834,14 @@ function DownloadGameOptions({
         return;
       }
 
+      showErrorToast("Download failed", {
+        fallbackVisual: "downloads",
+        color: "var(--error)",
+        message:
+          response.error ??
+          "Hydra couldn't start this download. Try again in a moment.",
+      });
+
       console.error("download-game-modal failed to submit download", {
         action: shouldQueue ? "queue" : "start",
         error: response.error,
@@ -834,6 +852,16 @@ function DownloadGameOptions({
         uri: selectedUri,
       });
     } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Hydra couldn't start this download. Try again in a moment.";
+      showErrorToast("Download failed", {
+        fallbackVisual: "downloads",
+        color: "var(--error)",
+        message,
+      });
+
       console.error("download-game-modal failed to submit download", {
         action: hasActiveDownload ? "queue" : "start",
         error,
