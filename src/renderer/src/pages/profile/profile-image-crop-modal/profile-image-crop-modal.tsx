@@ -51,7 +51,7 @@ export function ProfileImageCropModal({
   const { t } = useTranslation("user_profile");
   const { showErrorToast } = useToast();
 
-  const frameRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLButtonElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
@@ -273,7 +273,7 @@ export function ProfileImageCropModal({
     });
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!frameRef.current) return;
 
     event.preventDefault();
@@ -289,7 +289,7 @@ export function ProfileImageCropModal({
     };
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
@@ -304,7 +304,7 @@ export function ProfileImageCropModal({
     );
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (dragStateRef.current?.pointerId !== event.pointerId) return;
 
     dragStateRef.current = null;
@@ -315,7 +315,7 @@ export function ProfileImageCropModal({
     }
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = (event: React.WheelEvent<HTMLButtonElement>) => {
     if (!frameRef.current) return;
 
     event.preventDefault();
@@ -331,7 +331,9 @@ export function ProfileImageCropModal({
     scheduleInteractionEnd();
   };
 
-  const handleFrameKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleFrameKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
     if (isApplying || !imageSize.width) return;
 
     const panStep = KEYBOARD_PAN_STEP * (event.shiftKey ? 4 : 1);
@@ -507,7 +509,8 @@ export function ProfileImageCropModal({
     >
       <div className="profile-image-crop-modal">
         <div className="profile-image-crop-modal__stage">
-          <div
+          <button
+            type="button"
             ref={frameRef}
             className={`profile-image-crop-modal__frame profile-image-crop-modal__frame--${variant}`}
             onPointerDown={handlePointerDown}
@@ -516,8 +519,6 @@ export function ProfileImageCropModal({
             onPointerCancel={handlePointerUp}
             onWheel={handleWheel}
             onKeyDown={handleFrameKeyDown}
-            role="application"
-            tabIndex={0}
             aria-label={t("crop_profile_image_stage")}
           >
             {previewUrl && (
@@ -547,7 +548,7 @@ export function ProfileImageCropModal({
               <span className="profile-image-crop-modal__grid-line profile-image-crop-modal__grid-line--h1" />
               <span className="profile-image-crop-modal__grid-line profile-image-crop-modal__grid-line--h2" />
             </div>
-          </div>
+          </button>
 
           <div
             className="profile-image-crop-modal__toolbar"
