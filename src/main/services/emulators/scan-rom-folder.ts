@@ -96,9 +96,48 @@ const SNIFFABLE_EXTS = new Set([
   ".mdf",
 ]);
 
-// Disc-internal files that must never be counted as standalone games even when
-// their extension is otherwise launchable.
 const PS3_INTERNAL_FILES = new Set(["eboot.bin", "param.sfo", "ps3_disc.sfb"]);
+
+const DIR_SIZE_ENTRY_CAP = 100_000;
+
+const computeDirSize = async (root: string): Promise<number> => {
+  let total = 0;
+  let visited = 0;
+  const queue: string[] = [root];
+  const seen = new Set<string>();
+  while (queue.length > 0) {
+    const dir = queue.shift()!;
+    let real: string;
+    try {
+      real = await fs.realpath(dir);
+    } catch {
+      continue;
+    }
+    if (seen.has(real)) continue;
+    seen.add(real);
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (visited++ > DIR_SIZE_ENTRY_CAP) return total;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        queue.push(full);
+      } else if (entry.isFile()) {
+        try {
+          const st = await fs.stat(full);
+          total += st.size;
+        } catch {
+          // unreadable — skip
+        }
+      }
+    }
+  }
+  return total;
+};
 
 const shouldCountForSystem = async (
   candidate: Candidate,
@@ -294,9 +333,14 @@ export const scanRomFolder = async (
     if (matches) {
       let gameSize = 0;
       try {
-        const stat = await fs.stat(game.primary.fullPath);
-        fileCount += 1;
-        gameSize += stat.size;
+        if (game.primary.isMarkerDir) {
+          gameSize += await computeDirSize(game.primary.fullPath);
+          fileCount += 1;
+        } else {
+          const stat = await fs.stat(game.primary.fullPath);
+          fileCount += 1;
+          gameSize += stat.size;
+        }
       } catch {
         // unreadable — keep going
       }

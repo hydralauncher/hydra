@@ -8,7 +8,7 @@ import {
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
-import { Button } from "@renderer/components";
+import { Button, ConfirmationModal } from "@renderer/components";
 import { XCircle } from "lucide-react";
 import {
   useDownload,
@@ -40,6 +40,7 @@ export function HeroPanelActions() {
     shop,
     objectId,
     gameTitle,
+    shopDetails,
     setShowGameOptionsModal,
     setGameOptionsInitialCategory,
     setShowRepacksModal,
@@ -61,6 +62,9 @@ export function HeroPanelActions() {
   const navigate = useNavigate();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
+  const [pendingClassicsLaunch, setPendingClassicsLaunch] = useState<{
+    discPath: string | undefined;
+  } | null>(null);
 
   const { t } = useTranslation("game_details");
 
@@ -134,7 +138,12 @@ export function HeroPanelActions() {
     setToggleLibraryGameDisabled(true);
 
     try {
-      await window.electron.addGameToLibrary(shop, objectId!, gameTitle);
+      await window.electron.addGameToLibrary(
+        shop,
+        objectId!,
+        gameTitle,
+        shopDetails?.platform ?? null
+      );
 
       updateLibrary();
       updateGame();
@@ -192,14 +201,16 @@ export function HeroPanelActions() {
   };
 
   const launchClassicsWithErrorHandling = async (
-    discPath?: string
+    discPath?: string,
+    force?: boolean
   ): Promise<void> => {
     if (!game) return;
     try {
       await window.electron.openClassicsGame(
         game.shop,
         game.objectId,
-        discPath
+        discPath,
+        force
       );
     } catch (error) {
       const code = getClassicsLaunchErrorCode(error);
@@ -210,6 +221,8 @@ export function HeroPanelActions() {
         showErrorToast(t("platform_unknown_toast"));
       } else if (code === "NO_DISC") {
         showErrorToast(t("no_disc_toast"));
+      } else if (code === "EMULATOR_ALREADY_RUNNING") {
+        setPendingClassicsLaunch({ discPath });
       } else {
         showErrorToast(t("launch_failed_toast"));
       }
@@ -427,6 +440,22 @@ export function HeroPanelActions() {
             onConfirm={handleDiscSelectionConfirm}
           />
         )}
+
+        <ConfirmationModal
+          visible={pendingClassicsLaunch !== null}
+          title={t("rpcs3_already_running_title")}
+          descriptionText={t("rpcs3_already_running_description")}
+          confirmButtonLabel={t("rpcs3_already_running_confirm")}
+          cancelButtonLabel={t("cancel")}
+          onClose={() => setPendingClassicsLaunch(null)}
+          onConfirm={() => {
+            const pending = pendingClassicsLaunch;
+            setPendingClassicsLaunch(null);
+            if (pending) {
+              void launchClassicsWithErrorHandling(pending.discPath, true);
+            }
+          }}
+        />
       </div>
     );
   }

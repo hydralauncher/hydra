@@ -110,26 +110,36 @@ export function useGameActions(game: LibraryGame) {
         return;
       }
 
-      try {
-        await window.electron.openClassicsGame(
-          game.shop,
-          game.objectId,
-          game.selectedDiscPath ?? undefined
-        );
-      } catch (error) {
-        const code = getClassicsLaunchErrorCode(error);
-        if (code === "EMULATOR_NOT_CONFIGURED") {
-          showErrorToast(t("emulator_not_configured_toast"));
-          navigate("/settings?tab=emulation");
-        } else if (code === "PLATFORM_UNKNOWN") {
-          showErrorToast(t("platform_unknown_toast"));
-        } else if (code === "NO_DISC") {
-          showErrorToast(t("no_disc_toast"));
-        } else {
-          showErrorToast(t("launch_failed_toast"));
+      const tryLaunchClassics = async (force?: boolean): Promise<void> => {
+        try {
+          await window.electron.openClassicsGame(
+            game.shop,
+            game.objectId,
+            game.selectedDiscPath ?? undefined,
+            force
+          );
+        } catch (error) {
+          const code = getClassicsLaunchErrorCode(error);
+          if (code === "EMULATOR_NOT_CONFIGURED") {
+            showErrorToast(t("emulator_not_configured_toast"));
+            navigate("/settings?tab=emulation");
+          } else if (code === "PLATFORM_UNKNOWN") {
+            showErrorToast(t("platform_unknown_toast"));
+          } else if (code === "NO_DISC") {
+            showErrorToast(t("no_disc_toast"));
+          } else if (code === "EMULATOR_ALREADY_RUNNING") {
+            const ok = window.confirm(t("rpcs3_already_running_description"));
+            if (ok) await tryLaunchClassics(true);
+          } else {
+            showErrorToast(t("launch_failed_toast"));
+          }
+          if (code !== "EMULATOR_ALREADY_RUNNING") {
+            logger.error("Failed to start classics game", error);
+          }
         }
-        logger.error("Failed to start classics game", error);
-      }
+      };
+
+      await tryLaunchClassics();
       return;
     }
 

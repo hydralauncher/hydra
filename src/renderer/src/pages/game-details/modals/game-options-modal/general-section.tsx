@@ -62,23 +62,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await updateGame();
   };
 
-  const handleAddDisc = async () => {
-    const extensions = system
-      ? await window.electron.getEmulatorRomExtensions(system)
-      : ["*"];
-    const properties: ("openFile" | "openDirectory")[] = ["openFile"];
-    if (system === "ps3") properties.push("openDirectory");
-
-    const res = await window.electron.showOpenDialog({
-      properties,
-      filters: [
-        { name: t("rom_file"), extensions },
-        { name: t("all_files"), extensions: ["*"] },
-      ],
-    });
-    if (res.canceled || !res.filePaths[0]) return;
-
-    const fullPath = res.filePaths[0];
+  const addDiscFromPath = async (fullPath: string) => {
     const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
     const nextIndex = discs.length + 1;
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
@@ -90,6 +74,29 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       selectedDiscPath: fullPath,
     });
     await updateGame();
+  };
+
+  const handleAddDiscFile = async () => {
+    const extensions = system
+      ? await window.electron.getEmulatorRomExtensions(system)
+      : ["*"];
+    const res = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        { name: t("rom_file"), extensions },
+        { name: t("all_files"), extensions: ["*"] },
+      ],
+    });
+    if (res.canceled || !res.filePaths[0]) return;
+    await addDiscFromPath(res.filePaths[0]);
+  };
+
+  const handleAddDiscFolder = async () => {
+    const res = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+    if (res.canceled || !res.filePaths[0]) return;
+    await addDiscFromPath(res.filePaths[0]);
   };
 
   const handleRemoveDisc = async (path: string) => {
@@ -180,10 +187,16 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
             </p>
           )}
 
-          <Button type="button" theme="outline" onClick={handleAddDisc}>
+          <Button type="button" theme="outline" onClick={handleAddDiscFile}>
             <FileIcon />
             {t("add_disc")}
           </Button>
+          {system === "ps3" && (
+            <Button type="button" theme="outline" onClick={handleAddDiscFolder}>
+              <FolderOpen size={14} />
+              {t("add_disc_folder")}
+            </Button>
+          )}
         </div>
 
         {selectedDisc && (

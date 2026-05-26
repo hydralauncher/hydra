@@ -64,9 +64,6 @@ const inflight = new Map<string, { cancelled: boolean }>();
 const normalizeSku = (raw: string): string =>
   raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-// Resolve a scanned path against the games.yml path->titleId index. Tries the
-// normalized full path, then basename, then the parent's basename (so a scanned
-// .../Game/PS3_GAME marker dir matches a yml value pointing at .../Game).
 const lookupYmlSku = (
   index: Map<string, string>,
   primaryPath: string
@@ -80,8 +77,6 @@ const lookupYmlSku = (
   );
 };
 
-// games.yml registers a disc dump by its game folder (the parent of PS3_GAME),
-// and a single-file game by its file path.
 const ymlValueForGame = (primaryPath: string): string =>
   path.basename(primaryPath).toUpperCase() === "PS3_GAME"
     ? path.dirname(primaryPath)
@@ -182,10 +177,17 @@ const buildDiscList = (
   });
 };
 
+const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string> = {
+  ps1: "PlayStation",
+  ps2: "PlayStation 2",
+  ps3: "PlayStation 3",
+};
+
 const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
   language: string,
-  discs: ClassicsDisc[]
+  discs: ClassicsDisc[],
+  system: EmulatorSystem
 ) => {
   const shop = "launchbox" as const;
   const objectId = entry.objectId;
@@ -218,7 +220,11 @@ const persistEntryLocally = async (
       logger.error("Could not cache launchbox assets", err);
     });
 
-  const platform = entry.platform ?? entry.data?.platform ?? null;
+  const platform =
+    entry.platform ??
+    entry.data?.platform ??
+    SYSTEM_DEFAULT_PLATFORM[system] ??
+    null;
 
   const existing = await gamesSublevel.get(gameKey);
   if (existing) {
@@ -422,9 +428,6 @@ export async function runLaunchboxImport(
     };
   }
 
-  // Phase 2: extract SKU per game.
-  // For ps3, prefer the games.yml title-id (cheap, no disc parsing) and collect
-  // freshly-extracted title-ids to merge back into games.yml afterwards.
   const totalGames = collected.length;
   const gameSkus: { game: ScannedGameInfo; sku: string | null }[] = [];
 
@@ -503,7 +506,10 @@ export async function runLaunchboxImport(
   const enriched = gameSkus.map(({ game, sku }) => {
     const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
     const success = Boolean(entry?.objectId && entry?.data);
-    const groupKey = `${game.folderPath}::${stripDiscMarker(game.name)}`;
+    const groupKey =
+      system === "ps3"
+        ? game.primaryPath
+        : `${game.folderPath}::${stripDiscMarker(game.name)}`;
     logger.log("[launchbox-import] match", {
       file: game.primaryPath,
       sku,
@@ -636,7 +642,7 @@ export async function runLaunchboxImport(
     if (signal.cancelled) break;
     const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
     const discs = buildDiscList(titleDiscs);
-    await persistEntryLocally(entry, language, discs).catch((err) => {
+    await persistEntryLocally(entry, language, discs, system).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
     });
   }
@@ -660,8 +666,6 @@ export async function runLaunchboxImport(
   const matchedObjectIds = Array.from(matchedEntries.keys());
   await syncProfileBatch(matchedObjectIds);
 
-  // Phase 8 (ps3): merge newly-discovered title-ids into RPCS3's games.yml so the
-  // emulator sees them. Additive + silent; never overwrites existing entries.
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
     await emulators
       .mergeWriteGamesYml(ps3Exe, ps3ExtractedForYml)

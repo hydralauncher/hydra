@@ -13,7 +13,8 @@ const addGameToLibrary = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  title: string
+  title: string,
+  platform?: string | null
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   let game = await gamesSublevel.get(gameKey);
@@ -25,6 +26,7 @@ const addGameToLibrary = async (
 
     game.isDeleted = false;
     game.addedToLibraryAt ??= new Date();
+    if (platform && !game.platform) game.platform = platform;
 
     await gamesSublevel.put(gameKey, game);
   } else {
@@ -40,6 +42,7 @@ const addGameToLibrary = async (
       playTimeInMilliseconds: 0,
       lastTimePlayed: null,
       addedToLibraryAt: new Date(),
+      platform: platform ?? null,
     };
 
     await gamesSublevel.put(gameKey, game);
