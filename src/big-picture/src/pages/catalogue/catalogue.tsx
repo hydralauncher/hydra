@@ -1,8 +1,5 @@
 import { FocusItem, Typography, VerticalFocusGroup } from "../../components";
-import {
-  CATALOGUE_PAGE_REGION_ID,
-  CATALOGUE_PAGE_TEXT_ID,
-} from "./navigation";
+import { CATALOGUE_PAGE_REGION_ID, CATALOGUE_PAGE_TEXT_ID } from "./navigation";
 import "./page.scss";
 
 export default function Catalogue() {
