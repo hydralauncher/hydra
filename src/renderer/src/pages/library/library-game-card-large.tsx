@@ -10,7 +10,15 @@ import {
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -142,6 +150,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
+  const classicsSystem = isClassics ? platformToSystem(game.platform) : null;
+  const classicsPlatformLabel = classicsSystem
+    ? PLATFORM_LABELS[classicsSystem]
+    : null;
+  const classicsEmulatorIcon = classicsSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
+    : undefined;
+
   return (
     <button
       type="button"
@@ -186,18 +202,33 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
             </div>
           )}
 
-          <div className="library-game-card-large__playtime">
-            {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
-                className="library-game-card-large__manual-playtime"
-              />
-            ) : (
-              <ClockIcon size={11} />
+          <div className="library-game-card-large__top-right">
+            <div className="library-game-card-large__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card-large__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card-large__playtime-text">
+                {formatPlayTime(game.playTimeInMilliseconds)}
+              </span>
+            </div>
+
+            {classicsPlatformLabel && (
+              <div className="library-game-card-large__classics-badges">
+                <span className="library-game-card-large__platform-badge">
+                  {classicsPlatformLabel}
+                </span>
+                {classicsEmulatorIcon && (
+                  <span className="library-game-card-large__emulator-badge">
+                    <img src={classicsEmulatorIcon} alt="" />
+                  </span>
+                )}
+              </div>
             )}
-            <span className="library-game-card-large__playtime-text">
-              {formatPlayTime(game.playTimeInMilliseconds)}
-            </span>
           </div>
         </div>
 
