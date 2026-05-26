@@ -1,7 +1,12 @@
 import { registerEvent } from "../register-event";
 import fs from "node:fs";
 import path from "node:path";
-import { getThemePath } from "@main/helpers";
+import {
+  getThemePath,
+  getThemeSoundFormat,
+  isValidThemeSoundBuffer,
+  removeThemeSoundFiles,
+} from "@main/helpers";
 import { themesSublevel } from "@main/level";
 
 const copyThemeAchievementSound = async (
@@ -11,6 +16,13 @@ const copyThemeAchievementSound = async (
 ): Promise<void> => {
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error("Source file does not exist");
+  }
+
+  const format = getThemeSoundFormat(sourcePath);
+  const sourceBuffer = await fs.promises.readFile(sourcePath);
+
+  if (!format || !isValidThemeSoundBuffer(sourceBuffer, format)) {
+    throw new Error("Source file is not a supported audio file");
   }
 
   const theme = await themesSublevel.get(themeId);
@@ -27,7 +39,8 @@ const copyThemeAchievementSound = async (
   const fileExtension = path.extname(sourcePath);
   const destinationPath = path.join(themeDir, `achievement${fileExtension}`);
 
-  await fs.promises.copyFile(sourcePath, destinationPath);
+  await removeThemeSoundFiles(themeDir);
+  await fs.promises.writeFile(destinationPath, sourceBuffer);
 
   await themesSublevel.put(themeId, {
     ...theme,

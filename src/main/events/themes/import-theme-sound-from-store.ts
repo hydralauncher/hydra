@@ -2,7 +2,12 @@ import { registerEvent } from "../register-event";
 import fs from "node:fs";
 import path from "node:path";
 import axios from "axios";
-import { getThemePath } from "@main/helpers";
+import {
+  getThemePath,
+  isValidThemeSoundBuffer,
+  removeThemeSoundFiles,
+  themeSoundFormats,
+} from "@main/helpers";
 import { themesSublevel } from "@main/level";
 import { logger } from "@main/services";
 
@@ -17,9 +22,7 @@ const importThemeSoundFromStore = async (
     throw new Error("Theme not found");
   }
 
-  const formats = ["wav", "mp3", "ogg", "m4a"];
-
-  for (const format of formats) {
+  for (const format of themeSoundFormats) {
     try {
       const soundUrl = `${storeUrl}/themes/${themeName.toLowerCase()}/achievement.${format}`;
 
@@ -28,14 +31,26 @@ const importThemeSoundFromStore = async (
         timeout: 10000,
       });
 
+      const buffer = Buffer.from(response.data);
+
+      if (!isValidThemeSoundBuffer(buffer, format)) {
+        logger.log(
+          `Skipping invalid ${format} sound for theme ${themeName}`,
+          response.headers["content-type"]
+        );
+        continue;
+      }
+
       const themeDir = getThemePath(themeId, theme.name);
 
       if (!fs.existsSync(themeDir)) {
         fs.mkdirSync(themeDir, { recursive: true });
       }
 
+      await removeThemeSoundFiles(themeDir);
+
       const destinationPath = path.join(themeDir, `achievement.${format}`);
-      await fs.promises.writeFile(destinationPath, response.data);
+      await fs.promises.writeFile(destinationPath, buffer);
 
       await themesSublevel.put(themeId, {
         ...theme,
