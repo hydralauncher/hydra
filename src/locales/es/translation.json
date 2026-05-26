@@ -967,6 +967,8 @@
     "your_friend_code": "Tu código de amistad:",
     "copy_friend_code": "Copiar código de amistad",
     "copied": "¡Copiado!",
+    "change_profile_picture": "Change profile picture",
+    "crop_profile_image_stage": "Profile image crop area. Use the arrow keys to move the image.",
     "crop_profile_picture": "Ajustar foto de perfil",
     "crop_profile_banner": "Ajustar banner",
     "crop_profile_image_description": "Arrastrá la imagen para reposicionarla y usá el zoom para redimensionarla.",
