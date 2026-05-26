@@ -13,9 +13,9 @@ import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
 const PLATFORM_LABELS: Record<string, string> = {
-  ps1: "PlayStation",
-  ps2: "PlayStation 2",
-  ps3: "PlayStation 3",
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
 };
 
 interface LibraryGameCardProps {

@@ -153,7 +153,8 @@ declare global {
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
-      title: string
+      title: string,
+      platform?: string | null
     ) => Promise<void>;
     addCustomGameToLibrary: (
       title: string,
@@ -270,7 +271,8 @@ declare global {
     openClassicsGame: (
       shop: GameShop,
       objectId: string,
-      discPath?: string
+      discPath?: string,
+      force?: boolean
     ) => Promise<void>;
     updateClassicsDisc: (
       shop: GameShop,

@@ -146,11 +146,6 @@ export const parseParamSfo = (data: Buffer): string | null => {
   return null;
 };
 
-// --- PS3 .iso (ISO9660) ------------------------------------------------------
-// PS3 game discs expose a standard ISO9660 filesystem containing
-// /PS3_GAME/PARAM.SFO. Parse the primary descriptor only (ignore Joliet/SVD to
-// avoid UCS-2 names), walk root -> PS3_GAME -> PARAM.SFO, and reuse parseParamSfo.
-
 const ISO_SECTOR = 2048;
 const ISO_DIR_READ_CAP = 256 * 1024;
 const ISO_SFO_READ_CAP = 1024 * 1024;
@@ -168,7 +163,6 @@ const parseIsoDirRecords = (buf: Buffer): IsoDirEntry[] => {
   while (pos < buf.length) {
     const recLen = buf[pos];
     if (recLen === 0) {
-      // Directory records never span a 2048-byte sector boundary.
       const next = (Math.floor(pos / ISO_SECTOR) + 1) * ISO_SECTOR;
       if (next <= pos) break;
       pos = next;
@@ -262,10 +256,6 @@ export const extractTitleIdFromIso = async (
   }
 };
 
-// --- PS3 .pkg ----------------------------------------------------------------
-// The content_id (e.g. "EP0001-BLES01807_00-0000000000000000") lives in the
-// cleartext PKG header at offset 0x30 for both retail and debug packages.
-
 const PKG_MAGIC = 0x7f504b47;
 
 export const extractTitleIdFromPkg = async (
@@ -276,17 +266,37 @@ export const extractTitleIdFromPkg = async (
     fh = await fs.open(pkgPath, "r");
     const head = Buffer.alloc(0x80);
     const { bytesRead } = await fh.read(head, 0, 0x80, 0);
-    if (bytesRead < 0x54) return null;
-    if (head.readUInt32BE(0) !== PKG_MAGIC) return null;
+    if (bytesRead < 0x54) {
+      logger.log("[extract-sku] pkg too short", { pkgPath, bytesRead });
+      return null;
+    }
+    const magic = head.readUInt32BE(0);
+    if (magic !== PKG_MAGIC) {
+      logger.log("[extract-sku] pkg bad magic", {
+        pkgPath,
+        magic: magic.toString(16),
+      });
+      return null;
+    }
 
     const contentId = head.subarray(0x30, 0x30 + 36).toString("latin1");
+    logger.log("[extract-sku] pkg contentId", { pkgPath, contentId });
     const m = contentId.match(/[A-Z]{4}\d{5}/);
     if (m) return normalize(m[0]);
 
     const wider = head.subarray(0, bytesRead).toString("latin1");
     const w = wider.match(/[A-Z]{4}\d{5}/);
-    return w ? normalize(w[0]) : null;
-  } catch {
+    if (w) {
+      logger.log("[extract-sku] pkg wider match", {
+        pkgPath,
+        captured: w[0],
+      });
+      return normalize(w[0]);
+    }
+    logger.log("[extract-sku] pkg no titleid", { pkgPath });
+    return null;
+  } catch (err) {
+    logger.log("[extract-sku] pkg error", { pkgPath, error: String(err) });
     return null;
   } finally {
     await fh?.close();
@@ -301,8 +311,6 @@ const extractPs3TitleId = async (
     if (!stat) return null;
 
     if (stat.isDirectory()) {
-      // marker dir is PS3_GAME (PARAM.SFO directly inside) OR its parent;
-      // installed games live at dev_hdd0/game/<TITLEID>/PARAM.SFO.
       const sfoCandidates = [
         path.join(primaryPath, "PARAM.SFO"),
         path.join(primaryPath, "PS3_GAME", "PARAM.SFO"),
@@ -318,7 +326,6 @@ const extractPs3TitleId = async (
       return folderGuess ? normalize(folderGuess[0]) : null;
     }
 
-    // file: prefer authoritative in-file parse, fall back to name regex.
     const lower = primaryPath.toLowerCase();
     if (lower.endsWith(".iso")) {
       const fromIso = await extractTitleIdFromIso(primaryPath);

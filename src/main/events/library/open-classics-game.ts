@@ -1,14 +1,34 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { launchClassicsGame, platformToSystem } from "@main/helpers";
-import { logger } from "@main/services";
+import { logger, NativeAddon } from "@main/services";
 import type { GameShop } from "@types";
+
+const isRpcs3RunningExternally = async (): Promise<number[]> => {
+  const procs = await NativeAddon.listProcesses();
+  return procs
+    .filter((p) => p.name.toLowerCase().includes("rpcs3"))
+    .map((p) => p.pid);
+};
+
+const killPids = (pids: number[]): void => {
+  for (const pid of pids) {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch {
+      void 0;
+    }
+  }
+};
+
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const openClassicsGame = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  discPath?: string
+  discPath?: string,
+  force?: boolean
 ) => {
   if (shop !== "launchbox") {
     throw new Error("openClassicsGame called for non-launchbox shop");
@@ -39,6 +59,21 @@ const openClassicsGame = async (
     );
     error.code = "NO_DISC";
     throw error;
+  }
+
+  if (system === "ps3") {
+    const running = await isRpcs3RunningExternally();
+    if (running.length > 0) {
+      if (!force) {
+        const error: Error & { code?: string } = new Error(
+          `EMULATOR_ALREADY_RUNNING: rpcs3 is already running`
+        );
+        error.code = "EMULATOR_ALREADY_RUNNING";
+        throw error;
+      }
+      killPids(running);
+      await sleep(500);
+    }
   }
 
   try {

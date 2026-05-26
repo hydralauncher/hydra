@@ -344,8 +344,12 @@ contextBridge.exposeInMainWorld("electron", {
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
-  addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
-    ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
+  addGameToLibrary: (
+    shop: GameShop,
+    objectId: string,
+    title: string,
+    platform?: string | null
+  ) => ipcRenderer.invoke("addGameToLibrary", shop, objectId, title, platform),
   addCustomGameToLibrary: (
     title: string,
     executablePath: string,
@@ -474,8 +478,12 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       launchOptions
     ),
-  openClassicsGame: (shop: GameShop, objectId: string, discPath?: string) =>
-    ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath),
+  openClassicsGame: (
+    shop: GameShop,
+    objectId: string,
+    discPath?: string,
+    force?: boolean
+  ) => ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath, force),
   updateClassicsDisc: (
     shop: GameShop,
     objectId: string,
