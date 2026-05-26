@@ -6,6 +6,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import { getProfileImageMetadata } from "../profile-image-metadata";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import "./upload-background-image-button.scss";
 
@@ -66,18 +67,16 @@ export function UploadBackgroundImageButton() {
       filters: [
         {
           name: "Image",
-          extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+          extensions: ["jpg", "jpeg", "png", "apng", "gif", "webp"],
         },
       ],
     });
 
     if (filePaths && filePaths.length > 0) {
       const path = filePaths[0];
-      const metadata = await window.electron
-        .getProfileImageMetadata(path)
-        .catch(() => null);
+      const metadata = await getProfileImageMetadata(path);
 
-      if (metadata?.isAnimated) {
+      if (metadata.isAnimated) {
         // Crop while preserving animation (handled in main/sharp).
         setCropIsAnimated(true);
         setBannerImageToCrop(path);

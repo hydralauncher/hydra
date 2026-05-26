@@ -199,6 +199,9 @@ export const getDateLocale = (language: string) => {
   return enUS;
 };
 
+export const getReviewTranslationLanguage = (language: string) =>
+  language.split("-")[0].toLowerCase();
+
 export const formatDate = (
   date: number | Date | string,
   language: string

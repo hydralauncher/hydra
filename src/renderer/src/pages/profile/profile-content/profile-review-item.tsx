@@ -5,7 +5,7 @@ import { Star, ThumbsUp, ThumbsDown, TrashIcon, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { GameShop } from "@types";
-import { sanitizeHtml } from "@shared";
+import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import { useDate } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import "./profile-content.scss";
@@ -65,9 +65,12 @@ export function ProfileReviewItem({
 
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
+  const reviewTranslationLanguage = getReviewTranslationLanguage(i18n.language);
 
   const needsTranslation =
-    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
+    !isOwnReview &&
+    isDifferentLanguage &&
+    review.translations[reviewTranslationLanguage];
 
   const getLanguageName = (languageCode: string | null) => {
     if (!languageCode) return "";
@@ -82,7 +85,7 @@ export function ProfileReviewItem({
   };
 
   const displayContent = needsTranslation
-    ? review.translations[i18n.language]
+    ? review.translations[reviewTranslationLanguage]
     : review.reviewHtml;
 
   return (
