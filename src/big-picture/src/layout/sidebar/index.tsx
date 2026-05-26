@@ -64,12 +64,6 @@ function SidebarRouter() {
         icon: HouseIcon,
       },
       {
-        key: "catalogue",
-        label: "Catalogue",
-        path: `${basePath}/catalogue`,
-        icon: SquaresFourIcon,
-      },
-      {
         key: "library",
         label: "Library",
         path: `${basePath}/library`,
@@ -87,6 +81,12 @@ function SidebarRouter() {
         path: `${basePath}/settings`,
         icon: GearIcon,
       },
+      {
+        key: "componentLab",
+        label: "Component Lab",
+        path: `${basePath}/component-lab`,
+        icon: SquaresFourIcon,
+      },
     ] satisfies Array<{
       key: BigPictureSidebarRouteKey;
       label: string;
@@ -95,7 +95,7 @@ function SidebarRouter() {
     }>
   ).filter((route) => {
     if (import.meta.env.DEV) return true;
-    return route.key !== "catalogue";
+    return route.key !== "componentLab";
   });
 
   return (

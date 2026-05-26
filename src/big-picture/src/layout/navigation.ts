@@ -13,10 +13,10 @@ export const BIG_PICTURE_HEADER_REGION_ID = "header";
 
 export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   home: "big-picture-sidebar-home",
-  catalogue: "big-picture-sidebar-catalogue",
   library: "big-picture-sidebar-library",
   downloads: "big-picture-sidebar-downloads",
   settings: "big-picture-sidebar-settings",
+  componentLab: "big-picture-sidebar-component-lab",
 } as const;
 
 export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
@@ -71,9 +71,9 @@ export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
     return null;
   }
 
-  if (normalizedPathname.startsWith("/catalogue")) {
+  if (normalizedPathname.startsWith("/component-lab")) {
     return isDev
-      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue
+      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.componentLab
       : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
   }
 

@@ -46,7 +46,7 @@ import { buildLibraryToastOptions, formatPlayedTime } from "../../helpers";
 import { IS_DESKTOP } from "../../constants";
 import { useBigPictureToast } from "../../hooks";
 import type { BigPictureToastPayload } from "../../stores";
-import "./page.scss";
+import "./component-lab.scss";
 
 const STEAM_SAMPLE_OBJECT_ID = "2379780";
 
@@ -86,8 +86,9 @@ function ShowcaseSection({
   );
 }
 
-export default function Catalogue() {
+export default function ComponentLab() {
   const { showToast, showSuccessToast } = useBigPictureToast();
+  const basePath = IS_DESKTOP ? "/big-picture" : "";
   const [checked, setChecked] = useState(true);
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,7 +113,7 @@ export default function Catalogue() {
   useEffect(() => {
     if (!steamAssets3357650) return;
 
-    console.log("catalogue steam assets 3357650", steamAssets3357650);
+    console.log("component lab steam assets 3357650", steamAssets3357650);
   }, [steamAssets3357650]);
 
   const restoreChips = () => {
@@ -269,7 +270,7 @@ export default function Catalogue() {
         <Typography variant="label" className="catalogue-page__eyebrow">
           Big Picture UI Kit
         </Typography>
-        <Typography variant="h1">Component Catalogue</Typography>
+        <Typography variant="h1">Component Lab</Typography>
         <Typography variant="body">
           Estados e variações dos componentes migrados para o Big Picture.
         </Typography>
@@ -472,8 +473,8 @@ export default function Catalogue() {
               isFavorite
             />
             <RouteAnchor
-              href="/catalogue"
-              label="Catalogue route"
+              href={`${basePath}/component-lab`}
+              label="Component Lab route"
               icon={<GameController size={20} />}
             />
             <RouteAnchor
@@ -532,7 +533,7 @@ export default function Catalogue() {
             />
 
             <ListCard
-              href="/catalogue"
+              href={`${basePath}/component-lab`}
               image={ALT_CARD_IMAGE}
               title="ListCard"
               description="Compact list item with custom action."
@@ -728,7 +729,7 @@ export default function Catalogue() {
         onBack={() => setIsModalOpen(false)}
         visible={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        ariaLabel="Catalogue Example"
+        ariaLabel="Component Lab Example"
       >
         <div>testing</div>
       </Modal>
