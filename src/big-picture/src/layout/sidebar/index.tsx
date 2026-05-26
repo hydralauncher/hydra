@@ -4,6 +4,7 @@ import {
   GearIcon,
   HouseIcon,
   MagnifyingGlassIcon,
+  PuzzlePieceIcon,
   SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -64,6 +65,12 @@ function SidebarRouter() {
         icon: HouseIcon,
       },
       {
+        key: "catalogue",
+        label: "Catalogue",
+        path: `${basePath}/catalogue`,
+        icon: SquaresFourIcon,
+      },
+      {
         key: "library",
         label: "Library",
         path: `${basePath}/library`,
@@ -85,7 +92,7 @@ function SidebarRouter() {
         key: "componentLab",
         label: "Component Lab",
         path: `${basePath}/component-lab`,
-        icon: SquaresFourIcon,
+        icon: PuzzlePieceIcon,
       },
     ] satisfies Array<{
       key: BigPictureSidebarRouteKey;

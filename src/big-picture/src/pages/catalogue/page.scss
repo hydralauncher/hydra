@@ -1,0 +1,22 @@
+.catalogue-placeholder-page {
+  width: 100%;
+  height: 100%;
+  padding: calc(var(--spacing-unit) * 10) calc(var(--spacing-unit) * 8);
+  color: var(--text);
+}
+
+.catalogue-placeholder-page__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 4);
+  background: rgba(255, 255, 255, 0.02);
+  outline: none;
+}
+
+.catalogue-placeholder-page__content[data-focus-visible="true"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(90, 169, 255, 0.35);
+}
