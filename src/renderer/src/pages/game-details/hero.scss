@@ -74,7 +74,8 @@ $hero-height: 350px;
   &__hero-classics-content {
     position: absolute;
     left: 64px;
-    top: 60px;
+    top: 0;
+    bottom: 80px;
     display: flex;
     align-items: center;
     gap: 40px;
@@ -82,22 +83,26 @@ $hero-height: 350px;
   }
 
   &__hero-classics-cover {
-    width: 194px;
-    height: 192px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    overflow: hidden;
+    width: 200px;
+    height: 240px;
     flex-shrink: 0;
-    box-shadow:
-      0 20px 8px rgba(0, 0, 0, 0.01),
-      0 11px 7px rgba(0, 0, 0, 0.05),
-      0 5px 5px rgba(0, 0, 0, 0.09),
-      0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow:
+        0 20px 8px rgba(0, 0, 0, 0.01),
+        0 11px 7px rgba(0, 0, 0, 0.05),
+        0 5px 5px rgba(0, 0, 0, 0.09),
+        0 1px 3px rgba(0, 0, 0, 0.1);
     }
   }
 
