@@ -1,17 +1,17 @@
 import { FocusItem, GridFocusGroup, Typography } from "../../components";
 import {
-  CATALOGUE_FILTERS_REGION_ID,
+  CATALOGUE_EMPTY_STATE_ID,
+  CATALOGUE_ERROR_STATE_ID,
   CATALOGUE_GRID_REGION_ID,
-  CATALOGUE_LOADING_STATE_ID,
   getCatalogueCardFocusId,
 } from "./navigation";
 import type { SearchGamesResponseData } from "./use-catalogue-data";
-import { PAGE_SIZE } from "./use-catalogue-data";
 import { CatalogueCard } from "./card";
 import { CatalogueSkeletonCard } from "./skeleton-card";
 import { useCatalogueGridNavigation } from "./use-catalogue-grid-navigation";
 
 interface GridProps {
+  pageSize: number;
   search: {
     data: SearchGamesResponseData | undefined;
     isLoading: boolean;
@@ -21,31 +21,29 @@ interface GridProps {
   };
 }
 
-export function CatalogueGrid({ search }: Readonly<GridProps>) {
+export function CatalogueGrid({ search, pageSize }: Readonly<GridProps>) {
   const gridItems = search.data?.edges ?? [];
-  const navigationOverridesByItemId = useCatalogueGridNavigation(gridItems);
+  const itemIds = search.isLoading
+    ? []
+    : search.isError
+      ? [CATALOGUE_ERROR_STATE_ID]
+      : search.isEmpty
+        ? [CATALOGUE_EMPTY_STATE_ID]
+        : gridItems.map((item) => getCatalogueCardFocusId(item.id));
+  const navigationOverridesByItemId = useCatalogueGridNavigation(itemIds);
 
   return (
     <GridFocusGroup
       regionId={CATALOGUE_GRID_REGION_ID}
       className="catalogue-grid"
-      navigationOverrides={{
-        right: {
-          type: "region",
-          regionId: CATALOGUE_FILTERS_REGION_ID,
-          entryDirection: "left",
-        },
-      }}
     >
       {search.isLoading ? (
         <>
-          <FocusItem id={CATALOGUE_LOADING_STATE_ID}>
-            <div className="catalogue-grid__status">
-              <Typography variant="label">Loading catalogue…</Typography>
-            </div>
-          </FocusItem>
+          <div className="catalogue-grid__status catalogue-grid__status--loading">
+            <Typography variant="label">Loading catalogue…</Typography>
+          </div>
 
-          {Array.from({ length: PAGE_SIZE }, (_, index) => (
+          {Array.from({ length: pageSize }, (_, index) => (
             <CatalogueSkeletonCard key={`catalogue-skeleton-${index}`} />
           ))}
         </>
@@ -62,8 +60,14 @@ export function CatalogueGrid({ search }: Readonly<GridProps>) {
           />
         ))}
 
-      {!search.isLoading && search.isEmpty ? (
-        <FocusItem id="catalogue-empty-state">
+      {!search.isLoading && !search.isError && search.isEmpty ? (
+        <FocusItem
+          id={CATALOGUE_EMPTY_STATE_ID}
+          navigationOverrides={
+            navigationOverridesByItemId[CATALOGUE_EMPTY_STATE_ID]
+          }
+          asChild
+        >
           <div className="catalogue-grid__status">
             <Typography variant="label">No results found</Typography>
           </div>
@@ -71,7 +75,13 @@ export function CatalogueGrid({ search }: Readonly<GridProps>) {
       ) : null}
 
       {!search.isLoading && search.isError ? (
-        <FocusItem id="catalogue-error-state">
+        <FocusItem
+          id={CATALOGUE_ERROR_STATE_ID}
+          navigationOverrides={
+            navigationOverridesByItemId[CATALOGUE_ERROR_STATE_ID]
+          }
+          asChild
+        >
           <div className="catalogue-grid__status">
             <Typography variant="label">
               {search.error?.message ?? "Failed to load catalogue"}

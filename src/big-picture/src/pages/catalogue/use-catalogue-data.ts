@@ -1,10 +1,28 @@
-import type { CatalogueSearchPayload, CatalogueSearchResult, DownloadSource } from "@types";
+import type {
+  CatalogueSearchPayload,
+  CatalogueSearchResult,
+  DownloadSource,
+} from "@types";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import axios from "axios";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useSearchParams } from "react-router-dom";
 
-export const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
+const WIDE_PAGE_SIZE = 30;
+const WIDE_GRID_MEDIA_QUERY = "(min-width: 1440px)";
+
+function getCataloguePageSize() {
+  return globalThis.window.matchMedia(WIDE_GRID_MEDIA_QUERY).matches
+    ? WIDE_PAGE_SIZE
+    : DEFAULT_PAGE_SIZE;
+}
 
 export enum FilterType {
   Genres = "genres",
@@ -40,12 +58,69 @@ export interface CatalogueData {
 
 export interface SearchGamesFormValues {
   title?: string;
+  sortBy?: CatalogueSearchPayload["sortBy"];
+  sortOrder?: CatalogueSearchPayload["sortOrder"];
   [FilterType.Tags]?: number[];
   [FilterType.Genres]?: string[];
   [FilterType.Publishers]?: string[];
   [FilterType.Developers]?: string[];
   [FilterType.DownloadSourceFingerprints]?: string[];
 }
+
+export const CATALOGUE_SORT_OPTIONS = [
+  {
+    value: "popularity:desc",
+    label: "Popularity",
+    sortBy: "popularity",
+    sortOrder: "desc",
+  },
+  {
+    value: "releaseDate:desc",
+    label: "Newest releases",
+    sortBy: "releaseDate",
+    sortOrder: "desc",
+  },
+  {
+    value: "releaseDate:asc",
+    label: "Oldest releases",
+    sortBy: "releaseDate",
+    sortOrder: "asc",
+  },
+  {
+    value: "alphabetical:asc",
+    label: "Title (A-Z)",
+    sortBy: "alphabetical",
+    sortOrder: "asc",
+  },
+  {
+    value: "alphabetical:desc",
+    label: "Title (Z-A)",
+    sortBy: "alphabetical",
+    sortOrder: "desc",
+  },
+  {
+    value: "hydraScore:desc",
+    label: "Highest rating",
+    sortBy: "hydraScore",
+    sortOrder: "desc",
+  },
+  {
+    value: "hydraScore:asc",
+    label: "Lowest rating",
+    sortBy: "hydraScore",
+    sortOrder: "asc",
+  },
+] as const satisfies ReadonlyArray<{
+  value: string;
+  label: string;
+  sortBy: CatalogueSearchPayload["sortBy"];
+  sortOrder: CatalogueSearchPayload["sortOrder"];
+}>;
+
+export type CatalogueSortValue =
+  (typeof CATALOGUE_SORT_OPTIONS)[number]["value"];
+
+const DEFAULT_CATALOGUE_SORT_OPTION = CATALOGUE_SORT_OPTIONS[0];
 
 export interface SearchGamesResponseData {
   edges: CatalogueSearchResult[];
@@ -74,9 +149,20 @@ function parseParam<T>(value: string | null): T | undefined {
   }
 }
 
+function getCatalogueSortOption(searchParams: URLSearchParams) {
+  const value = `${searchParams.get("sortBy")}:${searchParams.get("sortOrder")}`;
+
+  return (
+    CATALOGUE_SORT_OPTIONS.find((option) => option.value === value) ??
+    DEFAULT_CATALOGUE_SORT_OPTION
+  );
+}
+
 export function useCatalogueData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deferredTitle = useDeferredValue(searchParams.get("title") ?? "");
+  const [pageSize, setPageSize] = useState(getCataloguePageSize);
+  const [page, setPage] = useState(1);
 
   const [steamGenres, setSteamGenres] = useState<string[] | null>(null);
   const [steamTags, setSteamTags] = useState<Record<string, number> | null>(
@@ -90,10 +176,29 @@ export function useCatalogueData() {
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
   const [searchError, setSearchError] = useState<Error | null>(null);
   const [metadataError, setMetadataError] = useState<Error | null>(null);
+  const downloadSourceIds = useMemo(
+    () => downloadSources.map((source) => source.id),
+    [downloadSources]
+  );
 
-  const values = useMemo<SearchGamesFormValues>(
-    () => ({
+  useEffect(() => {
+    const mediaQuery = globalThis.window.matchMedia(WIDE_GRID_MEDIA_QUERY);
+    const updatePageSize = () => setPageSize(getCataloguePageSize());
+
+    mediaQuery.addEventListener("change", updatePageSize);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updatePageSize);
+    };
+  }, []);
+
+  const values = useMemo<SearchGamesFormValues>(() => {
+    const sortOption = getCatalogueSortOption(searchParams);
+
+    return {
       title: searchParams.get("title") ?? "",
+      sortBy: sortOption.sortBy,
+      sortOrder: sortOption.sortOrder,
       tags: parseParam<number[]>(searchParams.get("tags")) ?? [],
       genres: parseParam<string[]>(searchParams.get("genres")) ?? [],
       publishers: parseParam<string[]>(searchParams.get("publishers")) ?? [],
@@ -101,9 +206,22 @@ export function useCatalogueData() {
       downloadSourceFingerprints:
         parseParam<string[]>(searchParams.get("downloadSourceFingerprints")) ??
         [],
-    }),
-    [searchParams]
-  );
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    values.title,
+    values.developers,
+    values.downloadSourceFingerprints,
+    values.genres,
+    values.publishers,
+    values.sortBy,
+    values.sortOrder,
+    values.tags,
+    pageSize,
+  ]);
 
   const updateSearchParams = useCallback(
     (newValues: Partial<SearchGamesFormValues>) => {
@@ -193,14 +311,16 @@ export function useCatalogueData() {
 
   useEffect(() => {
     let cancelled = false;
+    let isRedirectingToAvailablePage = false;
     setIsLoadingSearch(true);
 
     const timeoutId = globalThis.window.setTimeout(async () => {
       try {
         const payload: CatalogueSearchPayload = {
           title: deferredTitle,
-          sortBy: "popularity",
-          sortOrder: "desc",
+          sortBy: values.sortBy ?? DEFAULT_CATALOGUE_SORT_OPTION.sortBy,
+          sortOrder:
+            values.sortOrder ?? DEFAULT_CATALOGUE_SORT_OPTION.sortOrder,
           downloadSourceFingerprints: values.downloadSourceFingerprints ?? [],
           tags: values.tags ?? [],
           publishers: values.publishers ?? [],
@@ -216,14 +336,26 @@ export function useCatalogueData() {
             {
               data: {
                 ...payload,
-                take: PAGE_SIZE,
-                skip: 0,
+                downloadSourceIds,
+                take: pageSize,
+                skip: (page - 1) * pageSize,
               },
               needsAuth: false,
             }
           );
 
         if (cancelled) return;
+
+        const lastAvailablePage = Math.max(
+          1,
+          Math.ceil(response.count / pageSize)
+        );
+
+        if (page > lastAvailablePage) {
+          isRedirectingToAvailablePage = true;
+          setPage(lastAvailablePage);
+          return;
+        }
 
         setSearchData(response);
         setSearchError(null);
@@ -236,7 +368,7 @@ export function useCatalogueData() {
             : new Error("Failed to search catalogue.")
         );
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !isRedirectingToAvailablePage) {
           setIsLoadingSearch(false);
         }
       }
@@ -252,7 +384,12 @@ export function useCatalogueData() {
     values.downloadSourceFingerprints,
     values.genres,
     values.publishers,
+    values.sortBy,
+    values.sortOrder,
     values.tags,
+    downloadSourceIds,
+    page,
+    pageSize,
   ]);
 
   const downloadSourcesAndFingerprints = useMemo(() => {
@@ -263,12 +400,7 @@ export function useCatalogueData() {
   }, [downloadSources]);
 
   const catalogueData = useMemo<CatalogueData | undefined>(() => {
-    if (
-      !steamGenres ||
-      !steamTags ||
-      !steamDevelopers ||
-      !steamPublishers
-    ) {
+    if (!steamGenres || !steamTags || !steamDevelopers || !steamPublishers) {
       return undefined;
     }
 
@@ -306,8 +438,18 @@ export function useCatalogueData() {
     steamPublishers,
     steamTags,
   ]);
+  const totalPages = Math.ceil((searchData?.count ?? 0) / pageSize);
+
+  const changePage = useCallback((nextPage: number) => {
+    setIsLoadingSearch(true);
+    setPage(nextPage);
+  }, []);
 
   return {
+    page,
+    pageSize,
+    totalPages,
+    changePage,
     values,
     updateSearchParams,
     catalogueData,
@@ -320,4 +462,3 @@ export function useCatalogueData() {
     },
   };
 }
-

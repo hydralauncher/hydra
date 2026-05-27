@@ -5,6 +5,15 @@ import type {
   CatalogueFilterListAlignment,
   CatalogueFilterListItem,
 } from "./filter-list";
+import {
+  CATALOGUE_GRID_REGION_ID,
+  CATALOGUE_SORT_SELECT_ID,
+  isCatalogueGridFocusId,
+} from "./navigation";
+import {
+  type CatalogueFocusPosition,
+  getClosestPositionInDirection,
+} from "./navigation-geometry";
 import type { FilterType } from "./use-catalogue-data";
 
 interface CatalogueSidebarNavigationSection {
@@ -39,6 +48,7 @@ export function useCatalogueSidebarNavigation(
   sections: CatalogueSidebarNavigationSection[]
 ) {
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const navigationNodes = useNavigationStore((state) => state.nodes);
   const { moveFocus, setFocus } = useNavigationActions();
 
   const targets = useMemo(() => {
@@ -78,6 +88,11 @@ export function useCatalogueSidebarNavigation(
       const currentTarget = targets[currentTargetIndex];
 
       if (!currentTarget || !nextTarget) {
+        if (direction === "up" && currentTargetIndex === 0) {
+          setFocus(CATALOGUE_SORT_SELECT_ID);
+          return;
+        }
+
         moveFocus(direction);
         return;
       }
@@ -103,14 +118,71 @@ export function useCatalogueSidebarNavigation(
     [currentTargetIndex, moveFocus, setFocus, targets]
   );
 
-  useNavigationScreenActions(
-    hasSidebarFocus
-      ? {
-          direction: {
+  const moveToGrid = useCallback(
+    (sourceFocusId: string) => {
+      const currentElement = navigationNodes
+        .find((node) => node.id === sourceFocusId)
+        ?.getElement();
+
+      if (!currentElement) return;
+
+      const currentRect = currentElement.getBoundingClientRect();
+      if (currentRect.width <= 0 || currentRect.height <= 0) return;
+      const currentPosition: CatalogueFocusPosition = {
+        id: sourceFocusId,
+        rect: currentRect,
+      };
+      const gridPositions = navigationNodes
+        .filter(
+          (node) =>
+            node.regionId === CATALOGUE_GRID_REGION_ID &&
+            node.navigationState === "active" &&
+            isCatalogueGridFocusId(node.id)
+        )
+        .map((node) => {
+          const element = node.getElement();
+          const rect = element?.getBoundingClientRect();
+
+          if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+
+          return { id: node.id, rect };
+        })
+        .filter(
+          (position): position is CatalogueFocusPosition => position !== null
+        );
+      const gridPosition = getClosestPositionInDirection(
+        currentPosition,
+        gridPositions,
+        "left"
+      );
+
+      if (gridPosition) {
+        setFocus(gridPosition.id);
+      }
+    },
+    [navigationNodes, setFocus]
+  );
+
+  useNavigationScreenActions({
+    direction: {
+      left: ({ currentFocusId: activeFocusId }) => {
+        const hasFilterFocus = targets.some(
+          (target) => target.id === activeFocusId
+        );
+
+        if (activeFocusId && hasFilterFocus) {
+          moveToGrid(activeFocusId);
+          return;
+        }
+
+        moveFocus("left");
+      },
+      ...(hasSidebarFocus
+        ? {
             up: () => moveWithinSidebar("up"),
             down: () => moveWithinSidebar("down"),
-          },
-        }
-      : {}
-  );
+          }
+        : {}),
+    },
+  });
 }

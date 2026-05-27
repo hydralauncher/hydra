@@ -6,6 +6,7 @@ import { CaretUpIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import cn from "classnames";
 import { FocusItem } from "../focus-item";
+import type { FocusOverrides } from "../../../services";
 
 export interface AccordionProps {
   title: string;
@@ -13,6 +14,7 @@ export interface AccordionProps {
   open?: boolean;
   icon?: ReactNode;
   focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
   children: ReactNode;
   onOpenChange?: (isOpen: boolean) => void;
 }
@@ -22,6 +24,7 @@ interface AccordionHeaderProps {
   hint?: string;
   icon?: ReactNode;
   focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onOpenChange?: (isOpen: boolean) => void;
@@ -36,6 +39,7 @@ function AccordionHeader({
   hint,
   icon,
   focusId,
+  focusNavigationOverrides,
   isOpen,
   setIsOpen,
   onOpenChange,
@@ -72,7 +76,11 @@ function AccordionHeader({
   );
 
   return focusId ? (
-    <FocusItem id={focusId} asChild>
+    <FocusItem
+      id={focusId}
+      navigationOverrides={focusNavigationOverrides}
+      asChild
+    >
       {header}
     </FocusItem>
   ) : (
@@ -89,6 +97,7 @@ export function Accordion({
   hint,
   icon,
   focusId,
+  focusNavigationOverrides,
   open = false,
   children,
   onOpenChange,
@@ -107,6 +116,7 @@ export function Accordion({
         hint={hint}
         icon={icon}
         focusId={focusId}
+        focusNavigationOverrides={focusNavigationOverrides}
         isOpen={isOpen}
         setIsOpen={setIsOpen}
         onOpenChange={onOpenChange}
@@ -115,6 +125,7 @@ export function Accordion({
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            className="accordion__body"
             initial={
               !hasMounted && open
                 ? { height: "auto", scaleY: 1 }

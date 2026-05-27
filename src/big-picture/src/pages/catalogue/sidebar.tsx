@@ -8,9 +8,9 @@ import {
 } from "../../components";
 import {
   CATALOGUE_FILTERS_REGION_ID,
-  CATALOGUE_GRID_REGION_ID,
   getCatalogueFilterHeaderFocusId,
   getCatalogueFilterInputFocusId,
+  getCatalogueFilterRegionId,
 } from "./navigation";
 import {
   type CatalogueData,
@@ -20,6 +20,7 @@ import {
 import {
   CatalogueFilterList,
   type CatalogueFilterData,
+  type CatalogueFilterListAlignment,
   type CatalogueFilterListHandle,
   getCatalogueFilterListItems,
 } from "./filter-list";
@@ -55,6 +56,7 @@ export function CatalogueSidebar({
   const filterListRefs = useRef<
     Partial<Record<FilterType, CatalogueFilterListHandle | null>>
   >({});
+  const areAllFiltersOpen = Object.values(openFilters).every(Boolean);
 
   const setFilterSearchTerm = (key: FilterType, term: string) => {
     setFiltersSearchTerms((previousState) => ({
@@ -89,29 +91,36 @@ export function CatalogueSidebar({
     [filterData, filtersSearchTerms]
   );
 
-  useCatalogueSidebarNavigation(
-    Object.values(FilterType).map((filterKey) => ({
-      key: filterKey,
-      headerFocusId: getCatalogueFilterHeaderFocusId(filterKey),
-      inputFocusId: getCatalogueFilterInputFocusId(filterKey),
-      isOpen: openFilters[filterKey],
-      items: filteredItems[filterKey],
-      focusItem: (index, alignment) =>
-        filterListRefs.current[filterKey]?.focusItem(index, alignment) ?? false,
-    }))
+  const navigationSections = useMemo(
+    () =>
+      Object.values(FilterType).map((filterKey) => ({
+        key: filterKey,
+        headerFocusId: getCatalogueFilterHeaderFocusId(filterKey),
+        inputFocusId: getCatalogueFilterInputFocusId(filterKey),
+        isOpen: openFilters[filterKey],
+        items: filteredItems[filterKey],
+        focusItem: (index: number, alignment?: CatalogueFilterListAlignment) =>
+          filterListRefs.current[filterKey]?.focusItem(index, alignment) ??
+          false,
+      })),
+    [filteredItems, openFilters]
   );
+  useCatalogueSidebarNavigation(navigationSections);
 
   return (
     <VerticalFocusGroup
       regionId={CATALOGUE_FILTERS_REGION_ID}
-      className="catalogue__sidebar"
-      navigationOverrides={{
-        left: {
-          type: "region",
-          regionId: CATALOGUE_GRID_REGION_ID,
-          entryDirection: "right",
-        },
-      }}
+      className={`catalogue__sidebar ${
+        areAllFiltersOpen ? "catalogue__sidebar--aligned" : ""
+      }`}
+      style={
+        areAllFiltersOpen
+          ? {
+              gridTemplateRows: "subgrid",
+              gap: "inherit",
+            }
+          : { gap: "calc(var(--spacing-unit) * 2)" }
+      }
     >
       {Object.values(FilterType).map((filterKey) => {
         const data = filterData[filterKey];
@@ -120,45 +129,58 @@ export function CatalogueSidebar({
           : Object.keys(data).length;
 
         return (
-          <Accordion
+          <VerticalFocusGroup
             key={filterKey}
-            open
-            focusId={getCatalogueFilterHeaderFocusId(filterKey)}
-            hint={`${length} Available`}
-            title={catalogueData[filterKey].label}
-            icon={<ColorDot color={catalogueData[filterKey].color} />}
-            onOpenChange={(isOpen) =>
-              setOpenFilters((previousState) => ({
-                ...previousState,
-                [filterKey]: isOpen,
-              }))
-            }
+            regionId={getCatalogueFilterRegionId(filterKey)}
+            asChild
           >
-            <div className="catalogue__sidebar__filter__content">
-              <Input
-                focusId={getCatalogueFilterInputFocusId(filterKey)}
-                type="text"
-                placeholder={`Search ${catalogueData[filterKey].label.toLowerCase()}`}
-                iconLeft={<MagnifyingGlassIcon size={24} />}
-                value={filtersSearchTerms[filterKey] ?? ""}
-                onChange={(event) =>
-                  setFilterSearchTerm(filterKey, event.target.value)
+            <div
+              className={`catalogue__sidebar__filter ${
+                openFilters[filterKey]
+                  ? "catalogue__sidebar__filter--open"
+                  : "catalogue__sidebar__filter--closed"
+              }`}
+            >
+              <Accordion
+                open
+                focusId={getCatalogueFilterHeaderFocusId(filterKey)}
+                hint={`${length} Available`}
+                title={catalogueData[filterKey].label}
+                icon={<ColorDot color={catalogueData[filterKey].color} />}
+                onOpenChange={(isOpen) =>
+                  setOpenFilters((previousState) => ({
+                    ...previousState,
+                    [filterKey]: isOpen,
+                  }))
                 }
-                autoComplete="off"
-                spellCheck={false}
-              />
+              >
+                <div className="catalogue__sidebar__filter__content">
+                  <Input
+                    focusId={getCatalogueFilterInputFocusId(filterKey)}
+                    type="text"
+                    placeholder={`Search ${catalogueData[filterKey].label.toLowerCase()}`}
+                    iconLeft={<MagnifyingGlassIcon size={24} />}
+                    value={filtersSearchTerms[filterKey] ?? ""}
+                    onChange={(event) =>
+                      setFilterSearchTerm(filterKey, event.target.value)
+                    }
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
 
-              <CatalogueFilterList
-                ref={(handle) => {
-                  filterListRefs.current[filterKey] = handle;
-                }}
-                name={filterKey}
-                items={filteredItems[filterKey]}
-                values={values}
-                updateSearchParams={updateSearchParams}
-              />
+                  <CatalogueFilterList
+                    ref={(handle) => {
+                      filterListRefs.current[filterKey] = handle;
+                    }}
+                    name={filterKey}
+                    items={filteredItems[filterKey]}
+                    values={values}
+                    updateSearchParams={updateSearchParams}
+                  />
+                </div>
+              </Accordion>
             </div>
-          </Accordion>
+          </VerticalFocusGroup>
         );
       })}
     </VerticalFocusGroup>

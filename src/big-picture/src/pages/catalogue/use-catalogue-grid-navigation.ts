@@ -1,20 +1,34 @@
-import type { CatalogueSearchResult } from "@types";
 import type { FocusOverrides } from "../../services";
-import { useEffect, useMemo, useState } from "react";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
+import { useEffect, useState } from "react";
+import { useNavigationStore } from "../../stores";
 import {
   CATALOGUE_FILTERS_REGION_ID,
   CATALOGUE_GRID_REGION_ID,
-  getCatalogueCardFocusId,
+  CATALOGUE_HEADER_CONTROLS_REGION_ID,
+  CATALOGUE_PAGINATION_REGION_ID,
+  getCatalogueFilterRegionId,
 } from "./navigation";
+import {
+  type CatalogueFocusPosition,
+  getActivePositionsInRegion,
+  getCatalogueFocusPosition,
+  getClosestPositionInDirection,
+} from "./navigation-geometry";
+import { FilterType } from "./use-catalogue-data";
 
-interface GridItemPosition {
-  id: string;
+interface GridItemPosition extends CatalogueFocusPosition {
   top: number;
   left: number;
   centerX: number;
 }
 
 const ROW_TOLERANCE_PX = 24;
+const SIDEBAR_REGION_IDS = new Set(
+  Object.values(FilterType).map((filterKey) =>
+    getCatalogueFilterRegionId(filterKey)
+  )
+);
 
 function groupItemsIntoRows(items: GridItemPosition[]) {
   const sortedItems = [...items].sort((leftItem, rightItem) => {
@@ -58,159 +72,206 @@ function buildFocusOverridesForGridItem(
   row: GridItemPosition[],
   itemIndex: number,
   rowIndex: number,
-  rows: GridItemPosition[][]
+  rows: GridItemPosition[][],
+  headerPositions: CatalogueFocusPosition[],
+  sidebarPositions: CatalogueFocusPosition[],
+  paginationPositions: CatalogueFocusPosition[]
 ): FocusOverrides {
   const leftItem = row[itemIndex - 1];
   const rightItem = row[itemIndex + 1];
   const upItem = getClosestItemByCenterX(rows[rowIndex - 1], item.centerX);
   const downItem = getClosestItemByCenterX(rows[rowIndex + 1], item.centerX);
+  const headerItem = getClosestPositionInDirection(item, headerPositions, "up");
+  const sidebarItem = getClosestPositionInDirection(
+    item,
+    sidebarPositions,
+    "right"
+  );
+  const paginationItem = getClosestPositionInDirection(
+    item,
+    paginationPositions,
+    "down"
+  );
 
   return {
-    ...(leftItem
+    left: leftItem
       ? {
-          left: {
-            type: "item" as const,
-            itemId: leftItem.id,
-          },
+          type: "item",
+          itemId: leftItem.id,
         }
       : {
-          left: {
-            type: "block" as const,
-          },
-        }),
-    ...(rightItem
+          type: "item",
+          itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue,
+        },
+    right: rightItem
       ? {
-          right: {
-            type: "item" as const,
-            itemId: rightItem.id,
-          },
+          type: "item",
+          itemId: rightItem.id,
         }
-      : {
-          right: {
-            type: "region" as const,
-            regionId: CATALOGUE_FILTERS_REGION_ID,
-            entryDirection: "left" as const,
-          },
-        }),
-    ...(upItem
+      : sidebarItem
+        ? {
+            type: "region",
+            regionId: sidebarItem.id,
+            entryDirection: "right",
+            preferRememberedFocus: true,
+          }
+        : { type: "block" },
+    up: upItem
       ? {
-          up: {
-            type: "item" as const,
-            itemId: upItem.id,
-          },
+          type: "item",
+          itemId: upItem.id,
         }
-      : {
-          up: {
-            type: "block" as const,
-          },
-        }),
-    ...(downItem
+      : headerItem
+        ? {
+            type: "item",
+            itemId: headerItem.id,
+          }
+        : { type: "block" },
+    down: downItem
       ? {
-          down: {
-            type: "item" as const,
-            itemId: downItem.id,
-          },
+          type: "item",
+          itemId: downItem.id,
         }
-      : {
-          down: {
-            type: "block" as const,
-          },
-        }),
+      : paginationItem
+        ? {
+            type: "item",
+            itemId: paginationItem.id,
+          }
+        : { type: "block" },
   };
 }
 
-function buildOverridesMapFromRows(rows: GridItemPosition[][]) {
+function buildOverridesMapFromRows(
+  rows: GridItemPosition[][],
+  headerPositions: CatalogueFocusPosition[],
+  sidebarPositions: CatalogueFocusPosition[],
+  paginationPositions: CatalogueFocusPosition[]
+) {
   const nextOverridesByItemId: Record<string, FocusOverrides> = {};
 
-  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-    const row = rows[rowIndex];
-
-    for (let itemIndex = 0; itemIndex < row.length; itemIndex++) {
-      const item = row[itemIndex];
+  rows.forEach((row, rowIndex) => {
+    row.forEach((item, itemIndex) => {
       nextOverridesByItemId[item.id] = buildFocusOverridesForGridItem(
         item,
         row,
         itemIndex,
         rowIndex,
-        rows
+        rows,
+        headerPositions,
+        sidebarPositions,
+        paginationPositions
       );
-    }
-  }
+    });
+  });
 
   return nextOverridesByItemId;
 }
 
-export function useCatalogueGridNavigation(games: CatalogueSearchResult[]) {
+export function useCatalogueGridNavigation(itemIds: string[]) {
+  const navigationRegions = useNavigationStore((state) => state.regions);
   const [overridesByItemId, setOverridesByItemId] = useState<
     Record<string, FocusOverrides>
   >({});
-
-  const itemIds = useMemo(() => {
-    return games.map((game) => getCatalogueCardFocusId(game.id));
-  }, [games]);
+  const itemIdsKey = itemIds.join("\u0000");
 
   useEffect(() => {
-    if (itemIds.length === 0) {
+    const ids = itemIdsKey ? itemIdsKey.split("\u0000") : [];
+
+    if (ids.length === 0) {
       setOverridesByItemId({});
       return;
     }
 
     let animationFrameId = 0;
-    let resizeObserver: ResizeObserver | null = null;
+    const resizeObserver = new ResizeObserver(() => scheduleCompute());
+    const mutationObserver = new MutationObserver(() => scheduleCompute());
 
     const computeOverrides = () => {
-      const items = itemIds
-        .map((id) => {
-          const element = globalThis.document.getElementById(id);
-          const rect = element?.getBoundingClientRect();
+      const items = ids
+        .map((id) => getCatalogueFocusPosition(id))
+        .filter((position) => !!position)
+        .map((position) => ({
+          ...position,
+          top: position.rect.top,
+          left: position.rect.left,
+          centerX: position.rect.left + position.rect.width / 2,
+        }));
+      const rows = groupItemsIntoRows(items);
+      const headerPositions = getActivePositionsInRegion(
+        CATALOGUE_HEADER_CONTROLS_REGION_ID
+      );
+      const sidebarPositions = navigationRegions
+        .filter(
+          (region) =>
+            region.parentRegionId === CATALOGUE_FILTERS_REGION_ID &&
+            SIDEBAR_REGION_IDS.has(region.id)
+        )
+        .map((region) => {
+          const rect = region.getElement()?.getBoundingClientRect();
 
-          if (!element || !rect) return null;
+          if (!rect || rect.width <= 0 || rect.height <= 0) return null;
 
           return {
-            id,
-            top: rect.top,
-            left: rect.left,
-            centerX: rect.left + rect.width / 2,
+            id: region.id,
+            rect,
           };
         })
-        .filter((item): item is GridItemPosition => item !== null);
+        .filter(
+          (position): position is CatalogueFocusPosition => position !== null
+        );
+      const paginationPositions = getActivePositionsInRegion(
+        CATALOGUE_PAGINATION_REGION_ID
+      );
 
-      const rows = groupItemsIntoRows(items);
-      setOverridesByItemId(buildOverridesMapFromRows(rows));
+      setOverridesByItemId(
+        buildOverridesMapFromRows(
+          rows,
+          headerPositions,
+          sidebarPositions,
+          paginationPositions
+        )
+      );
     };
 
-    const scheduleCompute = () => {
+    function scheduleCompute() {
       globalThis.cancelAnimationFrame(animationFrameId);
       animationFrameId = globalThis.requestAnimationFrame(computeOverrides);
-    };
+    }
 
     scheduleCompute();
     globalThis.addEventListener("resize", scheduleCompute);
 
-    const gridElement = globalThis.document.querySelector(
-      `[data-focus-region-id="${CATALOGUE_GRID_REGION_ID}"]`
-    );
+    [
+      CATALOGUE_GRID_REGION_ID,
+      CATALOGUE_HEADER_CONTROLS_REGION_ID,
+      CATALOGUE_FILTERS_REGION_ID,
+      CATALOGUE_PAGINATION_REGION_ID,
+    ].forEach((regionId) => {
+      const element = globalThis.document.querySelector(
+        `[data-focus-region-id="${regionId}"]`
+      );
 
-    if (gridElement instanceof HTMLElement) {
-      resizeObserver = new ResizeObserver(scheduleCompute);
-      resizeObserver.observe(gridElement);
+      if (!(element instanceof HTMLElement)) return;
 
-      itemIds.forEach((id) => {
-        const itemElement = globalThis.document.getElementById(id);
+      resizeObserver.observe(element);
+      mutationObserver.observe(element, { childList: true, subtree: true });
+    });
 
-        if (!itemElement) return;
+    ids.forEach((id) => {
+      const element = globalThis.document.getElementById(id);
 
-        resizeObserver?.observe(itemElement);
-      });
-    }
+      if (element) {
+        resizeObserver.observe(element);
+      }
+    });
 
     return () => {
       globalThis.cancelAnimationFrame(animationFrameId);
       globalThis.removeEventListener("resize", scheduleCompute);
-      resizeObserver?.disconnect();
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
     };
-  }, [itemIds]);
+  }, [itemIdsKey, navigationRegions]);
 
   return overridesByItemId;
 }
-

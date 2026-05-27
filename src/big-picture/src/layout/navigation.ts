@@ -1,7 +1,7 @@
 import type { FocusOverrideTarget } from "../services";
 import { DOWNLOADS_PAGE_REGION_ID } from "../components/pages/downloads/navigation";
 import { GAME_PAGE_REGION_ID } from "../components/pages/game/navigation";
-import { CATALOGUE_PAGE_REGION_ID } from "../pages/catalogue/navigation";
+import { CATALOGUE_GRID_REGION_ID } from "../pages/catalogue/navigation";
 import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
 import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
@@ -108,7 +108,7 @@ export function getBigPictureContentEntryRegionIdFromPathname(
   }
 
   if (normalizedPathname.startsWith("/catalogue")) {
-    return CATALOGUE_PAGE_REGION_ID;
+    return CATALOGUE_GRID_REGION_ID;
   }
 
   if (normalizedPathname.startsWith("/library")) {
