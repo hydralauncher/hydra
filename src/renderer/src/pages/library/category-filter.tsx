@@ -4,7 +4,7 @@ import "./category-filter.scss";
 
 export type LibraryCategory = "all" | "pc" | "classics";
 
-function ClassicsIcon({ size = 14 }: { size?: number }) {
+export function ClassicsIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -67,7 +67,7 @@ export function CategoryFilter({
     {
       value: "classics",
       label: t("category_classics"),
-      icon: <ClassicsIcon size={14} />,
+      icon: <ClassicsIcon size={16} />,
     },
   ];
 

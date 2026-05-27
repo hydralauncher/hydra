@@ -9,6 +9,7 @@
 
   &__option {
     flex: 1;
+    min-width: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -21,6 +22,16 @@
     border: 1px solid transparent;
     border-radius: 7px;
     cursor: pointer;
+    white-space: nowrap;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     transition:
       background-color 0.15s ease,
       border-color 0.15s ease,

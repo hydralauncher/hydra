@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { LibraryGame } from "@types";
 import {
@@ -32,6 +32,9 @@ export function useGameActions(game: LibraryGame) {
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [rpcs3ConfirmPending, setRpcs3ConfirmPending] = useState<{
+    discPath?: string;
+  } | null>(null);
 
   const isClassics = game.shop === "launchbox";
   const hasClassicsDiscs = (game.discs?.length ?? 0) > 0;
@@ -54,6 +57,47 @@ export function useGameActions(game: LibraryGame) {
       unsubscribe();
     };
   }, [game?.id]);
+
+  const launchClassicsAttempt = useCallback(
+    async (discPath: string | undefined, force?: boolean): Promise<void> => {
+      try {
+        await window.electron.openClassicsGame(
+          game.shop,
+          game.objectId,
+          discPath,
+          force
+        );
+      } catch (error) {
+        const code = getClassicsLaunchErrorCode(error);
+        if (code === "EMULATOR_NOT_CONFIGURED") {
+          showErrorToast(t("emulator_not_configured_toast"));
+          navigate("/settings?tab=emulation");
+        } else if (code === "PLATFORM_UNKNOWN") {
+          showErrorToast(t("platform_unknown_toast"));
+        } else if (code === "NO_DISC") {
+          showErrorToast(t("no_disc_toast"));
+        } else if (code === "EMULATOR_ALREADY_RUNNING") {
+          setRpcs3ConfirmPending({ discPath });
+        } else {
+          showErrorToast(t("launch_failed_toast"));
+        }
+        if (code !== "EMULATOR_ALREADY_RUNNING") {
+          logger.error("Failed to start classics game", error);
+        }
+      }
+    },
+    [game.shop, game.objectId, navigate, showErrorToast, t]
+  );
+
+  const handleConfirmRpcs3Launch = useCallback(async () => {
+    const pending = rpcs3ConfirmPending;
+    setRpcs3ConfirmPending(null);
+    if (pending) await launchClassicsAttempt(pending.discPath, true);
+  }, [rpcs3ConfirmPending, launchClassicsAttempt]);
+
+  const handleCancelRpcs3Launch = useCallback(() => {
+    setRpcs3ConfirmPending(null);
+  }, []);
 
   const handlePlayGame = async () => {
     if (!canPlay) {
@@ -110,36 +154,7 @@ export function useGameActions(game: LibraryGame) {
         return;
       }
 
-      const tryLaunchClassics = async (force?: boolean): Promise<void> => {
-        try {
-          await window.electron.openClassicsGame(
-            game.shop,
-            game.objectId,
-            game.selectedDiscPath ?? undefined,
-            force
-          );
-        } catch (error) {
-          const code = getClassicsLaunchErrorCode(error);
-          if (code === "EMULATOR_NOT_CONFIGURED") {
-            showErrorToast(t("emulator_not_configured_toast"));
-            navigate("/settings?tab=emulation");
-          } else if (code === "PLATFORM_UNKNOWN") {
-            showErrorToast(t("platform_unknown_toast"));
-          } else if (code === "NO_DISC") {
-            showErrorToast(t("no_disc_toast"));
-          } else if (code === "EMULATOR_ALREADY_RUNNING") {
-            const ok = window.confirm(t("rpcs3_already_running_description"));
-            if (ok) await tryLaunchClassics(true);
-          } else {
-            showErrorToast(t("launch_failed_toast"));
-          }
-          if (code !== "EMULATOR_ALREADY_RUNNING") {
-            logger.error("Failed to start classics game", error);
-          }
-        }
-      };
-
-      await tryLaunchClassics();
+      await launchClassicsAttempt(game.selectedDiscPath ?? undefined);
       return;
     }
 
@@ -348,6 +363,7 @@ export function useGameActions(game: LibraryGame) {
     hasRepacks,
     creatingShortcut,
     creatingSteamShortcut,
+    rpcs3ConfirmPending,
     handlePlayGame,
     handleCloseGame,
     handleToggleFavorite,
@@ -359,5 +375,7 @@ export function useGameActions(game: LibraryGame) {
     handleRemoveFromLibrary,
     handleRemoveFiles,
     handleOpenGameOptions,
+    handleConfirmRpcs3Launch,
+    handleCancelRpcs3Launch,
   };
 }

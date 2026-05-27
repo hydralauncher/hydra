@@ -21,6 +21,7 @@ import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
+import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
@@ -210,9 +211,17 @@ export function GameDetailsContent() {
       ""
     : "";
 
-  const launchboxSystem = isLaunchboxGame
-    ? platformToSystem(game?.platform)
+  const launchboxPlatform = isLaunchboxGame
+    ? (game?.platform ?? shopDetails?.platform ?? null)
     : null;
+
+  const launchboxSystem = isLaunchboxGame
+    ? platformToSystem(launchboxPlatform)
+    : null;
+
+  const launchboxTitle = isLaunchboxGame
+    ? (game?.title ?? shopDetails?.name ?? "")
+    : "";
 
   const launchboxEmulatorIcon = launchboxSystem
     ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
@@ -227,12 +236,14 @@ export function GameDetailsContent() {
           className={`game-details__hero${renderClassicsHero ? " game-details__hero--classics-wrapper" : ""}`}
         >
           {renderClassicsHero ? (
-            <div className="game-details__hero--classics">
-              <div className="game-details__hero-classics-backdrop">
-                {launchboxCover && (
-                  <img src={launchboxCover} alt="" aria-hidden="true" />
-                )}
-                <div className="game-details__hero-classics-backdrop-overlay" />
+            <>
+              <div className="game-details__hero--classics">
+                <div className="game-details__hero-classics-backdrop">
+                  {launchboxCover && (
+                    <img src={launchboxCover} alt="" aria-hidden="true" />
+                  )}
+                  <div className="game-details__hero-classics-backdrop-overlay" />
+                </div>
               </div>
               <div className="game-details__hero-classics-content">
                 <div className="game-details__hero-classics-cover">
@@ -242,12 +253,12 @@ export function GameDetailsContent() {
                 </div>
                 <div className="game-details__hero-classics-meta">
                   <h1 className="game-details__hero-classics-title">
-                    {game?.title}
+                    {launchboxTitle}
                   </h1>
-                  {game?.platform && (
+                  {launchboxPlatform && (
                     <div className="game-details__hero-classics-chips">
                       <span className="game-details__hero-classics-chip">
-                        {game.platform}
+                        {launchboxPlatform}
                       </span>
                       {launchboxEmulatorIcon && (
                         <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
@@ -258,7 +269,7 @@ export function GameDetailsContent() {
                   )}
                 </div>
               </div>
-            </div>
+            </>
           ) : (
             <img
               src={
@@ -274,11 +285,77 @@ export function GameDetailsContent() {
           {isLaunchboxGame && !hideClassicsBookmark && (
             <div className="game-details__hero-bookmark" aria-hidden="true">
               <div className="game-details__hero-classics-rainbow">
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green" />
-                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue" />
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--orange">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--red">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--yellow">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--green">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--blue">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-1">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--ltr game-details__hero-classics-stripe-band--delay-2">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-3">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--ltr game-details__hero-classics-stripe-band--delay-4">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-5">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
               </div>
             </div>
           )}
