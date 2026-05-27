@@ -15,6 +15,13 @@
   cursor: pointer;
   transition: border-radius 0.05s ease-in-out;
   border-radius: calc(var(--spacing-unit) * 2);
+  outline: none;
+
+  &:focus-visible,
+  &[data-focus-visible="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 
   &.accordion__header--open {
     border-radius: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2)
