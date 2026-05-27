@@ -1,8 +1,10 @@
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
+import { DeviceDesktopIcon } from "@primer/octicons-react";
 
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import { setMode } from "@renderer/features";
+import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 
 import "./catalogue-mode-toggle.scss";
 
@@ -22,7 +24,8 @@ export function CatalogueModeToggle() {
         })}
         onClick={() => dispatch(setMode("modern"))}
       >
-        {t("mode_modern_games")}
+        <DeviceDesktopIcon size={14} />
+        <span>{t("mode_modern_games")}</span>
       </button>
       <button
         type="button"
@@ -33,7 +36,8 @@ export function CatalogueModeToggle() {
         })}
         onClick={() => dispatch(setMode("classics"))}
       >
-        {t("mode_classics")}
+        <ClassicsIcon size={16} />
+        <span>{t("mode_classics")}</span>
       </button>
     </div>
   );
