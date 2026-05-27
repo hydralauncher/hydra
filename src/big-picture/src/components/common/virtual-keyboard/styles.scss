@@ -1,12 +1,12 @@
 .virtual-keyboard {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--spacing-unit) * 6);
+  bottom: 6rem;
   z-index: 140;
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 3);
-  width: min(960px, calc(100vw - (var(--spacing-unit) * 16)));
+  width: min(1200px, calc(100vw - (var(--spacing-unit) * 16)));
   padding: calc(var(--spacing-unit) * 4);
   border: 1px solid var(--secondary-border);
   border-radius: calc(var(--spacing-unit) * 4);
@@ -20,18 +20,13 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.58);
 }
 
-.virtual-keyboard__target-label {
-  color: var(--text-secondary);
-  text-align: center;
-}
-
 .virtual-keyboard__keys {
   display: grid;
   grid-template-columns: repeat(
     var(--virtual-keyboard-columns),
     minmax(0, 1fr)
   );
-  grid-auto-rows: minmax(52px, auto);
+  grid-auto-rows: minmax(65px, auto);
   gap: calc(var(--spacing-unit) * 2);
 }
 
@@ -43,27 +38,19 @@
   width: 100%;
   min-width: 0;
   height: 100%;
-  min-height: 52px;
+  min-height: 65px;
   padding-inline: calc(var(--spacing-unit) * 2);
   border-radius: calc(var(--spacing-unit) * 2);
   font-size: 16px;
 
   &[data-active="true"] {
-    border-color: var(--primary);
     background-color: var(--secondary-hover);
     color: var(--text);
   }
-}
 
-.virtual-keyboard__key--visual {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  border: 1px solid var(--secondary-border);
-  background-color: color-mix(in srgb, var(--secondary) 72%, transparent);
-  font-family: var(--font-space-grotesk);
-  pointer-events: none;
+  &[data-pulsing="true"] {
+    animation: virtual-keyboard-key-pulse 240ms ease-out;
+  }
 }
 
 .virtual-keyboard__hint {
@@ -82,16 +69,22 @@
   }
 
   .virtual-keyboard__keys {
-    grid-auto-rows: minmax(48px, auto);
+    grid-auto-rows: minmax(60px, auto);
     gap: var(--spacing-unit);
   }
 
   .virtual-keyboard__key {
-    min-height: 48px;
+    min-height: 60px;
     font-size: 14px;
   }
+}
 
-  .virtual-keyboard__target-label {
-    display: none;
+@keyframes virtual-keyboard-key-pulse {
+  from {
+    background-color: var(--secondary-hover);
+  }
+
+  to {
+    background-color: var(--secondary);
   }
 }

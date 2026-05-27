@@ -3,18 +3,21 @@ import "./styles.scss";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../button";
 import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
-import { Typography } from "../typography";
 import { FocusRegionContext } from "../../context";
 import { IS_BROWSER } from "../../../constants";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
   getAcceleratedGamepadRepeatInterval,
 } from "../../../helpers";
-import { useGamepad, useNavigationScreenActions } from "../../../hooks";
+import {
+  useGamepad,
+  useNavigationActions,
+  useNavigationScreenActions,
+} from "../../../hooks";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
@@ -23,6 +26,7 @@ type EditableTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
 type VirtualKeyboardKey =
   | { type: "character"; label: string; value: string }
   | { type: "shift"; label: string }
+  | { type: "toggle-layer"; label: string }
   | { type: "backspace"; label: string }
   | { type: "space"; label: string }
   | { type: "clear"; label: string }
@@ -30,24 +34,28 @@ type VirtualKeyboardKey =
   | { type: "cursor-left"; label: string }
   | { type: "cursor-right"; label: string };
 
-type VirtualKeyboardVisualKey = {
-  type: "visual";
-  label: string;
-};
+type VirtualKeyboardLayer = "alphabetic" | "symbols";
 
-type VirtualKeyboardLayoutKey = (
-  | VirtualKeyboardKey
-  | VirtualKeyboardVisualKey
-) & {
+type VirtualKeyboardLayoutKey = VirtualKeyboardKey & {
   column: number;
   row: number;
   columnSpan?: number;
   rowSpan?: number;
 };
 
+type VirtualKeyboardKeyPosition = {
+  centerColumn: number;
+  centerRow: number;
+};
+
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
+const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
+  "big-picture-virtual-keyboard-key-backspace";
+const VIRTUAL_KEYBOARD_ENTER_KEY_ID = "big-picture-virtual-keyboard-key-enter";
+const VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID =
+  "big-picture-virtual-keyboard-key-toggle-layer";
 const VIRTUAL_KEYBOARD_COLUMNS = 11;
 const TEXTUAL_INPUT_TYPES = new Set([
   "",
@@ -59,7 +67,7 @@ const TEXTUAL_INPUT_TYPES = new Set([
   "text",
   "url",
 ]);
-const KEY_LAYOUT: VirtualKeyboardLayoutKey[] = [
+const ALPHABETIC_KEY_LAYOUT: VirtualKeyboardLayoutKey[] = [
   ..."1234567890".split("").map((value, index) => ({
     type: "character" as const,
     label: value,
@@ -92,7 +100,46 @@ const KEY_LAYOUT: VirtualKeyboardLayoutKey[] = [
     row: 4,
     column: index + 2,
   })),
-  { type: "visual", label: "123#", row: 5, column: 1, columnSpan: 2 },
+  { type: "toggle-layer", label: "123#", row: 5, column: 1, columnSpan: 2 },
+  { type: "space", label: "Space", row: 5, column: 3, columnSpan: 7 },
+  { type: "cursor-left", label: "←", row: 5, column: 10 },
+  { type: "cursor-right", label: "→", row: 5, column: 11 },
+];
+const SYMBOLS_KEY_LAYOUT: VirtualKeyboardLayoutKey[] = [
+  ..."1234567890".split("").map((value, index) => ({
+    type: "character" as const,
+    label: value,
+    value,
+    row: 1,
+    column: index + 1,
+  })),
+  { type: "backspace", label: "⌫", row: 1, column: 11 },
+  ..."@#$%&*()-+".split("").map((value, index) => ({
+    type: "character" as const,
+    label: value,
+    value,
+    row: 2,
+    column: index + 1,
+  })),
+  { type: "clear", label: "Clear", row: 2, column: 11 },
+  ...["!", "?", ":", ";", "'", '"', "/", "\\", "_", "="].map(
+    (value, index) => ({
+      type: "character" as const,
+      label: value,
+      value,
+      row: 3,
+      column: index + 1,
+    })
+  ),
+  { type: "enter", label: "Enter", row: 3, column: 11, rowSpan: 2 },
+  ...["[", "]", "{", "}", "<", ">", ",", ".", "|", "~"].map((value, index) => ({
+    type: "character" as const,
+    label: value,
+    value,
+    row: 4,
+    column: index + 1,
+  })),
+  { type: "toggle-layer", label: "ABC", row: 5, column: 1, columnSpan: 2 },
   { type: "space", label: "Space", row: 5, column: 3, columnSpan: 7 },
   { type: "cursor-left", label: "←", row: 5, column: 10 },
   { type: "cursor-right", label: "→", row: 5, column: 11 },
@@ -101,6 +148,10 @@ const KEY_LAYOUT: VirtualKeyboardLayoutKey[] = [
 function getKeyId(key: VirtualKeyboardKey) {
   if (key.type === "character") {
     return `big-picture-virtual-keyboard-key-${key.value}`;
+  }
+
+  if (key.type === "toggle-layer") {
+    return VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID;
   }
 
   return `big-picture-virtual-keyboard-key-${key.type}`;
@@ -113,6 +164,42 @@ function getKeyStyle(key: VirtualKeyboardLayoutKey) {
     "--virtual-keyboard-key-column-span": key.columnSpan ?? 1,
     "--virtual-keyboard-key-row-span": key.rowSpan ?? 1,
   } as CSSProperties;
+}
+
+function getKeyPosition(key: VirtualKeyboardLayoutKey) {
+  return {
+    centerColumn: key.column + ((key.columnSpan ?? 1) - 1) / 2,
+    centerRow: key.row + ((key.rowSpan ?? 1) - 1) / 2,
+  };
+}
+
+function findLayoutKeyById(
+  layout: VirtualKeyboardLayoutKey[],
+  focusId: string | null
+) {
+  if (!focusId) return null;
+
+  return layout.find((key) => getKeyId(key) === focusId) ?? null;
+}
+
+function findClosestLayoutKeyByPosition(
+  layout: VirtualKeyboardLayoutKey[],
+  position: VirtualKeyboardKeyPosition
+) {
+  return layout.reduce<VirtualKeyboardLayoutKey | null>((closest, key) => {
+    if (!closest) return key;
+
+    const keyPosition = getKeyPosition(key);
+    const closestPosition = getKeyPosition(closest);
+    const keyDistance =
+      (keyPosition.centerColumn - position.centerColumn) ** 2 +
+      (keyPosition.centerRow - position.centerRow) ** 2;
+    const closestDistance =
+      (closestPosition.centerColumn - position.centerColumn) ** 2 +
+      (closestPosition.centerRow - position.centerRow) ** 2;
+
+    return keyDistance < closestDistance ? key : closest;
+  }, null);
 }
 
 function isTextualInput(element: HTMLInputElement) {
@@ -299,23 +386,6 @@ function clearContentEditable(target: HTMLElement) {
   dispatchInputEvent(target, null);
 }
 
-function getTargetLabel(target: EditableTarget | null) {
-  if (!target) return "Text input";
-
-  if ("ariaLabel" in target && target.ariaLabel) {
-    return target.ariaLabel;
-  }
-
-  if (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement
-  ) {
-    return target.placeholder || target.name || "Text input";
-  }
-
-  return "Text input";
-}
-
 function useAcceleratedHoldAction({
   enabled,
   isPressed,
@@ -364,12 +434,20 @@ function useAcceleratedHoldAction({
 export function VirtualKeyboardProvider() {
   const [target, setTarget] = useState<EditableTarget | null>(null);
   const [isShiftActive, setIsShiftActive] = useState(false);
+  const [layer, setLayer] = useState<VirtualKeyboardLayer>("alphabetic");
+  const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const { setFocus } = useNavigationActions();
   const setVirtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.setTarget
   );
-  const { isButtonPressed } = useGamepad();
+  const { isButtonPressed, onButtonPressed, isActiveGamepadEvent } =
+    useGamepad();
   const suppressedTargetRef = useRef<EditableTarget | null>(null);
+  const activeTargetRef = useRef<EditableTarget | null>(null);
+  const pulseFrameRef = useRef<number | null>(null);
+  const pendingLayerFocusPositionRef =
+    useRef<VirtualKeyboardKeyPosition | null>(null);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
   const isOpen = Boolean(target);
   const portalTarget = IS_BROWSER
@@ -387,8 +465,16 @@ export function VirtualKeyboardProvider() {
       }
 
       setTarget(null);
+      activeTargetRef.current = null;
       setVirtualKeyboardTarget(null);
       setIsShiftActive(false);
+      setLayer("alphabetic");
+      setPulsingKeyId(null);
+
+      if (pulseFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(pulseFrameRef.current);
+        pulseFrameRef.current = null;
+      }
 
       if (restoreFocus && currentTarget) {
         globalThis.requestAnimationFrame(() => {
@@ -400,6 +486,18 @@ export function VirtualKeyboardProvider() {
     },
     [setVirtualKeyboardTarget, target]
   );
+
+  const pulseKey = useCallback((keyId: string) => {
+    if (pulseFrameRef.current !== null) {
+      globalThis.cancelAnimationFrame(pulseFrameRef.current);
+    }
+
+    setPulsingKeyId(null);
+    pulseFrameRef.current = globalThis.requestAnimationFrame(() => {
+      setPulsingKeyId(keyId);
+      pulseFrameRef.current = null;
+    });
+  }, []);
 
   const insertText = useCallback(
     (text: string) => {
@@ -444,6 +542,54 @@ export function VirtualKeyboardProvider() {
 
     focusEditableTarget(target);
   }, [closeKeyboard, target]);
+
+  const hotkeyBackspace = useCallback(() => {
+    pulseKey(VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID);
+    backspace();
+  }, [backspace, pulseKey]);
+
+  const toggleLayer = useCallback(() => {
+    const activeLayout =
+      layer === "alphabetic" ? ALPHABETIC_KEY_LAYOUT : SYMBOLS_KEY_LAYOUT;
+    const activeKey = findLayoutKeyById(activeLayout, currentFocusId);
+
+    pendingLayerFocusPositionRef.current = activeKey
+      ? getKeyPosition(activeKey)
+      : getKeyPosition(
+          findLayoutKeyById(
+            activeLayout,
+            VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID
+          ) ?? activeLayout[0]
+        );
+
+    setLayer((currentLayer) => {
+      const nextLayer =
+        currentLayer === "alphabetic" ? "symbols" : "alphabetic";
+
+      if (nextLayer === "symbols") {
+        setIsShiftActive(false);
+      }
+
+      return nextLayer;
+    });
+  }, [currentFocusId, layer]);
+
+  const hotkeyToggleLayer = useCallback(() => {
+    pulseKey(VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID);
+    toggleLayer();
+  }, [pulseKey, toggleLayer]);
+
+  const hotkeySpace = useCallback(() => {
+    pulseKey(getKeyId({ type: "space", label: "Space" }));
+    insertText(" ");
+  }, [insertText, pulseKey]);
+
+  const hotkeyShift = useCallback(() => {
+    if (layer !== "alphabetic") return;
+
+    pulseKey(getKeyId({ type: "shift", label: "Shift" }));
+    setIsShiftActive((current) => !current);
+  }, [layer, pulseKey]);
 
   const clear = useCallback(() => {
     if (!target || !globalThis.document.contains(target)) {
@@ -512,8 +658,17 @@ export function VirtualKeyboardProvider() {
     focusEditableTarget(target);
   }, [closeKeyboard, target]);
 
+  const hotkeyEnter = useCallback(() => {
+    pulseKey(VIRTUAL_KEYBOARD_ENTER_KEY_ID);
+    enter();
+  }, [enter, pulseKey]);
+
   const handleKey = useCallback(
     (key: VirtualKeyboardKey) => {
+      const keyId = getKeyId(key);
+
+      pulseKey(keyId);
+
       if (key.type === "character") {
         insertText(isShiftActive ? key.value.toUpperCase() : key.value);
         return;
@@ -549,11 +704,25 @@ export function VirtualKeyboardProvider() {
         return;
       }
 
+      if (key.type === "toggle-layer") {
+        toggleLayer();
+        return;
+      }
+
       if (key.type === "shift") {
         setIsShiftActive((current) => !current);
       }
     },
-    [backspace, clear, enter, insertText, isShiftActive, moveCursor]
+    [
+      backspace,
+      clear,
+      enter,
+      insertText,
+      isShiftActive,
+      moveCursor,
+      pulseKey,
+      toggleLayer,
+    ]
   );
 
   useNavigationScreenActions(
@@ -561,7 +730,7 @@ export function VirtualKeyboardProvider() {
       ? {
           press: {
             b: () => closeKeyboard(),
-            y: () => setIsShiftActive((current) => !current),
+            y: hotkeySpace,
           },
         }
       : {}
@@ -570,7 +739,7 @@ export function VirtualKeyboardProvider() {
   useAcceleratedHoldAction({
     enabled: isOpen,
     isPressed: isButtonPressed(GamepadButtonType.BUTTON_X),
-    onAction: backspace,
+    onAction: hotkeyBackspace,
   });
   useAcceleratedHoldAction({
     enabled: isOpen,
@@ -584,6 +753,48 @@ export function VirtualKeyboardProvider() {
   });
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const removeLeftStickPress = onButtonPressed(
+      GamepadButtonType.LEFT_STICK_PRESS,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        hotkeyShift();
+      }
+    );
+    const removeRightStickPress = onButtonPressed(
+      GamepadButtonType.RIGHT_STICK_PRESS,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        hotkeyToggleLayer();
+      }
+    );
+    const removeRightTrigger = onButtonPressed(
+      GamepadButtonType.RIGHT_TRIGGER,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        hotkeyEnter();
+      }
+    );
+
+    return () => {
+      removeLeftStickPress();
+      removeRightStickPress();
+      removeRightTrigger();
+    };
+  }, [
+    hotkeyEnter,
+    hotkeyShift,
+    hotkeyToggleLayer,
+    isActiveGamepadEvent,
+    isOpen,
+    onButtonPressed,
+  ]);
+
+  useEffect(() => {
     if (!IS_BROWSER) return;
 
     const handleFocusIn = (event: FocusEvent) => {
@@ -593,7 +804,16 @@ export function VirtualKeyboardProvider() {
 
       if (suppressedTargetRef.current === nextTarget) return;
 
+      const isNewTarget = activeTargetRef.current !== nextTarget;
+
+      activeTargetRef.current = nextTarget;
       setVirtualKeyboardTarget(nextTarget);
+
+      if (isNewTarget) {
+        setLayer("alphabetic");
+        setIsShiftActive(false);
+      }
+
       setTarget(nextTarget);
     };
 
@@ -614,6 +834,11 @@ export function VirtualKeyboardProvider() {
 
   useEffect(() => {
     return () => {
+      if (pulseFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(pulseFrameRef.current);
+      }
+
+      activeTargetRef.current = null;
       setVirtualKeyboardTarget(null);
     };
   }, [setVirtualKeyboardTarget]);
@@ -661,7 +886,30 @@ export function VirtualKeyboardProvider() {
     };
   }, [currentFocusId, target]);
 
-  const targetLabel = useMemo(() => getTargetLabel(target), [target]);
+  const keyLayout =
+    layer === "alphabetic" ? ALPHABETIC_KEY_LAYOUT : SYMBOLS_KEY_LAYOUT;
+
+  useEffect(() => {
+    const pendingPosition = pendingLayerFocusPositionRef.current;
+
+    if (!pendingPosition) return;
+
+    pendingLayerFocusPositionRef.current = null;
+
+    const nextKey =
+      findClosestLayoutKeyByPosition(keyLayout, pendingPosition) ??
+      findLayoutKeyById(keyLayout, VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID);
+    const nextFocusId = nextKey
+      ? getKeyId(nextKey)
+      : VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID;
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      setFocus(nextFocusId);
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [keyLayout, layer, setFocus]);
 
   if (!portalTarget) return null;
 
@@ -684,13 +932,6 @@ export function VirtualKeyboardProvider() {
               exit={{ opacity: 0, x: "-50%", y: 24, scale: 0.98 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Typography
-                variant="label"
-                className="virtual-keyboard__target-label"
-              >
-                Typing in {targetLabel}
-              </Typography>
-
               <GridFocusGroup
                 regionId={VIRTUAL_KEYBOARD_REGION_ID}
                 className="virtual-keyboard__keys"
@@ -700,25 +941,14 @@ export function VirtualKeyboardProvider() {
                   } as CSSProperties
                 }
               >
-                {KEY_LAYOUT.map((key) => {
+                {keyLayout.map((key) => {
                   const keyStyle = getKeyStyle(key);
-
-                  if (key.type === "visual") {
-                    return (
-                      <span
-                        key={`virtual-keyboard-visual-${key.label}`}
-                        className="virtual-keyboard__key virtual-keyboard__key--visual"
-                        style={keyStyle}
-                        aria-hidden="true"
-                      >
-                        {key.label}
-                      </span>
-                    );
-                  }
 
                   const keyId = getKeyId(key);
                   const label =
-                    key.type === "character" && isShiftActive
+                    key.type === "character" &&
+                    layer === "alphabetic" &&
+                    isShiftActive
                       ? key.label.toUpperCase()
                       : key.label;
 
@@ -736,6 +966,7 @@ export function VirtualKeyboardProvider() {
                           ? "true"
                           : undefined
                       }
+                      data-pulsing={pulsingKeyId === keyId || undefined}
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => handleKey(key)}
                     >
@@ -747,9 +978,12 @@ export function VirtualKeyboardProvider() {
               <div className="virtual-keyboard__hint">
                 <span>A Select</span>
                 <span>B Close</span>
-                <span>Hold X Backspace</span>
-                <span>Y Shift</span>
-                <span>Hold LB/RB Move cursor</span>
+                <span>X Backspace</span>
+                <span>Y Space</span>
+                {layer === "alphabetic" ? <span>L3 Shift</span> : null}
+                <span>R3 123#/ABC</span>
+                <span>RT Enter</span>
+                <span>LB/RB Move cursor</span>
               </div>
             </motion.aside>
           </NavigationLayer>
