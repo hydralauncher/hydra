@@ -1,0 +1,97 @@
+.virtual-keyboard {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--spacing-unit) * 6);
+  z-index: 140;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  width: min(960px, calc(100vw - (var(--spacing-unit) * 16)));
+  padding: calc(var(--spacing-unit) * 4);
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 4);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--secondary) 78%, transparent),
+      color-mix(in srgb, var(--background) 94%, transparent)
+    ),
+    var(--background);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.58);
+}
+
+.virtual-keyboard__target-label {
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.virtual-keyboard__keys {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--virtual-keyboard-columns),
+    minmax(0, 1fr)
+  );
+  grid-auto-rows: minmax(52px, auto);
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.virtual-keyboard__key {
+  grid-column: var(--virtual-keyboard-key-column) / span
+    var(--virtual-keyboard-key-column-span);
+  grid-row: var(--virtual-keyboard-key-row) / span
+    var(--virtual-keyboard-key-row-span);
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 52px;
+  padding-inline: calc(var(--spacing-unit) * 2);
+  border-radius: calc(var(--spacing-unit) * 2);
+  font-size: 16px;
+
+  &[data-active="true"] {
+    border-color: var(--primary);
+    background-color: var(--secondary-hover);
+    color: var(--text);
+  }
+}
+
+.virtual-keyboard__key--visual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: 1px solid var(--secondary-border);
+  background-color: color-mix(in srgb, var(--secondary) 72%, transparent);
+  font-family: var(--font-space-grotesk);
+  pointer-events: none;
+}
+
+.virtual-keyboard__hint {
+  display: flex;
+  justify-content: center;
+  gap: calc(var(--spacing-unit) * 4);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+}
+
+@media (max-width: 960px) {
+  .virtual-keyboard {
+    width: calc(100vw - (var(--spacing-unit) * 8));
+    bottom: calc(var(--spacing-unit) * 3);
+  }
+
+  .virtual-keyboard__keys {
+    grid-auto-rows: minmax(48px, auto);
+    gap: var(--spacing-unit);
+  }
+
+  .virtual-keyboard__key {
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .virtual-keyboard__target-label {
+    display: none;
+  }
+}

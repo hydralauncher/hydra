@@ -24,6 +24,7 @@ import {
   NavigationDiagnostics,
   VerticalFocusGroup,
   BigPictureToastHost,
+  VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
 import type { FocusOverrides } from "./services";
@@ -121,6 +122,7 @@ export default function App() {
             </div>
           </HorizontalFocusGroup>
         </NavigationLayer>
+        <VirtualKeyboardProvider />
       </NavigationInputProvider>
     </Fragment>
   );

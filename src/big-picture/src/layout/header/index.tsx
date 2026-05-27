@@ -14,7 +14,11 @@ import { FocusItem, HorizontalFocusGroup, Typography } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import { useNavigationScreenActions } from "../../hooks";
 import type { FocusOverrides } from "../../services";
-import { useNavigationHistoryStore, useNavigationStore } from "../../stores";
+import {
+  useNavigationHistoryStore,
+  useNavigationStore,
+  useVirtualKeyboardStore,
+} from "../../stores";
 import {
   BIG_PICTURE_HEADER_REGION_ID,
   normalizeBigPicturePathname,
@@ -44,6 +48,9 @@ function Header() {
     isOnCataloguePage ? catalogueSearchValue : ""
   );
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
   const isSearchFocused = currentFocusId === HEADER_SEARCH_INPUT_ID;
   const canAutoOpenSearchRef = useRef(
     currentFocusId !== null && currentFocusId !== HEADER_SEARCH_INPUT_ID
@@ -59,6 +66,9 @@ function Header() {
       itemId: HEADER_BACK_BUTTON_ID,
     },
   };
+  const isSearchVirtualKeyboardTarget =
+    virtualKeyboardTarget !== null &&
+    virtualKeyboardTarget === inputRef.current;
 
   const openSearch = useCallback(() => {
     isSearchDismissedWhileFocusedRef.current = false;
@@ -140,7 +150,7 @@ function Header() {
   }, [isSearchOpen]);
 
   useEffect(() => {
-    if (!isSearchFocused) {
+    if (!isSearchFocused && !isSearchVirtualKeyboardTarget) {
       if (currentFocusId !== null) {
         canAutoOpenSearchRef.current = true;
       }
@@ -155,6 +165,10 @@ function Header() {
       return;
     }
 
+    if (isSearchVirtualKeyboardTarget) {
+      return;
+    }
+
     if (
       canAutoOpenSearchRef.current &&
       !isSearchOpen &&
@@ -162,7 +176,13 @@ function Header() {
     ) {
       openSearch();
     }
-  }, [currentFocusId, isSearchFocused, isSearchOpen, openSearch]);
+  }, [
+    currentFocusId,
+    isSearchFocused,
+    isSearchOpen,
+    isSearchVirtualKeyboardTarget,
+    openSearch,
+  ]);
 
   useEffect(() => {
     if (isOnCataloguePage) {
@@ -172,6 +192,15 @@ function Header() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target instanceof Element ? e.target : null;
+      const isVirtualKeyboardClick = Boolean(
+        target?.closest(".virtual-keyboard")
+      );
+
+      if (isVirtualKeyboardClick && isSearchVirtualKeyboardTarget) {
+        return;
+      }
+
       if (isSearchOpen && !searchRef.current?.contains(e.target as Node)) {
         dismissSearch();
       }
@@ -190,7 +219,12 @@ function Header() {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [closeSearchKeepingFocus, dismissSearch, isSearchOpen]);
+  }, [
+    closeSearchKeepingFocus,
+    dismissSearch,
+    isSearchOpen,
+    isSearchVirtualKeyboardTarget,
+  ]);
 
   useNavigationScreenActions(
     isSearchOpen
