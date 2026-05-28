@@ -237,7 +237,7 @@ function Header() {
       }
 
       if (isSearchOpen && !searchRef.current?.contains(e.target as Node)) {
-        dismissSearch();
+        dismissSearch({ closeKeyboard: true });
       }
     };
 

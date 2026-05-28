@@ -112,8 +112,6 @@ export default function Catalogue() {
     []
   );
 
-  if (!catalogueData) return null;
-
   return (
     <HorizontalFocusGroup regionId={CATALOGUE_PAGE_REGION_ID} asChild>
       <section

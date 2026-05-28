@@ -139,14 +139,32 @@ const externalResourcesInstance = axios.create({
   baseURL: import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL,
 });
 
-function parseParam<T>(value: string | null): T | undefined {
+function parseJsonParam(value: string | null): unknown {
   if (!value) return undefined;
 
   try {
-    return JSON.parse(value) as T;
+    return JSON.parse(value);
   } catch {
-    return value as T;
+    return undefined;
   }
+}
+
+function parseStringArrayParam(value: string | null) {
+  const parsed = parseJsonParam(value);
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((item): item is string => typeof item === "string");
+}
+
+function parseNumberArrayParam(value: string | null) {
+  const parsed = parseJsonParam(value);
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter(
+    (item): item is number => typeof item === "number" && Number.isFinite(item)
+  );
 }
 
 function getCatalogueSortOption(searchParams: URLSearchParams) {
@@ -164,18 +182,14 @@ export function useCatalogueData() {
   const [pageSize, setPageSize] = useState(getCataloguePageSize);
   const [page, setPage] = useState(1);
 
-  const [steamGenres, setSteamGenres] = useState<string[] | null>(null);
-  const [steamTags, setSteamTags] = useState<Record<string, number> | null>(
-    null
-  );
-  const [steamDevelopers, setSteamDevelopers] = useState<string[] | null>(null);
-  const [steamPublishers, setSteamPublishers] = useState<string[] | null>(null);
+  const [steamGenres, setSteamGenres] = useState<string[]>([]);
+  const [steamTags, setSteamTags] = useState<Record<string, number>>({});
+  const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
+  const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [searchData, setSearchData] = useState<SearchGamesResponseData>();
   const [isLoadingSearch, setIsLoadingSearch] = useState(true);
-  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true);
   const [searchError, setSearchError] = useState<Error | null>(null);
-  const [metadataError, setMetadataError] = useState<Error | null>(null);
   const downloadSourceIds = useMemo(
     () => downloadSources.map((source) => source.id),
     [downloadSources]
@@ -199,13 +213,13 @@ export function useCatalogueData() {
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
-      tags: parseParam<number[]>(searchParams.get("tags")) ?? [],
-      genres: parseParam<string[]>(searchParams.get("genres")) ?? [],
-      publishers: parseParam<string[]>(searchParams.get("publishers")) ?? [],
-      developers: parseParam<string[]>(searchParams.get("developers")) ?? [],
-      downloadSourceFingerprints:
-        parseParam<string[]>(searchParams.get("downloadSourceFingerprints")) ??
-        [],
+      tags: parseNumberArrayParam(searchParams.get("tags")),
+      genres: parseStringArrayParam(searchParams.get("genres")),
+      publishers: parseStringArrayParam(searchParams.get("publishers")),
+      developers: parseStringArrayParam(searchParams.get("developers")),
+      downloadSourceFingerprints: parseStringArrayParam(
+        searchParams.get("downloadSourceFingerprints")
+      ),
     };
   }, [searchParams]);
 
@@ -256,49 +270,48 @@ export function useCatalogueData() {
     let cancelled = false;
 
     const loadMetadata = async () => {
-      try {
-        const [
-          genresResponse,
-          tagsResponse,
-          developersResponse,
-          publishersResponse,
-          rawDownloadSources,
-        ] = await Promise.all([
-          externalResourcesInstance.get<SteamGenresResponse>(
-            "/steam-genres.json"
-          ),
-          externalResourcesInstance.get<SteamTagsResponse>(
-            "/steam-user-tags.json"
-          ),
-          externalResourcesInstance.get<string[]>("/steam-developers.json"),
-          externalResourcesInstance.get<string[]>("/steam-publishers.json"),
-          levelDBService.values("downloadSources"),
-        ]);
+      const [
+        genresResponse,
+        tagsResponse,
+        developersResponse,
+        publishersResponse,
+        rawDownloadSources,
+      ] = await Promise.allSettled([
+        externalResourcesInstance.get<SteamGenresResponse>(
+          "/steam-genres.json"
+        ),
+        externalResourcesInstance.get<SteamTagsResponse>(
+          "/steam-user-tags.json"
+        ),
+        externalResourcesInstance.get<string[]>("/steam-developers.json"),
+        externalResourcesInstance.get<string[]>("/steam-publishers.json"),
+        levelDBService.values("downloadSources"),
+      ]);
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        setSteamGenres(genresResponse.data.en);
-        setSteamTags(tagsResponse.data.en);
-        setSteamDevelopers(developersResponse.data);
-        setSteamPublishers(publishersResponse.data);
+      if (genresResponse.status === "fulfilled") {
+        setSteamGenres(genresResponse.value.data.en);
+      }
+
+      if (tagsResponse.status === "fulfilled") {
+        setSteamTags(tagsResponse.value.data.en);
+      }
+
+      if (developersResponse.status === "fulfilled") {
+        setSteamDevelopers(developersResponse.value.data);
+      }
+
+      if (publishersResponse.status === "fulfilled") {
+        setSteamPublishers(publishersResponse.value.data);
+      }
+
+      if (rawDownloadSources.status === "fulfilled") {
         setDownloadSources(
-          (rawDownloadSources as DownloadSource[]).filter(
+          (rawDownloadSources.value as DownloadSource[]).filter(
             (source) => !!source.fingerprint
           )
         );
-        setMetadataError(null);
-      } catch (error) {
-        if (cancelled) return;
-
-        setMetadataError(
-          error instanceof Error
-            ? error
-            : new Error("Failed to load catalogue metadata.")
-        );
-      } finally {
-        if (!cancelled) {
-          setIsLoadingMetadata(false);
-        }
       }
     };
 
@@ -399,11 +412,7 @@ export function useCatalogueData() {
     }, {});
   }, [downloadSources]);
 
-  const catalogueData = useMemo<CatalogueData | undefined>(() => {
-    if (!steamGenres || !steamTags || !steamDevelopers || !steamPublishers) {
-      return undefined;
-    }
-
+  const catalogueData = useMemo<CatalogueData>(() => {
     return {
       [FilterType.Genres]: {
         data: steamGenres,
@@ -455,9 +464,9 @@ export function useCatalogueData() {
     catalogueData,
     search: {
       data: searchData,
-      isLoading: isLoadingSearch || isLoadingMetadata,
-      isError: Boolean(searchError || metadataError),
-      error: searchError ?? metadataError,
+      isLoading: isLoadingSearch,
+      isError: Boolean(searchError),
+      error: searchError,
       isEmpty: !searchData || searchData.edges.length === 0,
     },
   };
