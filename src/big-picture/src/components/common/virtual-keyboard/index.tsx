@@ -56,6 +56,7 @@ const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
 const VIRTUAL_KEYBOARD_ENTER_KEY_ID = "big-picture-virtual-keyboard-key-enter";
 const VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID =
   "big-picture-virtual-keyboard-key-toggle-layer";
+const VIRTUAL_KEYBOARD_DISMISS_EVENT = "big-picture-virtual-keyboard-dismiss";
 const VIRTUAL_KEYBOARD_COLUMNS = 11;
 const TEXTUAL_INPUT_TYPES = new Set([
   "",
@@ -441,6 +442,9 @@ export function VirtualKeyboardProvider() {
   const setVirtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.setTarget
   );
+  const setCloseVirtualKeyboard = useVirtualKeyboardStore(
+    (state) => state.setCloseKeyboard
+  );
   const { isButtonPressed, onButtonPressed, isActiveGamepadEvent } =
     useGamepad();
   const suppressedTargetRef = useRef<EditableTarget | null>(null);
@@ -462,6 +466,15 @@ export function VirtualKeyboardProvider() {
 
       if (restoreFocus && currentTarget) {
         suppressedTargetRef.current = currentTarget;
+      }
+
+      if (!restoreFocus && currentTarget) {
+        currentTarget.blur();
+        globalThis.window.dispatchEvent(
+          new CustomEvent(VIRTUAL_KEYBOARD_DISMISS_EVENT, {
+            detail: { target: currentTarget },
+          })
+        );
       }
 
       setTarget(null);
@@ -486,6 +499,16 @@ export function VirtualKeyboardProvider() {
     },
     [setVirtualKeyboardTarget, target]
   );
+
+  useEffect(() => {
+    setCloseVirtualKeyboard(({ restoreFocus = true } = {}) => {
+      closeKeyboard(restoreFocus);
+    });
+
+    return () => {
+      setCloseVirtualKeyboard(null);
+    };
+  }, [closeKeyboard, setCloseVirtualKeyboard]);
 
   const pulseKey = useCallback((keyId: string) => {
     if (pulseFrameRef.current !== null) {
@@ -729,7 +752,7 @@ export function VirtualKeyboardProvider() {
     isOpen
       ? {
           press: {
-            b: () => closeKeyboard(),
+            b: () => closeKeyboard(false),
             y: hotkeySpace,
           },
         }

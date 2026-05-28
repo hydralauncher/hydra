@@ -28,6 +28,9 @@ import "./styles.scss";
 const HEADER_BACK_BUTTON_ID = "header-back-button";
 const HEADER_SEARCH_INPUT_ID = "header-search-input";
 const MAX_SEARCH_LENGTH = 255;
+const VIRTUAL_KEYBOARD_DISMISS_EVENT = "big-picture-virtual-keyboard-dismiss";
+const VIRTUAL_KEYBOARD_KEY_FOCUS_ID_PREFIX =
+  "big-picture-virtual-keyboard-key-";
 
 const useCurrentPageTitle = () => {
   const stack = useNavigationHistoryStore((s) => s.stack);
@@ -50,6 +53,9 @@ function Header() {
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target
+  );
+  const closeVirtualKeyboard = useVirtualKeyboardStore(
+    (state) => state.closeKeyboard
   );
   const isSearchFocused = currentFocusId === HEADER_SEARCH_INPUT_ID;
   const canAutoOpenSearchRef = useRef(
@@ -81,13 +87,20 @@ function Header() {
     inputRef.current?.blur();
   }, []);
 
-  const dismissSearch = useCallback(() => {
-    isSearchDismissedWhileFocusedRef.current = true;
-    closeSearch();
-  }, [closeSearch]);
+  const dismissSearch = useCallback(
+    ({ closeKeyboard = false }: { closeKeyboard?: boolean } = {}) => {
+      if (closeKeyboard && isSearchVirtualKeyboardTarget) {
+        closeVirtualKeyboard?.({ restoreFocus: false });
+      }
+
+      isSearchDismissedWhileFocusedRef.current = true;
+      closeSearch();
+    },
+    [closeSearch, closeVirtualKeyboard, isSearchVirtualKeyboardTarget]
+  );
 
   const closeSearchKeepingFocus = useCallback(() => {
-    dismissSearch();
+    dismissSearch({ closeKeyboard: true });
 
     globalThis.window.requestAnimationFrame(() => {
       searchTriggerRef.current?.focus({ preventScroll: true });
@@ -121,6 +134,14 @@ function Header() {
 
     if (isOnCataloguePage) {
       updateCatalogueTitle(nextValue);
+      return;
+    }
+
+    if (nextValue.trim()) {
+      const nextSearchParams = new URLSearchParams({ title: nextValue });
+      const basePath = IS_DESKTOP ? "/big-picture" : "";
+
+      navigate(`${basePath}/catalogue?${nextSearchParams.toString()}`);
     }
   };
 
@@ -155,7 +176,13 @@ function Header() {
         canAutoOpenSearchRef.current = true;
       }
 
-      isSearchDismissedWhileFocusedRef.current = false;
+      const isFocusStillInsideVirtualKeyboard =
+        currentFocusId?.startsWith(VIRTUAL_KEYBOARD_KEY_FOCUS_ID_PREFIX) ??
+        false;
+
+      if (currentFocusId !== null && !isFocusStillInsideVirtualKeyboard) {
+        isSearchDismissedWhileFocusedRef.current = false;
+      }
 
       if (isSearchOpen) {
         setIsSearchOpen(false);
@@ -191,6 +218,14 @@ function Header() {
   }, [catalogueSearchValue, isOnCataloguePage]);
 
   useEffect(() => {
+    const handleVirtualKeyboardDismiss = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      if (event.detail?.target !== inputRef.current) return;
+
+      isSearchDismissedWhileFocusedRef.current = true;
+      closeSearch();
+    };
+
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target instanceof Element ? e.target : null;
       const isVirtualKeyboardClick = Boolean(
@@ -212,14 +247,23 @@ function Header() {
       }
     };
 
+    globalThis.window.addEventListener(
+      VIRTUAL_KEYBOARD_DISMISS_EVENT,
+      handleVirtualKeyboardDismiss
+    );
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
 
     return () => {
+      globalThis.window.removeEventListener(
+        VIRTUAL_KEYBOARD_DISMISS_EVENT,
+        handleVirtualKeyboardDismiss
+      );
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [
+    closeSearch,
     closeSearchKeepingFocus,
     dismissSearch,
     isSearchOpen,
