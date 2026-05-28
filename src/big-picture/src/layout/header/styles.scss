@@ -43,6 +43,7 @@
   justify-content: space-between;
   position: relative;
   width: 100%;
+  padding-inline: calc(var(--spacing-unit) * 16);
 }
 
 .header__action {
@@ -87,9 +88,18 @@
   position: relative;
   flex: 1;
 
+  &-trigger {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    cursor: pointer;
+    outline: none;
+  }
+
   &-icon {
     position: absolute;
     z-index: 1;
+    pointer-events: none;
 
     &--left {
       left: calc(var(--spacing-unit) * 6);
@@ -112,13 +122,18 @@
     background-color: var(--surface);
     box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.6);
 
+    .header__search-trigger {
+      pointer-events: none;
+    }
+
     .header__search-input {
       width: 100%;
       opacity: 1;
     }
   }
 
-  &:focus-visible {
+  &:has(.header__search-trigger:focus-visible),
+  &:has(.header__search-trigger[data-focus-visible]) {
     outline: 2px solid var(--secondary-border);
     outline-offset: 2px;
   }

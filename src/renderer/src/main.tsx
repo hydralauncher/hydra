@@ -38,6 +38,7 @@ import { AchievementNotificationOverlay } from "./components/achievements/notifi
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
+import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
 import BigPictureDownloads from "../../big-picture/src/pages/downloads/downloads";
 import BigPictureHome from "../../big-picture/src/pages/home/home";
 import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
@@ -121,6 +122,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/big-picture" element={<BigPictureApp />}>
             <Route index element={<BigPictureHome />} />
             <Route path="catalogue" element={<BigPictureCatalogue />} />
+            <Route path="component-lab" element={<BigPictureComponentLab />} />
             <Route path="downloads" element={<BigPictureDownloads />} />
             <Route path="settings" element={<BigPictureSettings />} />
             <Route path="library" element={<BigPictureLibrary />} />

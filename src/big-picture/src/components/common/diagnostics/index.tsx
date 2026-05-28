@@ -1310,13 +1310,13 @@ export function NavigationDiagnostics() {
   return (
     <div
       style={{
-        position: "absolute",
-        right: "calc(var(--spacing-unit) * 6)",
+        position: "fixed",
+        left: "calc(var(--spacing-unit) * 6)",
         bottom: "calc(var(--spacing-unit) * 6)",
         zIndex: 1000,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-end",
+        alignItems: "flex-start",
         gap: "calc(var(--spacing-unit) * 3)",
         fontSize: 12,
       }}

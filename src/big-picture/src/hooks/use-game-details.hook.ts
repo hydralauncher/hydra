@@ -9,9 +9,15 @@ import type {
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
-import { getSteamLanguage } from "../helpers";
+import {
+  buildFavoriteToastOptions,
+  buildGameToastVisualOptions,
+  getSteamLanguage,
+} from "../helpers";
+import { useBigPictureToast } from "./use-big-picture-toast.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
+  const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
     null
   );
@@ -135,15 +141,52 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const toggleFavorite = useCallback(async () => {
     if (!game) return;
 
-    if (game.favorite) {
-      await globalThis.window.electron.removeGameFromFavorites(shop, objectId);
-    } else {
-      await globalThis.window.electron.addGameToFavorites(shop, objectId);
-    }
+    const toastSource = {
+      title: shopDetails?.assets?.title ?? game.title,
+      iconUrl: shopDetails?.assets?.iconUrl ?? game.iconUrl ?? null,
+      coverImageUrl:
+        shopDetails?.assets?.coverImageUrl ?? game.coverImageUrl ?? null,
+      libraryImageUrl:
+        shopDetails?.assets?.libraryImageUrl ?? game.libraryImageUrl ?? null,
+      libraryHeroImageUrl:
+        shopDetails?.assets?.libraryHeroImageUrl ??
+        game.libraryHeroImageUrl ??
+        null,
+    };
 
-    updateGame();
-    globalThis.window.dispatchEvent(new Event("library-update"));
-  }, [game, shop, objectId, updateGame]);
+    try {
+      if (game.favorite) {
+        await globalThis.window.electron.removeGameFromFavorites(
+          shop,
+          objectId
+        );
+      } else {
+        await globalThis.window.electron.addGameToFavorites(shop, objectId);
+      }
+
+      await updateGame();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+      const { title, ...toastOptions } = await buildFavoriteToastOptions(
+        toastSource,
+        game.favorite ? "removed" : "added"
+      );
+      showSuccessToast(title, toastOptions);
+    } catch {
+      const toastOptions = await buildGameToastVisualOptions(toastSource);
+      showErrorToast("Failed to update favorites", {
+        ...toastOptions,
+        message: `${toastSource.title} couldn't be updated right now.`,
+      });
+    }
+  }, [
+    game,
+    objectId,
+    shop,
+    shopDetails?.assets,
+    showErrorToast,
+    showSuccessToast,
+    updateGame,
+  ]);
 
   return {
     shopDetails,

@@ -23,6 +23,8 @@ import {
   NavigationStateBridge,
   NavigationDiagnostics,
   VerticalFocusGroup,
+  BigPictureToastHost,
+  VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
 import type { FocusOverrides } from "./services";
@@ -87,38 +89,43 @@ export default function App() {
       <NavigationHistoryBridge />
 
       <NavigationInputProvider>
-        <NavigationLayer
-          layerId={BIG_PICTURE_APP_LAYER_ID}
-          rootRegionId={BIG_PICTURE_SHELL_REGION_ID}
-          initialFocusRegionId={BIG_PICTURE_CONTENT_REGION_ID}
-        >
-          <HorizontalFocusGroup
-            regionId={BIG_PICTURE_SHELL_REGION_ID}
-            autoScrollMode="auto"
-            asChild
+        <div id="big-picture">
+          <NavigationLayer
+            layerId={BIG_PICTURE_APP_LAYER_ID}
+            rootRegionId={BIG_PICTURE_SHELL_REGION_ID}
+            initialFocusRegionId={BIG_PICTURE_CONTENT_REGION_ID}
           >
-            <div id="big-picture">
-              <Sidebar />
+            <HorizontalFocusGroup
+              regionId={BIG_PICTURE_SHELL_REGION_ID}
+              autoScrollMode="auto"
+              asChild
+            >
+              <div className="big-picture__app">
+                <Sidebar />
 
-              <VerticalFocusGroup
-                regionId={BIG_PICTURE_CONTENT_REGION_ID}
-                navigationOverrides={contentNavigationOverrides}
-                autoScrollMode="auto"
-                asChild
-              >
-                <div className="big-picture__layout">
-                  <Header />
+                <VerticalFocusGroup
+                  regionId={BIG_PICTURE_CONTENT_REGION_ID}
+                  navigationOverrides={contentNavigationOverrides}
+                  autoScrollMode="auto"
+                  asChild
+                >
+                  <div className="big-picture__layout">
+                    <Header />
 
-                  <article className="big-picture__content">
-                    <Outlet />
-                  </article>
-                </div>
-              </VerticalFocusGroup>
+                    <article className="big-picture__content">
+                      <Outlet />
+                    </article>
 
-              <NavigationDiagnostics />
-            </div>
-          </HorizontalFocusGroup>
-        </NavigationLayer>
+                    <VirtualKeyboardProvider />
+                  </div>
+                </VerticalFocusGroup>
+              </div>
+            </HorizontalFocusGroup>
+          </NavigationLayer>
+
+          <NavigationDiagnostics />
+          <BigPictureToastHost />
+        </div>
       </NavigationInputProvider>
     </Fragment>
   );
