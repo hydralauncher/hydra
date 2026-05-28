@@ -16,8 +16,6 @@ export interface UserProfileContext {
   getUserProfile: () => Promise<void>;
   getUserLibraryGames: (sortBy?: string, reset?: boolean) => Promise<void>;
   loadMoreLibraryGames: (sortBy?: string) => Promise<boolean>;
-  getUserClassicsGames: (sortBy?: string, reset?: boolean) => Promise<void>;
-  loadMoreClassicsGames: (sortBy?: string) => Promise<boolean>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -25,10 +23,6 @@ export interface UserProfileContext {
   pinnedGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isLoadingLibraryGames: boolean;
-  classicsGames: UserGame[];
-  classicsPinnedGames: UserGame[];
-  hasMoreClassicsGames: boolean;
-  isLoadingClassicsGames: boolean;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
@@ -41,8 +35,6 @@ export const userProfileContext = createContext<UserProfileContext>({
   getUserProfile: async () => {},
   getUserLibraryGames: async (_sortBy?: string, _reset?: boolean) => {},
   loadMoreLibraryGames: async (_sortBy?: string) => false,
-  getUserClassicsGames: async (_sortBy?: string, _reset?: boolean) => {},
-  loadMoreClassicsGames: async (_sortBy?: string) => false,
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -50,10 +42,6 @@ export const userProfileContext = createContext<UserProfileContext>({
   pinnedGames: [],
   hasMoreLibraryGames: false,
   isLoadingLibraryGames: false,
-  classicsGames: [],
-  classicsPinnedGames: [],
-  hasMoreClassicsGames: false,
-  isLoadingClassicsGames: false,
 });
 
 const { Provider } = userProfileContext;
@@ -83,14 +71,6 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
-
-  const [classicsGames, setClassicsGames] = useState<UserGame[]>([]);
-  const [classicsPinnedGames, setClassicsPinnedGames] = useState<UserGame[]>(
-    []
-  );
-  const [classicsPage, setClassicsPage] = useState(0);
-  const [hasMoreClassicsGames, setHasMoreClassicsGames] = useState(true);
-  const [isLoadingClassicsGames, setIsLoadingClassicsGames] = useState(false);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -133,14 +113,13 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", "0");
+        params.append("shop", "steam");
+        params.append("shop", "launchbox");
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
-        const queryString = params.toString();
-        const url = queryString
-          ? `/users/${userId}/library?${queryString}`
-          : `/users/${userId}/library`;
+        const url = `/users/${userId}/library?${params.toString()}`;
 
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
@@ -179,14 +158,13 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", String(nextPage * 12));
+        params.append("shop", "steam");
+        params.append("shop", "launchbox");
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
-        const queryString = params.toString();
-        const url = queryString
-          ? `/users/${userId}/library?${queryString}`
-          : `/users/${userId}/library`;
+        const url = `/users/${userId}/library?${params.toString()}`;
 
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
@@ -218,105 +196,16 @@ export function UserProfileContextProvider({
     [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
   );
 
-  const getUserClassicsGames = useCallback(
-    async (sortBy?: string, reset = true) => {
-      if (reset) {
-        setClassicsPage(0);
-        setHasMoreClassicsGames(true);
-        setIsLoadingClassicsGames(true);
-      }
-
-      try {
-        const params = new URLSearchParams();
-        params.append("take", "12");
-        params.append("skip", "0");
-        params.append("shop", "launchbox");
-        if (sortBy) {
-          params.append("sortBy", sortBy);
-        }
-
-        const url = `/users/${userId}/library?${params.toString()}`;
-
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url);
-
-        if (response) {
-          setClassicsGames(response.library);
-          setClassicsPinnedGames(response.pinnedGames);
-          setHasMoreClassicsGames(response.library.length === 12);
-        } else {
-          setClassicsGames([]);
-          setClassicsPinnedGames([]);
-          setHasMoreClassicsGames(false);
-        }
-      } catch (error) {
-        setClassicsGames([]);
-        setClassicsPinnedGames([]);
-        setHasMoreClassicsGames(false);
-      } finally {
-        setIsLoadingClassicsGames(false);
-      }
-    },
-    [userId]
-  );
-
-  const loadMoreClassicsGames = useCallback(
-    async (sortBy?: string): Promise<boolean> => {
-      if (isLoadingClassicsGames || !hasMoreClassicsGames) {
-        return false;
-      }
-
-      setIsLoadingClassicsGames(true);
-      try {
-        const nextPage = classicsPage + 1;
-        const params = new URLSearchParams();
-        params.append("take", "12");
-        params.append("skip", String(nextPage * 12));
-        params.append("shop", "launchbox");
-        if (sortBy) {
-          params.append("sortBy", sortBy);
-        }
-
-        const url = `/users/${userId}/library?${params.toString()}`;
-
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url);
-
-        if (response && response.library.length > 0) {
-          setClassicsGames((prev) => {
-            const existingIds = new Set(prev.map((game) => game.objectId));
-            const newGames = response.library.filter(
-              (game) => !existingIds.has(game.objectId)
-            );
-            return [...prev, ...newGames];
-          });
-          setClassicsPage(nextPage);
-          setHasMoreClassicsGames(response.library.length === 12);
-          return true;
-        } else {
-          setHasMoreClassicsGames(false);
-          return false;
-        }
-      } catch (error) {
-        setHasMoreClassicsGames(false);
-        return false;
-      } finally {
-        setIsLoadingClassicsGames(false);
-      }
-    },
-    [userId, classicsPage, hasMoreClassicsGames, isLoadingClassicsGames]
-  );
-
   const getUserProfile = useCallback(async () => {
     getUserStats();
     getUserLibraryGames();
 
+    const profileParams = new URLSearchParams();
+    profileParams.append("shop", "steam");
+    profileParams.append("shop", "launchbox");
+
     return window.electron.hydraApi
-      .get<UserProfile>(`/users/${userId}`)
+      .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`)
       .then((userProfile) => {
         setUserProfile(userProfile);
 
@@ -350,10 +239,6 @@ export function UserProfileContextProvider({
     setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
     setLibraryPage(0);
     setHasMoreLibraryGames(true);
-    setClassicsGames([]);
-    setClassicsPinnedGames([]);
-    setClassicsPage(0);
-    setHasMoreClassicsGames(true);
 
     getUserProfile();
     getBadges();
@@ -368,8 +253,6 @@ export function UserProfileContextProvider({
         getUserProfile,
         getUserLibraryGames,
         loadMoreLibraryGames,
-        getUserClassicsGames,
-        loadMoreClassicsGames,
         setSelectedBackgroundImage,
         backgroundImage: getBackgroundImageUrl(),
         userStats,
@@ -378,10 +261,6 @@ export function UserProfileContextProvider({
         pinnedGames,
         hasMoreLibraryGames,
         isLoadingLibraryGames,
-        classicsGames,
-        classicsPinnedGames,
-        hasMoreClassicsGames,
-        isLoadingClassicsGames,
       }}
     >
       {children}
