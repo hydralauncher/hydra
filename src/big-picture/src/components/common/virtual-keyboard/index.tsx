@@ -1,7 +1,6 @@
 import "./styles.scss";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../button";
@@ -35,6 +34,7 @@ type VirtualKeyboardKey =
   | { type: "cursor-right"; label: string };
 
 type VirtualKeyboardLayer = "alphabetic" | "symbols";
+type VirtualKeyboardLayoutMode = "floating" | "avoiding";
 
 type VirtualKeyboardLayoutKey = VirtualKeyboardKey & {
   column: number;
@@ -58,6 +58,7 @@ const VIRTUAL_KEYBOARD_TOGGLE_LAYER_KEY_ID =
   "big-picture-virtual-keyboard-key-toggle-layer";
 const VIRTUAL_KEYBOARD_DISMISS_EVENT = "big-picture-virtual-keyboard-dismiss";
 const VIRTUAL_KEYBOARD_COLUMNS = 11;
+const VIRTUAL_KEYBOARD_AVOIDANCE_MARGIN = 24;
 const TEXTUAL_INPUT_TYPES = new Set([
   "",
   "email",
@@ -247,6 +248,82 @@ function focusEditableTarget(target: EditableTarget) {
   } catch {
     target.focus();
   }
+}
+
+function isScrollableElement(element: HTMLElement) {
+  const style = globalThis.getComputedStyle(element);
+  const overflow = `${style.overflow} ${style.overflowX} ${style.overflowY}`;
+  const canScroll = /(auto|scroll|overlay)/.test(overflow);
+
+  return canScroll && element.scrollHeight > element.clientHeight;
+}
+
+function getKeyboardAvoidanceScrollContainer(element: HTMLElement) {
+  let current = element.parentElement;
+
+  while (current && current !== globalThis.document.body) {
+    if (isScrollableElement(current)) {
+      return current;
+    }
+
+    current = current.parentElement;
+  }
+
+  return null;
+}
+
+function scrollTargetAboveKeyboard(
+  target: EditableTarget,
+  keyboardArea: HTMLElement | null
+) {
+  if (!keyboardArea || !globalThis.document.contains(target)) return;
+
+  const container = getKeyboardAvoidanceScrollContainer(target);
+
+  if (!container) return;
+
+  const targetRect = target.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  const keyboardRect = keyboardArea.getBoundingClientRect();
+  const safeTop = containerRect.top + VIRTUAL_KEYBOARD_AVOIDANCE_MARGIN;
+  const safeBottom =
+    Math.min(containerRect.bottom, keyboardRect.top) -
+    VIRTUAL_KEYBOARD_AVOIDANCE_MARGIN;
+
+  let deltaY = 0;
+
+  if (targetRect.bottom > safeBottom) {
+    deltaY = targetRect.bottom - safeBottom;
+  } else if (targetRect.top < safeTop) {
+    deltaY = targetRect.top - safeTop;
+  }
+
+  if (deltaY === 0) return;
+
+  const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
+  const nextTop = Math.min(Math.max(container.scrollTop + deltaY, 0), maxTop);
+
+  container.scrollTo({
+    top: nextTop,
+    behavior: "smooth",
+  });
+}
+
+function isTargetBehindKeyboardArea(
+  target: EditableTarget,
+  keyboardArea: HTMLElement | null
+) {
+  if (!keyboardArea || !globalThis.document.contains(target)) return false;
+
+  const targetRect = target.getBoundingClientRect();
+  const keyboardRect = keyboardArea.getBoundingClientRect();
+
+  return (
+    targetRect.bottom > keyboardRect.top &&
+    targetRect.top < keyboardRect.bottom &&
+    targetRect.right > keyboardRect.left &&
+    targetRect.left < keyboardRect.right
+  );
 }
 
 function getInputSelection(target: HTMLInputElement | HTMLTextAreaElement) {
@@ -451,6 +528,8 @@ export function VirtualKeyboardProvider() {
   const [target, setTarget] = useState<EditableTarget | null>(null);
   const [isShiftActive, setIsShiftActive] = useState(false);
   const [layer, setLayer] = useState<VirtualKeyboardLayer>("alphabetic");
+  const [layoutMode, setLayoutMode] =
+    useState<VirtualKeyboardLayoutMode>("floating");
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const { setFocus } = useNavigationActions();
@@ -467,13 +546,9 @@ export function VirtualKeyboardProvider() {
   const pulseFrameRef = useRef<number | null>(null);
   const pendingLayerFocusPositionRef =
     useRef<VirtualKeyboardKeyPosition | null>(null);
+  const dockRef = useRef<HTMLDivElement | null>(null);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
   const isOpen = Boolean(target);
-  const portalTarget = IS_BROWSER
-    ? (globalThis.document.getElementById("big-picture") ??
-      globalThis.document.getElementById("root") ??
-      globalThis.document.body)
-    : null;
 
   const closeKeyboard = useCallback(
     (restoreFocus = true) => {
@@ -497,6 +572,7 @@ export function VirtualKeyboardProvider() {
       setVirtualKeyboardTarget(null);
       setIsShiftActive(false);
       setLayer("alphabetic");
+      setLayoutMode("floating");
       setPulsingKeyId(null);
 
       if (pulseFrameRef.current !== null) {
@@ -850,6 +926,7 @@ export function VirtualKeyboardProvider() {
       if (isNewTarget) {
         setLayer("alphabetic");
         setIsShiftActive(false);
+        setLayoutMode("floating");
       }
 
       setTarget(nextTarget);
@@ -906,6 +983,58 @@ export function VirtualKeyboardProvider() {
   }, [closeKeyboard, target]);
 
   useEffect(() => {
+    if (!target || layoutMode !== "floating") return;
+
+    let secondFrameId: number | null = null;
+    const firstFrameId = globalThis.requestAnimationFrame(() => {
+      secondFrameId = globalThis.requestAnimationFrame(() => {
+        if (isTargetBehindKeyboardArea(target, dockRef.current)) {
+          setLayoutMode("avoiding");
+        }
+      });
+    });
+    const settledLayoutTimeoutId = globalThis.window.setTimeout(() => {
+      if (isTargetBehindKeyboardArea(target, dockRef.current)) {
+        setLayoutMode("avoiding");
+      }
+    }, 200);
+
+    return () => {
+      globalThis.cancelAnimationFrame(firstFrameId);
+
+      if (secondFrameId !== null) {
+        globalThis.cancelAnimationFrame(secondFrameId);
+      }
+
+      globalThis.window.clearTimeout(settledLayoutTimeoutId);
+    };
+  }, [layoutMode, target]);
+
+  useEffect(() => {
+    if (!target || layoutMode !== "avoiding") return;
+
+    let secondFrameId: number | null = null;
+    const firstFrameId = globalThis.requestAnimationFrame(() => {
+      secondFrameId = globalThis.requestAnimationFrame(() => {
+        scrollTargetAboveKeyboard(target, dockRef.current);
+      });
+    });
+    const settledLayoutTimeoutId = globalThis.window.setTimeout(() => {
+      scrollTargetAboveKeyboard(target, dockRef.current);
+    }, 200);
+
+    return () => {
+      globalThis.cancelAnimationFrame(firstFrameId);
+
+      if (secondFrameId !== null) {
+        globalThis.cancelAnimationFrame(secondFrameId);
+      }
+
+      globalThis.window.clearTimeout(settledLayoutTimeoutId);
+    };
+  }, [layoutMode, target]);
+
+  useEffect(() => {
     if (
       !target ||
       !currentFocusId?.startsWith("big-picture-virtual-keyboard-key-")
@@ -949,83 +1078,90 @@ export function VirtualKeyboardProvider() {
     };
   }, [keyLayout, layer, setFocus]);
 
-  if (!portalTarget) return null;
-
-  return createPortal(
+  return (
     <FocusRegionContext.Provider value={null}>
       <AnimatePresence>
         {target ? (
-          <NavigationLayer
-            layerId={VIRTUAL_KEYBOARD_LAYER_ID}
-            rootRegionId={VIRTUAL_KEYBOARD_REGION_ID}
-            initialFocusId={VIRTUAL_KEYBOARD_FIRST_KEY_ID}
+          <motion.div
+            ref={dockRef}
+            className="virtual-keyboard-dock"
+            data-layout-mode={layoutMode}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           >
-            <motion.aside
-              ref={keyboardRef}
-              className="virtual-keyboard"
-              role="dialog"
-              aria-label="Virtual keyboard"
-              initial={{ opacity: 0, x: "-50%", y: 32, scale: 0.98 }}
-              animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: "-50%", y: 24, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            <NavigationLayer
+              layerId={VIRTUAL_KEYBOARD_LAYER_ID}
+              rootRegionId={VIRTUAL_KEYBOARD_REGION_ID}
+              initialFocusId={VIRTUAL_KEYBOARD_FIRST_KEY_ID}
             >
-              <GridFocusGroup
-                regionId={VIRTUAL_KEYBOARD_REGION_ID}
-                className="virtual-keyboard__keys"
-                style={
-                  {
-                    "--virtual-keyboard-columns": VIRTUAL_KEYBOARD_COLUMNS,
-                  } as CSSProperties
-                }
+              <motion.aside
+                ref={keyboardRef}
+                className="virtual-keyboard"
+                role="dialog"
+                aria-label="Virtual keyboard"
+                initial={{ y: 32, scale: 0.98 }}
+                animate={{ y: 0, scale: 1 }}
+                exit={{ y: 24, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
               >
-                {keyLayout.map((key) => {
-                  const keyStyle = getKeyStyle(key);
+                <GridFocusGroup
+                  regionId={VIRTUAL_KEYBOARD_REGION_ID}
+                  className="virtual-keyboard__keys"
+                  style={
+                    {
+                      "--virtual-keyboard-columns": VIRTUAL_KEYBOARD_COLUMNS,
+                    } as CSSProperties
+                  }
+                >
+                  {keyLayout.map((key) => {
+                    const keyStyle = getKeyStyle(key);
 
-                  const keyId = getKeyId(key);
-                  const label =
-                    key.type === "character" &&
-                    layer === "alphabetic" &&
-                    isShiftActive
-                      ? key.label.toUpperCase()
-                      : key.label;
-                  const shortcutLabel = getKeyShortcutLabel(key, layer);
+                    const keyId = getKeyId(key);
+                    const label =
+                      key.type === "character" &&
+                      layer === "alphabetic" &&
+                      isShiftActive
+                        ? key.label.toUpperCase()
+                        : key.label;
+                    const shortcutLabel = getKeyShortcutLabel(key, layer);
 
-                  return (
-                    <Button
-                      key={keyId}
-                      type="button"
-                      variant="secondary"
-                      className="virtual-keyboard__key"
-                      focusId={keyId}
-                      style={keyStyle}
-                      data-key-type={key.type}
-                      data-active={
-                        key.type === "shift" && isShiftActive
-                          ? "true"
-                          : undefined
-                      }
-                      data-pulsing={pulsingKeyId === keyId || undefined}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleKey(key)}
-                    >
-                      <span className="virtual-keyboard__key-label">
-                        {label}
-                      </span>
-                      {shortcutLabel ? (
-                        <span className="virtual-keyboard__key-shortcut">
-                          {shortcutLabel}
+                    return (
+                      <Button
+                        key={keyId}
+                        type="button"
+                        variant="secondary"
+                        className="virtual-keyboard__key"
+                        focusId={keyId}
+                        style={keyStyle}
+                        data-key-type={key.type}
+                        data-active={
+                          key.type === "shift" && isShiftActive
+                            ? "true"
+                            : undefined
+                        }
+                        data-pulsing={pulsingKeyId === keyId || undefined}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleKey(key)}
+                      >
+                        <span className="virtual-keyboard__key-label">
+                          {label}
                         </span>
-                      ) : null}
-                    </Button>
-                  );
-                })}
-              </GridFocusGroup>
-            </motion.aside>
-          </NavigationLayer>
+                        {shortcutLabel ? (
+                          <span className="virtual-keyboard__key-shortcut">
+                            {shortcutLabel}
+                          </span>
+                        ) : null}
+                      </Button>
+                    );
+                  })}
+                </GridFocusGroup>
+              </motion.aside>
+            </NavigationLayer>
+          </motion.div>
         ) : null}
       </AnimatePresence>
-    </FocusRegionContext.Provider>,
-    portalTarget
+    </FocusRegionContext.Provider>
   );
 }

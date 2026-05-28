@@ -1,8 +1,28 @@
-.virtual-keyboard {
-  position: fixed;
-  left: 50%;
-  bottom: 6rem;
+.virtual-keyboard-dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 140;
+  flex: 0 0 auto;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 8)
+    calc(var(--spacing-unit) * 5);
+  box-sizing: border-box;
+
+  &[data-layout-mode="avoiding"] {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
+  }
+}
+
+.virtual-keyboard {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 3);
@@ -84,9 +104,13 @@
 }
 
 @media (max-width: 960px) {
+  .virtual-keyboard-dock {
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4)
+      calc(var(--spacing-unit) * 3);
+  }
+
   .virtual-keyboard {
     width: calc(100vw - (var(--spacing-unit) * 8));
-    bottom: calc(var(--spacing-unit) * 3);
   }
 
   .virtual-keyboard__keys {
