@@ -82,12 +82,6 @@ export function ProfileContent() {
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
-    classicsGames,
-    classicsPinnedGames,
-    getUserClassicsGames,
-    loadMoreClassicsGames,
-    hasMoreClassicsGames,
-    isLoadingClassicsGames,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
   const [statsIndex, setStatsIndex] = useState(0);
@@ -135,12 +129,6 @@ export function ProfileContent() {
     }
   }, [sortBy, getUserLibraryGames, userProfile]);
 
-  useEffect(() => {
-    if (userProfile && activeTab === "classics") {
-      getUserClassicsGames(sortBy, true);
-    }
-  }, [sortBy, getUserClassicsGames, userProfile, activeTab]);
-
   const handleLoadMore = useCallback(() => {
     if (
       activeTab === "library" &&
@@ -154,22 +142,6 @@ export function ProfileContent() {
     hasMoreLibraryGames,
     isLoadingLibraryGames,
     loadMoreLibraryGames,
-    sortBy,
-  ]);
-
-  const handleLoadMoreClassics = useCallback(() => {
-    if (
-      activeTab === "classics" &&
-      hasMoreClassicsGames &&
-      !isLoadingClassicsGames
-    ) {
-      loadMoreClassicsGames(sortBy);
-    }
-  }, [
-    activeTab,
-    hasMoreClassicsGames,
-    isLoadingClassicsGames,
-    loadMoreClassicsGames,
     sortBy,
   ]);
 
@@ -396,23 +368,6 @@ export function ProfileContent() {
                 />
               )}
 
-              {activeTab === "classics" && (
-                <LibraryTab
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                  pinnedGames={classicsPinnedGames}
-                  libraryGames={classicsGames}
-                  hasMoreLibraryGames={hasMoreClassicsGames}
-                  statsIndex={statsIndex}
-                  userStats={userStats}
-                  onLoadMore={handleLoadMoreClassics}
-                  isMe={isMe}
-                  titleKey="classics"
-                  panelKey="classics"
-                  count={null}
-                />
-              )}
-
               {activeTab === "reviews" && (
                 <ReviewsTab
                   reviews={reviews}
@@ -484,10 +439,6 @@ export function ProfileContent() {
 
     sortBy,
     activeTab,
-    classicsGames,
-    classicsPinnedGames,
-    hasMoreClassicsGames,
-    handleLoadMoreClassics,
     // ensure reviews UI updates correctly
     reviews,
     reviewsTotalCount,

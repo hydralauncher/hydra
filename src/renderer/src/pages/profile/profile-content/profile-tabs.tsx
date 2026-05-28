@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import "./profile-content.scss";
 
-export type ProfileTabType = "library" | "classics" | "reviews";
+export type ProfileTabType = "library" | "reviews";
 
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
@@ -28,26 +28,6 @@ export function ProfileTabs({
           {t("library")}
         </button>
         {activeTab === "library" && (
-          <motion.div
-            className="profile-content__tab-underline"
-            layoutId="tab-underline"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
-          />
-        )}
-      </div>
-      <div className="profile-content__tab-wrapper">
-        <button
-          type="button"
-          className={`profile-content__tab ${activeTab === "classics" ? "profile-content__tab--active" : ""}`}
-          onClick={() => onTabChange("classics")}
-        >
-          {t("classics")}
-        </button>
-        {activeTab === "classics" && (
           <motion.div
             className="profile-content__tab-underline"
             layoutId="tab-underline"
