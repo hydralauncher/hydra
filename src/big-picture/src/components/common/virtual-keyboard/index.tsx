@@ -174,6 +174,21 @@ function getKeyPosition(key: VirtualKeyboardLayoutKey) {
   };
 }
 
+function getKeyShortcutLabel(
+  key: VirtualKeyboardKey,
+  layer: VirtualKeyboardLayer
+) {
+  if (key.type === "backspace") return "X";
+  if (key.type === "space") return "Y";
+  if (key.type === "shift" && layer === "alphabetic") return "L3";
+  if (key.type === "toggle-layer") return "R3";
+  if (key.type === "enter") return "RT";
+  if (key.type === "cursor-left") return "LB";
+  if (key.type === "cursor-right") return "RB";
+
+  return null;
+}
+
 function findLayoutKeyById(
   layout: VirtualKeyboardLayoutKey[],
   focusId: string | null
@@ -974,6 +989,7 @@ export function VirtualKeyboardProvider() {
                     isShiftActive
                       ? key.label.toUpperCase()
                       : key.label;
+                  const shortcutLabel = getKeyShortcutLabel(key, layer);
 
                   return (
                     <Button
@@ -993,21 +1009,18 @@ export function VirtualKeyboardProvider() {
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => handleKey(key)}
                     >
-                      {label}
+                      <span className="virtual-keyboard__key-label">
+                        {label}
+                      </span>
+                      {shortcutLabel ? (
+                        <span className="virtual-keyboard__key-shortcut">
+                          {shortcutLabel}
+                        </span>
+                      ) : null}
                     </Button>
                   );
                 })}
               </GridFocusGroup>
-              <div className="virtual-keyboard__hint">
-                <span>A Select</span>
-                <span>B Close</span>
-                <span>X Backspace</span>
-                <span>Y Space</span>
-                {layer === "alphabetic" ? <span>L3 Shift</span> : null}
-                <span>R3 123#/ABC</span>
-                <span>RT Enter</span>
-                <span>LB/RB Move cursor</span>
-              </div>
             </motion.aside>
           </NavigationLayer>
         ) : null}

@@ -40,7 +40,8 @@
   height: 100%;
   min-height: 65px;
   padding-inline: calc(var(--spacing-unit) * 2);
-  border-radius: calc(var(--spacing-unit) * 2);
+  border: none;
+  border-radius: var(--spacing-unit);
   font-size: 16px;
 
   &[data-active="true"] {
@@ -53,13 +54,33 @@
   }
 }
 
-.virtual-keyboard__hint {
-  display: flex;
-  justify-content: center;
-  gap: calc(var(--spacing-unit) * 4);
-  color: var(--text-secondary);
-  font-size: 12px;
+.virtual-keyboard__key.button--secondary:not([data-key-type="character"]) {
+  background-color: color-mix(in srgb, var(--primary) 8%, var(--secondary));
+
+  &:hover,
+  &[data-active="true"] {
+    background-color: color-mix(in srgb, var(--primary) 14%, var(--secondary));
+  }
+}
+
+.virtual-keyboard__key-label {
   line-height: 1;
+}
+
+.virtual-keyboard__key-shortcut {
+  position: absolute;
+  right: var(--spacing-unit);
+  bottom: var(--spacing-unit);
+  min-width: 20px;
+  height: 20px;
+  padding-inline: calc(var(--spacing-unit) * 1.5);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 960px) {
@@ -76,6 +97,14 @@
   .virtual-keyboard__key {
     min-height: 60px;
     font-size: 14px;
+  }
+
+  .virtual-keyboard__key-shortcut {
+    min-width: 18px;
+    height: 18px;
+    padding-inline: var(--spacing-unit);
+    font-size: 9px;
+    line-height: 18px;
   }
 }
 
