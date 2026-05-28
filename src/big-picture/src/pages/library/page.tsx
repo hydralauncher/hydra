@@ -8,7 +8,13 @@ import {
   useState,
 } from "react";
 import { IS_DESKTOP } from "../../constants";
-import { useGameCollections, useLibrary, useNavigation } from "../../hooks";
+import { buildLibraryToastOptions } from "../../helpers";
+import {
+  useBigPictureToast,
+  useGameCollections,
+  useLibrary,
+  useNavigation,
+} from "../../hooks";
 import {
   isBuiltinLibraryTab,
   type LibraryViewMode,
@@ -101,6 +107,7 @@ export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
   const { setFocus } = useNavigation();
+  const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const { collections, loadCollections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
@@ -287,6 +294,15 @@ export default function LibraryPage() {
       }
 
       await refreshLibraryData();
+
+      if (currentAction.type === "remove-from-library") {
+        const { title, ...toastOptions } = await buildLibraryToastOptions(
+          game,
+          "removed"
+        );
+        showSuccessToast(title, toastOptions);
+      }
+
       setPendingAction(null);
       setIsSubmittingAction(false);
 
@@ -301,7 +317,7 @@ export default function LibraryPage() {
       logger.error("Failed to execute library action", error);
       setIsSubmittingAction(false);
     }
-  }, [pendingAction, refreshLibraryData, setFocus]);
+  }, [pendingAction, refreshLibraryData, setFocus, showSuccessToast]);
 
   useEffect(() => {
     updateLibrary();

@@ -13,7 +13,12 @@ import {
   DropdownSelect,
   type DropdownSelectOption,
 } from "../../components";
-import { useDate, useNavigation, useUserDetails } from "../../hooks";
+import {
+  useBigPictureToast,
+  useDate,
+  useNavigation,
+  useUserDetails,
+} from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
@@ -25,6 +30,21 @@ import { SettingsSection } from "./settings-section";
 
 interface SettingsSectionProps {
   className?: string;
+}
+
+const SETTINGS_TOAST_OPTIONS = {
+  fallbackVisual: "settings" as const,
+};
+
+function getProfileVisibilityLabel(value: ProfileVisibility) {
+  switch (value) {
+    case "FRIENDS":
+      return "Friends Only";
+    case "PRIVATE":
+      return "Private";
+    default:
+      return "Public";
+  }
 }
 
 function getHydraCloudSectionContent(
@@ -68,6 +88,7 @@ export function AccountPrivacySettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const { formatDate } = useDate();
+  const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const { userDetails, hasActiveSubscription, patchUser, unblockUser } =
     useUserDetails();
@@ -143,13 +164,28 @@ export function AccountPrivacySettingsSection({
 
       try {
         await patchUser({ profileVisibility: value });
+        showSuccessToast("Profile visibility updated", {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: `Your profile is now ${getProfileVisibilityLabel(value)}.`,
+        });
       } catch {
         setProfileVisibility(previousValue);
+        showErrorToast(
+          "Failed to update profile visibility",
+          SETTINGS_TOAST_OPTIONS
+        );
       } finally {
         setIsSavingVisibility(false);
       }
     },
-    [isSavingVisibility, patchUser, profileVisibility, userDetails]
+    [
+      isSavingVisibility,
+      patchUser,
+      profileVisibility,
+      showErrorToast,
+      showSuccessToast,
+      userDetails,
+    ]
   );
 
   const handleUnblock = useCallback(
