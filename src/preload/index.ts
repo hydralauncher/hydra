@@ -648,8 +648,22 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (updateProfile: UpdateProfileRequest) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
+  getProfileImageMetadata: (imagePath: string) =>
+    ipcRenderer.invoke("getProfileImageMetadata", imagePath),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
+  cropProfileImage: (
+    imagePath: string,
+    params: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      outputWidth: number;
+      outputHeight: number;
+      rotation?: number;
+    }
+  ) => ipcRenderer.invoke("cropProfileImage", imagePath, params),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
