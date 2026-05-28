@@ -6,7 +6,7 @@ import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button, Checkbox, Input, VerticalFocusGroup } from "../../components";
-import { useUserPreferences } from "../../hooks";
+import { useBigPictureToast, useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
   getIntegrationProviderCheckboxFocusId,
@@ -44,6 +44,7 @@ export interface IntegrationProviderConfig<TUser> {
   tokenUrl: string;
   authenticate: (apiToken: string) => Promise<TUser>;
   getSuccessIdentity: (user: TUser) => string | null;
+  getSuccessToastMessage?: (user: TUser) => string | null;
   getValidationErrorMessage?: (user: TUser) => string | null;
   upTarget: FocusOverrideTarget;
   downTarget: FocusOverrideTarget;
@@ -57,6 +58,10 @@ function getSuccessMessage(title: string, identity: string | null) {
   return `${title} is connected as ${identity}.`;
 }
 
+const SETTINGS_TOAST_OPTIONS = {
+  fallbackVisual: "settings" as const,
+};
+
 export function IntegrationProviderSection<TUser>({
   id,
   title,
@@ -66,11 +71,13 @@ export function IntegrationProviderSection<TUser>({
   tokenUrl,
   authenticate,
   getSuccessIdentity,
+  getSuccessToastMessage,
   getValidationErrorMessage,
   upTarget,
   downTarget,
 }: Readonly<IntegrationProviderConfig<TUser>>) {
   const userPreferences = useUserPreferences();
+  const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const [form, setForm] = useState<IntegrationForm>({
     enabled: false,
     token: null,
@@ -207,20 +214,36 @@ export function IntegrationProviderSection<TUser>({
           kind: "error",
           message: validationMessage,
         });
+        showErrorToast("Invalid API token", {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: validationMessage,
+        });
         return;
       }
 
       await persistPreference(form.token.trim());
+      const identity = getSuccessIdentity(user);
       setStatus({
         kind: "success",
-        identity: getSuccessIdentity(user),
+        identity,
         token: form.token.trim(),
+      });
+      const successToastMessage =
+        getSuccessToastMessage?.(user) ??
+        (identity
+          ? `${title} is connected as ${identity}.`
+          : `${title} is connected.`);
+      showSuccessToast(`${title} connected`, {
+        ...SETTINGS_TOAST_OPTIONS,
+        celebration: "confetti",
+        message: successToastMessage,
       });
     } catch {
       setStatus({
         kind: "error",
         message: "Invalid API Token.",
       });
+      showErrorToast("Invalid API token", SETTINGS_TOAST_OPTIONS);
     } finally {
       setIsLoading(false);
     }

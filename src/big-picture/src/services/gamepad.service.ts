@@ -1,4 +1,9 @@
-import { GamepadLayout, getGamepadLayout } from "../helpers";
+import {
+  GAMEPAD_REPEAT_INITIAL_DELAY,
+  getAcceleratedGamepadRepeatInterval,
+  GamepadLayout,
+  getGamepadLayout,
+} from "../helpers";
 import type {
   GamepadAxisButtonMapping,
   GamepadAxisTriggerMapping,
@@ -77,12 +82,7 @@ export class GamepadService {
 
   private readonly sticksDeadzone = 0.1;
   private readonly sticksDirectionThreshold = 0.5;
-  private readonly sticksInitialRepeatDelay = 400;
-  private readonly repeatWarmupInterval = 200;
-  private readonly repeatWarmupTicks = 3;
-  private readonly repeatAcceleratedStartInterval = 135;
-  private readonly repeatMinInterval = 75;
-  private readonly repeatAccelerationStep = 15;
+  private readonly sticksInitialRepeatDelay = GAMEPAD_REPEAT_INITIAL_DELAY;
   private readonly gamepadSwitchDuplicateWindow = 250;
   private readonly buttonEchoSuppressionWindow = 220;
   private readonly stickEchoSuppressionWindow = 320;
@@ -347,19 +347,6 @@ export class GamepadService {
     return timers;
   }
 
-  private getAcceleratedRepeatInterval(repeatCount: number): number {
-    if (repeatCount < this.repeatWarmupTicks) {
-      return this.repeatWarmupInterval;
-    }
-
-    const accelerationTick = repeatCount - this.repeatWarmupTicks;
-    const interval =
-      this.repeatAcceleratedStartInterval -
-      accelerationTick * this.repeatAccelerationStep;
-
-    return Math.max(this.repeatMinInterval, interval);
-  }
-
   private getRepeatLane(input: GamepadInputDescriptor): RepeatLane | null {
     if (input.kind === "button") {
       switch (input.button) {
@@ -593,7 +580,7 @@ export class GamepadService {
     const scheduleRepeat = (callback: () => void) => {
       const timer = globalThis.window.setTimeout(
         callback,
-        this.getAcceleratedRepeatInterval(repeatCount)
+        getAcceleratedGamepadRepeatInterval(repeatCount)
       );
 
       repeatCount += 1;
@@ -1035,7 +1022,7 @@ export class GamepadService {
     const scheduleRepeat = (callback: () => void) => {
       stickState.repeatTimer = globalThis.window.setTimeout(
         callback,
-        this.getAcceleratedRepeatInterval(repeatCount)
+        getAcceleratedGamepadRepeatInterval(repeatCount)
       );
 
       repeatCount += 1;

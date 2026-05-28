@@ -129,6 +129,34 @@ function cancelScrollAnimation(container: HTMLElement): void {
   scrollAnimationFrames.delete(container);
 }
 
+export function cancelNavigationAutoScrollForElement(
+  element: HTMLElement | null
+): void {
+  if (!element) return;
+
+  const container = isScrollableElement(element)
+    ? element
+    : getScrollContainer(element);
+
+  cancelScrollAnimation(container);
+}
+
+export function animateNavigationScrollForElement(
+  element: HTMLElement | null,
+  target: { left?: number; top: number }
+): void {
+  if (!element) return;
+
+  const container = isScrollableElement(element)
+    ? element
+    : getScrollContainer(element);
+
+  animateScroll(container, {
+    left: target.left ?? container.scrollLeft,
+    top: target.top,
+  });
+}
+
 function animateScroll(
   container: HTMLElement,
   target: { left: number; top: number }

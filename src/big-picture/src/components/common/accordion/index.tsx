@@ -5,12 +5,16 @@ import { Typography } from "../typography";
 import { CaretUpIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
 import cn from "classnames";
+import { FocusItem } from "../focus-item";
+import type { FocusOverrides } from "../../../services";
 
 export interface AccordionProps {
   title: string;
   hint?: string;
   open?: boolean;
   icon?: ReactNode;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
   children: ReactNode;
   onOpenChange?: (isOpen: boolean) => void;
 }
@@ -19,6 +23,8 @@ interface AccordionHeaderProps {
   title: string;
   hint?: string;
   icon?: ReactNode;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onOpenChange?: (isOpen: boolean) => void;
@@ -32,16 +38,20 @@ function AccordionHeader({
   title,
   hint,
   icon,
+  focusId,
+  focusNavigationOverrides,
   isOpen,
   setIsOpen,
   onOpenChange,
 }: Readonly<AccordionHeaderProps>) {
-  return (
+  const header = (
     <button
+      type="button"
       onClick={() => {
         setIsOpen(!isOpen);
         onOpenChange?.(!isOpen);
       }}
+      aria-expanded={isOpen}
       className={cn("accordion__header", {
         "accordion__header--open": isOpen,
       })}
@@ -64,6 +74,18 @@ function AccordionHeader({
       </div>
     </button>
   );
+
+  return focusId ? (
+    <FocusItem
+      id={focusId}
+      navigationOverrides={focusNavigationOverrides}
+      asChild
+    >
+      {header}
+    </FocusItem>
+  ) : (
+    header
+  );
 }
 
 function AccordionContent({ children }: Readonly<AccordionContentProps>) {
@@ -74,6 +96,8 @@ export function Accordion({
   title,
   hint,
   icon,
+  focusId,
+  focusNavigationOverrides,
   open = false,
   children,
   onOpenChange,
@@ -91,6 +115,8 @@ export function Accordion({
         title={title}
         hint={hint}
         icon={icon}
+        focusId={focusId}
+        focusNavigationOverrides={focusNavigationOverrides}
         isOpen={isOpen}
         setIsOpen={setIsOpen}
         onOpenChange={onOpenChange}
@@ -99,6 +125,7 @@ export function Accordion({
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            className="accordion__body"
             initial={
               !hasMounted && open
                 ? { height: "auto", scaleY: 1 }
