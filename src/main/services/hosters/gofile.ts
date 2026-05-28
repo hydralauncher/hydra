@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 import { logger } from "../logger";
 import { SystemPath } from "../system-path";
 
@@ -53,11 +54,14 @@ export class GofileApi {
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
   private static readonly language = "en-US";
   private static readonly timeoutMs = 15000;
-  private static readonly websiteTokenSecret = "5d4f7g8sd45fsd";
+  private static readonly websiteTokenScriptUrl =
+    "https://gofile.io/dist/js/wt.obf.js";
   private static readonly pageSize = 1000;
   private static readonly cacheVersion = 1;
   private static token?: string;
   private static authorizePromise?: Promise<string>;
+  private static websiteTokenSecret?: string;
+  private static websiteTokenSecretPromise?: Promise<string>;
 
   private static get userAgent() {
     return (
@@ -113,9 +117,120 @@ export class GofileApi {
     }
   }
 
-  private static generateWebsiteToken(accountToken: string) {
+  private static extractWebsiteTokenSecret(script: string) {
+    let rawHashInput: string | undefined;
+    const probeUserAgent = "HydraGofileUserAgent";
+    const probeLanguage = "HydraGofileLanguage";
+    const probeToken = "HydraGofileToken";
+    const navigator = {
+      userAgent: probeUserAgent,
+      language: probeLanguage,
+    };
+    const context = vm.createContext(
+      {
+        appdata: {},
+        crypto: crypto.webcrypto,
+        console: {
+          error: () => {},
+          log: () => {},
+          warn: () => {},
+        },
+        Date,
+        Math,
+        navigator,
+        URLSearchParams,
+        window: {
+          crypto: crypto.webcrypto,
+          location: {
+            hostname: "gofile.io",
+            search: "",
+          },
+          navigator,
+        },
+      },
+      {
+        name: "gofile-website-token",
+      }
+    ) as vm.Context & Record<string, unknown>;
+
+    vm.runInContext(script, context, { timeout: 1000 });
+
+    if (typeof context.generateWT !== "function") {
+      throw new Error("Gofile WT generator was not found");
+    }
+
+    context._sha256 = (input: unknown) => {
+      rawHashInput = String(input);
+      return "0".repeat(64);
+    };
+
+    vm.runInContext(`generateWT(${JSON.stringify(probeToken)})`, context, {
+      timeout: 1000,
+    });
+
+    if (!rawHashInput) {
+      throw new Error("Gofile WT generator did not hash any input");
+    }
+
+    const expectedPrefix = `${probeUserAgent}::${probeLanguage}::${probeToken}::`;
+    if (!rawHashInput.startsWith(expectedPrefix)) {
+      throw new Error("Gofile WT generator format is unsupported");
+    }
+
+    const [, ...secretParts] = rawHashInput
+      .slice(expectedPrefix.length)
+      .split("::");
+    const secret = secretParts.join("::").trim();
+
+    if (!secret) {
+      throw new Error("Gofile WT secret was empty");
+    }
+
+    return secret;
+  }
+
+  private static async getWebsiteTokenSecret() {
+    if (this.websiteTokenSecret) {
+      return this.websiteTokenSecret;
+    }
+
+    if (this.websiteTokenSecretPromise) {
+      return this.websiteTokenSecretPromise;
+    }
+
+    this.websiteTokenSecretPromise = (async () => {
+      const response = await this.fetchWithTimeout(this.websiteTokenScriptUrl, {
+        method: "GET",
+        headers: {
+          "User-Agent": this.userAgent,
+          Accept: "application/javascript, text/javascript, */*;q=0.8",
+          Referer: "https://gofile.io/",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load Gofile WT script: ${response.status}`);
+      }
+
+      const secret = this.extractWebsiteTokenSecret(await response.text());
+      logger.log("[Gofile] Loaded website token secret");
+      return secret;
+    })()
+      .then((secret) => {
+        this.websiteTokenSecret = secret;
+        return secret;
+      })
+      .finally(() => {
+        this.websiteTokenSecretPromise = undefined;
+      });
+
+    return this.websiteTokenSecretPromise;
+  }
+
+  private static async generateWebsiteToken(accountToken: string) {
+    const websiteTokenSecret = await this.getWebsiteTokenSecret();
     const timeSlot = Math.floor(Date.now() / 1000 / 14400);
-    const raw = `${this.userAgent}::${this.language}::${accountToken}::${timeSlot}::${this.websiteTokenSecret}`;
+    const raw = `${this.userAgent}::${this.language}::${accountToken}::${timeSlot}::${websiteTokenSecret}`;
     return crypto.createHash("sha256").update(raw).digest("hex");
   }
 
@@ -183,7 +298,7 @@ export class GofileApi {
   private static async createGuestToken() {
     const requestHeaders = {
       ...this.getBaseHeaders(),
-      "X-Website-Token": this.generateWebsiteToken(""),
+      "X-Website-Token": await this.generateWebsiteToken(""),
       "X-BL": this.language,
     };
 
@@ -380,7 +495,7 @@ export class GofileApi {
 
     const requestHeaders = {
       ...this.getBaseHeaders(accountToken),
-      "X-Website-Token": this.generateWebsiteToken(accountToken),
+      "X-Website-Token": await this.generateWebsiteToken(accountToken),
       "X-BL": this.language,
     };
 
@@ -473,6 +588,8 @@ export class GofileApi {
       message.includes("notauthenticated") ||
       message.includes("wrongtoken") ||
       message.includes("badtoken") ||
+      message.includes("notpremium") ||
+      message.includes("denied access") ||
       message.includes("authorization")
     );
   }
