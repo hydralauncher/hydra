@@ -760,6 +760,21 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
   },
+  onInAppAchievementUnlocked: (
+    cb: (
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-unlocked-in-app", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
+  },
   onCombinedAchievementsUnlocked: (
     cb: (
       gameCount: number,

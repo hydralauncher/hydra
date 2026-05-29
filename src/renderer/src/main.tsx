@@ -34,6 +34,7 @@ import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
+import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
@@ -97,6 +98,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
       <HashRouter>
+        <AchievementNotificationOverlay />
         <Routes>
           <Route element={<App />}>
             <Route path="/" element={<Home />} />
