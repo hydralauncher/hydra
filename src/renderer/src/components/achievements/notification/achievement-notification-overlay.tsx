@@ -47,7 +47,15 @@ export function AchievementNotificationOverlay() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onInAppAchievementUnlocked(
+    const onInAppAchievementUnlocked =
+      window.electron.onInAppAchievementUnlocked;
+
+    // TODO: Remove this once remote renderer and preload releases are guaranteed to use the same commit.
+    if (typeof onInAppAchievementUnlocked !== "function") {
+      return () => {};
+    }
+
+    const unsubscribe = onInAppAchievementUnlocked(
       (nextPosition, nextAchievements) => {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);
