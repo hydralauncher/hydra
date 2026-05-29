@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { GameReview } from "@types";
 
-import { sanitizeHtml } from "@shared";
+import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import { useDate, useFormat } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
@@ -72,9 +72,12 @@ export function ReviewItem({
 
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
+  const reviewTranslationLanguage = getReviewTranslationLanguage(i18n.language);
 
   const needsTranslation =
-    !isOwnReview && isDifferentLanguage && review.translations[i18n.language];
+    !isOwnReview &&
+    isDifferentLanguage &&
+    review.translations[reviewTranslationLanguage];
 
   const getLanguageName = (languageCode: string | null) => {
     if (!languageCode) return "";
@@ -104,7 +107,7 @@ export function ReviewItem({
 
   // Determine which content to show - always show original for own reviews
   const displayContent = needsTranslation
-    ? review.translations[i18n.language]
+    ? review.translations[reviewTranslationLanguage]
     : review.reviewHtml;
 
   if (isBlocked && !isVisible) {

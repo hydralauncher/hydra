@@ -12,7 +12,7 @@ import {
 } from "../../components";
 import type { DropdownSelectOption } from "../../components/common/dropdown-select";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
-import { useUserPreferences } from "../../hooks";
+import { useBigPictureToast, useUserPreferences } from "../../hooks";
 import {
   NOTIFICATIONS_ACHIEVEMENTS_ACTIONS_REGION_ID,
   NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS,
@@ -48,6 +48,9 @@ const DEFAULT_FORM: NotificationsAchievementsForm = {
   achievementCustomNotificationsEnabled: true,
   achievementCustomNotificationPosition: "top-left",
 };
+const SETTINGS_TOAST_OPTIONS = {
+  fallbackVisual: "settings" as const,
+};
 
 function getPositionLabel(position: AchievementCustomNotificationPosition) {
   return position
@@ -61,6 +64,7 @@ export function NotificationsAchievementsSection({
   firstItemUpTarget,
 }: Readonly<NotificationsAchievementsSectionProps>) {
   const userPreferences = useUserPreferences();
+  const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [form, setForm] = useState<NotificationsAchievementsForm>(DEFAULT_FORM);
 
   useEffect(() => {
@@ -284,7 +288,18 @@ export function NotificationsAchievementsSection({
                       },
                     }}
                     onClick={() => {
-                      void globalThis.window.electron.showAchievementTestNotification();
+                      void globalThis.window.electron
+                        .showAchievementTestNotification()
+                        .then(() => {
+                          showSuccessToast("Achievement unlocked");
+                        })
+                        .catch(() => {
+                          showErrorToast("Notification failed", {
+                            ...SETTINGS_TOAST_OPTIONS,
+                            message:
+                              "Hydra could not show the achievement preview.",
+                          });
+                        });
                     }}
                   >
                     Test Notification
