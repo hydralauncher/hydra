@@ -499,9 +499,24 @@ declare global {
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    getProfileImageMetadata: (
+      path: string
+    ) => Promise<{ mimeType: string | null; isAnimated: boolean }>;
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
+    cropProfileImage: (
+      path: string,
+      params: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+        outputWidth: number;
+        outputHeight: number;
+        rotation?: number;
+      }
+    ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
     ) => () => Electron.IpcRenderer;
@@ -528,6 +543,12 @@ declare global {
       cb: (
         position?: AchievementCustomNotificationPosition,
         achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onInAppAchievementUnlocked: (
+      cb: (
+        position: AchievementCustomNotificationPosition,
+        achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (

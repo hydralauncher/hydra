@@ -6,6 +6,8 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import { getProfileImageMetadata } from "../profile-image-metadata";
+import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import "./upload-background-image-button.scss";
 
 export function UploadBackgroundImageButton() {
@@ -14,6 +16,10 @@ export function UploadBackgroundImageButton() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [showRemoveBannerModal, setShowRemoveBannerModal] = useState(false);
+  const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(
+    null
+  );
+  const [cropIsAnimated, setCropIsAnimated] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { hasActiveSubscription } = useUserDetails();
@@ -24,7 +30,7 @@ export function UploadBackgroundImageButton() {
     useContext(userProfileContext);
   const { patchUser, fetchUserDetails } = useUserDetails();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const hasBanner = !!userProfile?.backgroundImageUrl;
 
@@ -36,33 +42,49 @@ export function UploadBackgroundImageButton() {
     }, 150);
   };
 
-  const handleReplaceBanner = async () => {
-    closeMenu();
+  const uploadBanner = async (path: string) => {
     try {
-      const { filePaths } = await window.electron.showOpenDialog({
-        properties: ["openFile"],
-        filters: [
-          {
-            name: "Image",
-            extensions: ["jpg", "jpeg", "png", "gif", "webp"],
-          },
-        ],
-      });
+      setSelectedBackgroundImage(path);
+      setIsUploadingBackgorundImage(true);
 
-      if (filePaths && filePaths.length > 0) {
-        const path = filePaths[0];
+      await patchUser({ backgroundImageUrl: path });
 
-        setSelectedBackgroundImage(path);
-        setIsUploadingBackgorundImage(true);
-
-        await patchUser({ backgroundImageUrl: path });
-
-        showSuccessToast(t("background_image_updated"));
-        await fetchUserDetails();
-        await getUserProfile();
-      }
+      showSuccessToast(t("background_image_updated"));
+      await fetchUserDetails();
+      await getUserProfile();
+    } catch {
+      showErrorToast(t("try_again"));
     } finally {
       setIsUploadingBackgorundImage(false);
+    }
+  };
+
+  const handleReplaceBanner = async () => {
+    closeMenu();
+
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Image",
+          extensions: ["jpg", "jpeg", "png", "apng", "gif", "webp"],
+        },
+      ],
+    });
+
+    if (filePaths && filePaths.length > 0) {
+      const path = filePaths[0];
+      const metadata = await getProfileImageMetadata(path);
+
+      if (metadata.isAnimated) {
+        // Crop while preserving animation (handled in main/sharp).
+        setCropIsAnimated(true);
+        setBannerImageToCrop(path);
+        return;
+      }
+
+      setCropIsAnimated(false);
+      setBannerImageToCrop(path);
     }
   };
 
@@ -124,22 +146,39 @@ export function UploadBackgroundImageButton() {
 
   if (!isMe || !hasActiveSubscription) return null;
 
+  const cropModal = (
+    <ProfileImageCropModal
+      visible={!!bannerImageToCrop}
+      imagePath={bannerImageToCrop}
+      variant="banner"
+      isAnimated={cropIsAnimated}
+      onClose={() => setBannerImageToCrop(null)}
+      onApply={(croppedImagePath) => {
+        setBannerImageToCrop(null);
+        uploadBanner(croppedImagePath);
+      }}
+    />
+  );
+
   // If no banner exists, show the original upload button
   if (!hasBanner) {
     return (
-      <div className="upload-background-image-button__wrapper">
-        <Button
-          theme="outline"
-          className="upload-background-image-button"
-          onClick={handleReplaceBanner}
-          disabled={isUploadingBackgroundImage}
-        >
-          <UploadIcon />
-          {isUploadingBackgroundImage
-            ? t("uploading_banner")
-            : t("upload_banner")}
-        </Button>
-      </div>
+      <>
+        {cropModal}
+        <div className="upload-background-image-button__wrapper">
+          <Button
+            theme="outline"
+            className="upload-background-image-button"
+            onClick={handleReplaceBanner}
+            disabled={isUploadingBackgroundImage}
+          >
+            <UploadIcon />
+            {isUploadingBackgroundImage
+              ? t("uploading_banner")
+              : t("upload_banner")}
+          </Button>
+        </div>
+      </>
     );
   }
 
@@ -190,6 +229,7 @@ export function UploadBackgroundImageButton() {
 
   return (
     <>
+      {cropModal}
       <div ref={buttonRef} className="upload-background-image-button__wrapper">
         <Button
           theme="outline"
