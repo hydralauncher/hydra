@@ -4,6 +4,7 @@ import {
   useMemo,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -38,6 +39,10 @@ import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { PlatformFilter } from "./platform-filter";
+import {
+  ClassicsOnboardingModal,
+  hasDismissedClassicsOnboarding,
+} from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
@@ -111,10 +116,33 @@ export default function Library() {
   });
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
+  const hasClassicsGames = useMemo(
+    () => library.some((game) => game.shop === "launchbox"),
+    [library]
+  );
+
+  const effectiveCategory: LibraryCategory = hasClassicsGames
+    ? category
+    : "all";
+
+  const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
+  const classicsOnboardingTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      effectiveCategory === "classics" &&
+      !classicsOnboardingTriggeredRef.current &&
+      !hasDismissedClassicsOnboarding()
+    ) {
+      classicsOnboardingTriggeredRef.current = true;
+      setShowClassicsOnboarding(true);
+    }
+  }, [effectiveCategory]);
+
   const handleCategoryChange = useCallback((next: LibraryCategory) => {
     setCategory(next);
     localStorage.setItem("library-category", next);
-    if (next !== "classics") {
+    if (next === "pc") {
       setSelectedPlatform(null);
     }
   }, []);
@@ -466,15 +494,20 @@ export default function Library() {
       }
     }
 
-    if (category === "pc") {
+    if (effectiveCategory === "pc") {
       filtered = filtered.filter((game) => game.shop !== "launchbox");
-    } else if (category === "classics") {
+    } else if (effectiveCategory === "classics") {
       filtered = filtered.filter((game) => game.shop === "launchbox");
       if (selectedPlatform) {
         filtered = filtered.filter(
           (game) => game.platform === selectedPlatform
         );
       }
+    } else if (selectedPlatform) {
+      filtered = filtered.filter(
+        (game) =>
+          game.shop !== "launchbox" || game.platform === selectedPlatform
+      );
     }
 
     if (!deferredSearchQuery.trim()) return filtered;
@@ -500,7 +533,7 @@ export default function Library() {
     sortedLibrary,
     deferredSearchQuery,
     selectedCollectionId,
-    category,
+    effectiveCategory,
     selectedPlatform,
   ]);
 
@@ -550,20 +583,23 @@ export default function Library() {
         <div className="library__page-header">
           <div className="library__controls-row">
             <div className="library__controls-left">
-              <CategoryFilter
-                category={category}
-                onCategoryChange={handleCategoryChange}
-              />
+              {hasClassicsGames && (
+                <CategoryFilter
+                  category={effectiveCategory}
+                  onCategoryChange={handleCategoryChange}
+                />
+              )}
             </div>
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              <PlatformFilter
-                platform={selectedPlatform}
-                platforms={uniquePlatforms}
-                disabled={category !== "classics"}
-                onPlatformChange={setSelectedPlatform}
-              />
+              {hasClassicsGames && effectiveCategory !== "pc" && (
+                <PlatformFilter
+                  platform={selectedPlatform}
+                  platforms={uniquePlatforms}
+                  onPlatformChange={setSelectedPlatform}
+                />
+              )}
               <ViewOptions
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
@@ -765,6 +801,11 @@ export default function Library() {
         cancelButtonLabel={t("cancel", { ns: "sidebar" })}
         confirmButtonLabel={t("delete_collection")}
         buttonsIsDisabled={isDeletingCollection}
+      />
+
+      <ClassicsOnboardingModal
+        visible={showClassicsOnboarding}
+        onClose={() => setShowClassicsOnboarding(false)}
       />
     </section>
   );

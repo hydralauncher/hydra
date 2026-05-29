@@ -292,9 +292,9 @@ export default function Catalogue() {
         title: t("platforms"),
         key: "platforms" as const,
         items: launchboxFilters.platforms.map((platform) => ({
-          label: platform,
-          value: platform,
-          checked: classicsPlatforms.includes(platform),
+          label: platform.name,
+          value: platform.key,
+          checked: classicsPlatforms.includes(platform.key),
         })),
       },
       {
@@ -337,7 +337,9 @@ export default function Catalogue() {
   const classicsGroupedFilters = useMemo(() => {
     return [
       ...classicsPlatforms.map((platform) => ({
-        label: platform,
+        label:
+          launchboxFilters.platforms.find((p) => p.key === platform)?.name ??
+          platform,
         filterType: t("platforms"),
         orbColor: filterCategoryColors.platforms,
         key: "platforms",
@@ -370,6 +372,7 @@ export default function Catalogue() {
     filters.genres,
     filters.developers,
     filters.publishers,
+    launchboxFilters.platforms,
     t,
   ]);
 

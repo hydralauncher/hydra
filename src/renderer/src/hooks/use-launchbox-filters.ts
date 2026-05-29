@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 
+export interface LaunchboxPlatform {
+  key: string;
+  name: string;
+}
+
 export interface LaunchboxCatalogueFilters {
-  platforms: string[];
+  platforms: LaunchboxPlatform[];
   genres: string[];
   developers: string[];
   publishers: string[];
@@ -22,13 +27,19 @@ const fetchLaunchboxFilters = async (): Promise<LaunchboxCatalogueFilters> => {
   if (inflight) return inflight;
 
   inflight = window.electron.hydraApi
-    .get<Partial<LaunchboxCatalogueFilters> | null>(
-      "/catalogue/filters?shop=launchbox",
-      { needsAuth: false }
-    )
+    .get<{
+      platforms?: (LaunchboxPlatform | string)[];
+      genres?: string[];
+      developers?: string[];
+      publishers?: string[];
+    } | null>("/catalogue/filters?shop=launchbox", { needsAuth: false })
     .then((response) => {
       const normalized: LaunchboxCatalogueFilters = {
-        platforms: response?.platforms ?? [],
+        platforms: (response?.platforms ?? []).map((platform) =>
+          typeof platform === "string"
+            ? { key: platform, name: platform }
+            : platform
+        ),
         genres: response?.genres ?? [],
         developers: response?.developers ?? [],
         publishers: response?.publishers ?? [],
