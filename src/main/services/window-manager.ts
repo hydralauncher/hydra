@@ -6,6 +6,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
   ScreenState,
   UserPreferences,
 } from "@types";
@@ -482,10 +483,30 @@ export class WindowManager {
     };
   }
 
+  public static sendAchievementToFocusedWindow(
+    position: AchievementCustomNotificationPosition,
+    achievements: AchievementNotificationInfo[]
+  ): boolean {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    for (const window of candidates) {
+      if (window && !window.isDestroyed() && window.isFocused()) {
+        window.webContents.send(
+          "on-achievement-unlocked-in-app",
+          position,
+          achievements
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
-    if (process.platform === "darwin") {
+    if (process.platform === "darwin" || process.platform === "linux") {
       return;
     }
 
@@ -544,20 +565,28 @@ export class WindowManager {
     );
 
     const language = userPreferences.language ?? "en";
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+    const testAchievements = [
+      generateAchievementCustomNotificationTest(t, language),
+      generateAchievementCustomNotificationTest(t, language, {
+        isRare: true,
+        isHidden: true,
+      }),
+      generateAchievementCustomNotificationTest(t, language, {
+        isPlatinum: true,
+      }),
+    ];
+
+    if (process.platform === "linux") {
+      this.sendAchievementToFocusedWindow(position, testAchievements);
+      return;
+    }
 
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      [
-        generateAchievementCustomNotificationTest(t, language),
-        generateAchievementCustomNotificationTest(t, language, {
-          isRare: true,
-          isHidden: true,
-        }),
-        generateAchievementCustomNotificationTest(t, language, {
-          isPlatinum: true,
-        }),
-      ]
+      position,
+      testAchievements
     );
   }
 
