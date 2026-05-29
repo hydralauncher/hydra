@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { ComponentType } from "react";
+import type { ReactNode } from "react";
 import { ChevronDownIcon, CheckIcon } from "@primer/octicons-react";
 import "./filter-dropdown.scss";
 
-type FilterIcon = ComponentType<{ size?: number; className?: string }>;
+type FilterIcon = (props: { size?: number; className?: string }) => ReactNode;
 
 export interface FilterDropdownOption<T extends string> {
   value: T;
