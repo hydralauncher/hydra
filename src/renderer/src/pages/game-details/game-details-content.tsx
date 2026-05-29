@@ -419,7 +419,9 @@ export function GameDetailsContent() {
               className={`game-details__description ${
                 isDescriptionExpanded
                   ? "game-details__description--expanded"
-                  : "game-details__description--collapsed"
+                  : isDescriptionOverflowing
+                    ? "game-details__description--collapsed"
+                    : ""
               }`}
             />
 

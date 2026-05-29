@@ -5,14 +5,14 @@ import "./platform-filter.scss";
 interface PlatformFilterProps {
   platform: string | null;
   platforms: string[];
-  disabled: boolean;
+  disabled?: boolean;
   onPlatformChange: (platform: string | null) => void;
 }
 
 export function PlatformFilter({
   platform,
   platforms,
-  disabled,
+  disabled = false,
   onPlatformChange,
 }: Readonly<PlatformFilterProps>) {
   const { t } = useTranslation("library");

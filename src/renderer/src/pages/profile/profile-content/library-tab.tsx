@@ -1,17 +1,28 @@
 import { useTranslation } from "react-i18next";
-import { TelescopeIcon } from "@primer/octicons-react";
+import {
+  TelescopeIcon,
+  TrophyIcon,
+  ClockIcon,
+  HistoryIcon,
+  StackIcon,
+  DeviceDesktopIcon,
+} from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
-import { SortOptions } from "./sort-options";
+import { ClassicsIcon } from "@renderer/pages/library/category-filter";
+import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
+export type ProfilePlatform = "all" | "pc" | "classics";
 
 interface LibraryTabProps {
   sortBy: SortOption;
   onSortChange: (sortBy: SortOption) => void;
+  platform: ProfilePlatform;
+  onPlatformChange: (platform: ProfilePlatform) => void;
   pinnedGames: UserGame[];
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
@@ -27,6 +38,8 @@ interface LibraryTabProps {
 export function LibraryTab({
   sortBy,
   onSortChange,
+  platform,
+  onPlatformChange,
   pinnedGames,
   libraryGames,
   hasMoreLibraryGames,
@@ -41,6 +54,22 @@ export function LibraryTab({
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
 
+  const platformOptions: FilterDropdownOption<ProfilePlatform>[] = [
+    { value: "all", label: t("platform_all"), icon: StackIcon },
+    { value: "pc", label: t("platform_pc"), icon: DeviceDesktopIcon },
+    { value: "classics", label: t("platform_classics"), icon: ClassicsIcon },
+  ];
+
+  const sortOptions: FilterDropdownOption<SortOption>[] = [
+    {
+      value: "achievementCount",
+      label: t("achievements_earned"),
+      icon: TrophyIcon,
+    },
+    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
+    { value: "playtime", label: t("playtime"), icon: ClockIcon },
+  ];
+
   const hasGames = libraryGames.length > 0;
   const hasPinnedGames = pinnedGames.length > 0;
   const hasAnyGames = hasGames || hasPinnedGames;
@@ -54,9 +83,22 @@ export function LibraryTab({
       className="profile-content__tab-panel"
       aria-hidden={false}
     >
-      {hasAnyGames && (
-        <SortOptions sortBy={sortBy} onSortChange={onSortChange} />
-      )}
+      <div className="profile-content__library-filters">
+        <FilterDropdown
+          placeholder={t("platform")}
+          value={platform}
+          options={platformOptions}
+          onChange={onPlatformChange}
+        />
+        {hasAnyGames && (
+          <FilterDropdown
+            placeholder={t("sort_by")}
+            value={sortBy}
+            options={sortOptions}
+            onChange={onSortChange}
+          />
+        )}
+      </div>
 
       {!hasAnyGames && (
         <div className="profile-content__no-games">

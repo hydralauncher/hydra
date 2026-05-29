@@ -4,7 +4,13 @@ import "./category-filter.scss";
 
 export type LibraryCategory = "all" | "pc" | "classics";
 
-export function ClassicsIcon({ size = 14 }: { size?: number }) {
+export function ClassicsIcon({
+  size = 14,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
       width={size}
@@ -16,6 +22,7 @@ export function ClassicsIcon({ size = 14 }: { size?: number }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className={className}
     >
       <defs>
         <linearGradient
