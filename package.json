@@ -124,6 +124,7 @@
     "@protobuf-ts/plugin": "^2.10.0",
     "@swc/core": "^1.4.16",
     "@types/auto-launch": "^5.0.5",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/color": "^3.0.6",
     "@types/jsdom": "^21.1.7",
     "@types/jsonwebtoken": "^9.0.8",
