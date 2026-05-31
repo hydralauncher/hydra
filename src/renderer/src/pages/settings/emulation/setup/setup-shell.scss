@@ -287,9 +287,16 @@
     display: flex;
     gap: 6px;
     align-items: center;
+    justify-content: space-between;
     padding-top: 6px;
     font-size: 12px;
     color: #71717a;
+  }
+
+  &__hint-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
   }
 
   &__link-button {
