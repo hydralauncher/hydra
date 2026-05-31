@@ -24,4 +24,7 @@ export const levelKeys = {
   localNotifications: "localNotifications",
   commonRedistPassed: "commonRedistPassed", // Whether common redistributables preflight has passed
   emulators: "emulators",
+  ps2MemoryCardSaves: "ps2MemoryCardSaves",
+  ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>
+    `${cardFilePath}::${folderName}`,
 };

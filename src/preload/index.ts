@@ -24,6 +24,10 @@ import type {
   TorrentFilesResponse,
   DownloadLayoutState,
   EmulatorSystem,
+  Ps2MemcardScanInput,
+  Ps2MemcardScanProgress,
+  Ps2MemoryCardSaveRecord,
+  Ps2ExportResult,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -232,6 +236,35 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("importLaunchboxRoms", system, folders, language),
   cancelLaunchboxImport: (requestId: string) =>
     ipcRenderer.invoke("cancelLaunchboxImport", requestId),
+  scanPs2Memcards: (input: Ps2MemcardScanInput) =>
+    ipcRenderer.invoke("scanPs2Memcards", input),
+  cancelPs2MemcardScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelPs2MemcardScan", requestId),
+  onPs2MemcardScanProgress: (
+    requestId: string,
+    cb: (payload: Ps2MemcardScanProgress) => void
+  ) => {
+    const channel = `on-ps2-memcard-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Ps2MemcardScanProgress);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  listPs2MemcardSaves: (): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listPs2MemcardSaves"),
+  forgetPs2MemcardSave: (cardFilePath: string, folderName: string) =>
+    ipcRenderer.invoke("forgetPs2MemcardSave", cardFilePath, folderName),
+  exportPs2Save: (
+    cardFilePath: string,
+    folderName: string,
+    suggestedName: string
+  ): Promise<Ps2ExportResult> =>
+    ipcRenderer.invoke(
+      "exportPs2Save",
+      cardFilePath,
+      folderName,
+      suggestedName
+    ),
   onLaunchboxImportProgress: (
     requestId: string,
     cb: (

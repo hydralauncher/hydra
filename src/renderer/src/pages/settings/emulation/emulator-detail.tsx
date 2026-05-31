@@ -21,6 +21,7 @@ import type { EmulatorConfig, RomFolder } from "@types";
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { EmulatorScanModal, type ScanFolderInput } from "./emulator-scan-modal";
+import { MemoryCardsSection } from "./memory-cards-section";
 
 import "./emulator-detail.scss";
 
@@ -466,6 +467,8 @@ export function EmulatorDetail({
           ))}
         </div>
       </section>
+
+      {config.system === "ps2" && <MemoryCardsSection config={config} />}
 
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">

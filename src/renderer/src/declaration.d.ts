@@ -27,6 +27,10 @@ import type {
   Theme,
   Auth,
   ShortcutLocation,
+  Ps2MemcardScanInput,
+  Ps2MemcardScanProgress,
+  Ps2MemoryCardSaveRecord,
+  Ps2ExportResult,
   ShopAssets,
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
@@ -437,6 +441,24 @@ declare global {
           | { type: "error"; message: string }
       ) => void
     ) => () => Electron.IpcRenderer;
+    scanPs2Memcards: (
+      input: Ps2MemcardScanInput
+    ) => Promise<{ requestId: string }>;
+    cancelPs2MemcardScan: (requestId: string) => Promise<void>;
+    onPs2MemcardScanProgress: (
+      requestId: string,
+      cb: (payload: Ps2MemcardScanProgress) => void
+    ) => () => Electron.IpcRenderer;
+    listPs2MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
+    forgetPs2MemcardSave: (
+      cardFilePath: string,
+      folderName: string
+    ) => Promise<void>;
+    exportPs2Save: (
+      cardFilePath: string,
+      folderName: string,
+      suggestedName: string
+    ) => Promise<Ps2ExportResult>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;

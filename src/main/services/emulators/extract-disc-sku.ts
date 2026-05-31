@@ -5,6 +5,7 @@ import type { EmulatorSystem } from "@types";
 import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
 import { readChdLeadingData } from "./chd-reader";
+import { normalize } from "./sku-normalize";
 
 const BOOT_SKU_RE =
   /BOOT2?\s*=\s*cdrom0?:\\?([A-Z]{4}[_\-.\s]?\d{3}[_\-.\s]?\d{2})/i;
@@ -15,12 +16,9 @@ const CHUNK_SIZE = 1024 * 1024;
 const SCAN_LIMIT = 64 * 1024 * 1024;
 const TAIL_BYTES = 128;
 
-export const normalize = (raw: string): string => {
-  const stripped = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const match = stripped.match(/^([A-Z]{4})(\d+)$/);
-  if (!match) return stripped;
-  return `${match[1]}-${match[2]}`;
-};
+// `normalize` lives in the dependency-free `./sku-normalize` leaf; re-exported
+// here to preserve the existing `@main/services/emulators` barrel export.
+export { normalize };
 
 const scanBuffersForSku = (chunks: Buffer[]): string | null => {
   let tail = "";
