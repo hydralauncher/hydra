@@ -1,16 +1,13 @@
-import { normalize } from "../sku-normalize";
-
 /**
  * Extracting a game SKU from a PS2 memory card save-folder name.
  *
- * On-card save folders are named `B<region><serial>`, e.g. `BESLES-50009`,
- * `BASLUS-20552`, `BISLPM-65530`. We must NOT blindly drop the first two
- * characters — system folders (`BIEXEC-SYSTEM`, `BADATA-SYSTEM`, `BWNETCNF`, …)
- * follow the same shape but carry no game serial.
- *
- * Strategy: reject known system folders first, strip the `B<region>` prefix only
- * when the remainder looks like a serial, normalize to `XXXX-NNNNN`, then accept
- * only if the 4-letter prefix is a known PS1/PS2 publisher code.
+ * On-card save folders are named B<region><serial><game-suffix>, e.g.
+ * BASCUS-97481GOWII, BASLUS-20294USER, BESLES-52988XXX. The serial is a
+ * 4-letter publisher code + 5 digits; the game appends its own suffix directly
+ * after it with no separator. So we strip the leading B<region> marker, match
+ * the serial from the START, and drop the suffix — never anchor at the end.
+ * System folders (BIEXEC-SYSTEM, BADATA-SYSTEM, BWNETCNF, …) carry no serial
+ * and are skipped.
  */
 
 // Known PlayStation disc serial prefixes (SC* = Sony first-party, SL* = licensed,
@@ -36,21 +33,6 @@ const KNOWN_PREFIXES = new Set([
   "TCES",
   "ALCH",
   "HAKU",
-]);
-
-// Second letter of the `B<region>` prefix: A=America, E=Europe, I/J=Japan,
-// K=Korea, C=China, plus a few seen in the wild.
-const REGION_SECOND_LETTERS = new Set([
-  "A",
-  "E",
-  "I",
-  "J",
-  "K",
-  "C",
-  "P",
-  "H",
-  "U",
-  "X",
 ]);
 
 /**
@@ -80,22 +62,15 @@ export const extractSkuFromSaveFolder = (folderName: string): string | null => {
   const u = folderName.trim().toUpperCase();
   if (!u || isSystemSaveFolder(u)) return null;
 
-  let candidate: string | null = null;
+  // Drop a leading B<region> marker, but only when a serial follows it (so a
+  // bare serial is left intact, and "B" is never mistaken for part of a serial
+  // — no PlayStation serial prefix begins with B).
+  const body = u.replace(/^B[A-Z](?=[A-Z]{4}[-_ .]?\d{5})/, "");
 
-  // `B<region>` + serial, e.g. BESLES-50009 -> SLES-50009.
-  const prefixed = u.match(/^B([A-Z])((?:[A-Z]{4})[-_ ]?\d{3,5})$/);
-  if (prefixed && REGION_SECOND_LETTERS.has(prefixed[1])) {
-    candidate = prefixed[2];
-  } else {
-    // Already-bare serial (homebrew/odd dumps): SLUS-20552 / SLUS_205.52 / SLUS20552.
-    const bare = u.match(/^([A-Z]{4}[-_ ]?\d{3}[-_ .]?\d{2})$/);
-    if (bare) candidate = bare[1];
-  }
+  // Serial = 4-letter publisher code + optional separator + exactly 5 digits,
+  // matched from the start. Any trailing game-specific suffix is ignored.
+  const serial = body.match(/^([A-Z]{4})[-_ .]?(\d{5})/);
+  if (!serial || !KNOWN_PREFIXES.has(serial[1])) return null;
 
-  if (!candidate) return null;
-
-  const normalized = normalize(candidate); // -> "SLES-50009"
-  const m = normalized.match(/^([A-Z]{4})-(\d+)$/);
-  if (!m || !KNOWN_PREFIXES.has(m[1])) return null;
-  return normalized;
+  return `${serial[1]}-${serial[2]}`;
 };
