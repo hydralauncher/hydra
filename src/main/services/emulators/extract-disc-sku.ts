@@ -4,6 +4,7 @@ import path from "node:path";
 import type { EmulatorSystem } from "@types";
 import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
+import { readChdLeadingData } from "./chd-reader";
 
 const BOOT_SKU_RE =
   /BOOT2?\s*=\s*cdrom0?:\\?([A-Z]{4}[_\-.\s]?\d{3}[_\-.\s]?\d{2})/i;
@@ -21,7 +22,51 @@ export const normalize = (raw: string): string => {
   return `${match[1]}-${match[2]}`;
 };
 
+const scanBuffersForSku = (chunks: Buffer[]): string | null => {
+  let tail = "";
+  let isoFallback: string | null = null;
+
+  for (const chunk of chunks) {
+    const text = tail + chunk.toString("latin1");
+
+    const match = text.match(BOOT_SKU_RE);
+    if (match) return normalize(match[1]);
+
+    if (isoFallback === null) {
+      const fileMatch = text.match(ISO_FILENAME_SKU_RE);
+      if (fileMatch) {
+        isoFallback = normalize(
+          `${fileMatch[1]}_${fileMatch[2]}.${fileMatch[3]}`
+        );
+      }
+    }
+
+    tail = text.slice(-TAIL_BYTES);
+  }
+
+  return isoFallback;
+};
+
+const extractChdSku = async (filePath: string): Promise<string | null> => {
+  const data = await readChdLeadingData(filePath);
+  if (!data) {
+    logger.log("[extract-sku] chd not decodable", { filePath });
+    return null;
+  }
+  const sku = scanBuffersForSku(data.chunks);
+  logger.log("[extract-sku] chd scan", {
+    filePath,
+    chunks: data.chunks.length,
+    sku,
+  });
+  return sku;
+};
+
 const extractPs12Sku = async (filePath: string): Promise<string | null> => {
+  if (filePath.toLowerCase().endsWith(".chd")) {
+    return extractChdSku(filePath);
+  }
+
   const target = await resolveSniffTarget(filePath);
   logger.log("[extract-sku] start", { filePath, target });
   if (!target) {

@@ -110,6 +110,106 @@
     gap: 14px;
   }
 
+  &__download-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__download-heading-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  &__download-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 12px;
+    flex: 1;
+  }
+
+  &__download-card {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: #161616;
+    }
+  }
+
+  &__download-card-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__download-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  &__download-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fafafa;
+  }
+
+  &__download-card-desc {
+    font-size: 13px;
+    color: #a1a1aa;
+    line-height: 19px;
+  }
+
+  &__download-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  &__download-card-url {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    color: #71717a;
+    font-family: "JetBrains Mono", monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__download-card-ext {
+    color: #71717a;
+    flex-shrink: 0;
+  }
+
   &__row-icon {
     width: 36px;
     height: 36px;
@@ -566,5 +666,70 @@
     color: #c0c1c7;
     cursor: pointer;
     padding-top: 8px;
+  }
+
+  &__unmatched {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  &__unmatched-header {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    color: #a1a1aa;
+    cursor: pointer;
+    text-align: left;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
+  &__unmatched-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__unmatched-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  &__unmatched-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  &__unmatched-icon {
+    color: #71717a;
+    flex-shrink: 0;
+  }
+
+  &__unmatched-name {
+    color: #c0c1c7;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

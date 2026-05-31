@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   DatabaseIcon,
   FileDirectoryIcon,
   SyncIcon,
@@ -20,6 +22,7 @@ interface Props {
     sizeBytes: number;
     matched: number;
     unmatched: number;
+    unmatchedFiles: string[];
   }) => void;
 }
 
@@ -54,6 +57,8 @@ export function SetupStepScanning({
   const [matched, setMatched] = useState(0);
   const [accFiles, setAccFiles] = useState(0);
   const [accBytes, setAccBytes] = useState(0);
+  const [unmatchedFiles, setUnmatchedFiles] = useState<string[]>([]);
+  const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 
   const requestIdRef = useRef<string | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
@@ -98,11 +103,13 @@ export function SetupStepScanning({
           } else if (payload.type === "done") {
             unsub();
             setPhase("done");
+            setUnmatchedFiles(payload.unmatchedFiles ?? []);
             onComplete({
               fileCount: payload.fileCount,
               sizeBytes: payload.sizeBytes,
               matched: payload.matched,
               unmatched: payload.unmatched,
+              unmatchedFiles: payload.unmatchedFiles ?? [],
             });
           } else if (payload.type === "cancelled") {
             unsub();
@@ -130,7 +137,13 @@ export function SetupStepScanning({
   const indeterminate = phase !== "done" && (total === 0 || processed >= total);
 
   const phaseLabel =
-    phase === "scanning" ? t("setup_scanning") : t("setup_matching");
+    phase === "done"
+      ? t("setup_scan_complete")
+      : phase === "scanning"
+        ? t("setup_scanning")
+        : t("setup_matching");
+
+  const isDone = phase === "done";
 
   return (
     <>
@@ -141,7 +154,7 @@ export function SetupStepScanning({
 
       <div className="setup-modal__progress-meta">
         <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          <SyncIcon size={14} className="setup-modal__spin" />
+          {!isDone && <SyncIcon size={14} className="setup-modal__spin" />}
           <span>{phaseLabel}</span>
         </span>
         <span>
@@ -161,7 +174,7 @@ export function SetupStepScanning({
         />
       </div>
 
-      {currentFile && (
+      {!isDone && currentFile && (
         <div className="setup-modal__scan-file">
           <FileDirectoryIcon
             size={14}
@@ -203,7 +216,47 @@ export function SetupStepScanning({
         </div>
       </div>
 
-      <p className="setup-modal__scan-keep-open">{t("setup_scan_keep_open")}</p>
+      {isDone && unmatchedFiles.length > 0 && (
+        <div className="setup-modal__unmatched">
+          <button
+            type="button"
+            className="setup-modal__unmatched-header"
+            onClick={() => setUnmatchedOpen((prev) => !prev)}
+            aria-expanded={unmatchedOpen}
+          >
+            {unmatchedOpen ? (
+              <ChevronDownIcon size={14} />
+            ) : (
+              <ChevronRightIcon size={14} />
+            )}
+            <span className="setup-modal__unmatched-title">
+              {t("setup_unmatched_title", { count: unmatchedFiles.length })}
+            </span>
+          </button>
+          {unmatchedOpen && (
+            <ul className="setup-modal__unmatched-list">
+              {unmatchedFiles.map((file, index) => (
+                <li
+                  key={`${file}-${index}`}
+                  className="setup-modal__unmatched-item"
+                >
+                  <FileDirectoryIcon
+                    size={14}
+                    className="setup-modal__unmatched-icon"
+                  />
+                  <span className="setup-modal__unmatched-name">{file}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {!isDone && (
+        <p className="setup-modal__scan-keep-open">
+          {t("setup_scan_keep_open")}
+        </p>
+      )}
     </>
   );
 }

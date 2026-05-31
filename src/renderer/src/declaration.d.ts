@@ -425,6 +425,7 @@ declare global {
               sizeBytes: number;
               matched: number;
               unmatched: number;
+              unmatchedFiles: string[];
             }
           | {
               type: "cancelled";

@@ -38,6 +38,9 @@ const parsePlaytimeDat = (content: string): Map<string, number> => {
   return out;
 };
 
+const normalizePlaytimeKey = (key: string): string =>
+  key.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
 const parsePersistentSettings = (content: string): Map<string, number> => {
   const out = new Map<string, number>();
   let inPlaytime = false;
@@ -52,9 +55,9 @@ const parsePersistentSettings = (content: string): Map<string, number> => {
     if (!inPlaytime) continue;
     const eq = line.indexOf("=");
     if (eq < 0) continue;
-    const key = line.slice(0, eq).trim();
-    const seconds = Number.parseInt(line.slice(eq + 1).trim(), 10);
-    if (Number.isFinite(seconds)) out.set(key, seconds);
+    const key = normalizePlaytimeKey(line.slice(0, eq).trim());
+    const milliseconds = Number.parseInt(line.slice(eq + 1).trim(), 10);
+    if (Number.isFinite(milliseconds)) out.set(key, milliseconds / 1000);
   }
   return out;
 };
@@ -68,11 +71,11 @@ export const readEmulatorPlaytimeSeconds = async (
   if (!file) return null;
   try {
     const content = await fs.readFile(file, "utf-8");
-    const map =
-      system === "ps3"
-        ? parsePersistentSettings(content)
-        : parsePlaytimeDat(content);
-    return map.get(sku) ?? null;
+    if (system === "ps3") {
+      const map = parsePersistentSettings(content);
+      return map.get(normalizePlaytimeKey(sku)) ?? null;
+    }
+    return parsePlaytimeDat(content).get(sku) ?? null;
   } catch {
     return null;
   }
