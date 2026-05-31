@@ -368,6 +368,7 @@ export interface LaunchboxImportResult {
   sizeBytes: number;
   matched: number;
   unmatched: number;
+  unmatchedFiles: string[];
   cancelled: boolean;
 }
 
@@ -424,6 +425,7 @@ export async function runLaunchboxImport(
       sizeBytes: 0,
       matched: 0,
       unmatched: 0,
+      unmatchedFiles: [],
       cancelled: true,
     };
   }
@@ -475,6 +477,7 @@ export async function runLaunchboxImport(
       sizeBytes: 0,
       matched: 0,
       unmatched: 0,
+      unmatchedFiles: [],
       cancelled: true,
     };
   }
@@ -495,6 +498,7 @@ export async function runLaunchboxImport(
       sizeBytes: 0,
       matched: 0,
       unmatched: 0,
+      unmatchedFiles: [],
       cancelled: true,
     };
   }
@@ -537,6 +541,7 @@ export async function runLaunchboxImport(
   }
 
   let unmatched = 0;
+  const unmatchedFiles: string[] = [];
   const seenUnmatchedGroups = new Set<string>();
   const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
   for (const entry of groupCanonical.values()) {
@@ -580,6 +585,7 @@ export async function runLaunchboxImport(
     if (!canonical && !seenUnmatchedGroups.has(groupKey)) {
       seenUnmatchedGroups.add(groupKey);
       unmatched += 1;
+      unmatchedFiles.push(game.name);
     }
 
     const totalUniqueTitlesSoFar = titleByFolder.size;
@@ -633,6 +639,7 @@ export async function runLaunchboxImport(
       sizeBytes: totalSizeBytes,
       matched,
       unmatched,
+      unmatchedFiles,
       cancelled: true,
     };
   }
@@ -677,6 +684,7 @@ export async function runLaunchboxImport(
     sizeBytes: totalSizeBytes,
     matched,
     unmatched,
+    unmatchedFiles,
     cancelled: signal.cancelled,
   };
 }
@@ -711,6 +719,7 @@ const importLaunchboxRoms = async (
         sizeBytes: result.sizeBytes,
         matched: result.matched,
         unmatched: result.unmatched,
+        unmatchedFiles: result.unmatchedFiles,
       });
     } catch (err) {
       WindowManager.mainWindow?.webContents.send(channel, {

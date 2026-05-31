@@ -13,12 +13,14 @@ interface Props {
   config: EmulatorConfig;
   detecting?: boolean;
   onBrowse: () => void;
+  onShowDownloadHelp: () => void;
 }
 
 export function SetupStepFindEmulator({
   config,
   detecting = false,
   onBrowse,
+  onShowDownloadHelp,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const name = KNOWN_BINARY_LABELS[config.binary];
@@ -80,6 +82,13 @@ export function SetupStepFindEmulator({
           onClick={onBrowse}
         >
           {t("setup_browse_manually")}
+        </button>
+        <button
+          type="button"
+          className="setup-modal__link-button"
+          onClick={onShowDownloadHelp}
+        >
+          {t("setup_no_emulator_q", { name })}
         </button>
       </div>
     </>

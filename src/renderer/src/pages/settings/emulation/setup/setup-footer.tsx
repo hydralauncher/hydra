@@ -72,7 +72,7 @@ export function SetupFooter({
       </div>
 
       <div className="setup-modal__footer-side setup-modal__footer-side--end">
-        {endAction ? (
+        {endAction && (
           <button
             type="button"
             className="setup-modal__ghost-button"
@@ -80,27 +80,24 @@ export function SetupFooter({
           >
             {endAction.label}
           </button>
-        ) : (
-          <>
-            {showSkip && (
-              <button
-                type="button"
-                className="setup-modal__ghost-button"
-                onClick={onSkip}
-              >
-                {t("setup_skip")}
-              </button>
-            )}
-            {!continueHidden && (
-              <Button
-                theme="primary"
-                onClick={onContinue}
-                disabled={continueDisabled}
-              >
-                {t("setup_continue")}
-              </Button>
-            )}
-          </>
+        )}
+        {showSkip && (
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={onSkip}
+          >
+            {t("setup_skip")}
+          </button>
+        )}
+        {!continueHidden && (
+          <Button
+            theme="primary"
+            onClick={onContinue}
+            disabled={continueDisabled}
+          >
+            {t("setup_continue")}
+          </Button>
         )}
       </div>
     </div>

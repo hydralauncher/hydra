@@ -1,7 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Modal } from "@renderer/components";
+import { Button, Modal } from "@renderer/components";
 import type { EmulatorSystem } from "@types";
 
 import { SetupStepScanning } from "./setup/setup-step-scanning";
@@ -19,6 +19,7 @@ export interface ScanCompletion {
   sizeBytes: number;
   matched: number;
   unmatched: number;
+  unmatchedFiles: string[];
 }
 
 interface Props {
@@ -40,12 +41,15 @@ export function EmulatorScanModal({
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
 
-  const handleComplete = useCallback(
-    (stats: ScanCompletion) => {
-      onComplete(stats);
-    },
-    [onComplete]
-  );
+  const [scanStats, setScanStats] = useState<ScanCompletion | null>(null);
+
+  useEffect(() => {
+    if (visible) setScanStats(null);
+  }, [visible]);
+
+  const handleComplete = useCallback((stats: ScanCompletion) => {
+    setScanStats(stats);
+  }, []);
 
   const pendingFolders: PendingFolder[] = folders.map((f) => ({
     path: f.path,
@@ -81,13 +85,24 @@ export function EmulatorScanModal({
         <div className="setup-modal__footer">
           <div className="setup-modal__footer-side" />
           <div className="setup-modal__footer-side setup-modal__footer-side--end">
-            <button
-              type="button"
-              className="setup-modal__ghost-button"
-              onClick={onCancel}
+            {!scanStats && (
+              <button
+                type="button"
+                className="setup-modal__ghost-button"
+                onClick={onCancel}
+              >
+                {t("setup_cancel_scan")}
+              </button>
+            )}
+            <Button
+              theme="primary"
+              disabled={!scanStats}
+              onClick={() => {
+                if (scanStats) onComplete(scanStats);
+              }}
             >
-              {t("setup_cancel_scan")}
-            </button>
+              {t("setup_continue")}
+            </Button>
           </div>
         </div>
       </div>

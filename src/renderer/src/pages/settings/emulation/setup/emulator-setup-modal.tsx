@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Modal } from "@renderer/components";
+import { Button, Modal } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 
 import { SetupFooter } from "./setup-footer";
+import { SetupStepDownload } from "./setup-step-download";
 import { SetupStepFindEmulator } from "./setup-step-find-emulator";
 import { SetupStepFirmware } from "./setup-step-firmware";
 import { SetupStepRomFolder } from "./setup-step-rom-folder";
@@ -40,8 +41,10 @@ export function EmulatorSetupModal({
   const [folders, setFolders] = useState<PendingFolder[]>([]);
   const [firmwareOk, setFirmwareOk] = useState(false);
   const [gamesAdded, setGamesAdded] = useState(0);
+  const [scanComplete, setScanComplete] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [ymlEntryCount, setYmlEntryCount] = useState(0);
+  const [showDownloadHelp, setShowDownloadHelp] = useState(false);
 
   const autoDetectRef = useRef(false);
 
@@ -52,7 +55,9 @@ export function EmulatorSetupModal({
       setFolders([]);
       setFirmwareOk(false);
       setGamesAdded(0);
+      setScanComplete(false);
       setYmlEntryCount(0);
+      setShowDownloadHelp(false);
       autoDetectRef.current = false;
     }
   }, [visible, initialConfig]);
@@ -304,10 +309,11 @@ export function EmulatorSetupModal({
     if (currentStep === "find_emulator") return config?.executablePath === null;
     if (currentStep === "firmware") return !firmwareOk;
     if (currentStep === "rom_folder") return folders.length === 0;
+    if (currentStep === "scanning") return !scanComplete;
     return true;
-  }, [currentStep, config, firmwareOk, folders]);
+  }, [currentStep, config, firmwareOk, folders, scanComplete]);
 
-  const continueHidden = currentStep === "scanning" || currentStep === "done";
+  const continueHidden = currentStep === "done";
 
   if (!visible || !system) return null;
 
@@ -344,12 +350,16 @@ export function EmulatorSetupModal({
     >
       <div className="setup-modal">
         <div className="setup-modal__body">
-          {currentStep === "find_emulator" && config && (
+          {currentStep === "find_emulator" && config && !showDownloadHelp && (
             <SetupStepFindEmulator
               config={config}
               detecting={detecting}
               onBrowse={handleBrowseExecutable}
+              onShowDownloadHelp={() => setShowDownloadHelp(true)}
             />
+          )}
+          {currentStep === "find_emulator" && config && showDownloadHelp && (
+            <SetupStepDownload binary={config.binary} />
           )}
           {currentStep === "firmware" && config && (
             <SetupStepFirmware
@@ -378,7 +388,7 @@ export function EmulatorSetupModal({
               onComplete={(added) => {
                 setGamesAdded(added.matched);
                 refreshConfig();
-                goNext();
+                setScanComplete(true);
               }}
             />
           )}
@@ -391,28 +401,53 @@ export function EmulatorSetupModal({
           )}
         </div>
 
-        <SetupFooter
-          currentStepIndex={stepIndex}
-          totalSteps={steps.length}
-          showBack={
-            stepIndex > 0 &&
-            currentStep !== "scanning" &&
-            currentStep !== "done"
-          }
-          showCancel={currentStep === "find_emulator"}
-          showSkip={currentStep === "firmware" || currentStep === "rom_folder"}
-          continueDisabled={continueDisabled}
-          continueHidden={continueHidden}
-          endAction={
-            currentStep === "scanning"
-              ? { label: t("setup_cancel_scan"), onClick: handleScanCancel }
-              : null
-          }
-          onBack={goBack}
-          onCancel={handleClose}
-          onSkip={handleSkip}
-          onContinue={handleContinue}
-        />
+        {showDownloadHelp ? (
+          <div className="setup-modal__footer">
+            <div className="setup-modal__footer-side">
+              <button
+                type="button"
+                className="setup-modal__ghost-button"
+                onClick={() => setShowDownloadHelp(false)}
+              >
+                {t("setup_back")}
+              </button>
+            </div>
+            <div className="setup-modal__dots" />
+            <div className="setup-modal__footer-side setup-modal__footer-side--end">
+              <Button
+                theme="primary"
+                onClick={() => setShowDownloadHelp(false)}
+              >
+                {t("setup_download_ready")}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <SetupFooter
+            currentStepIndex={stepIndex}
+            totalSteps={steps.length}
+            showBack={
+              stepIndex > 0 &&
+              currentStep !== "scanning" &&
+              currentStep !== "done"
+            }
+            showCancel={currentStep === "find_emulator"}
+            showSkip={
+              currentStep === "firmware" || currentStep === "rom_folder"
+            }
+            continueDisabled={continueDisabled}
+            continueHidden={continueHidden}
+            endAction={
+              currentStep === "scanning" && !scanComplete
+                ? { label: t("setup_cancel_scan"), onClick: handleScanCancel }
+                : null
+            }
+            onBack={goBack}
+            onCancel={handleClose}
+            onSkip={handleSkip}
+            onContinue={handleContinue}
+          />
+        )}
       </div>
     </Modal>
   );
