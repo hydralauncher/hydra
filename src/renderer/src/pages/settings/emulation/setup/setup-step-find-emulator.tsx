@@ -75,14 +75,16 @@ export function SetupStepFindEmulator({
       </div>
 
       <div className="setup-modal__hint">
-        <span>{t("setup_browse_manually_q")}</span>
-        <button
-          type="button"
-          className="setup-modal__link-button"
-          onClick={onBrowse}
-        >
-          {t("setup_browse_manually")}
-        </button>
+        <div className="setup-modal__hint-group">
+          <span>{t("setup_browse_manually_q")}</span>
+          <button
+            type="button"
+            className="setup-modal__link-button"
+            onClick={onBrowse}
+          >
+            {t("setup_browse_manually")}
+          </button>
+        </div>
         <button
           type="button"
           className="setup-modal__link-button"
