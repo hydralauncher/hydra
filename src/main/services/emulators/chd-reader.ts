@@ -2,6 +2,8 @@
 import { promises as fs } from "node:fs";
 import zlib from "node:zlib";
 
+import { logger } from "@main/services/logger";
+
 const CD_FRAME_SIZE = 2448;
 const CD_MAX_SECTOR_DATA = 2352;
 
@@ -24,6 +26,19 @@ const tag = (s: string): number =>
     (s.charCodeAt(2) << 8) |
     s.charCodeAt(3)) >>>
   0;
+
+// Render a codec tag back to its FourCC (e.g. 0 -> "none", tag("cdfl") -> "cdfl")
+// for diagnostic logging.
+const untag = (n: number): string => {
+  if (n === 0) return "none";
+  const s = String.fromCharCode(
+    (n >>> 24) & 0xff,
+    (n >>> 16) & 0xff,
+    (n >>> 8) & 0xff,
+    n & 0xff
+  );
+  return s.replace(/[^\x20-\x7e]/g, "") || "?";
+};
 
 const CODEC_NONE = 0;
 const CODEC_ZLIB = tag("zlib");
@@ -606,6 +621,9 @@ const decodeHunk = async (
 };
 
 const CHD_SCAN_LIMIT = 16 * 1024 * 1024;
+// Upper bound on hunks examined. A full CD is ~40k hunks, but the data track
+// (with SYSTEM.CNF) sits at the start, so we never need to walk the whole disc.
+const MAX_HUNKS_SCANNED = 24000;
 
 export interface ChdScanResult {
   chunks: Buffer[];
@@ -619,24 +637,56 @@ export const readChdLeadingData = async (
     fh = await fs.open(filePath, "r");
     const headerRaw = await readAt(fh, 0, 124);
     const header = parseHeader(headerRaw);
-    if (!header) return null;
+    if (!header) {
+      logger.log("[chd] unsupported header", {
+        filePath,
+        magic: headerRaw.toString("latin1", 0, 8),
+        version: headerRaw.length >= 16 ? beU32(headerRaw, 12) : -1,
+      });
+      return null;
+    }
 
     const entries = await decodeMap(fh, header);
-    if (!entries) return null;
+    if (!entries) {
+      logger.log("[chd] map decode failed", {
+        filePath,
+        version: header.version,
+        codecs: header.compression.map(untag),
+      });
+      return null;
+    }
 
     const chunks: Buffer[] = [];
     let decoded = 0;
-    for (let h = 0; h < header.hunkcount && decoded < CHD_SCAN_LIMIT; h++) {
+    let skipped = 0;
+    const maxHunks = Math.min(header.hunkcount, MAX_HUNKS_SCANNED);
+    for (let h = 0; h < maxHunks && decoded < CHD_SCAN_LIMIT; h++) {
       let chunk: Buffer | null;
       try {
         chunk = await decodeHunk(fh, header, entries, h);
       } catch {
-        break;
+        skipped += 1;
+        continue;
       }
-      if (!chunk) break;
+      // A hunk we can't decode (e.g. a cdfl/FLAC audio hunk) must NOT abort the
+      // scan — skip it and keep reading the data hunks, where the serial lives.
+      if (!chunk) {
+        skipped += 1;
+        continue;
+      }
       chunks.push(chunk);
       decoded += chunk.length;
     }
+
+    logger.log("[chd] leading-data scan", {
+      filePath,
+      version: header.version,
+      codecs: header.compression.map(untag),
+      hunkcount: header.hunkcount,
+      hunksDecoded: chunks.length,
+      hunksSkipped: skipped,
+      bytesDecoded: decoded,
+    });
 
     return chunks.length > 0 ? { chunks } : null;
   } catch {
