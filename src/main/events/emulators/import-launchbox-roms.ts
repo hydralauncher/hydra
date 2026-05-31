@@ -5,6 +5,11 @@ import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
 import {
+  fetchShopDetailsForSkus,
+  normalizeSku,
+  type LaunchboxShopDetailsEntry,
+} from "@main/services/emulators";
+import {
   downloadsSublevel,
   gamesShopAssetsSublevel,
   gamesShopCacheSublevel,
@@ -25,44 +30,9 @@ interface FolderInput {
   scanSubfolders: boolean;
 }
 
-interface LaunchboxShopDetailsAssetsResponse {
-  objectId: string;
-  shop: "launchbox";
-  title: string;
-  iconUrl: string | null;
-  libraryHeroImageUrl: string | null;
-  libraryImageUrl: string | null;
-  logoImageUrl: string | null;
-}
-
-interface LaunchboxShopDetailsEntry {
-  objectId: string;
-  shop: "launchbox";
-  platform?: string | null;
-  skus?: string[];
-  matchedSkus?: string[];
-  data: {
-    title: string;
-    platform?: string | null;
-    description?: string | null;
-    releaseDate?: string | null;
-    developers?: string[];
-    publishers?: string[];
-    genres?: string[];
-    headerImage?: string | null;
-    website?: string | null;
-    screenshots?: string[];
-    assets?: LaunchboxShopDetailsAssetsResponse | null;
-  } | null;
-}
-
-const SHOP_DETAILS_CHUNK_SIZE = 100;
 const PROFILE_BATCH_CHUNK_SIZE = 100;
 
 const inflight = new Map<string, { cancelled: boolean }>();
-
-const normalizeSku = (raw: string): string =>
-  raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 const lookupYmlSku = (
   index: Map<string, string>,
@@ -262,36 +232,6 @@ const persistEntryLocally = async (
   }
 
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
-};
-
-const fetchShopDetailsForSkus = async (
-  skus: string[]
-): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
-  const lookup = new Map<string, LaunchboxShopDetailsEntry>();
-  if (skus.length === 0) return lookup;
-
-  const chunks = chunk(skus, SHOP_DETAILS_CHUNK_SIZE);
-  for (const skuChunk of chunks) {
-    try {
-      const response = await HydraApi.post<LaunchboxShopDetailsEntry[]>(
-        "/games/shop-details",
-        { shop: "launchbox", skus: skuChunk },
-        { needsAuth: false }
-      );
-      if (!Array.isArray(response)) continue;
-
-      for (const entry of response) {
-        if (!entry?.objectId || !entry.data) continue;
-        const entrySkus = entry.skus ?? entry.matchedSkus ?? [];
-        for (const matchedSku of entrySkus) {
-          lookup.set(normalizeSku(matchedSku), entry);
-        }
-      }
-    } catch (err) {
-      logger.error("Failed to fetch launchbox shop-details batch", err);
-    }
-  }
-  return lookup;
 };
 
 const syncProfileBatch = async (objectIds: string[]) => {
