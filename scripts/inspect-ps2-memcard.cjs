@@ -192,6 +192,22 @@ const runSelfTest = async () => {
   eq("BESLES-50009", extractSkuFromSaveFolder("BESLES-50009"), "SLES-50009");
   eq("BISLPM-65530", extractSkuFromSaveFolder("BISLPM-65530"), "SLPM-65530");
   eq("bare SLUS-20552", extractSkuFromSaveFolder("SLUS-20552"), "SLUS-20552");
+  // Real folders carry a game-specific suffix after the serial (see settings UI).
+  eq(
+    "BASCUS-97481GOWII (suffix)",
+    extractSkuFromSaveFolder("BASCUS-97481GOWII"),
+    "SCUS-97481"
+  );
+  eq(
+    "BASLUS-20294USER (suffix)",
+    extractSkuFromSaveFolder("BASLUS-20294USER"),
+    "SLUS-20294"
+  );
+  eq(
+    "BESLES-52988XXX (suffix)",
+    extractSkuFromSaveFolder("BESLES-52988XXX"),
+    "SLES-52988"
+  );
   eq("BIEXEC-SYSTEM", extractSkuFromSaveFolder("BIEXEC-SYSTEM"), null);
   eq("BADATA-SYSTEM", extractSkuFromSaveFolder("BADATA-SYSTEM"), null);
   eq("BWNETCNF", extractSkuFromSaveFolder("BWNETCNF"), null);
