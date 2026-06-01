@@ -116,14 +116,9 @@ export default function Library() {
   });
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
-  const hasClassicsGames = useMemo(
-    () => library.some((game) => game.shop === "launchbox"),
-    [library]
-  );
-
-  const effectiveCategory: LibraryCategory = hasClassicsGames
-    ? category
-    : "all";
+  // The category switch and platform filter are always available, so the
+  // selected category is honoured even before any classics games exist.
+  const effectiveCategory: LibraryCategory = category;
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
@@ -583,17 +578,15 @@ export default function Library() {
         <div className="library__page-header">
           <div className="library__controls-row">
             <div className="library__controls-left">
-              {hasClassicsGames && (
-                <CategoryFilter
-                  category={effectiveCategory}
-                  onCategoryChange={handleCategoryChange}
-                />
-              )}
+              <CategoryFilter
+                category={effectiveCategory}
+                onCategoryChange={handleCategoryChange}
+              />
             </div>
 
             <div className="library__controls-right">
               <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              {hasClassicsGames && effectiveCategory !== "pc" && (
+              {effectiveCategory !== "pc" && (
                 <PlatformFilter
                   platform={selectedPlatform}
                   platforms={uniquePlatforms}
