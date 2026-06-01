@@ -8,7 +8,7 @@ import {
 import { Gamepad2 } from "lucide-react";
 
 import { Button, Modal } from "@renderer/components";
-import type { Ps2MemcardScanInput } from "@types";
+import type { EmulatorSystem, MemcardScanInput } from "@types";
 
 import "./setup/setup-shell.scss";
 
@@ -21,15 +21,31 @@ export interface MemcardScanSummary {
 
 interface Props {
   visible: boolean;
-  input: Ps2MemcardScanInput;
+  system: EmulatorSystem;
+  input: MemcardScanInput;
   onComplete: (summary: MemcardScanSummary) => void;
   onCancel: () => void;
 }
 
 type Phase = "scanning" | "matching" | "done" | "error";
 
+// Bind to the PS1 (DuckStation) or PS2 (PCSX2) scan channel for this system.
+const scanApiFor = (system: EmulatorSystem) =>
+  system === "ps1"
+    ? {
+        scan: window.electron.scanPs1Memcards,
+        cancel: window.electron.cancelPs1MemcardScan,
+        onProgress: window.electron.onPs1MemcardScanProgress,
+      }
+    : {
+        scan: window.electron.scanPs2Memcards,
+        cancel: window.electron.cancelPs2MemcardScan,
+        onProgress: window.electron.onPs2MemcardScanProgress,
+      };
+
 export function MemoryCardScanModal({
   visible,
+  system,
   input,
   onComplete,
   onCancel,
@@ -58,48 +74,46 @@ export function MemoryCardScanModal({
     setSummary(null);
     setErrorMessage(null);
 
+    const api = scanApiFor(system);
     let cancelled = false;
     (async () => {
-      const { requestId } = await window.electron.scanPs2Memcards(input);
+      const { requestId } = await api.scan(input);
       if (cancelled) {
-        window.electron.cancelPs2MemcardScan(requestId);
+        api.cancel(requestId);
         return;
       }
       requestIdRef.current = requestId;
 
-      const unsub = window.electron.onPs2MemcardScanProgress(
-        requestId,
-        (payload) => {
-          if (payload.type === "scan_progress") {
-            setPhase("scanning");
-            setProcessed(payload.processed);
-            setTotal(payload.total);
-            setCurrentLabel(payload.currentCard);
-          } else if (payload.type === "match_progress") {
-            setPhase("matching");
-            setProcessed(payload.processed);
-            setTotal(payload.total);
-            setCurrentLabel(payload.currentSave);
-            setMatched(payload.matched);
-          } else if (payload.type === "done") {
-            unsub();
-            setPhase("done");
-            setMatched(payload.matched);
-            setSummary({
-              cardCount: payload.cardCount,
-              saveCount: payload.saveCount,
-              matched: payload.matched,
-              unmatched: payload.unmatched,
-            });
-          } else if (payload.type === "cancelled") {
-            unsub();
-          } else {
-            unsub();
-            setPhase("error");
-            setErrorMessage(payload.message);
-          }
+      const unsub = api.onProgress(requestId, (payload) => {
+        if (payload.type === "scan_progress") {
+          setPhase("scanning");
+          setProcessed(payload.processed);
+          setTotal(payload.total);
+          setCurrentLabel(payload.currentCard);
+        } else if (payload.type === "match_progress") {
+          setPhase("matching");
+          setProcessed(payload.processed);
+          setTotal(payload.total);
+          setCurrentLabel(payload.currentSave);
+          setMatched(payload.matched);
+        } else if (payload.type === "done") {
+          unsub();
+          setPhase("done");
+          setMatched(payload.matched);
+          setSummary({
+            cardCount: payload.cardCount,
+            saveCount: payload.saveCount,
+            matched: payload.matched,
+            unmatched: payload.unmatched,
+          });
+        } else if (payload.type === "cancelled") {
+          unsub();
+        } else {
+          unsub();
+          setPhase("error");
+          setErrorMessage(payload.message);
         }
-      );
+      });
       unsubRef.current = unsub;
     })();
 
@@ -107,12 +121,12 @@ export function MemoryCardScanModal({
       cancelled = true;
       unsubRef.current?.();
       if (requestIdRef.current) {
-        window.electron.cancelPs2MemcardScan(requestIdRef.current);
+        api.cancel(requestIdRef.current);
       }
       requestIdRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, system]);
 
   const handleContinue = useCallback(() => {
     if (summary) onComplete(summary);

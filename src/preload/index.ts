@@ -28,6 +28,10 @@ import type {
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
   Ps2ExportResult,
+  EmulationCloudSave,
+  EmulationSavePlatform,
+  MemcardRestoreResult,
+  MemcardRestoreTarget,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -254,6 +258,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("listPs2MemcardSaves"),
   forgetPs2MemcardSave: (cardFilePath: string, folderName: string) =>
     ipcRenderer.invoke("forgetPs2MemcardSave", cardFilePath, folderName),
+  forgetPs2MemcardCard: (cardFilePath: string) =>
+    ipcRenderer.invoke("forgetPs2MemcardCard", cardFilePath),
   exportPs2Save: (
     cardFilePath: string,
     folderName: string,
@@ -265,6 +271,79 @@ contextBridge.exposeInMainWorld("electron", {
       folderName,
       suggestedName
     ),
+  scanPs1Memcards: (input: Ps2MemcardScanInput) =>
+    ipcRenderer.invoke("scanPs1Memcards", input),
+  cancelPs1MemcardScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelPs1MemcardScan", requestId),
+  onPs1MemcardScanProgress: (
+    requestId: string,
+    cb: (payload: Ps2MemcardScanProgress) => void
+  ) => {
+    const channel = `on-ps1-memcard-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Ps2MemcardScanProgress);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  listPs1MemcardSaves: (): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listPs1MemcardSaves"),
+  forgetPs1MemcardSave: (cardFilePath: string, identifier: string) =>
+    ipcRenderer.invoke("forgetPs1MemcardSave", cardFilePath, identifier),
+  forgetPs1MemcardCard: (cardFilePath: string) =>
+    ipcRenderer.invoke("forgetPs1MemcardCard", cardFilePath),
+  exportPs1Save: (
+    cardFilePath: string,
+    identifier: string,
+    suggestedName: string
+  ): Promise<Ps2ExportResult> =>
+    ipcRenderer.invoke(
+      "exportPs1Save",
+      cardFilePath,
+      identifier,
+      suggestedName
+    ),
+  uploadEmulationSave: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string,
+    folderName: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke(
+      "uploadEmulationSave",
+      platform,
+      cardFilePath,
+      folderName
+    ),
+  uploadEmulationSavesForCard: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string
+  ): Promise<{ uploaded: number; total: number }> =>
+    ipcRenderer.invoke("uploadEmulationSavesForCard", platform, cardFilePath),
+  listEmulationSaves: (
+    platform: EmulationSavePlatform
+  ): Promise<EmulationCloudSave[]> =>
+    ipcRenderer.invoke("listEmulationSaves", platform),
+  getMemcardRestoreTargets: (
+    platform: EmulationSavePlatform
+  ): Promise<MemcardRestoreTarget[]> =>
+    ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+  restoreEmulationSave: (
+    platform: EmulationSavePlatform,
+    saveId: string,
+    targetCardFilePath: string
+  ): Promise<MemcardRestoreResult> =>
+    ipcRenderer.invoke(
+      "restoreEmulationSave",
+      platform,
+      saveId,
+      targetCardFilePath
+    ),
+  deleteEmulationSave: (saveId: string): Promise<void> =>
+    ipcRenderer.invoke("deleteEmulationSave", saveId),
+  updateEmulationSaveLabel: (
+    saveId: string,
+    label: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke("updateEmulationSaveLabel", saveId, label),
   onLaunchboxImportProgress: (
     requestId: string,
     cb: (

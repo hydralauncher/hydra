@@ -55,6 +55,8 @@ const {
   LocalPsuBackup,
   exportSaveToPsu,
   extractSkuFromSaveFolder,
+  importPsuIntoCard,
+  computePageSpare,
 } = require(tmpBundle);
 
 // ── Tiny assertion harness ──────────────────────────────────────────────────
@@ -182,6 +184,59 @@ const buildSyntheticCard = () => {
   test.copy(img, 13 * CLUSTER); // spans abs 13 (1024) + abs 14 (976)
 
   return { img, icon, test };
+};
+
+// A roomy, empty (no saves) card with plenty of free clusters, for write tests.
+// Optionally emit it in ECC layout (528-byte raw pages).
+const buildEmptyCard = (numClusters, withEcc) => {
+  const img = Buffer.alloc(numClusters * CLUSTER);
+  const writeCluster = (abs, buf) => buf.copy(img, abs * CLUSTER);
+
+  const sb = Buffer.alloc(CLUSTER);
+  sb.write("Sony PS2 Memory Card Format ", 0, "latin1");
+  sb.write("1.2.0.0", 0x1c, "latin1");
+  sb.writeUInt16LE(PAGE, 0x28);
+  sb.writeUInt16LE(PPC, 0x2a);
+  sb.writeUInt16LE(16, 0x2c);
+  sb.writeUInt32LE(numClusters, 0x30);
+  sb.writeUInt32LE(ALLOC_OFFSET, 0x34);
+  sb.writeUInt32LE(numClusters, 0x38);
+  sb.writeUInt32LE(0, 0x3c); // rootDirCluster (relative)
+  sb.writeUInt32LE(1, 0x50); // ifcList[0]
+  sb.writeInt8(2, 0x150);
+  sb.writeInt8(0x2b, 0x151);
+  writeCluster(0, sb);
+
+  const ind = Buffer.alloc(CLUSTER);
+  ind.writeUInt32LE(2, 0);
+  writeCluster(1, ind);
+
+  const fat = Buffer.alloc(CLUSTER); // rel0 = root (end of chain); rest free (0)
+  fat.writeUInt32LE(FAT_END >>> 0, 0);
+  writeCluster(2, fat);
+
+  // Empty root directory at abs 8 (rel 0): just "." (count 2) and "..".
+  writeCluster(
+    8,
+    dirEntry({ mode: DIR_MODE, length: 2, cluster: 0, name: "." })
+  );
+  img.set(
+    dirEntry({ mode: DIR_MODE, length: 2, cluster: 0, name: ".." }),
+    8 * CLUSTER + 512
+  );
+
+  if (!withEcc) return img;
+
+  // Expand to ECC layout: each 512-byte page gets a 16-byte spare.
+  const RAW = PAGE + 16;
+  const pages = numClusters * PPC;
+  const out = Buffer.alloc(pages * RAW);
+  for (let p = 0; p < pages; p += 1) {
+    const data = img.subarray(p * PAGE, p * PAGE + PAGE);
+    data.copy(out, p * RAW);
+    computePageSpare(data, 16).copy(out, p * RAW + PAGE);
+  }
+  return out;
 };
 
 const runSelfTest = async () => {
@@ -322,6 +377,64 @@ const runSelfTest = async () => {
       fs.readFileSync(outPath).equals(psu)
     );
     fs.unlinkSync(outPath);
+
+    // ECC algorithm vectors (independent of any card).
+    console.log("\nECC (computePageSpare):");
+    const zeroPage = Buffer.alloc(512);
+    const zeroSpare = computePageSpare(zeroPage, 16);
+    eq("zero chunk ecc[0]", zeroSpare[0], 0x77);
+    eq("zero chunk ecc[1]", zeroSpare[1], 0x7f);
+    eq("zero chunk ecc[2]", zeroSpare[2], 0x7f);
+    eq("zero spare is 16 bytes", zeroSpare.length, 16);
+    const onePage = Buffer.alloc(512);
+    onePage[0] = 0x01;
+    const oneSpare = computePageSpare(onePage, 16);
+    eq("{0x01} chunk ecc[0]", oneSpare[0], 0x70);
+    eq("{0x01} chunk ecc[1]", oneSpare[1], 0x00);
+    eq("{0x01} chunk ecc[2]", oneSpare[2], 0x7f);
+
+    // Write round-trip: import the exported save into a fresh empty card and
+    // read it back, on both raw and ECC cards.
+    for (const withEcc of [false, true]) {
+      const label = withEcc ? "ECC" : "raw";
+      console.log(`\nimportPsuIntoCard (${label} card):`);
+      const target = path.join(
+        os.tmpdir(),
+        `hydra-import-${process.pid}-${label}.ps2`
+      );
+      fs.writeFileSync(target, buildEmptyCard(64, withEcc));
+      try {
+        const result = await importPsuIntoCard(target, psu);
+        check(`[${label}] import ok`, result.ok === true);
+        if (!result.ok) console.log("   error:", result.error);
+
+        const info2 = await listSaves(target);
+        eq(`[${label}] hasEcc`, info2 && info2.hasEcc, withEcc);
+        eq(`[${label}] save count`, info2 && info2.saves.length, 1);
+        eq(
+          `[${label}] folderName`,
+          info2 && info2.saves[0] && info2.saves[0].folderName,
+          "BASLUS-12345"
+        );
+
+        const c2 = await readSaveContents(target, "BASLUS-12345");
+        check(`[${label}] contents read back`, !!c2);
+        if (c2) {
+          const icon2 = c2.files.find((f) => f.name === "icon.sys");
+          const test2 = c2.files.find((f) => f.name === "test.dat");
+          check(`[${label}] icon.sys bytes`, icon2 && icon2.data.equals(icon));
+          check(`[${label}] test.dat bytes`, test2 && test2.data.equals(test));
+        }
+
+        // Re-import → replace path: still exactly one save.
+        const r2 = await importPsuIntoCard(target, psu);
+        check(`[${label}] re-import (replace) ok`, r2.ok === true);
+        const info3 = await listSaves(target);
+        eq(`[${label}] one save after replace`, info3 && info3.saves.length, 1);
+      } finally {
+        fs.unlinkSync(target);
+      }
+    }
   } finally {
     fs.unlinkSync(tmp);
   }

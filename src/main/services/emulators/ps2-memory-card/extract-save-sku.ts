@@ -33,6 +33,11 @@ const KNOWN_PREFIXES = new Set([
   "TCES",
   "ALCH",
   "HAKU",
+  // PS1-specific serial prefixes (memory cards are shared with PS1 saves).
+  "SLED",
+  "SCED",
+  "SIPS",
+  "ESPM",
 ]);
 
 /**

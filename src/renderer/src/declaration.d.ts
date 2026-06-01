@@ -46,6 +46,10 @@ import type {
   EmulatorConfig,
   EmulatorConfigMap,
   EmulatorSystem,
+  EmulationCloudSave,
+  EmulationSavePlatform,
+  MemcardRestoreResult,
+  MemcardRestoreTarget,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -454,11 +458,56 @@ declare global {
       cardFilePath: string,
       folderName: string
     ) => Promise<void>;
+    forgetPs2MemcardCard: (cardFilePath: string) => Promise<void>;
     exportPs2Save: (
       cardFilePath: string,
       folderName: string,
       suggestedName: string
     ) => Promise<Ps2ExportResult>;
+    scanPs1Memcards: (
+      input: Ps2MemcardScanInput
+    ) => Promise<{ requestId: string }>;
+    cancelPs1MemcardScan: (requestId: string) => Promise<void>;
+    onPs1MemcardScanProgress: (
+      requestId: string,
+      cb: (payload: Ps2MemcardScanProgress) => void
+    ) => () => Electron.IpcRenderer;
+    listPs1MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
+    forgetPs1MemcardSave: (
+      cardFilePath: string,
+      identifier: string
+    ) => Promise<void>;
+    forgetPs1MemcardCard: (cardFilePath: string) => Promise<void>;
+    exportPs1Save: (
+      cardFilePath: string,
+      identifier: string,
+      suggestedName: string
+    ) => Promise<Ps2ExportResult>;
+    uploadEmulationSave: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string,
+      folderName: string
+    ) => Promise<EmulationCloudSave>;
+    uploadEmulationSavesForCard: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string
+    ) => Promise<{ uploaded: number; total: number }>;
+    listEmulationSaves: (
+      platform: EmulationSavePlatform
+    ) => Promise<EmulationCloudSave[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform
+    ) => Promise<MemcardRestoreTarget[]>;
+    restoreEmulationSave: (
+      platform: EmulationSavePlatform,
+      saveId: string,
+      targetCardFilePath: string
+    ) => Promise<MemcardRestoreResult>;
+    deleteEmulationSave: (saveId: string) => Promise<void>;
+    updateEmulationSaveLabel: (
+      saveId: string,
+      label: string
+    ) => Promise<EmulationCloudSave>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;

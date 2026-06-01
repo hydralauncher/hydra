@@ -27,4 +27,7 @@ export const levelKeys = {
   ps2MemoryCardSaves: "ps2MemoryCardSaves",
   ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>
     `${cardFilePath}::${folderName}`,
+  ps1MemoryCardSaves: "ps1MemoryCardSaves",
+  ps1MemoryCardSave: (cardFilePath: string, identifier: string) =>
+    `${cardFilePath}::${identifier}`,
 };
