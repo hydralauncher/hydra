@@ -7,16 +7,16 @@ import { buildLocalLaunchboxAssetIndex } from "./memcard-local-assets";
 import { WindowManager, emulators, logger } from "@main/services";
 import type {
   LaunchboxShopDetailsAssetsResponse,
-  Ps2Save,
+  Ps1Save,
 } from "@main/services/emulators";
-import { levelKeys, ps2MemoryCardSavesSublevel } from "@main/level";
+import { levelKeys, ps1MemoryCardSavesSublevel } from "@main/level";
 import type {
-  Ps2MemcardScanInput,
-  Ps2MemcardScanProgress,
-  Ps2MemoryCardSaveRecord,
+  MemcardScanInput,
+  MemcardScanProgress,
+  MemoryCardSaveRecord,
 } from "@types";
 
-const MEMCARD_FILE_RE = /\.(ps2|mcd|mc2)$/i;
+const MEMCARD_FILE_RE = /\.(mcd|mcr|mc|gme|vgs|vmp|ps1)$/i;
 
 const inflight = new Map<string, { cancelled: boolean }>();
 
@@ -29,7 +29,7 @@ const fileExists = async (filePath: string): Promise<boolean> => {
   }
 };
 
-// A manual selection may be a `.ps2` file or a folder of cards.
+// A manual selection may be a memory card file or a folder of cards.
 const expandManualPath = async (target: string): Promise<string[]> => {
   try {
     const stat = await fs.stat(target);
@@ -46,15 +46,15 @@ const expandManualPath = async (target: string): Promise<string[]> => {
 };
 
 const runScan = async (
-  input: Ps2MemcardScanInput,
+  input: MemcardScanInput,
   signal: { cancelled: boolean },
-  emit: (payload: Ps2MemcardScanProgress) => void
+  emit: (payload: MemcardScanProgress) => void
 ): Promise<void> => {
-  const config = await emulators.getEmulatorConfig("ps2");
+  const config = await emulators.getEmulatorConfig("ps1");
 
   const cardFiles = new Set<string>();
   if (input.autoDetect) {
-    for (const file of await emulators.resolvePs2MemcardFiles(
+    for (const file of await emulators.resolvePs1MemcardFiles(
       config.executablePath
     )) {
       cardFiles.add(file);
@@ -65,11 +65,11 @@ const runScan = async (
   }
   const files = Array.from(cardFiles);
 
-  // Phase A — parse each card and collect its save folders.
+  // Phase A — parse each card and collect its saves.
   const detected: Array<{
     cardFilePath: string;
     cardLabel: string;
-    save: Ps2Save;
+    save: Ps1Save;
   }> = [];
   let processed = 0;
   for (const file of files) {
@@ -87,7 +87,7 @@ const runScan = async (
       total: files.length,
       currentCard: path.basename(file),
     });
-    const info = await emulators.listSaves(file);
+    const info = await emulators.listPs1Saves(file);
     if (info) {
       for (const save of info.saves) {
         detected.push({
@@ -141,10 +141,12 @@ const runScan = async (
     if (assets) matched += 1;
     else unmatched += 1;
 
-    const record: Ps2MemoryCardSaveRecord = {
+    // `folderName` holds the on-card identifier; `fileCount` holds block count.
+    // PS1 directory entries carry no timestamps, so created/modified stay 0.
+    const record: MemoryCardSaveRecord = {
       cardFilePath,
       cardLabel,
-      folderName: save.folderName,
+      folderName: save.identifier,
       sku: save.sku ?? null,
       objectId: assets?.objectId ?? null,
       shop: assets ? "launchbox" : null,
@@ -153,14 +155,14 @@ const runScan = async (
       libraryImageUrl: assets?.libraryImageUrl ?? null,
       libraryHeroImageUrl: assets?.libraryHeroImageUrl ?? null,
       logoImageUrl: assets?.logoImageUrl ?? null,
-      fileCount: save.fileCount,
+      fileCount: save.blockCount,
       sizeBytes: save.sizeBytes,
-      createdAt: save.createdSecs * 1000,
-      modifiedAt: save.modifiedSecs * 1000,
+      createdAt: 0,
+      modifiedAt: 0,
       detectedAt: Date.now(),
     };
-    await ps2MemoryCardSavesSublevel.put(
-      levelKeys.ps2MemoryCardSave(cardFilePath, save.folderName),
+    await ps1MemoryCardSavesSublevel.put(
+      levelKeys.ps1MemoryCardSave(cardFilePath, save.identifier),
       record
     );
 
@@ -169,23 +171,23 @@ const runScan = async (
       type: "match_progress",
       processed: index,
       total: detected.length,
-      currentSave: save.folderName,
+      currentSave: save.identifier,
       status: assets ? "matched" : "unmatched",
       matched,
       unmatched,
     });
   }
 
-  // Prune stale records so removed/renamed cards and deleted save folders drop
-  // off the list automatically: a save folder that vanished from a card we just
-  // scanned, or any record whose card file no longer exists on disk.
+  // Prune stale records so removed/renamed cards and deleted saves drop off the
+  // list automatically: a save that vanished from a card we just scanned, or any
+  // record whose card file no longer exists on disk.
   const detectedKeys = new Set(
     detected.map((d) =>
-      levelKeys.ps2MemoryCardSave(d.cardFilePath, d.save.folderName)
+      levelKeys.ps1MemoryCardSave(d.cardFilePath, d.save.identifier)
     )
   );
   const staleKeys: string[] = [];
-  for (const [key, rec] of await ps2MemoryCardSavesSublevel.iterator().all()) {
+  for (const [key, rec] of await ps1MemoryCardSavesSublevel.iterator().all()) {
     if (cardFiles.has(rec.cardFilePath)) {
       if (!detectedKeys.has(key)) staleKeys.push(key);
     } else if (!(await fileExists(rec.cardFilePath))) {
@@ -193,7 +195,7 @@ const runScan = async (
     }
   }
   for (const key of staleKeys) {
-    await ps2MemoryCardSavesSublevel.del(key);
+    await ps1MemoryCardSavesSublevel.del(key);
   }
 
   emit({
@@ -205,15 +207,15 @@ const runScan = async (
   });
 };
 
-const scanPs2Memcards = async (
+const scanPs1Memcards = async (
   _event: Electron.IpcMainInvokeEvent,
-  input: Ps2MemcardScanInput
+  input: MemcardScanInput
 ) => {
   const requestId = randomUUID();
   const signal = { cancelled: false };
   inflight.set(requestId, signal);
-  const channel = `on-ps2-memcard-scan-progress-${requestId}`;
-  const emit = (payload: Ps2MemcardScanProgress) => {
+  const channel = `on-ps1-memcard-scan-progress-${requestId}`;
+  const emit = (payload: MemcardScanProgress) => {
     WindowManager.mainWindow?.webContents.send(channel, payload);
   };
 
@@ -221,7 +223,7 @@ const scanPs2Memcards = async (
     try {
       await runScan(input, signal, emit);
     } catch (err) {
-      logger.error("PS2 memory card scan failed", err);
+      logger.error("PS1 memory card scan failed", err);
       emit({
         type: "error",
         message: err instanceof Error ? err.message : String(err),
@@ -234,7 +236,7 @@ const scanPs2Memcards = async (
   return { requestId };
 };
 
-const cancelPs2MemcardScan = async (
+const cancelPs1MemcardScan = async (
   _event: Electron.IpcMainInvokeEvent,
   requestId: string
 ) => {
@@ -242,5 +244,5 @@ const cancelPs2MemcardScan = async (
   if (signal) signal.cancelled = true;
 };
 
-registerEvent("scanPs2Memcards", scanPs2Memcards);
-registerEvent("cancelPs2MemcardScan", cancelPs2MemcardScan);
+registerEvent("scanPs1Memcards", scanPs1Memcards);
+registerEvent("cancelPs1MemcardScan", cancelPs1MemcardScan);

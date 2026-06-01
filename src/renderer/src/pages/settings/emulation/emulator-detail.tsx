@@ -22,6 +22,7 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { EmulatorScanModal, type ScanFolderInput } from "./emulator-scan-modal";
 import { MemoryCardsSection } from "./memory-cards-section";
+import { CloudSavesSection } from "./cloud-saves-section";
 
 import "./emulator-detail.scss";
 
@@ -67,6 +68,7 @@ export function EmulatorDetail({
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [busy, setBusy] = useState(false);
+  const [cloudNonce, setCloudNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
@@ -468,7 +470,12 @@ export function EmulatorDetail({
         </div>
       </section>
 
-      {config.system === "ps2" && <MemoryCardsSection config={config} />}
+      {(config.system === "ps2" || config.system === "ps1") && (
+        <MemoryCardsSection
+          config={config}
+          onUploaded={() => setCloudNonce((n) => n + 1)}
+        />
+      )}
 
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">
@@ -527,6 +534,10 @@ export function EmulatorDetail({
           </div>
         </div>
       </section>
+
+      {(config.system === "ps2" || config.system === "ps1") && (
+        <CloudSavesSection config={config} refreshKey={cloudNonce} />
+      )}
 
       <ConfirmationModal
         visible={folderToRemove !== null}

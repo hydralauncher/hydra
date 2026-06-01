@@ -22,5 +22,20 @@ const forgetPs2MemcardSave = async (
   );
 };
 
+// Forget every save belonging to one card. The card file is untouched.
+const forgetPs2MemcardCard = async (
+  _event: Electron.IpcMainInvokeEvent,
+  cardFilePath: string
+) => {
+  const keys: string[] = [];
+  for (const [key, rec] of await ps2MemoryCardSavesSublevel.iterator().all()) {
+    if (rec.cardFilePath === cardFilePath) keys.push(key);
+  }
+  for (const key of keys) {
+    await ps2MemoryCardSavesSublevel.del(key);
+  }
+};
+
 registerEvent("listPs2MemcardSaves", listPs2MemcardSaves);
 registerEvent("forgetPs2MemcardSave", forgetPs2MemcardSave);
+registerEvent("forgetPs2MemcardCard", forgetPs2MemcardCard);

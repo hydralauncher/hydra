@@ -39,17 +39,17 @@ import type {
 
 const MAGIC = "Sony PS2 Memory Card Format ";
 const SUPERBLOCK_BYTES = 0x154;
-const DIR_ENTRY_BYTES = 512;
+export const DIR_ENTRY_BYTES = 512;
 
-const FAT_ALLOCATED_BIT = 0x80000000;
-const FAT_VALUE_MASK = 0x7fffffff;
-const FAT_CHAIN_END = 0x7fffffff;
+export const FAT_ALLOCATED_BIT = 0x80000000;
+export const FAT_VALUE_MASK = 0x7fffffff;
+export const FAT_CHAIN_END = 0x7fffffff;
 
 const MAX_CHAIN_STEPS = 8192; // FAT loop guard (an 8 MB card has 8192 clusters)
 const MAX_DIR_ENTRIES = 8192; // safety cap on entries read from one directory
 const MAX_SAVE_FILE_BYTES = 16 * 1024 * 1024; // per-file read cap
 
-interface EccDetection {
+export interface EccDetection {
   hasEcc: boolean;
   rawPageSize: number; // on-disk bytes per page (pageLen, or pageLen + spare)
 }
@@ -76,7 +76,7 @@ const parseTod = (buf: Buffer, off: number): number => {
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : 0;
 };
 
-const parseDirEntry = (buf: Buffer, offset: number): Ps2DirEntry => {
+export const parseDirEntry = (buf: Buffer, offset: number): Ps2DirEntry => {
   const mode = buf.readUInt16LE(offset);
   const length = buf.readUInt32LE(offset + 0x04);
   const createdRaw = Buffer.from(buf.subarray(offset + 0x08, offset + 0x10));
@@ -102,7 +102,9 @@ const parseDirEntry = (buf: Buffer, offset: number): Ps2DirEntry => {
   };
 };
 
-const readSuperblock = async (fh: FileHandle): Promise<Superblock | null> => {
+export const readSuperblock = async (
+  fh: FileHandle
+): Promise<Superblock | null> => {
   const buf = Buffer.alloc(SUPERBLOCK_BYTES);
   const { bytesRead } = await fh.read(buf, 0, SUPERBLOCK_BYTES, 0);
   if (bytesRead < SUPERBLOCK_BYTES) return null;
@@ -133,7 +135,10 @@ const readSuperblock = async (fh: FileHandle): Promise<Superblock | null> => {
   };
 };
 
-const detectEcc = (fileSize: number, sb: Superblock): EccDetection | null => {
+export const detectEcc = (
+  fileSize: number,
+  sb: Superblock
+): EccDetection | null => {
   const spareSize = Math.floor(sb.pageLen / 128) * 4; // 16 for 512-byte pages
   const rawEcc = sb.pageLen + spareSize;
   const totalPages = sb.clustersPerCard * sb.pagesPerCluster;
