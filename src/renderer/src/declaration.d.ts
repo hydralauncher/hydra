@@ -533,6 +533,7 @@ declare global {
     getLocalNotifications: () => Promise<LocalNotification[]>;
     getLocalNotificationsCount: () => Promise<number>;
     markLocalNotificationRead: (id: string) => Promise<void>;
+    markLocalNotificationUnread: (id: string) => Promise<void>;
     markAllLocalNotificationsRead: () => Promise<void>;
     deleteLocalNotification: (id: string) => Promise<void>;
     clearAllLocalNotifications: () => Promise<void>;

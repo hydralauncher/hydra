@@ -4,11 +4,8 @@
   flex-direction: column;
   align-items: flex-start;
   align-self: stretch;
-  margin-top: calc(var(--spacing-unit) * 2);
   transition: background-color 0.2s ease-in-out;
-  background-color: var(--surface);
-  border-top: 1px solid var(--secondary-hover);
-  padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3) 0;
   gap: calc(var(--spacing-unit) * 4);
 }
 
@@ -17,6 +14,16 @@
   align-items: center;
   gap: calc(var(--spacing-unit) * 3);
   align-self: stretch;
+  border-radius: var(--spacing-unit);
+  outline: none;
+  transition:
+    background-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
+
+  &[data-focus-visible="true"] {
+    background-color: var(--secondary);
+    box-shadow: inset 0 0 0 1px var(--text-secondary);
+  }
 
   &__image {
     display: flex;
@@ -83,11 +90,22 @@
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
     opacity: 0.5;
-    transition: opacity 0.2s ease-in-out;
+    border-radius: var(--spacing-unit);
+    outline: none;
+    transition:
+      background-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
     padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.5);
 
-    &:hover {
+    &:hover,
+    &[data-focus-visible="true"] {
       opacity: 1;
+    }
+
+    &[data-focus-visible="true"] {
+      background-color: var(--secondary);
+      box-shadow: inset 0 0 0 1px var(--text-secondary);
     }
 
     &__count {
@@ -108,11 +126,41 @@
     padding: var(--spacing-unit);
     align-items: center;
     opacity: 0.5;
-    transition: opacity 0.2s ease-in-out;
+    border-radius: var(--spacing-unit);
+    outline: none;
+    transition:
+      background-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out,
+      opacity 0.2s ease-in-out;
+    position: relative;
 
-    &:hover {
+    &:hover,
+    &[data-focus-visible="true"] {
       opacity: 1;
     }
+
+    &[data-focus-visible="true"] {
+      background-color: var(--secondary);
+      box-shadow: inset 0 0 0 1px var(--text-secondary);
+    }
+  }
+
+  &__notification-badge {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    position: absolute;
+    top: -5px;
+    right: -5px;
   }
 
   &__button {

@@ -8,7 +8,14 @@ import {
   SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
-import { forwardRef, useMemo } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Divider,
@@ -16,14 +23,20 @@ import {
   Input,
   RouteAnchor,
   ScrollArea,
+  UserProfile,
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
 import { useLibrary, useSearch } from "../../hooks";
+import { getItemFocusTarget } from "../../helpers";
+import type { UserDetails } from "@types";
 import type { FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_SIDEBAR_EXIT_ID,
+  BIG_PICTURE_SIDEBAR_FRIENDS_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
+  BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID,
+  BIG_PICTURE_SIDEBAR_PROFILE_ID,
   BIG_PICTURE_SIDEBAR_REGION_ID,
   type BigPictureSidebarRouteKey,
   getBigPictureContentSidebarReturnTargetFromPathname,
@@ -32,7 +45,11 @@ import {
   getBigPictureSidebarItemIdFromPathname,
   normalizeBigPicturePathname,
 } from "../navigation";
+import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
+
+const DEFAULT_PROFILE_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='8' fill='%2320242d'/%3E%3Ccircle cx='24' cy='18' r='8' fill='%23838383'/%3E%3Cpath d='M10 42c2.4-8.2 7.5-12 14-12s11.6 3.8 14 12' fill='%23838383'/%3E%3C/svg%3E";
 
 function SidebarRouter() {
   const basePath = IS_DESKTOP ? "/big-picture" : "";
@@ -47,6 +64,13 @@ function SidebarRouter() {
     },
     right: contentEntryTarget,
   };
+  const getRouteNavigationOverrides = (itemId: string): FocusOverrides =>
+    itemId === BIG_PICTURE_SIDEBAR_ITEM_IDS.home
+      ? {
+          ...sidebarItemNavigationOverrides,
+          up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
+        }
+      : sidebarItemNavigationOverrides;
   const handleExitBigPicture = () => {
     if (IS_DESKTOP) {
       globalThis.close();
@@ -118,7 +142,7 @@ function SidebarRouter() {
             icon={<route.icon size={24} />}
             active={activeSidebarItemId === itemId}
             focusId={itemId}
-            focusNavigationOverrides={sidebarItemNavigationOverrides}
+            focusNavigationOverrides={getRouteNavigationOverrides(itemId)}
           />
         );
       })}
@@ -224,10 +248,126 @@ function SidebarLibrary() {
   );
 }
 
+function getCachedUserDetails() {
+  try {
+    const cachedUserDetails =
+      globalThis.window.localStorage.getItem("userDetails");
+
+    return cachedUserDetails
+      ? (JSON.parse(cachedUserDetails) as UserDetails)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+interface SidebarProfileProps {
+  notificationsOpen: boolean;
+  onNotificationsOpenChange: (isOpen: boolean) => void;
+  onNotificationsRestoringFocusChange: (isRestoring: boolean) => void;
+}
+
+function SidebarProfile({
+  notificationsOpen,
+  onNotificationsOpenChange,
+  onNotificationsRestoringFocusChange,
+}: Readonly<SidebarProfileProps>) {
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(
+    getCachedUserDetails
+  );
+  const notificationsButtonRef = useRef<HTMLButtonElement>(null);
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  const toggleNotifications = useCallback(() => {
+    onNotificationsOpenChange(!notificationsOpen);
+  }, [notificationsOpen, onNotificationsOpenChange]);
+
+  const closeNotifications = useCallback(() => {
+    onNotificationsOpenChange(false);
+  }, [onNotificationsOpenChange]);
+
+  const profileFocusNavigationOverrides: FocusOverrides = {
+    down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
+  };
+  const friendsFocusNavigationOverrides: FocusOverrides = {
+    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+    right: getItemFocusTarget(BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID),
+    down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+  };
+  const notificationsFocusNavigationOverrides: FocusOverrides = {
+    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
+    down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+  };
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    const fetchUserDetails = () => {
+      void globalThis.window.electron
+        .getMe()
+        .then(setUserDetails)
+        .catch(() => {
+          setUserDetails(null);
+        });
+    };
+
+    fetchUserDetails();
+
+    const unsubscribeSignIn =
+      globalThis.window.electron.onSignIn(fetchUserDetails);
+    const unsubscribeAccountUpdated =
+      globalThis.window.electron.onAccountUpdated(fetchUserDetails);
+    const unsubscribeSignOut = globalThis.window.electron.onSignOut(() => {
+      setUserDetails(null);
+    });
+
+    return () => {
+      unsubscribeSignIn();
+      unsubscribeAccountUpdated();
+      unsubscribeSignOut();
+    };
+  }, []);
+
+  return (
+    <>
+      <div className="sidebar-profile">
+        <UserProfile
+          image={userDetails?.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+          name={userDetails?.displayName ?? "Sign in"}
+          friendCode={
+            userDetails?.username || userDetails?.id || "Not signed in"
+          }
+          profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
+          friendsFocusId={BIG_PICTURE_SIDEBAR_FRIENDS_ID}
+          notificationsFocusId={BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID}
+          profileFocusNavigationOverrides={profileFocusNavigationOverrides}
+          friendsFocusNavigationOverrides={friendsFocusNavigationOverrides}
+          notificationsFocusNavigationOverrides={
+            notificationsFocusNavigationOverrides
+          }
+          notificationCount={notificationCount}
+          notificationsButtonRef={notificationsButtonRef}
+          onNotificationsClick={toggleNotifications}
+        />
+      </div>
+
+      <SidebarNotificationsDropdown
+        anchorRef={notificationsButtonRef}
+        visible={notificationsOpen}
+        onClose={closeNotifications}
+        onRestoringFocusChange={onNotificationsRestoringFocusChange}
+        onUnreadCountChange={setNotificationCount}
+        restoreFocusId={BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID}
+      />
+    </>
+  );
+}
+
 const SidebarContainer = forwardRef<
   HTMLDivElement,
-  Readonly<{ children: React.ReactNode }>
->(function SidebarContainer({ children }, ref) {
+  Readonly<{ children: React.ReactNode; forcedOpen?: boolean }>
+>(function SidebarContainer({ children, forcedOpen = false }, ref) {
   const handleMouseLeave = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -238,7 +378,7 @@ const SidebarContainer = forwardRef<
     <div
       ref={ref}
       role="presentation"
-      className="sidebar-container"
+      className={`sidebar-container${forcedOpen ? " sidebar-container--open" : ""}`}
       onMouseLeave={handleMouseLeave}
     >
       {children}
@@ -247,10 +387,22 @@ const SidebarContainer = forwardRef<
 });
 
 function Sidebar() {
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
+    useState(false);
+
   return (
     <>
       <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
-        <SidebarContainer>
+        <SidebarContainer
+          forcedOpen={notificationsOpen || restoringNotificationsFocus}
+        >
+          <SidebarProfile
+            notificationsOpen={notificationsOpen}
+            onNotificationsOpenChange={setNotificationsOpen}
+            onNotificationsRestoringFocusChange={setRestoringNotificationsFocus}
+          />
+          <Divider />
           <SidebarRouter />
           <Divider />
           <SidebarLibrary />
