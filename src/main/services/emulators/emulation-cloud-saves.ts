@@ -75,14 +75,19 @@ export const uploadEmulationSave = async (
   );
 };
 
-/** List the current user's committed saves for one platform/emulator. */
 export const listEmulationSaves = async (
   platform: EmulationSavePlatform,
-  emulator: EmulationSaveEmulator
+  emulator: EmulationSaveEmulator,
+  objectId?: string | null
 ): Promise<EmulationCloudSave[]> => {
   const response = await HydraApi.get<EmulationCloudSave[]>(
     "/profile/emulation-saves",
-    { platform, emulator, saveKind: SAVE_KIND },
+    {
+      platform,
+      emulator,
+      saveKind: SAVE_KIND,
+      ...(objectId ? { shop: "launchbox", objectId } : {}),
+    },
     SUB
   );
   return Array.isArray(response) ? response : [];

@@ -3,7 +3,6 @@
 .game-options-modal {
   &__container {
     display: flex;
-    gap: calc(globals.$spacing-unit * 2);
     min-height: 520px;
   }
 

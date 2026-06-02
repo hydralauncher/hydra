@@ -319,9 +319,10 @@ contextBridge.exposeInMainWorld("electron", {
   ): Promise<{ uploaded: number; total: number }> =>
     ipcRenderer.invoke("uploadEmulationSavesForCard", platform, cardFilePath),
   listEmulationSaves: (
-    platform: EmulationSavePlatform
+    platform: EmulationSavePlatform,
+    objectId?: string | null
   ): Promise<EmulationCloudSave[]> =>
-    ipcRenderer.invoke("listEmulationSaves", platform),
+    ipcRenderer.invoke("listEmulationSaves", platform, objectId),
   getMemcardRestoreTargets: (
     platform: EmulationSavePlatform
   ): Promise<MemcardRestoreTarget[]> =>

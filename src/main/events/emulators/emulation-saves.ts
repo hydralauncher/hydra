@@ -8,13 +8,15 @@ import type {
 
 const listEmulationSaves = async (
   _event: Electron.IpcMainInvokeEvent,
-  platform: EmulationSavePlatform
+  platform: EmulationSavePlatform,
+  objectId?: string | null
 ): Promise<EmulationCloudSave[]> => {
   try {
     const config = await emulators.getEmulatorConfig(platform);
     return await emulators.listEmulationSaves(
       platform,
-      config.binary as EmulationSaveEmulator
+      config.binary as EmulationSaveEmulator,
+      objectId
     );
   } catch (err) {
     // No subscription / network / auth — the UI gates on subscription anyway.

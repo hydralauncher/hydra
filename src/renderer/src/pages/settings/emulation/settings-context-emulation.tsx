@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import type { EmulatorConfigMap, EmulatorSystem } from "@types";
 
@@ -25,12 +25,14 @@ const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
 export function SettingsContextEmulation() {
   const { t } = useTranslation("settings");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [view, setView] = useState<
     { kind: "grid" } | { kind: "detail"; system: EmulatorSystem }
   >({ kind: "grid" });
   const [setupSystem, setSetupSystem] = useState<EmulatorSystem | null>(null);
+  const deepLinkAppliedRef = useRef(false);
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
@@ -88,6 +90,15 @@ export function SettingsContextEmulation() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (deepLinkAppliedRef.current || !configs) return;
+    const system = searchParams.get("system");
+    if (system && SYSTEMS.includes(system as EmulatorSystem)) {
+      deepLinkAppliedRef.current = true;
+      setView({ kind: "detail", system: system as EmulatorSystem });
+    }
+  }, [configs, searchParams]);
 
   const handleConfigure = useCallback((system: EmulatorSystem) => {
     setView({ kind: "detail", system });
