@@ -102,7 +102,7 @@ export function ConsoleCard({
           <div className="console-card__hint-box">
             <div className="console-card__hint-title">
               <AlertIcon size={14} />
-              <span>{t("no_rom_folder")}</span>
+              <span>{t("not_detected")}</span>
             </div>
             <p className="console-card__hint-text">
               {t("no_rom_folder_hint", { system: systemLabel })}
@@ -114,10 +114,10 @@ export function ConsoleCard({
           <div className="console-card__hint-box">
             <div className="console-card__hint-title">
               <AlertIcon size={14} />
-              <span>{t("not_detected")}</span>
+              <span>{t("setup_required")}</span>
             </div>
             <p className="console-card__hint-text">
-              {t("no_rom_folder_hint", { system: systemLabel })}
+              {t("setup_required_hint", { system: systemLabel })}
             </p>
           </div>
         )}

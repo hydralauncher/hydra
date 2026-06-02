@@ -493,7 +493,8 @@ declare global {
       cardFilePath: string
     ) => Promise<{ uploaded: number; total: number }>;
     listEmulationSaves: (
-      platform: EmulationSavePlatform
+      platform: EmulationSavePlatform,
+      objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
     getMemcardRestoreTargets: (
       platform: EmulationSavePlatform
