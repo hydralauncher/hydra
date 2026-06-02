@@ -1311,12 +1311,13 @@ export function NavigationDiagnostics() {
     <div
       style={{
         position: "fixed",
-        left: "calc(var(--spacing-unit) * 6)",
+        left: "50%",
         bottom: "calc(var(--spacing-unit) * 6)",
+        transform: "translateX(-50%)",
         zIndex: 1000,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
+        alignItems: "center",
         gap: "calc(var(--spacing-unit) * 3)",
         fontSize: 12,
       }}

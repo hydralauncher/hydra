@@ -15,7 +15,8 @@
   z-index: 100;
 
   &:hover,
-  &:focus-within {
+  &:focus-within,
+  &--open {
     width: 300px;
     min-width: 300px;
     max-width: 300px;
@@ -30,7 +31,7 @@
   align-items: flex-start;
   align-self: stretch;
   gap: calc(var(--spacing-unit) / 2);
-  padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3) 0;
+  padding: 0 calc(var(--spacing-unit) * 3);
 }
 
 .library-container {
@@ -102,7 +103,8 @@
 }
 
 .sidebar-container:hover ~ .sidebar-drawer-overlay,
-.sidebar-container:focus-within ~ .sidebar-drawer-overlay {
+.sidebar-container:focus-within ~ .sidebar-drawer-overlay,
+.sidebar-container--open ~ .sidebar-drawer-overlay {
   opacity: 1;
   pointer-events: auto;
 }
@@ -115,7 +117,9 @@
   margin-right: calc(var(--spacing-unit) * 4);
 }
 
-.sidebar-container:not(:hover):not(:focus-within) {
+.sidebar-container:not(:hover):not(:focus-within):not(
+    .sidebar-container--open
+  ) {
   .state-wrapper,
   .route-anchor {
     width: 48px;
