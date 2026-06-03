@@ -6,7 +6,7 @@ import {
   CopyIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
-import { type Ref, useState } from "react";
+import { type MouseEvent, type Ref, useState } from "react";
 import { Link } from "react-router-dom";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "../focus-item";
@@ -23,6 +23,7 @@ export interface UserProfileProps {
   notificationsFocusNavigationOverrides?: FocusOverrides;
   notificationCount?: number;
   notificationsButtonRef?: Ref<HTMLButtonElement>;
+  onProfileClick?: () => void;
   onNotificationsClick?: () => void;
 }
 
@@ -32,6 +33,7 @@ interface UserProfileContentProps {
   friendCode: string;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
+  onProfileClick?: () => void;
 }
 
 interface UserProfileActionsProps {
@@ -126,10 +128,13 @@ function UserProfileContent({
   friendCode,
   focusId,
   focusNavigationOverrides,
+  onProfileClick,
 }: Readonly<UserProfileContentProps>) {
   const [isCopied, setIsCopied] = useState(false);
 
-  const handleCopy = () => {
+  const handleCopy = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
     if (isCopied) return;
     setIsCopied(true);
     navigator.clipboard.writeText(friendCode).catch(() => {});
@@ -140,7 +145,7 @@ function UserProfileContent({
   };
 
   const content = (
-    <div className="user-profile-content">
+    <div className="user-profile-content" onClick={onProfileClick}>
       <img
         src={image}
         alt={name}
@@ -178,6 +183,7 @@ function UserProfileContent({
   return (
     <FocusItem
       id={focusId}
+      actions={onProfileClick ? { primary: onProfileClick } : undefined}
       navigationOverrides={focusNavigationOverrides}
       asChild
     >
@@ -198,6 +204,7 @@ export function UserProfile({
   notificationsFocusNavigationOverrides,
   notificationCount,
   notificationsButtonRef,
+  onProfileClick,
   onNotificationsClick,
 }: Readonly<UserProfileProps>) {
   return (
@@ -208,6 +215,7 @@ export function UserProfile({
         friendCode={friendCode}
         focusId={profileFocusId}
         focusNavigationOverrides={profileFocusNavigationOverrides}
+        onProfileClick={onProfileClick}
       />
       <UserProfileActions
         friendsCount={8}

@@ -3,6 +3,7 @@ import { DOWNLOADS_PAGE_REGION_ID } from "../components/pages/downloads/navigati
 import { GAME_PAGE_REGION_ID } from "../components/pages/game/navigation";
 import { CATALOGUE_GRID_REGION_ID } from "../pages/catalogue/navigation";
 import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
+import { PROFILE_PAGE_REGION_ID } from "../pages/profile/navigation";
 import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
 
@@ -95,6 +96,10 @@ export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.settings;
   }
 
+  if (normalizedPathname.startsWith("/profile")) {
+    return BIG_PICTURE_SIDEBAR_PROFILE_ID;
+  }
+
   if (normalizedPathname.startsWith("/library")) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.library;
   }
@@ -125,6 +130,10 @@ export function getBigPictureContentEntryRegionIdFromPathname(
 
   if (normalizedPathname.startsWith("/settings")) {
     return SETTINGS_PAGE_REGION_ID;
+  }
+
+  if (normalizedPathname.startsWith("/profile")) {
+    return PROFILE_PAGE_REGION_ID;
   }
 
   if (getBigPictureGameRouteMatch(normalizedPathname)) {

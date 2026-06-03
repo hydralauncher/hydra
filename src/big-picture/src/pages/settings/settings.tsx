@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
 import { useGamepad, useNavigation } from "../../hooks";
@@ -51,6 +52,14 @@ type SettingsTabId = (typeof ALL_SETTINGS_TABS)[number]["id"];
 type SettingsSectionComponentProps = {
   className?: string;
 };
+
+function getSettingsTabFromSearch(search: string): SettingsTabId | null {
+  const tab = new URLSearchParams(search).get("tab");
+
+  return ALL_SETTINGS_TABS.some((item) => item.id === tab)
+    ? (tab as SettingsTabId)
+    : null;
+}
 
 function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
   return <div className="settings-page__bumper">{label}</div>;
@@ -107,8 +116,9 @@ function SettingsTabPanel({
 
 export default function Settings() {
   const { userDetails } = useUserDetails();
+  const { search } = useLocation();
   const [selectedTab, setSelectedTab] = useState<SettingsTabId>(
-    ALL_SETTINGS_TABS[0].id
+    getSettingsTabFromSearch(search) ?? ALL_SETTINGS_TABS[0].id
   );
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const virtualKeyboardTarget = useVirtualKeyboardStore(
@@ -130,11 +140,17 @@ export default function Settings() {
     SETTINGS_TAB_CONTENT[selectedTab] ?? GeneralSettingsSection;
 
   useEffect(() => {
+    const requestedTab = getSettingsTabFromSearch(search);
+    if (requestedTab && visibleTabs.some((tab) => tab.id === requestedTab)) {
+      setSelectedTab(requestedTab);
+      return;
+    }
+
     if (visibleTabs.some((tab) => tab.id === selectedTab)) return;
 
     const fallbackTab = visibleTabs[0]?.id ?? ALL_SETTINGS_TABS[0].id;
     setSelectedTab(fallbackTab);
-  }, [selectedTab, visibleTabs]);
+  }, [search, selectedTab, visibleTabs]);
 
   const selectTabByIndex = useCallback(
     (nextIndex: number) => {
