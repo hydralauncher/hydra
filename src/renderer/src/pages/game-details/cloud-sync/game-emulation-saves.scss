@@ -83,6 +83,17 @@
     filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
   }
 
+  &__prompt-octicon {
+    width: 56px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8e919b;
+    opacity: 0.55;
+    margin-bottom: 4px;
+  }
+
   &__list {
     list-style: none;
     margin: 0;
