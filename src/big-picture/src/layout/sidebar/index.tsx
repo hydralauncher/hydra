@@ -8,6 +8,7 @@ import {
   SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
+import { AuthPage } from "@shared";
 import {
   forwardRef,
   useCallback,
@@ -272,6 +273,7 @@ function SidebarProfile({
   onNotificationsOpenChange,
   onNotificationsRestoringFocusChange,
 }: Readonly<SidebarProfileProps>) {
+  const navigate = useNavigate();
   const [userDetails, setUserDetails] = useState<UserDetails | null>(
     getCachedUserDetails
   );
@@ -285,6 +287,15 @@ function SidebarProfile({
   const closeNotifications = useCallback(() => {
     onNotificationsOpenChange(false);
   }, [onNotificationsOpenChange]);
+  const handleProfileClick = useCallback(() => {
+    if (!userDetails?.id) {
+      void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    const basePath = IS_DESKTOP ? "/big-picture" : "";
+    navigate(`${basePath}/profile/${userDetails.id}`);
+  }, [navigate, userDetails?.id]);
 
   const profileFocusNavigationOverrides: FocusOverrides = {
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
@@ -348,6 +359,7 @@ function SidebarProfile({
           }
           notificationCount={notificationCount}
           notificationsButtonRef={notificationsButtonRef}
+          onProfileClick={handleProfileClick}
           onNotificationsClick={toggleNotifications}
         />
       </div>
