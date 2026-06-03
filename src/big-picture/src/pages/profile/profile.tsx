@@ -167,8 +167,9 @@ export default function Profile() {
   );
   const [badges, setBadges] = useState<Badge[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [remoteFavoriteGame, setRemoteFavoriteGame] =
-    useState<UserGame | null>(null);
+  const [remoteFavoriteGame, setRemoteFavoriteGame] = useState<UserGame | null>(
+    null
+  );
   const [isLoadingExternalProfile, setIsLoadingExternalProfile] =
     useState(false);
 
@@ -299,16 +300,18 @@ export default function Profile() {
     return profileUser.badges
       .map((badgeName) => badges.find((badge) => badge.name === badgeName))
       .filter((badge): badge is Badge => Boolean(badge));
-    }, [badges, profileUser?.badges]);
+  }, [badges, profileUser?.badges]);
   const localFavoriteGame = useMemo<LibraryGame | null>(() => {
     if (!isOwnProfileTarget) return null;
 
-    return [...library]
-      .filter((game) => (game.playTimeInMilliseconds ?? 0) > 0)
-      .sort(
-        (a, b) =>
-          (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
-      )[0] ?? null;
+    return (
+      [...library]
+        .filter((game) => (game.playTimeInMilliseconds ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
+        )[0] ?? null
+    );
   }, [isOwnProfileTarget, library]);
   const favoriteGame: ProfileFavoriteGame | null = profileUser?.isOwnProfile
     ? localFavoriteGame
