@@ -60,6 +60,10 @@
   &__version {
     font-size: 13px;
     color: #8e919b;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__dot {

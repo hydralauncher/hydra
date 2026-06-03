@@ -68,7 +68,10 @@ export function ConsoleCard({
           {config.detectedVersion && (
             <>
               <span className="console-card__dot" />
-              <span className="console-card__version">
+              <span
+                className="console-card__version"
+                title={`v${config.detectedVersion}`}
+              >
                 v{config.detectedVersion}
               </span>
             </>

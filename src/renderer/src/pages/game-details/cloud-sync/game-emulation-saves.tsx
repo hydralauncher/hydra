@@ -8,6 +8,7 @@ import {
   HistoryIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   SyncIcon,
   TrashIcon,
   UploadIcon,
@@ -172,17 +173,21 @@ export function GameEmulationSaves({
             <span>{t("game_add_memory_card")}</span>
           </Button>
         </div>
+      ) : localSaves.length === 0 && cloudSaves.length === 0 ? (
+        <div className="game-emulation-saves__prompt">
+          <span className="game-emulation-saves__prompt-octicon">
+            <SearchIcon size={40} />
+          </span>
+          <h3>{t("game_no_saves_title")}</h3>
+          <p>{t("game_no_saves_found")}</p>
+        </div>
       ) : (
         <div className="game-emulation-saves__groups">
-          <section className="game-emulation-saves__group">
-            <h3 className="game-emulation-saves__group-title">
-              {t("game_local_saves_title")}
-            </h3>
-            {localSaves.length === 0 ? (
-              <p className="game-emulation-saves__empty">
-                {t("game_no_saves_found")}
-              </p>
-            ) : (
+          {localSaves.length > 0 && (
+            <section className="game-emulation-saves__group">
+              <h3 className="game-emulation-saves__group-title">
+                {t("game_local_saves_title")}
+              </h3>
               <ul className="game-emulation-saves__list">
                 {localSaves.map((record) => {
                   const key = recordKey(record);
@@ -248,8 +253,8 @@ export function GameEmulationSaves({
                   );
                 })}
               </ul>
-            )}
-          </section>
+            </section>
+          )}
 
           {cloudSaves.length > 0 && (
             <section className="game-emulation-saves__group">
