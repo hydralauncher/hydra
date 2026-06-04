@@ -311,7 +311,10 @@ export function Header() {
     setActiveIndex(-1);
   };
 
-  const handleStartScan = async (additionalDirectories: string[] = []) => {
+  const handleStartScan = async (
+    additionalDirectories: string[] = [],
+    includeDefaultDirectories = true
+  ) => {
     if (isScanning) return;
 
     setIsScanning(true);
@@ -320,7 +323,8 @@ export function Header() {
 
     try {
       const result = await window.electron.scanInstalledGames(
-        additionalDirectories
+        additionalDirectories,
+        includeDefaultDirectories
       );
       setScanResult(result);
     } finally {

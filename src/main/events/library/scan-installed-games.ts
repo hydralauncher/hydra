@@ -64,10 +64,12 @@ async function publishScanNotification(foundCount: number): Promise<void> {
 
 const scanInstalledGames = async (
   _event: Electron.IpcMainInvokeEvent,
-  additionalDirectories: string[] = []
+  additionalDirectories: string[] = [],
+  includeDefaultDirectories = true
 ): Promise<ScanResult> => {
+  const baseDirectories = includeDefaultDirectories ? SCAN_DIRECTORIES : [];
   const scanDirectories = [
-    ...new Set([...SCAN_DIRECTORIES, ...additionalDirectories]),
+    ...new Set([...baseDirectories, ...additionalDirectories]),
   ];
 
   const games = await gamesSublevel

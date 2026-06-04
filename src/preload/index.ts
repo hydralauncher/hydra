@@ -355,8 +355,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
-  scanInstalledGames: (additionalDirectories?: string[]) =>
-    ipcRenderer.invoke("scanInstalledGames", additionalDirectories),
+  scanInstalledGames: (
+    additionalDirectories?: string[],
+    includeDefaultDirectories?: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "scanInstalledGames",
+      additionalDirectories,
+      includeDefaultDirectories
+    ),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (

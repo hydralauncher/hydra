@@ -302,7 +302,10 @@ declare global {
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
-    scanInstalledGames: (additionalDirectories?: string[]) => Promise<{
+    scanInstalledGames: (
+      additionalDirectories?: string[],
+      includeDefaultDirectories?: boolean
+    ) => Promise<{
       foundGames: { title: string; executablePath: string }[];
       total: number;
     }>;
