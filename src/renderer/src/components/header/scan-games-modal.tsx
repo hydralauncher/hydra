@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SyncIcon } from "@primer/octicons-react";
+import { FileDirectoryIcon, SyncIcon, XIcon } from "@primer/octicons-react";
 
 import { Button, Modal } from "@renderer/components";
 
@@ -20,7 +21,7 @@ export interface ScanGamesModalProps {
   onClose: () => void;
   isScanning: boolean;
   scanResult: ScanResult | null;
-  onStartScan: () => void;
+  onStartScan: (additionalDirectories: string[]) => void;
   onClearResult: () => void;
 }
 
@@ -34,17 +35,39 @@ export function ScanGamesModal({
 }: Readonly<ScanGamesModalProps>) {
   const { t } = useTranslation("header");
 
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+
+  const isWindows = window.electron.platform === "win32";
+  const requiresFolderSelection = !isWindows && selectedFolders.length === 0;
+
   const handleClose = () => {
     onClose();
   };
 
   const handleStartScan = () => {
-    onStartScan();
+    onStartScan(selectedFolders);
   };
 
   const handleScanAgain = () => {
     onClearResult();
-    onStartScan();
+    onStartScan(selectedFolders);
+  };
+
+  const handleAddFolder = async () => {
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      properties: ["openDirectory", "multiSelections"],
+    });
+
+    if (canceled) return;
+
+    setSelectedFolders((prev) => [
+      ...prev,
+      ...filePaths.filter((filePath) => !prev.includes(filePath)),
+    ]);
+  };
+
+  const handleRemoveFolder = (folder: string) => {
+    setSelectedFolders((prev) => prev.filter((item) => item !== folder));
   };
 
   return (
@@ -56,9 +79,51 @@ export function ScanGamesModal({
     >
       <div className="scan-games-modal">
         {!scanResult && !isScanning && (
-          <p className="scan-games-modal__description">
-            {t("scan_games_description")}
-          </p>
+          <>
+            {isWindows && (
+              <p className="scan-games-modal__description">
+                {t("scan_games_description")}
+              </p>
+            )}
+
+            <div className="scan-games-modal__folders">
+              <div className="scan-games-modal__folders-header">
+                <span className="scan-games-modal__folders-title">
+                  {t("scan_games_folders_title")}
+                </span>
+                <Button theme="outline" onClick={handleAddFolder}>
+                  <FileDirectoryIcon size={14} />
+                  {t("scan_games_add_folder")}
+                </Button>
+              </div>
+
+              {selectedFolders.length > 0 ? (
+                <ul className="scan-games-modal__folders-list">
+                  {selectedFolders.map((folder) => (
+                    <li key={folder} className="scan-games-modal__folder-item">
+                      <span className="scan-games-modal__folder-path">
+                        {folder}
+                      </span>
+                      <button
+                        type="button"
+                        className="scan-games-modal__folder-remove"
+                        onClick={() => handleRemoveFolder(folder)}
+                        aria-label={t("scan_games_remove_folder")}
+                      >
+                        <XIcon size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="scan-games-modal__folders-hint">
+                  {isWindows
+                    ? t("scan_games_folders_hint")
+                    : t("scan_games_folders_hint_manual")}
+                </p>
+              )}
+            </div>
+          </>
         )}
 
         {isScanning && !scanResult && (
@@ -110,7 +175,10 @@ export function ScanGamesModal({
             {scanResult ? t("scan_games_close") : t("scan_games_cancel")}
           </Button>
           {!scanResult && (
-            <Button onClick={handleStartScan} disabled={isScanning}>
+            <Button
+              onClick={handleStartScan}
+              disabled={isScanning || requiresFolderSelection}
+            >
               {t("scan_games_start")}
             </Button>
           )}

@@ -13,6 +13,75 @@
     margin: 0;
   }
 
+  &__folders {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__folders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__folders-title {
+    color: globals.$body-color;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__folders-hint {
+    color: globals.$muted-color;
+    font-size: 12px;
+    margin: 0;
+  }
+
+  &__folders-list {
+    list-style: none;
+    margin: 0;
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    background-color: globals.$dark-background-color;
+    border-radius: 4px;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__folder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__folder-path {
+    color: globals.$body-color;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  &__folder-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: globals.$muted-color;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+
+    &:hover {
+      color: globals.$body-color;
+      background-color: globals.$border-color;
+    }
+  }
+
   &__results {
     display: flex;
     flex-direction: column;

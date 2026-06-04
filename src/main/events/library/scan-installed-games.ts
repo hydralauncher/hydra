@@ -29,9 +29,10 @@ interface ScanResult {
 }
 
 async function searchInDirectories(
-  executableNames: Set<string>
+  executableNames: Set<string>,
+  directories: string[]
 ): Promise<string | null> {
-  for (const scanDir of SCAN_DIRECTORIES) {
+  for (const scanDir of directories) {
     if (!fs.existsSync(scanDir)) continue;
 
     const foundPath = await findExecutableInFolder(scanDir, executableNames);
@@ -62,8 +63,13 @@ async function publishScanNotification(foundCount: number): Promise<void> {
 }
 
 const scanInstalledGames = async (
-  _event: Electron.IpcMainInvokeEvent
+  _event: Electron.IpcMainInvokeEvent,
+  additionalDirectories: string[] = []
 ): Promise<ScanResult> => {
+  const scanDirectories = [
+    ...new Set([...SCAN_DIRECTORIES, ...additionalDirectories]),
+  ];
+
   const games = await gamesSublevel
     .iterator()
     .all()
@@ -89,7 +95,10 @@ const scanInstalledGames = async (
       executableNames.map((name) => name.toLowerCase())
     );
 
-    const foundPath = await searchInDirectories(normalizedNames);
+    const foundPath = await searchInDirectories(
+      normalizedNames,
+      scanDirectories
+    );
 
     if (foundPath) {
       await gamesSublevel.put(key, { ...game, executablePath: foundPath });

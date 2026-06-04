@@ -138,7 +138,12 @@
     "scan_games_no_results": "We couldn't find any installed games.",
     "scan_games_in_progress": "Scanning your disks for installed games...",
     "scan_games_close": "Close",
-    "scan_games_scan_again": "Scan Again"
+    "scan_games_scan_again": "Scan Again",
+    "scan_games_folders_title": "Folders to scan",
+    "scan_games_add_folder": "Add folder",
+    "scan_games_remove_folder": "Remove folder",
+    "scan_games_folders_hint": "No folders added. Default install locations will be scanned.",
+    "scan_games_folders_hint_manual": "Add at least one folder to scan for games."
   },
   "bottom_panel": {
     "no_downloads_in_progress": "No downloads in progress",
