@@ -7,6 +7,11 @@
   gap: calc(var(--spacing-unit) * 1);
   border-radius: calc(var(--spacing-unit) * 2);
 
+  &[data-focus-visible="true"] {
+    outline: 1px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   &--solid {
     background-color: var(--surface);
   }

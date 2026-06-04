@@ -18,6 +18,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 import { userProfileContext } from "@renderer/context";
+import { getProfileImageMetadata } from "../profile-image-metadata";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import "./edit-profile-modal.scss";
 
@@ -92,18 +93,16 @@ export function EditProfileModal(
             name="profileImageUrl"
             render={({ field: { value, onChange } }) => {
               const handleProfileImagePath = async (path: string) => {
-                const metadata = await window.electron
-                  .getProfileImageMetadata(path)
-                  .catch(() => null);
+                const metadata = await getProfileImageMetadata(path);
 
-                if (metadata?.isAnimated && hasActiveSubscription) {
+                if (metadata.isAnimated && hasActiveSubscription) {
                   // Crop while preserving animation (handled in main/sharp).
                   setCropIsAnimated(true);
                   setProfileImageToCrop(path);
                   return;
                 }
 
-                if (metadata?.isAnimated && !hasActiveSubscription) {
+                if (metadata.isAnimated && !hasActiveSubscription) {
                   const { imagePath } = await window.electron
                     .processProfileImage(path)
                     .catch(() => {
@@ -129,7 +128,7 @@ export function EditProfileModal(
                   filters: [
                     {
                       name: "Image",
-                      extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+                      extensions: ["jpg", "jpeg", "png", "apng", "gif", "webp"],
                     },
                   ],
                 });
@@ -155,6 +154,7 @@ export function EditProfileModal(
                     type="button"
                     className="edit-profile-modal__avatar-container"
                     onClick={handleChangeProfileAvatar}
+                    aria-label={t("change_profile_picture")}
                   >
                     <Avatar
                       size={128}

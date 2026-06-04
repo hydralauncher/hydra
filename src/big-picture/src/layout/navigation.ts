@@ -1,6 +1,7 @@
 import type { FocusOverrideTarget } from "../services";
 import { DOWNLOADS_PAGE_REGION_ID } from "../components/pages/downloads/navigation";
 import { GAME_PAGE_REGION_ID } from "../components/pages/game/navigation";
+import { CATALOGUE_GRID_REGION_ID } from "../pages/catalogue/navigation";
 import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
 import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
@@ -17,6 +18,7 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   library: "big-picture-sidebar-library",
   downloads: "big-picture-sidebar-downloads",
   settings: "big-picture-sidebar-settings",
+  componentLab: "big-picture-sidebar-component-lab",
 } as const;
 
 export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
@@ -71,10 +73,14 @@ export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
     return null;
   }
 
-  if (normalizedPathname.startsWith("/catalogue")) {
+  if (normalizedPathname.startsWith("/component-lab")) {
     return isDev
-      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue
+      ? BIG_PICTURE_SIDEBAR_ITEM_IDS.componentLab
       : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+  }
+
+  if (normalizedPathname.startsWith("/catalogue")) {
+    return BIG_PICTURE_SIDEBAR_ITEM_IDS.catalogue;
   }
 
   if (normalizedPathname.startsWith("/downloads")) {
@@ -99,6 +105,10 @@ export function getBigPictureContentEntryRegionIdFromPathname(
 
   if (normalizedPathname === "/") {
     return HOME_PAGE_REGION_ID;
+  }
+
+  if (normalizedPathname.startsWith("/catalogue")) {
+    return CATALOGUE_GRID_REGION_ID;
   }
 
   if (normalizedPathname.startsWith("/library")) {
