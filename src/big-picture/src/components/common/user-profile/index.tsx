@@ -6,7 +6,7 @@ import {
   CopyIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
-import { type MouseEvent, type Ref, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, type Ref, useState } from "react";
 import { Link } from "react-router-dom";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "../focus-item";
@@ -144,8 +144,23 @@ function UserProfileContent({
     }, 2000);
   };
 
+  const handleProfileKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onProfileClick || event.currentTarget !== event.target) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    onProfileClick();
+  };
+
   const content = (
-    <div className="user-profile-content" onClick={onProfileClick}>
+    <div
+      className="user-profile-content"
+      role={onProfileClick ? "button" : undefined}
+      tabIndex={onProfileClick && !focusId ? 0 : undefined}
+      aria-label={onProfileClick ? `Open profile for ${name}` : undefined}
+      onClick={onProfileClick}
+      onKeyDown={handleProfileKeyDown}
+    >
       <img
         src={image}
         alt={name}
