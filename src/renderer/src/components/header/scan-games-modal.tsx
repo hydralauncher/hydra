@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FileDirectoryIcon, SyncIcon, XIcon } from "@primer/octicons-react";
+import {
+  AlertIcon,
+  FileDirectoryIcon,
+  SyncIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 
 import { Button, Modal } from "@renderer/components";
@@ -121,6 +126,11 @@ export function ScanGamesModal({
               </div>
             )}
 
+            <div className="scan-games-modal__warning">
+              <AlertIcon size={14} className="scan-games-modal__warning-icon" />
+              <span>{t("scan_games_detection_warning")}</span>
+            </div>
+
             {!isManualMode && (
               <p className="scan-games-modal__description">
                 {t("scan_games_description")}
@@ -176,6 +186,9 @@ export function ScanGamesModal({
             <p className="scan-games-modal__scanning-text">
               {t("scan_games_in_progress")}
             </p>
+            <p className="scan-games-modal__scanning-hint">
+              {t("scan_games_in_progress_hint")}
+            </p>
           </div>
         )}
 
@@ -216,7 +229,11 @@ export function ScanGamesModal({
 
         <div className="scan-games-modal__actions">
           <Button theme="outline" onClick={handleClose}>
-            {scanResult ? t("scan_games_close") : t("scan_games_cancel")}
+            {scanResult
+              ? t("scan_games_close")
+              : isScanning
+                ? t("scan_games_hide")
+                : t("scan_games_cancel")}
           </Button>
           {!scanResult && (
             <Button
