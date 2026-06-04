@@ -92,7 +92,6 @@ const handleAxiosError = (
 };
 
 const HOST_NAMES: Partial<Record<Downloader, string>> = {
-  [Downloader.Buzzheavier]: "Buzzheavier",
   [Downloader.FuckingFast]: "FuckingFast",
 };
 

@@ -1,0 +1,143 @@
+.virtual-keyboard-dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 140;
+  flex: 0 0 auto;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 8)
+    calc(var(--spacing-unit) * 5);
+  box-sizing: border-box;
+
+  &[data-layout-mode="avoiding"] {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
+  }
+}
+
+.virtual-keyboard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  width: min(1200px, calc(100vw - (var(--spacing-unit) * 16)));
+  padding: calc(var(--spacing-unit) * 4);
+  border: 1px solid var(--secondary-border);
+  border-radius: calc(var(--spacing-unit) * 4);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--secondary) 78%, transparent),
+      color-mix(in srgb, var(--background) 94%, transparent)
+    ),
+    var(--background);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.58);
+}
+
+.virtual-keyboard__keys {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--virtual-keyboard-columns),
+    minmax(0, 1fr)
+  );
+  grid-auto-rows: minmax(65px, auto);
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.virtual-keyboard__key {
+  grid-column: var(--virtual-keyboard-key-column) / span
+    var(--virtual-keyboard-key-column-span);
+  grid-row: var(--virtual-keyboard-key-row) / span
+    var(--virtual-keyboard-key-row-span);
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 65px;
+  padding-inline: calc(var(--spacing-unit) * 2);
+  border: none;
+  border-radius: var(--spacing-unit);
+  font-size: 16px;
+
+  &[data-active="true"] {
+    background-color: var(--secondary-hover);
+    color: var(--text);
+  }
+
+  &[data-pulsing="true"] {
+    animation: virtual-keyboard-key-pulse 240ms ease-out;
+  }
+}
+
+.virtual-keyboard__key.button--secondary:not([data-key-type="character"]) {
+  background-color: color-mix(in srgb, var(--primary) 8%, var(--secondary));
+
+  &:hover,
+  &[data-active="true"] {
+    background-color: color-mix(in srgb, var(--primary) 14%, var(--secondary));
+  }
+}
+
+.virtual-keyboard__key-label {
+  line-height: 1;
+}
+
+.virtual-keyboard__key-shortcut {
+  position: absolute;
+  right: var(--spacing-unit);
+  bottom: var(--spacing-unit);
+  min-width: 20px;
+  height: 20px;
+  padding-inline: calc(var(--spacing-unit) * 1.5);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 960px) {
+  .virtual-keyboard-dock {
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4)
+      calc(var(--spacing-unit) * 3);
+  }
+
+  .virtual-keyboard {
+    width: calc(100vw - (var(--spacing-unit) * 8));
+  }
+
+  .virtual-keyboard__keys {
+    grid-auto-rows: minmax(60px, auto);
+    gap: var(--spacing-unit);
+  }
+
+  .virtual-keyboard__key {
+    min-height: 60px;
+    font-size: 14px;
+  }
+
+  .virtual-keyboard__key-shortcut {
+    min-width: 18px;
+    height: 18px;
+    padding-inline: var(--spacing-unit);
+    font-size: 9px;
+    line-height: 18px;
+  }
+}
+
+@keyframes virtual-keyboard-key-pulse {
+  from {
+    background-color: var(--secondary-hover);
+  }
+
+  to {
+    background-color: var(--secondary);
+  }
+}

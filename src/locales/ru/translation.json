@@ -977,6 +977,8 @@
     "your_friend_code": "Ваш код друга:",
     "copy_friend_code": "Копировать код друга",
     "copied": "Скопировано!",
+    "change_profile_picture": "Change profile picture",
+    "crop_profile_image_stage": "Profile image crop area. Use the arrow keys to move the image.",
     "crop_profile_picture": "Настроить фото профиля",
     "crop_profile_banner": "Настроить баннер",
     "crop_profile_image_description": "Перетащите изображение, чтобы изменить его положение, затем используйте масштаб для изменения размера.",

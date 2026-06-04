@@ -981,6 +981,8 @@
     "your_friend_code": "Your friend code:",
     "copy_friend_code": "Copy friend code",
     "copied": "Copied!",
+    "change_profile_picture": "Change profile picture",
+    "crop_profile_image_stage": "Profile image crop area. Use the arrow keys to move the image.",
     "crop_profile_picture": "Adjust profile picture",
     "crop_profile_banner": "Adjust banner",
     "crop_profile_image_description": "Drag the image to reposition it, then use zoom to resize it.",

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button, Modal } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
+import { logger } from "@renderer/logger";
 
 import "./profile-image-crop-modal.scss";
 
@@ -34,6 +35,7 @@ const CROP_OUTPUT_SIZE: Record<CropVariant, { width: number; height: number }> =
 const MAX_ZOOM = 4;
 const MIN_ZOOM = 1;
 const ZOOM_STEP = 0.25;
+const KEYBOARD_PAN_STEP = 10;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -49,9 +51,11 @@ export function ProfileImageCropModal({
   const { t } = useTranslation("user_profile");
   const { showErrorToast } = useToast();
 
-  const frameRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLButtonElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const dragStateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -171,10 +175,25 @@ export function ProfileImageCropModal({
 
   useEffect(
     () => () => {
-      if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
+      if (interactionTimeoutRef.current) {
+        clearTimeout(interactionTimeoutRef.current);
+      }
     },
     []
   );
+
+  const scheduleInteractionEnd = () => {
+    setIsInteracting(true);
+
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+
+    interactionTimeoutRef.current = setTimeout(
+      () => setIsInteracting(false),
+      400
+    );
+  };
 
   useEffect(() => {
     if (!visible || !imagePath) {
@@ -254,7 +273,7 @@ export function ProfileImageCropModal({
     });
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!frameRef.current) return;
 
     event.preventDefault();
@@ -270,7 +289,7 @@ export function ProfileImageCropModal({
     };
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
@@ -285,7 +304,7 @@ export function ProfileImageCropModal({
     );
   };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (dragStateRef.current?.pointerId !== event.pointerId) return;
 
     dragStateRef.current = null;
@@ -296,7 +315,7 @@ export function ProfileImageCropModal({
     }
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = (event: React.WheelEvent<HTMLButtonElement>) => {
     if (!frameRef.current) return;
 
     event.preventDefault();
@@ -309,9 +328,36 @@ export function ProfileImageCropModal({
       y: event.clientY - rect.top,
     });
 
-    setIsInteracting(true);
-    if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
-    wheelTimeoutRef.current = setTimeout(() => setIsInteracting(false), 400);
+    scheduleInteractionEnd();
+  };
+
+  const handleFrameKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    if (isApplying || !imageSize.width) return;
+
+    const panStep = KEYBOARD_PAN_STEP * (event.shiftKey ? 4 : 1);
+    const movement = {
+      ArrowDown: { x: 0, y: panStep },
+      ArrowLeft: { x: -panStep, y: 0 },
+      ArrowRight: { x: panStep, y: 0 },
+      ArrowUp: { x: 0, y: -panStep },
+    }[event.key];
+
+    if (!movement) return;
+
+    event.preventDefault();
+
+    setPosition((currentPosition) =>
+      clampPosition(
+        {
+          x: currentPosition.x + movement.x,
+          y: currentPosition.y + movement.y,
+        },
+        scale
+      )
+    );
+    scheduleInteractionEnd();
   };
 
   const handleZoomChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -423,7 +469,7 @@ export function ProfileImageCropModal({
 
       onApply(tempImagePath);
     } catch (error) {
-      console.error("Failed to crop profile image", error);
+      logger.error("Failed to crop profile image", error);
       showErrorToast(t("image_process_failure"));
     } finally {
       setIsApplying(false);
@@ -463,7 +509,8 @@ export function ProfileImageCropModal({
     >
       <div className="profile-image-crop-modal">
         <div className="profile-image-crop-modal__stage">
-          <div
+          <button
+            type="button"
             ref={frameRef}
             className={`profile-image-crop-modal__frame profile-image-crop-modal__frame--${variant}`}
             onPointerDown={handlePointerDown}
@@ -471,6 +518,8 @@ export function ProfileImageCropModal({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             onWheel={handleWheel}
+            onKeyDown={handleFrameKeyDown}
+            aria-label={t("crop_profile_image_stage")}
           >
             {previewUrl && (
               <img
@@ -499,7 +548,7 @@ export function ProfileImageCropModal({
               <span className="profile-image-crop-modal__grid-line profile-image-crop-modal__grid-line--h1" />
               <span className="profile-image-crop-modal__grid-line profile-image-crop-modal__grid-line--h2" />
             </div>
-          </div>
+          </button>
 
           <div
             className="profile-image-crop-modal__toolbar"

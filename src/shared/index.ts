@@ -135,13 +135,6 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
-  if (
-    uri.startsWith("https://buzzheavier.com") ||
-    uri.startsWith("https://bzzhr.co") ||
-    uri.startsWith("https://fuckingfast.net")
-  ) {
-    return [Downloader.Buzzheavier];
-  }
   if (uri.startsWith("https://fuckingfast.co")) {
     return [Downloader.FuckingFast];
   }
@@ -198,6 +191,9 @@ export const getDateLocale = (language: string) => {
 
   return enUS;
 };
+
+export const getReviewTranslationLanguage = (language: string) =>
+  language.split("-")[0].toLowerCase();
 
 export const formatDate = (
   date: number | Date | string,

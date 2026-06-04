@@ -4,6 +4,8 @@ import cn from "classnames";
 import { Typography } from "../typography";
 import { XIcon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import type { FocusOverrides } from "../../../services";
+import { FocusItem } from "../focus-item";
 
 const variants = {
   solid: "chips--solid",
@@ -16,6 +18,8 @@ export interface ChipProps {
   icon?: ReactNode;
   variant?: keyof typeof variants;
   onRemove?: () => void;
+  focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
 }
 
 export interface ColorDotProps {
@@ -34,8 +38,10 @@ export function Chip({
   icon,
   variant = "solid",
   onRemove,
+  focusId,
+  focusNavigationOverrides,
 }: Readonly<ChipProps>) {
-  return (
+  const chip = (
     <div className={cn("chips", variants[variant])}>
       <div className="chips__content">
         {icon && <div className="chips__content__icon">{icon}</div>}
@@ -47,9 +53,22 @@ export function Chip({
         </Typography>
       </div>
 
-      <button className="chips__close-button" onClick={onRemove}>
+      <button type="button" className="chips__close-button" onClick={onRemove}>
         <XIcon size={14} />
       </button>
     </div>
+  );
+
+  return focusId ? (
+    <FocusItem
+      id={focusId}
+      actions={{ primary: () => onRemove?.() }}
+      navigationOverrides={focusNavigationOverrides}
+      asChild
+    >
+      {chip}
+    </FocusItem>
+  ) : (
+    chip
   );
 }

@@ -16,10 +16,15 @@ import {
 import { useLibraryLaunchGame } from "../../../components/pages/library/use-library-launch-game";
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import {
+  buildLibraryToastOptions,
   getBigPictureGameDetailsPath,
   getItemFocusTarget,
 } from "../../../helpers";
-import { useDominantColor, useLibraryGameState } from "../../../hooks";
+import {
+  useBigPictureToast,
+  useDominantColor,
+  useLibraryGameState,
+} from "../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../layout";
 import type { FocusOverrideTarget, FocusOverrides } from "../../../services";
 import {
@@ -43,6 +48,7 @@ export function HomePageHero({
   upNavigationTarget,
 }: Readonly<HomePageHeroProps>) {
   const navigate = useNavigate();
+  const { showSuccessToast } = useBigPictureToast();
   const { updateLibrary, ...gameState } = useLibraryGameState(
     featuredGame?.shop,
     featuredGame?.objectId
@@ -104,6 +110,13 @@ export function HomePageHero({
         featuredGame.title
       );
       await updateLibrary();
+
+      const { title, ...toastOptions } = await buildLibraryToastOptions(
+        featuredGame,
+        "added",
+        { color: dominantColor }
+      );
+      showSuccessToast(title, toastOptions);
     } finally {
       setIsAddingToLibrary(false);
     }
