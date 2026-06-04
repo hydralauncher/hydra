@@ -41,6 +41,7 @@ export function ScanGamesModal({
   const requiresFolderSelection = !isWindows && selectedFolders.length === 0;
 
   const handleClose = () => {
+    setSelectedFolders([]);
     onClose();
   };
 
