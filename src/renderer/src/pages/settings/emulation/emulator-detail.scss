@@ -239,7 +239,8 @@
     border: 0;
     padding: 0;
     margin: 0;
-    display: inline-flex;
+    display: flex;
+    width: 100%;
     align-items: center;
     gap: 8px;
     font-size: 13px;
@@ -277,8 +278,11 @@
   }
 
   &__exec-path-text {
-    word-break: break-all;
+    flex: 1;
     min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &--placeholder {
       color: #8e919b;

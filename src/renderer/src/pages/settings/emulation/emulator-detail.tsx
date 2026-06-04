@@ -385,6 +385,7 @@ export function EmulatorDetail({
             >
               <span
                 className={`emulator-detail__exec-path-text${config.executablePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
+                title={config.executablePath ?? undefined}
               >
                 {config.executablePath ?? t("select_executable_placeholder")}
               </span>
