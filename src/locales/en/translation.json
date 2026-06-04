@@ -131,7 +131,7 @@
     "version_available_download": "Version {{version}} available. Click here to download.",
     "scan_games_tooltip": "Scan PC for installed games",
     "scan_games_title": "Scan PC for installed games",
-    "scan_games_description": "This will scan your disks for known game executables. This may take several minutes.",
+    "scan_games_description": "This will scan your disks for known game executables.\nThis may take several minutes.",
     "scan_games_start": "Start Scan",
     "scan_games_cancel": "Cancel",
     "scan_games_result": "Found {{found}} of {{total}} games without executable path",
