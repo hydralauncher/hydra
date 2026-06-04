@@ -53,7 +53,7 @@ export class GameFilesManager {
     this.lastProgressUpdateValue = progress;
     this.lastProgressUpdateTime = now;
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAppWindows(
       "on-extraction-progress",
       this.shop,
       this.objectId,
@@ -83,9 +83,10 @@ export class GameFilesManager {
         queued: false,
         extracting: false,
       });
+      WindowManager.sendDownloadsUpdated();
     }
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAppWindows(
       "on-extraction-failed",
       this.shop,
       this.objectId
@@ -202,7 +203,7 @@ export class GameFilesManager {
           await deleteArchiveFile(archivePath);
         }
       } else {
-        WindowManager.mainWindow?.webContents.send(
+        WindowManager.sendToAppWindows(
           "on-archive-deletion-prompt",
           archivePaths
         );
@@ -224,6 +225,7 @@ export class GameFilesManager {
       ...download,
       extracting: false,
     });
+    WindowManager.sendDownloadsUpdated();
 
     // Calculate and store the installed size
     if (game && download.folderName) {
@@ -236,7 +238,7 @@ export class GameFilesManager {
       });
     }
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAppWindows(
       "on-extraction-complete",
       this.shop,
       this.objectId
@@ -299,7 +301,7 @@ export class GameFilesManager {
           executablePath: foundExePath,
         });
 
-        WindowManager.mainWindow?.webContents.send("on-library-batch-complete");
+        WindowManager.sendToAppWindows("on-library-batch-complete");
 
         await this.createDesktopShortcutForGame(game.title);
       }
@@ -688,10 +690,9 @@ export class GameFilesManager {
           if (shouldDelete) {
             await deleteArchiveFile(filePath);
           } else {
-            WindowManager.mainWindow?.webContents.send(
-              "on-archive-deletion-prompt",
-              [filePath]
-            );
+            WindowManager.sendToAppWindows("on-archive-deletion-prompt", [
+              filePath,
+            ]);
           }
         }
 

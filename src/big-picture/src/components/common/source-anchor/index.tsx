@@ -1,28 +1,75 @@
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
+import cn from "classnames";
+import { FocusItem } from "..";
+
 import "./styles.scss";
 
-import type { AnchorHTMLAttributes } from "react";
+const sizes = {
+  small: "source-anchor--small",
+  medium: "source-anchor--medium",
+  large: "source-anchor--large",
+};
 
 export interface SourceAnchorProps
   extends AnchorHTMLAttributes<HTMLAnchorElement> {
   title: string;
+  size?: keyof typeof sizes;
+  focusId?: string;
   href?: string;
+  onClick?: () => void;
+  isSelected?: boolean;
 }
 
 export function SourceAnchor({
   title,
+  focusId,
   href,
+  onClick,
+  isSelected = false,
+  size = "medium",
   ...props
 }: Readonly<SourceAnchorProps>) {
   return (
     <>
-      {href ? (
-        <a href={href} {...props}>
-          <div className="source-anchor source-anchor--link">
-            <p className="source-anchor__title">{title}</p>
-          </div>
-        </a>
-      ) : (
-        <div className="source-anchor">
+      {href && (
+        <FocusItem id={focusId}>
+          <a href={href} {...props}>
+            <div
+              className={cn("source-anchor source-anchor--link", sizes[size], {
+                "source-anchor--selected": isSelected,
+              })}
+            >
+              <p className="source-anchor__title">{title}</p>
+            </div>
+          </a>
+        </FocusItem>
+      )}
+
+      {onClick && (
+        <FocusItem id={focusId}>
+          <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={isSelected}
+            {...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
+          >
+            <div
+              className={cn("source-anchor source-anchor--link", sizes[size], {
+                "source-anchor--selected": isSelected,
+              })}
+            >
+              <p className="source-anchor__title">{title}</p>
+            </div>
+          </button>
+        </FocusItem>
+      )}
+
+      {!onClick && !href && (
+        <div
+          className={cn("source-anchor", sizes[size], {
+            "source-anchor--selected": isSelected,
+          })}
+        >
           <p className="source-anchor__title">{title}</p>
         </div>
       )}

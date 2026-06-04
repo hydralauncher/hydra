@@ -2,7 +2,7 @@ import type { FocusAutoScrollMode, FocusNode, FocusRegion } from "../services";
 
 const SAFE_SCROLL_MARGIN = 96;
 const ROW_TOLERANCE_PX = 24;
-const SCROLL_ANIMATION_DURATION = 120;
+const SCROLL_ANIMATION_DURATION = 180;
 
 const scrollAnimationFrames = new WeakMap<Element, number>();
 
@@ -17,6 +17,12 @@ interface ResolvedScrollTarget {
   container: HTMLElement;
   rect: DOMRect;
   key: string;
+}
+
+function shouldSuppressNavigationAutoScroll(element: HTMLElement) {
+  return (
+    element.closest("[data-suppress-navigation-autoscroll='true']") !== null
+  );
 }
 
 function easeOutCubic(progress: number): number {
@@ -121,6 +127,34 @@ function cancelScrollAnimation(container: HTMLElement): void {
 
   globalThis.cancelAnimationFrame(animationFrame);
   scrollAnimationFrames.delete(container);
+}
+
+export function cancelNavigationAutoScrollForElement(
+  element: HTMLElement | null
+): void {
+  if (!element) return;
+
+  const container = isScrollableElement(element)
+    ? element
+    : getScrollContainer(element);
+
+  cancelScrollAnimation(container);
+}
+
+export function animateNavigationScrollForElement(
+  element: HTMLElement | null,
+  target: { left?: number; top: number }
+): void {
+  if (!element) return;
+
+  const container = isScrollableElement(element)
+    ? element
+    : getScrollContainer(element);
+
+  animateScroll(container, {
+    left: target.left ?? container.scrollLeft,
+    top: target.top,
+  });
 }
 
 function animateScroll(
@@ -373,6 +407,11 @@ export function scrollNavigationIntoView(options: {
   const currentNode = nodesById.get(options.currentFocusId) ?? null;
 
   if (!currentNode) return;
+
+  const currentElement = currentNode.getElement?.() ?? null;
+
+  if (!currentElement) return;
+  if (shouldSuppressNavigationAutoScroll(currentElement)) return;
 
   const currentTarget = resolveScrollTarget({
     node: currentNode,

@@ -38,6 +38,7 @@ import type {
   ProtonVersion,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
+  DownloadLayoutState,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -64,7 +65,11 @@ declare global {
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      strategy?: "interruptActive" | "queueIfActive"
+    ) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     updateDownloadQueuePosition: (
@@ -72,6 +77,23 @@ declare global {
       objectId: string,
       direction: "up" | "down"
     ) => Promise<boolean>;
+    setDownloadQueuePosition: (
+      shop: GameShop,
+      objectId: string,
+      targetIndex: number
+    ) => Promise<boolean>;
+    setPausedDownloadPosition: (
+      shop: GameShop,
+      objectId: string,
+      targetIndex: number
+    ) => Promise<boolean>;
+    moveDownloadPlacement: (
+      shop: GameShop,
+      objectId: string,
+      targetArea: "hero" | "queue" | "paused",
+      targetIndex?: number
+    ) => Promise<boolean>;
+    getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
@@ -256,6 +278,7 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,
@@ -271,6 +294,9 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    onUserPreferencesUpdated: (
+      cb: (preferences: UserPreferences | null) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
@@ -478,9 +504,24 @@ declare global {
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    getProfileImageMetadata: (
+      path: string
+    ) => Promise<{ mimeType: string | null; isAnimated: boolean }>;
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
+    cropProfileImage: (
+      path: string,
+      params: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+        outputWidth: number;
+        outputHeight: number;
+        rotation?: number;
+      }
+    ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
     ) => () => Electron.IpcRenderer;
@@ -507,6 +548,12 @@ declare global {
       cb: (
         position?: AchievementCustomNotificationPosition,
         achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onInAppAchievementUnlocked: (
+      cb: (
+        position: AchievementCustomNotificationPosition,
+        achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (

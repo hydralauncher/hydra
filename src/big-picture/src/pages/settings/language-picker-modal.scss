@@ -1,0 +1,114 @@
+.language-picker-modal {
+  width: min(920px, calc(100vw - calc(var(--spacing-unit) * 8)));
+
+  .modal__content {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 4);
+    min-height: 0;
+    padding: calc(var(--spacing-unit) * 6);
+  }
+
+  &__search {
+    flex-shrink: 0;
+  }
+
+  &__grid-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: calc(var(--spacing-unit) * 2);
+    margin-right: calc(var(--spacing-unit) * -2);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__card {
+    width: 100%;
+    min-width: 0;
+    height: 52px;
+    padding: 0 calc(var(--spacing-unit) * 4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 4);
+    border-radius: calc(var(--spacing-unit) * 2);
+    border: 1px solid var(--secondary-border);
+    background: var(--background);
+    color: var(--text);
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease-in-out,
+      background-color 0.2s ease-in-out;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--secondary-border) 65%, white 35%);
+      background: color-mix(in srgb, var(--secondary) 70%, black 30%);
+    }
+
+    &[data-focus-visible="true"] {
+      border-color: rgba(255, 255, 255, 0.7);
+      outline: none;
+    }
+
+    &--selected {
+      background: color-mix(in srgb, var(--secondary) 82%, black 18%);
+    }
+  }
+
+  &__card-main {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 4);
+    min-width: 0;
+  }
+
+  &__flag {
+    display: block;
+    width: 24px;
+    height: auto;
+    flex-shrink: 0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__card-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  &__selected-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text);
+  }
+
+  &__empty {
+    margin: 0;
+    padding: calc(var(--spacing-unit) * 6) 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
+  }
+}

@@ -5,11 +5,19 @@ import type {
   GameStats,
   HowLongToBeatCategory,
   LibraryGame,
+  ProtonDBData,
   ShopDetailsWithAssets,
   UserAchievement,
 } from "@types";
+import {
+  buildFavoriteToastOptions,
+  buildGameToastVisualOptions,
+  getSteamLanguage,
+} from "../helpers";
+import { useBigPictureToast } from "./use-big-picture-toast.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
+  const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const [shopDetails, setShopDetails] = useState<ShopDetailsWithAssets | null>(
     null
   );
@@ -19,6 +27,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [howLongToBeat, setHowLongToBeat] = useState<
     HowLongToBeatCategory[] | null
   >(null);
+  const [protonDBData, setProtonDBData] = useState<ProtonDBData | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,17 +45,24 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
     setIsLoading(true);
 
-    const [shopDetailsResult, statsResult, assets] = await Promise.all([
-      globalThis.window.electron.getGameShopDetails(
-        objectId,
-        shop,
-        navigator.language
-      ),
+    const [userPreferences, statsResult, assets] = await Promise.all([
+      globalThis.window.electron
+        .getUserPreferences()
+        .catch(() => ({ language: "en" })),
       shop === "custom"
         ? Promise.resolve(null)
         : globalThis.window.electron.getGameStats(objectId, shop),
       globalThis.window.electron.getGameAssets(objectId, shop),
     ]);
+
+    const shopDetailsResult =
+      shop === "custom"
+        ? null
+        : await globalThis.window.electron.getGameShopDetails(
+            objectId,
+            shop,
+            getSteamLanguage(userPreferences?.language ?? "en")
+          );
 
     if (shopDetailsResult) {
       shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
@@ -70,6 +86,13 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         .then(setHowLongToBeat)
         .catch(() => setHowLongToBeat(null));
 
+      globalThis.window.electron.hydraApi
+        .get<ProtonDBData | null>(`/games/${shop}/${objectId}/protondb`, {
+          needsAuth: false,
+        })
+        .then(setProtonDBData)
+        .catch(() => setProtonDBData(null));
+
       globalThis.window.electron
         .getUnlockedAchievements(objectId, shop)
         .then((result) => {
@@ -78,6 +101,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
           }
         })
         .catch(() => setAchievements([]));
+    } else {
+      setHowLongToBeat(null);
+      setProtonDBData(null);
+      setAchievements([]);
     }
   }, [fetchGameDetails, updateGame, objectId, shop]);
 
@@ -114,15 +141,52 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const toggleFavorite = useCallback(async () => {
     if (!game) return;
 
-    if (game.favorite) {
-      await globalThis.window.electron.removeGameFromFavorites(shop, objectId);
-    } else {
-      await globalThis.window.electron.addGameToFavorites(shop, objectId);
-    }
+    const toastSource = {
+      title: shopDetails?.assets?.title ?? game.title,
+      iconUrl: shopDetails?.assets?.iconUrl ?? game.iconUrl ?? null,
+      coverImageUrl:
+        shopDetails?.assets?.coverImageUrl ?? game.coverImageUrl ?? null,
+      libraryImageUrl:
+        shopDetails?.assets?.libraryImageUrl ?? game.libraryImageUrl ?? null,
+      libraryHeroImageUrl:
+        shopDetails?.assets?.libraryHeroImageUrl ??
+        game.libraryHeroImageUrl ??
+        null,
+    };
 
-    updateGame();
-    globalThis.window.dispatchEvent(new Event("library-update"));
-  }, [game, shop, objectId, updateGame]);
+    try {
+      if (game.favorite) {
+        await globalThis.window.electron.removeGameFromFavorites(
+          shop,
+          objectId
+        );
+      } else {
+        await globalThis.window.electron.addGameToFavorites(shop, objectId);
+      }
+
+      await updateGame();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+      const { title, ...toastOptions } = await buildFavoriteToastOptions(
+        toastSource,
+        game.favorite ? "removed" : "added"
+      );
+      showSuccessToast(title, toastOptions);
+    } catch {
+      const toastOptions = await buildGameToastVisualOptions(toastSource);
+      showErrorToast("Failed to update favorites", {
+        ...toastOptions,
+        message: `${toastSource.title} couldn't be updated right now.`,
+      });
+    }
+  }, [
+    game,
+    objectId,
+    shop,
+    shopDetails?.assets,
+    showErrorToast,
+    showSuccessToast,
+    updateGame,
+  ]);
 
   return {
     shopDetails,
@@ -131,9 +195,11 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     isGameRunning,
     isLoading,
     howLongToBeat,
+    protonDBData,
     achievements,
     openGame,
     closeGame,
     toggleFavorite,
+    updateGame,
   };
 }

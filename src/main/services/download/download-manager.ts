@@ -7,6 +7,7 @@ import {
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
+  FuckingFastApi,
   VikingFileApi,
   RootzApi,
 } from "../hosters";
@@ -22,15 +23,17 @@ import path from "node:path";
 import fs from "node:fs";
 import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { orderBy } from "lodash-es";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
-import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import {
+  getDownloadLayoutStateRecord,
+  getNextQueuedDownloadFromLayout,
+} from "../download-layout-state";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -522,11 +525,12 @@ export class DownloadManager {
   ) {
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.setProgressBar(progress === 1 ? -1 : progress);
-      WindowManager.mainWindow.webContents.send("on-download-progress", {
-        ...status,
-        game,
-      });
     }
+
+    WindowManager.sendToAppWindows(
+      "on-download-progress",
+      structuredClone({ ...status, game })
+    );
   }
 
   private static async handleDownloadCompletion(
@@ -612,8 +616,10 @@ export class DownloadManager {
         status: "seeding",
         shouldSeed: true,
         queued: false,
+        pinnedToHero: false,
         extracting: shouldExtract,
       });
+      WindowManager.sendDownloadsUpdated();
 
       return true;
     } else {
@@ -622,8 +628,10 @@ export class DownloadManager {
         status: "complete",
         shouldSeed: false,
         queued: false,
+        pinnedToHero: false,
         extracting: shouldExtract,
       });
+      WindowManager.sendDownloadsUpdated();
       await this.cancelDownload(gameId);
 
       return false;
@@ -705,18 +713,12 @@ export class DownloadManager {
   }
 
   private static async processNextQueuedDownload() {
-    const downloads = await downloadsSublevel
-      .values()
-      .all()
-      .then((games) =>
-        orderBy(
-          games.filter((game) => game.status === "paused" && game.queued),
-          ["timestamp"],
-          ["desc"]
-        )
-      );
-
-    const [nextItemOnQueue] = downloads;
+    const downloads = await downloadsSublevel.values().all();
+    const layoutState = await getDownloadLayoutStateRecord();
+    const nextItemOnQueue = getNextQueuedDownloadFromLayout(
+      downloads,
+      layoutState
+    );
 
     if (nextItemOnQueue) {
       this.resumeDownload(nextItemOnQueue);
@@ -737,12 +739,12 @@ export class DownloadManager {
         .then((res) => res.data);
     } catch (error) {
       logger.error("[DownloadManager] RPC seed status poll failed", error);
-      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
 
     if (!seedStatus.length) {
-      WindowManager.mainWindow?.webContents.send("on-seeding-status", []);
+      WindowManager.sendToAppWindows("on-seeding-status", []);
       return;
     }
 
@@ -764,17 +766,19 @@ export class DownloadManager {
           ...download,
           status: "paused",
           shouldSeed: false,
+          pinnedToHero: false,
           progress:
             status.fileSize > 0
               ? Math.min(totalSize / status.fileSize, 1)
               : download.progress,
         });
+        WindowManager.sendDownloadsUpdated();
 
-        WindowManager.mainWindow?.webContents.send("on-hard-delete");
+        WindowManager.sendToAppWindows("on-hard-delete");
       }
     }
 
-    WindowManager.mainWindow?.webContents.send("on-seeding-status", seedStatus);
+    WindowManager.sendToAppWindows("on-seeding-status", seedStatus);
   }
 
   static async pauseDownload(downloadKey = this.downloadingGameId) {
@@ -817,7 +821,7 @@ export class DownloadManager {
       }
 
       WindowManager.mainWindow?.setProgressBar(-1);
-      WindowManager.mainWindow?.webContents.send("on-download-progress", null);
+      WindowManager.sendToAppWindows("on-download-progress", null);
       this.downloadingGameId = null;
       this.isPreparingDownload = false;
       this.usingJsDownloader = false;
@@ -860,8 +864,6 @@ export class DownloadManager {
         return this.getPixelDrainDownloadOptions(download, resumingFilename);
       case Downloader.Datanodes:
         return this.getDatanodesDownloadOptions(download, resumingFilename);
-      case Downloader.Buzzheavier:
-        return this.getBuzzheavierDownloadOptions(download, resumingFilename);
       case Downloader.FuckingFast:
         return this.getFuckingFastDownloadOptions(download, resumingFilename);
       case Downloader.Mediafire:
@@ -1037,26 +1039,6 @@ export class DownloadManager {
     );
     return this.buildDownloadOptions(
       downloadUrl,
-      download.downloadPath,
-      filename
-    );
-  }
-
-  private static async getBuzzheavierDownloadOptions(
-    download: Download,
-    resumingFilename?: string
-  ) {
-    logger.log(
-      `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
-    );
-    const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-    const filename = this.resolveFilename(
-      resumingFilename,
-      download.uri,
-      directUrl
-    );
-    return this.buildDownloadOptions(
-      directUrl,
       download.downloadPath,
       filename
     );
@@ -1263,27 +1245,6 @@ export class DownloadManager {
           url: downloadUrl,
           save_path: download.downloadPath,
         };
-      }
-      case Downloader.Buzzheavier: {
-        logger.log(
-          `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
-        );
-        try {
-          const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-          logger.log(`[DownloadManager] Buzzheavier direct URL obtained`);
-          return this.createDownloadPayload(
-            directUrl,
-            download.uri,
-            downloadId,
-            download.downloadPath
-          );
-        } catch (error) {
-          logger.error(
-            `[DownloadManager] Error processing Buzzheavier download:`,
-            error
-          );
-          throw error;
-        }
       }
       case Downloader.FuckingFast: {
         logger.log(

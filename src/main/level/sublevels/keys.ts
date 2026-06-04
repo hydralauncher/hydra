@@ -13,6 +13,7 @@ export const levelKeys = {
     `${shop}:${objectId}:${language}`,
   gameAchievements: "gameAchievements",
   downloads: "downloads",
+  downloadLayoutState: "downloadLayoutState",
   userPreferences: "userPreferences",
   language: "language",
   screenState: "screenState",

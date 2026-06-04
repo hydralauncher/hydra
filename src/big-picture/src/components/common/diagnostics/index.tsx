@@ -107,6 +107,7 @@ function getFocusedElementDataset(currentFocusId: string | null) {
     hasHoldA: element.dataset.hasHoldA === "true",
     hasHoldB: element.dataset.hasHoldB === "true",
     hasHoldX: element.dataset.hasHoldX === "true",
+    hasHoldY: element.dataset.hasHoldY === "true",
   };
 }
 
@@ -285,6 +286,7 @@ function getFocusedActionsLabel(
     focusedDataset.hasHoldA && "hold.a",
     focusedDataset.hasHoldB && "hold.b",
     focusedDataset.hasHoldX && "hold.x",
+    focusedDataset.hasHoldY && "hold.y",
   ].filter(Boolean);
 
   return actions.join(", ") || "None";
@@ -1308,13 +1310,13 @@ export function NavigationDiagnostics() {
   return (
     <div
       style={{
-        position: "absolute",
-        right: "calc(var(--spacing-unit) * 6)",
+        position: "fixed",
+        left: "calc(var(--spacing-unit) * 6)",
         bottom: "calc(var(--spacing-unit) * 6)",
         zIndex: 1000,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-end",
+        alignItems: "flex-start",
         gap: "calc(var(--spacing-unit) * 3)",
         fontSize: 12,
       }}

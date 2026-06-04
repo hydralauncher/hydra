@@ -9,6 +9,7 @@ const defaultFocusItemActionsMeta: FocusItemActionsMeta = {
   hasHoldA: false,
   hasHoldB: false,
   hasHoldX: false,
+  hasHoldY: false,
 };
 
 export const FocusItemActionsMetaContext = createContext<FocusItemActionsMeta>(

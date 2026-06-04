@@ -1,6 +1,11 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi, logger } from "@main/services";
+import {
+  DownloadManager,
+  DownloadOrchestrator,
+  HydraApi,
+  logger,
+} from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
@@ -29,28 +34,16 @@ const startGameDownload = async (
   const gameKey = levelKeys.game(shop, objectId);
 
   logger.log(
-    `[Downloads] Start requested for ${gameKey} (downloader=${downloader}, queued=true)`
+    `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
 
-  await DownloadManager.pauseDownload();
-
-  for await (const [key, value] of downloadsSublevel.iterator()) {
-    if (value.status === "active" && value.progress !== 1) {
-      await downloadsSublevel.put(key, {
-        ...value,
-        status: "paused",
-      });
-    }
-  }
-
   await prepareGameEntry({ gameKey, title, objectId, shop });
-
   await DownloadManager.cancelDownload(gameKey);
 
   const download: Download = {
     shop,
     objectId,
-    status: "active",
+    status: "paused",
     progress: 0,
     bytesDownloaded: 0,
     downloadPath,
@@ -60,6 +53,7 @@ const startGameDownload = async (
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
@@ -69,9 +63,8 @@ const startGameDownload = async (
   };
 
   try {
-    await DownloadManager.startDownload(download).then(() => {
-      return downloadsSublevel.put(gameKey, download);
-    });
+    await downloadsSublevel.put(gameKey, download);
+    await DownloadOrchestrator.startPreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
@@ -84,6 +77,9 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
+    await downloadsSublevel.del(gameKey).catch(() => null);
+    await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+
     if (isKnownDownloadError(err)) {
       logger.warn("Failed to start download with expected download error", err);
     } else {

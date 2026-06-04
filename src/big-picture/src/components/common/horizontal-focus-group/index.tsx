@@ -19,6 +19,7 @@ import {
 
 interface HorizontalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   regionId?: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getScrollAnchor?: () => HTMLElement | null;
@@ -28,6 +29,7 @@ interface HorizontalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
 
 export function HorizontalFocusGroup({
   regionId,
+  navigationOrder,
   navigationOverrides,
   autoScrollMode = "region",
   getScrollAnchor,
@@ -41,6 +43,7 @@ export function HorizontalFocusGroup({
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
+  const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const initialGetScrollAnchorRef = useRef(getScrollAnchor);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -53,6 +56,7 @@ export function HorizontalFocusGroup({
       parentRegionId,
       orientation: "horizontal",
       layerId,
+      navigationOrder: initialNavigationOrderRef.current,
       navigationOverrides: initialNavigationOverridesRef.current,
       autoScrollMode,
       isPersistent: Boolean(regionId),
@@ -72,12 +76,14 @@ export function HorizontalFocusGroup({
     navigation.updateRegion(resolvedRegionId, {
       autoScrollMode,
       getScrollAnchor,
+      navigationOrder,
       navigationOverrides,
     });
   }, [
     autoScrollMode,
     getScrollAnchor,
     navigation,
+    navigationOrder,
     navigationOverrides,
     resolvedRegionId,
   ]);

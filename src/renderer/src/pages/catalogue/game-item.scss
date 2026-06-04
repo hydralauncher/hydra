@@ -173,6 +173,11 @@
     font-size: 12px;
     text-align: left;
     margin-bottom: 4px;
+
+    &--empty {
+      color: rgba(255, 255, 255, 0.35);
+      font-style: italic;
+    }
   }
 
   &__repackers {
