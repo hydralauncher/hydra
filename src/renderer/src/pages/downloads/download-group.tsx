@@ -356,7 +356,7 @@ function HeroDownloadView({
                     <DownloadIcon size={14} />
                     {isGameDownloading && lastPacket
                       ? `${formatBytes(lastPacket.download.bytesDownloaded)} / ${finalDownloadSize}`
-                      : `0 B / ${finalDownloadSize}`}
+                      : `${formatBytes(game.download?.bytesDownloaded ?? 0)} / ${finalDownloadSize}`}
                   </span>
                 )}
                 <span></span>

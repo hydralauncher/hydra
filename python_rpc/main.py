@@ -13,6 +13,14 @@ import libtorrent as lt
 
 from torrent_downloader import TorrentDownloader
 
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    reconfigure = getattr(_stream, "reconfigure", None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding="utf-8", errors="strict")
+        except (ValueError, OSError):
+            pass
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] %(levelname)s %(name)s: %(message)s",

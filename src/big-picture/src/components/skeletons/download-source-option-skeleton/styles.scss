@@ -1,0 +1,10 @@
+.download-source-option-skeleton {
+  display: flex;
+  flex-direction: column;
+  border-radius: calc(var(--spacing-unit) * 2);
+  padding: calc(var(--spacing-unit) * 4);
+  min-height: 132px;
+  border: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.025);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.05);
+}

@@ -4,6 +4,7 @@ import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 type ProfileGame = {
   id: string;
+  createdAt?: string | null;
   collectionIds?: string[];
   collectionId?: string | null;
   lastTimePlayed: Date | null;
@@ -62,6 +63,9 @@ export const mergeWithRemoteGames = async () => {
         const mergedCollectionIds = hasRemoteCollectionField
           ? remoteCollectionIds
           : localCollectionIds;
+        const remoteAddedToLibraryAt = game.createdAt
+          ? new Date(game.createdAt)
+          : null;
 
         if (localGame) {
           const updatedLastTimePlayed =
@@ -80,6 +84,8 @@ export const mergeWithRemoteGames = async () => {
           await gamesSublevel.put(gameKey, {
             ...localGame,
             remoteId: game.id,
+            addedToLibraryAt:
+              localGame.addedToLibraryAt ?? remoteAddedToLibraryAt,
             lastTimePlayed: updatedLastTimePlayed,
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
@@ -97,6 +103,7 @@ export const mergeWithRemoteGames = async () => {
             iconUrl: game.iconUrl,
             libraryHeroImageUrl: game.libraryHeroImageUrl,
             logoImageUrl: game.logoImageUrl,
+            addedToLibraryAt: remoteAddedToLibraryAt,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,

@@ -1,0 +1,123 @@
+.downloads-network-stats {
+  width: 100%;
+  min-height: 132px;
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--spacing-unit) * 4);
+  padding: calc(var(--spacing-unit) * 6);
+  border-radius: calc(var(--spacing-unit) * 3);
+  background: var(--secondary);
+}
+
+.downloads-network-stats__meta {
+  width: max-content;
+  max-width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--spacing-unit) * 3);
+}
+
+.downloads-network-stats__metric {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.downloads-network-stats__metric-text {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--spacing-unit) * 1.5);
+  color: var(--text);
+
+  strong {
+    font-size: inherit;
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+.downloads-network-stats__metric-label,
+.downloads-network-stats__torrent-meta,
+.downloads-network-stats__downloader {
+  color: var(--text-secondary);
+}
+
+.downloads-network-stats__torrent-meta {
+  strong {
+    font-size: inherit;
+    color: var(--text);
+    font-weight: 500;
+  }
+}
+
+.downloads-network-stats__downloader {
+  margin: 0;
+}
+
+.downloads-network-stats__chart {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: clamp(36px, 6vw, 72px);
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(
+      90deg,
+      var(--secondary) 0%,
+      color-mix(in srgb, var(--secondary) 82%, transparent) 45%,
+      transparent 100%
+    );
+  }
+
+  .recharts-surface {
+    overflow: visible;
+  }
+}
+
+.downloads-network-stats__tooltip {
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: color-mix(in srgb, var(--secondary) 92%, black 8%);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .downloads-network-stats {
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 5);
+  }
+
+  .downloads-network-stats__meta {
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .downloads-network-stats {
+    padding: calc(var(--spacing-unit) * 4);
+  }
+
+  .downloads-network-stats__metric-text {
+    flex-wrap: wrap;
+  }
+
+  .downloads-network-stats__chart {
+    height: 88px;
+  }
+}

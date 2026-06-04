@@ -1,7 +1,7 @@
 import "./styles.scss";
 
 import cn from "classnames";
-import type { KeyboardEvent } from "react";
+import type { MouseEventHandler } from "react";
 
 export interface VerticalStoreGameCardProps {
   coverImageUrl?: string | null;
@@ -10,6 +10,7 @@ export interface VerticalStoreGameCardProps {
   forceHovered?: boolean;
   className?: string;
   onClick?: () => void;
+  onContextMenu?: MouseEventHandler<HTMLElement>;
   onCoverImageError?: () => void;
 }
 
@@ -27,26 +28,16 @@ export function VerticalStoreGameCard({
   forceHovered = false,
   className,
   onClick,
+  onContextMenu,
   onCoverImageError,
 }: Readonly<VerticalStoreGameCardProps>) {
-  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (onClick == null) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onClick();
-    }
-  };
+  const rootClassName = cn("vertical-store-game-card", className, {
+    "vertical-store-game-card--force-hovered": forceHovered,
+  });
+  const TitleTag = onClick == null ? "h3" : "span";
 
-  return (
-    <div
-      className={cn("vertical-store-game-card", className, {
-        "vertical-store-game-card--force-hovered": forceHovered,
-      })}
-      onClick={onClick}
-      onKeyDown={onClick != null ? handleCardKeyDown : undefined}
-      role={onClick != null ? "button" : undefined}
-      tabIndex={onClick != null ? 0 : undefined}
-    >
+  const inner = (
+    <>
       <div className="vertical-store-game-card__cover">
         {coverImageUrl ? (
           <img
@@ -64,11 +55,32 @@ export function VerticalStoreGameCard({
       </div>
 
       <div className="vertical-store-game-card__body">
-        <h3 className="vertical-store-game-card__title">{gameTitle}</h3>
+        <TitleTag className="vertical-store-game-card__title">
+          {gameTitle}
+        </TitleTag>
         <p className="vertical-store-game-card__subtitle">
           {getDownloadSourcesLabel(downloadSourceCount)}
         </p>
       </div>
-    </div>
+    </>
+  );
+
+  if (onClick == null) {
+    return (
+      <div className={rootClassName} onContextMenu={onContextMenu}>
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={rootClassName}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+    >
+      {inner}
+    </button>
   );
 }

@@ -334,6 +334,11 @@ export class PythonRPC {
       const childProcess = cp.spawn(binaryPath, commonArgs, {
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: "utf-8",
+          PYTHONUTF8: "1",
+        },
       });
 
       this.logStderr(childProcess.stderr);
@@ -355,6 +360,11 @@ export class PythonRPC {
         [scriptPath, ...commonArgs],
         {
           stdio: ["pipe", "pipe", "pipe"],
+          env: {
+            ...process.env,
+            PYTHONIOENCODING: "utf-8",
+            PYTHONUTF8: "1",
+          },
         }
       );
 

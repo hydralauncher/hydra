@@ -22,6 +22,7 @@ import type {
   AchievementNotificationInfo,
   ProtonVersion,
   TorrentFilesResponse,
+  DownloadLayoutState,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -36,8 +37,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("cancelGameDownload", shop, objectId),
   pauseGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("pauseGameDownload", shop, objectId),
-  resumeGameDownload: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("resumeGameDownload", shop, objectId),
+  resumeGameDownload: (
+    shop: GameShop,
+    objectId: string,
+    strategy?: "interruptActive" | "queueIfActive"
+  ) => ipcRenderer.invoke("resumeGameDownload", shop, objectId, strategy),
   pauseGameSeed: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("pauseGameSeed", shop, objectId),
   resumeGameSeed: (shop: GameShop, objectId: string) =>
@@ -53,6 +57,40 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       direction
     ),
+  setDownloadQueuePosition: (
+    shop: GameShop,
+    objectId: string,
+    targetIndex: number
+  ) =>
+    ipcRenderer.invoke("setDownloadQueuePosition", shop, objectId, targetIndex),
+  setPausedDownloadPosition: (
+    shop: GameShop,
+    objectId: string,
+    targetIndex: number
+  ) =>
+    ipcRenderer.invoke(
+      "setPausedDownloadPosition",
+      shop,
+      objectId,
+      targetIndex
+    ),
+  moveDownloadPlacement: (
+    shop: GameShop,
+    objectId: string,
+    targetArea: "hero" | "queue" | "paused",
+    targetIndex?: number
+  ) =>
+    ipcRenderer.invoke(
+      "moveDownloadPlacement",
+      shop,
+      objectId,
+      targetArea,
+      targetIndex
+    ),
+  getDownloadLayoutState: () =>
+    ipcRenderer.invoke(
+      "getDownloadLayoutState"
+    ) as Promise<DownloadLayoutState>,
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -108,8 +146,19 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
-  updateUserPreferences: (preferences: UserPreferences) =>
+  updateUserPreferences: (preferences: Partial<UserPreferences>) =>
     ipcRenderer.invoke("updateUserPreferences", preferences),
+  onUserPreferencesUpdated: (
+    cb: (preferences: UserPreferences | null) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      preferences: UserPreferences | null
+    ) => cb(preferences);
+    ipcRenderer.on("on-user-preferences-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-user-preferences-updated", listener);
+  },
   autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
@@ -333,6 +382,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-library-batch-complete", listener);
     return () =>
       ipcRenderer.removeListener("on-library-batch-complete", listener);
+  },
+  onDownloadsUpdated: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-downloads-updated", listener);
+    return () => ipcRenderer.removeListener("on-downloads-updated", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
@@ -601,8 +655,22 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (updateProfile: UpdateProfileRequest) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
+  getProfileImageMetadata: (imagePath: string) =>
+    ipcRenderer.invoke("getProfileImageMetadata", imagePath),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
+  cropProfileImage: (
+    imagePath: string,
+    params: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      outputWidth: number;
+      outputHeight: number;
+      rotation?: number;
+    }
+  ) => ipcRenderer.invoke("cropProfileImage", imagePath, params),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -698,6 +766,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onInAppAchievementUnlocked: (
+    cb: (
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-unlocked-in-app", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
   },
   onCombinedAchievementsUnlocked: (
     cb: (

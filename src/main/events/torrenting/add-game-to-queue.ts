@@ -1,6 +1,11 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi, logger } from "@main/services";
+import {
+  DownloadManager,
+  DownloadOrchestrator,
+  HydraApi,
+  logger,
+} from "@main/services";
 import { createGame } from "@main/services/library-sync";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { parseBytes } from "@shared";
@@ -29,7 +34,6 @@ const addGameToQueue = async (
   } = payload;
 
   const parsedFileSize = parseBytes(fileSize ?? null);
-
   const gameKey = levelKeys.game(shop, objectId);
 
   const download: Download = {
@@ -46,6 +50,7 @@ const addGameToQueue = async (
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
@@ -71,6 +76,7 @@ const addGameToQueue = async (
 
   try {
     await downloadsSublevel.put(gameKey, download);
+    await DownloadOrchestrator.enqueuePreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

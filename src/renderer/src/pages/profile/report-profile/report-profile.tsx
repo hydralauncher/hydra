@@ -10,7 +10,13 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useToast } from "@renderer/hooks";
 import "./report-profile.scss";
 
-const reportReasons = ["hate", "sexual_content", "violence", "spam", "other"];
+const reportReasons = [
+  "hate",
+  "sexual_content",
+  "violence",
+  "spam",
+  "other_option",
+];
 
 interface FormValues {
   reason: string;
@@ -89,7 +95,7 @@ export function ReportProfile() {
             render={({ field }) => {
               return (
                 <SelectField
-                  label={t("report_reason")}
+                  label={t("report_reason_label")}
                   value={field.value}
                   onChange={field.onChange}
                   options={reportReasons.map((reason) => ({

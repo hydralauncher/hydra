@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import {
   Button,
@@ -18,9 +19,6 @@ import "./settings-behavior.scss";
 import "./settings-general.scss";
 
 export function SettingsContextCompatibility() {
-  const MANGOHUD_SITE_URL = "https://mangohud.com";
-  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
-
   const { t } = useTranslation("settings");
   const { t: tGameDetails } = useTranslation("game_details");
   const { updateUserPreferences } = useContext(settingsContext);
@@ -134,9 +132,12 @@ export function SettingsContextCompatibility() {
     ns: ["settings", "game_details"],
   });
 
-  const protonSourceCompatibilityTools = t("proton_source_compatibility_tools", {
+  const protonSourceCompatibilityTools = t(
+    "proton_source_compatibility_tools",
+    {
       ns: ["settings", "game_details"],
-  });
+    }
+  );
 
   const handleInstallCommonRedist = async () => {
     setInstallingCommonRedist(true);
@@ -203,9 +204,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_gamemode_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_gamemode_prefix")}</span>
                       <Link
                         to={GAMEMODE_SITE_URL}
                         className="settings-behavior__gamemode-link"
@@ -254,9 +253,7 @@ export function SettingsContextCompatibility() {
                           : undefined
                       }
                     >
-                      <span>
-                        {tGameDetails("run_with_mangohud_prefix")}
-                      </span>
+                      <span>{tGameDetails("run_with_mangohud_prefix")}</span>
                       <Link
                         to={MANGOHUD_SITE_URL}
                         className="settings-behavior__mangohud-link"

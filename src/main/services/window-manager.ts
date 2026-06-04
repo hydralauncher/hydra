@@ -6,6 +6,7 @@ import trayIcon from "@resources/tray-icon.png?asset";
 import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
   ScreenState,
   UserPreferences,
 } from "@types";
@@ -94,6 +95,39 @@ export class WindowManager {
     if (this.mainWindow) {
       await this.loadWindowURL(this.mainWindow, hash);
     }
+  }
+
+  private static disableMainWindowWhileBigPictureIsOpen() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setFocusable(false);
+    main.setIgnoreMouseEvents(true);
+    main.hide();
+  }
+
+  private static restoreMainWindowAfterBigPictureCloses() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setIgnoreMouseEvents(false);
+    main.setFocusable(true);
+    main.setSkipTaskbar(false);
+  }
+
+  public static sendToAppWindows(channel: string, ...args: unknown[]) {
+    const windows = [this.mainWindow, this.bigPicture];
+
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static sendDownloadsUpdated() {
+    this.sendToAppWindows("on-downloads-updated");
   }
 
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
@@ -282,10 +316,23 @@ export class WindowManager {
       return;
     }
 
+    const targetDisplay = this.mainWindow?.isDestroyed()
+      ? null
+      : this.mainWindow
+        ? screen.getDisplayMatching(this.mainWindow.getBounds())
+        : screen.getPrimaryDisplay();
+    const targetBounds =
+      targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
+
     this.bigPicture = new BrowserWindow({
-      fullscreen: true,
+      x: targetBounds.x,
+      y: targetBounds.y,
+      width: targetBounds.width,
+      height: targetBounds.height,
       backgroundColor: "#0a0a0a",
       icon,
+      frame: false,
+      fullscreen: true,
       show: false,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
@@ -305,20 +352,22 @@ export class WindowManager {
       const main = this.mainWindow;
       if (main && !main.isDestroyed()) {
         main.setOpacity(1);
-        main.hide();
+        this.disableMainWindowWhileBigPictureIsOpen();
       }
+      this.bigPicture?.setBounds(targetBounds);
       this.bigPicture?.show();
+      this.bigPicture?.focus();
     });
 
     this.bigPicture.on("closed", () => {
       this.bigPicture = null;
       const main = this.mainWindow;
       if (main && !main.isDestroyed()) {
+        this.restoreMainWindowAfterBigPictureCloses();
         if (WindowManager.deferredMainMaximize) {
           main.maximize();
           WindowManager.deferredMainMaximize = false;
         }
-        main.setSkipTaskbar(false);
         main.show();
         main.focus();
       }
@@ -434,10 +483,30 @@ export class WindowManager {
     };
   }
 
+  public static sendAchievementToFocusedWindow(
+    position: AchievementCustomNotificationPosition,
+    achievements: AchievementNotificationInfo[]
+  ): boolean {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    for (const window of candidates) {
+      if (window && !window.isDestroyed() && window.isFocused()) {
+        window.webContents.send(
+          "on-achievement-unlocked-in-app",
+          position,
+          achievements
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
 
-    if (process.platform === "darwin") {
+    if (process.platform === "darwin" || process.platform === "linux") {
       return;
     }
 
@@ -496,20 +565,28 @@ export class WindowManager {
     );
 
     const language = userPreferences.language ?? "en";
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+    const testAchievements = [
+      generateAchievementCustomNotificationTest(t, language),
+      generateAchievementCustomNotificationTest(t, language, {
+        isRare: true,
+        isHidden: true,
+      }),
+      generateAchievementCustomNotificationTest(t, language, {
+        isPlatinum: true,
+      }),
+    ];
+
+    if (process.platform === "linux") {
+      this.sendAchievementToFocusedWindow(position, testAchievements);
+      return;
+    }
 
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      [
-        generateAchievementCustomNotificationTest(t, language),
-        generateAchievementCustomNotificationTest(t, language, {
-          isRare: true,
-          isHidden: true,
-        }),
-        generateAchievementCustomNotificationTest(t, language, {
-          isPlatinum: true,
-        }),
-      ]
+      position,
+      testAchievements
     );
   }
 
@@ -659,6 +736,11 @@ export class WindowManager {
   }
 
   public static openMainWindow() {
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.focus();
+      return;
+    }
+
     if (this.mainWindow) {
       this.mainWindow.show();
       if (this.mainWindow.isMinimized()) {
@@ -673,6 +755,10 @@ export class WindowManager {
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
     this.loadMainWindowURL(hash);
+
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      return;
+    }
 
     if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
     this.mainWindow?.focus();
