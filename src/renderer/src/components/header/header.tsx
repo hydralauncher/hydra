@@ -319,7 +319,6 @@ export function Header() {
 
     setIsScanning(true);
     setScanResult(null);
-    setShowScanModal(false);
 
     try {
       const result = await window.electron.scanInstalledGames(
