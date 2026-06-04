@@ -324,12 +324,27 @@ export default function Catalogue() {
           checked: filters.publishers.includes(publisher),
         })),
       },
+      {
+        title: t("download_sources"),
+        key: "downloadSourceFingerprints" as const,
+        items: downloadSources
+          .filter((source) => source.fingerprint)
+          .map((source) => ({
+            label: source.name,
+            value: source.fingerprint!,
+            checked: filters.downloadSourceFingerprints.includes(
+              source.fingerprint!
+            ),
+          })),
+      },
     ];
   }, [
     launchboxFilters,
     filters.genres,
     filters.developers,
     filters.publishers,
+    filters.downloadSourceFingerprints,
+    downloadSources,
     classicsPlatforms,
     t,
   ]);
@@ -366,12 +381,23 @@ export default function Catalogue() {
         key: "publishers",
         value: publisher,
       })),
+      ...filters.downloadSourceFingerprints.map((fingerprint) => ({
+        label: downloadSources.find(
+          (source) => source.fingerprint === fingerprint
+        )?.name as string,
+        filterType: t("download_sources"),
+        orbColor: filterCategoryColors.downloadSourceFingerprints,
+        key: "downloadSourceFingerprints",
+        value: fingerprint,
+      })),
     ];
   }, [
     classicsPlatforms,
     filters.genres,
     filters.developers,
     filters.publishers,
+    filters.downloadSourceFingerprints,
+    downloadSources,
     launchboxFilters.platforms,
     t,
   ]);
