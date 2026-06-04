@@ -65,6 +65,7 @@ export function SettingsContextGeneral({
     launchToLibraryPage: false,
     launchInBigPicture: false,
     enableAutoInstall: false,
+    cloudSyncSavesOnly: false,
   });
 
   useEffect(() => {
@@ -111,6 +112,7 @@ export function SettingsContextGeneral({
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
       launchInBigPicture: userPreferences.launchInBigPicture ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+      cloudSyncSavesOnly: userPreferences.cloudSyncSavesOnly ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
 
@@ -304,6 +306,18 @@ export function SettingsContextGeneral({
           />
         </div>
       )}
+
+      <div className="settings-context-panel__group">
+        <h3>{t("cloud_sync")}</h3>
+
+        <CheckboxField
+          label={t("cloud_sync_saves_only")}
+          checked={form.cloudSyncSavesOnly}
+          onChange={() =>
+            handleChange({ cloudSyncSavesOnly: !form.cloudSyncSavesOnly })
+          }
+        />
+      </div>
 
       <div className="settings-context-panel__group">
         <h3>{t("appearance")}</h3>

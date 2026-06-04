@@ -545,7 +545,8 @@
     "download_error_torrent_no_files_selected": "Sélectionnez au moins un fichier torrent pour démarrer le téléchargement.",
     "download_error_torrent_invalid_file_selection": "Les fichiers torrent sélectionnés sont invalides. Veuillez recharger et réessayer.",
     "download_error_torrent_too_many_files": "Ce torrent contient trop de fichiers pour être affiché en toute sécurité.",
-    "download_error_torrent_files_unavailable": "Impossible de récupérer les fichiers torrent. Veuillez réessayer."
+    "download_error_torrent_files_unavailable": "Impossible de récupérer les fichiers torrent. Veuillez réessayer.",
+    "cloud_sync_saves_only": "Synchroniser uniquement les sauvegardes pour ce jeu (si supporté)"
   },
   "activation": {
     "title": "Activer Hydra",
@@ -804,7 +805,9 @@
     "max_download_speed_hint": "Définissez 0 ou laissez vide pour une vitesse de téléchargement illimitée en {{unit}}.",
     "max_download_speed_unit_megabytes": "Mo/s",
     "max_download_speed_unit_megabits": "Mb/s",
-    "max_download_speed_unlimited": "Illimité"
+    "max_download_speed_unlimited": "Illimité",
+    "cloud_sync": "Cloud Sync",
+    "cloud_sync_saves_only": "Synchroniser uniquement les sauvegardes (exclut les fichiers de configuration pour les jeux supportés)"
   },
   "notifications": {
     "download_complete": "Téléchargement terminé",

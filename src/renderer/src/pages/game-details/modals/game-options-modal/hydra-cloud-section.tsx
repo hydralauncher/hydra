@@ -6,7 +6,11 @@ import { CloudSyncPanel } from "../../cloud-sync/cloud-sync-panel";
 interface HydraCloudSettingsSectionProps {
   game: LibraryGame;
   automaticCloudSync: boolean;
+  cloudSyncSavesOnly: boolean;
   onToggleAutomaticCloudSync: (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => Promise<void>;
+  onToggleCloudSyncSavesOnly: (
     event: React.ChangeEvent<HTMLInputElement>
   ) => Promise<void>;
 }
@@ -14,7 +18,9 @@ interface HydraCloudSettingsSectionProps {
 export function HydraCloudSettingsSection({
   game,
   automaticCloudSync,
+  cloudSyncSavesOnly,
   onToggleAutomaticCloudSync,
+  onToggleCloudSyncSavesOnly,
 }: Readonly<HydraCloudSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -30,7 +36,9 @@ export function HydraCloudSettingsSection({
     <div className="game-options-modal__cloud-panel">
       <CloudSyncPanel
         automaticCloudSync={automaticCloudSync}
+        cloudSyncSavesOnly={cloudSyncSavesOnly}
         onToggleAutomaticCloudSync={onToggleAutomaticCloudSync}
+        onToggleCloudSyncSavesOnly={onToggleCloudSyncSavesOnly}
       />
     </div>
   );

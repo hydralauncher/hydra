@@ -66,6 +66,7 @@ export interface Game {
   unlockedAchievementCount?: number;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
+  cloudSyncSavesOnly?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
   installedSizeInBytes?: number | null;
@@ -163,6 +164,7 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  cloudSyncSavesOnly?: boolean;
 }
 
 export interface ScreenState {
