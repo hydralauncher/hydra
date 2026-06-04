@@ -792,8 +792,7 @@
   width: 100%;
   min-height: 48px;
   border: 0;
-  border-radius: 0 0 calc(var(--spacing-unit) * 2)
-    calc(var(--spacing-unit) * 2);
+  border-radius: 0 0 calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2);
   background: var(--secondary);
   color: var(--text-secondary);
   font-size: 14px;
