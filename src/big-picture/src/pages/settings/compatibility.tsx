@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
@@ -58,9 +59,6 @@ const DEFAULT_FORM: CompatibilityForm = {
   autoRunGamemode: false,
   autoRunMangohud: false,
 };
-
-const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
-const MANGOHUD_SITE_URL = "https://mangohud.com";
 
 function getProtonSourceDescription(version: ProtonVersion | null) {
   if (!version) {
