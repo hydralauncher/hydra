@@ -486,10 +486,14 @@
   gap: calc(var(--spacing-unit) * 4);
   width: 100%;
   min-width: 0;
+  padding: 0;
   overflow: hidden;
+  appearance: none;
   border: 1px solid transparent;
   border-radius: calc(var(--spacing-unit) * 2);
   background-color: transparent;
+  color: inherit;
+  font: inherit;
   outline: none;
   outline-offset: 3px;
   text-align: left;
@@ -641,10 +645,16 @@
   gap: 4px;
   min-width: 0;
   overflow: hidden;
+  appearance: none;
+  border: 0;
   border-radius: calc(var(--spacing-unit) * 2);
   background: transparent;
+  color: inherit;
+  font: inherit;
   outline: none;
   outline-offset: 3px;
+  padding: 0;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -781,8 +791,13 @@
   min-height: 76px;
   min-width: 0;
   padding: calc(var(--spacing-unit) * 2);
+  appearance: none;
+  border: 0;
   border-radius: calc(var(--spacing-unit) * 2);
   background: var(--secondary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   outline: none;
   outline-offset: 3px;

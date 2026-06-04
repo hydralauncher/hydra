@@ -809,6 +809,7 @@ export function SidebarNotificationsDropdown({
                       >
                         <div
                           role="button"
+                          tabIndex={0}
                           data-navigation-click
                           className={cn(
                             "sidebar-notifications-dropdown__item",
@@ -818,6 +819,15 @@ export function SidebarNotificationsDropdown({
                             }
                           )}
                           onClick={() => {
+                            void openNotification(notification);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.currentTarget !== event.target) return;
+                            if (event.key !== "Enter" && event.key !== " ") {
+                              return;
+                            }
+
+                            event.preventDefault();
                             void openNotification(notification);
                           }}
                         >

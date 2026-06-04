@@ -1410,7 +1410,8 @@ export default function Profile() {
                         }}
                         asChild
                       >
-                        <article
+                        <button
+                          type="button"
                           className="profile-page__activity-item"
                           onClick={() =>
                             navigate(getBigPictureGameDetailsPath(game))
@@ -1436,7 +1437,7 @@ export default function Profile() {
                               getActivityPlaytimeInMilliseconds(game)
                             )}
                           </span>
-                        </article>
+                        </button>
                       </FocusItem>
                     );
                   })}
@@ -1550,7 +1551,8 @@ export default function Profile() {
                               }}
                               asChild
                             >
-                              <article
+                              <button
+                                type="button"
                                 className="profile-page__achievement-group"
                                 onClick={() =>
                                   navigate(
@@ -1623,7 +1625,7 @@ export default function Profile() {
                                     );
                                   })}
                                 </div>
-                              </article>
+                              </button>
                             </FocusItem>
                           );
                         })}
@@ -1698,7 +1700,8 @@ export default function Profile() {
                             }}
                             asChild
                           >
-                            <article
+                            <button
+                              type="button"
                               className="profile-page__friend-row"
                               onClick={() =>
                                 navigate(
@@ -1739,7 +1742,7 @@ export default function Profile() {
                                   </span>
                                 </div>
                               ) : null}
-                            </article>
+                            </button>
                           </FocusItem>
                         );
                       })}
