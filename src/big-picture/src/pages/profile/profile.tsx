@@ -328,7 +328,10 @@ function buildRecentAchievementGroups(
   }>
 ): ProfileRecentAchievementGroup[] {
   const gameByKey = new Map(
-    achievementsByGame.map(({ game }) => [getRecentAchievementGameKey(game), game])
+    achievementsByGame.map(({ game }) => [
+      getRecentAchievementGameKey(game),
+      game,
+    ])
   );
   const selectedGameKeys = new Set<string>();
   const timeline = achievementsByGame
@@ -378,7 +381,9 @@ function buildRecentAchievementGroups(
   return groups;
 }
 
-function getLibraryCarouselPlaytimeInMilliseconds(game: LibraryGame | UserGame) {
+function getLibraryCarouselPlaytimeInMilliseconds(
+  game: LibraryGame | UserGame
+) {
   if (
     "playTimeInMilliseconds" in game &&
     typeof game.playTimeInMilliseconds === "number"
@@ -386,7 +391,10 @@ function getLibraryCarouselPlaytimeInMilliseconds(game: LibraryGame | UserGame) 
     return game.playTimeInMilliseconds;
   }
 
-  if ("playTimeInSeconds" in game && typeof game.playTimeInSeconds === "number") {
+  if (
+    "playTimeInSeconds" in game &&
+    typeof game.playTimeInSeconds === "number"
+  ) {
     return game.playTimeInSeconds * 1000;
   }
 
@@ -625,7 +633,6 @@ export default function Profile() {
         .catch(() => {
           if (isMounted) setRemoteRecentActivityGames([]);
         });
-
     }
 
     return () => {
@@ -710,9 +717,7 @@ export default function Profile() {
           achievements: achievements
             .map(getUnlockedAchievement)
             .filter(
-              (
-                achievement
-              ): achievement is ProfileRecentAchievement =>
+              (achievement): achievement is ProfileRecentAchievement =>
                 achievement !== null
             ),
         };
@@ -819,7 +824,7 @@ export default function Profile() {
         .sort(
           (a, b) =>
             (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
-      )[0] ?? null
+        )[0] ?? null
     );
   }, [isOwnProfileTarget, library]);
   const remoteFavoriteGameFallback = useMemo<UserGame | null>(() => {
@@ -833,7 +838,7 @@ export default function Profile() {
   }, [remoteLibraryGames]);
   const favoriteGame: ProfileFavoriteGame | null = profileUser?.isOwnProfile
     ? localFavoriteGame
-    : remoteFavoriteGame ?? remoteFavoriteGameFallback;
+    : (remoteFavoriteGame ?? remoteFavoriteGameFallback);
   const favoriteGameImageUrl = getFavoriteGameImage(favoriteGame);
   const favoriteGamePlaytimeInSeconds =
     getFavoriteGamePlaytimeInSeconds(favoriteGame);
@@ -875,7 +880,7 @@ export default function Profile() {
   }, [library, profileUser?.isOwnProfile, remoteLibraryGames]);
   const totalLibraryGames = profileUser?.isOwnProfile
     ? library.length
-    : userStats?.libraryCount ?? remoteLibraryTotalCount;
+    : (userStats?.libraryCount ?? remoteLibraryTotalCount);
   const firstActivityFocusId = recentActivityGames[0]
     ? getProfileActivityFocusId(recentActivityGames[0])
     : null;
@@ -1270,9 +1275,7 @@ export default function Profile() {
                         </span>
                       </div>
                     </div>
-                    <div className="profile-page__stat-label">
-                      Games Played
-                    </div>
+                    <div className="profile-page__stat-label">Games Played</div>
                   </article>
 
                   <article className="profile-page__stat-card profile-page__stat-card--pair-right">
@@ -1331,9 +1334,7 @@ export default function Profile() {
                         </span>
                       </div>
                     </div>
-                    <div className="profile-page__stat-label">
-                      Achievements
-                    </div>
+                    <div className="profile-page__stat-label">Achievements</div>
                   </article>
 
                   <article className="profile-page__stat-card profile-page__stat-card--pair-right">
@@ -1380,7 +1381,8 @@ export default function Profile() {
                         key={`${game.title}-${game.lastTimePlayed ?? "recent"}`}
                         id={focusId}
                         actions={{
-                          primary: () => navigate(getBigPictureGameDetailsPath(game)),
+                          primary: () =>
+                            navigate(getBigPictureGameDetailsPath(game)),
                         }}
                         navigationOverrides={{
                           up:
@@ -1408,31 +1410,33 @@ export default function Profile() {
                         }}
                         asChild
                       >
-                      <article
-                        className="profile-page__activity-item"
-                        onClick={() => navigate(getBigPictureGameDetailsPath(game))}
-                      >
-                        <div className="profile-page__activity-media">
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={game.title}
-                              draggable={false}
-                            />
-                          ) : null}
-                        </div>
+                        <article
+                          className="profile-page__activity-item"
+                          onClick={() =>
+                            navigate(getBigPictureGameDetailsPath(game))
+                          }
+                        >
+                          <div className="profile-page__activity-media">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={game.title}
+                                draggable={false}
+                              />
+                            ) : null}
+                          </div>
 
-                        <div className="profile-page__activity-copy">
-                          <h3>{game.title}</h3>
-                          <p>{getActivityLastPlayedLabel(game)}</p>
-                        </div>
+                          <div className="profile-page__activity-copy">
+                            <h3>{game.title}</h3>
+                            <p>{getActivityLastPlayedLabel(game)}</p>
+                          </div>
 
-                        <span className="profile-page__activity-playtime">
-                          {formatPlayedTime(
-                            getActivityPlaytimeInMilliseconds(game)
-                          )}
-                        </span>
-                      </article>
+                          <span className="profile-page__activity-playtime">
+                            {formatPlayedTime(
+                              getActivityPlaytimeInMilliseconds(game)
+                            )}
+                          </span>
+                        </article>
                       </FocusItem>
                     );
                   })}
@@ -1483,43 +1487,188 @@ export default function Profile() {
               className="profile-page__social-section"
               asChild
             >
-            <section className="profile-page__social-section">
-              {profileUser.isOwnProfile ? (
+              <section className="profile-page__social-section">
+                {profileUser.isOwnProfile ? (
+                  <VerticalFocusGroup
+                    regionId={PROFILE_ACHIEVEMENTS_REGION_ID}
+                    className="profile-page__achievements-section"
+                    style={{ gap: "calc(var(--spacing-unit) * 5)" }}
+                  >
+                    <div className="profile-page__section-header">
+                      <h2>Recent Achievements</h2>
+                      <span>
+                        {formatCompactNumber(userStats?.unlockedAchievementSum)}
+                      </span>
+                    </div>
+
+                    {recentAchievementGroups.length > 0 ? (
+                      <div className="profile-page__achievement-groups">
+                        {recentAchievementGroups.map((group) => {
+                          const gameIconUrl = getRecentAchievementGameIcon(
+                            group.game
+                          );
+                          const focusId = getProfileAchievementFocusId(
+                            group.game
+                          );
+
+                          return (
+                            <FocusItem
+                              key={getRecentAchievementGameKey(group.game)}
+                              id={focusId}
+                              actions={{
+                                primary: () =>
+                                  navigate(
+                                    getBigPictureGameAchievementsPath(
+                                      group.game
+                                    )
+                                  ),
+                              }}
+                              navigationOverrides={{
+                                up:
+                                  focusId === firstAchievementFocusId
+                                    ? socialUpFocusId
+                                      ? {
+                                          type: "item",
+                                          itemId: socialUpFocusId,
+                                        }
+                                      : {
+                                          type: "block",
+                                        }
+                                    : undefined,
+                                right: firstFriendFocusId
+                                  ? {
+                                      type: "item",
+                                      itemId: firstFriendFocusId,
+                                    }
+                                  : undefined,
+                                down:
+                                  focusId === lastAchievementFocusId
+                                    ? {
+                                        type: "block",
+                                      }
+                                    : undefined,
+                              }}
+                              asChild
+                            >
+                              <article
+                                className="profile-page__achievement-group"
+                                onClick={() =>
+                                  navigate(
+                                    getBigPictureGameAchievementsPath(
+                                      group.game
+                                    )
+                                  )
+                                }
+                              >
+                                <div className="profile-page__achievement-game-header">
+                                  <div className="profile-page__achievement-game-copy">
+                                    {gameIconUrl ? (
+                                      <img
+                                        src={gameIconUrl}
+                                        alt=""
+                                        draggable={false}
+                                      />
+                                    ) : (
+                                      <TrophyIcon size={20} />
+                                    )}
+                                    <span>{group.game.title}</span>
+                                  </div>
+
+                                  <div className="profile-page__achievement-game-meta">
+                                    <span>({group.newCount} new)</span>
+                                    <strong>
+                                      {group.game.unlockedAchievementCount ?? 0}
+                                      /{group.game.achievementCount ?? 0}
+                                    </strong>
+                                  </div>
+                                </div>
+
+                                <div className="profile-page__achievement-list">
+                                  {group.achievements.map((achievement) => {
+                                    return (
+                                      <div
+                                        key={`${group.game.objectId}-${achievement.name}`}
+                                        className="profile-page__achievement-row"
+                                      >
+                                        <img
+                                          src={achievement.icon}
+                                          alt=""
+                                          draggable={false}
+                                        />
+
+                                        <div className="profile-page__achievement-copy">
+                                          <h3>{achievement.displayName}</h3>
+                                          {achievement.description ? (
+                                            <p>{achievement.description}</p>
+                                          ) : null}
+                                        </div>
+
+                                        <div className="profile-page__achievement-meta">
+                                          {achievement.points != null ? (
+                                            <strong>
+                                              +{achievement.points} pts.
+                                            </strong>
+                                          ) : null}
+                                          <span>
+                                            Earned{" "}
+                                            {formatRelativeDate(
+                                              achievement.unlockTime,
+                                              {
+                                                fallback: "recently",
+                                              }
+                                            )}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </article>
+                            </FocusItem>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="profile-page__activity-empty">
+                        No recent achievements
+                      </p>
+                    )}
+                  </VerticalFocusGroup>
+                ) : (
+                  <div />
+                )}
+
                 <VerticalFocusGroup
-                  regionId={PROFILE_ACHIEVEMENTS_REGION_ID}
-                  className="profile-page__achievements-section"
+                  regionId={PROFILE_FRIENDS_REGION_ID}
+                  className="profile-page__friends-section"
                   style={{ gap: "calc(var(--spacing-unit) * 5)" }}
                 >
                   <div className="profile-page__section-header">
-                    <h2>Recent Achievements</h2>
-                    <span>
-                      {formatCompactNumber(userStats?.unlockedAchievementSum)}
-                    </span>
+                    <h2>Friends</h2>
+                    <span>{formatCompactNumber(totalFriends)}</span>
                   </div>
 
-                  {recentAchievementGroups.length > 0 ? (
-                    <div className="profile-page__achievement-groups">
-                      {recentAchievementGroups.map((group) => {
-                        const gameIconUrl = getRecentAchievementGameIcon(
-                          group.game
+                  {friends.length > 0 ? (
+                    <div className="profile-page__friends-list">
+                      {friends.map((friend) => {
+                        const friendGameIconUrl = getFriendGameIcon(
+                          friend.currentGame
                         );
-                        const focusId = getProfileAchievementFocusId(
-                          group.game
-                        );
+                        const focusId = getProfileFriendItemId(friend.id);
 
                         return (
                           <FocusItem
-                            key={getRecentAchievementGameKey(group.game)}
+                            key={friend.id}
                             id={focusId}
                             actions={{
                               primary: () =>
                                 navigate(
-                                  getBigPictureGameAchievementsPath(group.game)
+                                  `${getBasePath()}/profile/${friend.id}`
                                 ),
                             }}
                             navigationOverrides={{
                               up:
-                                focusId === firstAchievementFocusId
+                                focusId === firstFriendFocusId
                                   ? socialUpFocusId
                                     ? {
                                         type: "item",
@@ -1529,249 +1678,111 @@ export default function Profile() {
                                         type: "block",
                                       }
                                   : undefined,
-                              right: firstFriendFocusId
+                              left: firstAchievementFocusId
                                 ? {
                                     type: "item",
-                                    itemId: firstFriendFocusId,
+                                    itemId: firstAchievementFocusId,
                                   }
                                 : undefined,
                               down:
-                                focusId === lastAchievementFocusId
-                                  ? {
-                                      type: "block",
-                                    }
+                                focusId === lastFriendFocusId
+                                  ? showFriendsViewAll
+                                    ? {
+                                        type: "item",
+                                        itemId: PROFILE_FRIENDS_VIEW_ALL_ID,
+                                      }
+                                    : {
+                                        type: "block",
+                                      }
                                   : undefined,
                             }}
                             asChild
                           >
                             <article
-                              className="profile-page__achievement-group"
+                              className="profile-page__friend-row"
                               onClick={() =>
                                 navigate(
-                                  getBigPictureGameAchievementsPath(group.game)
+                                  `${getBasePath()}/profile/${friend.id}`
                                 )
                               }
                             >
-                              <div className="profile-page__achievement-game-header">
-                                <div className="profile-page__achievement-game-copy">
-                                  {gameIconUrl ? (
-                                    <img
-                                      src={gameIconUrl}
-                                      alt=""
-                                      draggable={false}
-                                    />
-                                  ) : (
-                                    <TrophyIcon size={20} />
-                                  )}
-                                  <span>{group.game.title}</span>
-                                </div>
-
-                                <div className="profile-page__achievement-game-meta">
-                                  <span>({group.newCount} new)</span>
-                                  <strong>
-                                    {group.game.unlockedAchievementCount ?? 0}/
-                                    {group.game.achievementCount ?? 0}
-                                  </strong>
-                                </div>
+                              <div className="profile-page__friend-profile">
+                                {friend.profileImageUrl ? (
+                                  <img
+                                    src={friend.profileImageUrl}
+                                    alt=""
+                                    draggable={false}
+                                  />
+                                ) : (
+                                  <UserCircleIcon size={56} />
+                                )}
+                                <span>{friend.displayName}</span>
                               </div>
 
-                              <div className="profile-page__achievement-list">
-                                {group.achievements.map((achievement) => {
-                                  return (
-                                    <div
-                                      key={`${group.game.objectId}-${achievement.name}`}
-                                      className="profile-page__achievement-row"
-                                    >
+                              {friend.currentGame ? (
+                                <div className="profile-page__friend-game">
+                                  <div className="profile-page__friend-game-title">
+                                    {friendGameIconUrl ? (
                                       <img
-                                        src={achievement.icon}
+                                        src={friendGameIconUrl}
                                         alt=""
                                         draggable={false}
                                       />
-
-                                      <div className="profile-page__achievement-copy">
-                                        <h3>{achievement.displayName}</h3>
-                                        {achievement.description ? (
-                                          <p>{achievement.description}</p>
-                                        ) : null}
-                                      </div>
-
-                                      <div className="profile-page__achievement-meta">
-                                        {achievement.points != null ? (
-                                          <strong>
-                                            +{achievement.points} pts.
-                                          </strong>
-                                        ) : null}
-                                        <span>
-                                          Earned{" "}
-                                          {formatRelativeDate(
-                                            achievement.unlockTime,
-                                            {
-                                              fallback: "recently",
-                                            }
-                                          )}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                    ) : null}
+                                    <span>{friend.currentGame.title}</span>
+                                  </div>
+                                  <span>
+                                    {formatSessionDuration(
+                                      friend.currentGame
+                                        .sessionDurationInSeconds
+                                    )}
+                                  </span>
+                                </div>
+                              ) : null}
                             </article>
                           </FocusItem>
                         );
                       })}
-                    </div>
-                  ) : (
-                    <p className="profile-page__activity-empty">
-                      No recent achievements
-                    </p>
-                  )}
-                </VerticalFocusGroup>
-              ) : (
-                <div />
-              )}
-
-              <VerticalFocusGroup
-                regionId={PROFILE_FRIENDS_REGION_ID}
-                className="profile-page__friends-section"
-                style={{ gap: "calc(var(--spacing-unit) * 5)" }}
-              >
-                <div className="profile-page__section-header">
-                  <h2>Friends</h2>
-                  <span>{formatCompactNumber(totalFriends)}</span>
-                </div>
-
-                {friends.length > 0 ? (
-                  <div className="profile-page__friends-list">
-                    {friends.map((friend) => {
-                      const friendGameIconUrl = getFriendGameIcon(
-                        friend.currentGame
-                      );
-                      const focusId = getProfileFriendItemId(friend.id);
-
-                      return (
+                      {showFriendsViewAll ? (
                         <FocusItem
-                          key={friend.id}
-                          id={focusId}
+                          id={PROFILE_FRIENDS_VIEW_ALL_ID}
                           actions={{
-                            primary: () =>
-                              navigate(`${getBasePath()}/profile/${friend.id}`),
+                            primary: () => setFriendsTake(totalFriends),
                           }}
                           navigationOverrides={{
-                            up:
-                              focusId === firstFriendFocusId
-                                ? socialUpFocusId
-                                  ? {
-                                      type: "item",
-                                      itemId: socialUpFocusId,
-                                    }
-                                  : {
-                                      type: "block",
-                                    }
-                                : undefined,
+                            up: lastFriendFocusId
+                              ? {
+                                  type: "item",
+                                  itemId: lastFriendFocusId,
+                                }
+                              : undefined,
                             left: firstAchievementFocusId
                               ? {
                                   type: "item",
                                   itemId: firstAchievementFocusId,
                                 }
                               : undefined,
-                            down:
-                              focusId === lastFriendFocusId
-                                ? showFriendsViewAll
-                                  ? {
-                                      type: "item",
-                                      itemId: PROFILE_FRIENDS_VIEW_ALL_ID,
-                                    }
-                                  : {
-                                      type: "block",
-                                    }
-                                : undefined,
+                            down: {
+                              type: "block",
+                            },
                           }}
                           asChild
                         >
-                        <article
-                          className="profile-page__friend-row"
-                          onClick={() =>
-                            navigate(`${getBasePath()}/profile/${friend.id}`)
-                          }
-                        >
-                          <div className="profile-page__friend-profile">
-                            {friend.profileImageUrl ? (
-                              <img
-                                src={friend.profileImageUrl}
-                                alt=""
-                                draggable={false}
-                              />
-                            ) : (
-                              <UserCircleIcon size={56} />
-                            )}
-                            <span>{friend.displayName}</span>
-                          </div>
-
-                          {friend.currentGame ? (
-                            <div className="profile-page__friend-game">
-                              <div className="profile-page__friend-game-title">
-                                {friendGameIconUrl ? (
-                                  <img
-                                    src={friendGameIconUrl}
-                                    alt=""
-                                    draggable={false}
-                                  />
-                                ) : null}
-                                <span>{friend.currentGame.title}</span>
-                              </div>
-                              <span>
-                                {formatSessionDuration(
-                                  friend.currentGame.sessionDurationInSeconds
-                                )}
-                              </span>
-                            </div>
-                          ) : null}
-                        </article>
+                          <button
+                            type="button"
+                            className="profile-page__friends-view-all"
+                            onClick={() => setFriendsTake(totalFriends)}
+                          >
+                            View All
+                          </button>
                         </FocusItem>
-                      );
-                    })}
-                    {showFriendsViewAll ? (
-                    <FocusItem
-                      id={PROFILE_FRIENDS_VIEW_ALL_ID}
-                      actions={{
-                        primary: () => setFriendsTake(totalFriends),
-                      }}
-                      navigationOverrides={{
-                        up: lastFriendFocusId
-                          ? {
-                              type: "item",
-                              itemId: lastFriendFocusId,
-                            }
-                          : undefined,
-                        left: firstAchievementFocusId
-                          ? {
-                              type: "item",
-                              itemId: firstAchievementFocusId,
-                            }
-                          : undefined,
-                        down: {
-                          type: "block",
-                        },
-                      }}
-                      asChild
-                    >
-                    <button
-                      type="button"
-                      className="profile-page__friends-view-all"
-                      onClick={() => setFriendsTake(totalFriends)}
-                    >
-                      View All
-                    </button>
-                    </FocusItem>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="profile-page__activity-empty">
-                    No friends
-                  </p>
-                )}
-              </VerticalFocusGroup>
-            </section>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="profile-page__activity-empty">No friends</p>
+                  )}
+                </VerticalFocusGroup>
+              </section>
             </HorizontalFocusGroup>
           </div>
         ) : null}

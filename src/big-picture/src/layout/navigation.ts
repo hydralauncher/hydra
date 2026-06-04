@@ -27,6 +27,18 @@ export const BIG_PICTURE_SIDEBAR_PROFILE_ID = "big-picture-sidebar-profile";
 export const BIG_PICTURE_SIDEBAR_FRIENDS_ID = "big-picture-sidebar-friends";
 export const BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID =
   "big-picture-sidebar-notifications";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_SEARCH_ID =
+  "big-picture-sidebar-library-search";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_LIST_REGION_ID =
+  "big-picture-sidebar-library-list";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID =
+  "big-picture-sidebar-library-filter-all";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_READY_TO_PLAY_ID =
+  "big-picture-sidebar-library-filter-ready-to-play";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_RECENTLY_PLAYED_ID =
+  "big-picture-sidebar-library-filter-recently-played";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID =
+  "big-picture-sidebar-library-filter-favorites";
 
 export type BigPictureSidebarRouteKey =
   keyof typeof BIG_PICTURE_SIDEBAR_ITEM_IDS;

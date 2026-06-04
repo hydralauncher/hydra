@@ -15,14 +15,20 @@
   gap: calc(var(--spacing-unit) * 3);
   align-self: stretch;
   border-radius: var(--spacing-unit);
-  outline: none;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
   transition:
     background-color 0.2s ease-in-out,
-    box-shadow 0.2s ease-in-out;
+    outline-color 0.2s ease-in-out;
 
+  &:focus,
+  &:focus-visible {
+    outline: 1px solid transparent;
+  }
+
+  &:focus-visible,
   &[data-focus-visible="true"] {
-    background-color: var(--secondary);
-    box-shadow: inset 0 0 0 1px var(--text-secondary);
+    outline-color: var(--text-secondary);
   }
 
   &__image {
@@ -91,21 +97,27 @@
     gap: calc(var(--spacing-unit) * 2);
     opacity: 0.5;
     border-radius: var(--spacing-unit);
-    outline: none;
+    outline: 1px solid transparent;
+    outline-offset: 2px;
     transition:
       background-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out,
+      outline-color 0.2s ease-in-out,
       opacity 0.2s ease-in-out;
     padding: calc(var(--spacing-unit) * 1) calc(var(--spacing-unit) * 1.5);
+
+    &:focus,
+    &:focus-visible {
+      outline: 1px solid transparent;
+    }
 
     &:hover,
     &[data-focus-visible="true"] {
       opacity: 1;
     }
 
+    &:focus-visible,
     &[data-focus-visible="true"] {
-      background-color: var(--secondary);
-      box-shadow: inset 0 0 0 1px var(--text-secondary);
+      outline-color: var(--text-secondary);
     }
 
     &__count {
@@ -127,21 +139,27 @@
     align-items: center;
     opacity: 0.5;
     border-radius: var(--spacing-unit);
-    outline: none;
+    outline: 1px solid transparent;
+    outline-offset: 2px;
     transition:
       background-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out,
+      outline-color 0.2s ease-in-out,
       opacity 0.2s ease-in-out;
     position: relative;
+
+    &:focus,
+    &:focus-visible {
+      outline: 1px solid transparent;
+    }
 
     &:hover,
     &[data-focus-visible="true"] {
       opacity: 1;
     }
 
+    &:focus-visible,
     &[data-focus-visible="true"] {
-      background-color: var(--secondary);
-      box-shadow: inset 0 0 0 1px var(--text-secondary);
+      outline-color: var(--text-secondary);
     }
   }
 

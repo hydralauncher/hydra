@@ -1,6 +1,7 @@
 import { registerEvent } from "../register-event";
 import { HydraApi, logger } from "@main/services";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import type { GameShop, Game } from "@types";
 import fs from "node:fs";
 
@@ -26,9 +27,8 @@ const updateGameAsDeleted = async (
   gameKey: string
 ): Promise<void> => {
   const updatedGame = {
-    ...game,
+    ...updateGameExecutablePath(game, null),
     isDeleted: true,
-    executablePath: null,
     ...(game.shop !== "custom" && {
       customIconUrl: null,
       customLogoImageUrl: null,
