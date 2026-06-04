@@ -1,4 +1,5 @@
 .game-item-classics {
+  position: relative;
   background: #0d0d0d;
   border: 1px solid #1c1c1c;
   border-radius: 8px;
@@ -10,6 +11,46 @@
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  &:hover,
+  &:focus-within {
+    .game-item-classics__plus-wrapper {
+      opacity: 1;
+    }
+  }
+
+  &__plus-wrapper {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    color: #fafafa;
+    padding: 4px;
+
+    &:focus-visible {
+      opacity: 1;
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__plus-wrapper--added {
+    opacity: 0.5;
   }
 
   &__link {
@@ -82,7 +123,7 @@
   &__platform-chip {
     position: absolute;
     top: 8px;
-    right: 8px;
+    left: 8px;
     z-index: 2;
     padding: 4px 8px;
     font-size: 11px;
@@ -126,5 +167,24 @@
       font-style: italic;
       color: rgba(255, 255, 255, 0.3);
     }
+  }
+
+  &__repackers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  &__repackers-measure {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    visibility: hidden;
+    pointer-events: none;
   }
 }
