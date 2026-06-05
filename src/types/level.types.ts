@@ -71,6 +71,7 @@ export interface Game {
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
   steamShortcutAppId?: number;
+  steamImported?: boolean;
 }
 
 export interface Download {
@@ -155,6 +156,11 @@ export interface UserPreferences {
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  steamLinkedAccountId?: string | null;
+  steamApiKey?: string | null;
+  steamDisplayName?: string | null;
+  steamAvatarUrl?: string | null;
+  steamAutoSyncOnStartup?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;

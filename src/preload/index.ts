@@ -169,6 +169,70 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("authenticateAllDebrid", apiToken),
   authenticateTorBox: (apiToken: string) =>
     ipcRenderer.invoke("authenticateTorBox", apiToken),
+  authenticateSteam: () =>
+    ipcRenderer.invoke("authenticateSteam") as Promise<{ steamId: string }>,
+  importSteamAchievements: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("importSteamAchievements", objectId, shop) as Promise<{
+      importedCount: number;
+      newCount: number;
+    }>,
+  syncAllSteamAchievements: () =>
+    ipcRenderer.invoke("syncAllSteamAchievements") as Promise<{
+      total: number;
+      synced: number;
+      totalNew: number;
+      cancelled: boolean;
+    }>,
+  syncSteamLibrary: () =>
+    ipcRenderer.invoke("syncSteamLibrary") as Promise<{
+      total: number;
+      imported: number;
+      updated: number;
+      skipped: number;
+      cancelled: boolean;
+    }>,
+  onSteamAchievementsSyncProgress: (
+    cb: (progress: {
+      current: number;
+      total: number;
+      gameTitle: string;
+      done?: boolean;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: { current: number; total: number; gameTitle: string; done?: boolean }
+    ) => cb(progress);
+    ipcRenderer.on("on-steam-achievements-sync-progress", listener);
+    return () =>
+      ipcRenderer.removeListener(
+        "on-steam-achievements-sync-progress",
+        listener
+      );
+  },
+  cancelSteamSync: (type: "achievements" | "library") =>
+    ipcRenderer.invoke("cancelSteamSync", type),
+  fetchSteamProfile: () =>
+    ipcRenderer.invoke("fetchSteamProfile") as Promise<{
+      displayName: string;
+      avatarUrl: string;
+    }>,
+  onSteamLibrarySyncProgress: (
+    cb: (progress: {
+      current: number;
+      total: number;
+      gameTitle: string;
+      done?: boolean;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: { current: number; total: number; gameTitle: string; done?: boolean }
+    ) => cb(progress);
+    ipcRenderer.on("on-steam-library-sync-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-steam-library-sync-progress", listener);
+  },
 
   /* Download sources */
   addDownloadSource: (url: string) =>

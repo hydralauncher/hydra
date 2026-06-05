@@ -245,4 +245,11 @@ $logo-max-width: 200px;
     position: relative;
     object-fit: cover;
   }
+
+  &__steam-import {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 3);
+  }
 }

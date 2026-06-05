@@ -35,7 +35,7 @@ import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
 import { ViewOptions, ViewMode } from "./view-options";
-import { FilterOptions, SortOption } from "./filter-options";
+import { FilterOptions, SortOption, SourceFilter } from "./filter-options";
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
@@ -79,6 +79,11 @@ export default function Library() {
     }
 
     return "title_asc";
+  });
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>(() => {
+    return (
+      (localStorage.getItem("library-source-filter") as SourceFilter) ?? "all"
+    );
   });
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
@@ -130,6 +135,11 @@ export default function Library() {
   const handleSortChange = useCallback((nextSortBy: SortOption) => {
     setSortBy(nextSortBy);
     localStorage.setItem("library-sort-by", nextSortBy);
+  }, []);
+
+  const handleSourceFilterChange = useCallback((next: SourceFilter) => {
+    setSourceFilter(next);
+    localStorage.setItem("library-source-filter", next);
   }, []);
 
   useEffect(() => {
@@ -447,6 +457,12 @@ export default function Library() {
       }
     }
 
+    if (sourceFilter === "steam") {
+      filtered = filtered.filter((game) => game.steamImported);
+    } else if (sourceFilter === "hydra") {
+      filtered = filtered.filter((game) => !game.steamImported);
+    }
+
     if (!deferredSearchQuery.trim()) return filtered;
 
     const queryLower = deferredSearchQuery.toLowerCase();
@@ -466,7 +482,7 @@ export default function Library() {
 
       return queryIndex === queryLower.length;
     });
-  }, [sortedLibrary, deferredSearchQuery, selectedCollectionId]);
+  }, [sortedLibrary, deferredSearchQuery, selectedCollectionId, sourceFilter]);
 
   const favoritesCount = useMemo(() => {
     return library.filter((game) => game.favorite).length;
@@ -502,7 +518,12 @@ export default function Library() {
         <div className="library__page-header">
           <div className="library__controls-row">
             <div className="library__controls-left">
-              <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
+              <FilterOptions
+                sortBy={sortBy}
+                onSortChange={handleSortChange}
+                sourceFilter={sourceFilter}
+                onSourceFilterChange={handleSourceFilterChange}
+              />
             </div>
 
             <div className="library__controls-right">
