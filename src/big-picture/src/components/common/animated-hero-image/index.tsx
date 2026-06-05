@@ -3,8 +3,10 @@ import "./styles.scss";
 import { motion, type HTMLMotionProps } from "framer-motion";
 import { useCallback, useEffect, useRef } from "react";
 
-export interface AnimatedHeroImageProps
-  extends Omit<HTMLMotionProps<"img">, "src"> {
+export interface AnimatedHeroImageProps extends Omit<
+  HTMLMotionProps<"img">,
+  "src"
+> {
   imageUrl: string;
 }
 

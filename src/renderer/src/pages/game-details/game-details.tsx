@@ -99,9 +99,7 @@ export default function GameDetails() {
           repacks,
         }) => {
           const hasHypervisorRepack = repacks?.some((repack) =>
-            repack.uris?.some((uri) =>
-              uri.toLowerCase().includes("hypervisor")
-            )
+            repack.uris?.some((uri) => uri.toLowerCase().includes("hypervisor"))
           );
 
           const handleStartDownload = async (

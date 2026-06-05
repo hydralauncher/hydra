@@ -4,11 +4,10 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import "./text-field.scss";
 
-export interface TextFieldProps
-  extends React.DetailedHTMLProps<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    HTMLInputElement
-  > {
+export interface TextFieldProps extends React.DetailedHTMLProps<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  HTMLInputElement
+> {
   theme?: "primary" | "dark";
   label?: string | React.ReactNode;
   hint?: string | React.ReactNode;

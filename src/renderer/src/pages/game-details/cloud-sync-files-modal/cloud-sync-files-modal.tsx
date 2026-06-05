@@ -9,8 +9,10 @@ import { formatBytes } from "@shared";
 import { useToast } from "@renderer/hooks";
 import { useForm } from "react-hook-form";
 
-export interface CloudSyncFilesModalProps
-  extends Omit<ModalProps, "children" | "title"> {}
+export interface CloudSyncFilesModalProps extends Omit<
+  ModalProps,
+  "children" | "title"
+> {}
 
 export enum FileMappingMethod {
   Automatic = "AUTOMATIC",

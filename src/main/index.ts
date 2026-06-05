@@ -1,5 +1,4 @@
-import { app, BrowserWindow, ipcMain, net, protocol } from "electron";
-import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
+import { app, BrowserWindow, net, protocol } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -19,8 +18,6 @@ import type { GameShop, UserPreferences } from "@types";
 import { launchGame } from "./helpers";
 import { loadState } from "./main";
 
-
-
 const { autoUpdater } = updater;
 
 autoUpdater.setFeedURL({
@@ -30,8 +27,6 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = logger;
-
-
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -139,7 +134,7 @@ app.whenReady().then(async () => {
 
   await loadState();
 
-  startReleaseNotifier();
+
 
   const language = await db
     .get<string, string>(levelKeys.language, {
@@ -302,5 +297,3 @@ app.on("activate", () => {
     WindowManager.createMainWindow();
   }
 });
-
-

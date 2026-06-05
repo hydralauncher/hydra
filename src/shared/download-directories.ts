@@ -37,8 +37,7 @@ type DownloadDirectoryPreferences = Pick<
   "downloadsPath" | "downloadDirectories" | "optionalDownloadsPaths"
 >;
 
-interface DownloadDirectoryRecordWithTimestamp
-  extends DownloadDirectoryPreference {
+interface DownloadDirectoryRecordWithTimestamp extends DownloadDirectoryPreference {
   timestamp: number;
   originalIndex: number;
 }

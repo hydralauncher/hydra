@@ -11,11 +11,10 @@ import { StarRating } from "../star-rating/star-rating";
 import { useCallback, useState } from "react";
 import { useFormat } from "@renderer/hooks";
 
-export interface GameCardProps
-  extends React.DetailedHTMLProps<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
+export interface GameCardProps extends React.DetailedHTMLProps<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  HTMLButtonElement
+> {
   game: ShopAssets;
 }
 

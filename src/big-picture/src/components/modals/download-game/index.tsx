@@ -91,9 +91,9 @@ function hasActiveLibraryDownload(
 
     return Boolean(
       download &&
-        (download.status === "active" ||
-          download.status === "extracting" ||
-          download.extracting)
+      (download.status === "active" ||
+        download.status === "extracting" ||
+        download.extracting)
     );
   });
 }

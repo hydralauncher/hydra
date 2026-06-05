@@ -28,8 +28,6 @@ export default function Settings() {
 
   const { userDetails } = useUserDetails();
 
-
-
   const categories = useMemo(
     () => [
       {

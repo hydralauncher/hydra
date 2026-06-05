@@ -10,8 +10,7 @@ const sizes = {
   large: "source-anchor--large",
 };
 
-export interface SourceAnchorProps
-  extends AnchorHTMLAttributes<HTMLAnchorElement> {
+export interface SourceAnchorProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   title: string;
   size?: keyof typeof sizes;
   focusId?: string;
