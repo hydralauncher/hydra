@@ -476,8 +476,11 @@ export function DownloadSettingsModal({
     const resolveDefaultPath = async () => {
       const romPath = emulatorSystem
         ? await globalThis.electron
-            .getEmulatorRomPaths(emulatorSystem)
-            .then((paths) => (paths.length > 0 ? paths[0] : null))
+            .getEmulatorConfigs()
+            .then(
+              (configs) =>
+                configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
+            )
             .catch(() => null)
         : null;
 
