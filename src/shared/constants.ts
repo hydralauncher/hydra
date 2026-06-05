@@ -85,3 +85,6 @@ export enum DownloadError {
 }
 
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
+
+export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
+export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";
