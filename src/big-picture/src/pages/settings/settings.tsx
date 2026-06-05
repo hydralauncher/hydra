@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
 import { useGamepad, useNavigation } from "../../hooks";
 import { GamepadButtonType } from "../../types";
+import { useVirtualKeyboardStore } from "../../stores";
 import { AccountPrivacySettingsSection } from "./account-privacy";
 import { CompatibilitySettingsSection } from "./compatibility";
 import { ContentSettingsSection } from "./content";
@@ -110,6 +111,9 @@ export default function Settings() {
     ALL_SETTINGS_TABS[0].id
   );
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
 
   const visibleTabs = useMemo(() => {
     return ALL_SETTINGS_TABS.filter((tab) => {
@@ -151,7 +155,13 @@ export default function Settings() {
     const removeLeftBumper = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
-        if (!isActiveGamepadEvent(event) || selectedTabIndex <= 0) return;
+        if (
+          virtualKeyboardTarget ||
+          !isActiveGamepadEvent(event) ||
+          selectedTabIndex <= 0
+        ) {
+          return;
+        }
 
         selectTabByIndex(selectedTabIndex - 1);
       }
@@ -161,6 +171,7 @@ export default function Settings() {
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
         if (
+          virtualKeyboardTarget ||
           !isActiveGamepadEvent(event) ||
           selectedTabIndex >= visibleTabs.length - 1
         ) {
@@ -180,6 +191,7 @@ export default function Settings() {
     onButtonPressed,
     selectTabByIndex,
     selectedTabIndex,
+    virtualKeyboardTarget,
     visibleTabs.length,
   ]);
 

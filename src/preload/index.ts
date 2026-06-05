@@ -497,6 +497,13 @@ contextBridge.exposeInMainWorld("electron", {
       );
   },
 
+  /* Clipboard (renderer-side `navigator.clipboard.*` is deprecated in Electron 40+;
+     direct `electron.clipboard` access from preload is also deprecated, so go through main via IPC) */
+  clipboard: {
+    writeText: (text: string) =>
+      ipcRenderer.invoke("clipboardWriteText", text) as Promise<void>,
+  },
+
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),
   getVersion: () => ipcRenderer.invoke("getVersion"),
@@ -648,8 +655,22 @@ contextBridge.exposeInMainWorld("electron", {
   getMe: () => ipcRenderer.invoke("getMe"),
   updateProfile: (updateProfile: UpdateProfileRequest) =>
     ipcRenderer.invoke("updateProfile", updateProfile),
+  getProfileImageMetadata: (imagePath: string) =>
+    ipcRenderer.invoke("getProfileImageMetadata", imagePath),
   processProfileImage: (imagePath: string) =>
     ipcRenderer.invoke("processProfileImage", imagePath),
+  cropProfileImage: (
+    imagePath: string,
+    params: {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      outputWidth: number;
+      outputHeight: number;
+      rotation?: number;
+    }
+  ) => ipcRenderer.invoke("cropProfileImage", imagePath, params),
   onSyncFriendRequests: (cb: (friendRequests: FriendRequestSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
@@ -745,6 +766,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
+  },
+  onInAppAchievementUnlocked: (
+    cb: (
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      position: AchievementCustomNotificationPosition,
+      achievements: AchievementNotificationInfo[]
+    ) => cb(position, achievements);
+    ipcRenderer.on("on-achievement-unlocked-in-app", listener);
+    return () =>
+      ipcRenderer.removeListener("on-achievement-unlocked-in-app", listener);
   },
   onCombinedAchievementsUnlocked: (
     cb: (
