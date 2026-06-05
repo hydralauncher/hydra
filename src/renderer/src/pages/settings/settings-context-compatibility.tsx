@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import {
   Button,
@@ -19,9 +20,6 @@ import "./settings-behavior.scss";
 import "./settings-general.scss";
 
 export function SettingsContextCompatibility() {
-  const MANGOHUD_SITE_URL = "https://mangohud.com";
-  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
-
   const { t } = useTranslation("settings");
   const { t: tGameDetails } = useTranslation("game_details");
   const { updateUserPreferences } = useContext(settingsContext);
