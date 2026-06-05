@@ -113,10 +113,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />
+
           <Route
             path="/achievement-notification"
             element={<AchievementNotification />}
           />
+
           <Route path="/game-launcher" element={<GameLauncher />} />
 
           <Route path="/big-picture" element={<BigPictureApp />}>

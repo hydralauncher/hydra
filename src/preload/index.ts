@@ -182,6 +182,14 @@ contextBridge.exposeInMainWorld("electron", {
   getDownloadSourcesSinceValue: () =>
     ipcRenderer.invoke("getDownloadSourcesSinceValue"),
 
+
+
+
+
+
+
+
+
   /* Library */
   toggleAutomaticCloudSync: (
     shop: GameShop,
@@ -503,6 +511,7 @@ contextBridge.exposeInMainWorld("electron", {
     writeText: (text: string) =>
       ipcRenderer.invoke("clipboardWriteText", text) as Promise<void>,
   },
+
 
   /* Misc */
   ping: () => ipcRenderer.invoke("ping"),

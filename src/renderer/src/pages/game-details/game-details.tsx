@@ -95,8 +95,15 @@ export default function GameDetails() {
           updateGame,
           setShowRepacksModal,
           setShowGameOptionsModal,
-          setGameOptionsInitialCategory, // ADD THIS
+          setGameOptionsInitialCategory,
+          repacks,
         }) => {
+          const hasHypervisorRepack = repacks?.some((repack) =>
+            repack.uris?.some((uri) =>
+              uri.toLowerCase().includes("hypervisor")
+            )
+          );
+
           const handleStartDownload = async (
             repack: GameRepack,
             downloader: Downloader,
@@ -172,6 +179,15 @@ export default function GameDetails() {
 
               <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
                 {isLoading ? <GameDetailsSkeleton /> : <GameDetailsContent />}
+
+                {hasHypervisorRepack && (
+                  <div className="game-details__hypervisor-warning">
+                    <span className="game-details__hypervisor-badge">
+                      {t("hypervisor_badge")}
+                    </span>
+                    <span>{t("hypervisor_warning")}</span>
+                  </div>
+                )}
 
                 <RepacksModal
                   visible={showRepacksModal}

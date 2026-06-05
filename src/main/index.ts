@@ -1,4 +1,5 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, BrowserWindow, ipcMain, net, protocol } from "electron";
+import { appVersion, defaultDownloadsPath, isStaging } from "@main/constants";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -14,9 +15,11 @@ import {
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
 import { db, gamesSublevel, levelKeys } from "./level";
-import { GameShop, UserPreferences } from "@types";
+import type { GameShop, UserPreferences } from "@types";
 import { launchGame } from "./helpers";
 import { loadState } from "./main";
+
+
 
 const { autoUpdater } = updater;
 
@@ -27,6 +30,8 @@ autoUpdater.setFeedURL({
 });
 
 autoUpdater.logger = logger;
+
+
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
@@ -133,6 +138,8 @@ app.whenReady().then(async () => {
   });
 
   await loadState();
+
+  startReleaseNotifier();
 
   const language = await db
     .get<string, string>(levelKeys.language, {
@@ -296,5 +303,4 @@ app.on("activate", () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
+

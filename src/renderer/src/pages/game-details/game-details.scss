@@ -111,23 +111,28 @@
     }
   }
 
-  &__description-toggle {
-    background: none;
-    border: 1px solid globals.$border-color;
-    color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75)
-      calc(globals.$spacing-unit * 1.5);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: globals.$body-font-size;
-    margin-top: calc(globals.$spacing-unit * 1.5);
-    transition: all 0.2s ease;
-    align-self: center;
+  &__hypervisor-warning {
+    background: rgba(124, 58, 237, 0.15);
+    border: 1px solid #7c3aed;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #c4b5fd;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    margin: calc(globals.$spacing-unit * 1.5);
+  }
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.1);
-    }
+  &__hypervisor-badge {
+    background: #7c3aed;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    flex-shrink: 0;
   }
 
   // Skeleton-specific styles

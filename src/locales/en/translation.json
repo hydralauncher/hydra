@@ -191,6 +191,12 @@
     "no_genres": "No categories"
   },
   "game_details": {
+    "source_online": "Source is online",
+    "source_partial": "Some links are offline",
+    "source_offline": "Source is offline",
+    "hypervisor_badge": "HYPERVISOR",
+    "hypervisor_warning": "This game currently requires a Hypervisor bypass to run. A normal crack may become available.",
+    "delete_review": "Delete review",
     "open_download_options": "Open download options",
     "download_options_zero": "No download option",
     "download_options_one": "{{count}} download option",

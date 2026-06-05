@@ -19,6 +19,7 @@ import "./user";
 import "./user-preferences";
 import "./library/transfer-game-files";
 
+
 import { isPortableVersion } from "@main/helpers";
 
 ipcMain.handle("ping", () => "pong");

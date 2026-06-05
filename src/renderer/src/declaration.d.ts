@@ -56,6 +56,8 @@ declare global {
   }
 
   interface Electron {
+
+
     /* Torrenting */
     startGameDownload: (
       payload: StartGameDownloadPayload

@@ -385,6 +385,9 @@ export function RepacksModal({
                 checkIfLastDownloadedOption(repack);
               const availabilityStatus = getRepackAvailabilityStatus(repack);
               const tooltipId = `availability-orb-${repack.id}`;
+              const isHypervisor = repack.uris?.some((uri) =>
+                uri.toLowerCase().includes("hypervisor")
+              );
 
               return (
                 <Button
@@ -401,6 +404,11 @@ export function RepacksModal({
                   <Tooltip id={tooltipId} />
 
                   <p className="repacks-modal__repack-title">
+                    {isHypervisor && (
+                      <span className="repacks-modal__hypervisor-badge">
+                        {t("hypervisor_badge")}
+                      </span>
+                    )}
                     {repack.title}
                     {userPreferences?.enableNewDownloadOptionsBadges !==
                       false &&
