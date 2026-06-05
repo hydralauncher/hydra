@@ -31,7 +31,7 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
-import { useLibrary, useSearch } from "../../hooks";
+import { useLibrary, useNavigationActions, useSearch } from "../../hooks";
 import { getItemFocusTarget } from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
@@ -52,7 +52,9 @@ import {
   BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID,
   BIG_PICTURE_SIDEBAR_PROFILE_ID,
   BIG_PICTURE_SIDEBAR_REGION_ID,
+  BIG_PICTURE_CONTENT_REGION_ID,
   type BigPictureSidebarRouteKey,
+  getBigPictureContentEntryRegionIdFromPathname,
   getBigPictureContentSidebarReturnTargetFromPathname,
   getBigPictureGameRouteMatch,
   getBigPictureSidebarLibraryGameFocusId,
@@ -494,6 +496,7 @@ function SidebarLibrary() {
           onChange={(e) => setSearch(e.target.value)}
           spellCheck={false}
           autoComplete="off"
+          data-sidebar-library-search="true"
         />
       </div>
 
@@ -722,9 +725,12 @@ const SidebarContainer = forwardRef<
   Readonly<{ children: React.ReactNode; forcedOpen?: boolean }>
 >(function SidebarContainer({ children, forcedOpen = false }, ref) {
   const handleMouseLeave = () => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+    const activeElement = document.activeElement;
+
+    if (!(activeElement instanceof HTMLElement)) return;
+    if (activeElement.dataset.sidebarLibrarySearch === "true") return;
+
+    activeElement.blur();
   };
 
   return (
@@ -740,9 +746,32 @@ const SidebarContainer = forwardRef<
 });
 
 function Sidebar() {
+  const { pathname } = useLocation();
+  const { setFocusRegion } = useNavigationActions();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
+
+  const handleOverlayPointerDown = () => {
+    const activeElement = document.activeElement;
+
+    if (
+      activeElement instanceof HTMLElement &&
+      activeElement.closest(".sidebar-container")
+    ) {
+      activeElement.blur();
+    }
+
+    setNotificationsOpen(false);
+
+    const contentRegionId =
+      getBigPictureContentEntryRegionIdFromPathname(pathname) ??
+      BIG_PICTURE_CONTENT_REGION_ID;
+
+    setFocusRegion(contentRegionId, "right", {
+      preferRememberedFocus: true,
+    });
+  };
 
   return (
     <>
@@ -762,7 +791,10 @@ function Sidebar() {
         </SidebarContainer>
       </VerticalFocusGroup>
       <div className="sidebar-spacer" />
-      <div className="sidebar-drawer-overlay" />
+      <div
+        className="sidebar-drawer-overlay"
+        onPointerDown={handleOverlayPointerDown}
+      />
     </>
   );
 }
