@@ -146,7 +146,6 @@ contextBridge.exposeInMainWorld("electron", {
       );
   },
 
-
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: Partial<UserPreferences>) =>
@@ -904,8 +903,7 @@ contextBridge.exposeInMainWorld("electron", {
   cancelGameTransfer: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameTransfer", shop, objectId),
 
-  getCrackCalendarMonths: () =>
-    ipcRenderer.invoke("get-crack-calendar-months"),
+  getCrackCalendarMonths: () => ipcRenderer.invoke("get-crack-calendar-months"),
   getCrackCalendarMonth: (month: string): Promise<CrackCalendarMonth | null> =>
     ipcRenderer.invoke("get-crack-calendar-month", month),
   getCrackCalendarGame: (slug: string): Promise<CrackCalendarGame | null> =>

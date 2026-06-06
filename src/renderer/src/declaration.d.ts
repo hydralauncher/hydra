@@ -509,6 +509,9 @@ declare global {
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
+    updateProfile: (
+      updateProfile: UpdateProfileRequest
+    ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
     getProfileImageMetadata: (
       path: string
