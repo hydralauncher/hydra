@@ -131,7 +131,7 @@ declare global {
     ) => () => Electron.IpcRenderer;
 
     /* Crack Calendar */
-    getCrackCalendarMonths(): Promise<CrackCalendarMonth[]>;
+    getCrackCalendarMonths(): Promise<string[]>;
     getCrackCalendarMonth(month: string): Promise<CrackCalendarMonth>;
     searchCrackCalendar(query: string): Promise<CrackCalendarGame[]>;
     getCrackCalendarGame(slug: string): Promise<CrackCalendarGame>;

@@ -22,7 +22,7 @@ const initialState: CrackCalendarState = {
   searchQuery: "",
 };
 
-export const fetchAvailableMonths = createAsyncThunk(
+export const fetchAvailableMonths = createAsyncThunk<string[]>(
   "crackCalendar/fetchAvailableMonths",
   async () => {
     return window.electron.getCrackCalendarMonths();
