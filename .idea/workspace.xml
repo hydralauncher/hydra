@@ -6,15 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="4faaa42d-095c-4a5c-9e9a-d2ea35b5cb66" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/electron.vite.config.1780776253087.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/electron.vite.config.1780776253087.mjs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/preload/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/preload/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/declaration.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/declaration.d.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

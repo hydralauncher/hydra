@@ -146,6 +146,20 @@ contextBridge.exposeInMainWorld("electron", {
       );
   },
 
+  /* Crack Calendar */
+  getCrackCalendarMonths: () => ipcRenderer.invoke("getCrackCalendarMonths"),
+  getCrackCalendarMonth: (month: string) =>
+    ipcRenderer.invoke("getCrackCalendarMonth", month),
+  searchCrackCalendar: (query: string) =>
+    ipcRenderer.invoke("searchCrackCalendar", query),
+  getCrackCalendarGame: (slug: string) =>
+    ipcRenderer.invoke("getCrackCalendarGame", slug),
+  onCrackCalendarUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("crackCalendarUpdated", listener);
+    return () => ipcRenderer.removeListener("crackCalendarUpdated", listener);
+  },
+
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
   updateUserPreferences: (preferences: Partial<UserPreferences>) =>

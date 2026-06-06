@@ -39,6 +39,8 @@ import type {
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
+  CrackCalendarGame,
+  CrackCalendarMonth,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -127,6 +129,13 @@ declare global {
       shop: GameShop,
       cb: (achievements: UserAchievement[]) => void
     ) => () => Electron.IpcRenderer;
+
+    /* Crack Calendar */
+    getCrackCalendarMonths(): Promise<CrackCalendarMonth[]>;
+    getCrackCalendarMonth(month: string): Promise<CrackCalendarMonth>;
+    searchCrackCalendar(query: string): Promise<CrackCalendarGame[]>;
+    getCrackCalendarGame(slug: string): Promise<CrackCalendarGame>;
+    onCrackCalendarUpdated(cb: () => void): () => void;
 
     /* Library */
     toggleAutomaticCloudSync: (
