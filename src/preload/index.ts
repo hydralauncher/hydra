@@ -146,19 +146,6 @@ contextBridge.exposeInMainWorld("electron", {
       );
   },
 
-  /* Crack Calendar */
-  getCrackCalendarMonths: () => ipcRenderer.invoke("getCrackCalendarMonths"),
-  getCrackCalendarMonth: (month: string) =>
-    ipcRenderer.invoke("getCrackCalendarMonth", month),
-  searchCrackCalendar: (query: string) =>
-    ipcRenderer.invoke("searchCrackCalendar", query),
-  getCrackCalendarGame: (slug: string) =>
-    ipcRenderer.invoke("getCrackCalendarGame", slug),
-  onCrackCalendarUpdated: (cb: () => void) => {
-    const listener = () => cb();
-    ipcRenderer.on("crackCalendarUpdated", listener);
-    return () => ipcRenderer.removeListener("crackCalendarUpdated", listener);
-  },
 
   /* User preferences */
   getUserPreferences: () => ipcRenderer.invoke("getUserPreferences"),
@@ -917,18 +904,14 @@ contextBridge.exposeInMainWorld("electron", {
   cancelGameTransfer: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameTransfer", shop, objectId),
 
-  getCrackCalendarMonths: (): Promise<string[]> =>
+  getCrackCalendarMonths: () =>
     ipcRenderer.invoke("get-crack-calendar-months"),
-
   getCrackCalendarMonth: (month: string): Promise<CrackCalendarMonth | null> =>
     ipcRenderer.invoke("get-crack-calendar-month", month),
-
   getCrackCalendarGame: (slug: string): Promise<CrackCalendarGame | null> =>
     ipcRenderer.invoke("get-crack-calendar-game", slug),
-
   searchCrackCalendar: (query: string): Promise<CrackCalendarGame[]> =>
     ipcRenderer.invoke("search-crack-calendar", query),
-
   onCrackCalendarUpdated: (callback: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => callback();
     ipcRenderer.on("crack-calendar-updated", listener);
