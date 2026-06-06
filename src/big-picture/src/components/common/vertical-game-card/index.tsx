@@ -22,6 +22,7 @@ export interface VerticalGameCardProps {
   onClick?: () => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onCoverImageError?: () => void;
+  hideProgressIcon?: boolean;
 }
 
 const DEFAULT_PROGRESS_COLOR = "var(--alert)";
@@ -43,6 +44,7 @@ export function VerticalGameCard({
   onClick,
   onContextMenu,
   onCoverImageError,
+  hideProgressIcon = false,
 }: Readonly<VerticalGameCardProps>) {
   const hasProgress =
     progressLabel != null &&
@@ -108,7 +110,7 @@ export function VerticalGameCard({
             aria-hidden={!hasProgress || undefined}
           >
             <div className="vertical-game-card__progress-label">
-              <ProgressIcon size={16} weight="fill" />
+              {!hideProgressIcon && <ProgressIcon size={16} weight="fill" />}
               <span>{progressLabel ?? "0/0"}</span>
             </div>
 

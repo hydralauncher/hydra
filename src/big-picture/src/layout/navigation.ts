@@ -18,6 +18,7 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   library: "big-picture-sidebar-library",
   downloads: "big-picture-sidebar-downloads",
   settings: "big-picture-sidebar-settings",
+  releaseCalendar: "big-picture-sidebar-release-calendar",
   componentLab: "big-picture-sidebar-component-lab",
 } as const;
 
@@ -89,6 +90,10 @@ export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
 
   if (normalizedPathname.startsWith("/settings")) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.settings;
+  }
+
+  if (normalizedPathname.startsWith("/crack-calendar")) {
+    return BIG_PICTURE_SIDEBAR_ITEM_IDS.releaseCalendar;
   }
 
   if (normalizedPathname.startsWith("/library")) {

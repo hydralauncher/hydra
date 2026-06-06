@@ -5,6 +5,7 @@ import {
   HouseIcon,
   MagnifyingGlassIcon,
   PuzzlePieceIcon,
+  CalendarDotsIcon,
   SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -69,6 +70,12 @@ function SidebarRouter() {
         label: "Catalogue",
         path: `${basePath}/catalogue`,
         icon: SquaresFourIcon,
+      },
+      {
+        key: "releaseCalendar",
+        label: "Release Calendar",
+        path: `${basePath}/crack-calendar`,
+        icon: CalendarDotsIcon,
       },
       {
         key: "library",

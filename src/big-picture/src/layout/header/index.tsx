@@ -45,11 +45,18 @@ function Header() {
   const pageTitle = useCurrentPageTitle();
   const isOnCataloguePage =
     normalizeBigPicturePathname(pathname) === "/catalogue";
+  const isOnReleaseCalendarPage =
+    normalizeBigPicturePathname(pathname) === "/crack-calendar";
+  const isOnReleaseCalendarDetailPage =
+    normalizeBigPicturePathname(pathname).startsWith("/crack-calendar/");
   const catalogueSearchValue = searchParams.get("title") ?? "";
+  const releaseCalendarSearchValue = searchParams.get("title") ?? "";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState(() =>
-    isOnCataloguePage ? catalogueSearchValue : ""
-  );
+  const [searchValue, setSearchValue] = useState(() => {
+    if (isOnCataloguePage) return catalogueSearchValue;
+    if (isOnReleaseCalendarPage) return releaseCalendarSearchValue;
+    return "";
+  });
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target
@@ -132,7 +139,7 @@ function Header() {
 
     setSearchValue(nextValue);
 
-    if (isOnCataloguePage) {
+    if (isOnCataloguePage || isOnReleaseCalendarPage) {
       updateCatalogueTitle(nextValue);
       return;
     }
@@ -148,7 +155,7 @@ function Header() {
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (isOnCataloguePage) {
+    if (isOnCataloguePage || isOnReleaseCalendarPage) {
       dismissSearch();
       return;
     }
@@ -293,78 +300,80 @@ function Header() {
             </button>
           </FocusItem>
 
-          <form
-            ref={searchRef}
-            role="search"
-            className={cn("header__search", {
-              "header__search--open": isSearchOpen,
-            })}
-            onSubmit={handleSearchSubmit}
-          >
-            <AnimatePresence initial={false}>
-              {isSearchOpen || isHovered ? (
-                <motion.div
-                  key="left"
-                  initial={{ x: 24, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: 24, opacity: 0 }}
-                  transition={{
-                    duration: 0.2,
-                    ease: "easeInOut",
-                    delay: 0.1,
-                  }}
-                  className="header__search-icon header__search-icon--left"
-                >
-                  <MagnifyingGlassIcon size={24} />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="right"
-                  initial={{ x: -24, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -24, opacity: 0 }}
-                  transition={{
-                    duration: 0.2,
-                    ease: "easeInOut",
-                    delay: 0.1,
-                  }}
-                  className="header__search-icon header__search-icon--right"
-                >
-                  <MagnifyingGlassIcon size={24} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <FocusItem
-              id={HEADER_SEARCH_INPUT_ID}
-              actions={{ primary: openSearch }}
-              navigationOverrides={searchNavigationOverrides}
-              asChild
+          {!isOnReleaseCalendarDetailPage && (
+            <form
+              ref={searchRef}
+              role="search"
+              className={cn("header__search", {
+                "header__search--open": isSearchOpen,
+              })}
+              onSubmit={handleSearchSubmit}
             >
-              <button
-                ref={searchTriggerRef}
-                type="button"
-                aria-label="Search catalogue"
-                className="header__search-trigger"
-                onClick={openSearch}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              />
-            </FocusItem>
+              <AnimatePresence initial={false}>
+                {isSearchOpen || isHovered ? (
+                  <motion.div
+                    key="left"
+                    initial={{ x: 24, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: 24, opacity: 0 }}
+                    transition={{
+                      duration: 0.2,
+                      ease: "easeInOut",
+                      delay: 0.1,
+                    }}
+                    className="header__search-icon header__search-icon--left"
+                  >
+                    <MagnifyingGlassIcon size={24} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="right"
+                    initial={{ x: -24, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -24, opacity: 0 }}
+                    transition={{
+                      duration: 0.2,
+                      ease: "easeInOut",
+                      delay: 0.1,
+                    }}
+                    className="header__search-icon header__search-icon--right"
+                  >
+                    <MagnifyingGlassIcon size={24} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <input
-              ref={inputRef}
-              type="text"
-              className="header__search-input typography typography--body"
-              spellCheck={false}
-              autoComplete="off"
-              maxLength={MAX_SEARCH_LENGTH}
-              tabIndex={isSearchOpen ? 0 : -1}
-              placeholder="Looking for anything in particular?"
-              value={searchValue}
-              onChange={(event) => handleSearchChange(event.target.value)}
-            />
-          </form>
+              <FocusItem
+                id={HEADER_SEARCH_INPUT_ID}
+                actions={{ primary: openSearch }}
+                navigationOverrides={searchNavigationOverrides}
+                asChild
+              >
+                <button
+                  ref={searchTriggerRef}
+                  type="button"
+                  aria-label="Search catalogue"
+                  className="header__search-trigger"
+                  onClick={openSearch}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                />
+              </FocusItem>
+
+              <input
+                ref={inputRef}
+                type="text"
+                className="header__search-input typography typography--body"
+                spellCheck={false}
+                autoComplete="off"
+                maxLength={MAX_SEARCH_LENGTH}
+                tabIndex={isSearchOpen ? 0 : -1}
+                placeholder="Looking for anything in particular?"
+                value={searchValue}
+                onChange={(event) => handleSearchChange(event.target.value)}
+              />
+            </form>
+          )}
         </header>
       </HorizontalFocusGroup>
     </div>

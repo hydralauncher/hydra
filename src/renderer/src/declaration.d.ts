@@ -331,7 +331,7 @@ declare global {
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
     removeDownloadSource: (
-      removeAll = false,
+      removeAll?: boolean,
       downloadSourceId?: string
     ) => Promise<void>;
     getDownloadSources: () => Promise<DownloadSource[]>;

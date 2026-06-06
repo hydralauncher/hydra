@@ -23,6 +23,8 @@ import type {
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
+  CrackCalendarGame,
+  CrackCalendarMonth,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -900,6 +902,25 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("resumeGameTransfer", shop, objectId),
   cancelGameTransfer: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("cancelGameTransfer", shop, objectId),
+
+  getCrackCalendarMonths: (): Promise<string[]> =>
+    ipcRenderer.invoke("get-crack-calendar-months"),
+
+  getCrackCalendarMonth: (month: string): Promise<CrackCalendarMonth | null> =>
+    ipcRenderer.invoke("get-crack-calendar-month", month),
+
+  getCrackCalendarGame: (slug: string): Promise<CrackCalendarGame | null> =>
+    ipcRenderer.invoke("get-crack-calendar-game", slug),
+
+  searchCrackCalendar: (query: string): Promise<CrackCalendarGame[]> =>
+    ipcRenderer.invoke("search-crack-calendar", query),
+
+  onCrackCalendarUpdated: (callback: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => callback();
+    ipcRenderer.on("crack-calendar-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("crack-calendar-updated", listener);
+  },
 
   // Add these to the electron object in contextBridge.exposeInMainWorld
   on: (channel: string, listener: (...args: any[]) => void) => {

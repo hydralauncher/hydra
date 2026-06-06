@@ -1,0 +1,214 @@
+import { useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import cn from "classnames";
+import { ChevronLeftIcon, ChevronRightIcon } from "@primer/octicons-react";
+
+import { useAppDispatch, useAppSelector } from "@renderer/hooks";
+import { fetchAvailableMonths, fetchCalendarMonth } from "@renderer/features";
+import { Button } from "@renderer/components";
+
+import styles from "./crack-calendar.module.scss";
+
+export default function CrackCalendar() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  const formatMonth = (monthStr: string) => {
+    if (!monthStr) return "";
+    const [year, month] = monthStr.split("-");
+    if (!year || !month) return monthStr;
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    if (isNaN(date.getTime())) return monthStr;
+    const monthName = date.toLocaleString(i18n.language, { month: "short" });
+    const yearShort = year.slice(-2);
+    return `${monthName} ${yearShort}`;
+  };
+
+  const {
+    availableMonths,
+    monthCache,
+    selectedMonth,
+    isLoading,
+    searchResults,
+    isSearching,
+    searchQuery,
+  } = useAppSelector((state) => state.crackCalendar);
+
+  useEffect(() => {
+    dispatch(fetchAvailableMonths()).then((action) => {
+      if (fetchAvailableMonths.fulfilled.match(action) && action.payload.length > 0) {
+        const currentMonthStr = new Date().toISOString().slice(0, 7);
+        const monthToSelect = action.payload.includes(currentMonthStr)
+          ? currentMonthStr
+          : action.payload[0];
+
+        if (!selectedMonth) {
+          dispatch(fetchCalendarMonth({ month: monthToSelect }));
+        }
+      }
+    });
+  }, [dispatch]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onCrackCalendarUpdated(() => {
+      if (selectedMonth) {
+        dispatch(fetchCalendarMonth({ month: selectedMonth, bypassCache: true }));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, selectedMonth]);
+
+  const handleMonthClick = (month: string) => {
+    dispatch(fetchCalendarMonth({ month }));
+  };
+
+  const handlePrevMonth = () => {
+    const currentIndex = availableMonths.indexOf(selectedMonth!);
+    if (currentIndex > 0) {
+      handleMonthClick(availableMonths[currentIndex - 1]);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const currentIndex = availableMonths.indexOf(selectedMonth!);
+    if (currentIndex < availableMonths.length - 1) {
+      handleMonthClick(availableMonths[currentIndex + 1]);
+    }
+  };
+
+  const currentMonthData = selectedMonth ? monthCache[selectedMonth] : null;
+
+  const renderGameCard = (game: any) => (
+    <article
+      key={game.slug}
+      className={styles.gameCard}
+      onClick={() => navigate(`/crack-calendar/${game.slug}`)}
+    >
+      <div className={styles.coverWrapper}>
+        {game.image ? (
+          <img src={game.image} alt={game.title} className={styles.gameImage} />
+        ) : (
+          <div className={styles.imagePlaceholder} />
+        )}
+        <div className={styles.badges}>
+          <div
+            className={cn(styles.crackBadge, {
+              [styles.cracked]: game.crackStatus === "CRACKED",
+              [styles.notCracked]: game.crackStatus === "NOT CRACKED",
+              [styles.other]:
+                game.crackStatus !== "CRACKED" &&
+                game.crackStatus !== "NOT CRACKED",
+            })}
+          >
+            {game.crackStatus}
+          </div>
+          <div
+            className={cn(styles.releasePill, {
+              [styles.released]: game.countdown === "Released",
+              [styles.upcoming]: game.countdown !== "Released",
+            })}
+          >
+            {game.countdown}
+          </div>
+        </div>
+      </div>
+      <div className={styles.gameDetails}>
+        <span className={styles.gameTitle}>{game.title}</span>
+      </div>
+    </article>
+  );
+
+  return (
+    <SkeletonTheme baseColor="#202020" highlightColor="#444">
+      <div className={styles.container}>
+        {!searchQuery && Array.isArray(availableMonths) && availableMonths.length > 0 && (
+          <div className={styles.monthSelector}>
+            <Button
+              className={styles.navButton}
+              onClick={handlePrevMonth}
+              disabled={selectedMonth === availableMonths[0] || isLoading}
+              theme="outline"
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <div className={styles.monthTabs}>
+              {availableMonths.map((month) => (
+                <Button
+                  key={month}
+                  theme={selectedMonth === month ? "primary" : "outline"}
+                  onClick={() => handleMonthClick(month)}
+                  className={styles.monthTab}
+                >
+                  {formatMonth(month)}
+                </Button>
+              ))}
+            </div>
+            <Button
+              className={styles.navButton}
+              onClick={handleNextMonth}
+              disabled={selectedMonth === availableMonths[availableMonths.length - 1] || isLoading}
+              theme="outline"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </div>
+        )}
+
+        <div className={styles.content}>
+          {searchQuery ? (
+            <div className={styles.searchResults}>
+              {isSearching ? (
+                <div className={styles.loadingGrid}>
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <Skeleton key={i} height={105} />
+                  ))}
+                </div>
+              ) : Array.isArray(searchResults) && searchResults.length > 0 ? (
+                <div className={styles.gameGrid}>
+                  {searchResults.map(renderGameCard)}
+                </div>
+              ) : (
+                <div className={styles.emptyState}>{t("No games found")}</div>
+              )}
+            </div>
+          ) : (
+            <div className={styles.calendarMode}>
+              {isLoading ? (
+                <div className={styles.loadingGrid}>
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <Skeleton key={i} height={105} />
+                  ))}
+                </div>
+              ) : currentMonthData && Array.isArray(currentMonthData.days) ? (
+                <div className={styles.dayGroups}>
+                  {currentMonthData.days
+                    .filter((day) => day.releases !== "0")
+                    .map((day) => (
+                      <div key={day.fullDate} className={styles.dayGroup}>
+                        <h2 className={styles.dayHeader}>
+                          {day.dayName}, {day.dayNumber} - {day.releases} Releases
+                        </h2>
+                        <div className={styles.gameGrid}>
+                          {Array.isArray(currentMonthData.games) && currentMonthData.games
+                            .filter((game) => game.day === day.dayNumber)
+                            .map(renderGameCard)}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className={styles.emptyState}>{t("Select a month to see releases")}</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </SkeletonTheme>
+  );
+}

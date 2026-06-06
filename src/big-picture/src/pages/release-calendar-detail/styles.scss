@@ -1,0 +1,111 @@
+.release-calendar-detail {
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow: hidden;
+  background: var(--background);
+  color: var(--text);
+}
+
+.status-message {
+  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
+}
+
+.detail-scroll-area {
+  height: 100%;
+}
+
+.detail-container {
+  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 12);
+}
+
+.hero-section {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 10);
+}
+
+.cover-wrapper {
+  width: 300px;
+  flex-shrink: 0;
+
+  .cover-image {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  flex: 1;
+}
+
+.status-badges {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  &.cracked {
+    background: var(--success);
+    color: #000;
+  }
+
+  &.not-cracked {
+    background: var(--error);
+    color: #fff;
+  }
+
+  &.upcoming {
+    background: var(--primary);
+    color: #000;
+  }
+}
+
+.status-note {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: baseline;
+
+  span:first-child {
+    opacity: 0.5;
+  }
+}
+
+.description-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.description {
+  line-height: 1.6;
+  opacity: 0.9;
+  white-space: pre-wrap;
+}

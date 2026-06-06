@@ -502,6 +502,35 @@ export type UserGameDetails = ShopAssets & {
   }[];
 };
 
+export interface CrackCalendarGame {
+  slug: string;
+  title: string;
+  image: string | null;
+  month: string | null;
+  day: string | null;
+  countdown: string | null;
+  calendarStatus: string | null;
+  crackStatus: string | null;
+  statusNote: string | null;
+  releaseDate: string | null;
+  crackDate: string | null;
+  drmProtection: string | null;
+  sceneGroup: string | null;
+  description: string | null;
+  source_url: string;
+}
+
+export interface CrackCalendarMonth {
+  month: string;
+  days: {
+    dayNumber: string;
+    dayName: string;
+    fullDate: string;
+    releases: string;
+  }[];
+  games: CrackCalendarGame[];
+}
+
 export * from "./game.types";
 export * from "./steam.types";
 export * from "./download.types";

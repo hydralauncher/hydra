@@ -26,7 +26,12 @@ import {
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { ScanGamesModal } from "./scan-games-modal";
-import { setFilters, setLibrarySearchQuery } from "@renderer/features";
+import {
+  setFilters,
+  setLibrarySearchQuery,
+  setCalendarSearchQuery,
+  searchCalendar,
+} from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -39,6 +44,7 @@ const pathTitle: Record<string, string> = {
   "/library": "library",
   "/downloads": "downloads",
   "/settings": "settings",
+  "/crack-calendar": "release_calendar",
 };
 
 export function Header() {
@@ -62,11 +68,18 @@ export function Header() {
     (state) => state.library.searchQuery
   );
 
+  const calendarSearchValue = useAppSelector(
+    (state) => state.crackCalendar.searchQuery
+  );
+
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
+  const isOnCrackCalendarPage = location.pathname === "/crack-calendar";
 
   const searchValue = isOnLibraryPage
     ? librarySearchValue
+    : isOnCrackCalendarPage
+    ? calendarSearchValue
     : catalogueSearchValue;
 
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
@@ -86,6 +99,15 @@ export function Header() {
     () =>
       debounce((value: string) => {
         dispatch(setFilters({ title: value }));
+      }, 250),
+    [dispatch]
+  );
+
+  const debouncedCrackCalendarSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        dispatch(setCalendarSearchQuery(value));
+        dispatch(searchCalendar(value));
       }, 250),
     [dispatch]
   );
@@ -125,6 +147,8 @@ export function Header() {
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/notifications")) return headerTitle;
+    if (location.pathname.startsWith("/crack-calendar/"))
+      return headerTitle || t("release_calendar");
     if (location.pathname.startsWith("/library"))
       return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");
@@ -192,6 +216,9 @@ export function Header() {
 
     if (isOnLibraryPage) {
       dispatch(setLibrarySearchQuery(value.slice(0, 255)));
+    } else if (isOnCrackCalendarPage) {
+      dispatch(setCalendarSearchQuery(value.slice(0, 255)));
+      dispatch(searchCalendar(value.slice(0, 255)));
     } else {
       dispatch(setFilters({ title: value.slice(0, 255) }));
     }
@@ -206,9 +233,15 @@ export function Header() {
 
     if (isOnLibraryPage) {
       debouncedCatalogueSearch.cancel();
+      debouncedCrackCalendarSearch.cancel();
       debouncedLibrarySearch(normalizedValue);
+    } else if (isOnCrackCalendarPage) {
+      debouncedLibrarySearch.cancel();
+      debouncedCatalogueSearch.cancel();
+      debouncedCrackCalendarSearch(normalizedValue);
     } else {
       debouncedLibrarySearch.cancel();
+      debouncedCrackCalendarSearch.cancel();
       debouncedCatalogueSearch(normalizedValue);
     }
   };
@@ -251,6 +284,9 @@ export function Header() {
 
     if (isOnLibraryPage) {
       dispatch(setLibrarySearchQuery(""));
+    } else if (isOnCrackCalendarPage) {
+      dispatch(setCalendarSearchQuery(""));
+      dispatch(searchCalendar(""));
     } else {
       dispatch(setFilters({ title: "" }));
     }
@@ -390,44 +426,52 @@ export function Header() {
             </button>
           )}
 
-          <div
-            ref={searchContainerRef}
-            className={cn("header__search", {
-              "header__search--focused": isFocused,
-            })}
-          >
-            <button
-              type="button"
-              className="header__action-button"
-              onClick={focusInput}
+          {!location.pathname.startsWith("/crack-calendar/") && (
+            <div
+              ref={searchContainerRef}
+              className={cn("header__search", {
+                "header__search--focused": isFocused,
+              })}
             >
-              <SearchIcon />
-            </button>
-
-            <input
-              ref={inputRef}
-              type="text"
-              name="search"
-              placeholder={isOnLibraryPage ? t("search_library") : t("search")}
-              value={localSearchValue}
-              className="header__search-input"
-              onChange={(event) => handleInputChange(event.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-            />
-
-            {localSearchValue && (
               <button
                 type="button"
-                onMouseDown={handleClearSearchMouseDown}
-                onClick={handleClearSearch}
                 className="header__action-button"
+                onClick={focusInput}
               >
-                <XIcon />
+                <SearchIcon />
               </button>
-            )}
-          </div>
+
+              <input
+                ref={inputRef}
+                type="text"
+                name="search"
+                placeholder={
+                  isOnLibraryPage
+                    ? t("search_library")
+                    : isOnCrackCalendarPage
+                    ? t("search_calendar")
+                    : t("search")
+                }
+                value={localSearchValue}
+                className="header__search-input"
+                onChange={(event) => handleInputChange(event.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+              />
+
+              {localSearchValue && (
+                <button
+                  type="button"
+                  onMouseDown={handleClearSearchMouseDown}
+                  onClick={handleClearSearch}
+                  className="header__action-button"
+                >
+                  <XIcon />
+                </button>
+              )}
+            </div>
+          )}
         </section>
       </header>
 

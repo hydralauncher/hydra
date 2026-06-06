@@ -33,6 +33,8 @@ import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
+import CrackCalendar from "./pages/crack-calendar/crack-calendar";
+import CrackCalendarDetail from "./pages/crack-calendar/crack-calendar-detail";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
 import GameLauncher from "./pages/game-launcher/game-launcher";
@@ -45,6 +47,8 @@ import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
 import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
+import BigPictureReleaseCalendar from "../../big-picture/src/pages/release-calendar/release-calendar";
+import BigPictureReleaseCalendarDetail from "../../big-picture/src/pages/release-calendar-detail/release-calendar-detail";
 
 console.log = logger.log;
 
@@ -110,6 +114,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/crack-calendar" element={<CrackCalendar />} />
+            <Route
+              path="/crack-calendar/:slug"
+              element={<CrackCalendarDetail />}
+            />
           </Route>
 
           <Route path="/theme-editor" element={<ThemeEditor />} />
@@ -130,6 +139,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route
               path="game/:shop/:objectId/achievements"
               element={<BigPictureGameAchievements />}
+            />
+            <Route path="crack-calendar" element={<BigPictureReleaseCalendar />} />
+            <Route
+              path="crack-calendar/:slug"
+              element={<BigPictureReleaseCalendarDetail />}
             />
           </Route>
         </Routes>

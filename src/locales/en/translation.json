@@ -110,11 +110,14 @@
     "decky_plugin_installation_failed": "Failed to install Decky plugin: {{error}}",
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
     "confirm": "Confirm",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "release_calendar": "Release Calendar"
   },
   "header": {
     "search": "Search games",
     "search_library": "Search library",
+    "search_calendar": "Search calendar",
+    "release_calendar": "Release Calendar",
     "recent_searches": "Recent Searches",
     "suggestions": "Suggestions",
     "clear_history": "Clear",

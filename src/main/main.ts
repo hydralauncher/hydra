@@ -23,6 +23,7 @@ import {
   DownloadOrchestrator,
   WSClient,
   WindowManager,
+  initCrackCalendarSocket,
   logger,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
@@ -100,6 +101,7 @@ export const loadState = async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
     WSClient.connect();
+    initCrackCalendarSocket();
   });
 
   const downloadToResume =

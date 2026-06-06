@@ -1,0 +1,87 @@
+.release-calendar-page {
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--text);
+}
+
+.release-calendar-container {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 8);
+  padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
+  margin-top: calc(var(--spacing-unit) * 18);
+  min-height: fit-content;
+}
+
+.month-tabs-container {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  overflow-x: auto;
+  padding-bottom: calc(var(--spacing-unit) * 2);
+  flex-shrink: 0;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.month-tab {
+  white-space: nowrap;
+}
+
+.calendar-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow: visible; // Ensure focus outlines aren't cut off
+}
+
+.calendar-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 12);
+}
+
+.day-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.day-title {
+  margin: 0;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--spacing-unit) * 4);
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1440px) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: calc(var(--spacing-unit) * 6);
+  }
+
+  @media (min-width: 1920px) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  @media (min-width: 2560px) {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}

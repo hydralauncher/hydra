@@ -1,0 +1,205 @@
+.container {
+  padding: 24px;
+  background-color: var(--body-background-color);
+  color: var(--text-color);
+  min-height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+}
+
+.searchBar {
+  width: 300px;
+}
+
+.monthSelector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.navButton {
+  min-width: 40px;
+  padding: 8px;
+}
+
+.monthTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex: 1;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
+}
+
+.monthTab {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.gameCard {
+  background-color: transparent;
+  width: 100%;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    .coverWrapper {
+      transform: translateY(-4px);
+    }
+  }
+}
+
+.coverWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2/3;
+  overflow: hidden;
+  border: 1px solid var(--element-border-color);
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.gameImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.1) 100%);
+}
+
+.badges {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.crackBadge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &.cracked {
+    color: #4caf50;
+    border-color: rgba(76, 175, 80, 0.3);
+  }
+
+  &.notCracked {
+    color: #f44336;
+    border-color: rgba(244, 67, 54, 0.3);
+  }
+
+  &.other {
+    color: #ffc107;
+    border-color: rgba(255, 193, 7, 0.3);
+  }
+}
+
+.releasePill {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &.released {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &.upcoming {
+    color: var(--highlight-color);
+    border-color: var(--highlight-color);
+  }
+}
+
+.gameDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.gameTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.dayGroup {
+  margin-bottom: 40px;
+}
+
+.dayHeader {
+  font-size: 18px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--element-border-color);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 48px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.loadingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+
+  span {
+    aspect-ratio: 2/3;
+    border-radius: 8px;
+  }
+}
