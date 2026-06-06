@@ -98,3 +98,5 @@ export const Typography = forwardRef<
       );
   }
 });
+
+Typography.displayName = "Typography";

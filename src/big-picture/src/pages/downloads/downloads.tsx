@@ -1601,7 +1601,7 @@ export default function Downloads() {
     return previewPlacement.kind === "hero"
       ? getHeroPrimaryFocusId()
       : getDownloadMainFocusId(moveMode.sourceGameId);
-  }, [moveModePreviewPlacement, moveMode?.sourceGameId]);
+  }, [moveMode, moveModePreviewPlacement]);
   const isCrossSectionMoveModePreview = useMemo(() => {
     const previousKind = previousMoveModePlacementKindRef.current;
     const currentKind = moveModePreviewPlacement?.kind ?? null;
@@ -2194,18 +2194,14 @@ export default function Downloads() {
         : []),
     ];
   }, [
-    canPromoteToHero,
     handleCompletedRemoval,
     handleRemovalCancel,
     interactionsLocked,
     menuState.item,
     menuState.section,
-    moveQueuedDownload,
     moveToPaused,
     pauseSeeding,
     resumeSeeding,
-    sendToQueue,
-    startNow,
   ]);
 
   useEffect(() => {

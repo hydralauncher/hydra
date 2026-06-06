@@ -65,15 +65,7 @@ function useLibraryGameCardPresentation(
     }
 
     return getGameImageSources(game);
-  }, [
-    game.coverImageUrl,
-    game.customHeroImageUrl,
-    game.customIconUrl,
-    game.iconUrl,
-    game.libraryHeroImageUrl,
-    game.libraryImageUrl,
-    variant,
-  ]);
+  }, [game, variant]);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
   const [imageExhausted, setImageExhausted] = useState(false);
   const imageSourcesSignature = imageSources.join("|");

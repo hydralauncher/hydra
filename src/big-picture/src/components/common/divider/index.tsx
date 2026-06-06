@@ -17,13 +17,15 @@ export const Divider = forwardRef<HTMLDivElement, Readonly<DividerProps>>(
           [`divider-container--${orientation}`]: true,
         })}
       >
-      <div
-        className={cn("divider", {
-          [`divider--${orientation}`]: true,
-        })}
-        style={{ backgroundColor: color }}
-      />
-    </div>
-  );
-}
+        <div
+          className={cn("divider", {
+            [`divider--${orientation}`]: true,
+          })}
+          style={{ backgroundColor: color }}
+        />
+      </div>
+    );
+  }
 );
+
+Divider.displayName = "Divider";

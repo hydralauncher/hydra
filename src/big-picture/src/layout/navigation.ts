@@ -6,10 +6,7 @@ import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
 import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
 
-import {
-  RELEASE_CALENDAR_PAGE_REGION_ID,
-  RELEASE_CALENDAR_GRID_REGION_ID,
-} from "../pages/release-calendar/navigation";
+import { RELEASE_CALENDAR_GRID_REGION_ID } from "../pages/release-calendar/navigation";
 
 export const BIG_PICTURE_APP_LAYER_ID = "big-picture-app-layer";
 export const BIG_PICTURE_SHELL_REGION_ID = "big-picture-shell";

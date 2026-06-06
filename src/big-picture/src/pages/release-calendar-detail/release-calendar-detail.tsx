@@ -6,7 +6,6 @@ import {
   Typography,
   VerticalFocusGroup,
   ScrollArea,
-  Divider,
   FocusItem,
 } from "../../components";
 import { useHeaderTitle, useNavigationScreenActions } from "../../hooks";
@@ -208,7 +207,9 @@ export default function ReleaseCalendarDetail() {
                     </Typography>
                   </div>
                   <div className="detail-row">
-                    <Typography variant="label">{t("DRM Protection")}</Typography>
+                    <Typography variant="label">
+                      {t("DRM Protection")}
+                    </Typography>
                     <Typography variant="body">
                       {game.drmProtection || t("Unknown")}
                     </Typography>

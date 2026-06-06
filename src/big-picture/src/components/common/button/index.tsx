@@ -83,103 +83,128 @@ export const Button = forwardRef<
     },
     ref
   ) => {
-  const isEffectivelyDisabled = disabled || loading;
-  const buttonClassName = cn(
-    "button",
-    variants[variant],
-    sizes[size],
-    className,
-    {
-      "button--disabled": isEffectivelyDisabled,
-    }
-  );
-
-  const buttonStyle = {
-    ...style,
-    ...(color
-      ? {
-          "--button-custom-color": color,
-          "--button-custom-hover-color": `color-mix(in srgb, ${color} 80%, white)`,
-          "--button-custom-text-color": getContrastTextColor(color),
-        }
-      : {}),
-  } as CSSProperties;
-
-  const handleLinkClick = (event: ReactMouseEvent<HTMLElement>) => {
-    if (isEffectivelyDisabled) {
-      event.preventDefault();
-      return;
-    }
-
-    onClick?.(event as never);
-  };
-
-  if (!href) {
-    return (
-      <FocusItem
-        id={focusId}
-        focusable={focusable}
-        navigationState={disabled ? "disabled" : "active"}
-        navigationOverrides={focusNavigationOverrides}
-        asChild
-      >
-        <button
-          ref={ref as React.Ref<HTMLButtonElement>}
-          onClick={(event) => {
-            if (isEffectivelyDisabled) {
-              event.preventDefault();
-              return;
-            }
-
-            onClick?.(event);
-          }}
-          disabled={disabled}
-          aria-busy={loading}
-          aria-disabled={isEffectivelyDisabled}
-          aria-label={size === "icon" ? ariaLabel : undefined}
-          className={buttonClassName}
-          style={buttonStyle}
-          {...props}
-        >
-          {loading && (
-            <div
-              className={`button__icon-container--${iconPosition} button__icon-container`}
-            >
-              <SpinnerIcon size={20} className="button__loading-icon" />
-            </div>
-          )}
-
-          {icon && !loading && (
-            <div
-              className={`button__icon-container--${iconPosition} button__icon-container`}
-            >
-              {icon}
-            </div>
-          )}
-
-          {children && (!loading || typeof children === "string") && (
-            <p className="button__text">{children}</p>
-          )}
-        </button>
-      </FocusItem>
+    const isEffectivelyDisabled = disabled || loading;
+    const buttonClassName = cn(
+      "button",
+      variants[variant],
+      sizes[size],
+      className,
+      {
+        "button--disabled": isEffectivelyDisabled,
+      }
     );
-  }
 
-  const linkContent = (
-    <>
-      {icon && (
-        <div
-          className={`button__icon-container--${iconPosition} button__icon-container`}
+    const buttonStyle = {
+      ...style,
+      ...(color
+        ? {
+            "--button-custom-color": color,
+            "--button-custom-hover-color": `color-mix(in srgb, ${color} 80%, white)`,
+            "--button-custom-text-color": getContrastTextColor(color),
+          }
+        : {}),
+    } as CSSProperties;
+
+    const handleLinkClick = (event: ReactMouseEvent<HTMLElement>) => {
+      if (isEffectivelyDisabled) {
+        event.preventDefault();
+        return;
+      }
+
+      onClick?.(event as never);
+    };
+
+    if (!href) {
+      return (
+        <FocusItem
+          id={focusId}
+          focusable={focusable}
+          navigationState={disabled ? "disabled" : "active"}
+          navigationOverrides={focusNavigationOverrides}
+          asChild
         >
-          {icon}
-        </div>
-      )}
+          <button
+            ref={ref as React.Ref<HTMLButtonElement>}
+            onClick={(event) => {
+              if (isEffectivelyDisabled) {
+                event.preventDefault();
+                return;
+              }
 
-      {children && <p className="button__text">{children}</p>}
-    </>
-  );
+              onClick?.(event);
+            }}
+            disabled={disabled}
+            aria-busy={loading}
+            aria-disabled={isEffectivelyDisabled}
+            aria-label={size === "icon" ? ariaLabel : undefined}
+            className={buttonClassName}
+            style={buttonStyle}
+            {...props}
+          >
+            {loading && (
+              <div
+                className={`button__icon-container--${iconPosition} button__icon-container`}
+              >
+                <SpinnerIcon size={20} className="button__loading-icon" />
+              </div>
+            )}
 
-  if (target === "_blank" || isExternalHref(href)) {
+            {icon && !loading && (
+              <div
+                className={`button__icon-container--${iconPosition} button__icon-container`}
+              >
+                {icon}
+              </div>
+            )}
+
+            {children && (!loading || typeof children === "string") && (
+              <p className="button__text">{children}</p>
+            )}
+          </button>
+        </FocusItem>
+      );
+    }
+
+    const linkContent = (
+      <>
+        {icon && (
+          <div
+            className={`button__icon-container--${iconPosition} button__icon-container`}
+          >
+            {icon}
+          </div>
+        )}
+
+        {children && <p className="button__text">{children}</p>}
+      </>
+    );
+
+    if (target === "_blank" || isExternalHref(href)) {
+      return (
+        <FocusItem
+          id={focusId}
+          focusable={focusable}
+          navigationState={disabled ? "disabled" : "active"}
+          navigationOverrides={focusNavigationOverrides}
+          asChild
+        >
+          <a
+            ref={ref as React.Ref<HTMLAnchorElement>}
+            href={href}
+            target={target}
+            rel={target === "_blank" ? "noreferrer" : undefined}
+            aria-label={size === "icon" ? ariaLabel : undefined}
+            aria-disabled={isEffectivelyDisabled}
+            className={buttonClassName}
+            style={buttonStyle}
+            onClick={handleLinkClick as never}
+          >
+            {linkContent}
+          </a>
+        </FocusItem>
+      );
+    }
+
     return (
       <FocusItem
         id={focusId}
@@ -188,11 +213,9 @@ export const Button = forwardRef<
         navigationOverrides={focusNavigationOverrides}
         asChild
       >
-        <a
+        <Link
           ref={ref as React.Ref<HTMLAnchorElement>}
-          href={href}
-          target={target}
-          rel={target === "_blank" ? "noreferrer" : undefined}
+          to={href}
           aria-label={size === "icon" ? ariaLabel : undefined}
           aria-disabled={isEffectivelyDisabled}
           className={buttonClassName}
@@ -200,31 +223,10 @@ export const Button = forwardRef<
           onClick={handleLinkClick as never}
         >
           {linkContent}
-        </a>
+        </Link>
       </FocusItem>
     );
   }
-
-  return (
-    <FocusItem
-      id={focusId}
-      focusable={focusable}
-      navigationState={disabled ? "disabled" : "active"}
-      navigationOverrides={focusNavigationOverrides}
-      asChild
-    >
-      <Link
-        ref={ref as React.Ref<HTMLAnchorElement>}
-        to={href}
-        aria-label={size === "icon" ? ariaLabel : undefined}
-        aria-disabled={isEffectivelyDisabled}
-        className={buttonClassName}
-        style={buttonStyle}
-        onClick={handleLinkClick as never}
-      >
-        {linkContent}
-      </Link>
-    </FocusItem>
-  );
-}
 );
+
+Button.displayName = "Button";

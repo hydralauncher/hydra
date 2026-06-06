@@ -153,45 +153,60 @@ export default function CrackCalendar() {
       }));
   }, [currentMonthData]);
 
-  const renderGameCard = (game: any) => (
-    <article
-      key={game.slug}
-      className={styles.gameCard}
-      onClick={() => navigate(`/crack-calendar/${game.slug}`)}
-    >
-      <div className={styles.coverWrapper}>
-        {game.image ? (
-          <img src={game.image} alt={game.title} className={styles.gameImage} />
-        ) : (
-          <div className={styles.imagePlaceholder} />
-        )}
-        <div className={styles.badges}>
-          <div
-            className={cn(styles.crackBadge, {
-              [styles.cracked]: game.crackStatus === "CRACKED",
-              [styles.notCracked]: game.crackStatus === "NOT CRACKED",
-              [styles.other]:
-                game.crackStatus !== "CRACKED" &&
-                game.crackStatus !== "NOT CRACKED",
-            })}
-          >
-            {game.crackStatus}
-          </div>
-          <div
-            className={cn(styles.releasePill, {
-              [styles.released]: game.countdown === "Released",
-              [styles.upcoming]: game.countdown !== "Released",
-            })}
-          >
-            {formatCountdown(game.countdown)}
+  const renderGameCard = (game: any) => {
+    const handleCardClick = () => navigate(`/crack-calendar/${game.slug}`);
+
+    return (
+      <article
+        key={game.slug}
+        className={styles.gameCard}
+        onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            handleCardClick();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className={styles.coverWrapper}>
+          {game.image ? (
+            <img
+              src={game.image}
+              alt={game.title}
+              className={styles.gameImage}
+            />
+          ) : (
+            <div className={styles.imagePlaceholder} />
+          )}
+          <div className={styles.badges}>
+            <div
+              className={cn(styles.crackBadge, {
+                [styles.cracked]: game.crackStatus === "CRACKED",
+                [styles.notCracked]: game.crackStatus === "NOT CRACKED",
+                [styles.other]:
+                  game.crackStatus !== "CRACKED" &&
+                  game.crackStatus !== "NOT CRACKED",
+              })}
+            >
+              {game.crackStatus}
+            </div>
+            <div
+              className={cn(styles.releasePill, {
+                [styles.released]: game.countdown === "Released",
+                [styles.upcoming]: game.countdown !== "Released",
+              })}
+            >
+              {formatCountdown(game.countdown)}
+            </div>
           </div>
         </div>
-      </div>
-      <div className={styles.gameDetails}>
-        <span className={styles.gameTitle}>{game.title}</span>
-      </div>
-    </article>
-  );
+        <div className={styles.gameDetails}>
+          <span className={styles.gameTitle}>{game.title}</span>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <SkeletonTheme baseColor="#202020" highlightColor="#444">

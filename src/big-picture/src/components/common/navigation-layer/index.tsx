@@ -16,18 +16,9 @@ interface NavigationLayerProps {
   children: ReactNode;
 }
 
-export const NavigationLayer = forwardRef<
-  void,
-  Readonly<NavigationLayerProps>
->(
+export const NavigationLayer = forwardRef<void, Readonly<NavigationLayerProps>>(
   (
-    {
-      layerId,
-      rootRegionId,
-      initialFocusId,
-      initialFocusRegionId,
-      children,
-    },
+    { layerId, rootRegionId, initialFocusId, initialFocusRegionId, children },
     forwardedRef
   ) => {
     const generatedId = useId();
@@ -37,35 +28,37 @@ export const NavigationLayer = forwardRef<
 
     useImperativeHandle(forwardedRef, () => ({}) as never);
 
-  useEffect(() => {
-    const unregisterLayer = navigation.registerLayer({
-      id: resolvedLayerId,
-      rootRegionId,
-      isPersistent: Boolean(layerId),
-    });
+    useEffect(() => {
+      const unregisterLayer = navigation.registerLayer({
+        id: resolvedLayerId,
+        rootRegionId,
+        isPersistent: Boolean(layerId),
+      });
 
-    navigation.focusInitialInLayer({
-      layerId: resolvedLayerId,
+      navigation.focusInitialInLayer({
+        layerId: resolvedLayerId,
+        initialFocusId,
+        initialFocusRegionId,
+      });
+
+      return () => {
+        unregisterLayer();
+      };
+    }, [
       initialFocusId,
       initialFocusRegionId,
-    });
+      layerId,
+      navigation,
+      resolvedLayerId,
+      rootRegionId,
+    ]);
 
-    return () => {
-      unregisterLayer();
-    };
-  }, [
-    initialFocusId,
-    initialFocusRegionId,
-    layerId,
-    navigation,
-    resolvedLayerId,
-    rootRegionId,
-  ]);
-
-  return (
-    <FocusLayerContext.Provider value={resolvedLayerId}>
-      {children}
-    </FocusLayerContext.Provider>
-  );
-}
+    return (
+      <FocusLayerContext.Provider value={resolvedLayerId}>
+        {children}
+      </FocusLayerContext.Provider>
+    );
+  }
 );
+
+NavigationLayer.displayName = "NavigationLayer";

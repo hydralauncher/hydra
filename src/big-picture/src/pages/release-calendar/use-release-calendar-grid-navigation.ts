@@ -1,7 +1,6 @@
 import type { FocusOverrides } from "../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import { useEffect, useState } from "react";
-import { useNavigationStore } from "../../stores";
 import {
   RELEASE_CALENDAR_GRID_REGION_ID,
   RELEASE_CALENDAR_MONTH_TABS_REGION_ID,
@@ -163,12 +162,7 @@ export function useReleaseCalendarGridNavigation(itemIds: string[]) {
         RELEASE_CALENDAR_MONTH_TABS_REGION_ID
       );
 
-      setOverridesByItemId(
-        buildOverridesMapFromRows(
-          rows,
-          headerPositions
-        )
-      );
+      setOverridesByItemId(buildOverridesMapFromRows(rows, headerPositions));
     };
 
     function scheduleCompute() {

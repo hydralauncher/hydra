@@ -30,10 +30,7 @@ interface GridFocusGroupProps {
   children: ReactNode;
 }
 
-export const GridFocusGroup = forwardRef<
-  HTMLDivElement,
-  GridFocusGroupProps
->(
+export const GridFocusGroup = forwardRef<HTMLDivElement, GridFocusGroupProps>(
   (
     {
       regionId,
@@ -56,57 +53,59 @@ export const GridFocusGroup = forwardRef<
     const ref = useRef<HTMLDivElement | null>(null);
 
     useImperativeHandle(forwardedRef, () => ref.current!);
-  const resolvedRegionId =
-    regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
+    const resolvedRegionId =
+      regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
-  useEffect(() => {
-    return navigation.registerRegion({
-      id: resolvedRegionId,
-      parentRegionId,
-      orientation: "grid",
-      layerId,
-      navigationOverrides: initialNavigationOverridesRef.current,
+    useEffect(() => {
+      return navigation.registerRegion({
+        id: resolvedRegionId,
+        parentRegionId,
+        orientation: "grid",
+        layerId,
+        navigationOverrides: initialNavigationOverridesRef.current,
+        autoScrollMode,
+        isPersistent: Boolean(regionId),
+        getElement: () => ref.current,
+        getScrollAnchor: initialGetScrollAnchorRef.current,
+      });
+    }, [
       autoScrollMode,
-      isPersistent: Boolean(regionId),
-      getElement: () => ref.current,
-      getScrollAnchor: initialGetScrollAnchorRef.current,
-    });
-  }, [
-    autoScrollMode,
-    layerId,
-    navigation,
-    parentRegionId,
-    regionId,
-    resolvedRegionId,
-  ]);
+      layerId,
+      navigation,
+      parentRegionId,
+      regionId,
+      resolvedRegionId,
+    ]);
 
-  useEffect(() => {
-    navigation.updateRegion(resolvedRegionId, {
+    useEffect(() => {
+      navigation.updateRegion(resolvedRegionId, {
+        autoScrollMode,
+        getScrollAnchor,
+        navigationOverrides,
+      });
+    }, [
       autoScrollMode,
       getScrollAnchor,
+      navigation,
       navigationOverrides,
-    });
-  }, [
-    autoScrollMode,
-    getScrollAnchor,
-    navigation,
-    navigationOverrides,
-    resolvedRegionId,
-  ]);
+      resolvedRegionId,
+    ]);
 
-  const Component = asChild ? Slot : "div";
+    const Component = asChild ? Slot : "div";
 
-  return (
-    <FocusRegionContext.Provider value={resolvedRegionId}>
-      <Component
-        ref={ref}
-        data-focus-region-id={resolvedRegionId}
-        className={className}
-        style={style}
-      >
-        {children}
-      </Component>
-    </FocusRegionContext.Provider>
-  );
-}
+    return (
+      <FocusRegionContext.Provider value={resolvedRegionId}>
+        <Component
+          ref={ref}
+          data-focus-region-id={resolvedRegionId}
+          className={className}
+          style={style}
+        >
+          {children}
+        </Component>
+      </FocusRegionContext.Provider>
+    );
+  }
 );
+
+GridFocusGroup.displayName = "GridFocusGroup";

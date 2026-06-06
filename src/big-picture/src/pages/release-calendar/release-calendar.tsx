@@ -28,6 +28,7 @@ import {
 import { useHeaderTitle, useNavigationScreenActions } from "../../hooks";
 import { IS_DESKTOP } from "../../constants";
 import { getLastUpdatedLabel } from "@renderer/utils/get-last-updated-label";
+import { CrackCalendarGame } from "@types";
 import { formatCountdown } from "@renderer/utils/format-countdown";
 import { useReleaseCalendarGridNavigation } from "./use-release-calendar-grid-navigation";
 
@@ -130,7 +131,7 @@ export default function ReleaseCalendar() {
 
   const groupedGames = useMemo(() => {
     if (!currentMonthData) return [];
-    const groups: Record<string, any[]> = {};
+    const groups: Record<string, CrackCalendarGame[]> = {};
     currentMonthData.games.forEach((game) => {
       const day = game.day || "Unknown";
       if (!groups[day]) groups[day] = [];
@@ -265,7 +266,9 @@ export default function ReleaseCalendar() {
                       asChild
                     >
                       <Typography variant="body">
-                        No results found for "{searchQuery}"
+                        {t("home.no_results_found_for", {
+                          query: searchQuery,
+                        })}
                       </Typography>
                     </FocusItem>
                   )}
@@ -335,8 +338,8 @@ export default function ReleaseCalendar() {
               )}
             </GridFocusGroup>
           </ScrollArea>
-      </div>
-    </section>
-  </VerticalFocusGroup>
+        </div>
+      </section>
+    </VerticalFocusGroup>
   );
 }

@@ -58,70 +58,72 @@ export const VerticalFocusGroup = forwardRef<
     const ref = useRef<HTMLDivElement | null>(null);
 
     useImperativeHandle(forwardedRef, () => ref.current!);
-  const resolvedRegionId =
-    regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
+    const resolvedRegionId =
+      regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
-  useEffect(() => {
-    return navigation.registerRegion({
-      id: resolvedRegionId,
-      parentRegionId,
-      orientation: "vertical",
-      layerId,
-      navigationOrder: initialNavigationOrderRef.current,
-      navigationOverrides: initialNavigationOverridesRef.current,
+    useEffect(() => {
+      return navigation.registerRegion({
+        id: resolvedRegionId,
+        parentRegionId,
+        orientation: "vertical",
+        layerId,
+        navigationOrder: initialNavigationOrderRef.current,
+        navigationOverrides: initialNavigationOverridesRef.current,
+        autoScrollMode,
+        isPersistent: Boolean(regionId),
+        getElement: () => ref.current,
+        getScrollAnchor: initialGetScrollAnchorRef.current,
+      });
+    }, [
       autoScrollMode,
-      isPersistent: Boolean(regionId),
-      getElement: () => ref.current,
-      getScrollAnchor: initialGetScrollAnchorRef.current,
-    });
-  }, [
-    autoScrollMode,
-    layerId,
-    navigation,
-    parentRegionId,
-    regionId,
-    resolvedRegionId,
-  ]);
+      layerId,
+      navigation,
+      parentRegionId,
+      regionId,
+      resolvedRegionId,
+    ]);
 
-  useEffect(() => {
-    navigation.updateRegion(resolvedRegionId, {
+    useEffect(() => {
+      navigation.updateRegion(resolvedRegionId, {
+        autoScrollMode,
+        getScrollAnchor,
+        navigationOrder,
+        navigationOverrides,
+      });
+    }, [
       autoScrollMode,
       getScrollAnchor,
+      navigation,
       navigationOrder,
       navigationOverrides,
-    });
-  }, [
-    autoScrollMode,
-    getScrollAnchor,
-    navigation,
-    navigationOrder,
-    navigationOverrides,
-    resolvedRegionId,
-  ]);
+      resolvedRegionId,
+    ]);
 
-  const Component = asChild ? Slot : "div";
+    const Component = asChild ? Slot : "div";
 
-  return (
-    <FocusRegionContext.Provider value={resolvedRegionId}>
-      <Component
-        ref={ref}
-        className={className}
-        data-focus-region-id={resolvedRegionId}
-        style={
-          asChild
-            ? style
-            : {
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-                ...style,
-              }
-        }
-        {...props}
-      >
-        {children}
-      </Component>
-    </FocusRegionContext.Provider>
-  );
-}
+    return (
+      <FocusRegionContext.Provider value={resolvedRegionId}>
+        <Component
+          ref={ref}
+          className={className}
+          data-focus-region-id={resolvedRegionId}
+          style={
+            asChild
+              ? style
+              : {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  ...style,
+                }
+          }
+          {...props}
+        >
+          {children}
+        </Component>
+      </FocusRegionContext.Provider>
+    );
+  }
 );
+
+VerticalFocusGroup.displayName = "VerticalFocusGroup";

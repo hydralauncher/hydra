@@ -8,6 +8,7 @@
   "home": {
     "surprise_me": "Surprise me",
     "no_results": "No results found",
+    "no_results_found_for": "No results found for \"{{query}}\"",
     "start_typing": "Start typing to search...",
     "hot": "Hot now",
     "weekly": "📅 Top games of the week",

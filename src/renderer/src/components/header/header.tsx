@@ -149,7 +149,8 @@ export function Header() {
     if (location.pathname.startsWith("/notifications")) return headerTitle;
     if (location.pathname.startsWith("/crack-calendar/"))
       return (
-        headerTitle || t("release_calendar", { defaultValue: "Release Calendar" })
+        headerTitle ||
+        t("release_calendar", { defaultValue: "Release Calendar" })
       );
     if (location.pathname.startsWith("/library"))
       return headerTitle || t("library");

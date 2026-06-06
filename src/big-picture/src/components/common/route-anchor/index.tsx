@@ -20,7 +20,10 @@ export interface RouteAnchorProps extends Omit<
   focusNavigationOverrides?: FocusOverrides;
 }
 
-export const RouteAnchor = forwardRef<HTMLDivElement, Readonly<RouteAnchorProps>>(
+export const RouteAnchor = forwardRef<
+  HTMLDivElement,
+  Readonly<RouteAnchorProps>
+>(
   (
     {
       href,
@@ -42,41 +45,43 @@ export const RouteAnchor = forwardRef<HTMLDivElement, Readonly<RouteAnchorProps>
         ref={ref}
         className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
       >
-      <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
-        <Link to={href} {...props}>
-          <div
-            className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}
-          >
+        <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
+          <Link to={href} {...props}>
             <div
-              className={`route-anchor__icon ${isGameIcon ? "route-anchor__icon--large-size" : "route-anchor__icon--small-size"}`}
+              className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}
             >
-              {isGameIcon ? (
-                <img
-                  src={icon}
-                  alt={label}
-                  width={32}
-                  height={32}
-                  draggable={false}
-                />
-              ) : (
-                icon
+              <div
+                className={`route-anchor__icon ${isGameIcon ? "route-anchor__icon--large-size" : "route-anchor__icon--small-size"}`}
+              >
+                {isGameIcon ? (
+                  <img
+                    src={icon}
+                    alt={label}
+                    width={32}
+                    height={32}
+                    draggable={false}
+                  />
+                ) : (
+                  icon
+                )}
+              </div>
+              <div className="route-anchor__label">{label}</div>
+
+              {isFavorite && (
+                <div className="route-anchor__favorite">
+                  <HeartStraightIcon
+                    size={18}
+                    weight="fill"
+                    className="route-anchor__favorite__icon"
+                  />
+                </div>
               )}
             </div>
-            <div className="route-anchor__label">{label}</div>
-
-            {isFavorite && (
-              <div className="route-anchor__favorite">
-                <HeartStraightIcon
-                  size={18}
-                  weight="fill"
-                  className="route-anchor__favorite__icon"
-                />
-              </div>
-            )}
-          </div>
-        </Link>
-      </FocusItem>
-    </div>
-  );
-}
+          </Link>
+        </FocusItem>
+      </div>
+    );
+  }
 );
+
+RouteAnchor.displayName = "RouteAnchor";
