@@ -10,7 +10,8 @@
 }
 
 .status-message {
-  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
+  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8)
+    calc(var(--spacing-unit) * 16);
 }
 
 .detail-scroll-area {
@@ -18,7 +19,8 @@
 }
 
 .detail-container {
-  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
+  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8)
+    calc(var(--spacing-unit) * 16);
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 12);
@@ -27,11 +29,27 @@
 .hero-section {
   display: flex;
   gap: calc(var(--spacing-unit) * 10);
+  outline: none !important;
+
+  &:focus,
+  &:focus-visible,
+  &[data-focused="true"],
+  &[data-focus-visible="true"] {
+    outline: none !important;
+  }
 }
 
 .cover-wrapper {
   width: 300px;
   flex-shrink: 0;
+  outline: none !important;
+
+  &:focus,
+  &:focus-visible,
+  &[data-focused="true"],
+  &[data-focus-visible="true"] {
+    outline: none !important;
+  }
 
   .cover-image {
     width: 100%;
@@ -86,11 +104,16 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 2);
+  margin-bottom: calc(var(--spacing-unit) * 8);
+  padding: calc(var(--spacing-unit) * 4);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--secondary-border);
+  border-radius: 8px;
 }
 
 .detail-row {
-  display: grid;
-  grid-template-columns: 200px 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: baseline;
 
   span:first-child {
@@ -98,14 +121,28 @@
   }
 }
 
-.description-section {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--spacing-unit) * 4);
-}
-
 .description {
   line-height: 1.6;
   opacity: 0.9;
   white-space: pre-wrap;
+  outline: none !important;
+  margin-bottom: calc(var(--spacing-unit) * 8);
+
+  &:focus,
+  &:focus-visible,
+  &[data-focused="true"],
+  &[data-focus-visible="true"] {
+    outline: none !important;
+  }
+}
+
+.source {
+  a {
+    color: var(--primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }

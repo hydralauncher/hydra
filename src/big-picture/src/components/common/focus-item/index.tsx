@@ -19,9 +19,11 @@ import { useNavigationIsFocused } from "../../../stores";
 import {
   type FocusEvent,
   type ReactNode,
+  forwardRef,
   useCallback,
   useEffect,
   useId,
+  useImperativeHandle,
   useMemo,
   useRef,
 } from "react";
@@ -38,27 +40,33 @@ interface FocusItemProps {
   children: ReactNode;
 }
 
-export function FocusItem({
-  id,
-  actions,
-  focusable = true,
-  navigationState: navigationStateProp = "active",
-  navigationOrder,
-  navigationOverrides,
-  asChild = false,
-  children,
-}: Readonly<FocusItemProps>) {
-  const effectiveNavigationState: NavigationNodeState =
-    !focusable && navigationStateProp === "active"
-      ? "hidden"
-      : navigationStateProp;
+export const FocusItem = forwardRef<HTMLDivElement, FocusItemProps>(
+  (
+    {
+      id,
+      actions,
+      focusable = true,
+      navigationState: navigationStateProp = "active",
+      navigationOrder,
+      navigationOverrides,
+      asChild = false,
+      children,
+    },
+    forwardedRef
+  ) => {
+    const effectiveNavigationState: NavigationNodeState =
+      !focusable && navigationStateProp === "active"
+        ? "hidden"
+        : navigationStateProp;
 
-  const generatedId = useId();
-  const regionId = useFocusRegionId();
-  const layerId = useFocusLayerId();
-  const navigation = NavigationService.getInstance();
-  const navigationItemActions = NavigationItemActionsService.getInstance();
-  const ref = useRef<HTMLDivElement | null>(null);
+    const generatedId = useId();
+    const regionId = useFocusRegionId();
+    const layerId = useFocusLayerId();
+    const navigation = NavigationService.getInstance();
+    const navigationItemActions = NavigationItemActionsService.getInstance();
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useImperativeHandle(forwardedRef, () => ref.current!);
   const initialNavigationStateRef = useRef(effectiveNavigationState);
   const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
@@ -171,3 +179,4 @@ export function FocusItem({
     </FocusItemActionsMetaContext.Provider>
   );
 }
+);

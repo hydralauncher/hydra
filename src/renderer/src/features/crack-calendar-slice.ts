@@ -68,7 +68,9 @@ export const crackCalendarSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchAvailableMonths.fulfilled, (state, action) => {
-        state.availableMonths = Array.isArray(action.payload) ? action.payload : [];
+        state.availableMonths = Array.isArray(action.payload)
+          ? action.payload
+          : [];
       })
       .addCase(fetchCalendarMonth.pending, (state) => {
         state.isLoading = true;
@@ -88,7 +90,9 @@ export const crackCalendarSlice = createSlice({
       })
       .addCase(searchCalendar.fulfilled, (state, action) => {
         state.isSearching = false;
-        state.searchResults = Array.isArray(action.payload) ? action.payload : [];
+        state.searchResults = Array.isArray(action.payload)
+          ? action.payload
+          : [];
       })
       .addCase(searchCalendar.rejected, (state) => {
         state.isSearching = false;
@@ -96,4 +100,5 @@ export const crackCalendarSlice = createSlice({
   },
 });
 
-export const { setSelectedMonth, setIsSearching, setCalendarSearchQuery } = crackCalendarSlice.actions;
+export const { setSelectedMonth, setIsSearching, setCalendarSearchQuery } =
+  crackCalendarSlice.actions;

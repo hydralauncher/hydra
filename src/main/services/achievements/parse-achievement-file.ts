@@ -318,9 +318,8 @@ const processRld = (unlockedAchievements: any): UnlockedAchievement[] => {
 
     if (unlockedAchievement?.State) {
       const unlocked = new DataView(
-        new Uint8Array(
-          Buffer.from(unlockedAchievement.State.toString(), "hex")
-        ).buffer
+        new Uint8Array(Buffer.from(unlockedAchievement.State.toString(), "hex"))
+          .buffer
       ).getUint32(0, true);
 
       if (unlocked === 1) {

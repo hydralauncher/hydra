@@ -2,11 +2,10 @@ import { useId, useState } from "react";
 import "./select-field.scss";
 import cn from "classnames";
 
-export interface SelectProps
-  extends React.DetailedHTMLProps<
-    React.SelectHTMLAttributes<HTMLSelectElement>,
-    HTMLSelectElement
-  > {
+export interface SelectProps extends React.DetailedHTMLProps<
+  React.SelectHTMLAttributes<HTMLSelectElement>,
+  HTMLSelectElement
+> {
   theme?: "primary" | "dark";
   label?: string;
   options?: { key: string; value: string; label: string }[];

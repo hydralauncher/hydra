@@ -3,6 +3,7 @@
   background-color: var(--body-background-color);
   color: var(--text-color);
   min-height: 100%;
+  overflow-y: auto;
 }
 
 .backButton {
@@ -56,6 +57,12 @@
   font-size: 32px;
 }
 
+.statusBadges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .crackBadge {
   padding: 4px 12px;
   border-radius: 6px;
@@ -63,7 +70,6 @@
   font-weight: bold;
   text-transform: uppercase;
   width: fit-content;
-  margin-bottom: 12px;
 
   &.cracked {
     background-color: #2e7d32;
@@ -77,6 +83,11 @@
 
   &.other {
     background-color: #f9a825;
+    color: black;
+  }
+
+  &.upcoming {
+    background-color: white;
     color: black;
   }
 }

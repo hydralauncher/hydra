@@ -3,11 +3,12 @@ import "./styles.scss";
 import { SpinnerIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { Link } from "react-router-dom";
-import type {
-  ButtonHTMLAttributes,
-  CSSProperties,
-  MouseEvent as ReactMouseEvent,
-  ReactNode,
+import {
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  forwardRef,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
 } from "react";
 import { getContrastTextColor } from "../../../helpers";
 import { FocusItem } from "..";
@@ -29,8 +30,10 @@ const sizes = {
   large: "button--large",
 };
 
-export interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
+export interface ButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> {
   loading?: boolean;
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
@@ -53,26 +56,33 @@ function isExternalHref(href: string) {
   );
 }
 
-export function Button({
-  loading = false,
-  disabled = false,
-  size = "medium",
-  variant = "primary",
-  iconPosition = "left",
-  href,
-  icon,
-  onClick,
-  children,
-  target,
-  className,
-  color,
-  style,
-  focusId,
-  focusable = true,
-  focusNavigationOverrides,
-  "aria-label": ariaLabel,
-  ...props
-}: Readonly<ButtonProps>) {
+export const Button = forwardRef<
+  HTMLButtonElement | HTMLAnchorElement,
+  ButtonProps
+>(
+  (
+    {
+      loading = false,
+      disabled = false,
+      size = "medium",
+      variant = "primary",
+      iconPosition = "left",
+      href,
+      icon,
+      onClick,
+      children,
+      target,
+      className,
+      color,
+      style,
+      focusId,
+      focusable = true,
+      focusNavigationOverrides,
+      "aria-label": ariaLabel,
+      ...props
+    },
+    ref
+  ) => {
   const isEffectivelyDisabled = disabled || loading;
   const buttonClassName = cn(
     "button",
@@ -114,6 +124,7 @@ export function Button({
         asChild
       >
         <button
+          ref={ref as React.Ref<HTMLButtonElement>}
           onClick={(event) => {
             if (isEffectivelyDisabled) {
               event.preventDefault();
@@ -178,6 +189,7 @@ export function Button({
         asChild
       >
         <a
+          ref={ref as React.Ref<HTMLAnchorElement>}
           href={href}
           target={target}
           rel={target === "_blank" ? "noreferrer" : undefined}
@@ -202,6 +214,7 @@ export function Button({
       asChild
     >
       <Link
+        ref={ref as React.Ref<HTMLAnchorElement>}
         to={href}
         aria-label={size === "icon" ? ariaLabel : undefined}
         aria-disabled={isEffectivelyDisabled}
@@ -214,3 +227,4 @@ export function Button({
     </FocusItem>
   );
 }
+);

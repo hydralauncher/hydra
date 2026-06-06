@@ -978,7 +978,11 @@ export default function Game() {
   }
 
   return (
-    <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
+    <VerticalFocusGroup
+      regionId={GAME_PAGE_REGION_ID}
+      getScrollAnchor={() => pageRef.current}
+      asChild
+    >
       <div ref={pageRef} className="game-page">
         <Hero
           shopDetails={shopDetails}

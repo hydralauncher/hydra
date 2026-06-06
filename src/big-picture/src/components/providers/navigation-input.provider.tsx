@@ -7,7 +7,15 @@ interface NavigationInputProviderProps {
   children: ReactNode;
 }
 
-type HoldManagedButton = "a" | "b" | "x" | "y" | "start" | "select";
+type HoldManagedButton =
+  | "a"
+  | "b"
+  | "x"
+  | "y"
+  | "start"
+  | "select"
+  | "l1"
+  | "r1";
 type HoldSession = {
   isPressed: boolean;
   holdTriggered: boolean;
@@ -51,6 +59,18 @@ function createInitialHoldSessions(): Record<HoldManagedButton, HoldSession> {
       releaseTimerId: null,
     },
     select: {
+      isPressed: false,
+      holdTriggered: false,
+      timerId: null,
+      releaseTimerId: null,
+    },
+    l1: {
+      isPressed: false,
+      holdTriggered: false,
+      timerId: null,
+      releaseTimerId: null,
+    },
+    r1: {
       isPressed: false,
       holdTriggered: false,
       timerId: null,
@@ -329,6 +349,8 @@ export function NavigationInputProvider({
   const isYPressed = isButtonPressed(GamepadButtonType.BUTTON_Y);
   const isStartPressed = isButtonPressed(GamepadButtonType.START);
   const isSelectPressed = isButtonPressed(GamepadButtonType.BACK);
+  const isL1Pressed = isButtonPressed(GamepadButtonType.LEFT_BUMPER);
+  const isR1Pressed = isButtonPressed(GamepadButtonType.RIGHT_BUMPER);
 
   useEffect(() => {
     const holdSessions = holdSessionsRef.current;
@@ -339,10 +361,17 @@ export function NavigationInputProvider({
       y: isYPressed,
       start: isStartPressed,
       select: isSelectPressed,
+      l1: isL1Pressed,
+      r1: isR1Pressed,
     };
 
     const dispatchHold = (button: HoldManagedButton) => {
-      if (button === "start" || button === "select") {
+      if (
+        button === "start" ||
+        button === "select" ||
+        button === "l1" ||
+        button === "r1"
+      ) {
         return triggerScreenHold(button);
       }
 
@@ -374,7 +403,12 @@ export function NavigationInputProvider({
         return triggerItemPress(button) || triggerScreenPress(button);
       }
 
-      if (button === "start" || button === "select") {
+      if (
+        button === "start" ||
+        button === "select" ||
+        button === "l1" ||
+        button === "r1"
+      ) {
         return triggerScreenPress(button);
       }
 
@@ -445,6 +479,8 @@ export function NavigationInputProvider({
     isYPressed,
     isStartPressed,
     isSelectPressed,
+    isL1Pressed,
+    isR1Pressed,
     triggerItemHold,
     triggerItemPress,
     triggerPrimary,

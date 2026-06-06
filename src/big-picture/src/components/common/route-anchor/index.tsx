@@ -1,13 +1,15 @@
 import "./styles.scss";
 
 import { HeartStraightIcon } from "@phosphor-icons/react";
-import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type AnchorHTMLAttributes, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { FocusItem } from "..";
 import type { FocusOverrides } from "../../../services";
 
-export interface RouteAnchorProps
-  extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+export interface RouteAnchorProps extends Omit<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  "href"
+> {
   label: string;
   icon: ReactNode | string;
   href: string;
@@ -18,23 +20,28 @@ export interface RouteAnchorProps
   focusNavigationOverrides?: FocusOverrides;
 }
 
-export const RouteAnchor = ({
-  href,
-  label,
-  icon,
-  active = false,
-  disabled = false,
-  isFavorite = false,
-  focusId,
-  focusNavigationOverrides,
-  ...props
-}: Readonly<RouteAnchorProps>) => {
-  const isGameIcon = typeof icon === "string";
+export const RouteAnchor = forwardRef<HTMLDivElement, Readonly<RouteAnchorProps>>(
+  (
+    {
+      href,
+      label,
+      icon,
+      active = false,
+      disabled = false,
+      isFavorite = false,
+      focusId,
+      focusNavigationOverrides,
+      ...props
+    },
+    ref
+  ) => {
+    const isGameIcon = typeof icon === "string";
 
-  return (
-    <div
-      className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
-    >
+    return (
+      <div
+        ref={ref}
+        className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
+      >
       <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
         <Link to={href} {...props}>
           <div
@@ -71,4 +78,5 @@ export const RouteAnchor = ({
       </FocusItem>
     </div>
   );
-};
+}
+);

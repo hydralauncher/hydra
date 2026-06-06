@@ -5,21 +5,62 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4faaa42d-095c-4a5c-9e9a-d2ea35b5cb66" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/animated-hero-image/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/animated-hero-image/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/button/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/button/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/divider/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/divider/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/focus-item/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/focus-item/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/grid-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/grid-focus-group/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/horizontal-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/horizontal-focus-group/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-history-bridge/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-history-bridge/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-layer/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-layer/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/route-anchor/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/route-anchor/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/scroll-area/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/scroll-area/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/source-anchor/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/source-anchor/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/typography/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/typography/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-focus-group/index.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-game-card/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-game-card/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/layout/header/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/layout/header/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/virtual-keyboard/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/virtual-keyboard/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/modals/download-game/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/modals/download-game/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/providers/navigation-input.provider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/providers/navigation-input.provider.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/big-picture/src/layout/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/layout/navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/layout/sidebar/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/layout/sidebar/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/use-big-picture-downloads-page-data.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/use-big-picture-downloads-page-data.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/game/game.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/game/game.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/game/game.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/game/game.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/release-calendar-detail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/release-calendar-detail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/styles.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/styles.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/navigation.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/page.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/page.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/settings/integrations.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/settings/integrations.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/types/focus-item-actions.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/types/focus-item-actions.types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/locales/en/translation.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/locales/en/translation.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/main.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/services/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/services/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/services/achievements/parse-achievement-file.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/services/achievements/parse-achievement-file.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/services/crack-calendar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/services/crack-calendar.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/preload/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/preload/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/avatar/avatar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/avatar/avatar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/button/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/button/button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/checkbox-field/checkbox-field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/checkbox-field/checkbox-field.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/game-card/game-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/game-card/game-card.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/renderer/src/components/header/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/header/header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/sidebar/routes.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/sidebar/routes.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/declaration.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/declaration.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/features/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/features/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/radio-field/radio-field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/radio-field/radio-field.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/select-field/select-field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/select-field/select-field.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/text-field/text-field.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/text-field/text-field.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/features/crack-calendar-slice.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/features/crack-calendar-slice.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/renderer/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/main.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/store.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/store.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar-detail.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar-detail.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar-detail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar-detail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/game-details/cloud-sync-files-modal/cloud-sync-files-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/game-details/cloud-sync-files-modal/cloud-sync-files-modal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/game-details/cloud-sync-rename-artifact-modal/cloud-sync-rename-artifact-modal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/game-details/cloud-sync-rename-artifact-modal/cloud-sync-rename-artifact-modal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/shared/download-directories.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/shared/download-directories.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/index.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -171,6 +212,7 @@
       <updated>1780647080566</updated>
       <workItem from="1780647166927" duration="25071000" />
       <workItem from="1780737863219" duration="8157000" />
+      <workItem from="1780755895943" duration="15333000" />
     </task>
     <servers />
   </component>

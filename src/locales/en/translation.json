@@ -1,5 +1,7 @@
 {
   "language_name": "English",
+  "release_calendar": "Release Calendar",
+  "search_results": "Search Results",
   "app": {
     "successfully_signed_in": "Successfully signed in"
   },
@@ -128,7 +130,7 @@
     "catalogue": "Catalogue",
     "library": "Library",
     "downloads": "Downloads",
-    "search_results": "Search results",
+    "search_results": "Search Results",
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
     "version_available_download": "Version {{version}} available. Click here to download.",

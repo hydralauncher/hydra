@@ -2,14 +2,15 @@ import "./styles.scss";
 
 import { SparkleIcon, TrophyIcon } from "@phosphor-icons/react";
 import cn from "classnames";
-import type {
-  CSSProperties,
-  KeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  ReactNode,
+import {
+  type CSSProperties,
+  forwardRef,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
 } from "react";
 
-export interface VerticalGameCardProps {
+export interface VerticalGameCardProps extends React.HTMLAttributes<HTMLDivElement> {
   coverImageUrl?: string | null;
   gameTitle: string;
   subtitle: string;
@@ -31,21 +32,26 @@ function clampProgress(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
-export function VerticalGameCard({
-  coverImageUrl,
-  gameTitle,
-  subtitle,
-  progressLabel,
-  progressValue,
-  progressColor = DEFAULT_PROGRESS_COLOR,
-  action,
-  forceHovered = false,
-  className,
-  onClick,
-  onContextMenu,
-  onCoverImageError,
-  hideProgressIcon = false,
-}: Readonly<VerticalGameCardProps>) {
+export const VerticalGameCard = forwardRef<HTMLDivElement, VerticalGameCardProps>(
+  (
+    {
+      coverImageUrl,
+      gameTitle,
+      subtitle,
+      progressLabel,
+      progressValue,
+      progressColor = DEFAULT_PROGRESS_COLOR,
+      action,
+      forceHovered = false,
+      className,
+      onClick,
+      onContextMenu,
+      onCoverImageError,
+      hideProgressIcon = false,
+      ...props
+    },
+    ref
+  ) => {
   const hasProgress =
     progressLabel != null &&
     progressValue != null &&
@@ -69,6 +75,7 @@ export function VerticalGameCard({
 
   return (
     <div
+      ref={ref}
       className={cn("vertical-game-card", className, {
         "vertical-game-card--completed": isCompleted,
         "vertical-game-card--force-hovered": forceHovered,
@@ -79,6 +86,7 @@ export function VerticalGameCard({
       onKeyDown={onClick != null ? handleCardKeyDown : undefined}
       role={onClick != null ? "button" : undefined}
       tabIndex={onClick != null ? 0 : undefined}
+      {...props}
     >
       <div className="vertical-game-card__cover">
         {coverImageUrl ? (
@@ -123,3 +131,4 @@ export function VerticalGameCard({
     </div>
   );
 }
+);

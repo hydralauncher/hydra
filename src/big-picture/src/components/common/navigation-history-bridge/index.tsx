@@ -19,6 +19,9 @@ export function getDefaultPageTitle(pathname: string): string {
     return "Game Details";
   }
 
+  if (segments[0] === "crack-calendar" || segments[0] === "release-calendar")
+    return "Release Calendar";
+
   return capitalize(segments[0]);
 }
 

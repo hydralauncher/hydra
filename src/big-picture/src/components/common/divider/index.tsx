@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import "./styles.scss";
 
 import cn from "classnames";
@@ -7,16 +8,15 @@ export interface DividerProps {
   color?: string;
 }
 
-export function Divider({
-  orientation = "horizontal",
-  color,
-}: Readonly<DividerProps>) {
-  return (
-    <div
-      className={cn("divider-container", {
-        [`divider-container--${orientation}`]: true,
-      })}
-    >
+export const Divider = forwardRef<HTMLDivElement, Readonly<DividerProps>>(
+  ({ orientation = "horizontal", color }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn("divider-container", {
+          [`divider-container--${orientation}`]: true,
+        })}
+      >
       <div
         className={cn("divider", {
           [`divider--${orientation}`]: true,
@@ -26,3 +26,4 @@ export function Divider({
     </div>
   );
 }
+);

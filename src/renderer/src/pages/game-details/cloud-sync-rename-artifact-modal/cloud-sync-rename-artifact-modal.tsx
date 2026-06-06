@@ -12,8 +12,10 @@ import { useToast } from "@renderer/hooks";
 
 import "./cloud-sync-rename-artifact-modal.scss";
 
-export interface CloudSyncRenameArtifactModalProps
-  extends Omit<ModalProps, "children" | "title"> {
+export interface CloudSyncRenameArtifactModalProps extends Omit<
+  ModalProps,
+  "children" | "title"
+> {
   artifact: GameArtifact | null;
 }
 

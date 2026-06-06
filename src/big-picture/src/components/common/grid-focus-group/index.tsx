@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import {
   FocusRegionContext,
   useFocusLayerId,
@@ -11,8 +12,10 @@ import {
 import {
   type CSSProperties,
   type ReactNode,
+  forwardRef,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
 } from "react";
 
@@ -21,27 +24,38 @@ interface GridFocusGroupProps {
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getScrollAnchor?: () => HTMLElement | null;
+  asChild?: boolean;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
 }
 
-export function GridFocusGroup({
-  regionId,
-  navigationOverrides,
-  autoScrollMode = "row",
-  getScrollAnchor,
-  className,
-  style,
-  children,
-}: Readonly<GridFocusGroupProps>) {
-  const generatedId = useId();
-  const parentRegionId = useFocusRegionId();
-  const layerId = useFocusLayerId();
-  const navigation = NavigationService.getInstance();
-  const initialNavigationOverridesRef = useRef(navigationOverrides);
-  const initialGetScrollAnchorRef = useRef(getScrollAnchor);
-  const ref = useRef<HTMLDivElement | null>(null);
+export const GridFocusGroup = forwardRef<
+  HTMLDivElement,
+  GridFocusGroupProps
+>(
+  (
+    {
+      regionId,
+      navigationOverrides,
+      autoScrollMode = "row",
+      getScrollAnchor,
+      asChild = false,
+      className,
+      style,
+      children,
+    },
+    forwardedRef
+  ) => {
+    const generatedId = useId();
+    const parentRegionId = useFocusRegionId();
+    const layerId = useFocusLayerId();
+    const navigation = NavigationService.getInstance();
+    const initialNavigationOverridesRef = useRef(navigationOverrides);
+    const initialGetScrollAnchorRef = useRef(getScrollAnchor);
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useImperativeHandle(forwardedRef, () => ref.current!);
   const resolvedRegionId =
     regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
@@ -80,16 +94,19 @@ export function GridFocusGroup({
     resolvedRegionId,
   ]);
 
+  const Component = asChild ? Slot : "div";
+
   return (
     <FocusRegionContext.Provider value={resolvedRegionId}>
-      <div
+      <Component
         ref={ref}
         data-focus-region-id={resolvedRegionId}
         className={className}
         style={style}
       >
         {children}
-      </div>
+      </Component>
     </FocusRegionContext.Provider>
   );
 }
+);

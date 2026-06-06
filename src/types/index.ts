@@ -529,6 +529,7 @@ export interface CrackCalendarMonth {
     releases: string;
   }[];
   games: CrackCalendarGame[];
+  updated_at: string;
 }
 
 export * from "./game.types";

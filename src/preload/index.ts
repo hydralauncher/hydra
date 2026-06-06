@@ -918,8 +918,7 @@ contextBridge.exposeInMainWorld("electron", {
   onCrackCalendarUpdated: (callback: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => callback();
     ipcRenderer.on("crack-calendar-updated", listener);
-    return () =>
-      ipcRenderer.removeListener("crack-calendar-updated", listener);
+    return () => ipcRenderer.removeListener("crack-calendar-updated", listener);
   },
 
   // Add these to the electron object in contextBridge.exposeInMainWorld

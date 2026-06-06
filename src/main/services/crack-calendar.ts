@@ -78,7 +78,9 @@ export const initCrackCalendarSocket = () => {
   });
 
   ws.on("close", () => {
-    logger.info("Crack calendar WebSocket closed, reconnecting in 5 seconds...");
+    logger.info(
+      "Crack calendar WebSocket closed, reconnecting in 5 seconds..."
+    );
     setTimeout(initCrackCalendarSocket, 5000);
   });
 

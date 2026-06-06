@@ -1,4 +1,12 @@
-export type NavigationActionButton = "a" | "b" | "x" | "y" | "start" | "select";
+export type NavigationActionButton =
+  | "a"
+  | "b"
+  | "x"
+  | "y"
+  | "start"
+  | "select"
+  | "l1"
+  | "r1";
 
 export type NavigationActionMode = "press" | "hold";
 export type FocusItemPressButton = "x" | "y";

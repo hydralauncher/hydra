@@ -21,11 +21,15 @@ import {
   RELEASE_CALENDAR_PAGE_REGION_ID,
   RELEASE_CALENDAR_MONTH_TABS_REGION_ID,
   RELEASE_CALENDAR_GRID_REGION_ID,
+  RELEASE_CALENDAR_EMPTY_STATE_ID,
   getReleaseCalendarMonthTabFocusId,
   getReleaseCalendarGameCardFocusId,
 } from "./navigation";
-import { useHeaderTitle } from "../../hooks";
+import { useHeaderTitle, useNavigationScreenActions } from "../../hooks";
 import { IS_DESKTOP } from "../../constants";
+import { getLastUpdatedLabel } from "@renderer/utils/get-last-updated-label";
+import { formatCountdown } from "@renderer/utils/format-countdown";
+import { useReleaseCalendarGridNavigation } from "./use-release-calendar-grid-navigation";
 
 import "./page.scss";
 
@@ -35,7 +39,7 @@ export default function ReleaseCalendar() {
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
 
-  useHeaderTitle(t("sidebar.release_calendar"));
+  useHeaderTitle(t("release_calendar", { defaultValue: "Release Calendar" }));
 
   const searchQuery = searchParams.get("title") || "";
 
@@ -50,7 +54,10 @@ export default function ReleaseCalendar() {
 
   useEffect(() => {
     dispatch(fetchAvailableMonths()).then((action) => {
-      if (fetchAvailableMonths.fulfilled.match(action) && action.payload.length > 0) {
+      if (
+        fetchAvailableMonths.fulfilled.match(action) &&
+        action.payload.length > 0
+      ) {
         const currentMonthStr = new Date().toISOString().slice(0, 7);
         const monthToSelect = action.payload.includes(currentMonthStr)
           ? currentMonthStr
@@ -66,7 +73,9 @@ export default function ReleaseCalendar() {
   useEffect(() => {
     const unsubscribe = window.electron.onCrackCalendarUpdated(() => {
       if (selectedMonth) {
-        dispatch(fetchCalendarMonth({ month: selectedMonth, bypassCache: true }));
+        dispatch(
+          fetchCalendarMonth({ month: selectedMonth, bypassCache: true })
+        );
       }
     });
 
@@ -84,6 +93,27 @@ export default function ReleaseCalendar() {
   const handleMonthClick = (month: string) => {
     dispatch(fetchCalendarMonth({ month }));
   };
+
+  const handlePrevMonth = () => {
+    const currentIndex = availableMonths.indexOf(selectedMonth!);
+    if (currentIndex > 0) {
+      handleMonthClick(availableMonths[currentIndex - 1]);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const currentIndex = availableMonths.indexOf(selectedMonth!);
+    if (currentIndex < availableMonths.length - 1) {
+      handleMonthClick(availableMonths[currentIndex + 1]);
+    }
+  };
+
+  useNavigationScreenActions({
+    press: {
+      l1: handlePrevMonth,
+      r1: handleNextMonth,
+    },
+  });
 
   const currentMonthData = selectedMonth ? monthCache[selectedMonth] : null;
 
@@ -111,6 +141,28 @@ export default function ReleaseCalendar() {
 
   const basePath = IS_DESKTOP ? "/big-picture" : "";
 
+  const itemIds = useMemo(() => {
+    if (searchQuery) {
+      if (searchResults.length > 0) {
+        return searchResults.map((game) =>
+          getReleaseCalendarGameCardFocusId(game.slug)
+        );
+      }
+      return [RELEASE_CALENDAR_EMPTY_STATE_ID];
+    }
+    if (currentMonthData) {
+      if (currentMonthData.games.length > 0) {
+        return currentMonthData.games.map((game) =>
+          getReleaseCalendarGameCardFocusId(game.slug)
+        );
+      }
+      return [RELEASE_CALENDAR_EMPTY_STATE_ID];
+    }
+    return [];
+  }, [searchQuery, searchResults, currentMonthData]);
+
+  const navigationOverridesByItemId = useReleaseCalendarGridNavigation(itemIds);
+
   return (
     <VerticalFocusGroup regionId={RELEASE_CALENDAR_PAGE_REGION_ID} asChild>
       <section className="release-calendar-page">
@@ -119,6 +171,9 @@ export default function ReleaseCalendar() {
             regionId={RELEASE_CALENDAR_MONTH_TABS_REGION_ID}
             className="month-tabs-container"
           >
+            <div className="month-nav-hint">
+              <span className="bumper-hint">LB</span>
+            </div>
             {availableMonths.map((month) => (
               <FocusItem
                 key={month}
@@ -126,6 +181,7 @@ export default function ReleaseCalendar() {
                 actions={{
                   primary: () => handleMonthClick(month),
                 }}
+                asChild
               >
                 <Button
                   variant={selectedMonth === month ? "primary" : "secondary"}
@@ -136,87 +192,151 @@ export default function ReleaseCalendar() {
                 </Button>
               </FocusItem>
             ))}
+            <div className="month-nav-hint">
+              <span className="bumper-hint">RB</span>
+            </div>
+
+            {currentMonthData?.updated_at && (
+              <span className="last-updated">
+                {getLastUpdatedLabel(currentMonthData.updated_at)}
+              </span>
+            )}
           </HorizontalFocusGroup>
 
           <ScrollArea className="calendar-scroll-area">
-            <div className="calendar-content">
+            <GridFocusGroup
+              regionId={RELEASE_CALENDAR_GRID_REGION_ID}
+              className="calendar-content game-grid"
+            >
               {searchQuery ? (
-                <div className="search-results-container">
+                <>
                   <Typography variant="h3" className="day-title">
                     {t("search_results")}
                   </Typography>
                   {isSearching ? (
                     <Typography variant="body">Searching...</Typography>
                   ) : searchResults.length > 0 ? (
-                    <GridFocusGroup
-                      regionId="release-calendar-search-grid"
-                      className="game-grid"
-                    >
-                      {searchResults.map((game) => (
-                        <FocusItem
-                          key={game.slug}
-                          id={getReleaseCalendarGameCardFocusId(game.slug)}
-                          actions={{
-                            primary: () => navigate(`${basePath}/crack-calendar/${game.slug}`),
-                          }}
-                        >
-                          <VerticalGameCard
-                            gameTitle={game.title}
-                            coverImageUrl={game.image}
-                            subtitle={game.crackStatus === "CRACKED" ? "CRACKED" : "NOT CRACKED"}
-                            progressLabel={game.countdown === "Released" ? "Released" : game.countdown!}
-                            progressValue={game.countdown === "Released" ? 1 : 0}
-                            progressColor={game.crackStatus === "CRACKED" ? "var(--success)" : "var(--error)"}
-                            hideProgressIcon={game.countdown !== "Released"}
-                          />
-                        </FocusItem>
-                      ))}
-                    </GridFocusGroup>
+                    searchResults.map((game) => (
+                      <FocusItem
+                        key={game.slug}
+                        id={getReleaseCalendarGameCardFocusId(game.slug)}
+                        navigationOverrides={
+                          navigationOverridesByItemId[
+                            getReleaseCalendarGameCardFocusId(game.slug)
+                          ]
+                        }
+                        actions={{
+                          primary: () =>
+                            navigate(`${basePath}/crack-calendar/${game.slug}`),
+                        }}
+                        asChild
+                      >
+                        <VerticalGameCard
+                          gameTitle={game.title}
+                          coverImageUrl={game.image}
+                          subtitle={
+                            game.crackStatus === "CRACKED"
+                              ? "CRACKED"
+                              : "NOT CRACKED"
+                          }
+                          progressLabel={
+                            game.countdown === "Released"
+                              ? "Released"
+                              : formatCountdown(game.countdown)
+                          }
+                          progressValue={game.countdown === "Released" ? 1 : 0}
+                          progressColor={
+                            game.crackStatus === "CRACKED"
+                              ? "var(--success)"
+                              : "var(--error)"
+                          }
+                          hideProgressIcon={game.countdown !== "Released"}
+                        />
+                      </FocusItem>
+                    ))
                   ) : (
-                    <Typography variant="body">No results found for "{searchQuery}"</Typography>
-                  )}
-                </div>
-              ) : isLoading && !currentMonthData ? (
-                 <Typography variant="body">Loading...</Typography>
-              ) : groupedGames.length > 0 ? (
-                groupedGames.map(([day, games]) => (
-                  <div key={day} className="day-group">
-                    <Typography variant="h3" className="day-title">
-                      {day} {formatMonth(selectedMonth!).split(" ")[0]}
-                    </Typography>
-                    <GridFocusGroup
-                      regionId={`${RELEASE_CALENDAR_GRID_REGION_ID}-${day}`}
-                      className="game-grid"
+                    <FocusItem
+                      id={RELEASE_CALENDAR_EMPTY_STATE_ID}
+                      navigationOverrides={
+                        navigationOverridesByItemId[
+                          RELEASE_CALENDAR_EMPTY_STATE_ID
+                        ]
+                      }
+                      asChild
                     >
-                      {games.map((game) => (
-                        <FocusItem
-                          key={game.slug}
-                          id={getReleaseCalendarGameCardFocusId(game.slug)}
-                          actions={{
-                            primary: () => navigate(`${basePath}/crack-calendar/${game.slug}`),
-                          }}
-                        >
-                          <VerticalGameCard
-                            gameTitle={game.title}
-                            coverImageUrl={game.image}
-                            subtitle={game.crackStatus === "CRACKED" ? "CRACKED" : "NOT CRACKED"}
-                            progressLabel={game.countdown === "Released" ? "Released" : game.countdown}
-                            progressValue={game.countdown === "Released" ? 1 : 0}
-                            progressColor={game.crackStatus === "CRACKED" ? "var(--success)" : "var(--error)"}
-                            hideProgressIcon={game.countdown !== "Released"}
-                          />
-                        </FocusItem>
-                      ))}
-                    </GridFocusGroup>
-                  </div>
-                ))
+                      <Typography variant="body">
+                        No results found for "{searchQuery}"
+                      </Typography>
+                    </FocusItem>
+                  )}
+                </>
+              ) : isLoading && !currentMonthData ? (
+                <Typography variant="body">Loading...</Typography>
+              ) : groupedGames.length > 0 ? (
+                groupedGames.flatMap(([day, games]) => [
+                  <Typography
+                    key={`title-${day}`}
+                    variant="h3"
+                    className="day-title"
+                  >
+                    {day} {formatMonth(selectedMonth!).split(" ")[0]}
+                  </Typography>,
+                  ...games.map((game) => (
+                    <FocusItem
+                      key={game.slug}
+                      id={getReleaseCalendarGameCardFocusId(game.slug)}
+                      navigationOverrides={
+                        navigationOverridesByItemId[
+                          getReleaseCalendarGameCardFocusId(game.slug)
+                        ]
+                      }
+                      actions={{
+                        primary: () =>
+                          navigate(`${basePath}/crack-calendar/${game.slug}`),
+                      }}
+                      asChild
+                    >
+                      <VerticalGameCard
+                        gameTitle={game.title}
+                        coverImageUrl={game.image}
+                        subtitle={
+                          game.crackStatus === "CRACKED"
+                            ? "CRACKED"
+                            : "NOT CRACKED"
+                        }
+                        progressLabel={
+                          game.countdown === "Released"
+                            ? "Released"
+                            : formatCountdown(game.countdown)
+                        }
+                        progressValue={game.countdown === "Released" ? 1 : 0}
+                        progressColor={
+                          game.crackStatus === "CRACKED"
+                            ? "var(--success)"
+                            : "var(--error)"
+                        }
+                        hideProgressIcon={game.countdown !== "Released"}
+                      />
+                    </FocusItem>
+                  )),
+                ])
               ) : (
-                <Typography variant="body">No games found for this month.</Typography>
+                <FocusItem
+                  id={RELEASE_CALENDAR_EMPTY_STATE_ID}
+                  navigationOverrides={
+                    navigationOverridesByItemId[RELEASE_CALENDAR_EMPTY_STATE_ID]
+                  }
+                  asChild
+                >
+                  <Typography variant="body">
+                    No games found for this month.
+                  </Typography>
+                </FocusItem>
               )}
-            </div>
+            </GridFocusGroup>
           </ScrollArea>
-        </div>
-      </section>
-    </VerticalFocusGroup>
+      </div>
+    </section>
+  </VerticalFocusGroup>
   );
 }

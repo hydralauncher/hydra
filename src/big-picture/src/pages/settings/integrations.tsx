@@ -35,11 +35,10 @@ type IntegrationPreferenceKey = Extract<
   | "torBoxApiToken"
 >;
 
-interface IntegrationProviderDefinition
-  extends Omit<
-    IntegrationProviderConfig<DebridUser>,
-    "upTarget" | "downTarget"
-  > {
+interface IntegrationProviderDefinition extends Omit<
+  IntegrationProviderConfig<DebridUser>,
+  "upTarget" | "downTarget"
+> {
   featureFlag?: string;
   tokenPreferenceKey: IntegrationPreferenceKey;
 }

@@ -79,8 +79,8 @@ export function Header() {
   const searchValue = isOnLibraryPage
     ? librarySearchValue
     : isOnCrackCalendarPage
-    ? calendarSearchValue
-    : catalogueSearchValue;
+      ? calendarSearchValue
+      : catalogueSearchValue;
 
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
   const deferredSearchValue = useDeferredValue(localSearchValue);
@@ -148,12 +148,18 @@ export function Header() {
     if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/notifications")) return headerTitle;
     if (location.pathname.startsWith("/crack-calendar/"))
-      return headerTitle || t("release_calendar");
+      return (
+        headerTitle || t("release_calendar", { defaultValue: "Release Calendar" })
+      );
     if (location.pathname.startsWith("/library"))
       return headerTitle || t("library");
     if (location.pathname.startsWith("/search")) return t("search_results");
 
-    return t(pathTitle[location.pathname]);
+    const translationKey = pathTitle[location.pathname];
+    if (translationKey === "release_calendar")
+      return t(translationKey, { defaultValue: "Release Calendar" });
+
+    return t(translationKey);
   }, [location.pathname, headerTitle, t]);
 
   const totalItems = historyItems.length + suggestions.length;
@@ -449,8 +455,8 @@ export function Header() {
                   isOnLibraryPage
                     ? t("search_library")
                     : isOnCrackCalendarPage
-                    ? t("search_calendar")
-                    : t("search")
+                      ? t("search_calendar")
+                      : t("search")
                 }
                 value={localSearchValue}
                 className="header__search-input"

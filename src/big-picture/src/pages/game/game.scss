@@ -125,8 +125,7 @@
     }
 
     &[data-focused="true"] {
-      outline: 2px solid #fff;
-      outline-offset: 4px;
+      outline: none;
     }
   }
 
@@ -478,6 +477,15 @@
     align-items: flex-start;
     justify-content: flex-end;
     height: 100%;
+    outline: none !important;
+
+    &:focus,
+    &:focus-visible,
+    &[data-focused="true"],
+    &[data-focus-visible="true"] {
+      outline: none !important;
+    }
+
     background:
       linear-gradient(
         90deg,
@@ -656,8 +664,7 @@
     }
 
     &[data-focused="true"] {
-      outline: 2px solid #fff;
-      outline-offset: 4px;
+      outline: none;
     }
 
     p {

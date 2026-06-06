@@ -1,4 +1,4 @@
-import { app, BrowserWindow, net, protocol } from "electron";
+import { app, BrowserWindow, net, protocol, session } from "electron";
 import updater from "electron-updater";
 import i18n from "i18next";
 import path from "node:path";
@@ -154,6 +154,20 @@ app.whenReady().then(async () => {
 
   WindowManager.createNotificationWindow();
   WindowManager.createSystemTray(language || "en");
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const isSteamGridDB = details.url.includes("steamgriddb.com");
+    if (isSteamGridDB) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Access-Control-Allow-Origin": ["*"],
+        },
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  });
 
   if (deepLinkArg) {
     handleDeepLinkPath(deepLinkArg);

@@ -1,6 +1,6 @@
 import "./styles.scss";
 
-import { type ReactNode, useRef, useEffect } from "react";
+import { type ReactNode, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import cn from "classnames";
 
 export interface ScrollAreaProps {
@@ -14,13 +14,11 @@ export interface ScrollAreaProps {
   showScrollbar?: boolean;
 }
 
-export function ScrollArea({
-  children,
-  className,
-  onScroll,
-  showScrollbar = false,
-}: Readonly<ScrollAreaProps>) {
-  const ref = useRef<HTMLDivElement>(null);
+export const ScrollArea = forwardRef<HTMLDivElement, Readonly<ScrollAreaProps>>(
+  ({ children, className, onScroll, showScrollbar = false }, forwardedRef) => {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useImperativeHandle(forwardedRef, () => ref.current!);
 
   useEffect(() => {
     if (!onScroll) return;
@@ -50,3 +48,4 @@ export function ScrollArea({
     </div>
   );
 }
+);

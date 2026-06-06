@@ -1,0 +1,213 @@
+import type { FocusOverrides } from "../../services";
+import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
+import { useEffect, useState } from "react";
+import { useNavigationStore } from "../../stores";
+import {
+  RELEASE_CALENDAR_GRID_REGION_ID,
+  RELEASE_CALENDAR_MONTH_TABS_REGION_ID,
+} from "./navigation";
+import {
+  type ReleaseCalendarFocusPosition,
+  getActivePositionsInRegion,
+  getReleaseCalendarFocusPosition,
+  getClosestPositionInDirection,
+} from "./navigation-geometry";
+
+interface GridItemPosition extends ReleaseCalendarFocusPosition {
+  top: number;
+  left: number;
+  centerX: number;
+}
+
+const ROW_TOLERANCE_PX = 24;
+
+function groupItemsIntoRows(items: GridItemPosition[]) {
+  const sortedItems = [...items].sort((leftItem, rightItem) => {
+    if (Math.abs(leftItem.top - rightItem.top) > ROW_TOLERANCE_PX) {
+      return leftItem.top - rightItem.top;
+    }
+
+    return leftItem.left - rightItem.left;
+  });
+
+  return sortedItems.reduce<GridItemPosition[][]>((rows, item) => {
+    const lastRow = rows.at(-1);
+
+    if (!lastRow || Math.abs(lastRow[0].top - item.top) > ROW_TOLERANCE_PX) {
+      rows.push([item]);
+      return rows;
+    }
+
+    lastRow.push(item);
+    lastRow.sort((leftItem, rightItem) => leftItem.left - rightItem.left);
+    return rows;
+  }, []);
+}
+
+function getClosestItemByCenterX(
+  items: GridItemPosition[] | undefined,
+  centerX: number
+) {
+  if (!items?.length) return null;
+
+  return [...items].sort((leftItem, rightItem) => {
+    return (
+      Math.abs(leftItem.centerX - centerX) -
+      Math.abs(rightItem.centerX - centerX)
+    );
+  })[0];
+}
+
+function buildFocusOverridesForGridItem(
+  item: GridItemPosition,
+  row: GridItemPosition[],
+  itemIndex: number,
+  rowIndex: number,
+  rows: GridItemPosition[][],
+  headerPositions: ReleaseCalendarFocusPosition[]
+): FocusOverrides {
+  const leftItem = row[itemIndex - 1];
+  const rightItem = row[itemIndex + 1];
+  const upItem = getClosestItemByCenterX(rows[rowIndex - 1], item.centerX);
+  const downItem = getClosestItemByCenterX(rows[rowIndex + 1], item.centerX);
+  const headerItem = getClosestPositionInDirection(item, headerPositions, "up");
+
+  return {
+    left: leftItem
+      ? {
+          type: "item",
+          itemId: leftItem.id,
+        }
+      : {
+          type: "item",
+          itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.releaseCalendar,
+        },
+    right: rightItem
+      ? {
+          type: "item",
+          itemId: rightItem.id,
+        }
+      : { type: "block" },
+    up: upItem
+      ? {
+          type: "item",
+          itemId: upItem.id,
+        }
+      : headerItem
+        ? {
+            type: "item",
+            itemId: headerItem.id,
+          }
+        : { type: "block" },
+    down: downItem
+      ? {
+          type: "item",
+          itemId: downItem.id,
+        }
+      : { type: "block" },
+  };
+}
+
+function buildOverridesMapFromRows(
+  rows: GridItemPosition[][],
+  headerPositions: ReleaseCalendarFocusPosition[]
+) {
+  const nextOverridesByItemId: Record<string, FocusOverrides> = {};
+
+  rows.forEach((row, rowIndex) => {
+    row.forEach((item, itemIndex) => {
+      nextOverridesByItemId[item.id] = buildFocusOverridesForGridItem(
+        item,
+        row,
+        itemIndex,
+        rowIndex,
+        rows,
+        headerPositions
+      );
+    });
+  });
+
+  return nextOverridesByItemId;
+}
+
+export function useReleaseCalendarGridNavigation(itemIds: string[]) {
+  const [overridesByItemId, setOverridesByItemId] = useState<
+    Record<string, FocusOverrides>
+  >({});
+  const itemIdsKey = itemIds.join("\u0000");
+
+  useEffect(() => {
+    const ids = itemIdsKey ? itemIdsKey.split("\u0000") : [];
+
+    if (ids.length === 0) {
+      setOverridesByItemId({});
+      return;
+    }
+
+    let animationFrameId = 0;
+    const resizeObserver = new ResizeObserver(() => scheduleCompute());
+    const mutationObserver = new MutationObserver(() => scheduleCompute());
+
+    const computeOverrides = () => {
+      const items = ids
+        .map((id) => getReleaseCalendarFocusPosition(id))
+        .filter((position) => !!position)
+        .map((position) => ({
+          ...position,
+          top: position.rect.top,
+          left: position.rect.left,
+          centerX: position.rect.left + position.rect.width / 2,
+        }));
+      const rows = groupItemsIntoRows(items);
+      const headerPositions = getActivePositionsInRegion(
+        RELEASE_CALENDAR_MONTH_TABS_REGION_ID
+      );
+
+      setOverridesByItemId(
+        buildOverridesMapFromRows(
+          rows,
+          headerPositions
+        )
+      );
+    };
+
+    function scheduleCompute() {
+      globalThis.cancelAnimationFrame(animationFrameId);
+      animationFrameId = globalThis.requestAnimationFrame(computeOverrides);
+    }
+
+    scheduleCompute();
+    globalThis.addEventListener("resize", scheduleCompute);
+
+    [
+      RELEASE_CALENDAR_GRID_REGION_ID,
+      RELEASE_CALENDAR_MONTH_TABS_REGION_ID,
+    ].forEach((regionId) => {
+      const element = globalThis.document.querySelector(
+        `[data-focus-region-id="${regionId}"]`
+      );
+
+      if (!(element instanceof HTMLElement)) return;
+
+      resizeObserver.observe(element);
+      mutationObserver.observe(element, { childList: true, subtree: true });
+    });
+
+    ids.forEach((id) => {
+      const element = globalThis.document.getElementById(id);
+
+      if (element) {
+        resizeObserver.observe(element);
+      }
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+      globalThis.removeEventListener("resize", scheduleCompute);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [itemIdsKey]);
+
+  return overridesByItemId;
+}

@@ -1215,6 +1215,7 @@ export function VirtualKeyboardProvider() {
       <AnimatePresence>
         {target ? (
           <motion.div
+            key="virtual-keyboard-dock"
             ref={dockRef}
             className="virtual-keyboard-dock"
             data-layout-mode={layoutMode}

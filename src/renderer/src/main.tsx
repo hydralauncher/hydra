@@ -140,7 +140,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               path="game/:shop/:objectId/achievements"
               element={<BigPictureGameAchievements />}
             />
-            <Route path="crack-calendar" element={<BigPictureReleaseCalendar />} />
+            <Route
+              path="crack-calendar"
+              element={<BigPictureReleaseCalendar />}
+            />
             <Route
               path="crack-calendar/:slug"
               element={<BigPictureReleaseCalendarDetail />}

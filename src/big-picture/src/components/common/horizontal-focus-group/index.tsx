@@ -12,8 +12,10 @@ import {
 import {
   type HTMLAttributes,
   type ReactNode,
+  forwardRef,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
 } from "react";
 
@@ -27,26 +29,35 @@ interface HorizontalFocusGroupProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export function HorizontalFocusGroup({
-  regionId,
-  navigationOrder,
-  navigationOverrides,
-  autoScrollMode = "region",
-  getScrollAnchor,
-  asChild = false,
-  className,
-  style,
-  children,
-  ...props
-}: Readonly<HorizontalFocusGroupProps>) {
-  const generatedId = useId();
-  const parentRegionId = useFocusRegionId();
-  const layerId = useFocusLayerId();
-  const navigation = NavigationService.getInstance();
-  const initialNavigationOrderRef = useRef(navigationOrder);
-  const initialNavigationOverridesRef = useRef(navigationOverrides);
-  const initialGetScrollAnchorRef = useRef(getScrollAnchor);
-  const ref = useRef<HTMLDivElement | null>(null);
+export const HorizontalFocusGroup = forwardRef<
+  HTMLDivElement,
+  HorizontalFocusGroupProps
+>(
+  (
+    {
+      regionId,
+      navigationOrder,
+      navigationOverrides,
+      autoScrollMode = "region",
+      getScrollAnchor,
+      asChild = false,
+      className,
+      style,
+      children,
+      ...props
+    },
+    forwardedRef
+  ) => {
+    const generatedId = useId();
+    const parentRegionId = useFocusRegionId();
+    const layerId = useFocusLayerId();
+    const navigation = NavigationService.getInstance();
+    const initialNavigationOrderRef = useRef(navigationOrder);
+    const initialNavigationOverridesRef = useRef(navigationOverrides);
+    const initialGetScrollAnchorRef = useRef(getScrollAnchor);
+    const ref = useRef<HTMLDivElement | null>(null);
+
+    useImperativeHandle(forwardedRef, () => ref.current!);
   const resolvedRegionId =
     regionId ?? `focus-region-${generatedId.replaceAll(":", "")}`;
 
@@ -113,3 +124,4 @@ export function HorizontalFocusGroup({
     </FocusRegionContext.Provider>
   );
 }
+);

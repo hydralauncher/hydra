@@ -7,6 +7,7 @@ import cn from "classnames";
 import { useAppSelector, useAppDispatch } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import type { CrackCalendarGame } from "@types";
+import { formatCountdown } from "@renderer/utils/format-countdown";
 
 import styles from "./crack-calendar-detail.module.scss";
 
@@ -71,7 +72,11 @@ export default function CrackCalendarDetail() {
       <div className={styles.layout}>
         <div className={styles.coverSection}>
           {game.image ? (
-            <img src={game.image} alt={game.title} className={styles.coverImage} />
+            <img
+              src={game.image}
+              alt={game.title}
+              className={styles.coverImage}
+            />
           ) : (
             <div className={styles.imagePlaceholder} />
           )}
@@ -80,12 +85,24 @@ export default function CrackCalendarDetail() {
         <div className={styles.infoSection}>
           <h1 className={styles.title}>{game.title}</h1>
 
-          <div className={cn(styles.crackBadge, {
-            [styles.cracked]: game.crackStatus === "CRACKED",
-            [styles.notCracked]: game.crackStatus === "NOT CRACKED",
-            [styles.other]: game.crackStatus !== "CRACKED" && game.crackStatus !== "NOT CRACKED",
-          })}>
-            {game.crackStatus}
+          <div className={styles.statusBadges}>
+            <div
+              className={cn(styles.crackBadge, {
+                [styles.cracked]: game.crackStatus === "CRACKED",
+                [styles.notCracked]: game.crackStatus === "NOT CRACKED",
+                [styles.other]:
+                  game.crackStatus !== "CRACKED" &&
+                  game.crackStatus !== "NOT CRACKED",
+              })}
+            >
+              {game.crackStatus}
+            </div>
+
+            {game.countdown && game.countdown !== "Released" && (
+              <div className={cn(styles.crackBadge, styles.upcoming)}>
+                {formatCountdown(game.countdown)}
+              </div>
+            )}
           </div>
 
           {game.statusNote && (
@@ -97,7 +114,9 @@ export default function CrackCalendarDetail() {
           <div className={styles.infoGrid}>
             <div className={styles.infoRow}>
               <span className={styles.label}>{t("Release Date")}</span>
-              <span className={styles.value}>{game.releaseDate || t("Unknown")}</span>
+              <span className={styles.value}>
+                {game.releaseDate || t("Unknown")}
+              </span>
             </div>
             <div className={styles.infoRow}>
               <span className={styles.label}>{t("Crack Date")}</span>
@@ -105,11 +124,15 @@ export default function CrackCalendarDetail() {
             </div>
             <div className={styles.infoRow}>
               <span className={styles.label}>{t("DRM Protection")}</span>
-              <span className={styles.value}>{game.drmProtection || t("Unknown")}</span>
+              <span className={styles.value}>
+                {game.drmProtection || t("Unknown")}
+              </span>
             </div>
             <div className={styles.infoRow}>
               <span className={styles.label}>{t("Scene Group")}</span>
-              <span className={styles.value}>{game.sceneGroup || t("N/A")}</span>
+              <span className={styles.value}>
+                {game.sceneGroup || t("N/A")}
+              </span>
             </div>
           </div>
 

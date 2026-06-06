@@ -21,6 +21,7 @@
 
 .month-tabs-container {
   display: flex;
+  align-items: center;
   gap: calc(var(--spacing-unit) * 2);
   overflow-x: auto;
   padding-bottom: calc(var(--spacing-unit) * 2);
@@ -31,8 +32,64 @@
   }
 }
 
+.month-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.month-nav-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--spacing-unit);
+  color: var(--text-secondary);
+}
+
+.bumper-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 32px;
+  height: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .month-tab {
   white-space: nowrap;
+
+  &[data-focused="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    background: var(--primary-hover);
+  }
+}
+
+.last-updated {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+  padding-left: calc(var(--spacing-unit) * 4);
+}
+
+
+.vertical-game-card {
+  &[data-focused="true"] {
+    outline: 2px solid var(--primary);
+    outline-offset: 4px;
+    transform: scale(1.02);
+    transition: transform 0.2s ease-in-out;
+    z-index: 1;
+  }
 }
 
 .calendar-scroll-area {
@@ -42,9 +99,7 @@
 }
 
 .calendar-content {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--spacing-unit) * 12);
+  display: block;
 }
 
 .day-group {
@@ -57,6 +112,12 @@
   margin: 0;
   font-weight: 700;
   text-transform: capitalize;
+  grid-column: 1 / -1;
+  margin-top: calc(var(--spacing-unit) * 8);
+
+  &:first-child {
+    margin-top: 0;
+  }
 }
 
 .game-grid {
