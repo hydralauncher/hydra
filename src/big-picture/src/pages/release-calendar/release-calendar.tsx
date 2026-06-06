@@ -212,7 +212,9 @@ export default function ReleaseCalendar() {
               {searchQuery ? (
                 <>
                   <Typography variant="h3" className="day-title">
-                    {t("search_results")}
+                    {t("search_results", {
+                      defaultValue: "Search results",
+                    })}
                   </Typography>
                   {isSearching ? (
                     <Typography variant="body">Searching...</Typography>

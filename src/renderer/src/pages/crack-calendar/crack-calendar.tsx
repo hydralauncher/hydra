@@ -250,7 +250,10 @@ export default function CrackCalendar() {
 
         <div className={styles.content}>
           {searchQuery ? (
-            <div className={styles.searchResults}>
+            <div className={styles.dayGroup}>
+              <h2 className={styles.dayHeader}>
+                {t("search_results", { defaultValue: "Search results" })}
+              </h2>
               {isSearching ? (
                 <div className={styles.loadingGrid}>
                   {Array.from({ length: 12 }).map((_, i) => (

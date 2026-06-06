@@ -8,6 +8,4 @@ const searchCrackCalendar = async (
   return searchGames(query);
 };
 
-registerEvent("search-crack-calendar", searchCrackCalendar, {
-  needsAuth: false,
-});
+registerEvent("search-crack-calendar", searchCrackCalendar);

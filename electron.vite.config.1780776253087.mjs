@@ -4,7 +4,7 @@ import {
   defineConfig,
   externalizeDepsPlugin,
   loadEnv,
-  swcPlugin
+  swcPlugin,
 } from "electron-vite";
 import { resolve } from "path";
 import svgr from "vite-plugin-svgr";
@@ -13,7 +13,12 @@ import svgr from "vite-plugin-svgr";
 var BIG_PICTURE_ROOT_SELECTOR = "#big-picture";
 var BIG_PICTURE_PATH_FRAGMENT = "/src/big-picture/";
 var RENDERER_PATH_FRAGMENT = "/src/renderer/";
-var ROOT_SELECTOR_ALIASES = /* @__PURE__ */ new Set([":root", "html", "body", "#root"]);
+var ROOT_SELECTOR_ALIASES = /* @__PURE__ */ new Set([
+  ":root",
+  "html",
+  "body",
+  "#root",
+]);
 var isBigPictureStyle = (filePath) => {
   if (!filePath) return false;
   return filePath.replaceAll("\\", "/").includes(BIG_PICTURE_PATH_FRAGMENT);
@@ -24,7 +29,11 @@ var isRendererStyle = (filePath) => {
 };
 var shouldSkipRule = (rule) => {
   const parent = rule.parent;
-  return parent?.type === "atrule" && "name" in parent && parent.name.toLowerCase().endsWith("keyframes");
+  return (
+    parent?.type === "atrule" &&
+    "name" in parent &&
+    parent.name.toLowerCase().endsWith("keyframes")
+  );
 };
 var shouldSkipExclusion = (selector) => {
   const trimmed = selector.trim();
@@ -37,7 +46,11 @@ var shouldSkipExclusion = (selector) => {
 var scopeSelector = (selector) => {
   const trimmedSelector = selector.trim();
   if (!trimmedSelector) return selector;
-  if (trimmedSelector === BIG_PICTURE_ROOT_SELECTOR || trimmedSelector.startsWith(`${BIG_PICTURE_ROOT_SELECTOR} `) || trimmedSelector.startsWith(`${BIG_PICTURE_ROOT_SELECTOR}:`)) {
+  if (
+    trimmedSelector === BIG_PICTURE_ROOT_SELECTOR ||
+    trimmedSelector.startsWith(`${BIG_PICTURE_ROOT_SELECTOR} `) ||
+    trimmedSelector.startsWith(`${BIG_PICTURE_ROOT_SELECTOR}:`)
+  ) {
     return selector;
   }
   if (ROOT_SELECTOR_ALIASES.has(trimmedSelector)) {
@@ -64,7 +77,7 @@ var scopeBigPictureCss = () => ({
     if (isRendererStyle(rule.source?.input.file)) {
       rule.selectors = rule.selectors.map(excludeFromBigPicture);
     }
-  }
+  },
 });
 
 // electron.vite.config.ts
@@ -73,67 +86,65 @@ var electron_vite_config_default = defineConfig(({ mode }) => {
   return {
     main: {
       build: {
-        sourcemap: true
+        sourcemap: true,
       },
       resolve: {
         alias: {
           "@main": resolve("src/main"),
           "@locales": resolve("src/locales"),
           "@resources": resolve("resources"),
-          "@shared": resolve("src/shared")
-        }
+          "@shared": resolve("src/shared"),
+        },
       },
-      plugins: [externalizeDepsPlugin(), swcPlugin()]
+      plugins: [externalizeDepsPlugin(), swcPlugin()],
     },
     preload: {
-      plugins: [externalizeDepsPlugin()]
+      plugins: [externalizeDepsPlugin()],
     },
     bigPicture: {
       root: "src/big-picture",
       build: {
         outDir: "out/big-picture",
         rollupOptions: {
-          input: resolve("src/big-picture/index.html")
-        }
+          input: resolve("src/big-picture/index.html"),
+        },
       },
       css: {
         postcss: {
-          plugins: [scopeBigPictureCss()]
-        }
+          plugins: [scopeBigPictureCss()],
+        },
       },
       resolve: {
         alias: {
           "@locales": resolve("src/locales"),
-          "@shared": resolve("src/shared")
-        }
+          "@shared": resolve("src/shared"),
+        },
       },
-      plugins: [react()]
+      plugins: [react()],
     },
     renderer: {
       build: {
-        sourcemap: true
+        sourcemap: true,
       },
       css: {
         postcss: {
-          plugins: [scopeBigPictureCss()]
+          plugins: [scopeBigPictureCss()],
         },
         preprocessorOptions: {
           scss: {
-            api: "modern"
-          }
-        }
+            api: "modern",
+          },
+        },
       },
       resolve: {
         alias: {
           "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
-          "@shared": resolve("src/shared")
-        }
+          "@shared": resolve("src/shared"),
+        },
       },
-      plugins: [svgr(), react()]
-    }
+      plugins: [svgr(), react()],
+    },
   };
 });
-export {
-  electron_vite_config_default as default
-};
+export { electron_vite_config_default as default };

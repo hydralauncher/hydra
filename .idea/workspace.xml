@@ -6,6 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="4faaa42d-095c-4a5c-9e9a-d2ea35b5cb66" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/electron.vite.config.1780776253087.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/electron.vite.config.1780776253087.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-game.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-month.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/get-crack-calendar-months.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/events/catalogue/search-crack-calendar.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" afterDir="false" />
     </list>
@@ -35,23 +42,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.3804583914227684" />
-      <entry key="MS500" value="4.195337438708885" />
-      <entry key="S2" value="8.706104119055077" />
-      <entry key="S5" value="10.934183127740226" />
-      <entry key="S10" value="11.896126734576276" />
-      <entry key="S30" value="12.620111249250755" />
-      <entry key="S60" value="12.968064281567774" />
-      <entry key="M2" value="13.866807097307376" />
-      <entry key="M5" value="18.055774489826266" />
-      <entry key="M10" value="28.33276114869794" />
-      <entry key="M15" value="38.46488357481777" />
-      <entry key="M30" value="71.71333825499272" />
-      <entry key="H1" value="164.57388821158094" />
-      <entry key="H2" value="404.2685145572536" />
-      <entry key="H4" value="822.2304182819626" />
-      <entry key="D1" value="1748.4526257916973" />
-      <entry key="W1" value="2018.3473818424852" />
+      <entry key="MS100" value="1.3843708563334336" />
+      <entry key="MS500" value="3.7420420818609514" />
+      <entry key="S2" value="5.858130937118174" />
+      <entry key="S5" value="6.5073226515259455" />
+      <entry key="S10" value="6.74720088304444" />
+      <entry key="S30" value="7.002637803129057" />
+      <entry key="S60" value="10.86944496767147" />
+      <entry key="M2" value="34.23634109488593" />
+      <entry key="M5" value="104.28158916559336" />
+      <entry key="M10" value="176.7825000770166" />
+      <entry key="M15" value="226.52422119375086" />
+      <entry key="M30" value="321.436577623286" />
+      <entry key="H1" value="448.55768538393113" />
+      <entry key="H2" value="695.0307850080695" />
+      <entry key="H4" value="1124.0008062397576" />
+      <entry key="D1" value="2136.53830105214" />
+      <entry key="W1" value="2443.9502528301296" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -59,37 +66,37 @@
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
-      <entry key="S30" value="4.150053538845239E-147" />
-      <entry key="S60" value="6.442090917431427E-74" />
-      <entry key="M2" value="2.538127443102746E-37" />
-      <entry key="M5" value="2.3004106523230918E-15" />
-      <entry key="M10" value="4.7963320275385215E-8" />
-      <entry key="M15" value="1.3213748679784315E-5" />
-      <entry key="M30" value="0.003879412579260736" />
-      <entry key="H1" value="0.0950999876937725" />
-      <entry key="H2" value="0.6620537175921472" />
-      <entry key="H4" value="1.9380320908199562" />
-      <entry key="D1" value="4.953715565243258" />
-      <entry key="W1" value="5.837560609168201" />
+      <entry key="S30" value="6.3756516009774064E-177" />
+      <entry key="S60" value="7.984767749269458E-89" />
+      <entry key="M2" value="8.935752765866643E-45" />
+      <entry key="M5" value="2.4013333792131237E-18" />
+      <entry key="M10" value="1.5496470130816418E-9" />
+      <entry key="M15" value="1.3404225900433845E-6" />
+      <entry key="M30" value="0.001235588386519181" />
+      <entry key="H1" value="0.053670344718141486" />
+      <entry key="H2" value="0.49735923981220254" />
+      <entry key="H4" value="1.679768547026817" />
+      <entry key="D1" value="4.837034072494256" />
+      <entry key="W1" value="5.8177165397087185" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.3109866367679335" />
-      <entry key="MS500" value="4.156509565050009" />
-      <entry key="S2" value="8.684480719627341" />
-      <entry key="S5" value="10.922997365714831" />
-      <entry key="S10" value="11.889977369316364" />
-      <entry key="S30" value="12.617916719579794" />
-      <entry key="S60" value="12.966870203029092" />
-      <entry key="M2" value="13.866017251741008" />
-      <entry key="M5" value="18.055104534947247" />
-      <entry key="M10" value="28.33187835480403" />
-      <entry key="M15" value="38.463944379156665" />
-      <entry key="M30" value="71.71630110867835" />
-      <entry key="H1" value="164.66793675970126" />
-      <entry key="H2" value="404.92888388046293" />
-      <entry key="H4" value="824.1663723932772" />
-      <entry key="D1" value="1753.4055061988938" />
-      <entry key="W1" value="2024.1848025076595" />
+      <entry key="MS100" value="1.2515064828119893" />
+      <entry key="MS500" value="3.661060536129946" />
+      <entry key="S2" value="5.82761668696352" />
+      <entry key="S5" value="6.493929130083304" />
+      <entry key="S10" value="6.740287794693428" />
+      <entry key="S30" value="7.000255393002799" />
+      <entry key="S60" value="10.866856740179317" />
+      <entry key="M2" value="34.2248666616155" />
+      <entry key="M5" value="104.25438274327543" />
+      <entry key="M10" value="176.75656159100828" />
+      <entry key="M15" value="226.50253358578144" />
+      <entry key="M30" value="321.42393265696273" />
+      <entry key="H1" value="448.60311217253667" />
+      <entry key="H2" value="695.5228152446696" />
+      <entry key="H4" value="1125.6766788068073" />
+      <entry key="D1" value="2141.3741614063" />
+      <entry key="W1" value="2449.767778498949" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{

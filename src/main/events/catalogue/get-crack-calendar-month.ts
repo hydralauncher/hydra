@@ -8,6 +8,4 @@ const getCrackCalendarMonth = async (
   return getCalendarMonth(month);
 };
 
-registerEvent("get-crack-calendar-month", getCrackCalendarMonth, {
-  needsAuth: false,
-});
+registerEvent("get-crack-calendar-month", getCrackCalendarMonth);

@@ -937,7 +937,6 @@ export default function Downloads() {
     moveToPaused,
     cancelDownload,
     removeDownload,
-    moveQueuedDownload,
     setQueuedDownloadPosition,
     setPausedDownloadPosition,
     pauseSeeding,

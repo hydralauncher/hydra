@@ -8,6 +8,4 @@ const getCrackCalendarGame = async (
   return getGameDetail(slug);
 };
 
-registerEvent("get-crack-calendar-game", getCrackCalendarGame, {
-  needsAuth: false,
-});
+registerEvent("get-crack-calendar-game", getCrackCalendarGame);
