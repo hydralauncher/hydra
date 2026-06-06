@@ -6,31 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="4faaa42d-095c-4a5c-9e9a-d2ea35b5cb66" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/button/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/button/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/divider/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/divider/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/focus-item/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/focus-item/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/grid-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/grid-focus-group/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/horizontal-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/horizontal-focus-group/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-layer/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/navigation-layer/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/route-anchor/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/route-anchor/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/scroll-area/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/scroll-area/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/typography/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/typography/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-focus-group/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-focus-group/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-game-card/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/common/vertical-game-card/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/components/pages/library/game-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/components/pages/library/game-card.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/layout/navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/layout/navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/downloads/downloads.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/release-calendar-detail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar-detail/release-calendar-detail.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/navigation-geometry.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/navigation-geometry.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/page.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/page.scss" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/release-calendar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/use-release-calendar-grid-navigation.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/big-picture/src/pages/release-calendar/use-release-calendar-grid-navigation.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/locales/en/translation.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/locales/en/translation.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/components/header/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/components/header/header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.module.scss" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/pages/crack-calendar/crack-calendar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/utils/format-countdown.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/utils/format-countdown.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/renderer/src/utils/get-last-updated-label.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/renderer/src/utils/get-last-updated-label.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,23 +35,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000042659919073" />
-      <entry key="MS500" value="1.1508542210840234" />
-      <entry key="S2" value="3.682866185075442" />
-      <entry key="S5" value="8.360369439461671" />
-      <entry key="S10" value="12.478255886956058" />
-      <entry key="S30" value="17.086977874723818" />
-      <entry key="S60" value="19.674586148214267" />
-      <entry key="M2" value="23.50554123293859" />
-      <entry key="M5" value="29.46038620526541" />
-      <entry key="M10" value="33.73396028631832" />
-      <entry key="M15" value="39.1106850087327" />
-      <entry key="M30" value="71.30798649051447" />
-      <entry key="H1" value="173.2912933173271" />
-      <entry key="H2" value="425.6460144155076" />
-      <entry key="H4" value="844.0830976150826" />
-      <entry key="D1" value="1727.3830080150897" />
-      <entry key="W1" value="1978.114385289754" />
+      <entry key="MS100" value="1.3804583914227684" />
+      <entry key="MS500" value="4.195337438708885" />
+      <entry key="S2" value="8.706104119055077" />
+      <entry key="S5" value="10.934183127740226" />
+      <entry key="S10" value="11.896126734576276" />
+      <entry key="S30" value="12.620111249250755" />
+      <entry key="S60" value="12.968064281567774" />
+      <entry key="M2" value="13.866807097307376" />
+      <entry key="M5" value="18.055774489826266" />
+      <entry key="M10" value="28.33276114869794" />
+      <entry key="M15" value="38.46488357481777" />
+      <entry key="M30" value="71.71333825499272" />
+      <entry key="H1" value="164.57388821158094" />
+      <entry key="H2" value="404.2685145572536" />
+      <entry key="H4" value="822.2304182819626" />
+      <entry key="D1" value="1748.4526257916973" />
+      <entry key="W1" value="2018.3473818424852" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -82,37 +59,37 @@
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
       <entry key="S10" value="0.0" />
-      <entry key="S30" value="1.3821546053270716E-130" />
-      <entry key="S60" value="1.1756507157004902E-65" />
-      <entry key="M2" value="3.428776335225826E-33" />
-      <entry key="M5" value="1.0328937809580235E-13" />
-      <entry key="M10" value="3.213914995117997E-7" />
-      <entry key="M15" value="4.6965196091612825E-5" />
-      <entry key="M30" value="0.007313765280017183" />
-      <entry key="H1" value="0.13057739045267103" />
-      <entry key="H2" value="0.775777162803691" />
-      <entry key="H4" value="2.0978906390837695" />
-      <entry key="D1" value="5.019587702200899" />
-      <entry key="W1" value="5.848587225148292" />
+      <entry key="S30" value="4.150053538845239E-147" />
+      <entry key="S60" value="6.442090917431427E-74" />
+      <entry key="M2" value="2.538127443102746E-37" />
+      <entry key="M5" value="2.3004106523230918E-15" />
+      <entry key="M10" value="4.7963320275385215E-8" />
+      <entry key="M15" value="1.3213748679784315E-5" />
+      <entry key="M30" value="0.003879412579260736" />
+      <entry key="H1" value="0.0950999876937725" />
+      <entry key="H2" value="0.6620537175921472" />
+      <entry key="H4" value="1.9380320908199562" />
+      <entry key="D1" value="4.953715565243258" />
+      <entry key="W1" value="5.837560609168201" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.026830176063445003" />
-      <entry key="MS500" value="0.5694373907136285" />
-      <entry key="S2" value="3.3342073810268307" />
-      <entry key="S5" value="8.145528718860023" />
-      <entry key="S10" value="12.341806632269778" />
-      <entry key="S30" value="17.031015259682032" />
-      <entry key="S60" value="19.64482338404342" />
-      <entry key="M2" value="23.490043860738684" />
-      <entry key="M5" value="29.453916118042947" />
-      <entry key="M10" value="33.7306379492562" />
-      <entry key="M15" value="39.108455349537635" />
-      <entry key="M30" value="71.31394297104347" />
-      <entry key="H1" value="173.4205812792092" />
-      <entry key="H2" value="426.4198885347745" />
-      <entry key="H4" value="846.1787727464783" />
-      <entry key="D1" value="1732.4017549063738" />
-      <entry key="W1" value="1983.9628330809298" />
+      <entry key="MS100" value="1.3109866367679335" />
+      <entry key="MS500" value="4.156509565050009" />
+      <entry key="S2" value="8.684480719627341" />
+      <entry key="S5" value="10.922997365714831" />
+      <entry key="S10" value="11.889977369316364" />
+      <entry key="S30" value="12.617916719579794" />
+      <entry key="S60" value="12.966870203029092" />
+      <entry key="M2" value="13.866017251741008" />
+      <entry key="M5" value="18.055104534947247" />
+      <entry key="M10" value="28.33187835480403" />
+      <entry key="M15" value="38.463944379156665" />
+      <entry key="M30" value="71.71630110867835" />
+      <entry key="H1" value="164.66793675970126" />
+      <entry key="H2" value="404.92888388046293" />
+      <entry key="H4" value="824.1663723932772" />
+      <entry key="D1" value="1753.4055061988938" />
+      <entry key="W1" value="2024.1848025076595" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{

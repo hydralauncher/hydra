@@ -157,17 +157,10 @@ export default function CrackCalendar() {
     const handleCardClick = () => navigate(`/crack-calendar/${game.slug}`);
 
     return (
-      <article
-        key={game.slug}
+      <button
+        type="button"
         className={styles.gameCard}
         onClick={handleCardClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            handleCardClick();
-          }
-        }}
-        role="button"
-        tabIndex={0}
       >
         <div className={styles.coverWrapper}>
           {game.image ? (
@@ -204,7 +197,7 @@ export default function CrackCalendar() {
         <div className={styles.gameDetails}>
           <span className={styles.gameTitle}>{game.title}</span>
         </div>
-      </article>
+      </button>
     );
   };
 

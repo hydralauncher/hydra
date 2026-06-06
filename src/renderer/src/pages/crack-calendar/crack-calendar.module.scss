@@ -72,14 +72,18 @@
 }
 
 .gameCard {
+  all: unset;
+
   background-color: transparent;
   width: 100%;
   color: #fff;
   overflow: hidden;
   position: relative;
+
   display: flex;
   flex-direction: column;
   gap: 8px;
+
   cursor: pointer;
   transition: transform 0.2s;
 
@@ -87,6 +91,11 @@
     .coverWrapper {
       transform: translateY(-4px);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffffff40;
+    outline-offset: 4px;
   }
 }
 
