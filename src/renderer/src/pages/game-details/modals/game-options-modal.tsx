@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
+import { formatBytes } from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -19,6 +19,7 @@ import {
   useLibrary,
   useToast,
   useUserDetails,
+  useVerifyGameIntegrity,
 } from "@renderer/hooks";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
@@ -62,6 +63,8 @@ export function GameOptionsModal({
   onNavigateHome,
   initialCategory,
 }: Readonly<GameOptionsModalProps>) {
+  const MANGOHUD_SITE_URL = "https://mangohud.com";
+  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();
@@ -99,6 +102,9 @@ export function GameOptionsModal({
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
+  const [customDownloadPath, setCustomDownloadPath] = useState<string | null>(
+    null
+  );
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [selectedProtonPath, setSelectedProtonPath] = useState(
     game.protonPath ?? ""
@@ -119,6 +125,18 @@ export function GameOptionsModal({
   >(null);
   const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
+  const [verifyingIntegrity, setVerifyingIntegrity] = useState(false);
+
+  const { verifyIntegrity } = useVerifyGameIntegrity();
+
+  const handleVerifyIntegrity = async () => {
+    try {
+      setVerifyingIntegrity(true);
+      await verifyIntegrity(game, repacks, customDownloadPath);
+    } finally {
+      setVerifyingIntegrity(false);
+    }
+  };
 
   const {
     removeGameInstaller,
@@ -617,6 +635,16 @@ export function GameOptionsModal({
   const displayedWinePrefixPath =
     game.winePrefixPath ?? defaultHydraWinePrefixPath;
 
+  const handleSelectDownloadPath = async () => {
+    const { filePaths, canceled } = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+
+    if (!canceled && filePaths.length > 0) {
+      setCustomDownloadPath(filePaths[0]);
+    }
+  };
+
   const categories = useMemo(
     () => [
       {
@@ -782,6 +810,10 @@ export function GameOptionsModal({
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
+                onVerifyIntegrity={handleVerifyIntegrity}
+                verifyingIntegrity={verifyingIntegrity}
+                customDownloadPath={customDownloadPath}
+                onSelectDownloadPath={handleSelectDownloadPath}
                 isTransferring={isTransferring}
                 transferProgress={transferProgress}
                 drives={drives}
@@ -824,6 +856,10 @@ export function GameOptionsModal({
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
+                onVerifyIntegrity={handleVerifyIntegrity}
+                verifyingIntegrity={verifyingIntegrity}
+                customDownloadPath={customDownloadPath}
+                onSelectDownloadPath={handleSelectDownloadPath}
                 isTransferring={isTransferring}
                 transferProgress={transferProgress}
                 drives={drives}

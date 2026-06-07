@@ -595,7 +595,14 @@
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "delete_shortcut_success": "Steam shortcut deleted successfully",
     "delete_shortcut_error": "Failed to delete Steam shortcut",
-    "delete_steam_shortcut": "Delete Steam shortcut"
+    "delete_steam_shortcut": "Delete Steam shortcut",
+    "verify_integrity": "Verify Integrity",
+    "verify_integrity_success": "Verification started successfully. Check the downloads bar.",
+    "verify_integrity_error": "Error during verification.",
+    "no_download_path": "Please select a download folder.",
+    "no_download_path_selected": "No download path selected",
+    "download_path_verification": "Download path (used for verification)",
+    "verifying": "Verifying..."
   },
   "activation": {
     "title": "Activate Hydra",

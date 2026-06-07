@@ -7,6 +7,7 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
+  ToolsIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { XCircle } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   useLibrary,
   useToast,
   useUserDetails,
+  useVerifyGameIntegrity,
 } from "@renderer/hooks";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +55,7 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { t } = useTranslation("game_details");
 
@@ -101,6 +103,13 @@ export function HeroPanelActions() {
       );
     };
   }, [updateLibrary, updateGame]);
+
+  const { verifyIntegrity } = useVerifyGameIntegrity();
+
+  const handleVerifyIntegrity = async () => {
+    if (!game) return;
+    await verifyIntegrity(game, repacks);
+  };
 
   const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
@@ -256,6 +265,21 @@ export function HeroPanelActions() {
         >
           <PlayIcon />
           {t("play")}
+        </Button>
+      );
+    }
+
+    // Show a "Repair" button when the game has a download folder but no executable yet
+    if (game?.download?.downloadPath) {
+      return (
+        <Button
+          onClick={handleVerifyIntegrity}
+          theme="outline"
+          disabled={deleting || isGameDownloading}
+          className="hero-panel-actions__action"
+        >
+          <ToolsIcon />
+          {t("repair", "Réparer")}
         </Button>
       );
     }

@@ -239,6 +239,12 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
+    verifyGameIntegrity: (
+      shop: GameShop,
+      objectId: string,
+      fallbackUri?: string,
+      fallbackDownloadPath?: string
+    ) => Promise<boolean>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
@@ -383,11 +389,6 @@ declare global {
       cb: (progress: AxiosProgressEvent) => void
     ) => () => Electron.IpcRenderer;
 
-    /* Clipboard */
-    clipboard: {
-      writeText: (text: string) => Promise<void>;
-    };
-
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
@@ -396,6 +397,12 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     isPortableVersion: () => Promise<boolean>;
+    addWindowsDefenderExclusion: (path: string) => Promise<boolean>;
+    removeWindowsDefenderExclusion: (path: string) => Promise<boolean>;
+    updateWindowsDefenderExclusion: (
+      oldPath: string,
+      newPath: string
+    ) => Promise<boolean>;
     showOpenDialog: (
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;

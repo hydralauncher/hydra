@@ -12,3 +12,5 @@ export * from "./use-game-card";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
 export * from "./use-game-collections";
+export * from "./use-verify-game-integrity";  
+ 
