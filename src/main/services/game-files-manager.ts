@@ -757,12 +757,9 @@ export class GameFilesManager {
       return { exePath: setupPath, isSetup: true };
     }
 
-    if (validExes.length > 0 && !bestMatch) {
-      bestMatch = validExes.reduce(
-        (a, b) => (path.basename(a).length <= path.basename(b).length ? a : b),
-        validExes[0]
-      );
-      return { exePath: bestMatch, isSetup: false };
+    // If there is exactly one valid executable, we can just assume it's the game
+    if (validExes.length === 1 && !setupPath) {
+      return { exePath: validExes[0], isSetup: false };
     }
 
     return null;
