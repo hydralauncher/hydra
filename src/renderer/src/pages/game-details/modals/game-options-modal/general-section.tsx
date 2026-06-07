@@ -35,6 +35,10 @@ interface GeneralSettingsSectionProps {
   onBlurGameTitle: () => Promise<void>;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
+  onVerifyIntegrity: () => Promise<void>;
+  verifyingIntegrity: boolean;
+  customDownloadPath: string | null;
+  onSelectDownloadPath: () => Promise<void>;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];
@@ -97,6 +101,10 @@ export function GeneralSettingsSection({
   onBlurGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
+  onVerifyIntegrity,
+  verifyingIntegrity,
+  customDownloadPath,
+  onSelectDownloadPath,
   isTransferring,
   transferProgress,
   drives,
@@ -214,6 +222,89 @@ export function GeneralSettingsSection({
             </h4>
           </div>
 
+          {game.download?.downloadPath || customDownloadPath ? (
+            <>
+              <h4
+                className="game-options-modal__header-description"
+                style={{ marginBottom: 8, marginTop: 16 }}
+              >
+                {t(
+                  "download_path",
+                  "Dossier de téléchargement (utilisé pour la vérification)"
+                )}
+              </h4>
+              <div
+                className="game-options-modal__executable-field"
+                style={{ marginBottom: 16 }}
+              >
+                <TextField
+                  value={
+                    game.download?.downloadPath
+                      ? `${game.download.downloadPath}\\${game.download.folderName || ""}`.replace(
+                          /\\$/,
+                          ""
+                        )
+                      : customDownloadPath!
+                  }
+                  readOnly
+                  theme="dark"
+                  disabled
+                  rightContent={
+                    !game.download?.downloadPath && (
+                      <>
+                        <Button
+                          type="button"
+                          theme="outline"
+                          onClick={onSelectDownloadPath}
+                        >
+                          <FolderOpen size={16} />
+                          {t("browse", "Parcourir")}
+                        </Button>
+                      </>
+                    )
+                  }
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <h4
+                className="game-options-modal__header-description"
+                style={{ marginBottom: 8, marginTop: 16 }}
+              >
+                {t(
+                  "download_path",
+                  "Dossier de téléchargement (utilisé pour la vérification)"
+                )}
+              </h4>
+              <div
+                className="game-options-modal__executable-field"
+                style={{ marginBottom: 16 }}
+              >
+                <TextField
+                  value=""
+                  readOnly
+                  theme="dark"
+                  disabled
+                  placeholder={t(
+                    "no_download_path_selected",
+                    "Aucun dossier de téléchargement sélectionné"
+                  )}
+                  rightContent={
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={onSelectDownloadPath}
+                    >
+                      <FolderOpen size={16} />
+                      {t("browse", "Parcourir")}
+                    </Button>
+                  }
+                />
+              </div>
+            </>
+          )}
+
           <div className="game-options-modal__executable-field">
             <TextField
               value={game.executablePath || ""}
@@ -251,6 +342,18 @@ export function GeneralSettingsSection({
                   {t("open_folder")}
                 </Button>
               )}
+
+              <Button
+                type="button"
+                theme="outline"
+                onClick={onVerifyIntegrity}
+                disabled={verifyingIntegrity}
+              >
+                {verifyingIntegrity
+                  ? t("verifying")
+                  : t("verify_integrity", "Vérifier l'intégrité")}
+              </Button>
+
               {game.shop !== "custom" &&
                 window.electron.platform === "win32" && (
                   <Button

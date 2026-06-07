@@ -858,7 +858,15 @@
     "downloads": "Downloads",
     "create_shortcuts_on_download": "Create desktop and Start Menu shortcuts when a game finishes downloading",
     "default_proton_version": "Default Proton version",
-    "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override"
+    "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override",
+    "windows_defender_exclusion_success": "Windows Defender exclusion added successfully!",
+    "windows_defender_exclusion_error": "Error adding Windows Defender exclusion.",
+    "windows_defender_exclusion_removed_success": "Windows Defender exclusion removed successfully!",
+    "windows_defender_exclusion_removed_error": "Error removing Windows Defender exclusion.",
+    "windows_defender_exclusion_updated_success": "Windows Defender exclusion folder has been updated!",
+    "windows_defender_exclusion_updated_error": "Error updating Windows Defender exclusion.",
+    "remove_windows_defender_exclusion": "Remove Windows Defender Exclusion",
+    "add_windows_defender_exclusion": "Add Windows Defender Exclusion"
   },
   "notifications": {
     "download_complete": "Download complete",
