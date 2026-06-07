@@ -586,115 +586,88 @@
     }
   }
 
-  /* ── Cloud saves ──────────────────────────────────────────────────────── */
-
-  // Wider gap between the section header and the cards (per the design).
   &__cloud-section {
     gap: 40px;
   }
 
+  &__cloud-stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 56px;
+    width: 100%;
+  }
+
+  &__cloud-console {
+    width: 320px;
+    max-width: 100%;
+    flex-shrink: 0;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  &__cloud-connector {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    color: #3a3a3c;
+  }
+
   &__cloud-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(0, 468px));
-    gap: 12px;
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    width: 100%;
   }
 
   &__cloud-card {
     box-sizing: border-box;
-    height: 146px;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 153px;
     background: #0d0d0d;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
-    padding: 10px 16px 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 6px;
+    justify-content: flex-end;
+    gap: 16px;
+    overflow: visible;
   }
 
-  // Card art is taller than the title row, so its negative margin lets it rise
-  // above the card's top edge while the title/size stay vertically centered.
-  &__cloud-card-head {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  &__cloud-card-icon {
-    width: 64px;
-    height: 82px;
-    object-fit: contain;
+  &__cloud-card-top {
     flex-shrink: 0;
-    margin-top: -36px;
-    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
-  }
-
-  &__cloud-card-title {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.18px;
-    color: #c0c1c7;
-    flex: 0 1 auto;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__cloud-card-size {
-    font-size: 14px;
-    color: #8e919b;
-    flex-shrink: 0;
-  }
-
-  &__cloud-card-body {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
-  }
-
-  &__cloud-card-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-
-    span {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
-      letter-spacing: 0.14px;
-      color: #c0c1c7;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
-      svg {
-        color: #8e919b;
-        flex-shrink: 0;
-      }
-    }
-  }
-
-  &__cloud-card-info-muted {
-    color: #8e919b !important;
-  }
-
-  &__cloud-card-actions {
-    display: flex;
-    align-items: center;
     gap: 8px;
-    flex-shrink: 0;
   }
 
-  &__cloud-icon-button {
+  &__cloud-card-art {
+    position: relative;
+    top: 10px;
+    width: 60px;
+    height: 71px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  }
+
+  &__cloud-menu {
     background: transparent;
     border: 0;
     color: #8e919b;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -704,25 +677,43 @@
     }
   }
 
-  // Destructive "remove from cloud" button — same red treatment as the review
-  // card's delete button, sized to match the Restore button beside it.
-  &__cloud-delete {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-    padding: 8px 16px;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-    border-radius: 8px;
-    background: rgba(244, 67, 54, 0.1);
-    color: #f44336;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  &__cloud-menu-icon {
+    transform: rotate(90deg);
+  }
 
-    &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: #f44336;
-      color: #ff5722;
+  &__cloud-card-title {
+    flex-shrink: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.18px;
+    color: #c0c1c7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__cloud-card-info {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      letter-spacing: 0.14px;
+      color: #8e919b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      svg {
+        color: #8e919b;
+        flex-shrink: 0;
+      }
     }
   }
 
