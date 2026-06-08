@@ -36,9 +36,9 @@
     letter-spacing: 0.4px;
     padding: 1px 7px;
     border-radius: 999px;
-    color: #0cf1ca;
-    background: rgba(12, 241, 202, 0.05);
-    border: 1px solid rgba(12, 241, 202, 0.3);
+    color: #c0c1c7;
+    background: rgba(192, 193, 199, 0.12);
+    border: 1px solid rgba(192, 193, 199, 0.3);
   }
 
   &__description,
@@ -53,7 +53,7 @@
   &__cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+    gap: 44px 16px;
     padding-top: 32px;
   }
 }

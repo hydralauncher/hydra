@@ -4,6 +4,7 @@ import {
   ChevronRightIcon,
   DownloadIcon,
   FileDirectoryIcon,
+  KebabHorizontalIcon,
   QuestionIcon,
   SyncIcon,
   TrashIcon,
@@ -11,6 +12,7 @@ import {
 } from "@primer/octicons-react";
 
 import { Button, ConfirmationModal } from "@renderer/components";
+import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import type {
@@ -365,7 +367,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                                 <img src={cover} alt={title} loading="lazy" />
                               ) : (
                                 <div className="emulator-detail__memcard-cover-placeholder">
-                                  <QuestionIcon size={28} />
+                                  <QuestionIcon size={20} />
                                 </div>
                               )}
                             </div>
@@ -394,38 +396,44 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                                 )}`}
                               </span>
                             </div>
-                            <div className="emulator-detail__memcard-actions">
-                              <Button
-                                theme="outline"
-                                onClick={() => handleExport(save)}
-                                disabled={exporting}
-                              >
-                                <DownloadIcon size={14} />
-                                <span>
-                                  {exporting
+                            <DropdownMenu
+                              align="end"
+                              items={[
+                                {
+                                  icon: <DownloadIcon size={16} />,
+                                  label: exporting
                                     ? t("memcard_exporting")
                                     : t(
                                         isPs1
                                           ? "memcard_export_mcs"
                                           : "memcard_export"
-                                      )}
-                                </span>
-                              </Button>
-                              {hasActiveSubscription && (
-                                <Button
-                                  theme="outline"
-                                  onClick={() => handleBackup(save)}
-                                  disabled={backingUpKey === saveKey(save)}
-                                >
-                                  <UploadIcon size={14} />
-                                  <span>
-                                    {backingUpKey === saveKey(save)
+                                      ),
+                                  disabled: exporting,
+                                  onClick: () => handleExport(save),
+                                },
+                                {
+                                  icon: <UploadIcon size={16} />,
+                                  label:
+                                    backingUpKey === saveKey(save)
                                       ? t("cloud_backing_up")
-                                      : t("cloud_backup")}
-                                  </span>
-                                </Button>
-                              )}
-                            </div>
+                                      : t("cloud_backup"),
+                                  disabled: backingUpKey === saveKey(save),
+                                  show: hasActiveSubscription,
+                                  onClick: () => handleBackup(save),
+                                },
+                              ]}
+                            >
+                              <button
+                                type="button"
+                                className="emulator-detail__memcard-menu"
+                                aria-label={title}
+                              >
+                                <KebabHorizontalIcon
+                                  size={16}
+                                  className="emulator-detail__cloud-menu-icon"
+                                />
+                              </button>
+                            </DropdownMenu>
                           </div>
                         );
                       })}

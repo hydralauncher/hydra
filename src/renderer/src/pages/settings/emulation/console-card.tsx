@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon, GearIcon, AlertIcon } from "@primer/octicons-react";
 
@@ -43,11 +44,33 @@ export function ConsoleCard({
 }: Readonly<ConsoleCardProps>) {
   const { t } = useTranslation("settings");
 
+  const [executableExists, setExecutableExists] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!config.executablePath) {
+      setExecutableExists(false);
+      return;
+    }
+    window.electron
+      .checkEmulatorExecutable(config.system)
+      .then(({ exists }) => {
+        if (!cancelled) setExecutableExists(exists);
+      })
+      .catch(() => {
+        if (!cancelled) setExecutableExists(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [config.system, config.executablePath]);
+
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const isConfigured = config.executablePath !== null;
+  const pathMissing = isConfigured && !executableExists;
   const hasRomFolders = config.romFolders.length > 0;
   const hasRoms = hasRomFolders && config.totalFiles > 0;
-  const isReady = isConfigured && hasRomFolders;
+  const isReady = isConfigured && executableExists && hasRomFolders;
   const relative = formatRelative(config.lastScanAt);
 
   return (
@@ -80,7 +103,7 @@ export function ConsoleCard({
       </div>
 
       <div className="console-card__body">
-        {isConfigured && hasRoms && (
+        {isConfigured && executableExists && hasRoms && (
           <div className="console-card__stats">
             <div className="console-card__stat-row">
               <span className="console-card__stat-dot" />
@@ -101,7 +124,7 @@ export function ConsoleCard({
           </div>
         )}
 
-        {isConfigured && !hasRoms && (
+        {isConfigured && executableExists && !hasRoms && (
           <div className="console-card__hint-box">
             <div className="console-card__hint-title">
               <AlertIcon size={14} />
@@ -109,6 +132,18 @@ export function ConsoleCard({
             </div>
             <p className="console-card__hint-text">
               {t("no_rom_folder_hint", { system: systemLabel })}
+            </p>
+          </div>
+        )}
+
+        {pathMissing && (
+          <div className="console-card__hint-box">
+            <div className="console-card__hint-title">
+              <AlertIcon size={14} />
+              <span>{t("executable_missing")}</span>
+            </div>
+            <p className="console-card__hint-text">
+              {t("executable_missing_hint", { name: binaryName })}
             </p>
           </div>
         )}

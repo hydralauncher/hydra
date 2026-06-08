@@ -22,10 +22,10 @@
 
   &__art {
     position: absolute;
-    top: -42px;
+    top: -40px;
     left: 12px;
-    width: 180px;
-    height: 120px;
+    width: 140px;
+    height: 94px;
     object-fit: contain;
     object-position: bottom left;
     pointer-events: none;
@@ -172,20 +172,20 @@
     }
 
     &--ready {
-      color: #0cf1ca;
-      background: rgba(12, 241, 202, 0.12);
+      color: #c0c1c7;
+      background: rgba(192, 193, 199, 0.12);
 
       .console-card__chip-dot {
-        background: #0cf1ca;
+        background: #c0c1c7;
       }
     }
 
     &--warn {
-      color: #f59e0b;
-      background: rgba(245, 158, 11, 0.12);
+      color: #c0c1c7;
+      background: rgba(192, 193, 199, 0.12);
 
       .console-card__chip-dot {
-        background: #f59e0b;
+        background: #c0c1c7;
       }
     }
   }

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Tooltip } from "react-tooltip";
 import {
   ClockIcon,
   DeviceDesktopIcon,
@@ -57,6 +58,7 @@ export function SearchDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const { t } = useTranslation("header");
+  const shopTooltipId = useId();
 
   useEffect(() => {
     if (!visible) {
@@ -123,139 +125,150 @@ export function SearchDropdown({
   };
 
   const dropdownContent = (
-    <div
-      ref={dropdownRef}
-      className="search-dropdown"
-      style={{
-        left: adjustedPosition.x,
-        top: adjustedPosition.y,
-      }}
-    >
-      {hasHistory && (
-        <div className="search-dropdown__section">
-          <div className="search-dropdown__section-header">
-            <span className="search-dropdown__section-title">
-              {t("recent_searches")}
-            </span>
-            <button
-              type="button"
-              className="search-dropdown__clear-text-button"
-              onClick={onClearHistory}
-            >
-              {t("clear_history")}
-            </button>
-          </div>
-          <ul className="search-dropdown__list">
-            {historyItems.map((item, index) => (
-              <li
-                key={`history-${item.query}-${item.timestamp}`}
-                className="search-dropdown__item-container"
+    <>
+      <div
+        ref={dropdownRef}
+        className="search-dropdown"
+        style={{
+          left: adjustedPosition.x,
+          top: adjustedPosition.y,
+        }}
+      >
+        {hasHistory && (
+          <div className="search-dropdown__section">
+            <div className="search-dropdown__section-header">
+              <span className="search-dropdown__section-title">
+                {t("recent_searches")}
+              </span>
+              <button
+                type="button"
+                className="search-dropdown__clear-text-button"
+                onClick={onClearHistory}
               >
-                <button
-                  type="button"
-                  className={cn("search-dropdown__item", {
-                    "search-dropdown__item--active":
-                      activeIndex === getItemIndex("history", index),
-                  })}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onSelectHistory(item.query)}
-                >
-                  <ClockIcon size={16} className="search-dropdown__item-icon" />
-                  <span className="search-dropdown__item-text">
-                    {item.query}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="search-dropdown__item-remove"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveHistoryItem(item.query);
-                  }}
-                  title={t("remove_from_history")}
-                >
-                  <XIcon size={12} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {(hasSuggestions || isLoadingSuggestions) && (
-        <div className="search-dropdown__section">
-          <div className="search-dropdown__section-header">
-            <span className="search-dropdown__section-title">
-              {t("suggestions")}
-            </span>
-            {showShopSwitch && (
-              <div className="search-dropdown__shop-switch">
-                <button
-                  type="button"
-                  className={cn("search-dropdown__shop-button", {
-                    "search-dropdown__shop-button--active":
-                      suggestionShop === "steam",
-                  })}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onSuggestionShopChange("steam")}
-                  aria-label="PC"
-                >
-                  <DeviceDesktopIcon size={14} />
-                </button>
-                <button
-                  type="button"
-                  className={cn("search-dropdown__shop-button", {
-                    "search-dropdown__shop-button--active":
-                      suggestionShop === "launchbox",
-                  })}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onSuggestionShopChange("launchbox")}
-                  aria-label="Classics"
-                >
-                  <ClassicsIcon size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-          {hasSuggestions ? (
+                {t("clear_history")}
+              </button>
+            </div>
             <ul className="search-dropdown__list">
-              {suggestions.map((item, index) => (
-                <li key={`suggestion-${item.objectId}-${item.shop}`}>
+              {historyItems.map((item, index) => (
+                <li
+                  key={`history-${item.query}-${item.timestamp}`}
+                  className="search-dropdown__item-container"
+                >
                   <button
                     type="button"
                     className={cn("search-dropdown__item", {
                       "search-dropdown__item--active":
-                        activeIndex === getItemIndex("suggestion", index),
+                        activeIndex === getItemIndex("history", index),
                     })}
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => onSelectSuggestion(item)}
+                    onClick={() => onSelectHistory(item.query)}
                   >
-                    {item.iconUrl ? (
-                      <img
-                        src={item.iconUrl}
-                        alt=""
-                        className="search-dropdown__item-icon search-dropdown__item-icon--image"
-                      />
-                    ) : (
-                      <SearchIcon
-                        size={16}
-                        className="search-dropdown__item-icon"
-                      />
-                    )}
+                    <ClockIcon
+                      size={16}
+                      className="search-dropdown__item-icon"
+                    />
                     <span className="search-dropdown__item-text">
-                      <HighlightText text={item.title} query={currentQuery} />
+                      {item.query}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="search-dropdown__item-remove"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveHistoryItem(item.query);
+                    }}
+                    title={t("remove_from_history")}
+                  >
+                    <XIcon size={12} />
                   </button>
                 </li>
               ))}
             </ul>
-          ) : (
-            <div className="search-dropdown__loading">{t("loading")}</div>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+
+        {(hasSuggestions || isLoadingSuggestions) && (
+          <div className="search-dropdown__section">
+            <div className="search-dropdown__section-header">
+              <span className="search-dropdown__section-title">
+                {t("suggestions")}
+              </span>
+              {showShopSwitch && (
+                <div className="search-dropdown__shop-switch">
+                  <button
+                    type="button"
+                    className={cn("search-dropdown__shop-button", {
+                      "search-dropdown__shop-button--active":
+                        suggestionShop === "steam",
+                    })}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSuggestionShopChange("steam")}
+                    aria-label="PC"
+                    data-tooltip-id={shopTooltipId}
+                    data-tooltip-content="PC"
+                  >
+                    <DeviceDesktopIcon size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn("search-dropdown__shop-button", {
+                      "search-dropdown__shop-button--active":
+                        suggestionShop === "launchbox",
+                    })}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSuggestionShopChange("launchbox")}
+                    aria-label="Classics"
+                    data-tooltip-id={shopTooltipId}
+                    data-tooltip-content="Classics"
+                  >
+                    <ClassicsIcon size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+            {hasSuggestions ? (
+              <ul className="search-dropdown__list">
+                {suggestions.map((item, index) => (
+                  <li key={`suggestion-${item.objectId}-${item.shop}`}>
+                    <button
+                      type="button"
+                      className={cn("search-dropdown__item", {
+                        "search-dropdown__item--active":
+                          activeIndex === getItemIndex("suggestion", index),
+                      })}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => onSelectSuggestion(item)}
+                    >
+                      {item.iconUrl ? (
+                        <img
+                          src={item.iconUrl}
+                          alt=""
+                          className="search-dropdown__item-icon search-dropdown__item-icon--image"
+                        />
+                      ) : (
+                        <SearchIcon
+                          size={16}
+                          className="search-dropdown__item-icon"
+                        />
+                      )}
+                      <span className="search-dropdown__item-text">
+                        <HighlightText text={item.title} query={currentQuery} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="search-dropdown__loading">{t("loading")}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <Tooltip id={shopTooltipId} place="bottom" style={{ zIndex: 1001 }} />
+    </>
   );
 
   return createPortal(dropdownContent, document.body);
