@@ -1,11 +1,13 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
 import { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   AlertFillIcon,
   TrophyIcon,
   ImageIcon,
+  CheckCircleFillIcon,
 } from "@primer/octicons-react";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
@@ -28,8 +30,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   onMouseLeave,
   onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
+  const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const isInstalled = Boolean(game.executablePath);
 
   const sources = [
     game.customIconUrl, // Level 0
@@ -119,6 +124,21 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               {formatPlayTime(game.playTimeInMilliseconds, true)}
             </span>
           </div>
+
+          {isInstalled && (
+            <div
+              className="library-game-card__installed-badge"
+              title={t("installed_tooltip")}
+            >
+              <CheckCircleFillIcon
+                size={11}
+                className="library-game-card__installed-icon"
+              />
+              <span className="library-game-card__installed-text">
+                {t("installed")}
+              </span>
+            </div>
+          )}
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (
