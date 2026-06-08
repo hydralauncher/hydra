@@ -52,17 +52,17 @@ const linuxAppImageDirs = (): string[] => {
 };
 
 const windowsSearchDirs = (): string[] => {
-  const programFiles = process.env["ProgramFiles"] ?? "C:\\Program Files";
+  const programFiles =
+    process.env["ProgramFiles"] ?? String.raw`C:\Program Files`;
   const programFilesX86 =
-    process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+    process.env["ProgramFiles(x86)"] ?? String.raw`C:\Program Files (x86)`;
   const localAppData =
     process.env["LOCALAPPDATA"] ??
     path.join(process.env["USERPROFILE"] ?? "", "AppData", "Local");
 
   const dirs: string[] = [];
   for (const root of [programFiles, programFilesX86, localAppData]) {
-    dirs.push(root);
-    dirs.push(path.join(root, "Programs"));
+    dirs.push(root, path.join(root, "Programs"));
   }
   return dirs;
 };
@@ -73,8 +73,8 @@ const windowsPortableDirs = (): string[] => {
     path.join(home, "Downloads"),
     path.join(home, "Desktop"),
     path.join(home, "Emulators"),
-    "D:\\Emulators",
-    "C:\\Emulators",
+    String.raw`D:\Emulators`,
+    String.raw`C:\Emulators`,
   ];
   const userProfile = process.env["USERPROFILE"];
   if (userProfile) {
@@ -104,31 +104,42 @@ const searchInDirs = (names: string[], dirs: string[]): string | null => {
   return null;
 };
 
+const safeReaddir = (dir: string): string[] | null => {
+  try {
+    return readdirSync(dir);
+  } catch {
+    return null;
+  }
+};
+
+const safeIsDirectory = (target: string): boolean => {
+  try {
+    return statSync(target).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+const findNameIn = (dir: string, names: string[]): string | null => {
+  for (const name of names) {
+    const candidate = path.join(dir, name);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+};
+
 const searchPortableWindows = (
   names: string[],
   dirs: string[]
 ): string | null => {
   for (const dir of dirs) {
-    if (!existsSync(dir)) continue;
-    let entries: string[];
-    try {
-      entries = readdirSync(dir);
-    } catch {
-      continue;
-    }
+    const entries = existsSync(dir) ? safeReaddir(dir) : null;
+    if (!entries) continue;
     for (const entry of entries) {
       const sub = path.join(dir, entry);
-      let isDir = false;
-      try {
-        isDir = statSync(sub).isDirectory();
-      } catch {
-        continue;
-      }
-      if (!isDir) continue;
-      for (const name of names) {
-        const candidate = path.join(sub, name);
-        if (existsSync(candidate)) return candidate;
-      }
+      if (!safeIsDirectory(sub)) continue;
+      const hit = findNameIn(sub, names);
+      if (hit) return hit;
     }
   }
   return null;
@@ -139,18 +150,14 @@ const findAppImage = (
   dirs: string[]
 ): string | null => {
   for (const dir of dirs) {
-    if (!existsSync(dir)) continue;
-    let entries: string[];
-    try {
-      entries = readdirSync(dir);
-    } catch {
-      continue;
-    }
+    const entries = existsSync(dir) ? safeReaddir(dir) : null;
+    if (!entries) continue;
     for (const entry of entries) {
       const lower = entry.toLowerCase();
       if (!lower.endsWith(".appimage")) continue;
-      if (!binaryKeywords.some((k) => lower.includes(k.toLowerCase())))
+      if (!binaryKeywords.some((k) => lower.includes(k.toLowerCase()))) {
         continue;
+      }
       const full = path.join(dir, entry);
       if (existsSync(full)) return full;
     }

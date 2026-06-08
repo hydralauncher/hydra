@@ -105,9 +105,9 @@ export function ClassicsOnboardingModal({
             />
 
             <div className="classics-onboarding__progress">
-              {Array.from({ length: STEP_COUNT }).map((_, i) => (
+              {steps.map((step, i) => (
                 <span
-                  key={i}
+                  key={step.bodyKey}
                   className={
                     i <= stepIndex
                       ? "classics-onboarding__progress-pill classics-onboarding__progress-pill--active"

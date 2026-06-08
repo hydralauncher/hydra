@@ -11,8 +11,8 @@ const firmwareSearchDirs = (executablePath: string | null): string[] => {
       process.env["APPDATA"] ?? path.join(home, "AppData", "Roaming");
     dirs.push(path.join(appData, "rpcs3", "dev_flash"));
   } else {
-    dirs.push(path.join(home, ".config", "rpcs3", "dev_flash"));
     dirs.push(
+      path.join(home, ".config", "rpcs3", "dev_flash"),
       path.join(
         home,
         ".var",

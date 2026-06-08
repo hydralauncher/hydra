@@ -27,11 +27,11 @@ const scanBuffersForSku = (chunks: Buffer[]): string | null => {
   for (const chunk of chunks) {
     const text = tail + chunk.toString("latin1");
 
-    const match = text.match(BOOT_SKU_RE);
+    const match = BOOT_SKU_RE.exec(text);
     if (match) return normalize(match[1]);
 
     if (isoFallback === null) {
-      const fileMatch = text.match(ISO_FILENAME_SKU_RE);
+      const fileMatch = ISO_FILENAME_SKU_RE.exec(text);
       if (fileMatch) {
         isoFallback = normalize(
           `${fileMatch[1]}_${fileMatch[2]}.${fileMatch[3]}`
@@ -95,7 +95,7 @@ const extractPs12Sku = async (filePath: string): Promise<string | null> => {
 
       const text = tail + buf.subarray(0, bytesRead).toString("latin1");
 
-      const match = text.match(BOOT_SKU_RE);
+      const match = BOOT_SKU_RE.exec(text);
       if (match) {
         const sku = normalize(match[1]);
         logger.log("[extract-sku] matched (BOOT)", {
@@ -109,7 +109,7 @@ const extractPs12Sku = async (filePath: string): Promise<string | null> => {
       }
 
       if (isoFallback === null) {
-        const fileMatch = text.match(ISO_FILENAME_SKU_RE);
+        const fileMatch = ISO_FILENAME_SKU_RE.exec(text);
         if (fileMatch) {
           const captured = `${fileMatch[1]}_${fileMatch[2]}.${fileMatch[3]}`;
           isoFallback = {
@@ -274,7 +274,7 @@ export const extractTitleIdFromIso = async (
       ISO_DIR_READ_CAP
     );
     const ps3Game = findIsoEntry(parseIsoDirRecords(rootBuf), "PS3_GAME");
-    if (!ps3Game || !ps3Game.isDir) return null;
+    if (!ps3Game?.isDir) return null;
 
     const ps3Buf = await readIsoExtent(
       fh,
@@ -346,47 +346,55 @@ export const extractTitleIdFromPkg = async (
   }
 };
 
+const TITLE_ID_GUESS_RE = /[A-Z]{4}\d{5}/;
+
+const titleIdFromPs3Directory = async (
+  dirPath: string
+): Promise<string | null> => {
+  const sfoCandidates = [
+    path.join(dirPath, "PARAM.SFO"),
+    path.join(dirPath, "PS3_GAME", "PARAM.SFO"),
+  ];
+  for (const sfoPath of sfoCandidates) {
+    const data = await fs.readFile(sfoPath).catch(() => null);
+    if (data) {
+      const id = parseParamSfo(data);
+      if (id) return id;
+    }
+  }
+  const folderGuess = TITLE_ID_GUESS_RE.exec(path.basename(dirPath));
+  return folderGuess ? normalize(folderGuess[0]) : null;
+};
+
+const titleIdFromPs3File = async (filePath: string): Promise<string | null> => {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".iso")) {
+    const fromIso = await extractTitleIdFromIso(filePath);
+    if (fromIso) return fromIso;
+  }
+  if (lower.endsWith(".pkg")) {
+    const fromPkg = await extractTitleIdFromPkg(filePath);
+    if (fromPkg) return fromPkg;
+  }
+
+  const fileGuess = TITLE_ID_GUESS_RE.exec(path.basename(filePath));
+  if (fileGuess) return normalize(fileGuess[0]);
+  const folderGuess = TITLE_ID_GUESS_RE.exec(
+    path.basename(path.dirname(filePath))
+  );
+  if (folderGuess) return normalize(folderGuess[0]);
+
+  return null;
+};
+
 const extractPs3TitleId = async (
   primaryPath: string
 ): Promise<string | null> => {
   try {
     const stat = await fs.stat(primaryPath).catch(() => null);
     if (!stat) return null;
-
-    if (stat.isDirectory()) {
-      const sfoCandidates = [
-        path.join(primaryPath, "PARAM.SFO"),
-        path.join(primaryPath, "PS3_GAME", "PARAM.SFO"),
-      ];
-      for (const sfoPath of sfoCandidates) {
-        const data = await fs.readFile(sfoPath).catch(() => null);
-        if (data) {
-          const id = parseParamSfo(data);
-          if (id) return id;
-        }
-      }
-      const folderGuess = path.basename(primaryPath).match(/[A-Z]{4}\d{5}/);
-      return folderGuess ? normalize(folderGuess[0]) : null;
-    }
-
-    const lower = primaryPath.toLowerCase();
-    if (lower.endsWith(".iso")) {
-      const fromIso = await extractTitleIdFromIso(primaryPath);
-      if (fromIso) return fromIso;
-    }
-    if (lower.endsWith(".pkg")) {
-      const fromPkg = await extractTitleIdFromPkg(primaryPath);
-      if (fromPkg) return fromPkg;
-    }
-
-    const fileGuess = path.basename(primaryPath).match(/[A-Z]{4}\d{5}/);
-    if (fileGuess) return normalize(fileGuess[0]);
-    const folderGuess = path
-      .basename(path.dirname(primaryPath))
-      .match(/[A-Z]{4}\d{5}/);
-    if (folderGuess) return normalize(folderGuess[0]);
-
-    return null;
+    if (stat.isDirectory()) return titleIdFromPs3Directory(primaryPath);
+    return titleIdFromPs3File(primaryPath);
   } catch {
     return null;
   }

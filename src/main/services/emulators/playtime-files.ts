@@ -47,7 +47,7 @@ const parsePersistentSettings = (content: string): Map<string, number> => {
   for (const raw of content.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("#") || line.startsWith(";")) continue;
-    const sec = line.match(/^\[(.+?)\]$/);
+    const sec = /^\[(.+?)\]$/.exec(line);
     if (sec) {
       inPlaytime = sec[1] === "Playtime";
       continue;

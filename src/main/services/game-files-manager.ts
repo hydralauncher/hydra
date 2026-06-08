@@ -264,7 +264,7 @@ export class GameFilesManager {
         gamesSublevel.get(this.gameKey),
       ]);
 
-      if (!download || !game || game.shop !== "launchbox") return;
+      if (!download || game?.shop !== "launchbox") return;
       if (!download.folderName) return;
 
       const system = platformToSystem(game.platform);

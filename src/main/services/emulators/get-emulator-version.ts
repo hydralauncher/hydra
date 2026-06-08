@@ -17,7 +17,7 @@ export const getEmulatorVersion = (
     if (result.error) continue;
 
     const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
-    const match = output.match(VERSION_REGEX);
+    const match = VERSION_REGEX.exec(output);
     if (match) return match[0];
   }
 

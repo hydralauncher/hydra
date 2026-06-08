@@ -282,6 +282,8 @@ export const getClassicsLaunchErrorCode = (
     return direct as (typeof CLASSICS_LAUNCH_ERROR_CODES)[number];
   }
 
-  const message = error instanceof Error ? error.message : String(error);
+  let message = "";
+  if (error instanceof Error) message = error.message;
+  else if (typeof error === "string") message = error;
   return CLASSICS_LAUNCH_ERROR_CODES.find((code) => message.includes(code));
 };

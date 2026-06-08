@@ -45,42 +45,43 @@ const expandManualPath = async (target: string): Promise<string[]> => {
   }
 };
 
-const runScan = async (
-  input: Ps2MemcardScanInput,
-  signal: { cancelled: boolean },
-  emit: (payload: Ps2MemcardScanProgress) => void
-): Promise<void> => {
-  const config = await emulators.getEmulatorConfig("ps2");
+type Ps2Detected = {
+  cardFilePath: string;
+  cardLabel: string;
+  save: Ps2Save;
+};
+type CardSignal = { cancelled: boolean };
+type EmitFn = (payload: Ps2MemcardScanProgress) => void;
+type SkuLookup = Awaited<ReturnType<typeof emulators.fetchShopDetailsForSkus>>;
+type LocalAssetIndex = Awaited<
+  ReturnType<typeof buildLocalLaunchboxAssetIndex>
+>;
 
+const collectCardFiles = async (
+  input: Ps2MemcardScanInput,
+  executablePath: string | null
+): Promise<Set<string>> => {
   const cardFiles = new Set<string>();
   if (input.autoDetect) {
-    for (const file of await emulators.resolvePs2MemcardFiles(
-      config.executablePath
-    )) {
+    for (const file of await emulators.resolvePs2MemcardFiles(executablePath)) {
       cardFiles.add(file);
     }
   }
   for (const manual of input.manualPaths ?? []) {
     for (const file of await expandManualPath(manual)) cardFiles.add(file);
   }
-  const files = Array.from(cardFiles);
+  return cardFiles;
+};
 
-  // Phase A — parse each card and collect its save folders.
-  const detected: Array<{
-    cardFilePath: string;
-    cardLabel: string;
-    save: Ps2Save;
-  }> = [];
+const parseCards = async (
+  files: string[],
+  signal: CardSignal,
+  emit: EmitFn
+): Promise<{ detected: Ps2Detected[]; cancelled: boolean }> => {
+  const detected: Ps2Detected[] = [];
   let processed = 0;
   for (const file of files) {
-    if (signal.cancelled) {
-      emit({
-        type: "cancelled",
-        cardCount: files.length,
-        saveCount: detected.length,
-      });
-      return;
-    }
+    if (signal.cancelled) return { detected, cancelled: true };
     emit({
       type: "scan_progress",
       processed,
@@ -105,39 +106,35 @@ const runScan = async (
     total: files.length,
     currentCard: null,
   });
+  return { detected, cancelled: false };
+};
 
-  // Phase B — resolve unique SKUs to LaunchBox metadata, then persist records.
-  const skus = Array.from(
-    new Set(
-      detected
-        .map((d) => d.save.sku)
-        .filter((sku): sku is string => Boolean(sku))
-    )
-  );
-  const lookup = await emulators.fetchShopDetailsForSkus(skus);
-  const localIndex = await buildLocalLaunchboxAssetIndex();
+const resolveAssets = (
+  save: Ps2Save,
+  lookup: SkuLookup,
+  localIndex: LocalAssetIndex
+): LaunchboxShopDetailsAssetsResponse | null => {
+  if (!save.sku) return null;
+  const norm = emulators.normalizeSku(save.sku);
+  const entry = lookup.get(norm);
+  return entry
+    ? emulators.mapEntryToAssets(entry)
+    : (localIndex.get(norm) ?? null);
+};
 
+const persistMatches = async (
+  detected: Ps2Detected[],
+  lookup: SkuLookup,
+  localIndex: LocalAssetIndex,
+  signal: CardSignal,
+  emit: EmitFn
+): Promise<{ matched: number; unmatched: number; cancelled: boolean }> => {
   let matched = 0;
   let unmatched = 0;
   let index = 0;
   for (const { cardFilePath, cardLabel, save } of detected) {
-    if (signal.cancelled) {
-      emit({
-        type: "cancelled",
-        cardCount: files.length,
-        saveCount: detected.length,
-      });
-      return;
-    }
-    // Remote shop-details first; fall back to the local library when it misses.
-    let assets: LaunchboxShopDetailsAssetsResponse | null = null;
-    if (save.sku) {
-      const norm = emulators.normalizeSku(save.sku);
-      const entry = lookup.get(norm);
-      assets = entry
-        ? emulators.mapEntryToAssets(entry)
-        : (localIndex.get(norm) ?? null);
-    }
+    if (signal.cancelled) return { matched, unmatched, cancelled: true };
+    const assets = resolveAssets(save, lookup, localIndex);
     if (assets) matched += 1;
     else unmatched += 1;
 
@@ -175,10 +172,13 @@ const runScan = async (
       unmatched,
     });
   }
+  return { matched, unmatched, cancelled: false };
+};
 
-  // Prune stale records so removed/renamed cards and deleted save folders drop
-  // off the list automatically: a save folder that vanished from a card we just
-  // scanned, or any record whose card file no longer exists on disk.
+const pruneStaleRecords = async (
+  detected: Ps2Detected[],
+  cardFiles: Set<string>
+): Promise<void> => {
   const detectedKeys = new Set(
     detected.map((d) =>
       levelKeys.ps2MemoryCardSave(d.cardFilePath, d.save.folderName)
@@ -195,13 +195,62 @@ const runScan = async (
   for (const key of staleKeys) {
     await ps2MemoryCardSavesSublevel.del(key);
   }
+};
+
+const runScan = async (
+  input: Ps2MemcardScanInput,
+  signal: CardSignal,
+  emit: EmitFn
+): Promise<void> => {
+  const config = await emulators.getEmulatorConfig("ps2");
+  const cardFiles = await collectCardFiles(input, config.executablePath);
+  const files = Array.from(cardFiles);
+
+  const parsed = await parseCards(files, signal, emit);
+  if (parsed.cancelled) {
+    emit({
+      type: "cancelled",
+      cardCount: files.length,
+      saveCount: parsed.detected.length,
+    });
+    return;
+  }
+  const { detected } = parsed;
+
+  const skus = Array.from(
+    new Set(
+      detected
+        .map((d) => d.save.sku)
+        .filter((sku): sku is string => Boolean(sku))
+    )
+  );
+  const lookup = await emulators.fetchShopDetailsForSkus(skus);
+  const localIndex = await buildLocalLaunchboxAssetIndex();
+
+  const result = await persistMatches(
+    detected,
+    lookup,
+    localIndex,
+    signal,
+    emit
+  );
+  if (result.cancelled) {
+    emit({
+      type: "cancelled",
+      cardCount: files.length,
+      saveCount: detected.length,
+    });
+    return;
+  }
+
+  await pruneStaleRecords(detected, cardFiles);
 
   emit({
     type: "done",
     cardCount: files.length,
     saveCount: detected.length,
-    matched,
-    unmatched,
+    matched: result.matched,
+    unmatched: result.unmatched,
   });
 };
 

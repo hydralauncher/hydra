@@ -21,17 +21,17 @@ const COMPRESSION_PARENT_0 = 12;
 const COMPRESSION_PARENT_1 = 13;
 
 const tag = (s: string): number =>
-  ((s.charCodeAt(0) << 24) |
-    (s.charCodeAt(1) << 16) |
-    (s.charCodeAt(2) << 8) |
-    s.charCodeAt(3)) >>>
+  (((s.codePointAt(0) ?? 0) << 24) |
+    ((s.codePointAt(1) ?? 0) << 16) |
+    ((s.codePointAt(2) ?? 0) << 8) |
+    (s.codePointAt(3) ?? 0)) >>>
   0;
 
 // Render a codec tag back to its FourCC (e.g. 0 -> "none", tag("cdfl") -> "cdfl")
 // for diagnostic logging.
 const untag = (n: number): string => {
   if (n === 0) return "none";
-  const s = String.fromCharCode(
+  const s = String.fromCodePoint(
     (n >>> 24) & 0xff,
     (n >>> 16) & 0xff,
     (n >>> 8) & 0xff,
@@ -89,9 +89,15 @@ class Bitstream {
   }
 
   overflow(): boolean {
-    return this.doffset - ((this.bits / 8) | 0) > this.data.length;
+    return this.doffset - Math.trunc(this.bits / 8) > this.data.length;
   }
 }
+
+const rleNumBits = (maxbits: number): number => {
+  if (maxbits >= 16) return 5;
+  if (maxbits >= 8) return 4;
+  return 3;
+};
 
 class HuffmanDecoder {
   private readonly numbits: Uint8Array;
@@ -114,22 +120,22 @@ class HuffmanDecoder {
   }
 
   importTreeRle(bits: Bitstream): boolean {
-    const numbits = this.maxbits >= 16 ? 5 : this.maxbits >= 8 ? 4 : 3;
+    const numbits = rleNumBits(this.maxbits);
     let curnode = 0;
     while (curnode < this.numcodes) {
-      let nodebits = bits.read(numbits);
+      const nodebits = bits.read(numbits);
       if (nodebits !== 1) {
         this.numbits[curnode++] = nodebits;
-      } else {
-        nodebits = bits.read(numbits);
-        if (nodebits === 1) {
-          this.numbits[curnode++] = nodebits;
-        } else {
-          let repcount = bits.read(numbits) + 3;
-          if (repcount + curnode > this.numcodes) return false;
-          while (repcount--) this.numbits[curnode++] = nodebits;
-        }
+        continue;
       }
+      const repbits = bits.read(numbits);
+      if (repbits === 1) {
+        this.numbits[curnode++] = repbits;
+        continue;
+      }
+      let repcount = bits.read(numbits) + 3;
+      if (repcount + curnode > this.numcodes) return false;
+      while (repcount--) this.numbits[curnode++] = repbits;
     }
     if (curnode !== this.numcodes) return false;
     return this.assignCanonicalCodes() && this.buildLookupTable();
@@ -184,6 +190,17 @@ const newProbs = (n: number): Uint16Array => {
   return a;
 };
 
+type Seq =
+  | { kind: "continue" }
+  | { kind: "break" }
+  | { kind: "copy"; len: number };
+
+const nextLiteralState = (state: number): number => {
+  if (state < 4) return 0;
+  if (state < 10) return state - 3;
+  return state - 6;
+};
+
 function lzmaDecode(src: Buffer, outLen: number): Buffer {
   const out = Buffer.allocUnsafe(outLen);
   let outPos = 0;
@@ -191,12 +208,13 @@ function lzmaDecode(src: Buffer, outLen: number): Buffer {
   let inPos = 1;
   let code = 0;
   let range = 0xffffffff >>> 0;
-  for (let i = 0; i < 4; i++) code = ((code << 8) | (src[inPos++] | 0)) >>> 0;
+  for (let i = 0; i < 4; i++)
+    code = ((code << 8) | Math.trunc(src[inPos++])) >>> 0;
 
   const normalize = () => {
     if (range < 1 << 24) {
       range = (range << 8) >>> 0;
-      code = ((code << 8) | (src[inPos++] | 0)) >>> 0;
+      code = ((code << 8) | Math.trunc(src[inPos++])) >>> 0;
     }
   };
 
@@ -290,85 +308,99 @@ function lzmaDecode(src: Buffer, outLen: number): Buffer {
   let rep3 = 0;
   const pbMask = (1 << LZMA_PB) - 1;
 
+  const decodeLiteralSymbol = (): void => {
+    const prevByte = outPos > 0 ? out[outPos - 1] : 0;
+    const probsOff = 0x300 * (prevByte >> (8 - LZMA_LC));
+    let symbol = 1;
+    if (state >= 7) {
+      let matchByte = out[outPos - rep0 - 1];
+      do {
+        const matchBit = (matchByte >> 7) & 1;
+        matchByte = (matchByte << 1) & 0xff;
+        const bit = decodeBit(
+          literal,
+          probsOff + ((1 + matchBit) << 8) + symbol
+        );
+        symbol = (symbol << 1) | bit;
+        if (matchBit !== bit) break;
+      } while (symbol < 0x100);
+    }
+    while (symbol < 0x100) {
+      symbol = (symbol << 1) | decodeBit(literal, probsOff + symbol);
+    }
+    out[outPos++] = symbol & 0xff;
+    state = nextLiteralState(state);
+  };
+
+  const decodeRepMatch = (posState: number): Seq => {
+    if (decodeBit(isRepG0, state) === 0) {
+      if (decodeBit(isRep0Long, (state << 4) + posState) === 0) {
+        state = state < 7 ? 9 : 11;
+        out[outPos] = out[outPos - rep0 - 1];
+        outPos++;
+        return { kind: "continue" };
+      }
+    } else {
+      let dist: number;
+      if (decodeBit(isRepG1, state) === 0) {
+        dist = rep1;
+      } else {
+        if (decodeBit(isRepG2, state) === 0) {
+          dist = rep2;
+        } else {
+          dist = rep3;
+          rep3 = rep2;
+        }
+        rep2 = rep1;
+      }
+      rep1 = rep0;
+      rep0 = dist;
+    }
+    const len = decodeLen(repLen, posState) + 2;
+    state = state < 7 ? 8 : 11;
+    return { kind: "copy", len };
+  };
+
+  const decodeNewMatch = (posState: number): Seq => {
+    rep3 = rep2;
+    rep2 = rep1;
+    rep1 = rep0;
+    let len = decodeLen(lenDec, posState);
+    state = state < 7 ? 7 : 10;
+    const lenToPos = len < 4 ? len : 3;
+    const slot = bitTree(posSlot, lenToPos * 64, 6);
+    if (slot < 4) {
+      rep0 = slot;
+    } else {
+      const numDirect = (slot >> 1) - 1;
+      rep0 = ((2 | (slot & 1)) << numDirect) >>> 0;
+      if (slot < 14) {
+        rep0 = (rep0 + bitTreeReverse(specPos, rep0 - slot, numDirect)) >>> 0;
+      } else {
+        rep0 = (rep0 + (decodeDirect(numDirect - 4) << 4)) >>> 0;
+        rep0 = (rep0 + bitTreeReverse(align, 0, 4)) >>> 0;
+      }
+    }
+    if (rep0 === 0xffffffff) return { kind: "break" };
+    len += 2;
+    return { kind: "copy", len };
+  };
+
   while (outPos < outLen) {
     const posState = outPos & pbMask;
     if (decodeBit(isMatch, (state << 4) + posState) === 0) {
-      const prevByte = outPos > 0 ? out[outPos - 1] : 0;
-      const probsOff = 0x300 * (prevByte >> (8 - LZMA_LC));
-      let symbol = 1;
-      if (state >= 7) {
-        let matchByte = out[outPos - rep0 - 1];
-        do {
-          const matchBit = (matchByte >> 7) & 1;
-          matchByte = (matchByte << 1) & 0xff;
-          const bit = decodeBit(
-            literal,
-            probsOff + ((1 + matchBit) << 8) + symbol
-          );
-          symbol = (symbol << 1) | bit;
-          if (matchBit !== bit) break;
-        } while (symbol < 0x100);
-      }
-      while (symbol < 0x100) {
-        symbol = (symbol << 1) | decodeBit(literal, probsOff + symbol);
-      }
-      out[outPos++] = symbol & 0xff;
-      state = state < 4 ? 0 : state < 10 ? state - 3 : state - 6;
+      decodeLiteralSymbol();
       continue;
     }
 
-    let len: number;
-    if (decodeBit(isRep, state) !== 0) {
-      if (decodeBit(isRepG0, state) === 0) {
-        if (decodeBit(isRep0Long, (state << 4) + posState) === 0) {
-          state = state < 7 ? 9 : 11;
-          out[outPos] = out[outPos - rep0 - 1];
-          outPos++;
-          continue;
-        }
-      } else {
-        let dist: number;
-        if (decodeBit(isRepG1, state) === 0) {
-          dist = rep1;
-        } else {
-          if (decodeBit(isRepG2, state) === 0) {
-            dist = rep2;
-          } else {
-            dist = rep3;
-            rep3 = rep2;
-          }
-          rep2 = rep1;
-        }
-        rep1 = rep0;
-        rep0 = dist;
-      }
-      len = decodeLen(repLen, posState) + 2;
-      state = state < 7 ? 8 : 11;
-    } else {
-      rep3 = rep2;
-      rep2 = rep1;
-      rep1 = rep0;
-      len = decodeLen(lenDec, posState);
-      state = state < 7 ? 7 : 10;
-      const lenToPos = len < 4 ? len : 3;
-      const slot = bitTree(posSlot, lenToPos * 64, 6);
-      if (slot < 4) {
-        rep0 = slot;
-      } else {
-        const numDirect = (slot >> 1) - 1;
-        rep0 = ((2 | (slot & 1)) << numDirect) >>> 0;
-        if (slot < 14) {
-          rep0 = (rep0 + bitTreeReverse(specPos, rep0 - slot, numDirect)) >>> 0;
-        } else {
-          rep0 = (rep0 + (decodeDirect(numDirect - 4) << 4)) >>> 0;
-          rep0 = (rep0 + bitTreeReverse(align, 0, 4)) >>> 0;
-        }
-      }
-      if (rep0 === 0xffffffff) break;
-      len += 2;
-    }
+    const seq =
+      decodeBit(isRep, state) === 0
+        ? decodeNewMatch(posState)
+        : decodeRepMatch(posState);
+    if (seq.kind === "break") break;
+    if (seq.kind === "continue") continue;
 
-    for (let i = 0; i < len && outPos < outLen; i++) {
+    for (let i = 0; i < seq.len && outPos < outLen; i++) {
       out[outPos] = out[outPos - rep0 - 1];
       outPos++;
     }
@@ -436,6 +468,97 @@ interface MapEntry {
   offset: number;
 }
 
+const decodeCompList = (
+  bits: Bitstream,
+  decoder: HuffmanDecoder,
+  hunkcount: number
+): Uint8Array | null => {
+  const comps = new Uint8Array(hunkcount);
+  let lastcomp = 0;
+  let repcount = 0;
+  for (let h = 0; h < hunkcount; h++) {
+    if (repcount > 0) {
+      comps[h] = lastcomp;
+      repcount--;
+      continue;
+    }
+    if (bits.overflow()) return null;
+    const val = decoder.decodeOne(bits);
+    if (val === COMPRESSION_RLE_SMALL) {
+      comps[h] = lastcomp;
+      repcount = 2 + decoder.decodeOne(bits);
+    } else if (val === COMPRESSION_RLE_LARGE) {
+      comps[h] = lastcomp;
+      repcount = 2 + 16 + (decoder.decodeOne(bits) << 4);
+      repcount += decoder.decodeOne(bits);
+    } else {
+      comps[h] = lastcomp = val;
+    }
+  }
+  return comps;
+};
+
+interface MapState {
+  curoffset: number;
+  lastSelf: number;
+  lastParent: number;
+}
+
+const resolveMapEntry = (
+  bits: Bitstream,
+  comp: number,
+  h: number,
+  hunkbytes: number,
+  meta: { lengthbits: number; selfbits: number; parentbits: number },
+  st: MapState
+): MapEntry => {
+  const unitbytes = hunkbytes;
+  let resolvedComp = comp;
+  let offset = st.curoffset;
+  let length = 0;
+  switch (comp) {
+    case COMPRESSION_TYPE_0:
+    case COMPRESSION_TYPE_0 + 1:
+    case COMPRESSION_TYPE_0 + 2:
+    case COMPRESSION_TYPE_3:
+      length = bits.read(meta.lengthbits);
+      st.curoffset += length;
+      bits.read(16);
+      break;
+    case COMPRESSION_NONE:
+      length = hunkbytes;
+      st.curoffset += length;
+      bits.read(16);
+      break;
+    case COMPRESSION_SELF:
+      st.lastSelf = offset = bits.read(meta.selfbits);
+      break;
+    case COMPRESSION_PARENT:
+      offset = bits.read(meta.parentbits);
+      st.lastParent = offset;
+      break;
+    case COMPRESSION_SELF_0:
+    case COMPRESSION_SELF_1:
+      if (comp === COMPRESSION_SELF_1) st.lastSelf++;
+      resolvedComp = COMPRESSION_SELF;
+      offset = st.lastSelf;
+      break;
+    case COMPRESSION_PARENT_SELF:
+      resolvedComp = COMPRESSION_PARENT;
+      st.lastParent = offset = Math.floor((h * hunkbytes) / unitbytes);
+      break;
+    case COMPRESSION_PARENT_0:
+    case COMPRESSION_PARENT_1:
+      if (comp === COMPRESSION_PARENT_1) {
+        st.lastParent += Math.floor(hunkbytes / unitbytes);
+      }
+      resolvedComp = COMPRESSION_PARENT;
+      offset = st.lastParent;
+      break;
+  }
+  return { comp: resolvedComp, length, offset };
+};
+
 const decodeMap = async (
   fh: fs.FileHandle,
   header: ChdHeader
@@ -471,79 +594,14 @@ const decodeMap = async (
   const decoder = new HuffmanDecoder(16, 8);
   if (!decoder.importTreeRle(bits)) return null;
 
-  const comps = new Uint8Array(hunkcount);
-  let lastcomp = 0;
-  let repcount = 0;
-  for (let h = 0; h < hunkcount; h++) {
-    if (repcount > 0) {
-      comps[h] = lastcomp;
-      repcount--;
-    } else {
-      if (bits.overflow()) return null;
-      const val = decoder.decodeOne(bits);
-      if (val === COMPRESSION_RLE_SMALL) {
-        comps[h] = lastcomp;
-        repcount = 2 + decoder.decodeOne(bits);
-      } else if (val === COMPRESSION_RLE_LARGE) {
-        comps[h] = lastcomp;
-        repcount = 2 + 16 + (decoder.decodeOne(bits) << 4);
-        repcount += decoder.decodeOne(bits);
-      } else {
-        comps[h] = lastcomp = val;
-      }
-    }
-  }
+  const comps = decodeCompList(bits, decoder, hunkcount);
+  if (!comps) return null;
 
   const entries: MapEntry[] = new Array(hunkcount);
-  let curoffset = firstoffs;
-  let lastSelf = 0;
-  let lastParent = 0;
-  const unitbytes = hunkbytes;
+  const st: MapState = { curoffset: firstoffs, lastSelf: 0, lastParent: 0 };
+  const meta = { lengthbits, selfbits, parentbits };
   for (let h = 0; h < hunkcount; h++) {
-    let comp = comps[h];
-    let offset = curoffset;
-    let length = 0;
-    switch (comp) {
-      case COMPRESSION_TYPE_0:
-      case COMPRESSION_TYPE_0 + 1:
-      case COMPRESSION_TYPE_0 + 2:
-      case COMPRESSION_TYPE_3:
-        length = bits.read(lengthbits);
-        curoffset += length;
-        bits.read(16);
-        break;
-      case COMPRESSION_NONE:
-        length = hunkbytes;
-        curoffset += length;
-        bits.read(16);
-        break;
-      case COMPRESSION_SELF:
-        lastSelf = offset = bits.read(selfbits);
-        break;
-      case COMPRESSION_PARENT:
-        offset = bits.read(parentbits);
-        lastParent = offset;
-        break;
-      case COMPRESSION_SELF_0:
-      case COMPRESSION_SELF_1:
-        if (comp === COMPRESSION_SELF_1) lastSelf++;
-        comp = COMPRESSION_SELF;
-        offset = lastSelf;
-        break;
-      case COMPRESSION_PARENT_SELF:
-        comp = COMPRESSION_PARENT;
-        lastParent = offset = Math.floor((h * hunkbytes) / unitbytes);
-        break;
-      case COMPRESSION_PARENT_0:
-      case COMPRESSION_PARENT_1:
-        if (comp === COMPRESSION_PARENT_1) {
-          lastParent += Math.floor(hunkbytes / unitbytes);
-        }
-        comp = COMPRESSION_PARENT;
-        offset = lastParent;
-        break;
-    }
-    entries[h] = { comp, length, offset };
+    entries[h] = resolveMapEntry(bits, comps[h], h, hunkbytes, meta, st);
   }
   return entries;
 };
