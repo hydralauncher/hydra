@@ -61,7 +61,7 @@ export function useGameActions(game: LibraryGame) {
   const launchClassicsAttempt = useCallback(
     async (discPath: string | undefined, force?: boolean): Promise<void> => {
       try {
-        await window.electron.openClassicsGame(
+        await globalThis.electron.openClassicsGame(
           game.shop,
           game.objectId,
           discPath,
@@ -100,34 +100,20 @@ export function useGameActions(game: LibraryGame) {
   }, []);
 
   const handlePlayGame = async () => {
-    if (!canPlay) {
-      const path = buildGameDetailsPath({
-        ...game,
-        objectId: game.objectId,
-      });
-      if (location.pathname === path) {
-        try {
-          window.dispatchEvent(
-            new CustomEvent("hydra:openRepacks", {
-              detail: { objectId: game.objectId },
-            })
-          );
-        } catch (e) {
-          void e;
-        }
-      } else {
-        navigate(path, { state: { openRepacks: true } });
+    const detailsPath = buildGameDetailsPath({
+      ...game,
+      objectId: game.objectId,
+    });
 
-        try {
-          window.dispatchEvent(
-            new CustomEvent("hydra:openRepacks", {
-              detail: { objectId: game.objectId },
-            })
-          );
-        } catch (e) {
-          void e;
-        }
+    if (!canPlay) {
+      if (location.pathname !== detailsPath) {
+        navigate(detailsPath, { state: { openRepacks: true } });
       }
+      globalThis.dispatchEvent(
+        new CustomEvent("hydra:openRepacks", {
+          detail: { objectId: game.objectId },
+        })
+      );
       return;
     }
 
@@ -137,20 +123,12 @@ export function useGameActions(game: LibraryGame) {
         multipleDiscs && !(game.dontAskDiscSelection && game.selectedDiscPath);
 
       if (needsModal) {
-        const path = buildGameDetailsPath({
-          ...game,
-          objectId: game.objectId,
-        });
-        navigate(path, { state: { openDiscSelection: true } });
-        try {
-          window.dispatchEvent(
-            new CustomEvent("hydra:openDiscSelection", {
-              detail: { objectId: game.objectId },
-            })
-          );
-        } catch (e) {
-          void e;
-        }
+        navigate(detailsPath, { state: { openDiscSelection: true } });
+        globalThis.dispatchEvent(
+          new CustomEvent("hydra:openDiscSelection", {
+            detail: { objectId: game.objectId },
+          })
+        );
         return;
       }
 

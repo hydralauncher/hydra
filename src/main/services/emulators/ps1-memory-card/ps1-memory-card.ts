@@ -83,8 +83,7 @@ class Ps1MemoryCard {
       // Read enough to cover the largest wrapper header + the directory block.
       const probeLen = Math.min(
         stat.size,
-        HEADER_OFFSET_CANDIDATES[HEADER_OFFSET_CANDIDATES.length - 1] +
-          PS1_BLOCK_BYTES
+        (HEADER_OFFSET_CANDIDATES.at(-1) ?? 0) + PS1_BLOCK_BYTES
       );
       const probe = Buffer.alloc(probeLen);
       await fh.read(probe, 0, probeLen, 0);

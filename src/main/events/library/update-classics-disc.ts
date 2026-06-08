@@ -12,6 +12,21 @@ interface ClassicsDiscPatch {
   removeDiscPath?: string;
 }
 
+const applyAddDisc = async (
+  discs: ClassicsDisc[],
+  addDisc: ClassicsDisc,
+  platformHint: string | null | undefined
+): Promise<void> => {
+  if (discs.some((d) => d.path === addDisc.path)) return;
+  if (!addDisc.sku) {
+    const system = platformToSystem(platformHint);
+    if (system) {
+      addDisc.sku = await emulators.extractDiscSku(addDisc.path, system);
+    }
+  }
+  discs.push(addDisc);
+};
+
 const updateClassicsDisc = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -28,16 +43,7 @@ const updateClassicsDisc = async (
   const discs = [...(game.discs ?? [])];
 
   if (patch.addDisc) {
-    if (!discs.some((d) => d.path === patch.addDisc!.path)) {
-      const disc = patch.addDisc;
-      if (!disc.sku) {
-        const system = platformToSystem(patch.platform ?? game.platform);
-        if (system) {
-          disc.sku = await emulators.extractDiscSku(disc.path, system);
-        }
-      }
-      discs.push(disc);
-    }
+    await applyAddDisc(discs, patch.addDisc, patch.platform ?? game.platform);
   }
 
   if (patch.removeDiscPath) {
@@ -45,19 +51,16 @@ const updateClassicsDisc = async (
     if (index >= 0) discs.splice(index, 1);
   }
 
-  const next = {
-    ...game,
-    discs,
-    selectedDiscPath:
-      patch.selectedDiscPath !== undefined
-        ? patch.selectedDiscPath
-        : game.selectedDiscPath,
-    dontAskDiscSelection:
-      patch.dontAskDiscSelection !== undefined
-        ? patch.dontAskDiscSelection
-        : game.dontAskDiscSelection,
-    platform: patch.platform !== undefined ? patch.platform : game.platform,
-  };
+  const next = { ...game, discs };
+  if (patch.selectedDiscPath !== undefined) {
+    next.selectedDiscPath = patch.selectedDiscPath;
+  }
+  if (patch.dontAskDiscSelection !== undefined) {
+    next.dontAskDiscSelection = patch.dontAskDiscSelection;
+  }
+  if (patch.platform !== undefined) {
+    next.platform = patch.platform;
+  }
 
   if (
     next.selectedDiscPath &&

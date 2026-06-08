@@ -111,6 +111,72 @@ export interface Ps1ImportResult {
   identifier?: string;
 }
 
+type ApplyResult = { ok: true } | { ok: false; error: string };
+
+const applyMcsToCard = (card: Buffer, mcs: McsContents): ApplyResult => {
+  const directory = card; // block 0 holds every directory frame
+
+  for (let block = 1; block <= PS1_DATA_BLOCKS; block += 1) {
+    if (blockState(directory, block) !== PS1_STATE.IN_USE_FIRST) continue;
+    if (
+      readFrameName(directory.subarray(frameOffset(block))) !== mcs.identifier
+    ) {
+      continue;
+    }
+    for (const b of chainFrom(directory, block)) freeFrame(directory, b);
+  }
+
+  const need = mcs.blocks.length;
+  const freeBlocks: number[] = [];
+  for (
+    let block = 1;
+    block <= PS1_DATA_BLOCKS && freeBlocks.length < need;
+    block += 1
+  ) {
+    if (isFreeState(blockState(directory, block))) freeBlocks.push(block);
+  }
+  if (freeBlocks.length < need) {
+    return { ok: false, error: "Not enough free blocks on the memory card" };
+  }
+
+  for (let i = 0; i < need; i += 1) {
+    const block = freeBlocks[i];
+    const base = frameOffset(block);
+    directory.fill(0, base, base + PS1_FRAME_BYTES);
+
+    if (i === 0) {
+      mcs.headerFrame.copy(directory, base, 0, PS1_FRAME_BYTES);
+      directory.writeUInt32LE(PS1_STATE.IN_USE_FIRST, base);
+    } else {
+      const state =
+        i === need - 1 ? PS1_STATE.IN_USE_LAST : PS1_STATE.IN_USE_MIDDLE;
+      directory.writeUInt32LE(state, base);
+    }
+    const link = i === need - 1 ? PS1_LINK_END : freeBlocks[i + 1] - 1;
+    directory.writeUInt16LE(link, base + 0x08);
+    writeFrameChecksum(directory, block);
+
+    mcs.blocks[i].copy(card, block * PS1_BLOCK_BYTES);
+  }
+
+  return { ok: true };
+};
+
+const verifyImportedSave = async (
+  cardFilePath: string,
+  mcs: McsContents
+): Promise<boolean> => {
+  const info = await listPs1Saves(cardFilePath);
+  if (!info?.saves.some((s) => s.identifier === mcs.identifier)) return false;
+
+  const contents = await readPs1SaveContents(cardFilePath, mcs.identifier);
+  if (!contents) return false;
+  return (
+    contents.blocks.length === mcs.blocks.length &&
+    mcs.blocks.every((b, i) => b.equals(contents.blocks[i]))
+  );
+};
+
 /**
  * Import a `.mcs` save into a PS1 card, replacing a same-identifier save. Backs
  * the card up to `<card>.hydra-bak` first, restores it on any failure, and
@@ -145,58 +211,11 @@ export const importMcsIntoCard = async (
       await restore();
       return { ok: false, error: "Not a writable PS1 memory card" };
     }
-    const card = fileBuf.subarray(dataOffset);
-    const directory = card; // block 0 holds every directory frame
-
-    // Replace: free any existing save with the same identifier.
-    for (let block = 1; block <= PS1_DATA_BLOCKS; block += 1) {
-      if (blockState(directory, block) !== PS1_STATE.IN_USE_FIRST) continue;
-      if (
-        readFrameName(directory.subarray(frameOffset(block))) !== mcs.identifier
-      ) {
-        continue;
-      }
-      for (const b of chainFrom(directory, block)) freeFrame(directory, b);
-    }
-
-    // Find N free blocks (need not be contiguous).
-    const need = mcs.blocks.length;
-    const freeBlocks: number[] = [];
-    for (
-      let block = 1;
-      block <= PS1_DATA_BLOCKS && freeBlocks.length < need;
-      block += 1
-    ) {
-      if (isFreeState(blockState(directory, block))) freeBlocks.push(block);
-    }
-    if (freeBlocks.length < need) {
+    const applied = applyMcsToCard(fileBuf.subarray(dataOffset), mcs);
+    if (!applied.ok) {
       await restore();
-      return { ok: false, error: "Not enough free blocks on the memory card" };
+      return applied;
     }
-
-    // Write the chain's directory frames + data blocks.
-    for (let i = 0; i < need; i += 1) {
-      const block = freeBlocks[i];
-      const base = frameOffset(block);
-      directory.fill(0, base, base + PS1_FRAME_BYTES);
-
-      if (i === 0) {
-        // First block: keep the header frame's filesize + filename, set state +
-        // link for the new chain.
-        mcs.headerFrame.copy(directory, base, 0, PS1_FRAME_BYTES);
-        directory.writeUInt32LE(PS1_STATE.IN_USE_FIRST, base);
-      } else {
-        const state =
-          i === need - 1 ? PS1_STATE.IN_USE_LAST : PS1_STATE.IN_USE_MIDDLE;
-        directory.writeUInt32LE(state, base);
-      }
-      const link = i === need - 1 ? PS1_LINK_END : freeBlocks[i + 1] - 1;
-      directory.writeUInt16LE(link, base + 0x08);
-      writeFrameChecksum(directory, block);
-
-      mcs.blocks[i].copy(card, block * PS1_BLOCK_BYTES);
-    }
-
     await fs.writeFile(cardFilePath, fileBuf);
   } catch (err) {
     await restore();
@@ -206,20 +225,7 @@ export const importMcsIntoCard = async (
     };
   }
 
-  // Verify: the save reads back with matching block bytes.
-  const info = await listPs1Saves(cardFilePath);
-  const present = info?.saves.some((s) => s.identifier === mcs.identifier);
-  let ok = present === true;
-  if (ok) {
-    const contents = await readPs1SaveContents(cardFilePath, mcs.identifier);
-    ok = Boolean(
-      contents &&
-        contents.blocks.length === mcs.blocks.length &&
-        mcs.blocks.every((b, i) => b.equals(contents.blocks[i]))
-    );
-  }
-
-  if (!ok) {
+  if (!(await verifyImportedSave(cardFilePath, mcs))) {
     await restore();
     return { ok: false, error: "Import verification failed" };
   }

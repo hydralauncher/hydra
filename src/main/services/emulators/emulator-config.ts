@@ -154,6 +154,47 @@ export const readRecursivePaths = async (
   }
 };
 
+interface RecursiveInsertState {
+  out: string[];
+  inserted: boolean;
+  alreadyPresent: boolean;
+  inGameList: boolean;
+  lastGameListIndex: number;
+}
+
+const buildLinesWithRecursivePath = (
+  lines: string[],
+  folderPath: string
+): RecursiveInsertState => {
+  const out: string[] = [];
+  let inGameList = false;
+  let inserted = false;
+  let alreadyPresent = false;
+  let lastGameListIndex = -1;
+
+  for (const line of lines) {
+    const sec = line.match(SECTION_RE);
+    if (sec) {
+      if (inGameList && !inserted && !alreadyPresent) {
+        out.splice(lastGameListIndex + 1, 0, `RecursivePaths = ${folderPath}`);
+        inserted = true;
+      }
+      inGameList = sec[1].toLowerCase() === "gamelist";
+      out.push(line);
+      if (inGameList) lastGameListIndex = out.length - 1;
+      continue;
+    }
+    if (inGameList) {
+      const m = line.match(RECURSIVE_RE);
+      if (m?.[1] === folderPath) alreadyPresent = true;
+      lastGameListIndex = out.length;
+    }
+    out.push(line);
+  }
+
+  return { out, inserted, alreadyPresent, inGameList, lastGameListIndex };
+};
+
 export const addRecursivePath = async (
   system: EmulatorSystem,
   executablePath: string | null,
@@ -167,35 +208,9 @@ export const addRecursivePath = async (
   try {
     const content = await fs.readFile(configPath, "utf-8");
     const lines = content.split(/\r?\n/);
-    const out: string[] = [];
-    let inGameList = false;
-    let inserted = false;
-    let alreadyPresent = false;
-    let lastGameListIndex = -1;
-
-    for (const line of lines) {
-      const sec = line.match(SECTION_RE);
-      if (sec) {
-        if (inGameList && !inserted && !alreadyPresent) {
-          out.splice(
-            lastGameListIndex + 1,
-            0,
-            `RecursivePaths = ${folderPath}`
-          );
-          inserted = true;
-        }
-        inGameList = sec[1].toLowerCase() === "gamelist";
-        out.push(line);
-        if (inGameList) lastGameListIndex = out.length - 1;
-        continue;
-      }
-      if (inGameList) {
-        const m = line.match(RECURSIVE_RE);
-        if (m && m[1] === folderPath) alreadyPresent = true;
-        lastGameListIndex = out.length;
-      }
-      out.push(line);
-    }
+    const state = buildLinesWithRecursivePath(lines, folderPath);
+    const { out, alreadyPresent, inGameList, lastGameListIndex } = state;
+    let inserted = state.inserted;
 
     if (inGameList && !inserted && !alreadyPresent) {
       out.splice(lastGameListIndex + 1, 0, `RecursivePaths = ${folderPath}`);
@@ -203,9 +218,8 @@ export const addRecursivePath = async (
     }
 
     if (!inserted && !alreadyPresent) {
-      if (out.length > 0 && out[out.length - 1] !== "") out.push("");
-      out.push("[GameList]");
-      out.push(`RecursivePaths = ${folderPath}`);
+      if (out.length > 0 && out.at(-1) !== "") out.push("");
+      out.push("[GameList]", `RecursivePaths = ${folderPath}`);
     }
 
     await fs.writeFile(configPath, out.join("\n"), "utf-8");

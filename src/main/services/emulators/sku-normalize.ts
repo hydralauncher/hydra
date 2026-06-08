@@ -8,7 +8,7 @@
  */
 export const normalize = (raw: string): string => {
   const stripped = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const match = stripped.match(/^([A-Z]{4})(\d+)$/);
+  const match = /^([A-Z]{4})(\d+)$/.exec(stripped);
   if (!match) return stripped;
   return `${match[1]}-${match[2]}`;
 };

@@ -91,12 +91,12 @@ const mapToShopDetails = (
   };
 };
 
-const DISC_LABEL_REGEX = /\b(?:disc|cd|disk)\s*([0-9]+)\b/i;
+const DISC_LABEL_REGEX = /\b(?:disc|cd|disk)\s*(\d+)\b/i;
 
 const parseDiscNumber = (fileName: string): number | null => {
   const match = DISC_LABEL_REGEX.exec(fileName);
   if (!match) return null;
-  const num = parseInt(match[1], 10);
+  const num = Number.parseInt(match[1], 10);
   return Number.isFinite(num) ? num : null;
 };
 
@@ -312,25 +312,58 @@ export interface LaunchboxImportResult {
   cancelled: boolean;
 }
 
-export async function runLaunchboxImport(
+type ScannedGameInfo = {
+  folderPath: string;
+  primaryPath: string;
+  name: string;
+  sizeBytes: number;
+};
+
+interface GameSku {
+  game: ScannedGameInfo;
+  sku: string | null;
+}
+
+interface EnrichedGame {
+  game: ScannedGameInfo;
+  sku: string | null;
+  entry: LaunchboxShopDetailsEntry | null;
+  groupKey: string;
+}
+
+type SkuLookup = Awaited<ReturnType<typeof fetchShopDetailsForSkus>>;
+type TitleByFolder = Map<string, { folderPath: string; sizeBytes: number }>;
+type DiscsByTitle = Map<
+  string,
+  { primaryPath: string; name: string; sku: string | null }[]
+>;
+type CancelSignal = { cancelled: boolean };
+type ProgressFn = (payload: LaunchboxImportProgress) => void;
+
+const cancelledResult = (
+  fileCount = 0,
+  sizeBytes = 0,
+  matched = 0,
+  unmatched = 0,
+  unmatchedFiles: string[] = []
+): LaunchboxImportResult => ({
+  fileCount,
+  sizeBytes,
+  matched,
+  unmatched,
+  unmatchedFiles,
+  cancelled: true,
+});
+
+const scanFolders = async (
   system: EmulatorSystem,
   folders: FolderInput[],
-  language: string,
-  signal: { cancelled: boolean },
-  onProgress?: (payload: LaunchboxImportProgress) => void
-): Promise<LaunchboxImportResult> {
+  signal: CancelSignal,
+  onProgress?: ProgressFn
+): Promise<ScannedGameInfo[]> => {
   const binary = emulators.KNOWN_BINARIES[system];
-
-  type ScannedGameInfo = {
-    folderPath: string;
-    primaryPath: string;
-    name: string;
-    sizeBytes: number;
-  };
-
   const collected: ScannedGameInfo[] = [];
 
-  // Phase 1: scan folders (defer persistence until grouping is known)
   for (const folder of folders) {
     if (signal.cancelled) break;
 
@@ -357,25 +390,23 @@ export async function runLaunchboxImport(
     }
   }
 
-  const folderInputBy = new Map(folders.map((f) => [f.path, f]));
+  return collected;
+};
 
-  if (signal.cancelled) {
-    return {
-      fileCount: 0,
-      sizeBytes: 0,
-      matched: 0,
-      unmatched: 0,
-      unmatchedFiles: [],
-      cancelled: true,
-    };
-  }
-
-  const totalGames = collected.length;
-  const gameSkus: { game: ScannedGameInfo; sku: string | null }[] = [];
-
+const resolveSkus = async (
+  system: EmulatorSystem,
+  collected: ScannedGameInfo[],
+  signal: CancelSignal
+): Promise<{
+  gameSkus: GameSku[];
+  ps3Exe: string | null;
+  ps3ExtractedForYml: Map<string, string>;
+}> => {
+  const gameSkus: GameSku[] = [];
+  const ps3ExtractedForYml = new Map<string, string>();
   let ps3Exe: string | null = null;
   let ps3PathIndex: Map<string, string> | null = null;
-  const ps3ExtractedForYml = new Map<string, string>();
+
   if (system === "ps3") {
     const cfg = await emulators.getEmulatorConfig("ps3");
     ps3Exe = cfg.executablePath;
@@ -384,9 +415,8 @@ export async function runLaunchboxImport(
     );
   }
 
-  for (let i = 0; i < collected.length; i++) {
+  for (const game of collected) {
     if (signal.cancelled) break;
-    const game = collected[i];
 
     let sku = ps3PathIndex
       ? lookupYmlSku(ps3PathIndex, game.primaryPath)
@@ -411,43 +441,18 @@ export async function runLaunchboxImport(
     gameSkus.push({ game, sku });
   }
 
-  if (signal.cancelled) {
-    return {
-      fileCount: 0,
-      sizeBytes: 0,
-      matched: 0,
-      unmatched: 0,
-      unmatchedFiles: [],
-      cancelled: true,
-    };
-  }
+  return { gameSkus, ps3Exe, ps3ExtractedForYml };
+};
 
-  // Phase 3: batch fetch shop-details for unique SKUs
-  const uniqueSkus = Array.from(
-    new Set(
-      gameSkus
-        .map((g) => g.sku)
-        .filter((s): s is string => s !== null && s.length > 0)
-    )
-  );
-  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
-
-  if (signal.cancelled) {
-    return {
-      fileCount: 0,
-      sizeBytes: 0,
-      matched: 0,
-      unmatched: 0,
-      unmatchedFiles: [],
-      cancelled: true,
-    };
-  }
-
-  // Phase 4: per-game match progress + collect unique matched entries.
-  // Step 4a: for each scanned file, resolve its API entry (if any) and compute
-  // a filename-based group key. Multi-disc siblings (FF VII Disc 1/2/3) share
-  // the same group key even though each disc has a different SKU/objectId.
-  const enriched = gameSkus.map(({ game, sku }) => {
+const buildEnriched = (
+  system: EmulatorSystem,
+  gameSkus: GameSku[],
+  skuLookup: SkuLookup
+): {
+  enriched: EnrichedGame[];
+  groupCanonical: Map<string, LaunchboxShopDetailsEntry>;
+} => {
+  const enriched: EnrichedGame[] = gameSkus.map(({ game, sku }) => {
     const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
     const success = Boolean(entry?.objectId && entry?.data);
     const groupKey =
@@ -463,16 +468,9 @@ export async function runLaunchboxImport(
       title: success ? entry?.data?.title : null,
       groupKey,
     });
-    return {
-      game,
-      sku,
-      entry: success ? entry : null,
-      groupKey,
-    };
+    return { game, sku, entry: success ? entry : null, groupKey };
   });
 
-  // Step 4b: pick a canonical entry per group (first disc that matches wins).
-  // All other discs in the group fold into that canonical title.
   const groupCanonical = new Map<string, LaunchboxShopDetailsEntry>();
   for (const { entry, groupKey } of enriched) {
     if (entry && !groupCanonical.has(groupKey)) {
@@ -480,21 +478,27 @@ export async function runLaunchboxImport(
     }
   }
 
+  return { enriched, groupCanonical };
+};
+
+const aggregateMatches = (
+  enriched: EnrichedGame[],
+  groupCanonical: Map<string, LaunchboxShopDetailsEntry>,
+  matchedCount: number,
+  totalGames: number,
+  signal: CancelSignal,
+  onProgress?: ProgressFn
+): {
+  unmatched: number;
+  unmatchedFiles: string[];
+  titleByFolder: TitleByFolder;
+  discsByTitle: DiscsByTitle;
+} => {
   let unmatched = 0;
   const unmatchedFiles: string[] = [];
   const seenUnmatchedGroups = new Set<string>();
-  const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
-  for (const entry of groupCanonical.values()) {
-    matchedEntries.set(entry.objectId, entry);
-  }
-  const titleByFolder = new Map<
-    string,
-    { folderPath: string; sizeBytes: number }
-  >();
-  const discsByTitle = new Map<
-    string,
-    { primaryPath: string; name: string; sku: string | null }[]
-  >();
+  const titleByFolder: TitleByFolder = new Map();
+  const discsByTitle: DiscsByTitle = new Map();
 
   for (let i = 0; i < enriched.length; i++) {
     if (signal.cancelled) break;
@@ -528,7 +532,6 @@ export async function runLaunchboxImport(
       unmatchedFiles.push(game.name);
     }
 
-    const totalUniqueTitlesSoFar = titleByFolder.size;
     let totalSizeSoFar = 0;
     for (const v of titleByFolder.values()) totalSizeSoFar += v.sizeBytes;
 
@@ -539,16 +542,24 @@ export async function runLaunchboxImport(
       total: totalGames,
       currentFile: game.name,
       status: canonical ? "matched" : "unmatched",
-      matched: matchedEntries.size,
+      matched: matchedCount,
       unmatched,
-      fileCount: totalUniqueTitlesSoFar,
+      fileCount: titleByFolder.size,
       sizeBytes: totalSizeSoFar,
     });
   }
 
-  const matched = matchedEntries.size;
+  return { unmatched, unmatchedFiles, titleByFolder, discsByTitle };
+};
 
-  // Roll up per-folder unique-title counts and sizes
+const rollupFolders = (
+  folders: FolderInput[],
+  titleByFolder: TitleByFolder
+): {
+  folderRollup: Map<string, { fileCount: number; sizeBytes: number }>;
+  totalFileCount: number;
+  totalSizeBytes: number;
+} => {
   const folderRollup = new Map<
     string,
     { fileCount: number; sizeBytes: number }
@@ -564,27 +575,23 @@ export async function runLaunchboxImport(
     }
   }
 
-  const totalFileCount = Array.from(folderRollup.values()).reduce(
-    (s, b) => s + b.fileCount,
-    0
-  );
-  const totalSizeBytes = Array.from(folderRollup.values()).reduce(
-    (s, b) => s + b.sizeBytes,
-    0
-  );
-
-  if (signal.cancelled) {
-    return {
-      fileCount: totalFileCount,
-      sizeBytes: totalSizeBytes,
-      matched,
-      unmatched,
-      unmatchedFiles,
-      cancelled: true,
-    };
+  let totalFileCount = 0;
+  let totalSizeBytes = 0;
+  for (const bucket of folderRollup.values()) {
+    totalFileCount += bucket.fileCount;
+    totalSizeBytes += bucket.sizeBytes;
   }
 
-  // Phase 5: persist unique matched entries locally
+  return { folderRollup, totalFileCount, totalSizeBytes };
+};
+
+const persistMatchedEntries = async (
+  matchedEntries: Map<string, LaunchboxShopDetailsEntry>,
+  discsByTitle: DiscsByTitle,
+  language: string,
+  system: EmulatorSystem,
+  signal: CancelSignal
+) => {
   for (const entry of matchedEntries.values()) {
     if (signal.cancelled) break;
     const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
@@ -593,8 +600,13 @@ export async function runLaunchboxImport(
       logger.error("Failed to persist launchbox entry locally", err);
     });
   }
+};
 
-  // Phase 6: persist rom folders with grouped counts
+const persistFolderRollups = async (
+  system: EmulatorSystem,
+  folderRollup: Map<string, { fileCount: number; sizeBytes: number }>,
+  folderInputBy: Map<string, FolderInput>
+) => {
   for (const [folderPath, rollup] of folderRollup) {
     const input = folderInputBy.get(folderPath);
     if (!input) continue;
@@ -608,10 +620,84 @@ export async function runLaunchboxImport(
       logger.error("Could not persist rom folder", err);
     });
   }
+};
 
-  // Phase 7: batch sync to remote profile
-  const matchedObjectIds = Array.from(matchedEntries.keys());
-  await syncProfileBatch(matchedObjectIds);
+export async function runLaunchboxImport(
+  system: EmulatorSystem,
+  folders: FolderInput[],
+  language: string,
+  signal: CancelSignal,
+  onProgress?: ProgressFn
+): Promise<LaunchboxImportResult> {
+  const folderInputBy = new Map(folders.map((f) => [f.path, f]));
+
+  const collected = await scanFolders(system, folders, signal, onProgress);
+  if (signal.cancelled) return cancelledResult();
+  const totalGames = collected.length;
+
+  const { gameSkus, ps3Exe, ps3ExtractedForYml } = await resolveSkus(
+    system,
+    collected,
+    signal
+  );
+  if (signal.cancelled) return cancelledResult();
+
+  const uniqueSkus = Array.from(
+    new Set(
+      gameSkus
+        .map((g) => g.sku)
+        .filter((s): s is string => s !== null && s.length > 0)
+    )
+  );
+  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus);
+  if (signal.cancelled) return cancelledResult();
+
+  const { enriched, groupCanonical } = buildEnriched(
+    system,
+    gameSkus,
+    skuLookup
+  );
+
+  const matchedEntries = new Map<string, LaunchboxShopDetailsEntry>();
+  for (const entry of groupCanonical.values()) {
+    matchedEntries.set(entry.objectId, entry);
+  }
+  const matched = matchedEntries.size;
+
+  const { unmatched, unmatchedFiles, titleByFolder, discsByTitle } =
+    aggregateMatches(
+      enriched,
+      groupCanonical,
+      matched,
+      totalGames,
+      signal,
+      onProgress
+    );
+
+  const { folderRollup, totalFileCount, totalSizeBytes } = rollupFolders(
+    folders,
+    titleByFolder
+  );
+
+  if (signal.cancelled) {
+    return cancelledResult(
+      totalFileCount,
+      totalSizeBytes,
+      matched,
+      unmatched,
+      unmatchedFiles
+    );
+  }
+
+  await persistMatchedEntries(
+    matchedEntries,
+    discsByTitle,
+    language,
+    system,
+    signal
+  );
+  await persistFolderRollups(system, folderRollup, folderInputBy);
+  await syncProfileBatch(Array.from(matchedEntries.keys()));
 
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
     await emulators

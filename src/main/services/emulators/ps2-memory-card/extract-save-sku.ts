@@ -74,7 +74,7 @@ export const extractSkuFromSaveFolder = (folderName: string): string | null => {
 
   // Serial = 4-letter publisher code + optional separator + exactly 5 digits,
   // matched from the start. Any trailing game-specific suffix is ignored.
-  const serial = body.match(/^([A-Z]{4})[-_ .]?(\d{5})/);
+  const serial = /^([A-Z]{4})[-_ .]?(\d{5})/.exec(body);
   if (!serial || !KNOWN_PREFIXES.has(serial[1])) return null;
 
   return `${serial[1]}-${serial[2]}`;

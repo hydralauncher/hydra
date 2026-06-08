@@ -31,7 +31,7 @@ const copyTod = (
   dest: Buffer,
   offset: number
 ): void => {
-  if (raw && raw.length) raw.copy(dest, offset, 0, Math.min(raw.length, 8));
+  if (raw?.length) raw.copy(dest, offset, 0, Math.min(raw.length, 8));
 };
 
 const writePsuRecord = (
@@ -82,9 +82,9 @@ export const buildPsuBuffer = (contents: Ps2SaveContents): Buffer => {
         file.name,
         file.createdRaw,
         file.modifiedRaw
-      )
+      ),
+      file.data
     );
-    parts.push(file.data);
     const pad = padTo1024(file.data.length);
     if (pad > 0) parts.push(Buffer.alloc(pad));
   }

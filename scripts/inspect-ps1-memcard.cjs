@@ -152,85 +152,89 @@ const writeTemp = (buf, suffix) => {
   return p;
 };
 
-const runSelfTest = async () => {
-  console.log("PS1 memory card parser — synthetic self-test\n");
+const runParseCase = async (headerBytes) => {
+  const label = headerBytes === 0 ? "raw .mcd" : ".vmp (128-byte header)";
+  console.log(`• ${label}`);
+  const cardPath = writeTemp(
+    buildSyntheticCard(headerBytes),
+    headerBytes === 0 ? ".mcd" : ".vmp"
+  );
 
-  for (const headerBytes of [0, 128]) {
-    const label = headerBytes === 0 ? "raw .mcd" : ".vmp (128-byte header)";
-    console.log(`• ${label}`);
-    const cardPath = writeTemp(
-      buildSyntheticCard(headerBytes),
-      headerBytes === 0 ? ".mcd" : ".vmp"
-    );
+  const info = await listPs1Saves(cardPath);
+  check("  card parsed", !!info);
+  if (!info) return;
+  eq("  data offset", info.dataOffset, headerBytes);
+  eq("  save count", info.saves.length, 2);
 
-    const info = await listPs1Saves(cardPath);
-    check("  card parsed", !!info);
-    if (!info) continue;
-    eq("  data offset", info.dataOffset, headerBytes);
-    eq("  save count", info.saves.length, 2);
-
-    const simp = info.saves.find((s) => s.identifier === "BASLUS-20624Simp01");
-    check("  single-block save found", !!simp);
-    if (simp) {
-      eq("    sku", simp.sku, "SLUS-20624");
-      eq("    blockCount", simp.blockCount, 1);
-      eq("    sizeBytes", simp.sizeBytes, BLOCK);
-    }
-
-    const chained = info.saves.find((s) => s.identifier === "BESLES-50009SAVE");
-    check("  chained save found", !!chained);
-    if (chained) {
-      eq("    sku", chained.sku, "SLES-50009");
-      eq("    blockCount", chained.blockCount, 2);
-    }
-
-    // Export round-trip: header frame (128) + N blocks (8192 each).
-    const contents = await readPs1SaveContents(cardPath, "BESLES-50009SAVE");
-    check("  readSaveContents", !!contents);
-    if (contents) {
-      const mcs = buildMcsBuffer(contents);
-      eq("    .mcs size", mcs.length, FRAME + BLOCK * 2);
-      eq("    block 0 first byte", mcs[FRAME], 0x22);
-      eq("    block 1 first byte", mcs[FRAME + BLOCK], 0x33);
-    }
-    console.log("");
+  const simp = info.saves.find((s) => s.identifier === "BASLUS-20624Simp01");
+  check("  single-block save found", !!simp);
+  if (simp) {
+    eq("    sku", simp.sku, "SLUS-20624");
+    eq("    blockCount", simp.blockCount, 1);
+    eq("    sizeBytes", simp.sizeBytes, BLOCK);
   }
 
-  // Write round-trip: export a 2-block save, import it into a fresh empty card,
-  // read it back, then re-import (replace) and confirm it stays a single save.
+  const chained = info.saves.find((s) => s.identifier === "BESLES-50009SAVE");
+  check("  chained save found", !!chained);
+  if (chained) {
+    eq("    sku", chained.sku, "SLES-50009");
+    eq("    blockCount", chained.blockCount, 2);
+  }
+
+  // Export round-trip: header frame (128) + N blocks (8192 each).
+  const contents = await readPs1SaveContents(cardPath, "BESLES-50009SAVE");
+  check("  readSaveContents", !!contents);
+  if (contents) {
+    const mcs = buildMcsBuffer(contents);
+    eq("    .mcs size", mcs.length, FRAME + BLOCK * 2);
+    eq("    block 0 first byte", mcs[FRAME], 0x22);
+    eq("    block 1 first byte", mcs[FRAME + BLOCK], 0x33);
+  }
+  console.log("");
+};
+
+// Write round-trip: export a 2-block save, import it into a fresh empty card,
+// read it back, then re-import (replace) and confirm it stays a single save.
+const runImportRoundTrip = async () => {
   console.log("• importMcsIntoCard (write round-trip)");
   const src = writeTemp(buildSyntheticCard(0), ".mcd");
   const srcContents = await readPs1SaveContents(src, "BESLES-50009SAVE");
   check("  source save readable", !!srcContents);
-  if (srcContents) {
-    const mcs = buildMcsBuffer(srcContents);
-    const target = writeTemp(buildEmptyPs1Card(), ".mcd");
+  if (!srcContents) return;
 
-    const result = await importMcsIntoCard(target, mcs);
-    check("  import ok", result.ok === true);
-    if (!result.ok) console.log("    error:", result.error);
+  const mcs = buildMcsBuffer(srcContents);
+  const target = writeTemp(buildEmptyPs1Card(), ".mcd");
 
-    const info = await listPs1Saves(target);
-    eq("  save count", info && info.saves.length, 1);
-    eq(
-      "  identifier",
-      info && info.saves[0] && info.saves[0].identifier,
-      "BESLES-50009SAVE"
-    );
+  const result = await importMcsIntoCard(target, mcs);
+  check("  import ok", result.ok === true);
+  if (!result.ok) console.log("    error:", result.error);
 
-    const back = await readPs1SaveContents(target, "BESLES-50009SAVE");
-    check(
-      "  blocks match",
-      back &&
-        back.blocks.length === srcContents.blocks.length &&
-        srcContents.blocks.every((b, i) => b.equals(back.blocks[i]))
-    );
+  const info = await listPs1Saves(target);
+  eq("  save count", info?.saves.length, 1);
+  eq("  identifier", info?.saves[0]?.identifier, "BESLES-50009SAVE");
 
-    const r2 = await importMcsIntoCard(target, mcs);
-    check("  re-import (replace) ok", r2.ok === true);
-    const info2 = await listPs1Saves(target);
-    eq("  one save after replace", info2 && info2.saves.length, 1);
+  const back = await readPs1SaveContents(target, "BESLES-50009SAVE");
+  check(
+    "  blocks match",
+    !!back &&
+      back.blocks.length === srcContents.blocks.length &&
+      srcContents.blocks.every((b, i) => b.equals(back.blocks[i]))
+  );
+
+  const r2 = await importMcsIntoCard(target, mcs);
+  check("  re-import (replace) ok", r2.ok === true);
+  const info2 = await listPs1Saves(target);
+  eq("  one save after replace", info2?.saves.length, 1);
+};
+
+const runSelfTest = async () => {
+  console.log("PS1 memory card parser — synthetic self-test\n");
+
+  for (const headerBytes of [0, 128]) {
+    await runParseCase(headerBytes);
   }
+
+  await runImportRoundTrip();
   console.log("");
 
   console.log(failures === 0 ? "ALL PASS" : `${failures} FAILURE(S)`);

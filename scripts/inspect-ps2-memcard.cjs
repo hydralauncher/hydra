@@ -84,6 +84,7 @@ const DIR_MODE = DF_DIR | DF_EXISTS | 0x7;
 const FILE_MODE = DF_FILE | DF_EXISTS | 0x7;
 const FAT_ALLOC = 0x80000000;
 const FAT_END = 0xffffffff; // alloc bit + 0x7fffffff end-of-chain
+const PS2_FORMAT_VERSION = [1, 2, 0, 0].join(".");
 
 const tod = () => {
   const b = Buffer.alloc(8);
@@ -114,7 +115,7 @@ const buildSyntheticCard = () => {
   // Superblock (cluster 0)
   const sb = Buffer.alloc(CLUSTER);
   sb.write("Sony PS2 Memory Card Format ", 0, "latin1");
-  sb.write("1.2.0.0", 0x1c, "latin1");
+  sb.write(PS2_FORMAT_VERSION, 0x1c, "latin1");
   sb.writeUInt16LE(PAGE, 0x28);
   sb.writeUInt16LE(PPC, 0x2a);
   sb.writeUInt16LE(16, 0x2c);
@@ -194,7 +195,7 @@ const buildEmptyCard = (numClusters, withEcc) => {
 
   const sb = Buffer.alloc(CLUSTER);
   sb.write("Sony PS2 Memory Card Format ", 0, "latin1");
-  sb.write("1.2.0.0", 0x1c, "latin1");
+  sb.write(PS2_FORMAT_VERSION, 0x1c, "latin1");
   sb.writeUInt16LE(PAGE, 0x28);
   sb.writeUInt16LE(PPC, 0x2a);
   sb.writeUInt16LE(16, 0x2c);
@@ -239,9 +240,7 @@ const buildEmptyCard = (numClusters, withEcc) => {
   return out;
 };
 
-const runSelfTest = async () => {
-  console.log("PS2 memory card parser — synthetic self-test\n");
-
+const testExtractSku = () => {
   console.log("extractSkuFromSaveFolder:");
   eq("BASLUS-20552", extractSkuFromSaveFolder("BASLUS-20552"), "SLUS-20552");
   eq("BESLES-50009", extractSkuFromSaveFolder("BESLES-50009"), "SLES-50009");
@@ -271,177 +270,176 @@ const runSelfTest = async () => {
     extractSkuFromSaveFolder("BAXYZW-12345"),
     null
   );
+};
+
+const collectPsuRecords = (psu) => {
+  let off = 512 * 3;
+  const seen = [];
+  while (off < psu.length) {
+    const rec = psu.subarray(off, off + 512);
+    const mode = rec.readUInt16LE(0);
+    const len = rec.readUInt32LE(4);
+    const nameBuf = rec.subarray(0x40, 0x40 + 32);
+    const nul = nameBuf.indexOf(0);
+    const nameEnd = nul === -1 ? 32 : nul;
+    const name = nameBuf.subarray(0, nameEnd).toString("latin1");
+    off += 512;
+    const padded = Math.ceil(len / 1024) * 1024;
+    check(`psu data segment for ${name} is 1024-aligned`, padded % 1024 === 0);
+    off += padded;
+    seen.push({ name, len, isFile: (mode & DF_FILE) !== 0 });
+  }
+  return { seen, off };
+};
+
+const testParseAndExport = async (tmp, icon, test) => {
+  console.log("\nlistSaves:");
+  const info = await listSaves(tmp);
+  check("card parsed (non-null)", info !== null);
+  if (!info) throw new Error("parse failed");
+  eq("hasEcc", info.hasEcc, false);
+  eq("rawPageSize", info.rawPageSize, 512);
+  eq("save count", info.saves.length, 1);
+  const save = info.saves[0];
+  eq("folderName", save.folderName, "BASLUS-12345");
+  eq("sku", save.sku, "SLUS-12345");
+  eq("fileCount", save.fileCount, 2);
+  eq("sizeBytes", save.sizeBytes, 2100);
+
+  console.log("\nreadSaveContents:");
+  const contents = await readSaveContents(tmp, "BASLUS-12345");
+  check("contents non-null", contents !== null);
+  if (!contents) throw new Error("readSaveContents failed");
+  eq("files length", contents.files.length, 2);
+  const iconFile = contents.files.find((f) => f.name === "icon.sys");
+  const testFile = contents.files.find((f) => f.name === "test.dat");
+  check("icon.sys present", !!iconFile);
+  check("test.dat present", !!testFile);
+  eq("icon.sys length", iconFile?.length, 100);
+  eq("test.dat length", testFile?.length, 2000);
+  check("icon.sys bytes match", iconFile?.data.equals(icon));
+  check("test.dat bytes match (spans 2 clusters)", testFile?.data.equals(test));
+
+  console.log("\nbuildPsuBuffer round-trip:");
+  const psu = buildPsuBuffer(contents);
+  const expectedTotal = 512 * 3 + (512 + 1024) + (512 + 2048);
+  eq("psu total bytes", psu.length, expectedTotal);
+
+  const dirRec = psu.subarray(0, 512);
+  eq(
+    "psu dir mode is DIR|EXISTS",
+    (dirRec.readUInt16LE(0) & (DF_DIR | DF_EXISTS)) === (DF_DIR | DF_EXISTS),
+    true
+  );
+  eq("psu dir length == files+2", dirRec.readUInt32LE(4), 4);
+  const dirName = dirRec.subarray(0x40, 0x40 + 12).toString("latin1");
+  eq("psu dir name", dirName, "BASLUS-12345");
+
+  const { seen, off } = collectPsuRecords(psu);
+  eq("psu file-record count", seen.length, 2);
+  eq("psu offset consumed exactly", off, psu.length);
+  check(
+    "psu has icon.sys (100)",
+    seen.some((s) => s.name === "icon.sys" && s.len === 100 && s.isFile)
+  );
+  check(
+    "psu has test.dat (2000)",
+    seen.some((s) => s.name === "test.dat" && s.len === 2000 && s.isFile)
+  );
+
+  console.log("\nexportSaveToPsu (LocalPsuBackup seam):");
+  const outPath = path.join(os.tmpdir(), `hydra-synth-${process.pid}.psu`);
+  const res = await exportSaveToPsu(
+    tmp,
+    "BASLUS-12345",
+    new LocalPsuBackup(outPath),
+    { readSaveContents }
+  );
+  eq("export location", res.location, outPath);
+  eq("export sizeBytes", res.sizeBytes, expectedTotal);
+  check(
+    "export file written",
+    fs.existsSync(outPath) && fs.statSync(outPath).size === expectedTotal
+  );
+  check(
+    "exported bytes equal buildPsuBuffer",
+    fs.readFileSync(outPath).equals(psu)
+  );
+  fs.unlinkSync(outPath);
+
+  console.log("\nECC (computePageSpare):");
+  const zeroPage = Buffer.alloc(512);
+  const zeroSpare = computePageSpare(zeroPage, 16);
+  eq("zero chunk ecc[0]", zeroSpare[0], 0x77);
+  eq("zero chunk ecc[1]", zeroSpare[1], 0x7f);
+  eq("zero chunk ecc[2]", zeroSpare[2], 0x7f);
+  eq("zero spare is 16 bytes", zeroSpare.length, 16);
+  const onePage = Buffer.alloc(512);
+  onePage[0] = 0x01;
+  const oneSpare = computePageSpare(onePage, 16);
+  eq("{0x01} chunk ecc[0]", oneSpare[0], 0x70);
+  eq("{0x01} chunk ecc[1]", oneSpare[1], 0x00);
+  eq("{0x01} chunk ecc[2]", oneSpare[2], 0x7f);
+
+  return psu;
+};
+
+const testImportCase = async (withEcc, psu, icon, test) => {
+  const label = withEcc ? "ECC" : "raw";
+  console.log(`\nimportPsuIntoCard (${label} card):`);
+  const target = path.join(
+    os.tmpdir(),
+    `hydra-import-${process.pid}-${label}.ps2`
+  );
+  fs.writeFileSync(target, buildEmptyCard(64, withEcc));
+  try {
+    const result = await importPsuIntoCard(target, psu);
+    check(`[${label}] import ok`, result.ok === true);
+    if (!result.ok) console.log("   error:", result.error);
+
+    const info2 = await listSaves(target);
+    eq(`[${label}] hasEcc`, info2?.hasEcc, withEcc);
+    eq(`[${label}] save count`, info2?.saves.length, 1);
+    eq(`[${label}] folderName`, info2?.saves[0]?.folderName, "BASLUS-12345");
+
+    const c2 = await readSaveContents(target, "BASLUS-12345");
+    check(`[${label}] contents read back`, !!c2);
+    if (c2) {
+      const icon2 = c2.files.find((f) => f.name === "icon.sys");
+      const test2 = c2.files.find((f) => f.name === "test.dat");
+      check(`[${label}] icon.sys bytes`, icon2?.data.equals(icon));
+      check(`[${label}] test.dat bytes`, test2?.data.equals(test));
+    }
+
+    const r2 = await importPsuIntoCard(target, psu);
+    check(`[${label}] re-import (replace) ok`, r2.ok === true);
+    const info3 = await listSaves(target);
+    eq(`[${label}] one save after replace`, info3?.saves.length, 1);
+  } finally {
+    fs.unlinkSync(target);
+  }
+};
+
+const runSelfTest = async () => {
+  console.log("PS2 memory card parser — synthetic self-test\n");
+
+  testExtractSku();
 
   const { img, icon, test } = buildSyntheticCard();
   const tmp = path.join(os.tmpdir(), `hydra-synth-card-${process.pid}.ps2`);
   fs.writeFileSync(tmp, img);
 
   try {
-    console.log("\nlistSaves:");
-    const info = await listSaves(tmp);
-    check("card parsed (non-null)", info !== null);
-    if (!info) throw new Error("parse failed");
-    eq("hasEcc", info.hasEcc, false);
-    eq("rawPageSize", info.rawPageSize, 512);
-    eq("save count", info.saves.length, 1);
-    const save = info.saves[0];
-    eq("folderName", save.folderName, "BASLUS-12345");
-    eq("sku", save.sku, "SLUS-12345");
-    eq("fileCount", save.fileCount, 2);
-    eq("sizeBytes", save.sizeBytes, 2100);
-
-    console.log("\nreadSaveContents:");
-    const contents = await readSaveContents(tmp, "BASLUS-12345");
-    check("contents non-null", contents !== null);
-    if (!contents) throw new Error("readSaveContents failed");
-    eq("files length", contents.files.length, 2);
-    const iconFile = contents.files.find((f) => f.name === "icon.sys");
-    const testFile = contents.files.find((f) => f.name === "test.dat");
-    check("icon.sys present", !!iconFile);
-    check("test.dat present", !!testFile);
-    eq("icon.sys length", iconFile && iconFile.length, 100);
-    eq("test.dat length", testFile && testFile.length, 2000);
-    check("icon.sys bytes match", iconFile && iconFile.data.equals(icon));
-    check(
-      "test.dat bytes match (spans 2 clusters)",
-      testFile && testFile.data.equals(test)
-    );
-
-    console.log("\nbuildPsuBuffer round-trip:");
-    const psu = buildPsuBuffer(contents);
-    const expectedTotal = 512 * 3 + (512 + 1024) + (512 + 2048); // dir + . + .. + icon(100->1024) + test(2000->2048)
-    eq("psu total bytes", psu.length, expectedTotal);
-
-    // Re-parse the .psu and validate structure independently.
-    const dirRec = psu.subarray(0, 512);
-    eq(
-      "psu dir mode is DIR|EXISTS",
-      (dirRec.readUInt16LE(0) & (DF_DIR | DF_EXISTS)) === (DF_DIR | DF_EXISTS),
-      true
-    );
-    eq("psu dir length == files+2", dirRec.readUInt32LE(4), 4);
-    const dirName = dirRec.subarray(0x40, 0x40 + 12).toString("latin1");
-    eq("psu dir name", dirName, "BASLUS-12345");
-
-    // Walk records: skip dir + "." + "..", then file records each followed by padded data.
-    let off = 512 * 3;
-    const seen = [];
-    while (off < psu.length) {
-      const rec = psu.subarray(off, off + 512);
-      const mode = rec.readUInt16LE(0);
-      const len = rec.readUInt32LE(4);
-      const nameBuf = rec.subarray(0x40, 0x40 + 32);
-      const nul = nameBuf.indexOf(0);
-      const name = nameBuf
-        .subarray(0, nul === -1 ? 32 : nul)
-        .toString("latin1");
-      off += 512;
-      const padded = Math.ceil(len / 1024) * 1024;
-      check(
-        `psu data segment for ${name} is 1024-aligned`,
-        padded % 1024 === 0
-      );
-      off += padded;
-      seen.push({ name, len, isFile: (mode & DF_FILE) !== 0 });
-    }
-    eq("psu file-record count", seen.length, 2);
-    eq("psu offset consumed exactly", off, psu.length);
-    check(
-      "psu has icon.sys (100)",
-      seen.some((s) => s.name === "icon.sys" && s.len === 100 && s.isFile)
-    );
-    check(
-      "psu has test.dat (2000)",
-      seen.some((s) => s.name === "test.dat" && s.len === 2000 && s.isFile)
-    );
-
-    // exportSaveToPsu through the LocalPsuBackup seam.
-    console.log("\nexportSaveToPsu (LocalPsuBackup seam):");
-    const outPath = path.join(os.tmpdir(), `hydra-synth-${process.pid}.psu`);
-    const res = await exportSaveToPsu(
-      tmp,
-      "BASLUS-12345",
-      new LocalPsuBackup(outPath),
-      {
-        readSaveContents,
-      }
-    );
-    eq("export location", res.location, outPath);
-    eq("export sizeBytes", res.sizeBytes, expectedTotal);
-    check(
-      "export file written",
-      fs.existsSync(outPath) && fs.statSync(outPath).size === expectedTotal
-    );
-    check(
-      "exported bytes equal buildPsuBuffer",
-      fs.readFileSync(outPath).equals(psu)
-    );
-    fs.unlinkSync(outPath);
-
-    // ECC algorithm vectors (independent of any card).
-    console.log("\nECC (computePageSpare):");
-    const zeroPage = Buffer.alloc(512);
-    const zeroSpare = computePageSpare(zeroPage, 16);
-    eq("zero chunk ecc[0]", zeroSpare[0], 0x77);
-    eq("zero chunk ecc[1]", zeroSpare[1], 0x7f);
-    eq("zero chunk ecc[2]", zeroSpare[2], 0x7f);
-    eq("zero spare is 16 bytes", zeroSpare.length, 16);
-    const onePage = Buffer.alloc(512);
-    onePage[0] = 0x01;
-    const oneSpare = computePageSpare(onePage, 16);
-    eq("{0x01} chunk ecc[0]", oneSpare[0], 0x70);
-    eq("{0x01} chunk ecc[1]", oneSpare[1], 0x00);
-    eq("{0x01} chunk ecc[2]", oneSpare[2], 0x7f);
-
-    // Write round-trip: import the exported save into a fresh empty card and
-    // read it back, on both raw and ECC cards.
+    const psu = await testParseAndExport(tmp, icon, test);
     for (const withEcc of [false, true]) {
-      const label = withEcc ? "ECC" : "raw";
-      console.log(`\nimportPsuIntoCard (${label} card):`);
-      const target = path.join(
-        os.tmpdir(),
-        `hydra-import-${process.pid}-${label}.ps2`
-      );
-      fs.writeFileSync(target, buildEmptyCard(64, withEcc));
-      try {
-        const result = await importPsuIntoCard(target, psu);
-        check(`[${label}] import ok`, result.ok === true);
-        if (!result.ok) console.log("   error:", result.error);
-
-        const info2 = await listSaves(target);
-        eq(`[${label}] hasEcc`, info2 && info2.hasEcc, withEcc);
-        eq(`[${label}] save count`, info2 && info2.saves.length, 1);
-        eq(
-          `[${label}] folderName`,
-          info2 && info2.saves[0] && info2.saves[0].folderName,
-          "BASLUS-12345"
-        );
-
-        const c2 = await readSaveContents(target, "BASLUS-12345");
-        check(`[${label}] contents read back`, !!c2);
-        if (c2) {
-          const icon2 = c2.files.find((f) => f.name === "icon.sys");
-          const test2 = c2.files.find((f) => f.name === "test.dat");
-          check(`[${label}] icon.sys bytes`, icon2 && icon2.data.equals(icon));
-          check(`[${label}] test.dat bytes`, test2 && test2.data.equals(test));
-        }
-
-        // Re-import → replace path: still exactly one save.
-        const r2 = await importPsuIntoCard(target, psu);
-        check(`[${label}] re-import (replace) ok`, r2.ok === true);
-        const info3 = await listSaves(target);
-        eq(`[${label}] one save after replace`, info3 && info3.saves.length, 1);
-      } finally {
-        fs.unlinkSync(target);
-      }
+      await testImportCase(withEcc, psu, icon, test);
     }
   } finally {
     fs.unlinkSync(tmp);
   }
 
-  console.log(
-    `\n${failures === 0 ? "ALL PASS ✅" : `${failures} FAILURE(S) ❌`}`
-  );
+  const summary = failures === 0 ? "ALL PASS ✅" : `${failures} FAILURE(S) ❌`;
+  console.log(`\n${summary}`);
   process.exit(failures === 0 ? 0 : 1);
 };
 

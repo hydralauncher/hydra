@@ -13,7 +13,7 @@ import {
   readSuperblock,
 } from "./ps2-memory-card";
 import { DF } from "./types";
-import type { Superblock } from "./types";
+import type { Ps2DirEntry, Superblock } from "./types";
 
 /*
  * PS2 memory card WRITER — imports a `.psu` save folder back into a `.ps2`
@@ -328,68 +328,28 @@ class Ps2CardWriter {
     await this.writeCluster(absCluster, buf);
   }
 
-  async importFolder(psu: PsuContents): Promise<void> {
-    const { clusterSize } = this.sb;
-    const perCluster = Math.floor(clusterSize / DIR_ENTRY_BYTES); // 2
-
-    // Root bootstrap: count + every entry, and its cluster chain.
-    const rootFirst = await this.readCluster(this.abs(this.sb.rootDirCluster));
-    const rootCount = parseDirEntry(rootFirst, 0).length;
-    const { entries: rootEntries, chain: rootChain } =
-      await this.readDirEntries(this.sb.rootDirCluster, rootCount);
-
-    // Replace an existing same-named folder: free its clusters and reuse its slot.
-    const existingIdx = rootEntries.findIndex(
-      (e) => e.exists && e.isDir && e.name === psu.folderName
+  private async freeExistingFolder(old: Ps2DirEntry): Promise<void> {
+    const { entries: oldChildren } = await this.readDirEntries(
+      old.cluster,
+      old.length
     );
-    if (existingIdx !== -1) {
-      const old = rootEntries[existingIdx];
-      const { entries: oldChildren } = await this.readDirEntries(
-        old.cluster,
-        old.length
-      );
-      for (const child of oldChildren) {
-        if (child.isFile && child.exists && child.length > 0) {
-          await this.freeChain(child.cluster);
-        }
+    for (const child of oldChildren) {
+      if (child.isFile && child.exists && child.length > 0) {
+        await this.freeChain(child.cluster);
       }
-      await this.freeChain(old.cluster);
     }
+    await this.freeChain(old.cluster);
+  }
 
-    // How many clusters does the new folder need?
-    const entryCount = psu.files.length + 2; // ".", "..", files
-    const dirClusters = Math.ceil(entryCount / perCluster);
-    const fileClusterCounts = psu.files.map((f) =>
-      Math.ceil(f.length / clusterSize)
-    );
-    const totalFileClusters = fileClusterCounts.reduce((a, b) => a + b, 0);
-
-    // A brand-new entry that lands past the current root count may need the root
-    // directory itself to grow by one cluster.
-    const targetIndex = existingIdx !== -1 ? existingIdx : rootCount;
-    const needsRootGrowth =
-      existingIdx === -1 && targetIndex % perCluster === 0;
-
-    const need = dirClusters + totalFileClusters + (needsRootGrowth ? 1 : 0);
-    const free = await this.findFreeClusters(need);
-    if (!free) throw new Error("Not enough free space on the memory card");
-
-    let cursor = 0;
-    const dirRels = free.slice(cursor, cursor + dirClusters);
-    cursor += dirClusters;
-    const fileRels = psu.files.map((_, i) => {
-      const n = fileClusterCounts[i];
-      const rels = free.slice(cursor, cursor + n);
-      cursor += n;
-      return rels;
-    });
-    const rootGrowthRel = needsRootGrowth ? free[cursor++] : null;
-
-    // FAT: chain the folder's dir clusters and each file's data clusters.
-    await this.setChain(dirRels);
-    for (const rels of fileRels) if (rels.length) await this.setChain(rels);
-
-    // Build the folder's directory clusters: [".", "..", file entries…].
+  private async writeFolderDirectory(
+    psu: PsuContents,
+    targetIndex: number,
+    dirRels: number[],
+    fileRels: number[][],
+    entryCount: number,
+    clusterSize: number
+  ): Promise<void> {
+    const dirClusters = dirRels.length;
     const dirBuf = Buffer.alloc(dirClusters * clusterSize);
     writeDirEntry(dirBuf, 0 * DIR_ENTRY_BYTES, {
       mode: DIR_MODE,
@@ -424,11 +384,16 @@ class Ps2CardWriter {
         dirBuf.subarray(c * clusterSize, (c + 1) * clusterSize)
       );
     }
+  }
 
-    // Write each file's data across its cluster chain (last cluster zero-padded).
-    for (let i = 0; i < psu.files.length; i += 1) {
+  private async writeFileData(
+    fileRels: number[][],
+    files: PsuFile[],
+    clusterSize: number
+  ): Promise<void> {
+    for (let i = 0; i < files.length; i += 1) {
       const rels = fileRels[i];
-      const data = psu.files[i].data;
+      const data = files[i].data;
       for (let c = 0; c < rels.length; c += 1) {
         const chunk = data.subarray(c * clusterSize, (c + 1) * clusterSize);
         const clusterBuf = Buffer.alloc(clusterSize);
@@ -436,22 +401,87 @@ class Ps2CardWriter {
         await this.writeCluster(this.abs(rels[c]), clusterBuf);
       }
     }
+  }
 
-    // Grow the root directory chain if the new slot needs a fresh cluster.
-    let effectiveRootChain = rootChain;
-    if (rootGrowthRel !== null) {
-      await this.writeFatEntry(rootGrowthRel, FAT_END);
-      const lastRoot = rootChain[rootChain.length - 1];
-      await this.writeFatEntry(
-        lastRoot,
-        (FAT_ALLOCATED_BIT | (rootGrowthRel & FAT_VALUE_MASK)) >>> 0
-      );
-      await this.writeCluster(
-        this.abs(rootGrowthRel),
-        Buffer.alloc(clusterSize)
-      );
-      effectiveRootChain = [...rootChain, rootGrowthRel];
+  private async growRootChain(
+    rootChain: number[],
+    rootGrowthRel: number,
+    clusterSize: number
+  ): Promise<number[]> {
+    await this.writeFatEntry(rootGrowthRel, FAT_END);
+    const lastRoot = rootChain.at(-1) ?? rootChain[0];
+    await this.writeFatEntry(
+      lastRoot,
+      (FAT_ALLOCATED_BIT | (rootGrowthRel & FAT_VALUE_MASK)) >>> 0
+    );
+    await this.writeCluster(this.abs(rootGrowthRel), Buffer.alloc(clusterSize));
+    return [...rootChain, rootGrowthRel];
+  }
+
+  async importFolder(psu: PsuContents): Promise<void> {
+    const { clusterSize } = this.sb;
+    const perCluster = Math.floor(clusterSize / DIR_ENTRY_BYTES); // 2
+
+    // Root bootstrap: count + every entry, and its cluster chain.
+    const rootFirst = await this.readCluster(this.abs(this.sb.rootDirCluster));
+    const rootCount = parseDirEntry(rootFirst, 0).length;
+    const { entries: rootEntries, chain: rootChain } =
+      await this.readDirEntries(this.sb.rootDirCluster, rootCount);
+
+    const existingIdx = rootEntries.findIndex(
+      (e) => e.exists && e.isDir && e.name === psu.folderName
+    );
+    if (existingIdx !== -1) {
+      await this.freeExistingFolder(rootEntries[existingIdx]);
     }
+
+    // How many clusters does the new folder need?
+    const entryCount = psu.files.length + 2; // ".", "..", files
+    const dirClusters = Math.ceil(entryCount / perCluster);
+    const fileClusterCounts = psu.files.map((f) =>
+      Math.ceil(f.length / clusterSize)
+    );
+    const totalFileClusters = fileClusterCounts.reduce((a, b) => a + b, 0);
+
+    // A brand-new entry that lands past the current root count may need the root
+    // directory itself to grow by one cluster.
+    const targetIndex = existingIdx === -1 ? rootCount : existingIdx;
+    const needsRootGrowth =
+      existingIdx === -1 && targetIndex % perCluster === 0;
+
+    const need = dirClusters + totalFileClusters + (needsRootGrowth ? 1 : 0);
+    const free = await this.findFreeClusters(need);
+    if (!free) throw new Error("Not enough free space on the memory card");
+
+    let cursor = 0;
+    const dirRels = free.slice(cursor, cursor + dirClusters);
+    cursor += dirClusters;
+    const fileRels = psu.files.map((_, i) => {
+      const n = fileClusterCounts[i];
+      const rels = free.slice(cursor, cursor + n);
+      cursor += n;
+      return rels;
+    });
+    const rootGrowthRel = needsRootGrowth ? free[cursor++] : null;
+
+    // FAT: chain the folder's dir clusters and each file's data clusters.
+    await this.setChain(dirRels);
+    for (const rels of fileRels) if (rels.length) await this.setChain(rels);
+
+    await this.writeFolderDirectory(
+      psu,
+      targetIndex,
+      dirRels,
+      fileRels,
+      entryCount,
+      clusterSize
+    );
+    await this.writeFileData(fileRels, psu.files, clusterSize);
+
+    const effectiveRootChain =
+      rootGrowthRel !== null
+        ? await this.growRootChain(rootChain, rootGrowthRel, clusterSize)
+        : rootChain;
 
     // Write the folder's entry into the root directory and bump the root count.
     await this.writeRootEntry(effectiveRootChain, targetIndex, {
@@ -473,6 +503,23 @@ export interface Ps2ImportResult {
   error?: string;
   folderName?: string;
 }
+
+const verifyImportedFolder = async (
+  cardFilePath: string,
+  psu: PsuContents
+): Promise<boolean> => {
+  const info = await listSaves(cardFilePath);
+  if (!info?.saves.some((s) => s.folderName === psu.folderName)) return false;
+
+  const contents = await readSaveContents(cardFilePath, psu.folderName);
+  if (!contents) return false;
+  if (contents.files.length !== psu.files.length) return false;
+  return psu.files.every((f) => {
+    const got = contents.files.find((c) => c.name === f.name);
+    if (!got) return false;
+    return got.data.length === f.length && got.data.equals(f.data);
+  });
+};
 
 /**
  * Import a `.psu` save folder into a `.ps2` card, replacing a same-named folder.
@@ -515,23 +562,7 @@ export const importPsuIntoCard = async (
     };
   }
 
-  // Verify: the folder and its files must read back with matching bytes.
-  const info = await listSaves(cardFilePath);
-  const present = info?.saves.some((s) => s.folderName === psu.folderName);
-  let bytesOk = present;
-  if (present) {
-    const contents = await readSaveContents(cardFilePath, psu.folderName);
-    bytesOk = Boolean(
-      contents &&
-        contents.files.length === psu.files.length &&
-        psu.files.every((f) => {
-          const got = contents.files.find((c) => c.name === f.name);
-          return got && got.data.length === f.length && got.data.equals(f.data);
-        })
-    );
-  }
-
-  if (!bytesOk) {
+  if (!(await verifyImportedFolder(cardFilePath, psu))) {
     await fs.copyFile(backupPath, cardFilePath).catch(() => undefined);
     await fs.rm(backupPath, { force: true }).catch(() => undefined);
     return { ok: false, error: "Import verification failed" };
