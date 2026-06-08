@@ -7,6 +7,7 @@ import {
   TrophyIcon,
   DatabaseIcon,
   FileZipIcon,
+  CheckCircleFillIcon,
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,6 +33,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const isInstalled = Boolean(game.executablePath);
 
   const sizeBars = useMemo(() => {
     const items: {
@@ -171,18 +174,35 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
             </div>
           )}
 
-          <div className="library-game-card-large__playtime">
-            {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
-                className="library-game-card-large__manual-playtime"
-              />
-            ) : (
-              <ClockIcon size={11} />
+          <div className="library-game-card-large__top-right">
+            {isInstalled && (
+              <div
+                className="library-game-card-large__installed-badge"
+                title={t("installed_tooltip")}
+              >
+                <CheckCircleFillIcon
+                  size={12}
+                  className="library-game-card-large__installed-icon"
+                />
+                <span className="library-game-card-large__installed-text">
+                  {t("installed")}
+                </span>
+              </div>
             )}
-            <span className="library-game-card-large__playtime-text">
-              {formatPlayTime(game.playTimeInMilliseconds)}
-            </span>
+
+            <div className="library-game-card-large__playtime">
+              {game.hasManuallyUpdatedPlaytime ? (
+                <AlertFillIcon
+                  size={11}
+                  className="library-game-card-large__manual-playtime"
+                />
+              ) : (
+                <ClockIcon size={11} />
+              )}
+              <span className="library-game-card-large__playtime-text">
+                {formatPlayTime(game.playTimeInMilliseconds)}
+              </span>
+            </div>
           </div>
         </div>
 
