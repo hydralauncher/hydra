@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClockIcon, SearchIcon, XIcon } from "@primer/octicons-react";
+import {
+  ClockIcon,
+  DeviceDesktopIcon,
+  SearchIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import type { SearchHistoryEntry } from "@renderer/hooks/use-search-history";
-import type { SearchSuggestion } from "@renderer/hooks/use-search-suggestions";
+import type {
+  SearchSuggestion,
+  SuggestionShop,
+} from "@renderer/hooks/use-search-suggestions";
+import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 import { HighlightText } from "./highlight-text";
 import "./search-dropdown.scss";
 
@@ -14,6 +23,9 @@ export interface SearchDropdownProps {
   historyItems: SearchHistoryEntry[];
   suggestions: SearchSuggestion[];
   isLoadingSuggestions: boolean;
+  suggestionShop: SuggestionShop;
+  onSuggestionShopChange: (shop: SuggestionShop) => void;
+  showShopSwitch: boolean;
   onSelectHistory: (query: string) => void;
   onSelectSuggestion: (suggestion: SearchSuggestion) => void;
   onRemoveHistoryItem: (query: string) => void;
@@ -30,6 +42,9 @@ export function SearchDropdown({
   historyItems,
   suggestions,
   isLoadingSuggestions,
+  suggestionShop,
+  onSuggestionShopChange,
+  showShopSwitch,
   onSelectHistory,
   onSelectSuggestion,
   onRemoveHistoryItem,
@@ -168,49 +183,77 @@ export function SearchDropdown({
         </div>
       )}
 
-      {hasSuggestions && (
+      {(hasSuggestions || isLoadingSuggestions) && (
         <div className="search-dropdown__section">
           <div className="search-dropdown__section-header">
             <span className="search-dropdown__section-title">
               {t("suggestions")}
             </span>
-          </div>
-          <ul className="search-dropdown__list">
-            {suggestions.map((item, index) => (
-              <li key={`suggestion-${item.objectId}-${item.shop}`}>
+            {showShopSwitch && (
+              <div className="search-dropdown__shop-switch">
                 <button
                   type="button"
-                  className={cn("search-dropdown__item", {
-                    "search-dropdown__item--active":
-                      activeIndex === getItemIndex("suggestion", index),
+                  className={cn("search-dropdown__shop-button", {
+                    "search-dropdown__shop-button--active":
+                      suggestionShop === "steam",
                   })}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onSelectSuggestion(item)}
+                  onClick={() => onSuggestionShopChange("steam")}
+                  aria-label="PC"
                 >
-                  {item.iconUrl ? (
-                    <img
-                      src={item.iconUrl}
-                      alt=""
-                      className="search-dropdown__item-icon search-dropdown__item-icon--image"
-                    />
-                  ) : (
-                    <SearchIcon
-                      size={16}
-                      className="search-dropdown__item-icon"
-                    />
-                  )}
-                  <span className="search-dropdown__item-text">
-                    <HighlightText text={item.title} query={currentQuery} />
-                  </span>
+                  <DeviceDesktopIcon size={14} />
                 </button>
-              </li>
-            ))}
-          </ul>
+                <button
+                  type="button"
+                  className={cn("search-dropdown__shop-button", {
+                    "search-dropdown__shop-button--active":
+                      suggestionShop === "launchbox",
+                  })}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onSuggestionShopChange("launchbox")}
+                  aria-label="Classics"
+                >
+                  <ClassicsIcon size={16} />
+                </button>
+              </div>
+            )}
+          </div>
+          {hasSuggestions ? (
+            <ul className="search-dropdown__list">
+              {suggestions.map((item, index) => (
+                <li key={`suggestion-${item.objectId}-${item.shop}`}>
+                  <button
+                    type="button"
+                    className={cn("search-dropdown__item", {
+                      "search-dropdown__item--active":
+                        activeIndex === getItemIndex("suggestion", index),
+                    })}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSelectSuggestion(item)}
+                  >
+                    {item.iconUrl ? (
+                      <img
+                        src={item.iconUrl}
+                        alt=""
+                        className="search-dropdown__item-icon search-dropdown__item-icon--image"
+                      />
+                    ) : (
+                      <SearchIcon
+                        size={16}
+                        className="search-dropdown__item-icon"
+                      />
+                    )}
+                    <span className="search-dropdown__item-text">
+                      <HighlightText text={item.title} query={currentQuery} />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="search-dropdown__loading">{t("loading")}</div>
+          )}
         </div>
-      )}
-
-      {isLoadingSuggestions && !hasSuggestions && !hasHistory && (
-        <div className="search-dropdown__loading">{t("loading")}</div>
       )}
     </div>
   );
