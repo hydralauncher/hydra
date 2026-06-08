@@ -15,7 +15,7 @@ const reportReasons = [
   "sexual_content",
   "violence",
   "spam",
-  "other_option",
+  "other",
 ];
 
 interface FormValues {
@@ -32,7 +32,7 @@ export function ReportProfile() {
 
   const schema = yup.object().shape({
     reason: yup.string().required(t("required_field")),
-    description: yup.string().required(t("required_field")),
+    description: yup.string().required(t("required_field")).max(255),
   });
 
   const {
@@ -115,7 +115,9 @@ export function ReportProfile() {
             error={errors.description?.message}
           />
 
-          <Button className="report-profile__submit">{t("report")}</Button>
+          <Button type="submit" className="report-profile__submit">
+            {t("report")}
+          </Button>
         </form>
       </Modal>
 
