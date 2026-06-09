@@ -129,9 +129,10 @@ export const formatName = pipe<string>(
 const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
 const torboxHosts = [
   "https://1fichier.com",
-  "https://mediafire.com",
+  "https://www.mediafire.com",
+  "https://gofile.io",
   "https://pixeldrain.com",
-  "https://vikingfile.com/",
+  "https://vikingfile.com",
 ];
 
 export const getDownloadersForUri = (uri: string) => {

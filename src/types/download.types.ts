@@ -103,9 +103,7 @@ export interface TorBoxAddWebDownloadRequest {
   detail: string;
   error: string;
   data: {
-    webdownload_id?: number;
-    web_id?: number;
-    id?: number;
+    webdownload_id?: string;
     name?: string;
     hash?: string;
   };

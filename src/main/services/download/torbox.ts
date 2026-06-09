@@ -14,6 +14,8 @@ import { appVersion } from "@main/constants";
 export class TorBoxClient {
   private static instance: AxiosInstance;
   private static readonly baseURL = "https://api.torbox.app/v1/api";
+  private static readonly webDownloadInfoPollAttempts = 6;
+  private static readonly webDownloadInfoPollIntervalMs = 2_000;
   private static apiToken: string;
 
   static authorize(apiToken: string) {
@@ -56,10 +58,7 @@ export class TorBoxClient {
       throw new Error(response.data.detail);
     }
 
-    const webDownloadId =
-      response.data.data.webdownload_id ??
-      response.data.data.web_id ??
-      response.data.data.id;
+    const webDownloadId = response.data.data.webdownload_id;
 
     if (!webDownloadId) {
       throw new Error("TorBox did not return a web download id");
@@ -112,7 +111,7 @@ export class TorBoxClient {
   }
 
   private static async requestWebDownloadLink(
-    id: number,
+    id: string,
     fileId?: number,
     zipLink = false
   ) {
@@ -134,7 +133,7 @@ export class TorBoxClient {
     return response.data.data;
   }
 
-  private static async getWebDownloadInfo(id: number) {
+  private static async getWebDownloadInfo(id: string) {
     const searchParams = new URLSearchParams({
       id: id.toString(),
       bypass_cache: "true",
@@ -147,7 +146,44 @@ export class TorBoxClient {
     const data = response.data.data;
     const webDownloads = Array.isArray(data) ? data : [data];
 
-    return webDownloads.find((item) => item.id === id) ?? null;
+    return webDownloads.find((item) => String(item.id) === String(id)) ?? null;
+  }
+
+  private static wait(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private static isWebDownloadReady(webDownload: TorBoxWebDownloadInfo | null) {
+    if (!webDownload) return false;
+
+    const downloadState = webDownload.download_state?.toLowerCase();
+
+    return (
+      webDownload.cached === true ||
+      downloadState === "cached" ||
+      downloadState === "completed"
+    );
+  }
+
+  private static async getReadyWebDownloadInfo(id: string) {
+    let webDownloadInfo: TorBoxWebDownloadInfo | null = null;
+
+    for (let attempt = 0; attempt < this.webDownloadInfoPollAttempts; attempt++) {
+      webDownloadInfo = await this.getWebDownloadInfo(id);
+
+      if (this.isWebDownloadReady(webDownloadInfo)) {
+        return webDownloadInfo;
+      }
+
+      if (attempt < this.webDownloadInfoPollAttempts - 1) {
+        await this.wait(this.webDownloadInfoPollIntervalMs);
+      }
+    }
+
+    const downloadState = webDownloadInfo?.download_state ?? "unknown";
+    throw new Error(
+      `TorBox web download is not ready yet (state: ${downloadState})`
+    );
   }
 
   private static async getTorrentIdAndName(magnetUri: string) {
@@ -180,7 +216,7 @@ export class TorBoxClient {
 
   private static async getWebDownloadData(uri: string) {
     const webDownload = await this.addWebDownload(uri);
-    const webDownloadInfo = await this.getWebDownloadInfo(webDownload.id);
+    const webDownloadInfo = await this.getReadyWebDownloadInfo(webDownload.id);
     const files = webDownloadInfo?.files ?? [];
     const singleFile = files.length === 1 ? files[0] : undefined;
     const zipLink = files.length > 1;
