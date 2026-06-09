@@ -34,13 +34,14 @@ export function CatalogueGrid({
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const gridItems = search.data?.edges ?? [];
   const hasGridItems = gridItems.length > 0;
-  const itemIds = search.isLoading && !hasGridItems
-    ? []
-    : search.isError && !hasGridItems
-      ? [CATALOGUE_ERROR_STATE_ID]
-      : search.isEmpty
-        ? [CATALOGUE_EMPTY_STATE_ID]
-        : gridItems.map((item) => getCatalogueCardFocusId(item.id));
+  const itemIds =
+    search.isLoading && !hasGridItems
+      ? []
+      : search.isError && !hasGridItems
+        ? [CATALOGUE_ERROR_STATE_ID]
+        : search.isEmpty
+          ? [CATALOGUE_EMPTY_STATE_ID]
+          : gridItems.map((item) => getCatalogueCardFocusId(item.id));
   const navigationOverridesByItemId = useCatalogueGridNavigation(itemIds);
 
   useEffect(() => {

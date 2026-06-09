@@ -162,9 +162,7 @@ export function useCatalogueGridNavigation(itemIds: string[]) {
         CATALOGUE_HEADER_CONTROLS_REGION_ID
       );
 
-      setOverridesByItemId(
-        buildOverridesMapFromRows(rows, headerPositions)
-      );
+      setOverridesByItemId(buildOverridesMapFromRows(rows, headerPositions));
     };
 
     function scheduleCompute() {
@@ -175,19 +173,18 @@ export function useCatalogueGridNavigation(itemIds: string[]) {
     scheduleCompute();
     globalThis.addEventListener("resize", scheduleCompute);
 
-    [
-      CATALOGUE_GRID_REGION_ID,
-      CATALOGUE_HEADER_CONTROLS_REGION_ID,
-    ].forEach((regionId) => {
-      const element = globalThis.document.querySelector(
-        `[data-focus-region-id="${regionId}"]`
-      );
+    [CATALOGUE_GRID_REGION_ID, CATALOGUE_HEADER_CONTROLS_REGION_ID].forEach(
+      (regionId) => {
+        const element = globalThis.document.querySelector(
+          `[data-focus-region-id="${regionId}"]`
+        );
 
-      if (!(element instanceof HTMLElement)) return;
+        if (!(element instanceof HTMLElement)) return;
 
-      resizeObserver.observe(element);
-      mutationObserver.observe(element, { childList: true, subtree: true });
-    });
+        resizeObserver.observe(element);
+        mutationObserver.observe(element, { childList: true, subtree: true });
+      }
+    );
 
     ids.forEach((id) => {
       const element = globalThis.document.getElementById(id);
