@@ -9,21 +9,8 @@ import { CardFriendsBadge } from "./card-friends-badge";
 
 import "./home-recently-played-card.scss";
 
-/* The Recently Played row's card. The user explicitly asked it to
-   match the Library page's card pattern: a glassmorphic playtime
-   pill in the top-left, an optional classics platform badge in the
-   top-right, and an achievement progress bar pinned to the bottom
-   (trophy icon + "X/Y" + percentage + filled muted-color bar).
-   Same visual language as `library-game-card.tsx` — just laid out
-   horizontally so the row reads as a header-banner shelf instead of
-   the library page's portrait grid. */
-
 interface HomeRecentlyPlayedCardProps {
   game: HomeRowGame;
-  /** Optional manual-playtime flag — surfaces the warning icon the
-   *  library card shows when a user has edited their hours. Home
-   *  rows don't carry this today; left optional so the API is
-   *  ready when the row starts plumbing it through. */
   hasManuallyUpdatedPlaytime?: boolean;
 }
 
@@ -48,11 +35,6 @@ const resolveImageSrc = (
   return normalized;
 };
 
-/** Mirrors the library page's `formatPlayTime` (use-game-card.ts)
- *  but inlined so this card doesn't require a full LibraryGame. We
- *  intentionally match the long-form output ("12 hours" / "30
- *  minutes") rather than the compact "h/m" form — the library card
- *  uses the long form at this card's width too. */
 const formatPlayTimeLong = (ms: number | undefined | null): string => {
   if (!ms || ms <= 0) return "0 minutes";
   const minutes = ms / 60000;
@@ -73,8 +55,6 @@ function HomeRecentlyPlayedCardImpl({
 
   const isClassics = game.shop === "launchbox";
 
-  /* PC uses the Steam hero; classics fall back through cover → blur
-     since most launchbox entries don't have a libraryHeroImageUrl. */
   const heroSrc = resolveImageSrc(
     isClassics
       ? (game.coverImageUrl ?? game.libraryHeroImageUrl ?? game.libraryImageUrl)
@@ -82,10 +62,6 @@ function HomeRecentlyPlayedCardImpl({
   );
   const logoSrc = resolveImageSrc(game.logoImageUrl);
 
-  /* Classics platform label + emulator icon used to render in the
-     top-right cluster but were removed at the user's request — the
-     ShopLogo + the centered box-art already make the platform
-     obvious for classics. */
   const playtimeText = formatPlayTimeLong(game.playTimeInMilliseconds);
 
   const hasAchievements =
@@ -209,12 +185,6 @@ function HomeRecentlyPlayedCardImpl({
   );
 }
 
-/* React.memo with custom comparator — recently-played cards
-   re-render the most often because they carry playtime + achievement
-   progress that updates while the user is in-game. Compare the
-   identity + the visible-data fields (playtime, achievement count,
-   unlocked count) so legitimate stat updates still trigger a
-   re-render but unrelated parent re-renders don't. */
 export const HomeRecentlyPlayedCard = memo(
   HomeRecentlyPlayedCardImpl,
   (prev, next) => {

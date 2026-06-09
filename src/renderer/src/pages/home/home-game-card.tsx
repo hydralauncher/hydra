@@ -23,18 +23,7 @@ export interface HomeRowGame {
   logoImageUrl?: string | null;
   downloadSources?: string[];
   platform?: string | null;
-  /* Optional list of genres carried through from catalogue rows. The
-     discovery rows use this for per-row tag fallback when steamspy
-     data is missing; the card itself ignores it. Existed implicitly
-     before — declared explicitly so the catalogue-to-row mapper
-     compiles cleanly under strict TS. Mutable to align with the
-     duplicate declaration in home-game-card-vertical.tsx. */
   genres?: string[];
-  /* Optional library-derived fields used by the Recently Played row's
-     dedicated card variant (home-recently-played-card.tsx). Discovery
-     rows omit these — they remain undefined and the variant falls back
-     to placeholder values. Carried on this shared type so library rows
-     can pass enriched data through without a separate interface. */
   playTimeInMilliseconds?: number;
   achievementCount?: number;
   unlockedAchievementCount?: number;
@@ -75,10 +64,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
   const isClassics = game.shop === "launchbox";
 
   const handleHover = useCallback(() => {
-    /* Fetch stats on hover for every card. Classics rows used to skip
-       this — now they participate too so each card has the same info
-       footprint (downloads / players / rating). The API may return
-       null for classics; the UI shows a placeholder dash in that case. */
     if (!stats) {
       window.electron
         .getGameStats(game.objectId, game.shop)
@@ -89,23 +74,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
     }
   }, [game.objectId, game.shop, stats]);
 
-  /* Image source fallback chain — mirrors the LibraryGameCard
-     pattern. Earlier this card just used the first available URL
-     and hoped it loaded; some catalogue entries (the PEAK-style
-     edge case the user reported on the library page) have a
-     null/broken `libraryImageUrl` so the card rendered nothing or
-     a wrong-shape image. The library card fixed this by walking a
-     cascade of alternative sources via `onError`; same chain
-     applied here so PC + Classics both recover cleanly.
-
-     PC card aspect is ~2.13 (landscape header), so we PREFER
-     landscape sources at the top of the chain; the portrait
-     `coverImageUrl` is appended last so the card still shows
-     SOMETHING when both landscape sources are missing.
-
-     Classics aspect is ~2.13 but content is a centered portrait on
-     a blurred backdrop, so we PREFER portrait sources at the top
-     and fall through to landscape if the portrait is missing. */
   const imageSources = useMemo(() => {
     const chain = isClassics
       ? [game.coverImageUrl, game.libraryImageUrl, game.libraryHeroImageUrl]
@@ -119,10 +87,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
   ]);
 
   const [fallbackIndex, setFallbackIndex] = useState(0);
-  /* Reset the fallback walk whenever the underlying game changes —
-     the React.memo comparator above usually skips re-renders when
-     identity stays the same, but a row that swaps game data
-     (sliceDiscovery re-pick after a refresh) needs a clean start. */
   useEffect(() => {
     setFallbackIndex(0);
   }, [game.objectId, game.shop]);
@@ -130,14 +94,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
     setFallbackIndex((i) => (i < imageSources.length - 1 ? i + 1 : i));
   }, [imageSources.length]);
 
-  /* Aspect-ratio sanity check for PC cards (landscape header, ratio
-     ≈ 2.13). Mirrors the vertical-card check but for the opposite
-     orientation: if a loaded image is clearly taller than wide
-     (H >= W * 1.3, i.e. portrait box-art served from the wrong
-     URL), treat it as a fallback advance. Classics cards use a
-     blurred portrait backdrop + centred contain-fit portrait — the
-     aspect is intentionally portrait there, so the check skips
-     classics. */
   const handleImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       if (isClassics) return;
@@ -151,8 +107,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
   );
   const resolvedUrl = imageSources[fallbackIndex];
 
-  /* Only show source badges when data is explicitly populated.
-     undefined means the row type doesn't carry source data (e.g. library rows). */
   const downloadSources = game.downloadSources;
   const hasSources =
     Array.isArray(downloadSources) && downloadSources.length > 0;
@@ -235,15 +189,6 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
               )}
             </ul>
           ) : Array.isArray(downloadSources) || isClassics ? (
-            /* Show "no downloads" whenever we KNOW there are none —
-               either downloadSources is an explicit empty array (PC
-               row that fetched sources but matched none) OR the
-               card is a classics one (downloads aren't supported for
-               those yet regardless of whether the source data was
-               fetched). Stays hidden when downloadSources is
-               `undefined` for a non-classics card (row type doesn't
-               carry source data — we don't claim no downloads when
-               we never checked). */
             <p className="home-game-card__no-downloads">{t("no_downloads")}</p>
           ) : null}
 
@@ -279,21 +224,7 @@ function HomeGameCardImpl({ game }: HomeGameCardProps) {
   );
 }
 
-/* React.memo with custom comparator — even when HomeRow re-renders
-   (e.g., from `setAtStart` firing on the first scroll tick of a
-   drag), each card's props (`game` object) are typically the SAME
-   object across renders. Default shallow comparison would already
-   short-circuit, but specs upstream sometimes re-derive arrays of
-   games (sliceDiscovery isn't memoized), making `game` a different
-   reference for the same logical game. The custom comparator falls
-   back to `objectId` + `shop` equality, which is the canonical
-   identity for a HomeRowGame. Skip re-renders when the same game
-   is being shown — that's most of the time during drag/scroll. */
 export const HomeGameCard = memo(HomeGameCardImpl, (prev, next) => {
-  /* Only the `game` prop matters for re-render decisions. Compare
-     by shop+objectId (canonical identity) plus the fields the card
-     actually displays (so a stats update or image url update still
-     forces a re-render). */
   const a = prev.game;
   const b = next.game;
   return (

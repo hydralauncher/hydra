@@ -1,32 +1,7 @@
-/* Mock PS2 / PS3 classics datasets.
- *
- * Why: in the staging environment the catalogue API does not return
- * PS2 / PS3 results — the launchbox classics endpoint is heavily
- * PS1-biased and the per-platform filtered queries come back empty.
- * Without this stub the home page can never demonstrate what a PS2 or
- * PS3 row would look like, which blocks reviewing the row designs and
- * any per-platform/genre row variants we might want to build.
- *
- * What: real game titles (the most recognisable PS2 / PS3 catalogue,
- * so reviewers can read the rows at a glance) paired with portrait
- * SVG placeholder cover art. The placeholder generator produces a
- * dark, branded card with the platform mark + title so the cards
- * read as "PS2 / PS3 box-art slot" even though no real artwork is
- * available.
- *
- * Each entry is a HomeRowGame (the same type the catalogue feed
- * returns) so it can be dropped straight into the existing ps2Games
- * / ps3Games state with no special-casing downstream — sliceDiscovery,
- * enrichSources, ShopLogo, vertical / horizontal cards all keep
- * working. */
-
 import type { HomeRowGame } from "./home-game-card";
 
 type System = "ps2" | "ps3";
 
-/* Portrait box-art placeholder — sized at PS-box aspect (≈5/6.5) so
-   it fills the vertical-card slot without letterboxing. Encoded as a
-   data: URI so it works offline and doesn't require a CDN hop. */
 function classicsBoxArt(title: string, system: System): string {
   const isPs2 = system === "ps2";
   const bg = isPs2 ? "#0c2742" : "#0a0a0a";
@@ -35,8 +10,6 @@ function classicsBoxArt(title: string, system: System): string {
   const platformLabel = isPs2 ? "PlayStation 2" : "PlayStation 3";
   const ps = isPs2 ? "PS2" : "PS3";
 
-  /* Wrap long titles by splitting on whitespace into up to 4 lines.
-     Falls back to truncation if any single token is too long. */
   const wrap = (s: string, maxPerLine = 14): string[] => {
     const words = s.split(/\s+/);
     const lines: string[] = [];
@@ -89,8 +62,6 @@ function classicsBoxArt(title: string, system: System): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-/* Landscape banner used for libraryImageUrl — only needed by the
-   classics PC-hero layout fallback. Kept extremely simple. */
 function classicsBanner(title: string, system: System): string {
   const isPs2 = system === "ps2";
   const bg = isPs2 ? "#0c2742" : "#0a0a0a";
@@ -112,9 +83,6 @@ interface MockGame {
 }
 
 const MOCKS: MockGame[] = [
-  /* PS2 — recognisable, well-distributed across genres so the row
-     filters (Action / Horror / RPG / Adventure / Racing) all have
-     candidates and the rows visibly differ from one another. */
   {
     title: "Shadow of the Colossus",
     system: "ps2",
@@ -156,9 +124,6 @@ const MOCKS: MockGame[] = [
   },
   { title: "Ico", system: "ps2", genres: ["Adventure", "Puzzle"] },
 
-  /* PS3 — first major HD generation, so most slots are 7th-gen
-     blockbusters. Genres again spread out so themed PS3 rows can
-     populate distinctly from PS2 / PS1. */
   {
     title: "The Last of Us",
     system: "ps3",
@@ -202,9 +167,6 @@ const PLATFORM_STRING: Record<System, string> = {
   ps3: "Sony Playstation 3",
 };
 
-/* Stable slug for objectId. The catalogue uses opaque IDs but
-   downstream code just needs uniqueness + matching shop, so a slug
-   derived from title is sufficient for the prototype. */
 const slug = (s: string) =>
   s
     .toLowerCase()

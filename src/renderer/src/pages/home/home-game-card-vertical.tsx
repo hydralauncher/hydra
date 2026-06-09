@@ -22,8 +22,6 @@ export interface HomeRowGame {
   logoImageUrl?: string | null;
   downloadSources?: string[];
   platform?: string | null;
-  /* Catalogue-supplied genre tags — preserved so client-side filters
-     (e.g. "PS2 Horror") can match without a refetch. */
   genres?: string[];
 }
 
@@ -59,21 +57,6 @@ function HomeGameCardVerticalImpl({ game }: HomeGameCardVerticalProps) {
 
   const isClassics = game.shop === "launchbox";
 
-  /* Image source fallback chain.
-
-     For PC steam games the constructed Steam portrait URL
-     (`library_600x900_2x.jpg`) is the CANONICAL portrait — when
-     it's valid, it's exactly the right shape. It's also the source
-     that fails most often (PEAK + dev demos + older titles serve a
-     200 OK landscape image at that path instead of a real portrait),
-     so we pair it with an `onLoad`-based aspect check below that
-     advances the chain when the loaded image isn't actually
-     portrait. The catalogue's `coverImageUrl` / `libraryImageUrl` /
-     `libraryHeroImageUrl` come next as fallbacks.
-
-     Classics: catalogue `coverImageUrl` first (their canonical
-     portrait box-art), then the other catalogue fields. No Steam
-     CDN backup — classics don't have a steam URL. */
   const imageSources = useMemo(() => {
     if (isClassics) {
       return [
@@ -104,9 +87,6 @@ function HomeGameCardVerticalImpl({ game }: HomeGameCardVerticalProps) {
   const [fallbackIndex, setFallbackIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
 
-  /* Reset fallback state when the game prop changes (the same card
-     component instance can be reused for different games on row
-     re-render). */
   useEffect(() => {
     setFallbackIndex(0);
     setImageError(false);
@@ -122,17 +102,6 @@ function HomeGameCardVerticalImpl({ game }: HomeGameCardVerticalProps) {
     }
   }, [fallbackIndex, imageSources.length]);
 
-  /* Aspect-ratio sanity check. The vertical card is a portrait box
-     (~286×381, ratio ≈ 0.75). Many catalogue + Steam CDN URLs serve
-     a 200 OK LANDSCAPE image at a portrait-supposed-to-be path —
-     PEAK is the canonical example. `onError` never fires (the load
-     succeeded), so without this check the card stretched the
-     landscape header to fill a portrait box, producing the
-     "horizontal card zoomed in" look. We reject anything clearly
-     wider than tall (W >= H * 1.3) and treat it the same way as a
-     network error — advance the fallback chain. The `* 1.3` cushion
-     accommodates near-square art (some indie titles ship that way)
-     without falsely rejecting it. */
   const handleImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const img = e.currentTarget;
@@ -238,10 +207,6 @@ function HomeGameCardVerticalImpl({ game }: HomeGameCardVerticalProps) {
             )}
           </ul>
         ) : Array.isArray(downloadSources) || isClassics ? (
-          /* Same logic as the horizontal card: show "no downloads"
-             when we know there are none (PC with empty fetched list,
-             or any classics card), hide when downloadSources is
-             undefined (row didn't fetch sources). */
           <p className="home-game-card-vertical__no-downloads">
             {t("no_downloads")}
           </p>
@@ -279,9 +244,6 @@ function HomeGameCardVerticalImpl({ game }: HomeGameCardVerticalProps) {
   );
 }
 
-/* React.memo with custom comparator — same reasoning as HomeGameCard.
-   Skip re-renders when the game's identity + display fields are
-   unchanged across HomeRow re-renders. */
 export const HomeGameCardVertical = memo(
   HomeGameCardVerticalImpl,
   (prev, next) => {
