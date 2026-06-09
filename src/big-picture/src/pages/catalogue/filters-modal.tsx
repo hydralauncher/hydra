@@ -11,8 +11,9 @@ import {
   useState,
   type MutableRefObject,
   type RefObject,
+  type UIEvent,
 } from "react";
-import { Input, SidebarModal, Typography } from "../../components";
+import { FocusItem, Input, SidebarModal, Typography } from "../../components";
 import { useNavigationActions, useNavigationScreenActions } from "../../hooks";
 import { useNavigationStore } from "../../stores";
 import {
@@ -30,6 +31,8 @@ import {
 const CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX = "catalogue-filters-modal";
 const CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX =
   "catalogue-filters-modal-selected";
+const CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID =
+  `${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}:clear-all`;
 const CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT = 56;
 const CATALOGUE_FILTERS_MODAL_FALLBACK_VISIBLE_ITEMS = 8;
 const CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS = 180;
@@ -119,20 +122,24 @@ interface SelectedCatalogueFilterItem extends CatalogueFilterListItem {
 
 function useCatalogueFiltersModalNavigation({
   visible,
-  activeFilterType,
   searchFocusId,
+  clearSelectedFocusId,
   items,
   selectedItems,
   focusItem,
   focusItemCentered,
+  focusLastMainItem,
+  focusLastSelectedItem,
 }: {
   visible: boolean;
-  activeFilterType: FilterType;
   searchFocusId: string;
+  clearSelectedFocusId: string;
   items: CatalogueFilterListItem[];
   selectedItems: SelectedCatalogueFilterItem[];
   focusItem: CatalogueFiltersModalListHandle["focusItem"];
   focusItemCentered: CatalogueFiltersModalListHandle["focusItemCentered"];
+  focusLastMainItem: () => void;
+  focusLastSelectedItem: () => void;
 }) {
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const { moveFocus, setFocus } = useNavigationActions();
@@ -146,8 +153,10 @@ function useCatalogueFiltersModalNavigation({
   const hasSearchFocus = currentFocusId === searchFocusId;
   const hasItemFocus = currentItemIndex >= 0;
   const hasSelectedFocus = currentSelectedIndex >= 0;
+  const hasClearSelectedFocus = currentFocusId === clearSelectedFocusId;
   const hasMainFocus = visible && (hasSearchFocus || hasItemFocus);
-  const hasSelectedSidebarFocus = visible && hasSelectedFocus;
+  const hasSelectedSidebarFocus =
+    visible && (hasSelectedFocus || hasClearSelectedFocus);
 
   const moveWithinModalList = useCallback(
     (direction: "up" | "down") => {
@@ -158,6 +167,20 @@ function useCatalogueFiltersModalNavigation({
 
         if (nextItem) {
           setFocus(nextItem.focusId);
+          return;
+        }
+
+        if (direction === "down") {
+          setFocus(clearSelectedFocusId);
+        }
+        return;
+      }
+
+      if (hasClearSelectedFocus) {
+        const lastSelectedItem = selectedItems[selectedItems.length - 1];
+
+        if (direction === "up" && lastSelectedItem) {
+          setFocus(lastSelectedItem.focusId);
         }
         return;
       }
@@ -165,10 +188,8 @@ function useCatalogueFiltersModalNavigation({
       if (hasSearchFocus) {
         if (direction === "down" && items.length > 0) {
           focusItem(0, "top");
-          return;
         }
 
-        moveFocus(direction);
         return;
       }
 
@@ -186,10 +207,7 @@ function useCatalogueFiltersModalNavigation({
 
       const nextItem = items[nextIndex];
 
-      if (!nextItem) {
-        moveFocus(direction);
-        return;
-      }
+      if (!nextItem) return;
 
       if (!focusItemCentered(nextIndex)) {
         setFocus(nextItem.focusId);
@@ -198,8 +216,10 @@ function useCatalogueFiltersModalNavigation({
     [
       currentItemIndex,
       currentSelectedIndex,
+      clearSelectedFocusId,
       focusItem,
       focusItemCentered,
+      hasClearSelectedFocus,
       hasItemFocus,
       hasSearchFocus,
       hasSelectedFocus,
@@ -214,55 +234,29 @@ function useCatalogueFiltersModalNavigation({
   const moveHorizontallyWithinModal = useCallback(
     (direction: "left" | "right") => {
       if (direction === "right" && (hasSearchFocus || hasItemFocus)) {
-        const selectedIndex = hasItemFocus
-          ? Math.min(currentItemIndex, selectedItems.length - 1)
-          : 0;
-        const selectedItem = selectedItems[selectedIndex];
-
-        if (selectedItem) {
-          setFocus(selectedItem.focusId);
-          return;
-        }
-
-        moveFocus(direction);
+        focusLastSelectedItem();
         return;
       }
 
-      if (direction === "left" && hasSelectedFocus) {
-        const currentSelectedItem = selectedItems[currentSelectedIndex];
-        const matchingItemIndex =
-          currentSelectedItem?.filterType === activeFilterType
-            ? items.findIndex((item) => item.value === currentSelectedItem.value)
-            : -1;
-
-        if (matchingItemIndex >= 0) {
-          if (!focusItemCentered(matchingItemIndex)) {
-            setFocus(items[matchingItemIndex].focusId);
-          }
-          return;
-        }
-
-        setFocus(searchFocusId);
+      if (direction === "left" && (hasSelectedFocus || hasClearSelectedFocus)) {
+        focusLastMainItem();
         return;
       }
 
-      if (direction === "right" && hasSelectedFocus) return;
+      if (direction === "right" && (hasSelectedFocus || hasClearSelectedFocus)) {
+        return;
+      }
 
       moveFocus(direction);
     },
     [
-      activeFilterType,
-      currentItemIndex,
-      currentSelectedIndex,
-      focusItemCentered,
+      focusLastMainItem,
+      focusLastSelectedItem,
+      hasClearSelectedFocus,
       hasItemFocus,
       hasSearchFocus,
       hasSelectedFocus,
-      items,
       moveFocus,
-      searchFocusId,
-      selectedItems,
-      setFocus,
     ]
   );
 
@@ -301,6 +295,7 @@ const CatalogueFiltersModalList = forwardRef<
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const { setFocus } = useNavigationActions();
   const selected = (values[name] ?? []) as Array<string | number>;
   const visibleItemCount =
@@ -319,6 +314,30 @@ const CatalogueFiltersModalList = forwardRef<
       : items.length > visibleItemCount
         ? viewportHeight
         : visibleItemsHeight;
+  const maxScrollTop = Math.max(
+    0,
+    items.length * CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT - height
+  );
+
+  const updateIsScrolledToBottom = useCallback(
+    (scrollTop = listRef.current?.getScrollInfo().y ?? 0) => {
+      const nextIsScrolledToBottom = scrollTop >= maxScrollTop - 1;
+
+      setIsScrolledToBottom((currentIsScrolledToBottom) =>
+        currentIsScrolledToBottom === nextIsScrolledToBottom
+          ? currentIsScrolledToBottom
+          : nextIsScrolledToBottom
+      );
+    },
+    [maxScrollTop]
+  );
+
+  const handleScroll = useCallback(
+    (event: UIEvent<HTMLElement>) => {
+      updateIsScrolledToBottom(event.currentTarget.scrollTop);
+    },
+    [updateIsScrolledToBottom]
+  );
 
   const resolvePendingFocus = useCallback(() => {
     const pendingFocusId = pendingFocusIdRef.current;
@@ -385,11 +404,16 @@ const CatalogueFiltersModalList = forwardRef<
             scrollAnimationFrameRef,
             clampedTargetTop
           );
+          updateIsScrolledToBottom(clampedTargetTop);
         });
       },
     }),
-    [focusItemAtIndex, height, items.length]
+    [focusItemAtIndex, height, items.length, updateIsScrolledToBottom]
   );
+
+  useEffect(() => {
+    updateIsScrolledToBottom();
+  }, [updateIsScrolledToBottom]);
 
   useEffect(() => {
     const pendingFocusId = pendingFocusIdRef.current;
@@ -444,7 +468,11 @@ const CatalogueFiltersModalList = forwardRef<
 
   if (items.length === 0) {
     return (
-      <div ref={viewportRef} className="catalogue-filters-modal__list-viewport">
+      <div
+        ref={viewportRef}
+        className="catalogue-filters-modal__list-viewport"
+        data-at-bottom="true"
+      >
         <div className="catalogue-filters-modal__empty">
           <Typography variant="label">No results found</Typography>
         </div>
@@ -453,7 +481,11 @@ const CatalogueFiltersModalList = forwardRef<
   }
 
   return (
-    <div ref={viewportRef} className="catalogue-filters-modal__list-viewport">
+    <div
+      ref={viewportRef}
+      className="catalogue-filters-modal__list-viewport"
+      data-at-bottom={isScrolledToBottom || undefined}
+    >
       {height > 0 ? (
         <List
           ref={listRef}
@@ -462,6 +494,7 @@ const CatalogueFiltersModalList = forwardRef<
           height={height}
           itemHeight={CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT}
           itemKey={(item) => item.focusId}
+          onScroll={handleScroll}
           onVisibleChange={resolvePendingFocus}
         >
           {(item) => (
@@ -489,13 +522,13 @@ export function CatalogueFiltersModal({
   updateSearchParams,
   onClose,
 }: Readonly<CatalogueFiltersModalProps>) {
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const { setFocus } = useNavigationActions();
   const [activeFilterType, setActiveFilterType] = useState<FilterType>(
     FilterType.Genres
   );
-  const [displayedFilterType, setDisplayedFilterType] = useState<FilterType>(
-    activeFilterType
-  );
+  const [displayedFilterType, setDisplayedFilterType] =
+    useState<FilterType>(activeFilterType);
   const [isMainFading, setIsMainFading] = useState(false);
   const [filtersSearchTerms, setFiltersSearchTerms] = useState<
     Record<FilterType, string>
@@ -509,6 +542,67 @@ export function CatalogueFiltersModal({
   const filterListRefs = useRef<
     Partial<Record<FilterType, CatalogueFiltersModalListHandle | null>>
   >({});
+  const [lastMainFocusId, setLastMainFocusId] = useState(
+    getCatalogueFiltersModalInputFocusId(activeFilterType)
+  );
+  const [lastSelectedFocusId, setLastSelectedFocusId] = useState<
+    string | null
+  >(null);
+  const selectedListViewportRef = useRef<HTMLDivElement | null>(null);
+  const selectedListRef = useRef<HTMLDivElement | null>(null);
+  const selectedListScrollFrameRef = useRef<number | null>(null);
+
+  const updateSelectedListFadeState = useCallback(() => {
+    const selectedList = selectedListRef.current;
+    const selectedListViewport = selectedListViewportRef.current;
+
+    if (!selectedList || !selectedListViewport) {
+      return;
+    }
+
+    const maxScrollTop = Math.max(
+      0,
+      selectedList.scrollHeight - selectedList.clientHeight
+    );
+    const hasOverflow = maxScrollTop > 1;
+    const isScrolledToBottom =
+      hasOverflow && selectedList.scrollTop >= maxScrollTop - 8;
+
+    selectedListViewport.toggleAttribute(
+      "data-at-bottom",
+      isScrolledToBottom
+    );
+  }, []);
+
+  const scheduleSelectedListBottomUpdate = useCallback(() => {
+    if (selectedListScrollFrameRef.current !== null) {
+      globalThis.cancelAnimationFrame(selectedListScrollFrameRef.current);
+    }
+
+    updateSelectedListFadeState();
+
+    selectedListScrollFrameRef.current = globalThis.requestAnimationFrame(
+      () => {
+        selectedListScrollFrameRef.current = null;
+        updateSelectedListFadeState();
+      }
+    );
+  }, [updateSelectedListFadeState]);
+
+  const handleSelectedListScroll = useCallback(
+    (_event: UIEvent<HTMLDivElement>) => {
+      scheduleSelectedListBottomUpdate();
+    },
+    [scheduleSelectedListBottomUpdate]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (selectedListScrollFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(selectedListScrollFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (activeFilterType === displayedFilterType) return;
@@ -574,6 +668,132 @@ export function CatalogueFiltersModal({
     [catalogueData, values]
   );
 
+  useLayoutEffect(() => {
+    scheduleSelectedListBottomUpdate();
+  }, [scheduleSelectedListBottomUpdate, selectedFilterItems.length]);
+
+  useEffect(() => {
+    const selectedList = selectedListRef.current;
+    const resizeObserver =
+      selectedList && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleSelectedListBottomUpdate)
+        : null;
+
+    if (selectedList) {
+      resizeObserver?.observe(selectedList);
+    }
+
+    return () => resizeObserver?.disconnect();
+  }, [scheduleSelectedListBottomUpdate]);
+
+  const activeSearchFocusId =
+    getCatalogueFiltersModalInputFocusId(activeFilterType);
+  const activeItems = filteredItems[activeFilterType];
+  const currentItemIndex = activeItems.findIndex(
+    (item) => item.focusId === currentFocusId
+  );
+  const currentSelectedItemIndex = selectedFilterItems.findIndex(
+    (item) => item.focusId === currentFocusId
+  );
+  const hasActiveSearchFocus = currentFocusId === activeSearchFocusId;
+  const hasActiveItemFocus = currentItemIndex >= 0;
+  const hasSelectedItemFocus = currentSelectedItemIndex >= 0;
+  const hasClearSelectedFocus =
+    currentFocusId === CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID;
+  const lastMainItemIndex = activeItems.findIndex(
+    (item) => item.focusId === lastMainFocusId
+  );
+  const lastValidMainFocusId =
+    lastMainFocusId === activeSearchFocusId || lastMainItemIndex >= 0
+      ? lastMainFocusId
+      : activeSearchFocusId;
+  const lastSelectedItemIndex = selectedFilterItems.findIndex(
+    (item) => item.focusId === lastSelectedFocusId
+  );
+  const lastValidSelectedFocusId =
+    selectedFilterItems.length === 0
+      ? null
+      : lastSelectedFocusId === CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID
+        ? lastSelectedFocusId
+        : lastSelectedItemIndex >= 0
+          ? lastSelectedFocusId
+          : selectedFilterItems[0].focusId;
+
+  useEffect(() => {
+    if (
+      !visible ||
+      !currentFocusId ||
+      (!hasActiveSearchFocus && !hasActiveItemFocus)
+    ) {
+      return;
+    }
+
+    setLastMainFocusId(currentFocusId);
+  }, [currentFocusId, hasActiveItemFocus, hasActiveSearchFocus, visible]);
+
+  useEffect(() => {
+    if (lastMainFocusId !== lastValidMainFocusId) {
+      setLastMainFocusId(lastValidMainFocusId);
+    }
+  }, [lastMainFocusId, lastValidMainFocusId]);
+
+  useEffect(() => {
+    if (
+      !visible ||
+      !currentFocusId ||
+      (!hasSelectedItemFocus && !hasClearSelectedFocus)
+    ) {
+      return;
+    }
+
+    setLastSelectedFocusId(currentFocusId);
+  }, [currentFocusId, hasClearSelectedFocus, hasSelectedItemFocus, visible]);
+
+  useEffect(() => {
+    if (lastSelectedFocusId !== lastValidSelectedFocusId) {
+      setLastSelectedFocusId(lastValidSelectedFocusId);
+    }
+  }, [lastSelectedFocusId, lastValidSelectedFocusId]);
+
+  useEffect(() => {
+    if (hasSelectedItemFocus || hasClearSelectedFocus) {
+      scheduleSelectedListBottomUpdate();
+    }
+  }, [
+    currentFocusId,
+    hasClearSelectedFocus,
+    hasSelectedItemFocus,
+    scheduleSelectedListBottomUpdate,
+  ]);
+
+  const focusLastMainItem = useCallback(() => {
+    if (lastValidMainFocusId !== activeSearchFocusId && lastMainItemIndex >= 0) {
+      const focused = filterListRefs.current[
+        activeFilterType
+      ]?.focusItemCentered(lastMainItemIndex);
+
+      if (!focused) {
+        setFocus(activeItems[lastMainItemIndex].focusId);
+      }
+      return;
+    }
+
+    setFocus(activeSearchFocusId);
+  }, [
+    activeFilterType,
+    activeItems,
+    activeSearchFocusId,
+    lastMainItemIndex,
+    lastValidMainFocusId,
+    setFocus,
+  ]);
+
+  const focusLastSelectedItem = useCallback(() => {
+    if (!lastValidSelectedFocusId) return;
+
+    setFocus(lastValidSelectedFocusId);
+  }, [lastValidSelectedFocusId, setFocus]);
+
   const removeSelectedFilter = useCallback(
     (item: SelectedCatalogueFilterItem, index: number) => {
       const selectedValues = (values[item.filterType] ?? []) as Array<
@@ -592,14 +812,32 @@ export function CatalogueFiltersModal({
 
       setFocus(nextFocusTarget);
     },
-    [activeFilterType, selectedFilterItems, setFocus, updateSearchParams, values]
+    [
+      activeFilterType,
+      selectedFilterItems,
+      setFocus,
+      updateSearchParams,
+      values,
+    ]
   );
+
+  const clearSelectedFilters = useCallback(() => {
+    const nextValues = Object.values(FilterType).reduce<
+      Partial<Record<FilterType, Array<string | number>>>
+    >((accumulator, filterType) => {
+      accumulator[filterType] = [];
+      return accumulator;
+    }, {});
+
+    updateSearchParams(nextValues as Partial<SearchGamesFormValues>);
+    setFocus(getCatalogueFiltersModalInputFocusId(activeFilterType));
+  }, [activeFilterType, setFocus, updateSearchParams]);
 
   useCatalogueFiltersModalNavigation({
     visible,
-    activeFilterType,
-    searchFocusId: getCatalogueFiltersModalInputFocusId(activeFilterType),
-    items: filteredItems[activeFilterType],
+    searchFocusId: activeSearchFocusId,
+    clearSelectedFocusId: CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID,
+    items: activeItems,
     selectedItems: selectedFilterItems,
     focusItem: (index, alignment) =>
       filterListRefs.current[activeFilterType]?.focusItem(index, alignment) ??
@@ -607,6 +845,8 @@ export function CatalogueFiltersModal({
     focusItemCentered: (index) =>
       filterListRefs.current[activeFilterType]?.focusItemCentered(index) ??
       false,
+    focusLastMainItem,
+    focusLastSelectedItem,
   });
 
   const displayedItems = filteredItems[displayedFilterType];
@@ -658,30 +898,65 @@ export function CatalogueFiltersModal({
           aria-label="Selected filters"
         >
           {selectedFilterItems.length > 0 ? (
-            <div className="catalogue-filters-modal__selected-list">
-              {selectedFilterItems.map((item, index) => (
-                <CatalogueFilterCheckbox
-                  key={`${item.filterType}-${item.value}`}
-                  id={`${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}-${item.filterType}-${item.label}`}
-                  focusId={item.focusId}
-                  label={item.label}
-                  color={item.color}
-                  checked
-                  variant="remove"
-                  onChange={() => removeSelectedFilter(item, index)}
-                />
-              ))}
+            <div
+              ref={selectedListViewportRef}
+              className="catalogue-filters-modal__selected-list-viewport"
+            >
+              <div
+                ref={selectedListRef}
+                className="catalogue-filters-modal__selected-list"
+                onScroll={handleSelectedListScroll}
+              >
+                {selectedFilterItems.map((item, index) => (
+                  <CatalogueFilterCheckbox
+                    key={`${item.filterType}-${item.value}`}
+                    id={`${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}-${item.filterType}-${item.label}`}
+                    focusId={item.focusId}
+                    label={item.label}
+                    color={item.color}
+                    checked
+                    variant="remove"
+                    onChange={() => removeSelectedFilter(item, index)}
+                  />
+                ))}
+              </div>
+              <div
+                className="catalogue-filters-modal__selected-list-fade"
+                aria-hidden
+              />
             </div>
           ) : (
             <div className="catalogue-filters-modal__selected-empty">
               <Typography variant="label">No selected filters</Typography>
             </div>
           )}
+
+          {selectedFilterItems.length > 0 ? (
+            <div className="catalogue-filters-modal__selected-actions">
+              <FocusItem
+                id={CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID}
+                actions={{
+                  primary: clearSelectedFilters,
+                  hold: { x: clearSelectedFilters },
+                }}
+                asChild
+              >
+                <button
+                  type="button"
+                  className="catalogue-filters-modal__clear-selected-button"
+                  onClick={clearSelectedFilters}
+                >
+                  <Typography variant="label">Clear all</Typography>
+                </button>
+              </FocusItem>
+            </div>
+          ) : null}
         </aside>
       </div>
     ),
     [
       catalogueData,
+      clearSelectedFilters,
       displayedFilterLabel,
       displayedFilterType,
       displayedItems,
@@ -713,9 +988,7 @@ export function CatalogueFiltersModal({
       ariaLabel="Catalogue filters"
       activeTabId={activeFilterType}
       onActiveTabChange={(tabId) => setActiveFilterType(tabId as FilterType)}
-      contentInitialFocusId={getCatalogueFiltersModalInputFocusId(
-        activeFilterType
-      )}
+      contentEntryFocusId={lastValidMainFocusId}
       tabs={tabs}
     />
   );
