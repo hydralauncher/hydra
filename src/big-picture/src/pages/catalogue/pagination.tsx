@@ -84,7 +84,7 @@ export function CataloguePagination({
     (_, index) => range.start + index
   );
   const showLeadingJump = range.isLastThree && range.start > 1;
-  const showTrailingJump = !range.isLastThree && page < totalPages - 1;
+  const showTrailingJump = !range.isLastThree && range.end < totalPages;
   const itemIds = useMemo(
     () => [
       ...(range.start > 1 ? [CATALOGUE_PAGINATION_FIRST_ID] : []),
