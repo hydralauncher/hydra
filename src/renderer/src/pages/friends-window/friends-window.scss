@@ -30,11 +30,7 @@
         position: absolute;
         inset: 0;
         z-index: 1;
-        background: linear-gradient(
-          135deg,
-          rgb(0 0 0 / 60%),
-          rgb(0 0 0 / 45%)
-        );
+        background: linear-gradient(135deg, rgb(0 0 0 / 60%), rgb(0 0 0 / 45%));
         pointer-events: none;
       }
 
