@@ -1,0 +1,37 @@
+@use "../../scss/globals.scss";
+
+.personalized-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+
+  &__icon {
+    /* Compact square glyph sized to fit cleanly inside the clickable
+       row title's 28px line-height box (see home-row.scss
+       `__title--clickable`). The previous 32px size exceeded the
+       title's line-box and made icon-bearing rows render taller
+       hover pills than text-only rows — visually inconsistent. 24px
+       fits with breathing room and still reads as a chip-style
+       prefix rather than a tiny glyph. */
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    /* Inherit the parent .home-row__title font sizing so the new
+       title still reads as part of the same row header. */
+    font: inherit;
+  }
+
+  /* The game-name half of the title sits right after the icon. Slight
+     gap reduction here cancels out the default flex gap so the icon
+     visually adjoins the game's name rather than floating between the
+     prefix and the title. */
+  &__text--game {
+    margin-left: -2px;
+  }
+}

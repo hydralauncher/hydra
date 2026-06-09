@@ -55,6 +55,15 @@ declare global {
     export default content;
   }
 
+  /* Vite `?url` suffix — forces the asset to import as its URL
+     string instead of the default SVGR React component. Used by the
+     Hero's reason chip + changelog fallback where we feed the SVG
+     into an <img src=…> rather than mount it as a component. */
+  declare module "*.svg?url" {
+    const src: string;
+    export default src;
+  }
+
   interface Electron {
     /* Torrenting */
     startGameDownload: (

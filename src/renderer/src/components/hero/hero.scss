@@ -1,17 +1,38 @@
 @use "../../scss/globals.scss";
 
 .hero {
-  width: 100%;
+  /* Edge-aligned with the other home elements. Home rows and the
+     surprise-bar all use `padding: 0 calc(spacing-unit * 3)` (= 24px
+     sides); matching that with `margin: 0 24px` on the hero keeps
+     its left + right edges flush with the row content underneath
+     it. A top margin detaches the hero from the very top of the
+     scroll area so it reads as a card surface rather than a banner
+     glued to the header.
+
+     The home__content parent has `padding: 0` so the top margin
+     doesn't collapse with anything. */
+  width: auto;
+  /* margin shorthand: top × right=left × bottom.
+     Bottom margin (= spacing-unit × 5 = 40px) restores the gap
+     between the Hero and the first row. Without it the Hero
+     visually butts up against the first row's title because the
+     home__content's previous `gap: 40px` was moved onto per-row
+     `margin-bottom` (which only adds space BELOW each row, not above
+     the first one). */
+  margin: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3)
+    calc(globals.$spacing-unit * 5);
   height: 180px;
   min-height: 150px;
-  border-radius: 0;
-  color: #dadbe1;
+  border-radius: 12px;
+  color: globals.$muted-color;
   overflow: hidden;
-  box-shadow: 0px 0px 15px 0px #000000;
-  cursor: pointer;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35);
   border: solid 1px globals.$border-color;
   z-index: 1;
   flex-shrink: 0;
+  position: relative;
 
   @media (min-width: 480px) {
     height: 220px;
@@ -33,48 +54,92 @@
     min-height: 250px;
   }
 
+  /* ── Carousel track + slides ─────────────────────────────── */
+  &__track {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  &--dragging &__track {
+    transition: none;
+  }
+  &__track--no-transition {
+    transition: none !important;
+  }
+
+  &--dragging,
+  &--dragging &__slide {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  &__slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    overflow: hidden;
+    display: block;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    img {
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+  }
+
+  /* ── PC slide layout ───────────────────────────────────── */
   &__media {
     object-fit: cover;
     object-position: center;
     position: absolute;
+    inset: 0;
     z-index: -1;
     width: 100%;
     height: 100%;
-    transition: all ease 0.2s;
-    image-rendering: revert;
-  }
-  &:hover &__media {
-    transform: scale(1.02);
+    image-rendering: auto;
+    /* Subtle, slow Ken Burns — gives every PC slide a sense of life
+       without distracting. 28s round-trip alternates so the panning
+       doesn't snap back. */
+    animation: heroKenBurns 28s ease-in-out infinite alternate;
+    transform-origin: center;
   }
 
   &__backdrop {
     width: 100%;
     height: 100%;
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 25%, transparent 100%);
+    /* Softer fade — the previous 0.85 / 26 % gradient washed the
+       hero art into near-black across more than half the slide.
+       Cut to 0.55 at 18 % so the hero image reads through more
+       clearly while still giving the bottom-anchored title /
+       reason-chip a legible band. */
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.55) 18%, transparent 75%);
     position: relative;
     display: flex;
     overflow: hidden;
   }
 
-  &__description {
-    max-width: 700px;
-    color: globals.$muted-color;
-    text-align: left;
-    line-height: 20px;
-    margin-top: calc(globals.$spacing-unit * 2);
-  }
-
   &__content {
     width: 100%;
     height: 100%;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2);
     gap: calc(globals.$spacing-unit);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    align-items: flex-start;
 
     @media (min-width: 768px) {
-      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
+      padding: calc(globals.$spacing-unit * 3);
       gap: calc(globals.$spacing-unit * 1.5);
     }
 
@@ -84,25 +149,555 @@
     }
   }
 
+  /* Gentle entrance fade for the inner content — fires once per
+     slide mount so the first paint feels alive. */
+  &__content > * {
+    animation: heroContentIn 0.55s ease-out both;
+  }
+  &__content > *:nth-child(2) {
+    animation-delay: 0.06s;
+  }
+  &__content > *:nth-child(3) {
+    animation-delay: 0.12s;
+  }
+
+  &__platform-badge {
+    align-self: flex-start;
+    padding: 3px 9px;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+    /* Solid background (was rgba 0.6 with backdrop-filter blur).
+       backdrop-filter promoted this chip to its own GPU layer —
+       fine on its own but combined with other layers in the Hero
+       contributes to per-frame Layerize cost. */
+    background: rgba(0, 0, 0, 0.78);
+    border: 1px solid globals.$border-color;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
   &__logo {
     max-width: 100%;
     height: auto;
-    width: 120px;
+    width: 140px;
+    image-rendering: auto;
 
     @media (min-width: 480px) {
-      width: 150px;
+      width: 170px;
     }
+    @media (min-width: 768px) {
+      width: 220px;
+    }
+    @media (min-width: 1024px) and (min-height: 800px) {
+      width: 260px;
+    }
+    @media (min-width: 1024px) and (max-height: 799px) {
+      width: 220px;
+    }
+  }
+
+  &__title {
+    color: globals.$muted-color;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    text-align: left;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    @media (min-width: 768px) {
+      font-size: 32px;
+    }
+  }
+
+  &__description {
+    max-width: 700px;
+    color: globals.$body-color;
+    text-align: left;
+    line-height: 1.45;
+    font-size: globals.$body-font-size;
+    margin: 0;
+    margin-top: calc(globals.$spacing-unit);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    @media (min-width: 1024px) {
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  /* ── Reason chip ──────────────────────────────────────────
+        Icon · primary label · secondary line, wrapped in the global
+        Badge for chrome consistency. The icon sits in its own
+        chamber separated from the text by a hairline divider so
+        the chip reads with more structure than a flat icon + text
+        run. Palette stays neutral — categories are distinguished
+        by icon glyph + copy, not by colour. */
+  &__reason {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 2);
+    z-index: 4;
+    pointer-events: none;
+    animation: heroReasonIn 0.45s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 
     @media (min-width: 768px) {
-      width: 200px;
+      top: calc(globals.$spacing-unit * 2.5);
+      right: calc(globals.$spacing-unit * 3);
     }
 
+    .badge {
+      padding: 8px 12px 8px 10px;
+      gap: 10px;
+      align-items: center;
+      max-width: 380px;
+      background: rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+    }
+  }
+
+  &__reason-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    color: globals.$muted-color;
+    flex-shrink: 0;
+    /* Thin divider between icon column and text — gives the chip
+       a more refined structure without adding chrome. */
+    padding-right: 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    box-sizing: content-box;
+  }
+
+  &__reason-text {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.2;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__reason-primary {
+    color: globals.$muted-color;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Secondary line is collapsed by default — the chip reads as a
+     compact category tag in the resting state. Hovering ANYWHERE on
+     the slide expands it, revealing the underlying "why" (the
+     played game / hours / "this week" sub-line). The expansion
+     animates via max-height + opacity so the entrance feels smooth
+     instead of snapping. */
+  &__reason-secondary {
+    color: globals.$body-color;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    transition:
+      max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.22s ease-out 0.04s,
+      margin-top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &__slide:hover &__reason-secondary {
+    max-height: 16px;
+    opacity: 0.82;
+    margin-top: 1px;
+  }
+
+  /* The badge itself gets a subtle lift on hover so the emblem
+     reads as "interactive / there's more here" — same chrome,
+     just brighter + a tiny upward nudge. */
+  &__slide:hover &__reason .badge {
+    background: rgba(0, 0, 0, 0.62);
+    border-color: rgba(255, 255, 255, 0.24);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42);
+  }
+
+  &__reason .badge {
+    transition:
+      background 0.22s ease,
+      border-color 0.22s ease,
+      transform 0.22s ease,
+      box-shadow 0.22s ease;
+  }
+
+  /* ── Classics slide layout ──────────────────────────────── */
+  &__slide--classics {
+    background: #0c0c0c;
+  }
+
+  &__classics-backdrop {
+    position: absolute;
+    inset: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    object-fit: cover;
+    object-position: center;
+    /* Matched to the game-details page's classics hero backdrop
+       (`game-details/hero.scss` &__hero-classics-backdrop img →
+       blur(24px) saturate(1.1)) so the Home hero and the game-
+       details hero render the same backdrop intensity. The previous
+       12px read as too sharp compared to the rest of the app. */
+    filter: blur(24px) saturate(1.1);
+    transform: scale(1.1);
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: auto;
+    animation: heroKenBurns 28s ease-in-out infinite alternate;
+  }
+
+  &__classics-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  &__classics-content {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 3);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
+
+    @media (min-width: 768px) {
+      padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 4);
+      gap: calc(globals.$spacing-unit * 4);
+    }
+    @media (min-width: 1024px) {
+      padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 6);
+      gap: calc(globals.$spacing-unit * 5);
+    }
+  }
+
+  &__classics-cover {
+    flex-shrink: 0;
+    height: 80%;
+    aspect-ratio: 5 / 6.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: heroContentIn 0.6s ease-out both;
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.45);
+      border: 1px solid globals.$border-color;
+      image-rendering: auto;
+    }
+  }
+
+  &__classics-meta {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+    animation: heroContentIn 0.6s ease-out 0.08s both;
+  }
+
+  &__classics-title {
+    color: globals.$muted-color;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.4px;
+    margin: 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    @media (min-width: 768px) {
+      font-size: 30px;
+    }
     @media (min-width: 1024px) and (min-height: 800px) {
-      width: 250px;
+      font-size: 38px;
+      letter-spacing: -0.72px;
+    }
+  }
+
+  &__classics-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  &__classics-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    background-color: rgba(0, 0, 0, 0.32);
+    border: 1px solid globals.$border-color;
+    border-radius: 4px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    /* backdrop-filter removed for same reason as the chip above. */
+
+    &--icon {
+      padding: 0 6px;
     }
 
-    @media (min-width: 1024px) and (max-height: 799px) {
-      width: 200px;
+    img {
+      height: 16px;
+      width: auto;
+      display: block;
     }
+  }
+
+  /* ── Tabs ─────────────────────────────────────────────────
+        Minimal thin progress bars at the bottom-RIGHT corner. One
+        rectangle per slide — no labels, no icons, no surrounding
+        chrome. The active bar fills left-to-right over the
+        rotation interval. Hover brightens and thickens. Click
+        jumps to the slide.
+
+        Drag interaction: while the user is dragging, the tabs row
+        gets a small parallax shift via inline transform but the
+        per-tab fills don't react. On release the carousel either
+        commits or cancels — when it commits, displayIndex changes
+        and the per-tab transitions on `&__tab-fill` (defined below)
+        smoothly animate every tab whose state changed, in lockstep
+        with the 0.6s card-slide motion. */
+  &__tabs {
+    position: absolute;
+    bottom: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 3);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* Snap-back transition for when a drag ends — the inline
+       transform is removed and the row eases back to its rest
+       position. During the active drag .hero--dragging kills the
+       transition so the row tracks the cursor 1:1. */
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  &--dragging &__tabs {
+    transition: none;
+  }
+
+  &__tab {
+    position: relative;
+    display: block;
+    width: 28px;
+    height: 3px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    overflow: hidden;
+    transition:
+      background 0.18s ease,
+      height 0.18s ease,
+      width 0.18s ease;
+  }
+
+  &__tab:hover {
+    background: rgba(255, 255, 255, 0.45);
+    height: 4px;
+  }
+
+  &__tab--active {
+    width: 56px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  &__tab-fill {
+    position: absolute;
+    inset: 0;
+    background: globals.$muted-color;
+    border-radius: 2px;
+    transform-origin: left center;
+    transform: scaleX(0);
+    pointer-events: none;
+    /* The same 0.6s cubic-bezier the carousel track uses to slide
+       between cards. When a tab's class changes (active → past on a
+       forward commit, active → future on a backward commit, OR past
+       → active on a backward commit), the static transform value
+       changes and this transition interpolates it. The result: the
+       tab fill animates IN SYNC with the card snap motion, every
+       time displayIndex changes. */
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &--past {
+      transform: scaleX(1);
+    }
+
+    &--future {
+      transform: scaleX(0);
+    }
+
+    &--active {
+      /* The auto-rotate animation is delayed by 0.6s — long enough
+         for the snap-in transition above to land at the new
+         starting position. Two cases benefit:
+           • Forward commit (future → active): the tab was at
+             scaleX(0), the new --active class falls back to the
+             base scaleX(0) for the first 0.6s (no visible jump),
+             then the animation kicks in and fills 0 → 1.
+           • Backward commit (past → active): the tab was at
+             scaleX(1), the new --active class allows the base
+             scaleX(0) to take effect, the 0.6s transition drains
+             1 → 0, THEN the animation starts and fills 0 → 1.
+         The animation's runtime is interval − 600ms so that the
+         total fill-cycle (drain/no-op + animation) still matches
+         the JS scheduleAdvance() interval — slides stay on screen
+         for exactly --hero-interval. */
+      animation: heroProgressFill calc(var(--hero-interval, 9000ms) - 600ms)
+        linear 600ms forwards;
+    }
+  }
+
+  /* During the actual drag motion the tab stays static — the
+     auto-rotate animation is paused via .hero--paused and no
+     drag-magnitude fill plays. The smooth fill / drain only fires
+     when the user releases AND the carousel commits the swipe,
+     because that's when --active flips off the source tab and onto
+     the target tab — and the 0.6s transition above kicks in. */
+
+  &--paused &__tab-fill--active {
+    animation-play-state: paused;
+  }
+
+  /* ── Animations ─────────────────────────────────────────── */
+  @keyframes heroProgressFill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes heroKenBurns {
+    from {
+      transform: scale(1) translate(0, 0);
+    }
+    to {
+      transform: scale(1.07) translate(-1%, -1%);
+    }
+  }
+
+  @keyframes heroReasonIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes heroContentIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ── Reason chip extras ──────────────────────────────────
+        The new SlideReason kinds bring chip glyphs that aren't
+        Octicons — animated gif flames, the stars sparkle gif, the
+        bundled trophy.svg, an inline NES controller SVG, and
+        because-you-played's *seed game logo*. All of these get
+        force-monochromed via CSS filters so the chip never breaks
+        out of the muted-color palette the Octicons live in, and
+        every variant renders at the same 14×14 footprint as the
+        base `&__reason-icon` column so the chip's left-edge
+        rhythm stays consistent across rules. */
+  &__reason-img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    object-position: center;
+    /* Drop the asset's hue entirely, then nudge the brightness up
+       so a flat-toned glyph reads as near-white against the chip.
+       Works on both animated gifs (frame-by-frame) and static
+       SVGs that don't honour currentColor. */
+    filter: grayscale(1) brightness(1.8) contrast(0.95);
+    overflow: hidden;
+  }
+
+  /* Mono-style glyphs (NES controller) — same treatment as
+     `__reason-img` since both want to read as muted-white.
+     Kept as a separate selector so future per-asset overrides
+     remain targetable. */
+  &__reason-img--mono {
+    filter: grayscale(1) brightness(1.8) contrast(0.95);
+  }
+
+  /* The seed-game logo for "because you played". Same 14×14
+     footprint as the other chip glyphs + monochrome filter so it
+     sits in the same visual lane as Hot Now / Trophy Hunter / etc.
+     The logo recognition fights the grayscale a little, but the
+     primary chip text still names the game — the icon is signal,
+     not identity. */
+  &__reason-img--logo {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    border-radius: 2px;
+    filter: grayscale(1) brightness(1.8) contrast(0.95);
+  }
+
+  /* Letter fallback for "because you played" when the seed game
+     has no logo asset to point at. Same 14×14 footprint as the
+     glyphs; no background highlight so it blends with the chip. */
+  &__reason-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    color: globals.$muted-color;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 1;
   }
 }

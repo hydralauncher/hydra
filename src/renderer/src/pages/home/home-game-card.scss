@@ -1,0 +1,260 @@
+@use "../../scss/globals.scss";
+
+.home-game-card {
+  position: relative;
+  /* Card is sized at 130% of its original 390×183. The aspect ratio
+     is preserved (390/183 ≈ 2.131 ≈ 507/238), so the Steam header art
+     still fills it edge-to-edge with no letterboxing. */
+  width: 507px;
+  min-width: 507px;
+  height: 238px;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid globals.$border-color;
+  background: #1c1c1c;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 1);
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  flex-shrink: 0;
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+
+  /* No hover border-glow — the previous `border-color: rgba(255,
+     255, 255, 0.2)` lit the outline up on hover and the user
+     reported it as a glow. The card already conveys hover via the
+     image's transform: scale + the content slide; the border stays
+     consistent with the rest state. */
+
+  /* ── PC: header art fills the card edge-to-edge. Card aspect matches
+        the header image aspect so cover crops at most ~1% on each side. ── */
+  &__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 1;
+    transition: transform ease 0.2s;
+  }
+
+  /* ── Classics-only: blurred fill behind the centred portrait ───── */
+  /* Restored full library-card visual at blur(16px). The earlier flat
+     opacity variant was a perf compromise from when 40 rows × ~6
+     cards = hundreds of blur layers stayed mounted across the page
+     (compositor death). With the bi-directional row windowing now in
+     place, only ~6 rows worth of blur layers exist on the compositor
+     at any moment — the same cost the vertical and recently-played
+     classics cards already pay, now applied consistently here. */
+  &__blur-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: blur(16px) saturate(1.1);
+    transform: scale(1.25);
+    opacity: 0.65;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  &:hover &__img {
+    transform: scale(1.04);
+  }
+
+  /* ── Classics: centered portrait box-art on blurred fill ──────────── */
+  &__portrait-cover {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    display: block;
+    height: 84%;
+    width: auto;
+    max-width: 48%;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 16px rgba(0, 0, 0, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    transition: transform ease 0.2s;
+  }
+
+  &:hover &__portrait-cover {
+    transform: scale(1.04);
+  }
+
+  /* ── Classics: platform chip — absolutely positioned, doesn't slide ── */
+  &__platform-chip {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fafafa;
+    /* Solid heavier background (was rgba 0.65 with backdrop-filter
+       blur). Removing backdrop-filter cuts one GPU compositor layer
+       per card — material on Layerize cost when many cards are
+       visible. */
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+
+  /* ── Gradient backdrop above the image ──────────────────────────── */
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    /* Three-stop gradient. The bottom band carries a stronger fade
+       so footer copy stays legible against bright header art, and
+       the fade reaches up to ~58% of the card before transparent
+       (was ~40%). The user reported the previous shallow fade left
+       text floating on washed-out backgrounds; this restores the
+       contrast match the hero backdrop was incorrectly tuned to. */
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.55) 28%,
+      transparent 58%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: none;
+  }
+
+  /* ── Content block — slides up on hover, revealing the stats row ─── */
+  &__content {
+    color: #dadbe1;
+    /* Padding scaled by 1.3× alongside the card dimensions (was
+       spacing-unit × {1, 2} = 8 × {1, 2}). */
+    padding: calc(globals.$spacing-unit * 1.3) calc(globals.$spacing-unit * 2.6);
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 1.3);
+    flex-direction: column;
+    transition: transform ease 0.2s;
+    /* Hover-reveal distance trimmed from 36 → 30 — subtle 6px lift at
+       rest so the title + download source badges sit a touch higher
+       inside the card with more breathing room above the bottom
+       edge. Stats row still stays parked just below the visible
+       area at rest; the remaining 30px hover-slide still reveals
+       it fully. */
+    transform: translateY(30px);
+  }
+
+  &:hover &__content {
+    transform: translateY(0);
+  }
+
+  &__title-container {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.3);
+    color: globals.$muted-color;
+  }
+
+  &__shop-icon {
+    /* Trimmed again (22 → 19) — back close to the original 20 now
+       that the card is 30% larger but content shouldn't dominate. */
+    width: 19px;
+    height: 19px;
+    min-width: 19px;
+    /* Force every SVG element inside (path, g, polygon, etc.) to use
+       currentColor instead of any inline `fill="..."` set on the
+       file itself. CSS fill rules override SVG presentation
+       attributes per the spec, so this neutralises hardcoded
+       black/white fills in user-provided platform logos and makes
+       them inherit the muted gray of the surrounding title text —
+       matching how the original Steam logo (which uses
+       fill="currentColor") tints. */
+    &,
+    & * {
+      fill: currentColor;
+    }
+
+    /* PS2 + PS3 wordmarks read optically smaller than the PS1
+       "PS" mark and the Steam wordmark at the same 19×19 box —
+       the glyphs are thinner with more whitespace baked into the
+       asset's viewBox. Bump them with a CSS transform so the
+       row stays visually balanced without touching the SVG
+       sources. */
+    &.home-shop-logo--ps2,
+    &.home-shop-logo--ps3 {
+      transform: scale(1.2);
+      transform-origin: left center;
+    }
+  }
+
+  &__title {
+    /* Trimmed again (18 → 15) — back close to the original 16 so the
+       header art reads through the bottom band more cleanly. */
+    font-size: 15px;
+    font-weight: bold;
+    text-align: left;
+    color: globals.$muted-color;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  &__download-options {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    gap: calc(globals.$spacing-unit * 1.3);
+    flex-wrap: wrap;
+    list-style: none;
+  }
+
+  /* Shown only for classics (and other shops once downloads aren't
+     yet wired up). Keeps the bottom-row content slot balanced so
+     the stats below still rise into the same position on hover. */
+  &__no-downloads {
+    margin: 0;
+    /* Trimmed again (14 → 12) to match the lighter content sizing. */
+    font-size: 12px;
+    font-weight: 500;
+    color: globals.$body-color;
+    line-height: 1;
+  }
+
+  &__specifics {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 2.6);
+    justify-content: flex-start;
+  }
+
+  &__specifics-item {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.3);
+    color: globals.$muted-color;
+    /* Trimmed again (14 → 12). */
+    font-size: 12px;
+
+    .star-rating {
+      align-items: center;
+    }
+
+    /* Friend-playing slot — pushed to the right edge so it doesn't
+       crowd the download/player/rating stats. CardFriendsBadge
+       returns null when no friends play the card's game, so the
+       slot collapses on its own and doesn't add visual weight on
+       cards without the indicator. */
+    &--friends {
+      margin-left: auto;
+    }
+  }
+}

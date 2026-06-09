@@ -1,0 +1,16 @@
+<svg viewBox="0 0 752 130.53127516778522" xmlns="http://www.w3.org/2000/svg" width="752" height="130.53127516778522">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        fill-rule: evenodd;
+        fill: currentColor;
+      }
+    </style>
+  </defs>
+  <title>PlayStation 2 logo</title>
+  <g id="g3">
+    <polygon points="0 0 0 9.15 225.36 9.15 225.36 59.87 0 59.87 0 129.72 9.14 129.72 9.14 69.02 233.68 69.02 233.68 0 0 0" class="cls-1" id="polygon5"/>
+    <polygon points="517.25 0 517.25 9.15 742.62 9.15 742.62 59.87 517.25 59.87 517.25 129.72 751.76 129.72 751.76 120.58 527.24 120.58 527.24 69.02 751.76 69.02 751.76 0 517.25 0" class="cls-2" id="polygon7"/>
+    <polygon points="353.43 0 353.43 120.58 233.68 120.58 233.68 129.72 363.41 129.72 363.41 9.15 482.32 9.15 482.32 0 353.43 0" class="cls-3" id="polygon9"/>
+  </g>
+</svg>
