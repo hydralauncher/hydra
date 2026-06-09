@@ -60,6 +60,8 @@ export interface ShopAssets {
 
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
+  platform?: string;
+  skus?: string[];
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
@@ -450,6 +452,8 @@ export interface CatalogueSearchPayload {
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };
+  shops?: string[];
+  platforms?: string[];
 }
 
 export interface ProtonDBData {
@@ -475,6 +479,11 @@ export type CatalogueSearchResult = {
   protondbSupportBadges?: string[];
   deckCompatibility?: string | null;
   deckCompatibilities?: string[];
+  platform?: string;
+  alternateNames?: string[];
+  developers?: string[];
+  publishers?: string[];
+  skus?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -509,3 +518,4 @@ export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
+export * from "./emulator.types";
