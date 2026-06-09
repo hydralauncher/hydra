@@ -488,10 +488,23 @@
   }
 
   &__list-viewport {
+    position: relative;
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
     overflow: hidden;
+
+    &::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 1;
+      height: 72px;
+      background: linear-gradient(transparent 0%, var(--surface) 97%);
+      pointer-events: none;
+    }
   }
 
   &__list {
