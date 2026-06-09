@@ -22,6 +22,7 @@ import {
   HOME_WEEKLY_GAMES_CAROUSEL_REGION_ID,
 } from "./navigation";
 import {
+  buildLibraryToastOptions,
   getBigPictureGameAchievementsPath,
   getBigPictureGameDetailsPath,
   getGameLandscapeImageSource,
@@ -47,7 +48,12 @@ import {
   useLibraryLaunchGame,
 } from "../../components/pages/library";
 import { IS_DESKTOP } from "../../constants";
-import { useGameCollections, useLibrary, useNavigation } from "../../hooks";
+import {
+  useBigPictureToast,
+  useGameCollections,
+  useLibrary,
+  useNavigation,
+} from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 
 import "./page.scss";
@@ -78,6 +84,7 @@ interface PendingHomeAction {
 export default function Home() {
   const navigate = useNavigate();
   const { setFocus } = useNavigation();
+  const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
 
@@ -193,6 +200,15 @@ export default function Home() {
       }
 
       await refreshLibraryData();
+
+      if (currentAction.type === "remove-from-library") {
+        const { title, ...toastOptions } = await buildLibraryToastOptions(
+          game,
+          "removed"
+        );
+        showSuccessToast(title, toastOptions);
+      }
+
       setPendingAction(null);
       setIsSubmittingAction(false);
 
@@ -207,7 +223,7 @@ export default function Home() {
       logger.error("Failed to execute home library action", error);
       setIsSubmittingAction(false);
     }
-  }, [pendingAction, refreshLibraryData, setFocus]);
+  }, [pendingAction, refreshLibraryData, setFocus, showSuccessToast]);
 
   const [addingCatalogKey, setAddingCatalogKey] = useState<string | null>(null);
 
@@ -270,10 +286,16 @@ export default function Home() {
         target.title
       );
       await refreshLibraryData();
+
+      const { title, ...toastOptions } = await buildLibraryToastOptions(
+        target,
+        "added"
+      );
+      showSuccessToast(title, toastOptions);
     } finally {
       setAddingCatalogKey(null);
     }
-  }, [menuState.catalogGame, refreshLibraryData]);
+  }, [menuState.catalogGame, refreshLibraryData, showSuccessToast]);
 
   const handleOpenCatalogDownloadOptions = useCallback(() => {
     const target = menuState.catalogGame;
@@ -341,6 +363,7 @@ export default function Home() {
         {
           onLaunchOrDownload: handleLaunchFromMenu,
           onToggleFavorite: toggleFavorite,
+          onViewAchievements: handleCatalogViewAchievementsFromMenu,
           onUninstall: handleRequestRemoveFilesFromMenu,
           onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
         },

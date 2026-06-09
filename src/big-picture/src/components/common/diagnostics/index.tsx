@@ -1141,7 +1141,7 @@ function NavigationDiagnosticsPanel() {
       text = `[navigation-diagnostics] JSON.stringify failed: ${String(error)}`;
     }
 
-    navigator.clipboard.writeText(text).catch((err) => {
+    globalThis.window.electron.clipboard.writeText(text).catch((err) => {
       console.warn("[navigation-diagnostics] clipboard copy failed", err);
     });
   };
@@ -1310,13 +1310,13 @@ export function NavigationDiagnostics() {
   return (
     <div
       style={{
-        position: "absolute",
-        right: "calc(var(--spacing-unit) * 6)",
+        position: "fixed",
+        left: "calc(var(--spacing-unit) * 6)",
         bottom: "calc(var(--spacing-unit) * 6)",
         zIndex: 1000,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-end",
+        alignItems: "flex-start",
         gap: "calc(var(--spacing-unit) * 3)",
         fontSize: 12,
       }}

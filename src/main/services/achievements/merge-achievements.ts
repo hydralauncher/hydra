@@ -142,18 +142,14 @@ export const mergeAchievements = async (
       game.title
     );
 
-    const shouldUseCustomNotification =
+    const customEnabled =
       userPreferences.achievementCustomNotificationsEnabled !== false &&
-      process.platform !== "darwin" &&
-      !!WindowManager.notificationWindow;
+      process.platform !== "darwin";
 
-    if (shouldUseCustomNotification) {
-      WindowManager.notificationWindow?.webContents.send(
-        "on-achievement-unlocked",
-        userPreferences.achievementCustomNotificationPosition ?? "top-left",
-        achievementsInfo
-      );
-    } else {
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+
+    const publishOsNotification = () =>
       publishNewAchievementNotification({
         achievements: achievementsInfo,
         unlockedAchievementCount: mergedLocalAchievements.length,
@@ -161,6 +157,31 @@ export const mergeAchievements = async (
         gameTitle: game.title,
         gameIcon: game.iconUrl,
       });
+
+    if (process.platform === "linux") {
+      const shownInApp =
+        customEnabled &&
+        WindowManager.sendAchievementToFocusedWindow(
+          position,
+          achievementsInfo
+        );
+
+      if (!shownInApp) {
+        publishOsNotification();
+      }
+    } else {
+      const shouldUseCustomNotification =
+        customEnabled && !!WindowManager.notificationWindow;
+
+      if (shouldUseCustomNotification) {
+        WindowManager.notificationWindow?.webContents.send(
+          "on-achievement-unlocked",
+          position,
+          achievementsInfo
+        );
+      } else {
+        publishOsNotification();
+      }
     }
   }
 
