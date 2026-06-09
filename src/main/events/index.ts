@@ -3,6 +3,7 @@ import { ipcMain } from "electron";
 
 import "./auth";
 import "./autoupdater";
+import "./big-picture";
 import "./catalogue";
 import "./cloud-save";
 import "./download-sources";
@@ -16,6 +17,7 @@ import "./themes";
 import "./torrenting";
 import "./user";
 import "./user-preferences";
+import "./library/transfer-game-files";
 
 import { isPortableVersion } from "@main/helpers";
 

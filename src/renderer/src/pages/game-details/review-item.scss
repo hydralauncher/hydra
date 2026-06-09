@@ -4,6 +4,11 @@
   &__review-item {
     overflow: hidden;
     word-wrap: break-word;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 12px;
+    padding: calc(globals.$spacing-unit * 1.75);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   &__review-header {
@@ -17,30 +22,37 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-  }
-
-  &__review-header-bottom {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
   }
 
   &__review-user {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: calc(globals.$spacing-unit * 1);
+    flex: 1;
+    min-width: 0;
   }
 
   &__review-user-info {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 0.45);
+    flex: 1;
+    min-width: 0;
   }
 
   &__review-meta-row {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    gap: calc(globals.$spacing-unit * 0.5);
+  }
+
+  &__review-meta-left {
+    display: inline-flex;
+    align-items: center;
     gap: calc(globals.$spacing-unit * 0.75);
+    min-height: 22px;
   }
 
   &__review-display-name {
@@ -176,6 +188,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    height: 22px;
+    box-sizing: border-box;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 2px 6px;
@@ -212,6 +226,9 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
+    height: 22px;
+    line-height: 1;
     color: rgba(255, 255, 255, 0.6);
     font-size: globals.$small-font-size;
   }
@@ -220,6 +237,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    height: 22px;
+    box-sizing: border-box;
     color: rgba(255, 255, 255, 0.7);
     font-size: 11px;
     font-weight: 500;

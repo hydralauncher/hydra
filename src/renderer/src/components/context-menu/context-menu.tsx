@@ -7,7 +7,9 @@ export interface ContextMenuItemData {
   id: string;
   label: string;
   icon?: React.ReactNode;
+  trailingIcon?: React.ReactNode;
   onClick?: () => void;
+  closeOnClick?: boolean;
   disabled?: boolean;
   danger?: boolean;
   separator?: boolean;
@@ -101,7 +103,10 @@ export function ContextMenu({
 
     if (item.onClick) {
       item.onClick();
-      onClose();
+
+      if (item.closeOnClick !== false) {
+        onClose();
+      }
     }
   };
 
@@ -199,6 +204,11 @@ export function ContextMenu({
                 <span className="context-menu__item-icon">{item.icon}</span>
               )}
               <span className="context-menu__item-label">{item.label}</span>
+              {item.trailingIcon && (
+                <span className="context-menu__item-trailing-icon">
+                  {item.trailingIcon}
+                </span>
+              )}
               {item.submenu && (
                 <span className="context-menu__item-arrow">▶</span>
               )}
@@ -237,6 +247,11 @@ export function ContextMenu({
                         <span className="context-menu__item-label">
                           {subItem.label}
                         </span>
+                        {subItem.trailingIcon && (
+                          <span className="context-menu__item-trailing-icon">
+                            {subItem.trailingIcon}
+                          </span>
+                        )}
                       </button>
                     </li>
                   ))}

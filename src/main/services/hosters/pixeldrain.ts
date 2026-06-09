@@ -1,42 +1,94 @@
 import axios from "axios";
+import { logger } from "@main/services";
 
 export class PixelDrainApi {
-  private static readonly browserHeaders = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    Accept:
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    DNT: "1",
-    Connection: "keep-alive",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-  };
+  private static readonly BYPASS_BASE_URL = "https://cdn.pixeldrain.eu.cc";
+  private static readonly BYPASS_TIMEOUT_MS = 5000;
 
-  public static async getDownloadUrl(fileId: string): Promise<string> {
+  public static canHandle(url: string): boolean {
     try {
-      const response = await axios.get(`https://pd.cybar.xyz/${fileId}`, {
-        headers: this.browserHeaders,
-        maxRedirects: 0,
-        validateStatus: (status) =>
-          status === 301 || status === 302 || status === 200,
+      return new URL(url).hostname.includes("pixeldrain.com");
+    } catch {
+      return false;
+    }
+  }
+
+  private static extractId(url: string): string {
+    let parsedUrl: URL;
+
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error(`Invalid pixeldrain URL: ${url}`);
+    }
+
+    const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+    const id = pathParts[1];
+
+    if (pathParts[0] !== "u" || !id) {
+      throw new Error(`Invalid pixeldrain URL: ${url}`);
+    }
+
+    return id;
+  }
+
+  private static async checkAvailability(id: string): Promise<void> {
+    const response = await axios.head(`https://pixeldrain.com/u/${id}`, {
+      validateStatus: () => true,
+    });
+
+    if (response.status === 404) {
+      throw new Error("File not found");
+    }
+  }
+
+  private static getBypassUrl(id: string): string {
+    return `${this.BYPASS_BASE_URL}/${id}`;
+  }
+
+  private static async tryBypass(id: string): Promise<string | null> {
+    const bypassUrl = this.getBypassUrl(id);
+
+    try {
+      const response = await axios.head(bypassUrl, {
+        timeout: this.BYPASS_TIMEOUT_MS,
+        validateStatus: () => true,
       });
 
-      if (
-        response.headers.location ||
-        response.status === 301 ||
-        response.status === 302
-      ) {
-        return response.headers.location;
+      if (response.status >= 200 && response.status < 400) {
+        return bypassUrl;
       }
 
-      throw new Error(`No redirect URL found (status: ${response.status})`);
+      logger.log(
+        `[PixelDrain] Bypass HEAD returned status ${response.status}, falling back to API resolver.`
+      );
+      return null;
+    } catch {
+      logger.log(
+        `[PixelDrain] Bypass HEAD failed, falling back to API resolver.`
+      );
+      return null;
+    }
+  }
+
+  public static async unlock(url: string): Promise<string> {
+    try {
+      const id = this.extractId(url);
+      const bypassUrl = await this.tryBypass(id);
+
+      if (bypassUrl) {
+        return bypassUrl;
+      }
+
+      await this.checkAvailability(id);
+      return `https://pixeldrain.com/api/file/${id}?download`;
     } catch (error) {
-      console.error("Error fetching PixelDrain URL:", error);
+      logger.error("Error fetching PixelDrain URL:", error);
       throw error;
     }
+  }
+
+  public static async getDownloadUrl(url: string): Promise<string> {
+    return this.unlock(url);
   }
 }

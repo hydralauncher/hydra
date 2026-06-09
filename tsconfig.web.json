@@ -4,6 +4,8 @@
     "src/renderer/src/env.d.ts",
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.tsx",
+    "src/big-picture/src/**/*",
+    "src/big-picture/src/**/*.tsx",
     "src/preload/*.d.ts",
     "src/locales/index.ts",
     "src/shared/**/*",

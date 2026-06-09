@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { PeopleIcon } from "@primer/octicons-react";
+import { BellIcon } from "@primer/octicons-react";
 import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { UserFriendModalTab } from "@renderer/pages/shared-modals/user-friend-modal";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
 import { AuthPage } from "@shared";
+import { logger } from "@renderer/logger";
+import type { NotificationCountResponse } from "@types";
 import "./sidebar-profile.scss";
 
 export function SidebarProfile() {
@@ -14,10 +15,86 @@ export function SidebarProfile() {
 
   const { t } = useTranslation("sidebar");
 
-  const { userDetails, friendRequestCount, showFriendsModal } =
-    useUserDetails();
+  const { userDetails } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+
+  const [notificationCount, setNotificationCount] = useState(0);
+  const apiNotificationCountRef = useRef(0);
+  const hasFetchedInitialCount = useRef(false);
+
+  const fetchLocalNotificationCount = useCallback(async () => {
+    try {
+      const localCount = await window.electron.getLocalNotificationsCount();
+      setNotificationCount(localCount + apiNotificationCountRef.current);
+    } catch (error) {
+      logger.error("Failed to fetch local notification count", error);
+    }
+  }, []);
+
+  const fetchApiNotificationCount = useCallback(async () => {
+    try {
+      const response =
+        await window.electron.hydraApi.get<NotificationCountResponse>(
+          "/profile/notifications/count",
+          { needsAuth: true }
+        );
+      apiNotificationCountRef.current = response.count;
+    } catch {
+      // Ignore API errors
+    }
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
+
+  // Initial fetch on mount (only once)
+  useEffect(() => {
+    fetchLocalNotificationCount();
+  }, [fetchLocalNotificationCount]);
+
+  // Fetch API count when user logs in (only if not already fetched)
+  useEffect(() => {
+    if (userDetails && !hasFetchedInitialCount.current) {
+      hasFetchedInitialCount.current = true;
+      fetchApiNotificationCount();
+    } else if (!userDetails) {
+      hasFetchedInitialCount.current = false;
+      apiNotificationCountRef.current = 0;
+      fetchLocalNotificationCount();
+    }
+  }, [userDetails, fetchApiNotificationCount, fetchLocalNotificationCount]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onLocalNotificationCreated(() => {
+      fetchLocalNotificationCount();
+    });
+
+    return () => unsubscribe();
+  }, [fetchLocalNotificationCount]);
+
+  useEffect(() => {
+    const handleNotificationsChange = () => {
+      fetchLocalNotificationCount();
+    };
+
+    window.addEventListener("notificationsChanged", handleNotificationsChange);
+    return () => {
+      window.removeEventListener(
+        "notificationsChanged",
+        handleNotificationsChange
+      );
+    };
+  }, [fetchLocalNotificationCount]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onSyncNotificationCount(
+      (notification) => {
+        apiNotificationCountRef.current = notification.notificationCount;
+        fetchLocalNotificationCount();
+      }
+    );
+
+    return () => unsubscribe();
+  }, [fetchLocalNotificationCount]);
 
   const handleProfileClick = () => {
     if (userDetails === null) {
@@ -28,28 +105,24 @@ export function SidebarProfile() {
     navigate(`/profile/${userDetails.id}`);
   };
 
-  const friendsButton = useMemo(() => {
-    if (!userDetails) return null;
-
+  const notificationsButton = useMemo(() => {
     return (
       <button
         type="button"
-        className="sidebar-profile__friends-button"
-        onClick={() =>
-          showFriendsModal(UserFriendModalTab.AddFriend, userDetails.id)
-        }
-        title={t("friends")}
+        className="sidebar-profile__notification-button"
+        onClick={() => navigate("/notifications")}
+        title={t("notifications")}
       >
-        {friendRequestCount > 0 && (
-          <small className="sidebar-profile__friends-button-badge">
-            {friendRequestCount > 99 ? "99+" : friendRequestCount}
+        {notificationCount > 0 && (
+          <small className="sidebar-profile__notification-button-badge">
+            {notificationCount > 99 ? "99+" : notificationCount}
           </small>
         )}
 
-        <PeopleIcon size={16} />
+        <BellIcon size={16} />
       </button>
     );
-  }, [userDetails, t, friendRequestCount, showFriendsModal]);
+  }, [t, notificationCount, navigate]);
 
   const gameRunningDetails = () => {
     if (!userDetails || !gameRunning) return null;
@@ -98,7 +171,7 @@ export function SidebarProfile() {
         </div>
       </button>
 
-      {friendsButton}
+      {notificationsButton}
     </div>
   );
 }

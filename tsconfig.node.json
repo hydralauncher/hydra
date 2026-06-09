@@ -1,6 +1,6 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/locales/index.ts", "src/shared/**/*", "src/types/**/*"],
+  "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/locales/index.ts", "src/shared/**/*", "src/types/**/*", "src/big-picture/vite-scope-big-picture-css.ts"],
   "compilerOptions": {
     "module": "ESNext",
     "composite": true,

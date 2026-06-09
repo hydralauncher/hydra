@@ -42,6 +42,24 @@ export const librarySlice = createSlice({
     setLibrarySearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
     },
+    setGameCollectionIds: (
+      state,
+      action: PayloadAction<{
+        shop: LibraryGame["shop"];
+        objectId: string;
+        collectionIds: string[];
+      }>
+    ) => {
+      const game = state.value.find(
+        (g) =>
+          g.shop === action.payload.shop &&
+          g.objectId === action.payload.objectId
+      );
+
+      if (game) {
+        game.collectionIds = action.payload.collectionIds;
+      }
+    },
   },
 });
 
@@ -50,4 +68,5 @@ export const {
   updateGameNewDownloadOptions,
   clearNewDownloadOptions,
   setLibrarySearchQuery,
+  setGameCollectionIds,
 } = librarySlice.actions;

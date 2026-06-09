@@ -23,7 +23,10 @@ import type {
 
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { GameDetailsContext } from "./game-details.context.types";
+import {
+  GameDetailsContext,
+  GameOptionsCategoryId,
+} from "./game-details.context.types";
 import { SteamContentDescriptor } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
@@ -37,15 +40,20 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   objectId: undefined,
   showRepacksModal: false,
   showGameOptionsModal: false,
+  gameOptionsInitialCategory: "general",
   stats: null,
   achievements: null,
   hasNSFWContentBlocked: false,
   lastDownloadedOption: null,
+  isTransferring: false,
+  transferProgress: 0,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   setShowGameOptionsModal: () => {},
+  setGameOptionsInitialCategory: () => {},
   setShowRepacksModal: () => {},
   setHasNSFWContentBlocked: () => {},
+  cancelTransfer: () => {},
 });
 
 const { Provider } = gameDetailsContext;
@@ -73,6 +81,8 @@ export function GameDetailsContextProvider({
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [hasNSFWContentBlocked, setHasNSFWContentBlocked] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferProgress, setTransferProgress] = useState(0);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -80,6 +90,8 @@ export function GameDetailsContextProvider({
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
+  const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
+    useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
   const { i18n } = useTranslation("game_details");
@@ -106,6 +118,59 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     updateGame();
   }, [updateGame, isGameDownloading, lastPacket?.gameId]);
+
+  // Listen for transfer events
+  useEffect(() => {
+    const onTransferProgress = (
+      _: unknown,
+      shop: string,
+      objectId: string,
+      progress: number
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(progress >= 0 && progress < 1);
+        setTransferProgress(progress);
+      }
+    };
+
+    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+        updateGame();
+      }
+    };
+
+    const onTransferCancelled = (
+      _: unknown,
+      shop: string,
+      objectId: string
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    const onTransferError = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    window.electron.on("on-game-transfer-progress", onTransferProgress);
+    window.electron.on("on-game-transfer-complete", onTransferComplete);
+    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
+    window.electron.on("on-game-transfer-error", onTransferError);
+
+    return () => {
+      window.electron.off("on-game-transfer-progress", onTransferProgress);
+      window.electron.off("on-game-transfer-complete", onTransferComplete);
+      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
+      window.electron.off("on-game-transfer-error", onTransferError);
+    };
+  }, [game]);
 
   useEffect(() => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -185,6 +250,7 @@ export function GameDetailsContextProvider({
     setIsLoading(true);
     setIsGameRunning(false);
     setAchievements(null);
+    setGameOptionsInitialCategory("general");
     dispatch(setHeaderTitle(gameTitle));
   }, [objectId, gameTitle, dispatch]);
 
@@ -226,6 +292,16 @@ export function GameDetailsContextProvider({
   }, [game?.id, isGameRunning, updateGame]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onLibraryBatchComplete(() => {
+      updateGame();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [updateGame]);
+
+  useEffect(() => {
     const handler = (ev: Event) => {
       try {
         const detail = (ev as CustomEvent).detail || {};
@@ -249,6 +325,7 @@ export function GameDetailsContextProvider({
       try {
         const detail = (ev as CustomEvent).detail || {};
         if (detail.objectId && detail.objectId === objectId) {
+          setGameOptionsInitialCategory("general");
           setShowGameOptionsModal(true);
         }
       } catch (e) {
@@ -270,6 +347,7 @@ export function GameDetailsContextProvider({
     const state =
       (location && (location.state as Record<string, unknown>)) || {};
     if (state.openGameOptions) {
+      setGameOptionsInitialCategory("general");
       setShowGameOptionsModal(true);
 
       try {
@@ -356,6 +434,13 @@ export function GameDetailsContextProvider({
       });
   };
 
+  // Handlers for cancel
+  const cancelTransfer = () => {
+    window.electron.cancelGameTransfer?.(shop, objectId);
+    setIsTransferring(false);
+    setTransferProgress(0);
+  };
+
   return (
     <Provider
       value={{
@@ -368,16 +453,21 @@ export function GameDetailsContextProvider({
         isLoading,
         objectId,
         showGameOptionsModal,
+        gameOptionsInitialCategory,
         showRepacksModal,
         stats,
         achievements,
         hasNSFWContentBlocked,
         lastDownloadedOption: null,
+        isTransferring,
+        transferProgress,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,
         setShowRepacksModal,
         setShowGameOptionsModal,
+        setGameOptionsInitialCategory,
+        cancelTransfer,
       }}
     >
       {children}

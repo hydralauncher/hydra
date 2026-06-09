@@ -12,6 +12,7 @@ import {
   CheckboxField,
   SelectField,
 } from "@renderer/components";
+import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
 import { useAppSelector } from "@renderer/hooks";
 import { changeLanguage } from "i18next";
@@ -22,10 +23,21 @@ import "./settings-general.scss";
 import { DesktopDownloadIcon, UnmuteIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
 import { AchievementCustomNotificationPosition } from "@types";
+import {
+  prepareDefaultDownloadPathSync,
+  replaceSavedDownloadDirectoryAndSetDefault,
+} from "@shared";
+import { DownloadDirectoryReplacementModal } from "./download-directory-replacement-modal";
 
 interface LanguageOption {
   option: string;
   nativeName: string;
+}
+
+interface DownloadDirectoryReplacementState {
+  nextPath: string;
+  replaceableDirectories: DownloadDirectoryPreference[];
+  selectedReplacementPath: string;
 }
 
 export function SettingsGeneral() {
@@ -58,6 +70,8 @@ export function SettingsGeneral() {
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
 
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
+  const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
+    useState<DownloadDirectoryReplacementState | null>(null);
 
   const volumeUpdateTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -70,7 +84,7 @@ export function SettingsGeneral() {
       setCanInstallCommonRedist(canInstall);
     });
 
-    const interval = setInterval(() => {
+    const redistInterval = setInterval(() => {
       window.electron.canInstallCommonRedist().then((canInstall) => {
         setCanInstallCommonRedist(canInstall);
       });
@@ -90,7 +104,7 @@ export function SettingsGeneral() {
     );
 
     return () => {
-      clearInterval(interval);
+      clearInterval(redistInterval);
       if (volumeUpdateTimeoutRef.current) {
         clearTimeout(volumeUpdateTimeoutRef.current);
       }
@@ -195,10 +209,59 @@ export function SettingsGeneral() {
       properties: ["openDirectory"],
     });
 
-    if (filePaths && filePaths.length > 0) {
-      const path = filePaths[0];
-      handleChange({ downloadsPath: path });
+    const path = filePaths?.[0];
+
+    if (!path || !defaultDownloadsPath) {
+      return;
     }
+
+    const nextAction = prepareDefaultDownloadPathSync(
+      userPreferences,
+      path,
+      defaultDownloadsPath
+    );
+
+    if (nextAction.type === "noop") {
+      return;
+    }
+
+    if (
+      nextAction.type === "set-existing" ||
+      nextAction.type === "add-and-set"
+    ) {
+      setForm((prev) => ({
+        ...prev,
+        downloadsPath: nextAction.nextDefaultPath,
+      }));
+      await updateUserPreferences(nextAction.nextPreferences);
+      return;
+    }
+
+    setDownloadDirectoryReplacement({
+      nextPath: nextAction.nextPath,
+      replaceableDirectories: nextAction.replaceableDirectories,
+      selectedReplacementPath: nextAction.recommendedReplacementPath,
+    });
+  };
+
+  const handleConfirmDownloadDirectoryReplacement = async () => {
+    if (!downloadDirectoryReplacement || !defaultDownloadsPath) {
+      return;
+    }
+
+    const replacement = replaceSavedDownloadDirectoryAndSetDefault(
+      userPreferences,
+      downloadDirectoryReplacement.nextPath,
+      downloadDirectoryReplacement.selectedReplacementPath,
+      defaultDownloadsPath
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      downloadsPath: replacement.nextDefaultPath,
+    }));
+    setDownloadDirectoryReplacement(null);
+    await updateUserPreferences(replacement.nextPreferences);
   };
 
   useEffect(() => {
@@ -247,6 +310,8 @@ export function SettingsGeneral() {
           label: language.nativeName,
         }))}
       />
+
+      <h2 className="settings-general__section-title">{t("downloads")}</h2>
 
       <h2 className="settings-general__section-title">{t("notifications")}</h2>
 
@@ -389,6 +454,27 @@ export function SettingsGeneral() {
           ? t("installing_common_redist")
           : t("install_common_redist")}
       </Button>
+
+      <DownloadDirectoryReplacementModal
+        visible={downloadDirectoryReplacement !== null}
+        nextPath={downloadDirectoryReplacement?.nextPath ?? ""}
+        directories={downloadDirectoryReplacement?.replaceableDirectories ?? []}
+        selectedReplacementPath={
+          downloadDirectoryReplacement?.selectedReplacementPath ?? ""
+        }
+        onSelectedReplacementPathChange={(path) => {
+          setDownloadDirectoryReplacement((current) =>
+            current
+              ? {
+                  ...current,
+                  selectedReplacementPath: path,
+                }
+              : current
+          );
+        }}
+        onClose={() => setDownloadDirectoryReplacement(null)}
+        onConfirm={handleConfirmDownloadDirectoryReplacement}
+      />
     </div>
   );
 }

@@ -2,11 +2,11 @@ function removeZalgoText(text: string): string {
   // Match combining characters that are commonly used in Zalgo text
   // Using a more explicit approach to avoid misleading-character-class warning
   const combiningMarks = [
-    /\u0300-\u036F/g, // Combining Diacritical Marks
-    /\u1AB0-\u1AFF/g, // Combining Diacritical Marks Extended
-    /\u1DC0-\u1DFF/g, // Combining Diacritical Marks Supplement
-    /\u20D0-\u20FF/g, // Combining Diacritical Marks for Symbols
-    /\uFE20-\uFE2F/g, // Combining Half Marks
+    /[\u0300-\u036F]/g, // Combining Diacritical Marks
+    /[\u1AB0-\u1AFF]/g, // Combining Diacritical Marks Extended
+    /[\u1DC0-\u1DFF]/g, // Combining Diacritical Marks Supplement
+    /[\u20D0-\u20FF]/g, // Combining Diacritical Marks for Symbols
+    /[\uFE20-\uFE2F]/g, // Combining Half Marks
   ];
 
   let result = text;

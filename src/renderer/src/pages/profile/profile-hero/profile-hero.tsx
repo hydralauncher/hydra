@@ -3,6 +3,7 @@ import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
   CheckCircleFillIcon,
+  CopyIcon,
   PencilIcon,
   PersonAddIcon,
   SignOutIcon,
@@ -24,12 +25,12 @@ import {
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
-import { Tooltip } from "react-tooltip";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -40,15 +41,11 @@ export function ProfileHero() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showFullscreenAvatar, setShowFullscreenAvatar] = useState(false);
   const [isPerformingAction, setIsPerformingAction] = useState(false);
+  const [isCopyButtonHovered, setIsCopyButtonHovered] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
-  const {
-    isMe,
-    badges,
-    getUserProfile,
-    userProfile,
-    heroBackground,
-    backgroundImage,
-  } = useContext(userProfileContext);
+  const { isMe, getUserProfile, userProfile, heroBackground, backgroundImage } =
+    useContext(userProfileContext);
   const {
     signOut,
     updateFriendRequestState,
@@ -259,6 +256,27 @@ export function ProfileHero() {
     }
   }, [isMe, userProfile?.profileImageUrl]);
 
+  const copyFriendCode = useCallback(() => {
+    if (userProfile?.id) {
+      globalThis.window.electron.clipboard.writeText(userProfile.id);
+      setIsCopied(true);
+
+      const startTime = performance.now();
+      const duration = 1200; // 1.2 seconds
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        if (elapsed < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsCopied(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [userProfile]);
+
   const currentGame = useMemo(() => {
     if (isMe) {
       if (gameRunning)
@@ -326,28 +344,32 @@ export function ProfileHero() {
                     {userProfile?.displayName}
                   </h2>
 
-                  <div className="profile-hero__badges">
-                    {userProfile.badges.map((badgeName) => {
-                      const badge = badges.find((b) => b.name === badgeName);
-
-                      if (!badge) return null;
-
-                      return (
-                        <img
-                          key={badge.name}
-                          src={badge.badge.url}
-                          alt={badge.name}
-                          width={24}
-                          height={24}
-                          data-tooltip-place="top"
-                          data-tooltip-content={badge.description}
-                          data-tooltip-id="badge-name"
-                        />
-                      );
-                    })}
-
-                    <Tooltip id="badge-name" />
-                  </div>
+                  <motion.button
+                    type="button"
+                    className="profile-hero__copy-button"
+                    onClick={copyFriendCode}
+                    title={t("copy_friend_code")}
+                    onMouseEnter={() => setIsCopyButtonHovered(true)}
+                    onMouseLeave={() => setIsCopyButtonHovered(false)}
+                    initial={{ width: 28 }}
+                    animate={{
+                      width: isCopyButtonHovered || isCopied ? 105 : 28,
+                    }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <motion.span
+                      className="profile-hero__friend-code"
+                      initial={{ opacity: 0, marginRight: 0 }}
+                      animate={{
+                        opacity: isCopyButtonHovered || isCopied ? 1 : 0,
+                        marginRight: isCopyButtonHovered || isCopied ? 8 : 0,
+                      }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                    >
+                      {isCopied ? t("copied") : userProfile?.id}
+                    </motion.span>
+                    <CopyIcon size={16} />
+                  </motion.button>
                 </div>
               ) : (
                 <Skeleton width={150} height={28} />

@@ -19,23 +19,184 @@
     color: globals.$body-color;
   }
 
-  &__downloaders {
-    display: grid;
-    gap: globals.$spacing-unit;
-    grid-template-columns: repeat(2, 1fr);
-  }
+  &__select-files-link {
+    align-self: flex-start;
+    margin-top: 6px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    cursor: pointer;
 
-  &__downloader-option {
-    position: relative;
+    &:hover {
+      color: #ffffff;
+    }
 
-    &:only-child {
-      grid-column: 1 / -1;
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
   }
 
-  &__downloader-icon {
-    position: absolute;
-    left: calc(globals.$spacing-unit * 2);
+  &__select-files-link-text {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  &__downloaders-list-wrapper {
+    border: 1px solid globals.$border-color;
+    overflow: hidden;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__downloaders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+  }
+
+  &__downloader-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border: 1px solid transparent;
+    border-bottom: 1px solid globals.$border-color;
+    border-radius: 0;
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+    color: globals.$body-color;
+    font-size: 14px;
+    text-align: left;
+    height: 48px;
+    box-sizing: border-box;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--selected {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--last {
+      border-bottom: none;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      &:hover {
+        background-color: transparent;
+      }
+
+      .download-settings-modal__downloader-name {
+        opacity: 0.5;
+      }
+
+      .download-settings-modal__availability-indicator-wrapper {
+        opacity: 0.5;
+      }
+    }
+  }
+
+  &__downloader-item-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__check-icon {
+    color: white;
+    flex-shrink: 0;
+  }
+
+  &__check-icon-wrapper {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    width: 20px;
+    height: 20px;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__recommendation-badge {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    height: 20px;
+    justify-content: center;
+    flex-shrink: 0;
+
+    .badge {
+      padding: 2px 6px;
+      font-size: 10px;
+      line-height: 1.2;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+  }
+
+  &__availability-indicator-wrapper {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__availability-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &--available {
+      background-color: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    }
+
+    &--unavailable {
+      background-color: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
+
+    &--not-present {
+      background-color: #6b7280;
+      box-shadow: 0 0 6px rgba(107, 114, 128, 0.5);
+    }
+
+    &--warning {
+      background-color: #eab308;
+      box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+    }
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
+  }
+
+  &__availability-indicator--pulsating {
+    animation: pulse 2s ease-in-out infinite;
   }
 
   &__path-error {
@@ -48,5 +209,292 @@
 
   &__change-path-button {
     align-self: flex-end;
+  }
+
+  &__loading-spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  &__torrent-step {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.015) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  &__torrent-step-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+
+    .text-field-container {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__torrent-filters {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    margin-left: auto;
+    padding-left: calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
+  }
+
+  &__torrent-sort-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+  }
+
+  &__torrent-sort-select.select-field__container {
+    flex: 0 0 auto;
+    width: fit-content;
+  }
+
+  &__torrent-sort-select .select-field__option {
+    min-width: 0;
+  }
+
+  &__torrent-table {
+    overflow: hidden;
+  }
+
+  &__torrent-table-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    height: 34px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+
+    span:last-child {
+      text-align: right;
+    }
+  }
+
+  &__torrent-files-feedback {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: #0b0b0c;
+    padding: calc(globals.$spacing-unit * 1.5);
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  &__torrent-files-list {
+    background-color: #0b0b0c;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  &__torrent-files-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar {
+      width: 9px;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.24);
+      border-radius: 24px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.34);
+    }
+  }
+
+  &__torrent-file-row {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    height: 36px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+
+    &--selected {
+      background-color: rgba(255, 255, 255, 0.07);
+    }
+
+    &--select-all {
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: globals.$spacing-unit;
+    }
+  }
+
+  &__torrent-file-name-cell {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    .checkbox-field__checkbox {
+      width: 14px;
+      height: 14px;
+      min-width: 14px;
+      min-height: 14px;
+      border-radius: 2px;
+      padding: 0;
+
+      svg {
+        width: 10px;
+        height: 10px;
+      }
+    }
+  }
+
+  &__torrent-folder-row {
+    outline: none;
+  }
+
+  &__torrent-row-trigger {
+    border: none;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    font: inherit;
+    cursor: pointer;
+
+    &--label {
+      min-width: 0;
+      flex: 1;
+      text-align: left;
+    }
+  }
+
+  &__torrent-folder-chevron {
+    width: 14px;
+    min-width: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.65);
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease;
+
+    &--expanded {
+      transform: rotate(0deg);
+    }
+  }
+
+  &__torrent-folder-spacer {
+    width: 14px;
+    min-width: 14px;
+    display: inline-flex;
+  }
+
+  &__torrent-node-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  &__torrent-node-icon {
+    color: rgba(255, 255, 255, 0.7);
+    min-width: 14px;
+  }
+
+  &__folder-checkbox--indeterminate {
+    position: relative;
+
+    .checkbox-field__icon {
+      opacity: 0;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 2px;
+      background: globals.$dark-background-color;
+      border-radius: 2px;
+    }
+  }
+
+  &__torrent-file-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    font-size: 12px;
+
+    &--bold {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    &--folder {
+      font-weight: 600;
+    }
+  }
+
+  &__torrent-file-size {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  &__torrent-files-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    flex-wrap: wrap;
+
+    .button {
+      min-width: 180px;
+    }
+  }
+
+  &__torrent-files-summary {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.76);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

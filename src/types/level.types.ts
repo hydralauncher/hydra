@@ -20,7 +20,6 @@ export interface Auth {
   accessToken: string;
   refreshToken: string;
   tokenExpirationTimestamp: number;
-  featurebaseJwt: string;
   workwondersJwt: string;
 }
 
@@ -49,13 +48,18 @@ export interface Game {
   playTimeInMilliseconds: number;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
   lastTimePlayed: Date | null;
+  addedToLibraryAt?: Date | null;
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
+  collectionIds?: string[];
   isDeleted: boolean;
   winePrefixPath?: string | null;
+  protonPath?: string | null;
   executablePath?: string | null;
   launchOptions?: string | null;
+  autoRunMangohud?: boolean | null;
+  autoRunGamemode?: boolean | null;
   favorite?: boolean;
   isPinned?: boolean;
   achievementCount?: number;
@@ -64,6 +68,9 @@ export interface Game {
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
   newDownloadOptionsCount?: number;
+  installedSizeInBytes?: number | null;
+  installerSizeInBytes?: number | null;
+  steamShortcutAppId?: number;
 }
 
 export interface Download {
@@ -79,10 +86,20 @@ export interface Download {
   shouldSeed: boolean;
   status: DownloadStatus | null;
   queued: boolean;
+  pinnedToHero?: boolean;
   timestamp: number;
   extracting: boolean;
+  extractionProgress?: number;
   automaticallyExtract: boolean;
-  extractionProgress: number;
+  automaticallyDeleteArchiveFiles: boolean;
+  fileIndices?: number[];
+  selectedFilesSize?: number | null;
+}
+
+export interface DownloadLayoutState {
+  version: 1;
+  queueOrder: string[];
+  pausedOrder: string[];
 }
 
 export interface GameAchievement {
@@ -100,15 +117,27 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export interface DownloadDirectoryPreference {
+  path: string;
+  createdAt: string;
+  source: "manual" | "auto";
+}
+
 export interface UserPreferences {
   downloadsPath?: string | null;
+  downloadDirectories?: DownloadDirectoryPreference[];
+  optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
   language?: string;
   realDebridApiToken?: string | null;
+  premiumizeApiToken?: string | null;
+  allDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
+  launchToLibraryPage?: boolean;
+  launchInBigPicture?: boolean;
   disableNsfwAlert?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;
@@ -124,9 +153,16 @@ export interface UserPreferences {
   friendStartGameNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
+  deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  enableNewDownloadOptionsBadges?: boolean;
+  createStartMenuShortcut?: boolean;
+  maxDownloadSpeedBytesPerSecond?: number | null;
+  defaultProtonPath?: string | null;
+  autoRunMangohud?: boolean;
+  autoRunGamemode?: boolean;
 }
 
 export interface ScreenState {

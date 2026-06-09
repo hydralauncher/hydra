@@ -37,6 +37,7 @@ export interface SteamAppDetails {
   detailed_description: string;
   about_the_game: string;
   short_description: string;
+  developers: string[];
   publishers: string[];
   genres: SteamGenre[];
   movies?: SteamMovie[];
@@ -82,4 +83,8 @@ export interface SteamShortcut {
   DevkitOverrideAppID: boolean;
   LastPlayTime: number;
   FlatpakAppID: string;
+}
+
+export interface CreateSteamShortcutOptions {
+  openVr?: boolean;
 }

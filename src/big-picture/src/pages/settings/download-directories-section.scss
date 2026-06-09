@@ -1,0 +1,97 @@
+.download-directories-section {
+  width: 100%;
+
+  &__controls {
+    display: flex;
+    align-items: stretch;
+    gap: var(--spacing-unit);
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  &__select {
+    flex: 1 1 320px;
+    min-width: 0;
+
+    .dropdown-select__trigger {
+      height: 40px;
+      padding-inline: calc(var(--spacing-unit) * 2);
+      border-radius: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  &__add-button {
+    flex: 0 0 auto;
+    min-width: 152px;
+    white-space: nowrap;
+  }
+
+  &__disks {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: calc(var(--spacing-unit) * 4);
+    width: 100%;
+
+    &--1 {
+      .download-directories-section__disk {
+        grid-column: span 6;
+      }
+    }
+
+    &--2 {
+      .download-directories-section__disk {
+        grid-column: span 3;
+      }
+    }
+
+    &--3 {
+      .download-directories-section__disk {
+        grid-column: span 2;
+      }
+    }
+
+    &--4 {
+      .download-directories-section__disk {
+        grid-column: span 3;
+      }
+    }
+
+    &--5 {
+      .download-directories-section__disk {
+        grid-column: span 2;
+
+        &:nth-child(4),
+        &:nth-child(5) {
+          grid-column: span 3;
+        }
+      }
+    }
+  }
+
+  &__disk {
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__disk-action {
+    min-width: 0;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+
+    &:hover {
+      background: transparent;
+    }
+
+    .button__icon-container {
+      padding: 0;
+    }
+
+    .button__icon-container--left::after {
+      display: none;
+    }
+  }
+}

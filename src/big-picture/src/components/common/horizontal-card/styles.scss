@@ -1,0 +1,73 @@
+.horizontal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--spacing-unit);
+  transition:
+    background-color 0.1s ease-in-out,
+    border 0.1s ease-in-out;
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--secondary);
+    border: 1px solid var(--secondary-border);
+
+    .horizontal-card__content__action {
+      opacity: 1;
+    }
+  }
+
+  &__image {
+    width: 268px;
+    height: 136px;
+    border-radius: var(--spacing-unit);
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: row;
+    gap: calc(var(--spacing-unit) * 2);
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--spacing-unit) * 2);
+    width: 100%;
+
+    &__info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-unit);
+
+      &__title {
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: normal;
+        color: var(--primary);
+        opacity: 0.8;
+      }
+
+      &__description {
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: normal;
+        color: var(--primary);
+        opacity: 0.5;
+      }
+    }
+
+    &__action {
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+    }
+  }
+}

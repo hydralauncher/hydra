@@ -3,6 +3,9 @@ import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import { logger } from "@main/services";
 
+const DATANODES_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
+
 export class DatanodesApi {
   private static readonly jar = new CookieJar();
 
@@ -19,6 +22,10 @@ export class DatanodesApi {
       const pathSegments = parsedUrl.pathname.split("/").filter(Boolean);
       const fileCode = pathSegments[0];
 
+      if (!fileCode) {
+        throw new Error("Invalid datanodes URL");
+      }
+
       await this.jar.setCookie("lang=english;", "https://datanodes.to");
 
       const formData = new FormData();
@@ -29,6 +36,7 @@ export class DatanodesApi {
       formData.append("method_free", "Free Download >>");
       formData.append("method_premium", "");
       formData.append("__dl", "1");
+      formData.append("g_captch__a", "1");
 
       const response: AxiosResponse = await this.session.post(
         "https://datanodes.to/download",
@@ -46,6 +54,7 @@ export class DatanodesApi {
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
             Referer: "https://datanodes.to/download",
+            "User-Agent": DATANODES_USER_AGENT,
           },
         }
       );

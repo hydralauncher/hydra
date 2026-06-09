@@ -1,12 +1,13 @@
-import { resolve } from "path";
+import react from "@vitejs/plugin-react";
 import {
   defineConfig,
+  externalizeDepsPlugin,
   loadEnv,
   swcPlugin,
-  externalizeDepsPlugin,
 } from "electron-vite";
-import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 import svgr from "vite-plugin-svgr";
+import { scopeBigPictureCss } from "./src/big-picture/vite-scope-big-picture-css";
 
 export default defineConfig(({ mode }) => {
   loadEnv(mode);
@@ -29,11 +30,35 @@ export default defineConfig(({ mode }) => {
     preload: {
       plugins: [externalizeDepsPlugin()],
     },
+    bigPicture: {
+      root: "src/big-picture",
+      build: {
+        outDir: "out/big-picture",
+        rollupOptions: {
+          input: resolve("src/big-picture/index.html"),
+        },
+      },
+      css: {
+        postcss: {
+          plugins: [scopeBigPictureCss()],
+        },
+      },
+      resolve: {
+        alias: {
+          "@locales": resolve("src/locales"),
+          "@shared": resolve("src/shared"),
+        },
+      },
+      plugins: [react()],
+    },
     renderer: {
       build: {
         sourcemap: true,
       },
       css: {
+        postcss: {
+          plugins: [scopeBigPictureCss()],
+        },
         preprocessorOptions: {
           scss: {
             api: "modern",

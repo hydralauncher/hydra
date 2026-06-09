@@ -1,0 +1,268 @@
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
+import { useGamepad, useNavigation } from "../../hooks";
+import { GamepadButtonType } from "../../types";
+import { useVirtualKeyboardStore } from "../../stores";
+import { AccountPrivacySettingsSection } from "./account-privacy";
+import { CompatibilitySettingsSection } from "./compatibility";
+import { ContentSettingsSection } from "./content";
+import { DownloadsSettingsSection } from "./downloads";
+import { GeneralSettingsSection } from "./general";
+import { IntegrationsSettingsSection } from "./integrations";
+import { SETTINGS_PAGE_REGION_ID } from "./navigation";
+import { NotificationsSettingsSection } from "./notifications";
+import { useUserDetails } from "../../hooks";
+import {
+  ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
+  COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID,
+  CONTENT_ITEM_FOCUS_IDS,
+  DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS,
+  DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID,
+  getIntegrationProviderCheckboxFocusId,
+  NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS,
+} from "./settings-navigation";
+
+import "./page.scss";
+
+const ALL_SETTINGS_TABS = [
+  { id: "general", label: "General" },
+  { id: "downloads", label: "Downloads" },
+  { id: "notifications", label: "Notifications" },
+  { id: "content", label: "Content" },
+  { id: "integrations", label: "Integrations" },
+  { id: "compatibility", label: "Compatibility" },
+  { id: "account-privacy", label: "Account and Privacy" },
+] as const;
+
+const SETTINGS_PAGE_FADE_TRANSITION = {
+  duration: 0.24,
+  ease: "easeOut",
+} as const;
+
+const SETTINGS_TAB_FADE_TRANSITION = {
+  duration: 0.18,
+  ease: "easeOut",
+} as const;
+
+type SettingsTabId = (typeof ALL_SETTINGS_TABS)[number]["id"];
+type SettingsSectionComponentProps = {
+  className?: string;
+};
+
+function SettingsBumper({ label }: Readonly<{ label: "LB" | "RB" }>) {
+  return <div className="settings-page__bumper">{label}</div>;
+}
+
+const SETTINGS_TAB_CONTENT: Record<
+  SettingsTabId,
+  (props: SettingsSectionComponentProps) => React.JSX.Element | null
+> = {
+  general: GeneralSettingsSection,
+  downloads: DownloadsSettingsSection,
+  notifications: NotificationsSettingsSection,
+  content: ContentSettingsSection,
+  integrations: IntegrationsSettingsSection,
+  compatibility: CompatibilitySettingsSection,
+  "account-privacy": AccountPrivacySettingsSection,
+};
+
+function SettingsTabPanel({
+  selectedTab,
+  firstFocusableItemId,
+  children,
+}: Readonly<{
+  selectedTab: SettingsTabId;
+  firstFocusableItemId: string | null;
+  children: React.JSX.Element;
+}>) {
+  const { setFocus } = useNavigation();
+
+  useEffect(() => {
+    if (!firstFocusableItemId) return;
+
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      setFocus(firstFocusableItemId);
+    });
+
+    return () => {
+      globalThis.window.cancelAnimationFrame(frameId);
+    };
+  }, [firstFocusableItemId, setFocus]);
+
+  return (
+    <motion.div
+      key={selectedTab}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={SETTINGS_TAB_FADE_TRANSITION}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export default function Settings() {
+  const { userDetails } = useUserDetails();
+  const [selectedTab, setSelectedTab] = useState<SettingsTabId>(
+    ALL_SETTINGS_TABS[0].id
+  );
+  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
+
+  const visibleTabs = useMemo(() => {
+    return ALL_SETTINGS_TABS.filter((tab) => {
+      if (tab.id !== "account-privacy") return true;
+
+      return Boolean(userDetails);
+    });
+  }, [userDetails]);
+
+  const selectedTabIndex = visibleTabs.findIndex(
+    (tab) => tab.id === selectedTab
+  );
+  const SelectedTabContent =
+    SETTINGS_TAB_CONTENT[selectedTab] ?? GeneralSettingsSection;
+
+  useEffect(() => {
+    if (visibleTabs.some((tab) => tab.id === selectedTab)) return;
+
+    const fallbackTab = visibleTabs[0]?.id ?? ALL_SETTINGS_TABS[0].id;
+    setSelectedTab(fallbackTab);
+  }, [selectedTab, visibleTabs]);
+
+  const selectTabByIndex = useCallback(
+    (nextIndex: number) => {
+      const clampedIndex = Math.max(
+        0,
+        Math.min(nextIndex, visibleTabs.length - 1)
+      );
+      const nextTab = visibleTabs[clampedIndex];
+
+      if (!nextTab) return;
+
+      setSelectedTab(nextTab.id);
+    },
+    [visibleTabs]
+  );
+
+  useEffect(() => {
+    const removeLeftBumper = onButtonPressed(
+      GamepadButtonType.LEFT_BUMPER,
+      (event) => {
+        if (
+          virtualKeyboardTarget ||
+          !isActiveGamepadEvent(event) ||
+          selectedTabIndex <= 0
+        ) {
+          return;
+        }
+
+        selectTabByIndex(selectedTabIndex - 1);
+      }
+    );
+
+    const removeRightBumper = onButtonPressed(
+      GamepadButtonType.RIGHT_BUMPER,
+      (event) => {
+        if (
+          virtualKeyboardTarget ||
+          !isActiveGamepadEvent(event) ||
+          selectedTabIndex >= visibleTabs.length - 1
+        ) {
+          return;
+        }
+
+        selectTabByIndex(selectedTabIndex + 1);
+      }
+    );
+
+    return () => {
+      removeLeftBumper();
+      removeRightBumper();
+    };
+  }, [
+    isActiveGamepadEvent,
+    onButtonPressed,
+    selectTabByIndex,
+    selectedTabIndex,
+    virtualKeyboardTarget,
+    visibleTabs.length,
+  ]);
+
+  const tabItems = useMemo(() => {
+    return visibleTabs.map(
+      (tab): TabsItem<SettingsTabId> => ({
+        value: tab.id,
+        label: tab.label,
+      })
+    );
+  }, [visibleTabs]);
+
+  const firstFocusableItemId = useMemo(() => {
+    const platform = globalThis.window.electron.platform;
+
+    switch (selectedTab) {
+      case "general":
+        return DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID;
+      case "downloads":
+        return DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.seedAfterDownloadComplete;
+      case "notifications":
+        return NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.downloadNotificationsEnabled;
+      case "content":
+        return CONTENT_ITEM_FOCUS_IDS.autoplayGameTrailers;
+      case "integrations":
+        return getIntegrationProviderCheckboxFocusId("real-debrid");
+      case "compatibility":
+        return platform === "win32"
+          ? COMPATIBILITY_COMMON_REDIST_BUTTON_ID
+          : COMPATIBILITY_PROTON_OPTION_AUTO_FOCUS_ID;
+      case "account-privacy":
+        return userDetails ? ACCOUNT_PRIVACY_PRIVACY_SELECT_ID : null;
+      default:
+        return null;
+    }
+  }, [selectedTab, userDetails]);
+
+  return (
+    <VerticalFocusGroup regionId={SETTINGS_PAGE_REGION_ID} asChild>
+      <motion.section
+        className="settings-page"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={SETTINGS_PAGE_FADE_TRANSITION}
+      >
+        <div className="settings-page__stack">
+          <div className="settings-page__tabs-wrap">
+            <Tabs
+              className="settings-page__tabs"
+              items={tabItems}
+              value={selectedTab}
+              onValueChange={setSelectedTab}
+              variant="settings"
+              ariaLabel="Settings categories"
+              beforeTabs={<SettingsBumper label="LB" />}
+              afterTabs={<SettingsBumper label="RB" />}
+            />
+          </div>
+
+          <section className="settings-page__content">
+            <AnimatePresence mode="wait" initial={false}>
+              <SettingsTabPanel
+                selectedTab={selectedTab}
+                firstFocusableItemId={firstFocusableItemId}
+              >
+                <SelectedTabContent className="settings-page__copy" />
+              </SettingsTabPanel>
+            </AnimatePresence>
+          </section>
+        </div>
+      </motion.section>
+    </VerticalFocusGroup>
+  );
+}

@@ -41,7 +41,9 @@ export class MediafireApi {
   private static extractDirectUrl(html: string): string {
     const preMatch = this.validMediafirePreDL.exec(html);
     if (preMatch?.[0]) {
-      return preMatch[0];
+      return preMatch[0].startsWith("//")
+        ? `https:${preMatch[0]}`
+        : preMatch[0];
     }
 
     const dlMatch = this.validDynamicDL.exec(html);

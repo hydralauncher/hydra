@@ -1,0 +1,71 @@
+@use "../../../scss/globals.scss";
+
+.profile-section {
+  background-color: globals.$background-color;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: globals.$background-color;
+    padding-right: calc(globals.$spacing-unit * 2);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__button {
+    padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+    display: flex;
+    align-items: center;
+    background-color: transparent;
+    color: globals.$muted-color;
+    flex: 1;
+    cursor: pointer;
+    transition: all ease 0.2s;
+    gap: globals.$spacing-unit;
+    font-size: globals.$body-font-size;
+    font-weight: bold;
+    border: none;
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  &__count {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 24px;
+    text-align: center;
+  }
+
+  &__action {
+    display: flex;
+    align-items: center;
+  }
+
+  &__chevron {
+    transition: transform ease 0.2s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__content {
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    background-color: globals.$dark-background-color;
+    position: relative;
+  }
+}

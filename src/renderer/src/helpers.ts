@@ -1,6 +1,7 @@
 import type { GameShop } from "@types";
 
 import Color from "color";
+import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
@@ -108,7 +109,9 @@ export const generateRandomGradient = (): string => {
 };
 
 export const formatNumber = (num: number): string => {
-  return new Intl.NumberFormat("en-US", {
+  const locale = i18next.resolvedLanguage || i18next.language || undefined;
+
+  return new Intl.NumberFormat(locale, {
     notation: "compact",
     compactDisplay: "short",
     maximumFractionDigits: 1,

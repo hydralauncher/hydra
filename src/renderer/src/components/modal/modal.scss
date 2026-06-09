@@ -28,6 +28,10 @@
     height: 100%;
     overflow: auto;
     padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+
+    &--no-padding {
+      padding: 0;
+    }
   }
 
   &__header {

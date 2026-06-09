@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { TelescopeIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -16,13 +15,9 @@ interface LibraryTabProps {
   pinnedGames: UserGame[];
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
-  isLoadingLibraryGames: boolean;
   statsIndex: number;
   userStats: { libraryCount: number } | null;
-  animatedGameIdsRef: React.MutableRefObject<Set<string>>;
   onLoadMore: () => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   isMe: boolean;
 }
 
@@ -32,13 +27,9 @@ export function LibraryTab({
   pinnedGames,
   libraryGames,
   hasMoreLibraryGames,
-  isLoadingLibraryGames,
   statsIndex,
   userStats,
-  animatedGameIdsRef,
   onLoadMore,
-  onMouseEnter,
-  onMouseLeave,
   isMe,
 }: Readonly<LibraryTabProps>) {
   const { t } = useTranslation("user_profile");
@@ -49,13 +40,9 @@ export function LibraryTab({
   const hasAnyGames = hasGames || hasPinnedGames;
 
   return (
-    <motion.div
+    <div
       key="library"
       className="profile-content__tab-panel"
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 10 }}
-      transition={{ duration: 0.2 }}
       aria-hidden={false}
     >
       {hasAnyGames && (
@@ -91,8 +78,6 @@ export function LibraryTab({
                     <UserLibraryGameCard
                       game={game}
                       statIndex={statsIndex}
-                      onMouseEnter={onMouseEnter}
-                      onMouseLeave={onMouseLeave}
                       sortBy={sortBy}
                     />
                   </li>
@@ -124,47 +109,18 @@ export function LibraryTab({
                 scrollableTarget="scrollableDiv"
               >
                 <ul className="profile-content__games-grid">
-                  {libraryGames?.map((game, index) => {
-                    const hasAnimated = animatedGameIdsRef.current.has(
-                      game.objectId
-                    );
-                    const isNewGame = !hasAnimated && !isLoadingLibraryGames;
-
+                  {libraryGames?.map((game) => {
                     return (
-                      <motion.li
+                      <li
                         key={`${sortBy}-${game.objectId}`}
                         style={{ listStyle: "none" }}
-                        initial={
-                          isNewGame
-                            ? { opacity: 0.5, y: 15, scale: 0.96 }
-                            : false
-                        }
-                        animate={
-                          isNewGame ? { opacity: 1, y: 0, scale: 1 } : false
-                        }
-                        transition={
-                          isNewGame
-                            ? {
-                                duration: 0.15,
-                                ease: "easeOut",
-                                delay: index * 0.01,
-                              }
-                            : undefined
-                        }
-                        onAnimationComplete={() => {
-                          if (isNewGame) {
-                            animatedGameIdsRef.current.add(game.objectId);
-                          }
-                        }}
                       >
                         <UserLibraryGameCard
                           game={game}
                           statIndex={statsIndex}
-                          onMouseEnter={onMouseEnter}
-                          onMouseLeave={onMouseLeave}
                           sortBy={sortBy}
                         />
-                      </motion.li>
+                      </li>
                     );
                   })}
                 </ul>
@@ -173,6 +129,6 @@ export function LibraryTab({
           )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

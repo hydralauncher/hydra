@@ -42,38 +42,32 @@ export function RecentGamesBox() {
   if (!userProfile?.recentGames.length) return null;
 
   return (
-    <div>
-      <div className="recent-games__section-header">
-        <h2>{t("activity")}</h2>
-      </div>
+    <div className="recent-games__box">
+      <ul className="recent-games__list">
+        {userProfile?.recentGames.map((game) => (
+          <li key={`${game.shop}-${game.objectId}`}>
+            <Link
+              to={buildUserGameDetailsPath(game)}
+              className="recent-games__list-item"
+            >
+              <img
+                src={game.iconUrl!}
+                alt={game.title}
+                className="recent-games__game-image"
+              />
 
-      <div className="recent-games__box">
-        <ul className="recent-games__list">
-          {userProfile?.recentGames.map((game) => (
-            <li key={`${game.shop}-${game.objectId}`}>
-              <Link
-                to={buildUserGameDetailsPath(game)}
-                className="recent-games__list-item"
-              >
-                <img
-                  src={game.iconUrl!}
-                  alt={game.title}
-                  className="recent-games__game-image"
-                />
+              <div className="recent-games__game-details">
+                <span className="recent-games__game-title">{game.title}</span>
 
-                <div className="recent-games__game-details">
-                  <span className="recent-games__game-title">{game.title}</span>
-
-                  <div className="recent-games__game-description">
-                    <ClockIcon />
-                    <small>{formatPlayTime(game)}</small>
-                  </div>
+                <div className="recent-games__game-description">
+                  <ClockIcon />
+                  <small>{formatPlayTime(game)}</small>
                 </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

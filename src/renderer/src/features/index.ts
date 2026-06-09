@@ -7,3 +7,4 @@ export * from "./user-details-slice";
 export * from "./game-running.slice";
 export * from "./subscription-slice";
 export * from "./catalogue-search";
+export * from "./collections-slice";
