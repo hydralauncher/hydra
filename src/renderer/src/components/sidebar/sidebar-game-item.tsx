@@ -5,6 +5,7 @@ import cn from "classnames";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { GameContextMenu } from "..";
+import { useAppSelector } from "@renderer/hooks";
 
 interface SidebarGameItemProps {
   game: LibraryGame;
@@ -18,6 +19,9 @@ export function SidebarGameItem({
   getGameTitle,
 }: Readonly<SidebarGameItemProps>) {
   const location = useLocation();
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     position: { x: number; y: number };
@@ -81,11 +85,12 @@ export function SidebarGameItem({
             {getGameTitle(game)}
           </span>
 
-          {(game.newDownloadOptionsCount ?? 0) > 0 && (
-            <span className="sidebar__game-badge">
-              +{game.newDownloadOptionsCount}
-            </span>
-          )}
+          {userPreferences?.enableNewDownloadOptionsBadges !== false &&
+            (game.newDownloadOptionsCount ?? 0) > 0 && (
+              <span className="sidebar__game-badge">
+                +{game.newDownloadOptionsCount}
+              </span>
+            )}
         </button>
       </li>
 

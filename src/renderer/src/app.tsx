@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Sidebar, BottomPanel, Header, Toast } from "@renderer/components";
-
+import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
 import {
   useAppDispatch,
   useAppSelector,
@@ -10,37 +8,46 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
+import i18n from "i18next";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { WorkWonders } from "workwonders-sdk";
 
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  clearExtraction,
+  closeToast,
+  setExtractionProgress,
+  setGameRunning,
+  setProfileBackground,
+  setUserDetails,
   setUserPreferences,
   toggleDraggingDisabled,
-  closeToast,
-  setUserDetails,
-  setProfileBackground,
-  setGameRunning,
-  setExtractionProgress,
-  clearExtraction,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
-import { UserFriendModal } from "./pages/shared-modals/user-friend-modal";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "./hooks/use-subscription";
-import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
+import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
 
-import {
-  injectCustomCss,
-  removeCustomCss,
-  getAchievementSoundUrl,
-  getAchievementSoundVolume,
-} from "./helpers";
-import { levelDBService } from "./services/leveldb.service";
 import type { UserPreferences } from "@types";
 import "./app.scss";
+import {
+  getAchievementSoundUrl,
+  getAchievementSoundVolume,
+  injectCustomCss,
+  removeCustomCss,
+} from "./helpers";
+import { levelDBService } from "./services/leveldb.service";
 
 export interface AppProps {
   children: React.ReactNode;
 }
+
+type WorkWondersWithKnowledge = WorkWonders & {
+  knowledge?: {
+    initKnowledgeWidget?: () => void;
+    showArticle?: (articleId: number) => void;
+  };
+};
 
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -51,15 +58,12 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, setLastPacket } = useDownload();
+  const { clearDownload, setLastPacket, lastPacket } = useDownload();
+
+  const workwondersRef = useRef<WorkWonders | null>(null);
 
   const {
-    userDetails,
     hasActiveSubscription,
-    isFriendsModalVisible,
-    friendRequetsModalTab,
-    friendModalUserId,
-    hideFriendsModal,
     fetchUserDetails,
     updateUserDetails,
     clearUserDetails,
@@ -79,7 +83,7 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -95,9 +99,34 @@ export function App() {
   }, [navigate, location.pathname, dispatch, updateLibrary]);
 
   useEffect(() => {
+    const unsubscribe = window.electron.onUserPreferencesUpdated(
+      (preferences) => {
+        if (!preferences) {
+          dispatch(setUserPreferences(null));
+          return;
+        }
+
+        if (preferences.language && preferences.language !== i18n.language) {
+          void i18n.changeLanguage(preferences.language);
+        }
+
+        dispatch(setUserPreferences(preferences));
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
     const unsubscribe = window.electron.onDownloadProgress(
       (downloadProgress) => {
-        if (downloadProgress?.progress === 1) {
+        if (
+          downloadProgress?.progress === 1 &&
+          !downloadProgress.isCheckingFiles &&
+          !downloadProgress.isDownloadingMetadata
+        ) {
           clearDownload();
           updateLibrary();
           return;
@@ -121,6 +150,92 @@ export function App() {
   }, [updateLibrary]);
 
   useEffect(() => {
+    if (!lastPacket?.gameId) return;
+
+    const activeGame = library.find((game) => game.id === lastPacket.gameId);
+
+    if (!activeGame || activeGame.download?.status !== "active") {
+      clearDownload();
+    }
+  }, [clearDownload, lastPacket?.gameId, library]);
+
+  const setupWorkWonders = useCallback(
+    async (token?: string, locale?: string) => {
+      if (workwondersRef.current) return;
+
+      workwondersRef.current = new WorkWonders();
+
+      const possibleLocales = ["en", "pt", "ru"];
+
+      const parsedLocale =
+        possibleLocales.find((l) => l === locale?.slice(0, 2)) ?? "en";
+
+      await workwondersRef.current.init({
+        organization: "hydra",
+        token,
+        locale: parsedLocale,
+      });
+
+      workwondersRef.current.changelog.initChangelogWidget();
+      workwondersRef.current.changelog.initChangelogWidgetMini();
+      const workWondersWithKnowledge =
+        workwondersRef.current as WorkWondersWithKnowledge;
+      workWondersWithKnowledge.knowledge?.initKnowledgeWidget?.();
+
+      if (token) {
+        workwondersRef.current.feedback.initFeedbackWidget();
+      }
+    },
+    [workwondersRef]
+  );
+
+  useEffect(() => {
+    const onClick = async (event: MouseEvent) => {
+      const userPreferences = await window.electron.getUserPreferences();
+      const language = userPreferences?.language ?? "en";
+
+      const articleMapping = {
+        pt: {
+          "cannot-write-directory": 1429,
+          seeding: 1442,
+          "peers-and-seeds": 1449,
+          "steam-achievements": 1412,
+        },
+        en: {
+          "cannot-write-directory": 4122,
+          seeding: 4116,
+          "peers-and-seeds": 4119,
+          "steam-achievements": 4140,
+        },
+      };
+
+      const $helpCenterTarget = (event.target as HTMLElement).closest(
+        "[data-open-article]"
+      );
+
+      if ($helpCenterTarget) {
+        const article = $helpCenterTarget.getAttribute("data-open-article");
+        const articleId =
+          articleMapping[language.slice(0, 2)]?.[
+            article as keyof typeof articleMapping
+          ] ?? articleMapping["en"]?.[article as keyof typeof articleMapping];
+
+        if (articleId) {
+          const workWondersWithKnowledge =
+            workwondersRef.current as WorkWondersWithKnowledge | null;
+          workWondersWithKnowledge?.knowledge?.showArticle?.(articleId);
+        }
+      }
+    };
+
+    window.addEventListener("click", onClick);
+
+    return () => {
+      window.removeEventListener("click", onClick);
+    };
+  }, []);
+
+  const setupExternalResources = useCallback(async () => {
     const cachedUserDetails = window.localStorage.getItem("userDetails");
 
     if (cachedUserDetails) {
@@ -131,28 +246,31 @@ export function App() {
       dispatch(setProfileBackground(profileBackground));
     }
 
-    fetchUserDetails()
-      .then((response) => {
-        if (response) {
-          updateUserDetails(response);
-          window.electron.syncFriendRequests();
-        }
-      })
-      .finally(() => {
-        if (document.getElementById("external-resources")) return;
+    const userPreferences = await window.electron.getUserPreferences();
+    const userDetails = await fetchUserDetails().catch(() => null);
 
-        const $script = document.createElement("script");
-        $script.id = "external-resources";
-        $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
-        document.head.appendChild($script);
-      });
-  }, [fetchUserDetails, updateUserDetails, dispatch]);
+    if (userDetails) {
+      updateUserDetails(userDetails);
+    }
+
+    setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
+
+    if (!document.getElementById("external-resources")) {
+      const $script = document.createElement("script");
+      $script.id = "external-resources";
+      $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
+      document.head.appendChild($script);
+    }
+  }, [fetchUserDetails, updateUserDetails, dispatch, setupWorkWonders]);
+
+  useEffect(() => {
+    setupExternalResources();
+  }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
-        window.electron.syncFriendRequests();
         showSuccessToast(t("successfully_signed_in"));
       }
     });
@@ -190,6 +308,9 @@ export function App() {
       window.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
+      window.electron.onDownloadsUpdated(() => {
+        updateLibrary();
+      }),
       window.electron.onSignOut(() => clearUserDetails()),
       window.electron.onExtractionProgress((shop, objectId, progress) => {
         dispatch(setExtractionProgress({ shop, objectId, progress }));
@@ -197,6 +318,14 @@ export function App() {
       window.electron.onExtractionComplete(() => {
         dispatch(clearExtraction());
         updateLibrary();
+      }),
+      window.electron.onExtractionFailed(() => {
+        dispatch(clearExtraction());
+        updateLibrary();
+        showErrorToast(
+          t("extraction_failed_title", { ns: "downloads" }),
+          t("extraction_failed_description", { ns: "downloads" })
+        );
       }),
       window.electron.onArchiveDeletionPrompt((paths) => {
         setArchivePaths(paths);
@@ -207,10 +336,14 @@ export function App() {
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch]);
+  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
 
   useEffect(() => {
-    if (contentRef.current) contentRef.current.scrollTop = 0;
+    const asyncScrollAndNotify = async () => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      await workwondersRef.current?.notifyUrlChange?.();
+    };
+    asyncScrollAndNotify();
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -304,15 +437,6 @@ export function App() {
         archivePaths={archivePaths}
         onClose={() => setShowArchiveDeletionModal(false)}
       />
-
-      {userDetails && (
-        <UserFriendModal
-          visible={isFriendsModalVisible}
-          initialTab={friendRequetsModalTab}
-          onClose={hideFriendsModal}
-          userId={friendModalUserId}
-        />
-      )}
 
       <main>
         <Sidebar />

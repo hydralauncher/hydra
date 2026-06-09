@@ -1,21 +1,50 @@
 import { sleep } from "@main/helpers";
 import { DownloadManager } from "./download";
-import { watchProcesses } from "./process-watcher";
+import { gamesPlaytime, watchProcesses } from "./process-watcher";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { UpdateManager } from "./update-manager";
-import { MAIN_LOOP_INTERVAL } from "@main/constants";
+import { INTERVALS } from "@main/constants";
+import { PowerSaveBlockerManager } from "./power-save-blocker";
+import { logger } from "./logger";
+
+const wrapInLoop = (fn: () => unknown, interval: number) => {
+  const loop = async () => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        await fn();
+      } catch (error) {
+        logger.error(
+          `Error in loop: ${error instanceof Error ? error.stack : String(error)}`
+        );
+      }
+
+      await sleep(interval);
+    }
+  };
+  loop();
+};
 
 export const startMainLoop = async () => {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    await Promise.allSettled([
-      watchProcesses(),
-      DownloadManager.watchDownloads(),
-      AchievementWatcherManager.watchAchievements(),
-      DownloadManager.getSeedStatus(),
-      UpdateManager.checkForUpdatePeriodically(),
-    ]);
+  wrapInLoop(() => watchProcesses(), INTERVALS.processWatcher);
+  wrapInLoop(() => DownloadManager.watchDownloads(), INTERVALS.downloadWatcher);
+  wrapInLoop(
+    () => AchievementWatcherManager.watchAchievements(),
+    INTERVALS.achievementWatcher
+  );
+  wrapInLoop(
+    () => DownloadManager.getSeedStatus(),
+    INTERVALS.seedStatusWatcher
+  );
+  wrapInLoop(() => UpdateManager.checkForUpdates(), INTERVALS.updateChecker);
 
-    await sleep(MAIN_LOOP_INTERVAL);
-  }
+  wrapInLoop(() => {
+    PowerSaveBlockerManager.syncState({
+      downloadActive: DownloadManager.hasActiveDownload(),
+      compatibilityGameActive:
+        PowerSaveBlockerManager.hasRunningCompatibilityGame(
+          gamesPlaytime.keys()
+        ),
+    });
+  }, INTERVALS.powerSaveBlockerSync);
 };

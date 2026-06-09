@@ -4,6 +4,9 @@ import { gamesShopAssetsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 type ProfileGame = {
   id: string;
+  createdAt?: string | null;
+  collectionIds?: string[];
+  collectionId?: string | null;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
   hasManuallyUpdatedPlaytime: boolean;
@@ -13,12 +16,56 @@ type ProfileGame = {
   unlockedAchievementCount: number;
 } & ShopAssets;
 
+const getLocalCollectionIds = (
+  localGame:
+    | {
+        collectionIds?: string[];
+      }
+    | {
+        collectionId?: string | null;
+      }
+    | null
+    | undefined
+): string[] => {
+  if (!localGame) return [];
+
+  if (
+    Array.isArray((localGame as { collectionIds?: string[] }).collectionIds)
+  ) {
+    return (localGame as { collectionIds: string[] }).collectionIds;
+  }
+
+  const legacyCollectionId = (localGame as { collectionId?: string | null })
+    .collectionId;
+
+  return legacyCollectionId ? [legacyCollectionId] : [];
+};
+
 export const mergeWithRemoteGames = async () => {
   return HydraApi.get<ProfileGame[]>("/profile/games")
     .then(async (response) => {
       for (const game of response) {
         const gameKey = levelKeys.game(game.shop, game.objectId);
         const localGame = await gamesSublevel.get(gameKey);
+
+        const localCollectionIds = getLocalCollectionIds(localGame);
+
+        const hasRemoteCollectionField =
+          Array.isArray(game.collectionIds) ||
+          Object.prototype.hasOwnProperty.call(game, "collectionId");
+
+        const remoteCollectionIds = Array.isArray(game.collectionIds)
+          ? game.collectionIds
+          : game.collectionId
+            ? [game.collectionId]
+            : [];
+
+        const mergedCollectionIds = hasRemoteCollectionField
+          ? remoteCollectionIds
+          : localCollectionIds;
+        const remoteAddedToLibraryAt = game.createdAt
+          ? new Date(game.createdAt)
+          : null;
 
         if (localGame) {
           const updatedLastTimePlayed =
@@ -37,10 +84,13 @@ export const mergeWithRemoteGames = async () => {
           await gamesSublevel.put(gameKey, {
             ...localGame,
             remoteId: game.id,
+            addedToLibraryAt:
+              localGame.addedToLibraryAt ?? remoteAddedToLibraryAt,
             lastTimePlayed: updatedLastTimePlayed,
             playTimeInMilliseconds: updatedPlayTime,
             favorite: game.isFavorite ?? localGame.favorite,
             isPinned: game.isPinned ?? localGame.isPinned,
+            collectionIds: mergedCollectionIds,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
           });
@@ -53,12 +103,14 @@ export const mergeWithRemoteGames = async () => {
             iconUrl: game.iconUrl,
             libraryHeroImageUrl: game.libraryHeroImageUrl,
             logoImageUrl: game.logoImageUrl,
+            addedToLibraryAt: remoteAddedToLibraryAt,
             lastTimePlayed: game.lastTimePlayed,
             playTimeInMilliseconds: game.playTimeInMilliseconds,
             hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
             isDeleted: false,
             favorite: game.isFavorite ?? false,
             isPinned: game.isPinned ?? false,
+            collectionIds: mergedCollectionIds,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
           });

@@ -1,0 +1,44 @@
+.home-page {
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--background);
+  color: var(--text);
+}
+
+.home-page__challenge-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 5);
+  padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
+}
+
+.home-page__challenge-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.home-page__challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--spacing-unit) * 4) 128px;
+}
+
+@media (min-width: 2560px) and (min-height: 1440px) {
+  .home-page__challenge-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .home-page__challenge-section {
+    padding: 0 calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 10);
+  }
+}

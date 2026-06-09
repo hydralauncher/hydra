@@ -7,6 +7,15 @@ import type {
   UserAchievement,
 } from "@types";
 
+export type GameOptionsCategoryId =
+  | "general"
+  | "locations"
+  | "assets"
+  | "hydra_cloud"
+  | "compatibility"
+  | "downloads"
+  | "danger_zone";
+
 export interface GameDetailsContext {
   game: LibraryGame | null;
   shopDetails: ShopDetailsWithAssets | null;
@@ -18,13 +27,20 @@ export interface GameDetailsContext {
   objectId: string | undefined;
   showRepacksModal: boolean;
   showGameOptionsModal: boolean;
+  gameOptionsInitialCategory: GameOptionsCategoryId;
   stats: GameStats | null;
   achievements: UserAchievement[] | null;
   hasNSFWContentBlocked: boolean;
   lastDownloadedOption: GameRepack | null;
+  isTransferring: boolean;
+  transferProgress: number;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   setShowRepacksModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGameOptionsModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setGameOptionsInitialCategory: React.Dispatch<
+    React.SetStateAction<GameOptionsCategoryId>
+  >;
   setHasNSFWContentBlocked: React.Dispatch<React.SetStateAction<boolean>>;
+  cancelTransfer: () => void;
 }

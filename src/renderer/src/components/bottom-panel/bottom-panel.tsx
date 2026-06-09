@@ -102,10 +102,32 @@ export function BottomPanel() {
           percentage: progress,
         });
 
+      const hasBatchInfo =
+        lastPacket?.batchFilesTotal != null && lastPacket.batchFilesTotal > 1;
+
       if (!eta) {
+        if (hasBatchInfo) {
+          return t("calculating_eta_batch", {
+            title: game.title,
+            percentage: progress,
+            filesDownloaded: lastPacket!.batchFilesDownloaded ?? 0,
+            filesTotal: lastPacket!.batchFilesTotal,
+          });
+        }
         return t("calculating_eta", {
           title: game.title,
           percentage: progress,
+        });
+      }
+
+      if (hasBatchInfo) {
+        return t("downloading_batch", {
+          title: game.title,
+          percentage: progress,
+          eta,
+          speed: downloadSpeed,
+          filesDownloaded: lastPacket!.batchFilesDownloaded ?? 0,
+          filesTotal: lastPacket!.batchFilesTotal,
         });
       }
 

@@ -1,15 +1,18 @@
 import { registerEvent } from "../register-event";
 import type { Download, StartGameDownloadPayload } from "@types";
-import { DownloadManager, HydraApi, logger } from "@main/services";
-import { createGame } from "@main/services/library-sync";
-import { Downloader, DownloadError } from "@shared";
 import {
-  downloadsSublevel,
-  gamesShopAssetsSublevel,
-  gamesSublevel,
-  levelKeys,
-} from "@main/level";
-import { AxiosError } from "axios";
+  DownloadManager,
+  DownloadOrchestrator,
+  HydraApi,
+  logger,
+} from "@main/services";
+import { createGame } from "@main/services/library-sync";
+import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import {
+  handleDownloadError,
+  isKnownDownloadError,
+  prepareGameEntry,
+} from "@main/helpers";
 
 const startGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -23,72 +26,45 @@ const startGameDownload = async (
     downloader,
     uri,
     automaticallyExtract,
+    automaticallyDeleteArchiveFiles,
+    fileIndices,
+    selectedFilesSize,
   } = payload;
 
   const gameKey = levelKeys.game(shop, objectId);
 
-  await DownloadManager.pauseDownload();
+  logger.log(
+    `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
+  );
 
-  for await (const [key, value] of downloadsSublevel.iterator()) {
-    if (value.status === "active" && value.progress !== 1) {
-      await downloadsSublevel.put(key, {
-        ...value,
-        status: "paused",
-      });
-    }
-  }
-
-  const game = await gamesSublevel.get(gameKey);
-  const gameAssets = await gamesShopAssetsSublevel.get(gameKey);
-
-  /* Delete any previous download */
-  await downloadsSublevel.del(gameKey);
-
-  if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
-    });
-  } else {
-    await gamesSublevel.put(gameKey, {
-      title,
-      iconUrl: gameAssets?.iconUrl ?? null,
-      libraryHeroImageUrl: gameAssets?.libraryHeroImageUrl ?? null,
-      logoImageUrl: gameAssets?.logoImageUrl ?? null,
-      objectId,
-      shop,
-      remoteId: null,
-      playTimeInMilliseconds: 0,
-      lastTimePlayed: null,
-      isDeleted: false,
-    });
-  }
-
+  await prepareGameEntry({ gameKey, title, objectId, shop });
   await DownloadManager.cancelDownload(gameKey);
 
   const download: Download = {
     shop,
     objectId,
-    status: "active",
+    status: "paused",
     progress: 0,
     bytesDownloaded: 0,
     downloadPath,
     downloader,
     uri,
     folderName: null,
-    fileSize: null,
     shouldSeed: false,
     timestamp: Date.now(),
     queued: true,
+    pinnedToHero: false,
     extracting: false,
     automaticallyExtract,
-    extractionProgress: 0,
+    automaticallyDeleteArchiveFiles,
+    fileIndices,
+    selectedFilesSize,
+    fileSize: selectedFilesSize ?? null,
   };
 
   try {
-    await DownloadManager.startDownload(download).then(() => {
-      return downloadsSublevel.put(gameKey, download);
-    });
+    await downloadsSublevel.put(gameKey, download);
+    await DownloadOrchestrator.startPreparedDownload(download);
 
     const updatedGame = await gamesSublevel.get(gameKey);
 
@@ -101,33 +77,15 @@ const startGameDownload = async (
 
     return { ok: true };
   } catch (err: unknown) {
-    logger.error("Failed to start download", err);
+    await downloadsSublevel.del(gameKey).catch(() => null);
+    await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
 
-    if (err instanceof AxiosError) {
-      if (err.response?.status === 429 && downloader === Downloader.Gofile) {
-        return { ok: false, error: DownloadError.GofileQuotaExceeded };
-      }
-
-      if (
-        err.response?.status === 403 &&
-        downloader === Downloader.RealDebrid
-      ) {
-        return {
-          ok: false,
-          error: DownloadError.RealDebridAccountNotAuthorized,
-        };
-      }
-
-      if (downloader === Downloader.TorBox) {
-        return { ok: false, error: err.response?.data?.detail };
-      }
+    if (isKnownDownloadError(err)) {
+      logger.warn("Failed to start download with expected download error", err);
+    } else {
+      logger.error("Failed to start download", err);
     }
-
-    if (err instanceof Error) {
-      return { ok: false, error: err.message };
-    }
-
-    return { ok: false };
+    return handleDownloadError(err, downloader);
   }
 };
 

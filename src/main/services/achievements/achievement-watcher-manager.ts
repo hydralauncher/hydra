@@ -21,6 +21,7 @@ import { publishCombinedNewAchievementNotification } from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { WindowManager } from "../window-manager";
 import { setTimeout } from "node:timers/promises";
+import { Wine } from "../wine";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -35,6 +36,15 @@ const watchAchievementsWindows = async () => {
 
   const achievementFiles = findAllAchievementFiles();
 
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+  const enableSteamAchievements =
+    userPreferences?.enableSteamAchievements ?? false;
+
   for (const game of games) {
     const gameAchievementFiles: AchievementFile[] = [];
 
@@ -45,9 +55,9 @@ const watchAchievementsWindows = async () => {
         ...findAchievementFileInExecutableDirectory(game)
       );
 
-      gameAchievementFiles.push(
-        ...(await findAchievementFileInSteamPath(game))
-      );
+      if (enableSteamAchievements) {
+        gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
+      }
     }
 
     for (const file of gameAchievementFiles) {
@@ -61,13 +71,30 @@ const watchAchievementsWithWine = async () => {
     .values()
     .all()
     .then((games) =>
-      games.filter((game) => !game.isDeleted && game.winePrefixPath)
+      games.filter(
+        (game) =>
+          !game.isDeleted &&
+          !!Wine.getEffectivePrefixPath(game.winePrefixPath, game.objectId)
+      )
     );
+
+  if (games.length === 0) return;
+
+  const userPreferences = await db.get<string, UserPreferences | null>(
+    levelKeys.userPreferences,
+    {
+      valueEncoding: "json",
+    }
+  );
+  const enableSteamAchievements =
+    userPreferences?.enableSteamAchievements ?? false;
 
   for (const game of games) {
     const gameAchievementFiles = findAchievementFiles(game);
 
-    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
+    if (enableSteamAchievements) {
+      gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
+    }
 
     for (const file of gameAchievementFiles) {
       await compareFile(game, file);
@@ -179,7 +206,16 @@ export class AchievementWatcherManager {
 
     const gameAchievementFiles = findAchievementFiles(game);
 
-    gameAchievementFiles.push(...(await findAchievementFileInSteamPath(game)));
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+
+    if (userPreferences?.enableSteamAchievements) {
+      gameAchievementFiles.push(...findAchievementFileInSteamPath(game));
+    }
 
     const unlockedAchievements: UnlockedAchievement[] = [];
 
@@ -260,6 +296,15 @@ export class AchievementWatcherManager {
 
     const gameAchievementFilesMap = findAllAchievementFiles();
 
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+    const enableSteamAchievements =
+      userPreferences?.enableSteamAchievements ?? false;
+
     return Promise.all(
       games.map(async (game) => {
         const achievementFiles: AchievementFile[] = [];
@@ -273,9 +318,9 @@ export class AchievementWatcherManager {
             ...findAchievementFileInExecutableDirectory(game)
           );
 
-          achievementFiles.push(
-            ...(await findAchievementFileInSteamPath(game))
-          );
+          if (enableSteamAchievements) {
+            achievementFiles.push(...findAchievementFileInSteamPath(game));
+          }
         }
 
         return { game, achievementFiles };
@@ -289,11 +334,22 @@ export class AchievementWatcherManager {
       .all()
       .then((games) => games.filter((game) => !game.isDeleted));
 
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      {
+        valueEncoding: "json",
+      }
+    );
+    const enableSteamAchievements =
+      userPreferences?.enableSteamAchievements ?? false;
+
     return Promise.all(
       games.map(async (game) => {
         const achievementFiles = findAchievementFiles(game);
 
-        achievementFiles.push(...(await findAchievementFileInSteamPath(game)));
+        if (enableSteamAchievements) {
+          achievementFiles.push(...findAchievementFileInSteamPath(game));
+        }
 
         return { game, achievementFiles };
       })
@@ -311,7 +367,12 @@ export class AchievementWatcherManager {
       }
     );
 
-    if (userPreferences.achievementCustomNotificationsEnabled !== false) {
+    const shouldUseCustomNotification =
+      userPreferences.achievementCustomNotificationsEnabled !== false &&
+      process.platform !== "darwin" &&
+      !!WindowManager.notificationWindow;
+
+    if (shouldUseCustomNotification) {
       WindowManager.notificationWindow?.webContents.send(
         "on-combined-achievements-unlocked",
         totalNewGamesWithAchievements,

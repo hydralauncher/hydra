@@ -1,7 +1,15 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { ClockIcon, AlertFillIcon, TrophyIcon } from "@primer/octicons-react";
+import { formatBytes } from "@shared";
+import {
+  ClockIcon,
+  AlertFillIcon,
+  TrophyIcon,
+  DatabaseIcon,
+  FileZipIcon,
+} from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./library-game-card-large.scss";
 
 interface LibraryGameCardLargeProps {
@@ -17,42 +25,91 @@ const normalizePathForCss = (url: string | null | undefined): string => {
   return url.replaceAll("\\", "/");
 };
 
-const getImageWithCustomPriority = (
-  customUrl: string | null | undefined,
-  originalUrl: string | null | undefined,
-  fallbackUrl?: string | null | undefined
-) => {
-  const selectedUrl = customUrl || originalUrl || fallbackUrl || "";
-  return normalizePathForCss(selectedUrl);
-};
-
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
 }: Readonly<LibraryGameCardLargeProps>) {
+  const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const backgroundImage = useMemo(
+  const sizeBars = useMemo(() => {
+    const items: {
+      type: "installer" | "installed";
+      bytes: number;
+      formatted: string;
+      icon: typeof FileZipIcon;
+      tooltipKey: string;
+    }[] = [];
+
+    if (game.installerSizeInBytes) {
+      items.push({
+        type: "installer",
+        bytes: game.installerSizeInBytes,
+        formatted: formatBytes(game.installerSizeInBytes),
+        icon: FileZipIcon,
+        tooltipKey: "installer_size_tooltip",
+      });
+    }
+
+    if (game.installedSizeInBytes) {
+      items.push({
+        type: "installed",
+        bytes: game.installedSizeInBytes,
+        formatted: formatBytes(game.installedSizeInBytes),
+        icon: DatabaseIcon,
+        tooltipKey: "disk_usage_tooltip",
+      });
+    }
+
+    if (items.length === 0) return [];
+
+    // Sort by size descending (larger first)
+    items.sort((a, b) => b.bytes - a.bytes);
+
+    // Calculate proportional widths in pixels (max bar is 80px)
+    const maxBytes = items[0].bytes;
+    const maxWidth = 80;
+    return items.map((item) => ({
+      ...item,
+      widthPx: Math.round((item.bytes / maxBytes) * maxWidth),
+    }));
+  }, [game.installerSizeInBytes, game.installedSizeInBytes]);
+
+  const heroSources = useMemo(
     () =>
-      getImageWithCustomPriority(
+      [
         game.customHeroImageUrl,
         game.libraryHeroImageUrl,
-        game.libraryImageUrl ?? game.iconUrl
-      ),
-    [
-      game.customHeroImageUrl,
-      game.libraryHeroImageUrl,
-      game.libraryImageUrl,
-      game.iconUrl,
-    ]
+        game.libraryImageUrl,
+        game.iconUrl,
+      ].filter((url) => !!url && url.trim() !== ""),
+    [game]
   );
+
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
   );
 
   useEffect(() => {
+    const currentUrl = heroSources[heroIndex];
+    if (!currentUrl) return;
+
+    const img = new Image();
+    img.src = normalizePathForCss(currentUrl);
+
+    img.onerror = () => {
+      if (heroIndex < heroSources.length - 1) {
+        setHeroIndex((prev) => prev + 1);
+      }
+    };
+  }, [heroIndex, heroSources]);
+
+  useEffect(() => {
+    setHeroIndex(0);
+
     if (game.unlockedAchievementCount) return;
 
     window.electron
@@ -64,11 +121,10 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       });
   }, [game]);
 
-  const backgroundStyle = useMemo(
-    () =>
-      backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {},
-    [backgroundImage]
-  );
+  const backgroundStyle = useMemo(() => {
+    const url = heroSources[heroIndex];
+    return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
+  }, [heroIndex, heroSources]);
 
   const achievementBarStyle = useMemo(
     () => ({
@@ -94,6 +150,27 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
+          {sizeBars.length > 0 && (
+            <div className="library-game-card-large__size-badges">
+              {sizeBars.map((bar) => (
+                <div
+                  key={bar.type}
+                  className="library-game-card-large__size-bar"
+                  title={t(bar.tooltipKey)}
+                >
+                  <bar.icon size={11} />
+                  <div
+                    className={`library-game-card-large__size-bar-line library-game-card-large__size-bar-line--${bar.type}`}
+                    style={{ width: `${bar.widthPx}px` }}
+                  />
+                  <span className="library-game-card-large__size-bar-text">
+                    {bar.formatted}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="library-game-card-large__playtime">
             {game.hasManuallyUpdatedPlaytime ? (
               <AlertFillIcon

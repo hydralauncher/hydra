@@ -8,12 +8,15 @@ import type {
   UserPreferences,
   StartGameDownloadPayload,
   RealDebridUser,
+  PremiumizeUser,
+  AllDebridUser,
   UserProfile,
   FriendRequestAction,
   UpdateProfileRequest,
   GameStats,
   UserDetails,
   FriendRequestSync,
+  NotificationSync,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -31,8 +34,20 @@ import type {
   Game,
   DiskUsage,
   DownloadSource,
+  LocalNotification,
+  ProtonVersion,
+  CreateSteamShortcutOptions,
+  TorrentFilesResponse,
+  DownloadLayoutState,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
+
+export interface DriveInfo {
+  root: string;
+  label: string;
+  free: number;
+  total: number;
+}
 
 declare global {
   declare module "*.svg" {
@@ -45,11 +60,40 @@ declare global {
     startGameDownload: (
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
+    addGameToQueue: (
+      payload: StartGameDownloadPayload
+    ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
     pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    resumeGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    resumeGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      strategy?: "interruptActive" | "queueIfActive"
+    ) => Promise<void>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
+    updateDownloadQueuePosition: (
+      shop: GameShop,
+      objectId: string,
+      direction: "up" | "down"
+    ) => Promise<boolean>;
+    setDownloadQueuePosition: (
+      shop: GameShop,
+      objectId: string,
+      targetIndex: number
+    ) => Promise<boolean>;
+    setPausedDownloadPosition: (
+      shop: GameShop,
+      objectId: string,
+      targetIndex: number
+    ) => Promise<boolean>;
+    moveDownloadPlacement: (
+      shop: GameShop,
+      objectId: string,
+      targetArea: "hero" | "queue" | "paused",
+      targetIndex?: number
+    ) => Promise<boolean>;
+    getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
@@ -60,6 +104,11 @@ declare global {
     checkDebridAvailability: (
       magnets: string[]
     ) => Promise<Record<string, boolean>>;
+    getTorrentFiles: (
+      magnet: string
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
@@ -85,6 +134,19 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    toggleGameMangohud: (
+      shop: GameShop,
+      objectId: string,
+      autoRunMangohud: boolean
+    ) => Promise<void>;
+    toggleGameGamemode: (
+      shop: GameShop,
+      objectId: string,
+      autoRunGamemode: boolean
+    ) => Promise<void>;
+    isGamemodeAvailable: () => Promise<boolean>;
+    isMangohudAvailable: () => Promise<boolean>;
+    isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
@@ -142,6 +204,11 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<void>;
+    assignGameToCollection: (
+      shop: GameShop,
+      objectId: string,
+      collectionIds: string[]
+    ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,
       objectId: string
@@ -161,12 +228,36 @@ declare global {
       objectId: string,
       winePrefixPath: string | null
     ) => Promise<void>;
+    selectGameProtonPath: (
+      shop: GameShop,
+      objectId: string,
+      protonPath: string | null
+    ) => Promise<void>;
+    getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
+    getGameLaunchProtonVersion: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: () => Promise<LibraryGame[]>;
     refreshLibraryAssets: () => Promise<void>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getGameInstallerActionType: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<"install" | "open-folder">;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
+    openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
+    getGameSaveFolder: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string | null>;
+    openGameSaveFolder: (
+      shop: GameShop,
+      objectId: string,
+      saveFolderPath: string
+    ) => Promise<boolean>;
     openGame: (
       shop: GameShop,
       objectId: string,
@@ -187,6 +278,7 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,
@@ -195,28 +287,46 @@ declare global {
     ) => Promise<void>;
     /* User preferences */
     authenticateRealDebrid: (apiToken: string) => Promise<RealDebridUser>;
+    authenticatePremiumize: (apiToken: string) => Promise<PremiumizeUser>;
+    authenticateAllDebrid: (apiToken: string) => Promise<AllDebridUser>;
     authenticateTorBox: (apiToken: string) => Promise<TorBoxUser>;
     getUserPreferences: () => Promise<UserPreferences | null>;
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    onUserPreferencesUpdated: (
+      cb: (preferences: UserPreferences | null) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
     }) => Promise<void>;
     extractGameDownload: (shop: GameShop, objectId: string) => Promise<boolean>;
+    scanInstalledGames: () => Promise<{
+      foundGames: { title: string; executablePath: string }[];
+      total: number;
+    }>;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     onExtractionProgress: (
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
+    onExtractionFailed: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
     ) => () => Electron.IpcRenderer;
     deleteArchive: (filePath: string) => Promise<boolean>;
     getDefaultWinePrefixSelectionPath: () => Promise<string | null>;
-    createSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    createSteamShortcut: (
+      shop: GameShop,
+      objectId: string,
+      options?: CreateSteamShortcutOptions
+    ) => Promise<void>;
+    deleteSteamShortcut: (shop: GameShop, objectId: string) => Promise<void>;
+    checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
 
     /* Download sources */
     addDownloadSource: (url: string) => Promise<DownloadSource>;
@@ -273,6 +383,11 @@ declare global {
       cb: (progress: AxiosProgressEvent) => void
     ) => () => Electron.IpcRenderer;
 
+    /* Clipboard */
+    clipboard: {
+      writeText: (text: string) => Promise<void>;
+    };
+
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
@@ -285,6 +400,7 @@ declare global {
       options: Electron.OpenDialogOptions
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
+    getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,
@@ -347,6 +463,10 @@ declare global {
     onCommonRedistProgress: (
       cb: (value: { log: string; complete: boolean }) => void
     ) => () => Electron.IpcRenderer;
+    onPreflightProgress: (
+      cb: (value: { status: string; detail: string | null }) => void
+    ) => () => Electron.IpcRenderer;
+    resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
@@ -384,12 +504,29 @@ declare global {
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    getProfileImageMetadata: (
+      path: string
+    ) => Promise<{ mimeType: string | null; isAnimated: boolean }>;
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
-    syncFriendRequests: () => Promise<void>;
+    cropProfileImage: (
+      path: string,
+      params: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+        outputWidth: number;
+        outputHeight: number;
+        rotation?: number;
+      }
+    ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
+    ) => () => Electron.IpcRenderer;
+    onSyncNotificationCount: (
+      cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
     updateFriendRequest: (
       userId: string,
@@ -398,10 +535,25 @@ declare global {
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
+    getLocalNotifications: () => Promise<LocalNotification[]>;
+    getLocalNotificationsCount: () => Promise<number>;
+    markLocalNotificationRead: (id: string) => Promise<void>;
+    markAllLocalNotificationsRead: () => Promise<void>;
+    deleteLocalNotification: (id: string) => Promise<void>;
+    clearAllLocalNotifications: () => Promise<void>;
+    onLocalNotificationCreated: (
+      cb: (notification: LocalNotification) => void
+    ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
       cb: (
         position?: AchievementCustomNotificationPosition,
         achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onInAppAchievementUnlocked: (
+      cb: (
+        position: AchievementCustomNotificationPosition,
+        achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (
@@ -441,6 +593,15 @@ declare global {
     onCustomThemeUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     closeEditorWindow: (themeId?: string) => Promise<void>;
 
+    /* Game Launcher Window */
+    showGameLauncherWindow: () => Promise<void>;
+    closeGameLauncherWindow: () => Promise<void>;
+    openMainWindow: () => Promise<void>;
+    isMainWindowOpen: () => Promise<boolean>;
+
+    /* Big Picture Window */
+    openBigPictureWindow: () => Promise<void>;
+
     /* Download Options */
     onNewDownloadOptions: (
       cb: (gamesWithNewOptions: { gameId: string; count: number }[]) => void
@@ -464,6 +625,27 @@ declare global {
       values: (sublevelName: string) => Promise<unknown[]>;
       iterator: (sublevelName: string) => Promise<[string, unknown][]>;
     };
+
+    /* Transfer Game */
+    getAvailableDrives: () => Promise<DriveInfo[]>;
+    transferGameFiles: (
+      shop: GameShop,
+      objectId: string,
+      destParent: string
+    ) => Promise<{
+      ok: boolean;
+      error?: string;
+      needed?: number;
+      available?: number;
+      newExePath?: string;
+    }>;
+
+    // Cancel for game transfers
+    cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
+
+    /* Event listeners for transfer progress */
+    on: (channel: string, listener: (...args: any[]) => void) => void;
+    off: (channel: string, listener: (...args: any[]) => void) => void;
   }
 
   interface Window {

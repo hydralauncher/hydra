@@ -1,4 +1,5 @@
 export * from "./downloads";
+export * from "./download-layout-state";
 export * from "./games";
 export * from "./game-shop-assets";
 export * from "./game-shop-cache";
@@ -7,4 +8,5 @@ export * from "./game-achievements";
 export * from "./keys";
 export * from "./themes";
 export * from "./download-sources";
-export * from "./downloadSourcesCheckTimestamp";
+export * from "./download-sources-check-timestamp";
+export * from "./local-notifications";

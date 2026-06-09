@@ -25,6 +25,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.21.0
+          cache: "yarn"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -34,17 +38,11 @@ jobs:
         with:
           python-version: 3.9
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Build with cx_Freeze
+      - name: Build Python RPC with cx_Freeze
         run: python python_rpc/setup.py build
-
-      - name: Copy OpenSSL DLLs
-        if: matrix.os == 'windows-2022'
-        run: |
-          cp hydra-python-rpc/lib/libcrypto-1_1.dll hydra-python-rpc/lib/libcrypto-1_1-x64.dll
-          cp hydra-python-rpc/lib/libssl-1_1.dll hydra-python-rpc/lib/libssl-1_1-x64.dll
 
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
@@ -54,9 +52,10 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_CHECKOUT_URL }}
+          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_URL }}
+          MAIN_VITE_NIMBUS_API_URL: ${{ vars.MAIN_VITE_NIMBUS_API_URL }}
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
@@ -71,9 +70,10 @@ jobs:
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_CHECKOUT_URL }}
+          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_URL }}
+          MAIN_VITE_NIMBUS_API_URL: ${{ vars.MAIN_VITE_NIMBUS_API_URL }}
           RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
           MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          MAIN_VITE_WS_URL: ${{ vars.MAIN_VITE_WS_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}

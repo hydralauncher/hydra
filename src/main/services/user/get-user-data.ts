@@ -62,7 +62,6 @@ export const getUserData = async () => {
                   expiresAt: loggedUser.subscription.expiresAt,
                 }
               : null,
-            featurebaseJwt: "",
           } as UserDetails;
         }
       } catch (dbError) {

@@ -1,0 +1,29 @@
+.skeleton {
+  background-color: var(--surface);
+  pointer-events: none;
+  user-select: none;
+  background-image: linear-gradient(
+    90deg,
+    var(--surface) 0%,
+    var(--surface) 44%,
+    color-mix(in srgb, var(--surface) 94%, var(--text-secondary)) 48%,
+    color-mix(in srgb, var(--surface) 86%, var(--text-secondary)) 50%,
+    color-mix(in srgb, var(--surface) 94%, var(--text-secondary)) 52%,
+    var(--surface) 56%,
+    var(--surface) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  animation: skeleton-shimmer var(--skeleton-shimmer-duration, 2800ms) linear
+    infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}

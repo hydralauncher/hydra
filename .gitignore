@@ -5,16 +5,21 @@ dist
 out
 .DS_Store
 *.log*
+*.tsbuildinfo
 .env
 .vite
 ludusavi/**
 !ludusavi/config.yaml
 hydra-python-rpc/
+/hydra-native/
+native/hydra-native/target/
 .python-version
 
 # Sentry Config File
 .env.sentry-build-plugin
 
 *storybook.log
-
-aria2/
+Future-updates.md
+TO-DO.md
+.planning/
+.claude/

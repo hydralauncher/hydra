@@ -4,6 +4,7 @@ import { Envelope } from "@main/generated/envelope";
 import { logger } from "../logger";
 import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
+import { notificationEvent } from "./events/notification";
 
 export class WSClient {
   private static ws: WebSocket | null = null;
@@ -50,6 +51,10 @@ export class WSClient {
 
         if (envelope.payload.oneofKind === "friendGameSession") {
           friendGameSessionEvent(envelope.payload.friendGameSession);
+        }
+
+        if (envelope.payload.oneofKind === "notification") {
+          notificationEvent(envelope.payload.notification);
         }
       });
 

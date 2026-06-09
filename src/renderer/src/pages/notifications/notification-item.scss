@@ -1,0 +1,127 @@
+@use "../../scss/globals.scss";
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
+  background-color: globals.$dark-background-color;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  transition: all ease 0.2s;
+  position: relative;
+  opacity: 0.4;
+  width: 100%;
+  text-align: left;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    opacity: 0.6;
+  }
+
+  &--unread {
+    border-left: 3px solid globals.$brand-teal;
+    opacity: 1;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    .notification-item__title {
+      color: #fff;
+    }
+  }
+
+  &__picture {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: globals.$background-color;
+    color: #fff;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    svg {
+      color: inherit;
+    }
+  }
+
+  &__badge-picture {
+    border-radius: 8px;
+    background-color: globals.$background-color;
+
+    img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+  }
+
+  &__review-picture {
+    color: #f5a623;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__title {
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__description {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__time {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    font-size: globals.$small-font-size;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+  }
+
+  &__dismiss {
+    position: absolute;
+    top: calc(globals.$spacing-unit / 2);
+    right: calc(globals.$spacing-unit / 2);
+    background: transparent;
+    border: none;
+    color: globals.$body-color;
+    cursor: pointer;
+    padding: calc(globals.$spacing-unit / 2);
+    border-radius: 50%;
+    transition: all ease 0.2s;
+    opacity: 0.5;
+
+    &:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+}

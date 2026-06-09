@@ -3,6 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
   TorBox = "TORBOX",
+  Premiumize = "PREMIUMIZE",
+  AllDebrid = "ALLDEBRID",
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
 }

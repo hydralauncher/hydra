@@ -1,0 +1,121 @@
+.input {
+  width: 100%;
+  height: 44px;
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+  border-radius: calc(var(--spacing-unit) * 2);
+  font-family: var(--font-space-grotesk);
+  font-size: 14px;
+  line-height: 16.59px;
+  border: 1px solid var(--secondary-border);
+  background-color: var(--background);
+  color: var(--text);
+  transition: border-color 0.2s ease-in-out;
+
+  &[data-icon-left="true"] {
+    padding-left: 46px;
+  }
+
+  &[data-icon-right="true"] {
+    padding-right: 46px;
+  }
+
+  &:hover {
+    border-color: var(--secondary-hover);
+  }
+
+  &:focus-visible,
+  [data-focus-visible="true"] & {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &::placeholder {
+    color: var(--text-secondary);
+  }
+
+  &--error {
+    border-color: var(--error);
+
+    &:hover {
+      border-color: var(--error);
+    }
+
+    &:focus-visible {
+      border-color: var(--error);
+    }
+  }
+
+  &-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+  }
+
+  &-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+
+    > [data-focus-wrapper] {
+      width: 100%;
+    }
+
+    &:hover {
+      .input-icon--left {
+        color: var(--text-primary);
+      }
+    }
+
+    &--icon::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      z-index: 2;
+    }
+  }
+
+  &-icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: color 0.2s ease-in-out;
+
+    &--left {
+      left: 10px;
+    }
+
+    &--right {
+      right: 10px;
+    }
+  }
+
+  &-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: normal;
+  }
+
+  &-hint {
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: normal;
+
+    &--error {
+      color: var(--error);
+    }
+  }
+}

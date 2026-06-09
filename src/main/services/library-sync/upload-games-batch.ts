@@ -39,5 +39,5 @@ export const uploadGamesBatch = async () => {
   AchievementWatcherManager.preSearchAchievements();
 
   if (WindowManager.mainWindow)
-    WindowManager.mainWindow.webContents.send("on-library-batch-complete");
+    WindowManager.sendToAppWindows("on-library-batch-complete");
 };

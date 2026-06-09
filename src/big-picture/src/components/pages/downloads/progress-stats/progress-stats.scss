@@ -1,0 +1,35 @@
+.downloads-progress-stats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.downloads-progress-stats__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 3);
+}
+
+.downloads-progress-stats__row--primary {
+  color: var(--text);
+}
+
+.downloads-progress-stats__row--secondary {
+  color: var(--text-secondary);
+}
+
+.downloads-progress-stats__bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  overflow: hidden;
+}
+
+.downloads-progress-stats__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.2s ease-out;
+}

@@ -1,3 +1,15 @@
+import { is } from "@electron-toolkit/utils";
+import { isStaging } from "@main/constants";
+import { db, gamesSublevel, levelKeys } from "@main/level";
+import icon from "@resources/icon.png?asset";
+import trayIcon from "@resources/tray-icon.png?asset";
+import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
+import type {
+  AchievementCustomNotificationPosition,
+  AchievementNotificationInfo,
+  ScreenState,
+  UserPreferences,
+} from "@types";
 import {
   BrowserWindow,
   Menu,
@@ -9,36 +21,28 @@ import {
   screen,
   shell,
 } from "electron";
-import { is } from "@electron-toolkit/utils";
 import { t } from "i18next";
-import path from "node:path";
-import icon from "@resources/icon.png?asset";
-import trayIcon from "@resources/tray-icon.png?asset";
-import { HydraApi } from "./hydra-api";
-import UserAgent from "user-agents";
-import { db, gamesSublevel, levelKeys } from "@main/level";
 import { orderBy, slice } from "lodash-es";
-import type {
-  AchievementCustomNotificationPosition,
-  ScreenState,
-  UserPreferences,
-} from "@types";
-import { AuthPage, generateAchievementCustomNotificationTest } from "@shared";
-import { isStaging } from "@main/constants";
+import path from "node:path";
+import UserAgent from "user-agents";
+import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
+  public static gameLauncherWindow: Electron.BrowserWindow | null = null;
+  private static bigPicture: Electron.BrowserWindow | null = null;
+  private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
       width: 1200,
-      height: 720,
+      height: 860,
       minWidth: 1024,
-      minHeight: 540,
+      minHeight: 860,
       backgroundColor: "#1c1c1c",
       titleBarStyle: process.platform === "linux" ? "default" : "hidden",
       icon,
@@ -93,6 +97,39 @@ export class WindowManager {
     }
   }
 
+  private static disableMainWindowWhileBigPictureIsOpen() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setFocusable(false);
+    main.setIgnoreMouseEvents(true);
+    main.hide();
+  }
+
+  private static restoreMainWindowAfterBigPictureCloses() {
+    const main = this.mainWindow;
+
+    if (!main || main.isDestroyed()) return;
+
+    main.setIgnoreMouseEvents(false);
+    main.setFocusable(true);
+    main.setSkipTaskbar(false);
+  }
+
+  public static sendToAppWindows(channel: string, ...args: unknown[]) {
+    const windows = [this.mainWindow, this.bigPicture];
+
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static sendDownloadsUpdated() {
+    this.sendToAppWindows("on-downloads-updated");
+  }
+
   private static async saveScreenConfig(configScreenWhenClosed: ScreenState) {
     await db.put(levelKeys.screenState, configScreenWhenClosed, {
       valueEncoding: "json",
@@ -106,7 +143,7 @@ export class WindowManager {
         valueEncoding: "json",
       }
     );
-    return data ?? { isMaximized: false, height: 720, width: 1200 };
+    return data ?? { isMaximized: false, height: 860, width: 1200 };
   }
 
   private static updateInitialConfig(
@@ -121,6 +158,12 @@ export class WindowManager {
   public static async createMainWindow() {
     if (this.mainWindow) return;
 
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
     const { isMaximized = false, ...configWithoutMaximized } =
       await this.loadScreenConfig();
 
@@ -130,7 +173,15 @@ export class WindowManager {
       this.initialConfigInitializationMainWindow
     );
 
-    if (isMaximized) {
+    this.deferredMainMaximize = false;
+
+    if (userPreferences?.launchInBigPicture) {
+      this.mainWindow.setOpacity(0);
+      this.mainWindow.setSkipTaskbar(true);
+      if (isMaximized) {
+        this.deferredMainMaximize = true;
+      }
+    } else if (isMaximized) {
       this.mainWindow.maximize();
     }
 
@@ -138,10 +189,19 @@ export class WindowManager {
       (details, callback) => {
         if (
           details.webContentsId !== this.mainWindow?.webContents.id ||
-          details.url.includes("chatwoot") ||
-          details.url.includes("workwonders")
+          details.url.includes("chatwoot")
         ) {
           return callback(details);
+        }
+
+        if (details.url.includes("workwonders")) {
+          return callback({
+            ...details,
+            requestHeaders: {
+              Origin: "https://workwonders.app",
+              ...details.requestHeaders,
+            },
+          });
         }
 
         const userAgent = new UserAgent();
@@ -195,13 +255,19 @@ export class WindowManager {
       }
     );
 
-    this.loadMainWindowURL();
+    const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
+
+    this.loadMainWindowURL(initialHash);
     this.mainWindow.removeMenu();
 
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
-      WindowManager.mainWindow?.show();
+      if (userPreferences?.launchInBigPicture) {
+        void WindowManager.openBigPictureWindow();
+      } else {
+        WindowManager.mainWindow?.show();
+      }
     });
 
     this.mainWindow.on("close", async () => {
@@ -224,7 +290,7 @@ export class WindowManager {
           ? {
               x: undefined,
               y: undefined,
-              height: this.initialConfigInitializationMainWindow.height ?? 720,
+              height: this.initialConfigInitializationMainWindow.height ?? 860,
               width: this.initialConfigInitializationMainWindow.width ?? 1200,
               isMaximized: true,
             }
@@ -241,6 +307,70 @@ export class WindowManager {
     this.mainWindow.webContents.setWindowOpenHandler((handler) => {
       shell.openExternal(handler.url);
       return { action: "deny" };
+    });
+  }
+
+  public static async openBigPictureWindow() {
+    if (this.bigPicture) {
+      this.bigPicture.focus();
+      return;
+    }
+
+    const targetDisplay = this.mainWindow?.isDestroyed()
+      ? null
+      : this.mainWindow
+        ? screen.getDisplayMatching(this.mainWindow.getBounds())
+        : screen.getPrimaryDisplay();
+    const targetBounds =
+      targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
+
+    this.bigPicture = new BrowserWindow({
+      x: targetBounds.x,
+      y: targetBounds.y,
+      width: targetBounds.width,
+      height: targetBounds.height,
+      backgroundColor: "#0a0a0a",
+      icon,
+      frame: false,
+      fullscreen: true,
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.bigPicture.removeMenu();
+
+    if (!app.isPackaged || isStaging) {
+      this.bigPicture.webContents.openDevTools();
+    }
+
+    this.loadWindowURL(this.bigPicture, "big-picture");
+
+    this.bigPicture.once("ready-to-show", () => {
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        main.setOpacity(1);
+        this.disableMainWindowWhileBigPictureIsOpen();
+      }
+      this.bigPicture?.setBounds(targetBounds);
+      this.bigPicture?.show();
+      this.bigPicture?.focus();
+    });
+
+    this.bigPicture.on("closed", () => {
+      this.bigPicture = null;
+      const main = this.mainWindow;
+      if (main && !main.isDestroyed()) {
+        this.restoreMainWindowAfterBigPictureCloses();
+        if (WindowManager.deferredMainMaximize) {
+          main.maximize();
+          WindowManager.deferredMainMaximize = false;
+        }
+        main.show();
+        main.focus();
+      }
     });
   }
 
@@ -353,8 +483,32 @@ export class WindowManager {
     };
   }
 
+  public static sendAchievementToFocusedWindow(
+    position: AchievementCustomNotificationPosition,
+    achievements: AchievementNotificationInfo[]
+  ): boolean {
+    const candidates = [this.bigPicture, this.mainWindow];
+
+    for (const window of candidates) {
+      if (window && !window.isDestroyed() && window.isFocused()) {
+        window.webContents.send(
+          "on-achievement-unlocked-in-app",
+          position,
+          achievements
+        );
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public static async createNotificationWindow() {
     if (this.notificationWindow) return;
+
+    if (process.platform === "darwin" || process.platform === "linux") {
+      return;
+    }
 
     const userPreferences = await db.get<string, UserPreferences | undefined>(
       levelKeys.userPreferences,
@@ -411,20 +565,28 @@ export class WindowManager {
     );
 
     const language = userPreferences.language ?? "en";
+    const position =
+      userPreferences.achievementCustomNotificationPosition ?? "top-left";
+    const testAchievements = [
+      generateAchievementCustomNotificationTest(t, language),
+      generateAchievementCustomNotificationTest(t, language, {
+        isRare: true,
+        isHidden: true,
+      }),
+      generateAchievementCustomNotificationTest(t, language, {
+        isPlatinum: true,
+      }),
+    ];
+
+    if (process.platform === "linux") {
+      this.sendAchievementToFocusedWindow(position, testAchievements);
+      return;
+    }
 
     this.notificationWindow?.webContents.send(
       "on-achievement-unlocked",
-      userPreferences.achievementCustomNotificationPosition ?? "top-left",
-      [
-        generateAchievementCustomNotificationTest(t, language),
-        generateAchievementCustomNotificationTest(t, language, {
-          isRare: true,
-          isHidden: true,
-        }),
-        generateAchievementCustomNotificationTest(t, language, {
-          isPlatinum: true,
-        }),
-      ]
+      position,
+      testAchievements
     );
   }
 
@@ -507,9 +669,96 @@ export class WindowManager {
     }
   }
 
+  private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;
+  private static readonly GAME_LAUNCHER_WINDOW_HEIGHT = 320;
+
+  public static async createGameLauncherWindow(shop: string, objectId: string) {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+
+    const display = screen.getPrimaryDisplay();
+    const { width: displayWidth, height: displayHeight } = display.bounds;
+
+    const x = Math.round((displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2);
+    const y = Math.round(
+      (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
+    );
+
+    this.gameLauncherWindow = new BrowserWindow({
+      width: this.GAME_LAUNCHER_WINDOW_WIDTH,
+      height: this.GAME_LAUNCHER_WINDOW_HEIGHT,
+      x,
+      y,
+      resizable: false,
+      maximizable: false,
+      minimizable: false,
+      fullscreenable: false,
+      frame: false,
+      backgroundColor: "#1c1c1c",
+      icon,
+      skipTaskbar: false,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+
+    this.gameLauncherWindow.removeMenu();
+
+    this.loadWindowURL(
+      this.gameLauncherWindow,
+      `game-launcher?shop=${shop}&objectId=${objectId}`
+    );
+
+    this.gameLauncherWindow.on("closed", () => {
+      this.gameLauncherWindow = null;
+    });
+
+    if (!app.isPackaged || isStaging) {
+      this.gameLauncherWindow.webContents.openDevTools();
+    }
+  }
+
+  public static showGameLauncherWindow() {
+    if (this.gameLauncherWindow && !this.gameLauncherWindow.isDestroyed()) {
+      this.gameLauncherWindow.show();
+    }
+  }
+
+  public static closeGameLauncherWindow() {
+    if (this.gameLauncherWindow) {
+      this.gameLauncherWindow.close();
+      this.gameLauncherWindow = null;
+    }
+  }
+
+  public static openMainWindow() {
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      this.bigPicture.focus();
+      return;
+    }
+
+    if (this.mainWindow) {
+      this.mainWindow.show();
+      if (this.mainWindow.isMinimized()) {
+        this.mainWindow.restore();
+      }
+      this.mainWindow.focus();
+    } else {
+      this.createMainWindow();
+    }
+  }
+
   public static redirect(hash: string) {
     if (!this.mainWindow) this.createMainWindow();
     this.loadMainWindowURL(hash);
+
+    if (this.bigPicture && !this.bigPicture.isDestroyed()) {
+      return;
+    }
 
     if (this.mainWindow?.isMinimized()) this.mainWindow.restore();
     this.mainWindow?.focus();

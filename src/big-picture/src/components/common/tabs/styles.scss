@@ -1,0 +1,293 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+
+  &__content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 12);
+    padding: 0 calc(var(--spacing-unit) * 4);
+  }
+
+  &__list {
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__before-tabs,
+  &__after-tabs {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__tablist {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: calc(var(--spacing-unit) * 12);
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 0 0 calc(var(--spacing-unit) * 3 + 3px);
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    opacity: 1;
+    font-family: var(--font-space-grotesk);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 0;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+
+    &:hover,
+    &--active {
+      color: var(--text);
+    }
+
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      outline: none;
+      color: var(--primary);
+    }
+
+    &--disabled {
+      cursor: not-allowed;
+      opacity: 0.3;
+    }
+  }
+
+  &__tab-label {
+    display: inline-block;
+
+    &--segmented {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(var(--spacing-unit));
+    }
+
+    &--settings {
+      display: inline-block;
+    }
+
+    &--with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: calc(var(--spacing-unit) * 2);
+    }
+  }
+
+  &__tab-icon {
+    flex-shrink: 0;
+    display: block;
+  }
+
+  &__indicator {
+    position: absolute;
+    right: calc(var(--spacing-unit) * -1);
+    bottom: 0;
+    left: calc(var(--spacing-unit) * -1);
+    height: 3px;
+    background-color: var(--text);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  }
+
+  &__segmented-indicator {
+    position: absolute;
+    top: var(--spacing-unit);
+    bottom: var(--spacing-unit);
+    left: 0;
+    border: 1px solid var(--secondary-border);
+    border-radius: var(--spacing-unit);
+    background-color: var(--surface);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &__settings-indicator {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--text);
+    pointer-events: none;
+  }
+
+  &__trailing-action {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__divider {
+    width: 100%;
+    height: 1px;
+    margin-top: -1px;
+    background-color: var(--secondary-border);
+  }
+
+  &--segmented {
+    .tabs__content {
+      padding: 0;
+    }
+
+    .tabs__list {
+      width: 100%;
+      flex: 1 1 auto;
+    }
+
+    .tabs__tablist {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: calc(var(--spacing-unit));
+      width: 100%;
+      padding: calc(var(--spacing-unit) * 1.5);
+      border: 1px solid var(--secondary-border);
+      border-radius: calc(var(--spacing-unit) * 2);
+      background-color: var(--background);
+    }
+
+    .tabs__tab {
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 0;
+      position: relative;
+      z-index: 1;
+      padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+      border-radius: var(--spacing-unit);
+      color: var(--text-secondary);
+      opacity: 1;
+      font-size: 14px;
+      line-height: normal;
+      letter-spacing: 0.14px;
+      transition:
+        background-color 0.2s ease-in-out,
+        border-color 0.2s ease-in-out,
+        color 0.2s ease-in-out;
+
+      &:hover {
+        color: var(--text);
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+
+      &:focus-visible,
+      &[data-focus-visible="true"] {
+        color: var(--primary);
+        background-color: transparent;
+        box-shadow: inset 0 0 0 1px var(--primary);
+      }
+
+      &--active {
+        color: var(--text);
+      }
+
+      &--disabled {
+        background-color: transparent;
+        color: var(--text-secondary);
+        opacity: 0.4;
+      }
+    }
+
+    .tabs__tab-label {
+      position: relative;
+      z-index: 1;
+    }
+
+    .tabs__trailing-action {
+      align-self: center;
+    }
+  }
+
+  &--settings {
+    .tabs__content {
+      padding: 0;
+      justify-content: flex-start;
+    }
+
+    .tabs__list {
+      width: auto;
+      flex: 0 0 auto;
+    }
+
+    .tabs__tablist {
+      position: relative;
+      align-items: flex-end;
+      gap: calc(var(--spacing-unit) * 10);
+      width: max-content;
+      max-width: 100%;
+    }
+
+    .tabs__tab {
+      display: inline-flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 0 calc(var(--spacing-unit) * 2);
+      color: var(--settings-tab-color, var(--primary));
+      opacity: var(--settings-tab-opacity, 0.5);
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1;
+      transition:
+        color 0.2s ease-in-out,
+        opacity 0.2s ease-in-out;
+
+      &:hover {
+        color: var(--text);
+        opacity: 0.78;
+      }
+
+      &:focus-visible,
+      &[data-focus-visible="true"] {
+        color: var(--settings-tab-color, var(--primary));
+        opacity: var(--settings-tab-opacity, 0.5);
+        outline: none;
+      }
+
+      &--active {
+        --settings-tab-color: var(--text);
+        --settings-tab-opacity: 1;
+        font-weight: 700;
+      }
+
+      &--disabled {
+        opacity: 0.2;
+      }
+    }
+
+    .tabs__tab-label {
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .tabs__tab-label-text {
+      display: inline-block;
+      transform: scale(var(--settings-tab-scale, 1));
+      transform-origin: center bottom;
+      transition:
+        transform 0.2s ease-in-out,
+        font-weight 0.2s ease-in-out;
+    }
+
+    .tabs__tab--active .tabs__tab-label-text {
+      --settings-tab-scale: 1.125;
+    }
+  }
+}

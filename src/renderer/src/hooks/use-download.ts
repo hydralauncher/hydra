@@ -28,10 +28,82 @@ export function useDownload() {
   );
   const dispatch = useAppDispatch();
 
-  const startDownload = async (payload: StartGameDownloadPayload) => {
+  const createAbortError = () => {
+    const error = new Error("The operation was aborted");
+    error.name = "AbortError";
+    return error;
+  };
+
+  const startDownload = async (
+    payload: StartGameDownloadPayload,
+    signal?: AbortSignal
+  ) => {
+    if (signal?.aborted) {
+      throw createAbortError();
+    }
+
     dispatch(clearDownload());
 
-    const response = await window.electron.startGameDownload(payload);
+    const cancelPendingDownload = () =>
+      window.electron
+        .cancelGameDownload(payload.shop, payload.objectId)
+        .catch(() => undefined);
+
+    const onAbort = () => {
+      void cancelPendingDownload();
+    };
+
+    signal?.addEventListener("abort", onAbort);
+
+    let response: { ok: boolean; error?: string };
+
+    try {
+      response = await window.electron.startGameDownload(payload);
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    if (signal?.aborted) {
+      await cancelPendingDownload();
+      throw createAbortError();
+    }
+
+    if (response.ok) updateLibrary();
+
+    return response;
+  };
+
+  const addGameToQueue = async (
+    payload: StartGameDownloadPayload,
+    signal?: AbortSignal
+  ) => {
+    if (signal?.aborted) {
+      throw createAbortError();
+    }
+
+    const cancelPendingDownload = () =>
+      window.electron
+        .cancelGameDownload(payload.shop, payload.objectId)
+        .catch(() => undefined);
+
+    const onAbort = () => {
+      void cancelPendingDownload();
+    };
+
+    signal?.addEventListener("abort", onAbort);
+
+    let response: { ok: boolean; error?: string };
+
+    try {
+      response = await window.electron.addGameToQueue(payload);
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    if (signal?.aborted) {
+      await cancelPendingDownload();
+      throw createAbortError();
+    }
 
     if (response.ok) updateLibrary();
 
@@ -61,10 +133,16 @@ export function useDownload() {
   };
 
   const cancelDownload = async (shop: GameShop, objectId: string) => {
-    await window.electron.cancelGameDownload(shop, objectId);
-    dispatch(clearDownload());
-    updateLibrary();
+    const gameId = `${shop}:${objectId}`;
+    const isActiveDownload = lastPacket?.gameId === gameId;
 
+    await window.electron.cancelGameDownload(shop, objectId);
+
+    if (isActiveDownload) {
+      dispatch(clearDownload());
+    }
+
+    updateLibrary();
     removeGameInstaller(shop, objectId);
   };
 
@@ -113,6 +191,7 @@ export function useDownload() {
     lastPacket,
     eta: calculateETA(),
     startDownload,
+    addGameToQueue,
     pauseDownload,
     resumeDownload,
     cancelDownload,
