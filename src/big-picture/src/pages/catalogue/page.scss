@@ -519,11 +519,22 @@
     }
   }
 
+  &__secondary-sidebar-shell {
+    position: relative;
+    display: flex;
+    flex: 0 0 16rem;
+    width: 16rem;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   &__secondary-sidebar {
     position: relative;
     display: flex;
     flex-direction: column;
     flex: 0 0 16rem;
+    box-sizing: border-box;
     width: 16rem;
     height: 100%;
     min-height: 0;
@@ -570,15 +581,6 @@
 
   &__selected-list-viewport[data-at-bottom] &__selected-list-fade {
     opacity: 0;
-  }
-
-  &__selected-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-height: 0;
-    color: var(--text-secondary);
   }
 
   &__selected-actions {

@@ -1,4 +1,5 @@
 import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
+import { AnimatePresence, motion } from "framer-motion";
 import List, { type ListRef } from "rc-virtual-list";
 import {
   forwardRef,
@@ -540,6 +541,7 @@ export function CatalogueFiltersModal({
   const selectedListViewportRef = useRef<HTMLDivElement | null>(null);
   const selectedListRef = useRef<HTMLDivElement | null>(null);
   const selectedListScrollFrameRef = useRef<number | null>(null);
+  const mainFocusRetryFrameRef = useRef<number | null>(null);
 
   const updateSelectedListFadeState = useCallback(() => {
     const selectedList = selectedListRef.current;
@@ -586,6 +588,10 @@ export function CatalogueFiltersModal({
     return () => {
       if (selectedListScrollFrameRef.current !== null) {
         globalThis.cancelAnimationFrame(selectedListScrollFrameRef.current);
+      }
+
+      if (mainFocusRetryFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(mainFocusRetryFrameRef.current);
       }
     };
   }, []);
@@ -760,19 +766,34 @@ export function CatalogueFiltersModal({
     }
   }, [currentFocusId, hasSelectedItemFocus, scheduleSelectedListBottomUpdate]);
 
-  const focusLastMainItem = useCallback(() => {
+  const focusLastValidMainFocus = useCallback(() => {
+    if (mainFocusRetryFrameRef.current !== null) {
+      globalThis.cancelAnimationFrame(mainFocusRetryFrameRef.current);
+      mainFocusRetryFrameRef.current = null;
+    }
+
     if (
       lastValidMainFocusId !== activeSearchFocusId &&
       lastMainItemIndex >= 0
     ) {
-      const focused =
-        filterListRefs.current[activeFilterType]?.focusItemCentered(
-          lastMainItemIndex
-        );
+      const targetItem = activeItems[lastMainItemIndex];
 
-      if (!focused) {
-        setFocus(activeItems[lastMainItemIndex].focusId);
+      const focusRememberedItem = () => {
+        const focused =
+          filterListRefs.current[activeFilterType]?.focusItemCentered(
+            lastMainItemIndex
+          ) ?? false;
+
+        return focused || setFocus(targetItem.focusId);
+      };
+
+      if (!focusRememberedItem()) {
+        mainFocusRetryFrameRef.current = globalThis.requestAnimationFrame(() => {
+          mainFocusRetryFrameRef.current = null;
+          focusRememberedItem();
+        });
       }
+
       return;
     }
 
@@ -785,6 +806,8 @@ export function CatalogueFiltersModal({
     lastValidMainFocusId,
     setFocus,
   ]);
+
+  const focusLastMainItem = focusLastValidMainFocus;
 
   const focusLastSelectedItem = useCallback(() => {
     if (!lastValidSelectedFocusId) return;
@@ -799,8 +822,7 @@ export function CatalogueFiltersModal({
       >;
       const nextFocusTarget =
         selectedFilterItems[index + 1]?.focusId ??
-        selectedFilterItems[index - 1]?.focusId ??
-        getCatalogueFiltersModalInputFocusId(activeFilterType);
+        selectedFilterItems[index - 1]?.focusId;
 
       updateSearchParams({
         [item.filterType]: selectedValues.filter(
@@ -808,10 +830,15 @@ export function CatalogueFiltersModal({
         ),
       });
 
-      setFocus(nextFocusTarget);
+      if (nextFocusTarget) {
+        setFocus(nextFocusTarget);
+        return;
+      }
+
+      focusLastValidMainFocus();
     },
     [
-      activeFilterType,
+      focusLastValidMainFocus,
       selectedFilterItems,
       setFocus,
       updateSearchParams,
@@ -828,8 +855,8 @@ export function CatalogueFiltersModal({
     }, {});
 
     updateSearchParams(nextValues as Partial<SearchGamesFormValues>);
-    setFocus(getCatalogueFiltersModalInputFocusId(activeFilterType));
-  }, [activeFilterType, setFocus, updateSearchParams]);
+    focusLastValidMainFocus();
+  }, [focusLastValidMainFocus, updateSearchParams]);
 
   useNavigationScreenActions(
     visible && selectedFilterItems.length > 0
@@ -900,64 +927,88 @@ export function CatalogueFiltersModal({
           </div>
         </div>
 
-        <aside
-          className="catalogue-filters-modal__secondary-sidebar"
-          aria-label="Selected filters"
-        >
+        <AnimatePresence initial={false}>
           {selectedFilterItems.length > 0 ? (
-            <div
-              ref={selectedListViewportRef}
-              className="catalogue-filters-modal__selected-list-viewport"
+            <motion.div
+              key="selected-filters"
+              className="catalogue-filters-modal__secondary-sidebar-shell"
+              initial={{ width: 0, flexBasis: 0 }}
+              animate={{ width: "16rem", flexBasis: "16rem" }}
+              exit={{ width: 0, flexBasis: 0 }}
+              transition={{
+                duration: 0.22,
+                ease: [0.4, 0, 0.2, 1],
+              }}
             >
-              <div
-                ref={selectedListRef}
-                className="catalogue-filters-modal__selected-list"
-                onScroll={handleSelectedListScroll}
+              <motion.aside
+                className="catalogue-filters-modal__secondary-sidebar"
+                aria-label="Selected filters"
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: 1,
+                  transition: {
+                    duration: 0.14,
+                    delay: 0.04,
+                    ease: "easeOut",
+                  },
+                }}
+                exit={{
+                  opacity: 0,
+                  transition: {
+                    duration: 0.08,
+                    ease: "easeOut",
+                  },
+                }}
               >
-                {selectedFilterItems.map((item, index) => (
-                  <CatalogueFilterCheckbox
-                    key={`${item.filterType}-${item.value}`}
-                    id={`${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}-${item.filterType}-${item.label}`}
-                    focusId={item.focusId}
-                    label={item.label}
-                    color={item.color}
-                    checked
-                    variant="remove"
-                    onChange={() => removeSelectedFilter(item, index)}
-                  />
-                ))}
-              </div>
-              <div
-                className="catalogue-filters-modal__selected-list-fade"
-                aria-hidden
-              />
-            </div>
-          ) : (
-            <div className="catalogue-filters-modal__selected-empty">
-              <Typography variant="label">No selected filters</Typography>
-            </div>
-          )}
-
-          {selectedFilterItems.length > 0 ? (
-            <div className="catalogue-filters-modal__selected-actions">
-              <FocusItem focusable={false} asChild>
-                <button
-                  type="button"
-                  className="catalogue-filters-modal__clear-selected-button"
-                  onClick={clearSelectedFilters}
+                <div
+                  ref={selectedListViewportRef}
+                  className="catalogue-filters-modal__selected-list-viewport"
                 >
-                  <span
-                    className="catalogue-filters-modal__clear-selected-icon"
-                    aria-hidden
+                  <div
+                    ref={selectedListRef}
+                    className="catalogue-filters-modal__selected-list"
+                    onScroll={handleSelectedListScroll}
                   >
-                    <XIcon size={14} weight="bold" />
-                  </span>
-                  <Typography variant="label">Hold to Clear</Typography>
-                </button>
-              </FocusItem>
-            </div>
+                    {selectedFilterItems.map((item, index) => (
+                      <CatalogueFilterCheckbox
+                        key={`${item.filterType}-${item.value}`}
+                        id={`${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}-${item.filterType}-${item.label}`}
+                        focusId={item.focusId}
+                        label={item.label}
+                        color={item.color}
+                        checked
+                        variant="remove"
+                        onChange={() => removeSelectedFilter(item, index)}
+                      />
+                    ))}
+                  </div>
+                  <div
+                    className="catalogue-filters-modal__selected-list-fade"
+                    aria-hidden
+                  />
+                </div>
+
+                <div className="catalogue-filters-modal__selected-actions">
+                  <FocusItem focusable={false} asChild>
+                    <button
+                      type="button"
+                      className="catalogue-filters-modal__clear-selected-button"
+                      onClick={clearSelectedFilters}
+                    >
+                      <span
+                        className="catalogue-filters-modal__clear-selected-icon"
+                        aria-hidden
+                      >
+                        <XIcon size={14} weight="bold" />
+                      </span>
+                      <Typography variant="label">Hold to Clear</Typography>
+                    </button>
+                  </FocusItem>
+                </div>
+              </motion.aside>
+            </motion.div>
           ) : null}
-        </aside>
+        </AnimatePresence>
       </div>
     ),
     [
