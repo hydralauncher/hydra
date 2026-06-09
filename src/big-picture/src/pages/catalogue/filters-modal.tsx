@@ -788,10 +788,12 @@ export function CatalogueFiltersModal({
       };
 
       if (!focusRememberedItem()) {
-        mainFocusRetryFrameRef.current = globalThis.requestAnimationFrame(() => {
-          mainFocusRetryFrameRef.current = null;
-          focusRememberedItem();
-        });
+        mainFocusRetryFrameRef.current = globalThis.requestAnimationFrame(
+          () => {
+            mainFocusRetryFrameRef.current = null;
+            focusRememberedItem();
+          }
+        );
       }
 
       return;
