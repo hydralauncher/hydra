@@ -4,11 +4,6 @@
   &__review-item {
     overflow: hidden;
     word-wrap: break-word;
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 12px;
-    padding: calc(globals.$spacing-unit * 1.75);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   &__review-header {
@@ -78,6 +73,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  &__review-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   &__review-votes {

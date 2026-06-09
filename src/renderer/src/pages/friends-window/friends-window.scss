@@ -1,0 +1,433 @@
+@use "../../scss/globals.scss";
+
+.friends-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: globals.$background-color;
+  color: globals.$body-color;
+  // Set explicitly so the window doesn't silently rely on the body rule in
+  // app.scss (the @font-face itself is loaded globally from main.tsx).
+  font-family:
+    Noto Sans,
+    sans-serif;
+  font-size: globals.$body-font-size;
+  overflow: hidden;
+
+  &__header {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+
+    // When a profile background is present, cover the whole header (including
+    // the window-control strip) edge-to-edge and drop the title bar chrome so
+    // the image reads as one full-bleed banner.
+    &--has-bg {
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background: linear-gradient(
+          135deg,
+          rgb(0 0 0 / 60%),
+          rgb(0 0 0 / 45%)
+        );
+        pointer-events: none;
+      }
+
+      .friends-window__title-bar {
+        background-color: transparent;
+        border-bottom: none;
+      }
+    }
+  }
+
+  &__header-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  &__title-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 calc(globals.$spacing-unit * 2);
+    background-color: globals.$dark-background-color;
+    border-bottom: 1px solid globals.$border-color;
+    -webkit-app-region: drag;
+    z-index: globals.$title-bar-z-index;
+
+    h4 {
+      margin: 0;
+      font-size: globals.$small-font-size;
+      font-weight: 500;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 2);
+    // The scroll area owns the bottom spacing so the last row can scroll fully
+    // into view instead of ending flush against the scroll boundary.
+    padding-bottom: 0;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__profile {
+    position: relative;
+    z-index: 2;
+    display: flex;
+  }
+
+  &__profile-content {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__profile-avatar {
+    display: inline-flex;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: globals.$active-opacity;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 1;
+    }
+  }
+
+  &__profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit / 2);
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__profile-name {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      cursor: default;
+      text-decoration: none;
+    }
+  }
+
+  &__friend-code {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    background: none;
+    border: none;
+    padding: 0;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+
+      .friends-window__friend-code-value {
+        color: globals.$muted-color;
+      }
+    }
+  }
+
+  &__friend-code-value {
+    font-family: monospace;
+    color: globals.$muted-color;
+    transition: color 0.2s ease;
+  }
+
+  &__add-friend {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    background-color: globals.$brand-teal;
+    border: none;
+    border-radius: 4px;
+    color: globals.$dark-background-color;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 1.5);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    height: 36px;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+  }
+
+  &__search-icon {
+    color: globals.$body-color;
+    flex-shrink: 0;
+  }
+
+  &__search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+
+    &::placeholder {
+      color: globals.$body-color;
+      opacity: 0.6;
+    }
+  }
+
+  &__list-container {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    width: 100%;
+    background: none;
+    border: none;
+    padding: calc(globals.$spacing-unit / 2) 0;
+    cursor: pointer;
+    color: globals.$body-color;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: inherit;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__friend {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: globals.$dark-background-color;
+
+      .friends-window__remove-button {
+        opacity: 1;
+      }
+    }
+  }
+
+  &__friend-button {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    padding: globals.$spacing-unit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  &__avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__status-orb {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #6d6d6d;
+    border: 2px solid globals.$background-color;
+
+    &--online {
+      background-color: globals.$success-color;
+    }
+  }
+
+  &__friend-details {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 4);
+    min-width: 0;
+  }
+
+  &__friend-name {
+    font-size: globals.$body-font-size;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__friend-status {
+    color: globals.$body-color;
+    opacity: 0.7;
+  }
+
+  &__game-info {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    color: globals.$brand-teal;
+
+    small {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__game-icon {
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &__remove-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: globals.$body-color;
+    padding: globals.$spacing-unit;
+    margin-right: globals.$spacing-unit;
+    cursor: pointer;
+    opacity: 0;
+    border-radius: 4px;
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      color: globals.$error-color;
+    }
+  }
+
+  &__request-actions {
+    display: flex;
+    gap: calc(globals.$spacing-unit / 2);
+    margin-right: globals.$spacing-unit;
+    flex-shrink: 0;
+  }
+
+  &__request-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid globals.$border-color;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+
+    &--accept:hover {
+      background-color: globals.$success-color;
+      border-color: globals.$success-color;
+      color: #ffffff;
+    }
+
+    &--refuse:hover {
+      background-color: globals.$error-color;
+      border-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+
+  &__empty {
+    margin: 0;
+    padding: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.7;
+  }
+}
