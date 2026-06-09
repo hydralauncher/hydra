@@ -11,18 +11,12 @@
 }
 
 .catalogue-container {
-  --catalogue-sidebar-width: 350px;
-
   display: flex;
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 8);
   padding: calc(var(--spacing-unit) * 8) calc(var(--spacing-unit) * 16);
   margin-top: calc(var(--spacing-unit) * 18);
   min-height: fit-content;
-
-  @media (min-width: 1440px) {
-    --catalogue-sidebar-width: 400px;
-  }
 }
 
 .catalogue-header {
@@ -76,6 +70,64 @@
     }
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex: none;
+    gap: calc(var(--spacing-unit) * 3);
+  }
+
+  &__filters-button {
+    height: 44px;
+    padding: 0 calc(var(--spacing-unit) * 4);
+    border-radius: calc(var(--spacing-unit) * 2);
+    border: 1px solid var(--secondary-border);
+    background-color: var(--background);
+    color: var(--text);
+    gap: calc(var(--spacing-unit) * 2);
+    font-size: 14px;
+    line-height: 16.59px;
+    transition:
+      border-color 0.2s ease-in-out,
+      background-color 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out,
+      color 0.2s ease-in-out;
+
+    &:hover {
+      border-color: var(--secondary-hover);
+      background-color: color-mix(
+        in srgb,
+        var(--primary) 2%,
+        var(--background)
+      );
+    }
+
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      outline: none;
+      border-color: color-mix(
+        in srgb,
+        var(--primary) 45%,
+        var(--secondary-border)
+      );
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+
+    .button__icon-container {
+      color: var(--text-secondary);
+      padding: 0;
+
+      &::after,
+      &::before {
+        display: none;
+      }
+    }
+
+    .button__text {
+      padding: 0;
+    }
+  }
+
   &__sort {
     flex: none;
     width: 260px;
@@ -85,18 +137,21 @@
     width: 100%;
   }
 
-  @media (min-width: 1024px) {
-    &__sort {
-      width: var(--catalogue-sidebar-width);
-    }
-  }
-
   @media (max-width: 767px) {
     flex-direction: column;
 
-    &__sort {
+    &__actions {
       align-self: stretch;
-      width: min(260px, 100%);
+      flex-wrap: wrap;
+    }
+
+    &__filters-button {
+      flex: 1 1 120px;
+    }
+
+    &__sort {
+      flex: 1 1 220px;
+      width: auto;
     }
   }
 }
@@ -109,115 +164,6 @@
   gap: var(--catalogue-grid-row-gap);
   width: 100%;
   min-height: fit-content;
-
-  @media (min-width: 1024px) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--catalogue-sidebar-width);
-    grid-template-rows: repeat(10, auto);
-    align-items: stretch;
-  }
-
-  .catalogue__sidebar {
-    gap: calc(var(--spacing-unit) * 2);
-    width: var(--catalogue-sidebar-width);
-    display: none !important;
-    flex-direction: column;
-
-    @media (min-width: 1024px) {
-      display: flex !important;
-      grid-column: 2;
-      grid-row: 1 / span 10;
-      height: 100%;
-      min-height: 0;
-      --catalogue-filter-band-height: calc(
-        (100% - (var(--catalogue-grid-row-gap) * 4)) * 0.2
-      );
-    }
-
-    &--aligned {
-      @media (min-width: 1024px) {
-        display: grid !important;
-
-        > .catalogue__sidebar__filter--open {
-          grid-row: span 2;
-          height: auto;
-        }
-      }
-    }
-
-    &__filter {
-      flex: none;
-      min-height: 0;
-
-      &--open {
-        @media (min-width: 1024px) {
-          height: var(--catalogue-filter-band-height);
-        }
-
-        > .accordion {
-          height: 100%;
-          min-height: 0;
-        }
-
-        .accordion__body {
-          display: flex;
-          flex: 1;
-          min-height: 0;
-        }
-
-        .accordion__content {
-          flex: 1;
-          min-height: 0;
-        }
-      }
-    }
-
-    &__filter__content {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
-      gap: calc(var(--spacing-unit) * 2);
-      min-height: 0;
-      width: 100%;
-    }
-  }
-
-  .catalogue-filter-list__viewport {
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .catalogue-filter-list {
-    --filter-list-focus-gutter: 3px;
-    --filter-list-scrollbar-width: 8px;
-    --filter-list-scrollbar-gap: 3px;
-
-    .filter-section__item {
-      box-sizing: border-box;
-      height: 44px;
-      padding: var(--filter-list-focus-gutter)
-        calc(
-          var(--filter-list-focus-gutter) + var(--filter-list-scrollbar-width) +
-            var(--filter-list-scrollbar-gap)
-        )
-        var(--filter-list-focus-gutter) var(--filter-list-focus-gutter);
-    }
-
-    .checkbox--block {
-      box-sizing: border-box;
-    }
-  }
-
-  .filter-section__empty__text {
-    color: var(--text-secondary);
-    margin-top: calc(var(--spacing-unit) * 3.5);
-  }
-
-  .filter-section__empty {
-    height: 100%;
-  }
 
   .catalogue-grid {
     flex: 1;
@@ -232,13 +178,7 @@
     }
 
     @media (min-width: 1440px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    @media (min-width: 1024px) {
-      grid-column: 1;
-      grid-row: 1 / span 10;
-      grid-template-rows: subgrid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     &__status {
@@ -253,55 +193,16 @@
         left: 0;
         z-index: 1;
       }
-    }
-  }
 
-  .catalogue-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-unit);
-    width: 100%;
-    padding-block: calc(var(--spacing-unit) * 4);
-
-    @media (min-width: 1024px) {
-      grid-column: 1;
-      grid-row: 11;
-    }
-
-    &__button {
-      width: 44px;
-      min-width: 44px;
-      max-width: 44px;
-      padding: 0;
-    }
-
-    &__input {
-      box-sizing: border-box;
-      width: 44px;
-      height: 44px;
-      border: 1px solid var(--secondary-border);
-      border-radius: var(--spacing-unit);
-      background-color: var(--secondary);
-      color: var(--text);
-      font: inherit;
-      text-align: center;
-      outline: none;
-
-      &:focus-visible,
-      &[data-focus-visible="true"] {
-        outline: 1px solid var(--primary);
-        outline-offset: 2px;
+      &--wide {
+        grid-column: 1 / -1;
       }
     }
 
-    &__double-arrow {
-      display: inline-flex;
-      align-items: center;
-
-      > svg + svg {
-        margin-left: -10px;
-      }
+    &__load-more-sentinel {
+      grid-column: 1 / -1;
+      width: 100%;
+      height: 1px;
     }
   }
 
