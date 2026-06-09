@@ -101,9 +101,6 @@ declare global {
       cb: (value: SeedingStatus[]) => void
     ) => () => Electron.IpcRenderer;
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
-    checkDebridAvailability: (
-      magnets: string[]
-    ) => Promise<Record<string, boolean>>;
     getTorrentFiles: (
       magnet: string
     ) => Promise<
@@ -596,6 +593,15 @@ declare global {
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;
+
+    /* Friends Window */
+    openFriendsWindow: () => Promise<void>;
+    openFriendProfileInMainWindow: (userId: string) => Promise<void>;
+    openAddFriendModalInMainWindow: () => Promise<void>;
+    onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
+    onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onProfileUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onNavigate: (cb: (path: string) => void) => () => Electron.IpcRenderer;
 
     /* Download Options */
     onNewDownloadOptions: (

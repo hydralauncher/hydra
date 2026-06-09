@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Tooltip } from "react-tooltip";
 
-import type { GameCollection, LibraryGame } from "@types";
+import type { GameCollection, LibraryGame, ProfileFriends } from "@types";
 
 import {
   Button,
@@ -34,6 +34,7 @@ import {
   FileDirectoryIcon,
   HeartIcon,
   PencilIcon,
+  PeopleIcon,
   PlayIcon,
   PlusIcon,
   TrashIcon,
@@ -72,6 +73,7 @@ export function Sidebar() {
   }>({ installed: false, version: null, outdated: false });
   const [homebrewFolderExists, setHomebrewFolderExists] = useState(false);
   const [showDeckyConfirmModal, setShowDeckyConfirmModal] = useState(false);
+  const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -222,6 +224,37 @@ export function Sidebar() {
       unsubscribe();
     };
   }, [dispatch]);
+
+  const updateOnlineFriendsCount = useCallback(async () => {
+    if (!userDetails) {
+      setOnlineFriendsCount(0);
+      return;
+    }
+
+    try {
+      const response = await window.electron.hydraApi.get<ProfileFriends>(
+        "/profile/friends",
+        { params: { take: 5, skip: 0 } }
+      );
+      setOnlineFriendsCount(response.onlineFriends);
+    } catch {
+      // ignore transient errors; the next refresh will retry
+    }
+  }, [userDetails]);
+
+  useEffect(() => {
+    updateOnlineFriendsCount();
+
+    const interval = setInterval(updateOnlineFriendsCount, 30_000);
+    const unsubscribe = window.electron.onFriendsUpdated(() => {
+      updateOnlineFriendsCount();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [updateOnlineFriendsCount]);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -540,6 +573,10 @@ export function Sidebar() {
     globalThis.window.electron.openBigPictureWindow();
   };
 
+  const handleOpenFriendsWindow = () => {
+    globalThis.window.electron.openFriendsWindow();
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -576,6 +613,26 @@ export function Sidebar() {
                   </button>
                 </li>
               ))}
+
+              {userDetails && (
+                <li className="sidebar__menu-item">
+                  <button
+                    type="button"
+                    className="sidebar__menu-item-button"
+                    onClick={handleOpenFriendsWindow}
+                  >
+                    <span className="sidebar__friends-icon">
+                      <PeopleIcon />
+                      {onlineFriendsCount > 0 && (
+                        <span className="sidebar__online-orb">
+                          {onlineFriendsCount}
+                        </span>
+                      )}
+                    </span>
+                    <span>{t("friends")}</span>
+                  </button>
+                </li>
+              )}
 
               <li className="sidebar__menu-item">
                 <button

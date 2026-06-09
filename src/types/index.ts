@@ -154,10 +154,17 @@ export interface UserFriend {
         sessionDurationInSeconds: number;
       })
     | null;
+  isOnline?: boolean;
 }
 
 export interface UserFriends {
   totalFriends: number;
+  friends: UserFriend[];
+}
+
+export interface ProfileFriends {
+  totalFriends: number;
+  onlineFriends: number;
   friends: UserFriend[];
 }
 
@@ -266,6 +273,27 @@ export interface GameStats {
   reviewCount: number;
 }
 
+export interface GameReviewAnswer {
+  id: string;
+  answerHtml: string;
+  createdAt: string;
+  updatedAt: string;
+  upvotes: number;
+  downvotes: number;
+  isBlocked: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+  };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string | null;
+}
+
 export interface GameReview {
   id: string;
   reviewHtml: string;
@@ -274,6 +302,8 @@ export interface GameReview {
   updatedAt: string;
   upvotes: number;
   downvotes: number;
+  answerCount: number;
+  answers: GameReviewAnswer[];
   isBlocked: boolean;
   hasUpvoted: boolean;
   hasDownvoted: boolean;

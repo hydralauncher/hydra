@@ -112,8 +112,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-seeding-status", listener);
     return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
-  checkDebridAvailability: (magnets: string[]) =>
-    ipcRenderer.invoke("checkDebridAvailability", magnets),
   getTorrentFiles: (magnet: string) =>
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
@@ -855,6 +853,35 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
+
+  /* Friends */
+  openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
+  openFriendProfileInMainWindow: (userId: string) =>
+    ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
+  openAddFriendModalInMainWindow: () =>
+    ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+  onOpenAddFriendModal: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-open-add-friend-modal", listener);
+    return () =>
+      ipcRenderer.removeListener("on-open-add-friend-modal", listener);
+  },
+  onFriendsUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-friends-updated", listener);
+    return () => ipcRenderer.removeListener("on-friends-updated", listener);
+  },
+  onProfileUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-profile-updated", listener);
+    return () => ipcRenderer.removeListener("on-profile-updated", listener);
+  },
+  onNavigate: (cb: (path: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, path: string) =>
+      cb(path);
+    ipcRenderer.on("on-navigate", listener);
+    return () => ipcRenderer.removeListener("on-navigate", listener);
+  },
 
   /* Game Launcher Window */
   showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),

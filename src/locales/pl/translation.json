@@ -27,7 +27,7 @@
     "queued": "{{title}} (W kolejce)",
     "game_has_no_executable": "Gra nie ma wybranego pliku wykonywalnego",
     "sign_in": "Zaloguj się",
-    "friends": "Znajomi",
+    "friends": "Friends",
     "notifications": "Powiadomienia",
     "need_help": "Potrzebujesz pomocy?",
     "favorites": "Ulubione",
@@ -1164,5 +1164,24 @@
   "system_tray": {
     "open": "Otwórz Hydrę",
     "quit": "Zamknij Hydrę"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

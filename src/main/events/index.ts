@@ -7,6 +7,7 @@ import "./big-picture";
 import "./catalogue";
 import "./cloud-save";
 import "./download-sources";
+import "./friends";
 import "./hardware";
 import "./library";
 import "./leveldb";

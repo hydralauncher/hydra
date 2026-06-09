@@ -1,0 +1,149 @@
+@use "../../scss/globals.scss";
+
+.game-details {
+  &__review-thread {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__review-replies {
+    margin-top: calc(globals.$spacing-unit * 2);
+    margin-left: calc(globals.$spacing-unit * 2.5);
+    padding-left: calc(globals.$spacing-unit * 2);
+    border-left: 2px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__reply-thread {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3.5);
+  }
+
+  &__reply-item {
+    word-wrap: break-word;
+    overflow: hidden;
+  }
+
+  &__reply-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    margin-bottom: calc(globals.$spacing-unit * 0.75);
+
+    button {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  &__reply-date {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+
+  &__reply-content {
+    font-size: globals.$small-font-size;
+    line-height: 1.45;
+  }
+
+  &__reply-actions {
+    margin-top: calc(globals.$spacing-unit * 1);
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+
+    .game-details__vote-button {
+      padding: 4px 8px;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__reply-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__delete-reply-button {
+    padding: 5px;
+    margin-left: auto;
+  }
+
+  &__reply-thread-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__reply-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: globals.$brand-teal;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+      text-decoration: none;
+    }
+
+    &--primary {
+      color: rgba(255, 255, 255, 0.6);
+
+      &:hover {
+        color: #ffffff;
+      }
+    }
+  }
+
+  &__reply-composer {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1);
+
+    .game-details__review-input {
+      min-height: 72px;
+
+      .ProseMirror {
+        min-height: 48px;
+      }
+    }
+  }
+
+  &__reply-composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(globals.$spacing-unit * 1);
+  }
+}
