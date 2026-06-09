@@ -47,6 +47,10 @@ export function UserLibraryGameCard({
     setImageError(false);
   }, [game.coverImageUrl]);
 
+  const isCompleted =
+    (game.achievementCount ?? 0) > 0 &&
+    (game.unlockedAchievementCount ?? 0) >= (game.achievementCount ?? 1);
+
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
     if (game.achievementsPointsEarnedSum > 0) statsCount++;
@@ -192,7 +196,9 @@ export function UserLibraryGameCard({
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        <TrophyIcon size={13} />
+                        {!isCompleted && (
+                          <TrophyIcon size={13} />
+                        )}
                         <span>
                           {game.unlockedAchievementCount} /{" "}
                           {game.achievementCount}
@@ -214,21 +220,29 @@ export function UserLibraryGameCard({
                       )}
                     </div>
 
-                    <span>
-                      {formatDownloadProgress(
-                        game.unlockedAchievementCount / game.achievementCount,
-                        1
+                    <span className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}>
+                      {isCompleted ? (
+                        <TrophyIcon size={13} />
+                      ) : (
+                        formatDownloadProgress(
+                          game.unlockedAchievementCount / game.achievementCount,
+                          1
+                        )
                       )}
                     </span>
                   </div>
 
-                  <progress
-                    max={1}
-                    value={
-                      game.unlockedAchievementCount / game.achievementCount
-                    }
-                    className="user-library-game__achievements-progress"
-                  />
+                  <div className="user-library-game__achievements-progress-track">
+                    <div
+                      className={`user-library-game__achievements-progress${isCompleted ? " user-library-game__achievements-progress--platinum" : ""}`}
+                      role="progressbar"
+                      aria-label={`${game.title} achievements`}
+                      aria-valuenow={game.unlockedAchievementCount ?? 0}
+                      aria-valuemin={0}
+                      aria-valuemax={game.achievementCount ?? 1}
+                      style={{ width: `${(game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1) * 100}%` }}
+                    />
+                  </div>
                 </div>
               )}
           </div>

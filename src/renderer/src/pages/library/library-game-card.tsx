@@ -31,6 +31,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
+  const isCompleted =
+    (game.achievementCount ?? 0) > 0 &&
+    (game.unlockedAchievementCount ?? 0) >= (game.achievementCount ?? 1);
+
   const sources = [
     game.customIconUrl, // Level 0
     game.coverImageUrl, // Level 1
@@ -125,27 +129,40 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           <div className="library-game-card__achievements">
             <div className="library-game-card__achievement-header">
               <div className="library-game-card__achievements-gap">
-                <TrophyIcon
-                  size={13}
-                  className="library-game-card__achievement-trophy"
-                />
+                {!isCompleted && (
+                  <TrophyIcon
+                    size={13}
+                    className="library-game-card__achievement-trophy"
+                  />
+                )}
                 <span className="library-game-card__achievement-count">
                   {game.unlockedAchievementCount ?? 0} /{" "}
                   {game.achievementCount ?? 0}
                 </span>
               </div>
-              <span className="library-game-card__achievement-percentage">
-                {Math.round(
-                  ((game.unlockedAchievementCount ?? 0) /
-                    (game.achievementCount ?? 1)) *
-                    100
+              <span className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}>
+                {isCompleted ? (
+                  <TrophyIcon size={13} />
+                ) : (
+                  <>
+                    {Math.round(
+                      ((game.unlockedAchievementCount ?? 0) /
+                        (game.achievementCount ?? 1)) *
+                        100
+                    )}
+                    %
+                  </>
                 )}
-                %
               </span>
             </div>
             <div className="library-game-card__achievement-progress">
               <div
-                className="library-game-card__achievement-bar"
+                className={`library-game-card__achievement-bar${isCompleted ? " library-game-card__achievement-bar--platinum" : ""}`}
+                role="progressbar"
+                aria-label={`${game.title} achievements`}
+                aria-valuenow={game.unlockedAchievementCount ?? 0}
+                aria-valuemin={0}
+                aria-valuemax={game.achievementCount ?? 1}
                 style={{
                   width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
                 }}

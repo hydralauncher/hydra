@@ -80,6 +80,10 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
     );
   }
 
+  const isCompleted =
+    user.totalAchievementCount > 0 &&
+    user.unlockedAchievementCount >= user.totalAchievementCount;
+
   return (
     <div className="achievements-content__user-summary">
       {getProfileImage(user)}
@@ -87,23 +91,37 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         <h1>{user.displayName}</h1>
         <div className="achievements-content__user-summary__container__stats">
           <div className="achievements-content__user-summary__container__stats__trophy-count">
-            <TrophyIcon size={13} />
+            {!isCompleted && (
+              <TrophyIcon size={13} />
+            )}
             <span>
               {user.unlockedAchievementCount} / {user.totalAchievementCount}
             </span>
           </div>
 
-          <span>
-            {formatDownloadProgress(
-              user.unlockedAchievementCount / user.totalAchievementCount
+          <span className={`achievements-content__user-summary__container__stats__percentage${isCompleted ? " achievements-content__user-summary__container__stats__percentage--completed" : ""}`}>
+            {isCompleted ? (
+              <TrophyIcon size={13} />
+            ) : (
+              formatDownloadProgress(
+                user.totalAchievementCount > 0 ? user.unlockedAchievementCount / user.totalAchievementCount : 0
+              )
             )}
           </span>
         </div>
-        <progress
-          max={1}
-          value={user.unlockedAchievementCount / user.totalAchievementCount}
-          className="achievements-content__user-summary__container__stats__progress-bar"
-        />
+        <div className="achievements-content__user-summary__container__stats__progress-track">
+          <div
+            className={`achievements-content__user-summary__container__stats__progress-bar${isCompleted ? " achievements-content__user-summary__container__stats__progress-bar--platinum" : ""}`}
+            role="progressbar"
+            aria-label={t("achievement_progress", { unlockedCount: user.unlockedAchievementCount, totalCount: user.totalAchievementCount })}
+            aria-valuenow={user.unlockedAchievementCount}
+            aria-valuemin={0}
+            aria-valuemax={user.totalAchievementCount}
+            style={{
+              width: `${user.totalAchievementCount > 0 ? (user.unlockedAchievementCount / user.totalAchievementCount) * 100 : 0}%`,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

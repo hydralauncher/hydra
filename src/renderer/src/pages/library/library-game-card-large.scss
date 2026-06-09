@@ -214,16 +214,6 @@
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
-
-    &::-webkit-progress-bar {
-      background-color: transparent;
-      border-radius: 4px;
-    }
-
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-      border-radius: 4px;
-    }
   }
 
   &__achievement-bar {
@@ -231,6 +221,10 @@
     background-color: globals.$muted-color;
     border-radius: 4px;
     transition: width 0.3s ease;
+
+    &--platinum {
+      @include globals.platinum-gradient;
+    }
   }
 
   &__achievement-count {
@@ -244,5 +238,11 @@
     font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+
+    &--completed {
+      color: globals.$brand-teal;
+    }
   }
 }
