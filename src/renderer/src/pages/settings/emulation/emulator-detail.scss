@@ -25,7 +25,6 @@
   &__hero {
     display: flex;
     align-items: center;
-    gap: 24px;
     padding: 32px;
     background: linear-gradient(
       to right,
@@ -157,6 +156,12 @@
     gap: 4px;
   }
 
+  &__section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   &__row {
     background: #0d0d0d;
     border: 1px solid #1c1c1c;
@@ -239,8 +244,8 @@
     border: 0;
     padding: 0;
     margin: 0;
-    display: flex;
-    width: 100%;
+    display: inline-flex;
+    max-width: 100%;
     align-items: center;
     gap: 8px;
     font-size: 13px;
@@ -248,7 +253,6 @@
     text-align: left;
     cursor: pointer;
     align-self: flex-start;
-    max-width: 100%;
 
     &:hover:not(:disabled),
     &:focus-visible {
@@ -278,7 +282,6 @@
   }
 
   &__exec-path-text {
-    flex: 1;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -325,7 +328,7 @@
   }
 
   &__folder-path {
-    font-size: 16px;
+    font-size: clamp(13px, 1.4vw, 16px);
     font-weight: 600;
     color: #fafafa;
     word-break: break-all;
@@ -335,7 +338,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: clamp(11px, 1.1vw, 13px);
     color: #8e919b;
   }
 
@@ -343,12 +346,14 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: clamp(11px, 1.1vw, 13px);
     color: #c0c1c7;
     cursor: pointer;
 
     input {
       cursor: pointer;
+      width: clamp(13px, 1.3vw, 16px);
+      height: clamp(13px, 1.3vw, 16px);
     }
   }
 
@@ -405,7 +410,7 @@
   }
 
   &__stat-value {
-    font-size: 36px;
+    font-size: clamp(20px, 2.4vw, 30px);
     font-weight: 700;
     color: #fafafa;
     letter-spacing: -0.36px;
@@ -415,6 +420,7 @@
     font-size: 12px;
     color: #8e919b;
     line-height: 18px;
+    margin-top: auto;
   }
 
   &__section-actions {
