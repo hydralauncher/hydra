@@ -40,6 +40,16 @@ function getCatalogueFiltersModalInputFocusId(filterType: FilterType) {
   return `${CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX}:input:${filterType}`;
 }
 
+function getInitialCatalogueFiltersModalMainFocusIds() {
+  return Object.values(FilterType).reduce<Record<FilterType, string>>(
+    (focusIds, filterType) => {
+      focusIds[filterType] = getCatalogueFiltersModalInputFocusId(filterType);
+      return focusIds;
+    },
+    {} as Record<FilterType, string>
+  );
+}
+
 function easeOutCubic(progress: number): number {
   return 1 - Math.pow(1 - progress, 3);
 }
@@ -521,8 +531,8 @@ export function CatalogueFiltersModal({
   const filterListRefs = useRef<
     Partial<Record<FilterType, CatalogueFiltersModalListHandle | null>>
   >({});
-  const [lastMainFocusId, setLastMainFocusId] = useState(
-    getCatalogueFiltersModalInputFocusId(activeFilterType)
+  const [lastMainFocusIds, setLastMainFocusIds] = useState(
+    getInitialCatalogueFiltersModalMainFocusIds
   );
   const [lastSelectedFocusId, setLastSelectedFocusId] = useState<string | null>(
     null
@@ -674,6 +684,7 @@ export function CatalogueFiltersModal({
   const hasActiveSearchFocus = currentFocusId === activeSearchFocusId;
   const hasActiveItemFocus = currentItemIndex >= 0;
   const hasSelectedItemFocus = currentSelectedItemIndex >= 0;
+  const lastMainFocusId = lastMainFocusIds[activeFilterType];
   const lastMainItemIndex = activeItems.findIndex(
     (item) => item.focusId === lastMainFocusId
   );
@@ -700,14 +711,34 @@ export function CatalogueFiltersModal({
       return;
     }
 
-    setLastMainFocusId(currentFocusId);
-  }, [currentFocusId, hasActiveItemFocus, hasActiveSearchFocus, visible]);
+    setLastMainFocusIds((currentFocusIds) =>
+      currentFocusIds[activeFilterType] === currentFocusId
+        ? currentFocusIds
+        : {
+            ...currentFocusIds,
+            [activeFilterType]: currentFocusId,
+          }
+    );
+  }, [
+    activeFilterType,
+    currentFocusId,
+    hasActiveItemFocus,
+    hasActiveSearchFocus,
+    visible,
+  ]);
 
   useEffect(() => {
     if (lastMainFocusId !== lastValidMainFocusId) {
-      setLastMainFocusId(lastValidMainFocusId);
+      setLastMainFocusIds((currentFocusIds) =>
+        currentFocusIds[activeFilterType] === lastValidMainFocusId
+          ? currentFocusIds
+          : {
+              ...currentFocusIds,
+              [activeFilterType]: lastValidMainFocusId,
+            }
+      );
     }
-  }, [lastMainFocusId, lastValidMainFocusId]);
+  }, [activeFilterType, lastMainFocusId, lastValidMainFocusId]);
 
   useEffect(() => {
     if (!visible || !currentFocusId || !hasSelectedItemFocus) {
@@ -727,11 +758,7 @@ export function CatalogueFiltersModal({
     if (hasSelectedItemFocus) {
       scheduleSelectedListBottomUpdate();
     }
-  }, [
-    currentFocusId,
-    hasSelectedItemFocus,
-    scheduleSelectedListBottomUpdate,
-  ]);
+  }, [currentFocusId, hasSelectedItemFocus, scheduleSelectedListBottomUpdate]);
 
   const focusLastMainItem = useCallback(() => {
     if (
