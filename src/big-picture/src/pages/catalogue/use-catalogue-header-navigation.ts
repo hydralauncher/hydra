@@ -2,17 +2,16 @@ import { useEffect, useState } from "react";
 import { BIG_PICTURE_HEADER_REGION_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
+  CATALOGUE_FILTERS_BUTTON_ID,
   CATALOGUE_GRID_REGION_ID,
   CATALOGUE_HEADER_CONTROLS_REGION_ID,
   CATALOGUE_SORT_SELECT_ID,
-  getCatalogueFilterHeaderFocusId,
 } from "./navigation";
 import {
   getActivePositionsInRegion,
   getCatalogueFocusPosition,
   getClosestPositionInDirection,
 } from "./navigation-geometry";
-import { FilterType } from "./use-catalogue-data";
 
 export function useCatalogueHeaderNavigation(itemIds: string[]) {
   const [overridesByItemId, setOverridesByItemId] = useState<
@@ -29,7 +28,9 @@ export function useCatalogueHeaderNavigation(itemIds: string[]) {
         .map((id) => getCatalogueFocusPosition(id))
         .filter((position) => !!position);
       const chipAndClearPositions = positions.filter(
-        (position) => position.id !== CATALOGUE_SORT_SELECT_ID
+        (position) =>
+          position.id !== CATALOGUE_FILTERS_BUTTON_ID &&
+          position.id !== CATALOGUE_SORT_SELECT_ID
       );
       const gridPositions = getActivePositionsInRegion(
         CATALOGUE_GRID_REGION_ID
@@ -47,22 +48,32 @@ export function useCatalogueHeaderNavigation(itemIds: string[]) {
           positions,
           "right"
         );
+        const gridPosition = getClosestPositionInDirection(
+          position,
+          gridPositions,
+          "down"
+        );
 
-        if (position.id === CATALOGUE_SORT_SELECT_ID) {
+        if (
+          position.id === CATALOGUE_FILTERS_BUTTON_ID ||
+          position.id === CATALOGUE_SORT_SELECT_ID
+        ) {
           nextOverrides[position.id] = {
             left: leftPosition
               ? { type: "item", itemId: leftPosition.id }
               : { type: "block" },
-            right: { type: "block" },
+            right:
+              position.id === CATALOGUE_SORT_SELECT_ID || !rightPosition
+                ? { type: "block" }
+                : { type: "item", itemId: rightPosition.id },
             up: {
               type: "region",
               regionId: BIG_PICTURE_HEADER_REGION_ID,
               entryDirection: "down",
             },
-            down: {
-              type: "item",
-              itemId: getCatalogueFilterHeaderFocusId(FilterType.Genres),
-            },
+            down: gridPosition
+              ? { type: "item", itemId: gridPosition.id }
+              : { type: "block" },
           };
           return;
         }
@@ -77,12 +88,6 @@ export function useCatalogueHeaderNavigation(itemIds: string[]) {
           chipAndClearPositions,
           "down"
         );
-        const gridPosition = getClosestPositionInDirection(
-          position,
-          gridPositions,
-          "down"
-        );
-
         nextOverrides[position.id] = {
           left: leftPosition
             ? { type: "item", itemId: leftPosition.id }

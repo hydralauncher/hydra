@@ -1,5 +1,6 @@
-import { SortAscendingIcon } from "@phosphor-icons/react";
+import { FunnelIcon, SortAscendingIcon } from "@phosphor-icons/react";
 import {
+  Button,
   Chip,
   DropdownSelect,
   FocusItem,
@@ -10,10 +11,10 @@ import { useNavigationActions } from "../../hooks";
 import { useNavigationStore } from "../../stores";
 import {
   CATALOGUE_CLEAR_FILTERS_ID,
+  CATALOGUE_FILTERS_BUTTON_ID,
   CATALOGUE_HEADER_CONTROLS_REGION_ID,
   CATALOGUE_SORT_SELECT_ID,
   getCatalogueActiveFilterChipFocusId,
-  getCatalogueFilterHeaderFocusId,
 } from "./navigation";
 import {
   CATALOGUE_SORT_OPTIONS,
@@ -28,6 +29,7 @@ interface HeaderProps {
   values: SearchGamesFormValues;
   updateSearchParams: (newValues: Partial<SearchGamesFormValues>) => void;
   catalogueData: CatalogueData;
+  onOpenFilters: () => void;
 }
 
 interface FilterItem {
@@ -40,6 +42,7 @@ export function CatalogueHeader({
   values,
   updateSearchParams,
   catalogueData,
+  onOpenFilters,
 }: Readonly<HeaderProps>) {
   const {
     title,
@@ -104,6 +107,7 @@ export function CatalogueHeader({
   const headerFocusIds = [
     ...chipFocusIds,
     ...(activeFilters.length > 0 ? [CATALOGUE_CLEAR_FILTERS_ID] : []),
+    CATALOGUE_FILTERS_BUTTON_ID,
     CATALOGUE_SORT_SELECT_ID,
   ];
   const navigationOverridesById = useCatalogueHeaderNavigation(headerFocusIds);
@@ -130,7 +134,7 @@ export function CatalogueHeader({
       activeFilters[filterIndex + 1] ?? activeFilters[filterIndex - 1];
     const targetId = nextFilter
       ? getCatalogueActiveFilterChipFocusId(nextFilter.type, nextFilter.value)
-      : CATALOGUE_SORT_SELECT_ID;
+      : CATALOGUE_FILTERS_BUTTON_ID;
 
     updateSearchParams({
       [type]: currentFilters.filter((item) => item !== value),
@@ -146,7 +150,7 @@ export function CatalogueHeader({
       developers: [],
       downloadSourceFingerprints: [],
     });
-    restoreHeaderFocus(CATALOGUE_CLEAR_FILTERS_ID, CATALOGUE_SORT_SELECT_ID);
+    restoreHeaderFocus(CATALOGUE_CLEAR_FILTERS_ID, CATALOGUE_FILTERS_BUTTON_ID);
   };
 
   const handleSortChange = (value: CatalogueSortValue) => {
@@ -231,28 +235,39 @@ export function CatalogueHeader({
         </div>
       </div>
 
-      <div className="catalogue-header__sort">
-        <DropdownSelect
-          className="catalogue-header__sort-select"
-          label="Sort by"
-          hideLabel
-          leadingIcon={<SortAscendingIcon size={22} />}
-          ariaLabel="Sort catalogue games"
-          focusId={CATALOGUE_SORT_SELECT_ID}
-          focusNavigationOverrides={{
-            ...navigationOverridesById[CATALOGUE_SORT_SELECT_ID],
-            down: {
-              type: "item",
-              itemId: getCatalogueFilterHeaderFocusId(FilterType.Genres),
-            },
-          }}
-          value={selectedSortOption.value}
-          options={CATALOGUE_SORT_OPTIONS.map(({ value, label }) => ({
-            value,
-            label,
-          }))}
-          onValueChange={handleSortChange}
-        />
+      <div className="catalogue-header__actions">
+        <Button
+          className="catalogue-header__filters-button"
+          variant="rounded"
+          icon={<FunnelIcon size={20} />}
+          focusId={CATALOGUE_FILTERS_BUTTON_ID}
+          focusNavigationOverrides={
+            navigationOverridesById[CATALOGUE_FILTERS_BUTTON_ID]
+          }
+          onClick={onOpenFilters}
+        >
+          Filters
+        </Button>
+
+        <div className="catalogue-header__sort">
+          <DropdownSelect
+            className="catalogue-header__sort-select"
+            label="Sort by"
+            hideLabel
+            leadingIcon={<SortAscendingIcon size={22} />}
+            ariaLabel="Sort catalogue games"
+            focusId={CATALOGUE_SORT_SELECT_ID}
+            focusNavigationOverrides={
+              navigationOverridesById[CATALOGUE_SORT_SELECT_ID]
+            }
+            value={selectedSortOption.value}
+            options={CATALOGUE_SORT_OPTIONS.map(({ value, label }) => ({
+              value,
+              label,
+            }))}
+            onValueChange={handleSortChange}
+          />
+        </div>
       </div>
     </GridFocusGroup>
   );
