@@ -56,7 +56,11 @@ import {
   writeHomeCache,
   type HomeCacheKey,
 } from "./home-cache";
-import { shuffleWithSeparation, type HomeRowSpec } from "./home-row-shuffle";
+import {
+  shuffleWithSeparation,
+  makeRng,
+  type HomeRowSpec,
+} from "./home-row-shuffle";
 import { HomeHydrationContext } from "./home-hydration-context";
 import "./home.scss";
 
@@ -187,7 +191,7 @@ function refreshSessionSeedIfStale(): { seed: number; wasFresh: boolean } {
        simultaneous launches still get distinct seeds. */
     seed =
       (Math.floor(Math.random() * 1_000_000_000) ^ now ^ (now >>> 16)) >>> 0;
-    if (seed === 0) seed = 1; /* mulberry32 needs non-zero */
+    if (seed === 0) seed = 1; /* PRNG needs non-zero */
   } else {
     seed = last!.seed;
   }
@@ -220,6 +224,10 @@ const FETCH_SIZE = 96;
 const CLASSICS_FETCH_SIZE = 128;
 /** Below this, a discovery row triggers pool-relaxation fallback. */
 const POOL_RELAX_THRESHOLD = 8;
+const REFETCH_THROTTLE_MS = 2 * 60 * 1000;
+const SURPRISE_SKELETON_MS = 520;
+const RESHUFFLE_SCROLL_MS = 420;
+const SEED_MASK = 0xffffffff;
 /** Number of distinct lazy-load tiers. Each tier is a 10-row slice
  *  of the unified ordered row list (tier 0 = rows 0-9, tier 1 =
  *  rows 10-19, tier 2 = rows 20-29, tier 3 = rows 30-39). A
@@ -380,18 +388,6 @@ const SPOTLIGHTS = [
 const keyOf = (g: { shop: string; objectId: string }) =>
   `${g.shop}:${g.objectId}`;
 
-/* Mulberry32 — small, fast, deterministic PRNG for seeded shuffles. */
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return function rng() {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 /** Hash a string + base seed into a per-row PRNG seed. */
 function hashRowKey(rowKey: string, baseSeed: number): number {
   let h = baseSeed >>> 0;
@@ -406,7 +402,7 @@ function hashRowKey(rowKey: string, baseSeed: number): number {
 function pickN<T>(arr: T[], n: number, seed: number): T[] {
   if (arr.length <= n) return arr.slice();
   const indices = Array.from({ length: arr.length }, (_, i) => i);
-  const rng = mulberry32(seed);
+  const rng = makeRng(seed);
   /* Fisher-Yates on indices */
   for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -450,7 +446,7 @@ function pickNDiverse<T extends { title: string }>(
 ): T[] {
   if (arr.length <= n) return arr.slice();
   const indices = Array.from({ length: arr.length }, (_, i) => i);
-  const rng = mulberry32(seed);
+  const rng = makeRng(seed);
   for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
@@ -715,7 +711,6 @@ export default function Home() {
         Throttled to 2 minutes since the last bump. Quick tab toggles
         stay layout-stable; a deliberate "I've been away a while"
         return still gets fresh data. */
-  const REFETCH_THROTTLE_MS = 2 * 60 * 1000;
   const [refetchToken, setRefetchToken] = useState(0);
   const prevPathRef = useRef(location.pathname);
   const lastRefetchAtRef = useRef(0);
@@ -943,18 +938,6 @@ export default function Home() {
       ...tagKeys,
       ...classicsPgKeys,
     ]).then((cache) => {
-      /* TEMP DEBUG — paste this in your bug report so we can see
-         which cache keys are hydrated on remount vs. which come back
-         null. Drop once classics invisibility is resolved. */
-      /* eslint-disable-next-line no-console */
-      console.log("[home/cache hydrate]", {
-        popular: cache.popular?.length ?? null,
-        classics: cache.classics?.length ?? null,
-        ps1: cache.ps1?.length ?? null,
-        ps2: cache.ps2?.length ?? null,
-        ps3: cache.ps3?.length ?? null,
-        retroPc: cache.retroPc?.length ?? null,
-      });
       if (cache.popular) {
         setHotGames(cache.popular);
         setIsLoadingHot(false);
@@ -1069,48 +1052,16 @@ export default function Home() {
     [fetchCatalogueRowRaw]
   );
 
-  /* TEMP DEBUG: log every /catalogue/search response so we can see in
-     the renderer Console which rows are getting filtered data and
-     which fall back to generic results. Remove after diagnosing.
-     Identifies the row by whichever filter field is non-default
-     (genres / tags / platforms / sortBy override). */
-  const debugLabel = useCallback((body: Record<string, unknown>) => {
-    const g = body.genres as string[] | undefined;
-    if (g && g.length) return `genres=${g.join(",")}`;
-    const t = body.tags as number[] | undefined;
-    if (t && t.length) return `tags=${t.join(",")}`;
-    const p = body.platforms as string[] | undefined;
-    if (p && p.length) return `platforms=${p.join(",")}`;
-    const s = body.shops as string[] | undefined;
-    if (s && s.length) return `shops=${s.join(",")}`;
-    const sb = body.sortBy as string | undefined;
-    if (sb && sb !== "popularity") return `sortBy=${sb}`;
-    return "default";
-  }, []);
-
   const postSearch = useCallback(
-    <T,>(body: Record<string, unknown>) => {
-      const label = debugLabel(body);
-      const t0 = performance.now();
-      return window.electron.hydraApi
+    <T,>(body: Record<string, unknown>) =>
+      window.electron.hydraApi
         .post<{ edges: T[]; count: number }>("/catalogue/search", {
           data: body,
           needsAuth: false,
         })
-        .then((r) => {
-          /* eslint-disable-next-line no-console */
-          console.log(
-            `[home/search] ${label} → ${r.edges.length} edges (count=${r.count}) in ${Math.round(performance.now() - t0)}ms`
-          );
-          return r.edges;
-        })
-        .catch((err) => {
-          /* eslint-disable-next-line no-console */
-          console.warn(`[home/search] ${label} FAILED`, err, "BODY:", body);
-          return [] as T[];
-        });
-    },
-    [debugLabel]
+        .then((r) => r.edges)
+        .catch(() => [] as T[]),
+    []
   );
 
   /* Classics-specific fetch with un-gated relaxation. Tries up to
@@ -1242,7 +1193,11 @@ export default function Home() {
        actually play"). `playerCount` was rejected by the API with a
        400; it isn't one of the accepted sortBy values per the
        CatalogueSearchPayload type. */
-    fetchPcDiscoveryRow({ sortBy: "hydraScore", sortOrder: "desc" }, sourceIds)
+    const mostPlayedPromise = fetchPcDiscoveryRow(
+      { sortBy: "hydraScore", sortOrder: "desc" },
+      sourceIds
+    );
+    mostPlayedPromise
       .then((games) =>
         swrSet(
           setMostPlayedHydraGames,
@@ -1270,16 +1225,19 @@ export default function Home() {
         sourceIds
       ),
       fetchPcDiscoveryRow(
-        { sortBy: "hydraScore", sortOrder: "desc" },
+        { sortBy: "reviewScore", sortOrder: "desc" },
         sourceIds
       ),
+      mostPlayedPromise,
     ])
-      .then(([recent, gems]) => {
+      .then(([recent, acclaimed, popular]) => {
         swrSet(
           setRecentlyAddedGames,
           recent.map(catalogueToRowGame),
           "recentlyAdded"
         );
+        const popularKeys = new Set(popular.map(keyOf));
+        const gems = acclaimed.filter((g) => !popularKeys.has(keyOf(g)));
         swrSet(setHiddenGemsGames, gems.map(catalogueToRowGame), "hiddenGems");
       })
       .finally(() => setIsLoadingPrimary(false));
@@ -1351,16 +1309,6 @@ export default function Home() {
           });
           friendsByGame.set(key, list);
         }
-        /* TEMP DEBUG — confirms whether multi-game responses are
-           collapsing in dedup or genuinely arriving as singletons. */
-        // eslint-disable-next-line no-console
-        console.debug(
-          "[home/friends] unique games:",
-          byKey.size,
-          "from",
-          response.friends.length,
-          "friends"
-        );
         setFriendsPlayingGames(Array.from(byKey.values()));
         setFriendsByGameKey(friendsByGame);
       })
@@ -1384,9 +1332,8 @@ export default function Home() {
         normal rows have when they first come into view. The duration
         is short enough that the reshuffle still feels snappy but long
         enough to land a perceptible skeleton frame. */
-  const SURPRISE_SKELETON_MS = 520;
   const [surpriseSeed, setSurpriseSeed] = useState<number>(
-    () => (Math.random() * 0xffffffff) | 0
+    () => (Math.random() * SEED_MASK) | 0
   );
   const [surpriseLoading, setSurpriseLoading] = useState(false);
   /* Monotonic counter bumped on every Reshuffle. Forwarded to the
@@ -1415,7 +1362,6 @@ export default function Home() {
      length too (titleRefreshSpin 0.5s), so the visual cycle of
      "icon spins / cards slide back / new cards appear" reads as
      a single fluid action. */
-  const RESHUFFLE_SCROLL_MS = 420;
   const handleReshuffle = useCallback(() => {
     /* 1. Bump the scroll signal NOW. HomeRow's scrollResetSignal
           effect smooth-scrolls the existing cards back to slot 0. */
@@ -1427,7 +1373,7 @@ export default function Home() {
     }
     reshuffleSwapTimerRef.current = setTimeout(() => {
       reshuffleSwapTimerRef.current = null;
-      setSurpriseSeed((Math.random() * 0xffffffff) | 0);
+      setSurpriseSeed((Math.random() * SEED_MASK) | 0);
       setSurpriseLoading(true);
       if (surpriseTimeoutRef.current) clearTimeout(surpriseTimeoutRef.current);
       surpriseTimeoutRef.current = setTimeout(
@@ -2511,71 +2457,6 @@ export default function Home() {
     hiddenGemsGames,
     criticallyAcclaimedGames,
     brandNewGames,
-  ]);
-
-  /* Per-platform fallback pool: when the dedicated PS1/PS2/PS3 fetch
-     returns empty (staging /catalogue/search returns 400 for
-     {shops:["launchbox"], platforms:[key]} queries), try to surface
-     on-platform content from sources that DID succeed — the broad
-     classicsGames fetch + the user's library — by filtering on
-     `platform`. If even those have no entries tagged with this
-     system (degraded API doesn't populate `platform`), cascade to
-     the broad classicsFallbackPool so the row stays visible with
-     non-platform-specific classics rather than vanishing. The
-     per-row tier-scoped dedup still keeps PS1/PS2/PS3 from showing
-     identical content. */
-  const classicsLibPlatformPool = useCallback(
-    (system: "ps1" | "ps2" | "ps3") => {
-      const onPlatform: HomeRowGame[] = [];
-      const seenIds = new Set<string>();
-      const ingest = (games: HomeRowGame[]) => {
-        for (const g of games) {
-          if (platformToSystem(g.platform) !== system) continue;
-          const k = keyOf(g);
-          if (seenIds.has(k)) continue;
-          seenIds.add(k);
-          onPlatform.push(g);
-        }
-      };
-      ingest(classicsGames);
-      ingest(libraryClassicsPool);
-      if (onPlatform.length > 0) return onPlatform;
-      /* No platform-tagged data — return the broad classics union so
-         the row at least shows retro content. Per-tier dedup +
-         seeded shuffle keep this from feeling like an exact dupe of
-         Browse Classics. */
-      return classicsFallbackPool;
-    },
-    [classicsGames, libraryClassicsPool, classicsFallbackPool]
-  );
-
-  /* TEMP DEBUG — surface the classics pool sizes so we can see why
-     the PS2/PS3 rows are empty on the user's machine. Logs whenever
-     any of the contributing inputs change. Drop once diagnosed. */
-  useEffect(() => {
-    /* eslint-disable-next-line no-console */
-    console.log("[home/classics state]", {
-      classicsGames: classicsGames.length,
-      ps1Games: ps1Games.length,
-      ps2Games: ps2Games.length,
-      ps3Games: ps3Games.length,
-      libraryClassics: libraryClassicsPool.length,
-      classicsFallback: classicsFallbackPool.length,
-      ps1Fallback: classicsLibPlatformPool("ps1").length,
-      ps2Fallback: classicsLibPlatformPool("ps2").length,
-      ps3Fallback: classicsLibPlatformPool("ps3").length,
-      sampleClassicsPlatforms: classicsGames
-        .slice(0, 8)
-        .map((g) => `${g.title} → ${g.platform ?? "(no platform)"}`),
-    });
-  }, [
-    classicsGames,
-    ps1Games,
-    ps2Games,
-    ps3Games,
-    libraryClassicsPool,
-    classicsFallbackPool,
-    classicsLibPlatformPool,
   ]);
 
   /* ── Personal-signal flag — drives discovery-only mode ─────── */

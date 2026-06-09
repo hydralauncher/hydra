@@ -48,7 +48,7 @@ export interface HomeRowSpec {
 
 /** Tiny mulberry32-style PRNG. Kept inline (no global RNG state) so
  *  the same `sessionSeed` always yields the same order. */
-const makeRng = (seed: number) => {
+export const makeRng = (seed: number) => {
   let s = seed >>> 0 || 1;
   return () => {
     s = (s + 0x6d2b79f5) | 0;
