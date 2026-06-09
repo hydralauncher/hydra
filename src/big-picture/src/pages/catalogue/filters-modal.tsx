@@ -31,8 +31,7 @@ import {
 const CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX = "catalogue-filters-modal";
 const CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX =
   "catalogue-filters-modal-selected";
-const CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID =
-  `${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}:clear-all`;
+const CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID = `${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}:clear-all`;
 const CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT = 56;
 const CATALOGUE_FILTERS_MODAL_FALLBACK_VISIBLE_ITEMS = 8;
 const CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS = 180;
@@ -243,7 +242,10 @@ function useCatalogueFiltersModalNavigation({
         return;
       }
 
-      if (direction === "right" && (hasSelectedFocus || hasClearSelectedFocus)) {
+      if (
+        direction === "right" &&
+        (hasSelectedFocus || hasClearSelectedFocus)
+      ) {
         return;
       }
 
@@ -545,9 +547,9 @@ export function CatalogueFiltersModal({
   const [lastMainFocusId, setLastMainFocusId] = useState(
     getCatalogueFiltersModalInputFocusId(activeFilterType)
   );
-  const [lastSelectedFocusId, setLastSelectedFocusId] = useState<
-    string | null
-  >(null);
+  const [lastSelectedFocusId, setLastSelectedFocusId] = useState<string | null>(
+    null
+  );
   const selectedListViewportRef = useRef<HTMLDivElement | null>(null);
   const selectedListRef = useRef<HTMLDivElement | null>(null);
   const selectedListScrollFrameRef = useRef<number | null>(null);
@@ -568,10 +570,7 @@ export function CatalogueFiltersModal({
     const isScrolledToBottom =
       hasOverflow && selectedList.scrollTop >= maxScrollTop - 8;
 
-    selectedListViewport.toggleAttribute(
-      "data-at-bottom",
-      isScrolledToBottom
-    );
+    selectedListViewport.toggleAttribute("data-at-bottom", isScrolledToBottom);
   }, []);
 
   const scheduleSelectedListBottomUpdate = useCallback(() => {
@@ -767,10 +766,14 @@ export function CatalogueFiltersModal({
   ]);
 
   const focusLastMainItem = useCallback(() => {
-    if (lastValidMainFocusId !== activeSearchFocusId && lastMainItemIndex >= 0) {
-      const focused = filterListRefs.current[
-        activeFilterType
-      ]?.focusItemCentered(lastMainItemIndex);
+    if (
+      lastValidMainFocusId !== activeSearchFocusId &&
+      lastMainItemIndex >= 0
+    ) {
+      const focused =
+        filterListRefs.current[activeFilterType]?.focusItemCentered(
+          lastMainItemIndex
+        );
 
       if (!focused) {
         setFocus(activeItems[lastMainItemIndex].focusId);
