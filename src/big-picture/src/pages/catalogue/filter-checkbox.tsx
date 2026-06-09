@@ -1,4 +1,4 @@
-import { CheckIcon } from "@phosphor-icons/react";
+import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { FocusItem } from "../../components";
 import { useNavigationIsFocused } from "../../stores";
 
@@ -9,6 +9,7 @@ interface CatalogueFilterCheckboxProps {
   color: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  variant?: "checkbox" | "remove";
 }
 
 export function CatalogueFilterCheckbox({
@@ -18,20 +19,23 @@ export function CatalogueFilterCheckbox({
   color,
   checked,
   onChange,
+  variant = "checkbox",
 }: Readonly<CatalogueFilterCheckboxProps>) {
   const labelId = `${id}-label`;
   const isFocused = useNavigationIsFocused(focusId);
+  const isRemoveVariant = variant === "remove";
 
   return (
     <FocusItem id={focusId} asChild>
       <button
         type="button"
         className="catalogue-filter-checkbox"
+        data-variant={variant}
         data-modal-filter-focused={isFocused || undefined}
-        role="checkbox"
-        aria-checked={checked}
+        role={isRemoveVariant ? undefined : "checkbox"}
+        aria-checked={isRemoveVariant ? undefined : checked}
         aria-labelledby={labelId}
-        onClick={() => onChange(!checked)}
+        onClick={() => onChange(isRemoveVariant ? false : !checked)}
       >
         <span
           className="catalogue-filter-checkbox__dot"
@@ -42,9 +46,15 @@ export function CatalogueFilterCheckbox({
           {label}
         </span>
 
-        <span className="catalogue-filter-checkbox__box" aria-hidden>
-          {checked ? <CheckIcon size={22} weight="bold" /> : null}
-        </span>
+        {isRemoveVariant ? (
+          <span className="catalogue-filter-checkbox__remove-button" aria-hidden>
+            <XIcon size={12} weight="bold" />
+          </span>
+        ) : (
+          <span className="catalogue-filter-checkbox__box" aria-hidden>
+            {checked ? <CheckIcon size={22} weight="bold" /> : null}
+          </span>
+        )}
       </button>
     </FocusItem>
   );

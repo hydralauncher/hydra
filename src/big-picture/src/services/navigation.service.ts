@@ -12,6 +12,7 @@ export type FocusOverrideTarget =
       type: "region";
       regionId: string;
       entryDirection?: FocusDirection;
+      initialFocusId?: string;
       preferRememberedFocus?: boolean;
     }
   | {
@@ -72,6 +73,7 @@ type PendingInitialFocusRequest = {
 };
 
 interface SetFocusRegionOptions {
+  initialFocusId?: string;
   preferRememberedFocus?: boolean;
 }
 
@@ -1457,6 +1459,7 @@ export class NavigationService {
       target.regionId,
       target.entryDirection ?? direction,
       {
+        initialFocusId: target.initialFocusId,
         preferRememberedFocus: target.preferRememberedFocus,
       }
     );
@@ -1501,6 +1504,16 @@ export class NavigationService {
   ): string | null {
     if (!this.isRegionInActiveLayer(regionId)) {
       return null;
+    }
+
+    if (
+      options.initialFocusId &&
+      this.nodes.has(options.initialFocusId) &&
+      this.isNodeActive(options.initialFocusId) &&
+      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
+      this.isNodeInActiveLayer(options.initialFocusId)
+    ) {
+      return options.initialFocusId;
     }
 
     const rememberedNodeId =
@@ -1693,7 +1706,9 @@ export class NavigationService {
     if (left.type === "region" && right.type === "region") {
       return (
         left.regionId === right.regionId &&
-        left.entryDirection === right.entryDirection
+        left.entryDirection === right.entryDirection &&
+        left.initialFocusId === right.initialFocusId &&
+        left.preferRememberedFocus === right.preferRememberedFocus
       );
     }
 
@@ -1865,6 +1880,7 @@ export class NavigationService {
       target.regionId,
       target.entryDirection ?? direction,
       {
+        initialFocusId: target.initialFocusId,
         preferRememberedFocus: target.preferRememberedFocus,
       }
     );

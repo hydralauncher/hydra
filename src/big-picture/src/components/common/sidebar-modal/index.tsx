@@ -37,6 +37,7 @@ export interface SidebarModalProps {
   activeTabId?: string;
   defaultActiveTabId?: string;
   onActiveTabChange?: (tabId: string) => void;
+  contentInitialFocusId?: string;
   className?: string;
   ariaLabel?: string;
   closeOnBackdrop?: boolean;
@@ -65,6 +66,7 @@ export function SidebarModal({
   activeTabId,
   defaultActiveTabId,
   onActiveTabChange,
+  contentInitialFocusId,
   className,
   ariaLabel,
   closeOnBackdrop = true,
@@ -300,7 +302,10 @@ export function SidebarModal({
                             type: "region",
                             regionId: contentRegionId,
                             entryDirection: "right",
-                            preferRememberedFocus: true,
+                            initialFocusId: contentInitialFocusId,
+                            preferRememberedFocus: contentInitialFocusId
+                              ? false
+                              : true,
                           }
                         : { type: "block" },
                     }}

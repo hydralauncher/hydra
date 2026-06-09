@@ -28,9 +28,12 @@ import {
 } from "./use-catalogue-data";
 
 const CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX = "catalogue-filters-modal";
+const CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX =
+  "catalogue-filters-modal-selected";
 const CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT = 56;
 const CATALOGUE_FILTERS_MODAL_FALLBACK_VISIBLE_ITEMS = 8;
 const CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS = 180;
+const CATALOGUE_FILTERS_MODAL_FADE_SWAP_DELAY_MS = 140;
 
 function getCatalogueFiltersModalInputFocusId(filterType: FilterType) {
   return `${CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX}:input:${filterType}`;
@@ -109,16 +112,25 @@ interface CatalogueFiltersModalListHandle {
   focusItemCentered: (index: number) => boolean;
 }
 
+interface SelectedCatalogueFilterItem extends CatalogueFilterListItem {
+  filterType: FilterType;
+  color: string;
+}
+
 function useCatalogueFiltersModalNavigation({
   visible,
+  activeFilterType,
   searchFocusId,
   items,
+  selectedItems,
   focusItem,
   focusItemCentered,
 }: {
   visible: boolean;
+  activeFilterType: FilterType;
   searchFocusId: string;
   items: CatalogueFilterListItem[];
+  selectedItems: SelectedCatalogueFilterItem[];
   focusItem: CatalogueFiltersModalListHandle["focusItem"];
   focusItemCentered: CatalogueFiltersModalListHandle["focusItemCentered"];
 }) {
@@ -128,12 +140,28 @@ function useCatalogueFiltersModalNavigation({
   const currentItemIndex = items.findIndex(
     (item) => item.focusId === currentFocusId
   );
+  const currentSelectedIndex = selectedItems.findIndex(
+    (item) => item.focusId === currentFocusId
+  );
   const hasSearchFocus = currentFocusId === searchFocusId;
   const hasItemFocus = currentItemIndex >= 0;
-  const hasModalListFocus = visible && (hasSearchFocus || hasItemFocus);
+  const hasSelectedFocus = currentSelectedIndex >= 0;
+  const hasMainFocus = visible && (hasSearchFocus || hasItemFocus);
+  const hasSelectedSidebarFocus = visible && hasSelectedFocus;
 
   const moveWithinModalList = useCallback(
     (direction: "up" | "down") => {
+      if (hasSelectedFocus) {
+        const nextIndex =
+          currentSelectedIndex + (direction === "down" ? 1 : -1);
+        const nextItem = selectedItems[nextIndex];
+
+        if (nextItem) {
+          setFocus(nextItem.focusId);
+        }
+        return;
+      }
+
       if (hasSearchFocus) {
         if (direction === "down" && items.length > 0) {
           focusItem(0, "top");
@@ -169,26 +197,94 @@ function useCatalogueFiltersModalNavigation({
     },
     [
       currentItemIndex,
+      currentSelectedIndex,
       focusItem,
       focusItemCentered,
       hasItemFocus,
       hasSearchFocus,
+      hasSelectedFocus,
       items,
       moveFocus,
       searchFocusId,
+      selectedItems,
+      setFocus,
+    ]
+  );
+
+  const moveHorizontallyWithinModal = useCallback(
+    (direction: "left" | "right") => {
+      if (direction === "right" && (hasSearchFocus || hasItemFocus)) {
+        const selectedIndex = hasItemFocus
+          ? Math.min(currentItemIndex, selectedItems.length - 1)
+          : 0;
+        const selectedItem = selectedItems[selectedIndex];
+
+        if (selectedItem) {
+          setFocus(selectedItem.focusId);
+          return;
+        }
+
+        moveFocus(direction);
+        return;
+      }
+
+      if (direction === "left" && hasSelectedFocus) {
+        const currentSelectedItem = selectedItems[currentSelectedIndex];
+        const matchingItemIndex =
+          currentSelectedItem?.filterType === activeFilterType
+            ? items.findIndex((item) => item.value === currentSelectedItem.value)
+            : -1;
+
+        if (matchingItemIndex >= 0) {
+          if (!focusItemCentered(matchingItemIndex)) {
+            setFocus(items[matchingItemIndex].focusId);
+          }
+          return;
+        }
+
+        setFocus(searchFocusId);
+        return;
+      }
+
+      if (direction === "right" && hasSelectedFocus) return;
+
+      moveFocus(direction);
+    },
+    [
+      activeFilterType,
+      currentItemIndex,
+      currentSelectedIndex,
+      focusItemCentered,
+      hasItemFocus,
+      hasSearchFocus,
+      hasSelectedFocus,
+      items,
+      moveFocus,
+      searchFocusId,
+      selectedItems,
       setFocus,
     ]
   );
 
   useNavigationScreenActions(
-    hasModalListFocus
+    hasMainFocus
       ? {
           direction: {
+            right: () => moveHorizontallyWithinModal("right"),
             up: () => moveWithinModalList("up"),
             down: () => moveWithinModalList("down"),
           },
         }
-      : {}
+      : hasSelectedSidebarFocus
+        ? {
+            direction: {
+              left: () => moveHorizontallyWithinModal("left"),
+              right: () => moveHorizontallyWithinModal("right"),
+              up: () => moveWithinModalList("up"),
+              down: () => moveWithinModalList("down"),
+            },
+          }
+        : {}
   );
 }
 
@@ -393,9 +489,14 @@ export function CatalogueFiltersModal({
   updateSearchParams,
   onClose,
 }: Readonly<CatalogueFiltersModalProps>) {
+  const { setFocus } = useNavigationActions();
   const [activeFilterType, setActiveFilterType] = useState<FilterType>(
     FilterType.Genres
   );
+  const [displayedFilterType, setDisplayedFilterType] = useState<FilterType>(
+    activeFilterType
+  );
+  const [isMainFading, setIsMainFading] = useState(false);
   const [filtersSearchTerms, setFiltersSearchTerms] = useState<
     Record<FilterType, string>
   >({
@@ -408,6 +509,28 @@ export function CatalogueFiltersModal({
   const filterListRefs = useRef<
     Partial<Record<FilterType, CatalogueFiltersModalListHandle | null>>
   >({});
+
+  useEffect(() => {
+    if (activeFilterType === displayedFilterType) return;
+
+    setIsMainFading(true);
+
+    const timeoutId = globalThis.window.setTimeout(() => {
+      setDisplayedFilterType(activeFilterType);
+    }, CATALOGUE_FILTERS_MODAL_FADE_SWAP_DELAY_MS);
+
+    return () => globalThis.window.clearTimeout(timeoutId);
+  }, [activeFilterType, displayedFilterType]);
+
+  useEffect(() => {
+    if (!isMainFading || activeFilterType !== displayedFilterType) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      setIsMainFading(false);
+    });
+
+    return () => globalThis.cancelAnimationFrame(animationFrameId);
+  }, [activeFilterType, displayedFilterType, isMainFading]);
 
   const filteredItems = useMemo(
     () =>
@@ -424,11 +547,60 @@ export function CatalogueFiltersModal({
       ) as Record<FilterType, CatalogueFilterListItem[]>,
     [catalogueData, filtersSearchTerms]
   );
+  const selectedFilterItems = useMemo(
+    () =>
+      Object.values(FilterType).flatMap<SelectedCatalogueFilterItem>(
+        (filterType) => {
+          const selectedValues = (values[filterType] ?? []) as Array<
+            string | number
+          >;
+
+          if (selectedValues.length === 0) return [];
+
+          return getCatalogueFilterListItems(
+            catalogueData[filterType].data,
+            filterType,
+            "",
+            CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX
+          )
+            .filter((item) => selectedValues.includes(item.value))
+            .map((item) => ({
+              ...item,
+              filterType,
+              color: catalogueData[filterType].color,
+            }));
+        }
+      ),
+    [catalogueData, values]
+  );
+
+  const removeSelectedFilter = useCallback(
+    (item: SelectedCatalogueFilterItem, index: number) => {
+      const selectedValues = (values[item.filterType] ?? []) as Array<
+        string | number
+      >;
+      const nextFocusTarget =
+        selectedFilterItems[index + 1]?.focusId ??
+        selectedFilterItems[index - 1]?.focusId ??
+        getCatalogueFiltersModalInputFocusId(activeFilterType);
+
+      updateSearchParams({
+        [item.filterType]: selectedValues.filter(
+          (selectedValue) => selectedValue !== item.value
+        ),
+      });
+
+      setFocus(nextFocusTarget);
+    },
+    [activeFilterType, selectedFilterItems, setFocus, updateSearchParams, values]
+  );
 
   useCatalogueFiltersModalNavigation({
     visible,
+    activeFilterType,
     searchFocusId: getCatalogueFiltersModalInputFocusId(activeFilterType),
     items: filteredItems[activeFilterType],
+    selectedItems: selectedFilterItems,
     focusItem: (index, alignment) =>
       filterListRefs.current[activeFilterType]?.focusItem(index, alignment) ??
       false,
@@ -437,63 +609,99 @@ export function CatalogueFiltersModal({
       false,
   });
 
-  const tabs = useMemo(
-    () =>
-      Object.values(FilterType).map((filterType) => {
-        const items = filteredItems[filterType];
+  const displayedItems = filteredItems[displayedFilterType];
+  const displayedFilterLabel = catalogueData[displayedFilterType].label;
+  const catalogueFiltersModalContent = useMemo(
+    () => (
+      <div className="catalogue-filters-modal__content">
+        <div className="catalogue-filters-modal__main-shell">
+          <div className="catalogue-filters-modal__main">
+            <Input
+              className="catalogue-filters-modal__search"
+              focusId={getCatalogueFiltersModalInputFocusId(
+                displayedFilterType
+              )}
+              type="text"
+              placeholder={`Search ${displayedFilterLabel.toLowerCase()}`}
+              iconLeft={<MagnifyingGlassIcon size={24} />}
+              value={filtersSearchTerms[displayedFilterType] ?? ""}
+              onChange={(event) =>
+                setFiltersSearchTerms((previousState) => ({
+                  ...previousState,
+                  [displayedFilterType]: event.target.value,
+                }))
+              }
+              autoComplete="off"
+              spellCheck={false}
+            />
 
-        return {
-          id: filterType,
-          label: catalogueData[filterType].label,
-          content: (
-            <div className="catalogue-filters-modal__content">
-              <div className="catalogue-filters-modal__main">
-                <Input
-                  className="catalogue-filters-modal__search"
-                  focusId={getCatalogueFiltersModalInputFocusId(filterType)}
-                  type="text"
-                  placeholder={`Search ${catalogueData[
-                    filterType
-                  ].label.toLowerCase()}`}
-                  iconLeft={<MagnifyingGlassIcon size={24} />}
-                  value={filtersSearchTerms[filterType] ?? ""}
-                  onChange={(event) =>
-                    setFiltersSearchTerms((previousState) => ({
-                      ...previousState,
-                      [filterType]: event.target.value,
-                    }))
-                  }
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-
-                <CatalogueFiltersModalList
-                  ref={(handle) => {
-                    filterListRefs.current[filterType] = handle;
-                  }}
-                  name={filterType}
-                  color={catalogueData[filterType].color}
-                  items={items}
-                  values={values}
-                  updateSearchParams={updateSearchParams}
-                />
-              </div>
-
-              <aside
-                className="catalogue-filters-modal__secondary-sidebar"
-                aria-hidden
+            <div
+              className="catalogue-filters-modal__list-fade"
+              data-fading={isMainFading || undefined}
+            >
+              <CatalogueFiltersModalList
+                ref={(handle) => {
+                  filterListRefs.current[displayedFilterType] = handle;
+                }}
+                name={displayedFilterType}
+                color={catalogueData[displayedFilterType].color}
+                items={displayedItems}
+                values={values}
+                updateSearchParams={updateSearchParams}
               />
             </div>
-          ),
-        };
-      }),
+          </div>
+        </div>
+
+        <aside
+          className="catalogue-filters-modal__secondary-sidebar"
+          aria-label="Selected filters"
+        >
+          {selectedFilterItems.length > 0 ? (
+            <div className="catalogue-filters-modal__selected-list">
+              {selectedFilterItems.map((item, index) => (
+                <CatalogueFilterCheckbox
+                  key={`${item.filterType}-${item.value}`}
+                  id={`${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}-${item.filterType}-${item.label}`}
+                  focusId={item.focusId}
+                  label={item.label}
+                  color={item.color}
+                  checked
+                  variant="remove"
+                  onChange={() => removeSelectedFilter(item, index)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="catalogue-filters-modal__selected-empty">
+              <Typography variant="label">No selected filters</Typography>
+            </div>
+          )}
+        </aside>
+      </div>
+    ),
     [
       catalogueData,
-      filteredItems,
+      displayedFilterLabel,
+      displayedFilterType,
+      displayedItems,
       filtersSearchTerms,
+      isMainFading,
+      removeSelectedFilter,
+      selectedFilterItems,
       updateSearchParams,
       values,
     ]
+  );
+
+  const tabs = useMemo(
+    () =>
+      Object.values(FilterType).map((filterType) => ({
+        id: filterType,
+        label: catalogueData[filterType].label,
+        content: catalogueFiltersModalContent,
+      })),
+    [catalogueData, catalogueFiltersModalContent]
   );
 
   return (
@@ -505,6 +713,9 @@ export function CatalogueFiltersModal({
       ariaLabel="Catalogue filters"
       activeTabId={activeFilterType}
       onActiveTabChange={(tabId) => setActiveFilterType(tabId as FilterType)}
+      contentInitialFocusId={getCatalogueFiltersModalInputFocusId(
+        activeFilterType
+      )}
       tabs={tabs}
     />
   );
