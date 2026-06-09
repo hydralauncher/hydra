@@ -466,3 +466,142 @@
     background-color: var(--surface);
   }
 }
+
+.catalogue-filters-modal {
+  .sidebar-modal__content {
+    overflow: hidden;
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  &__search {
+    flex: none;
+  }
+
+  &__list-viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  &__list {
+    width: 100%;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    .rc-virtual-list-holder {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+      }
+    }
+
+    .rc-virtual-list-scrollbar {
+      display: none;
+    }
+  }
+
+  &__list-item {
+    box-sizing: border-box;
+    height: 56px;
+    width: 100%;
+    padding: 4px 0;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+  }
+
+  &__content .catalogue-filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    height: 48px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    background: var(--secondary);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &[data-modal-filter-focused="true"] {
+      box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.86);
+    }
+
+    &__dot {
+      flex: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+    }
+
+    &__label {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 500;
+      line-height: normal;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      background: transparent;
+      color: #0b0b0b;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    &[data-modal-filter-focused="true"] .catalogue-filter-checkbox__box,
+    &[aria-checked="true"] .catalogue-filter-checkbox__box {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    &[aria-checked="true"] .catalogue-filter-checkbox__box {
+      background: #d9d9d9;
+    }
+  }
+}

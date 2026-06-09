@@ -6,7 +6,7 @@
   width: fit-content;
   min-width: min(92vw, 64rem);
   max-width: min(92vw, 76rem);
-  min-height: min(34rem, calc(100vh - 4rem));
+  min-height: min(42rem, calc(100vh - 4rem));
   max-height: min(100%, calc(100vh - 4rem));
   border-radius: calc(var(--spacing-unit) * 3);
 
@@ -93,11 +93,11 @@
   right: 0;
   left: 0;
   z-index: 0;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--secondary);
   pointer-events: none;
 
   &[data-highlighted="true"] {
-    background: rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--secondary) 85%, white 15%);
   }
 }
 
@@ -107,9 +107,12 @@
 }
 
 .sidebar-modal__content {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   overflow: auto;
-  padding: calc(var(--spacing-unit) * 8);
+  padding: 24px;
   background: var(--surface);
 }
