@@ -38,6 +38,7 @@ interface FilterSectionProps {
   name: FilterType;
   values: SearchGamesFormValues;
   updateSearchParams: (newValues: Partial<SearchGamesFormValues>) => void;
+  checkboxIdPrefix?: string;
 }
 
 const ITEM_HEIGHT = 44;
@@ -69,7 +70,8 @@ function suppressSidebarNavigationAutoScroll(viewport: HTMLElement) {
 export function getCatalogueFilterListItems(
   listData: CatalogueFilterData,
   name: FilterType,
-  searchTerm = ""
+  searchTerm = "",
+  focusIdPrefix?: string
 ) {
   const labels = Array.isArray(listData) ? listData : Object.keys(listData);
   const filteredLabels = searchTerm
@@ -84,7 +86,12 @@ export function getCatalogueFilterListItems(
     return {
       label,
       value,
-      focusId: getCatalogueFilterCheckboxFocusId(name, String(value)),
+      focusId: focusIdPrefix
+        ? `${focusIdPrefix}:${getCatalogueFilterCheckboxFocusId(
+            name,
+            String(value)
+          )}`
+        : getCatalogueFilterCheckboxFocusId(name, String(value)),
     };
   });
 }
@@ -93,7 +100,7 @@ export const CatalogueFilterList = forwardRef<
   CatalogueFilterListHandle,
   Readonly<FilterSectionProps>
 >(function CatalogueFilterList(
-  { items, name, values, updateSearchParams },
+  { items, name, values, updateSearchParams, checkboxIdPrefix },
   ref
 ) {
   const listRef = useRef<ListRef>(null);
@@ -240,7 +247,9 @@ export const CatalogueFilterList = forwardRef<
           {(item) => (
             <div className="filter-section__item">
               <Checkbox
-                id={`${name}-${item.label}`}
+                id={`${
+                  checkboxIdPrefix ? `${checkboxIdPrefix}-` : ""
+                }${name}-${item.label}`}
                 focusId={item.focusId}
                 label={item.label}
                 checked={selected.includes(item.value)}

@@ -4,7 +4,11 @@ import {
   animateNavigationScrollForElement,
   cancelNavigationAutoScrollForElement,
 } from "../../helpers";
-import { useHeaderTitle, useNavigationActions } from "../../hooks";
+import {
+  useHeaderTitle,
+  useNavigationActions,
+  useNavigationScreenActions,
+} from "../../hooks";
 import {
   CATALOGUE_EMPTY_STATE_ID,
   CATALOGUE_ERROR_STATE_ID,
@@ -13,6 +17,7 @@ import {
 } from "./navigation";
 import { CatalogueGrid } from "./grid";
 import { CatalogueHeader } from "./header";
+import { CatalogueFiltersModal } from "./filters-modal";
 import { CataloguePagination } from "./pagination";
 import { CatalogueSidebar } from "./sidebar";
 import { useCatalogueData } from "./use-catalogue-data";
@@ -27,6 +32,7 @@ export default function Catalogue() {
   > | null>(null);
   const [shouldFocusPageResults, setShouldFocusPageResults] = useState(false);
   const [suppressPageAutoScroll, setSuppressPageAutoScroll] = useState(false);
+  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
 
   const {
     values,
@@ -59,6 +65,16 @@ export default function Catalogue() {
       changePage(nextPage);
     },
     [changePage, page]
+  );
+
+  useNavigationScreenActions(
+    isFiltersModalOpen
+      ? {}
+      : {
+          press: {
+            y: () => setIsFiltersModalOpen(true),
+          },
+        }
   );
 
   useEffect(() => {
@@ -146,6 +162,14 @@ export default function Catalogue() {
             />
           </div>
         </div>
+
+        <CatalogueFiltersModal
+          visible={isFiltersModalOpen}
+          catalogueData={catalogueData}
+          values={values}
+          updateSearchParams={updateSearchParams}
+          onClose={() => setIsFiltersModalOpen(false)}
+        />
       </section>
     </HorizontalFocusGroup>
   );
