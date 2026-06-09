@@ -613,12 +613,22 @@ function HomeRowImpl({
           false, real game cards after. Keeps the user from seeing
           empty space during fast vertical scrolls regardless of how
           far ahead the IntersectionObserver fires. */}
+      {/* The viewport + scroll containers wrap the row's actual
+          interactive elements (cards = <button>, overlay arrows =
+          <button>). They themselves are non-semantic surfaces that
+          carry mouse handlers only for drag-to-scroll and
+          hover-arrow tracking — there's no equivalent native
+          interactive element for a "drag-to-scroll surface". A
+          screen-reader user navigates the inner buttons directly,
+          so adding a misleading role here would confuse AT. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         ref={viewportRef}
         className="home-row__viewport"
         onMouseMove={onViewportMouseMove}
         onMouseLeave={onViewportMouseLeave}
       >
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div
           ref={scrollRef}
           className="home-row__scroll"
