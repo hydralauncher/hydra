@@ -1,15 +1,6 @@
 import { levelDBService } from "@renderer/services/leveldb.service";
 import type { HomeRowGame } from "./home-game-card";
 
-/**
- * Home row cache backed by levelDB.
- *
- * The cache is a *paint optimisation* — when the user re-opens the app, rows
- * paint instantly with last-known data while the background fetch runs and
- * silently swaps in fresh results. No TTL: every fetch overwrites the entry.
- *
- * All rows live under the `homeRows` sublevel, keyed by a stable row id.
- */
 const SUBLEVEL = "homeRows";
 
 export type HomeCacheKey =
@@ -62,10 +53,6 @@ export async function writeHomeCache(
   }
 }
 
-/**
- * Read many cache keys in parallel. Missing keys map to `null` so the caller
- * can seed initial state in a single pass.
- */
 export async function readHomeCacheMany(
   keys: HomeCacheKey[]
 ): Promise<Record<string, HomeRowGame[] | null>> {

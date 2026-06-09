@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 
-// Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
 import flagEU from "./assets/flags/eu.png";
 import flagJP from "./assets/flags/jp.png";
