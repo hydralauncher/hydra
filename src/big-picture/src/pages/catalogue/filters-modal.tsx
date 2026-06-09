@@ -1,4 +1,4 @@
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import List, { type ListRef } from "rc-virtual-list";
 import {
   forwardRef,
@@ -31,7 +31,6 @@ import {
 const CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX = "catalogue-filters-modal";
 const CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX =
   "catalogue-filters-modal-selected";
-const CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID = `${CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX}:clear-all`;
 const CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT = 56;
 const CATALOGUE_FILTERS_MODAL_FALLBACK_VISIBLE_ITEMS = 8;
 const CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS = 180;
@@ -122,7 +121,6 @@ interface SelectedCatalogueFilterItem extends CatalogueFilterListItem {
 function useCatalogueFiltersModalNavigation({
   visible,
   searchFocusId,
-  clearSelectedFocusId,
   items,
   selectedItems,
   focusItem,
@@ -132,7 +130,6 @@ function useCatalogueFiltersModalNavigation({
 }: {
   visible: boolean;
   searchFocusId: string;
-  clearSelectedFocusId: string;
   items: CatalogueFilterListItem[];
   selectedItems: SelectedCatalogueFilterItem[];
   focusItem: CatalogueFiltersModalListHandle["focusItem"];
@@ -152,10 +149,8 @@ function useCatalogueFiltersModalNavigation({
   const hasSearchFocus = currentFocusId === searchFocusId;
   const hasItemFocus = currentItemIndex >= 0;
   const hasSelectedFocus = currentSelectedIndex >= 0;
-  const hasClearSelectedFocus = currentFocusId === clearSelectedFocusId;
   const hasMainFocus = visible && (hasSearchFocus || hasItemFocus);
-  const hasSelectedSidebarFocus =
-    visible && (hasSelectedFocus || hasClearSelectedFocus);
+  const hasSelectedSidebarFocus = visible && hasSelectedFocus;
 
   const moveWithinModalList = useCallback(
     (direction: "up" | "down") => {
@@ -169,18 +164,6 @@ function useCatalogueFiltersModalNavigation({
           return;
         }
 
-        if (direction === "down") {
-          setFocus(clearSelectedFocusId);
-        }
-        return;
-      }
-
-      if (hasClearSelectedFocus) {
-        const lastSelectedItem = selectedItems[selectedItems.length - 1];
-
-        if (direction === "up" && lastSelectedItem) {
-          setFocus(lastSelectedItem.focusId);
-        }
         return;
       }
 
@@ -215,10 +198,8 @@ function useCatalogueFiltersModalNavigation({
     [
       currentItemIndex,
       currentSelectedIndex,
-      clearSelectedFocusId,
       focusItem,
       focusItemCentered,
-      hasClearSelectedFocus,
       hasItemFocus,
       hasSearchFocus,
       hasSelectedFocus,
@@ -237,15 +218,12 @@ function useCatalogueFiltersModalNavigation({
         return;
       }
 
-      if (direction === "left" && (hasSelectedFocus || hasClearSelectedFocus)) {
+      if (direction === "left" && hasSelectedFocus) {
         focusLastMainItem();
         return;
       }
 
-      if (
-        direction === "right" &&
-        (hasSelectedFocus || hasClearSelectedFocus)
-      ) {
+      if (direction === "right" && hasSelectedFocus) {
         return;
       }
 
@@ -254,7 +232,6 @@ function useCatalogueFiltersModalNavigation({
     [
       focusLastMainItem,
       focusLastSelectedItem,
-      hasClearSelectedFocus,
       hasItemFocus,
       hasSearchFocus,
       hasSelectedFocus,
@@ -697,8 +674,6 @@ export function CatalogueFiltersModal({
   const hasActiveSearchFocus = currentFocusId === activeSearchFocusId;
   const hasActiveItemFocus = currentItemIndex >= 0;
   const hasSelectedItemFocus = currentSelectedItemIndex >= 0;
-  const hasClearSelectedFocus =
-    currentFocusId === CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID;
   const lastMainItemIndex = activeItems.findIndex(
     (item) => item.focusId === lastMainFocusId
   );
@@ -712,11 +687,9 @@ export function CatalogueFiltersModal({
   const lastValidSelectedFocusId =
     selectedFilterItems.length === 0
       ? null
-      : lastSelectedFocusId === CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID
+      : lastSelectedItemIndex >= 0
         ? lastSelectedFocusId
-        : lastSelectedItemIndex >= 0
-          ? lastSelectedFocusId
-          : selectedFilterItems[0].focusId;
+        : selectedFilterItems[0].focusId;
 
   useEffect(() => {
     if (
@@ -737,16 +710,12 @@ export function CatalogueFiltersModal({
   }, [lastMainFocusId, lastValidMainFocusId]);
 
   useEffect(() => {
-    if (
-      !visible ||
-      !currentFocusId ||
-      (!hasSelectedItemFocus && !hasClearSelectedFocus)
-    ) {
+    if (!visible || !currentFocusId || !hasSelectedItemFocus) {
       return;
     }
 
     setLastSelectedFocusId(currentFocusId);
-  }, [currentFocusId, hasClearSelectedFocus, hasSelectedItemFocus, visible]);
+  }, [currentFocusId, hasSelectedItemFocus, visible]);
 
   useEffect(() => {
     if (lastSelectedFocusId !== lastValidSelectedFocusId) {
@@ -755,12 +724,11 @@ export function CatalogueFiltersModal({
   }, [lastSelectedFocusId, lastValidSelectedFocusId]);
 
   useEffect(() => {
-    if (hasSelectedItemFocus || hasClearSelectedFocus) {
+    if (hasSelectedItemFocus) {
       scheduleSelectedListBottomUpdate();
     }
   }, [
     currentFocusId,
-    hasClearSelectedFocus,
     hasSelectedItemFocus,
     scheduleSelectedListBottomUpdate,
   ]);
@@ -836,10 +804,19 @@ export function CatalogueFiltersModal({
     setFocus(getCatalogueFiltersModalInputFocusId(activeFilterType));
   }, [activeFilterType, setFocus, updateSearchParams]);
 
+  useNavigationScreenActions(
+    visible && selectedFilterItems.length > 0
+      ? {
+          hold: {
+            x: clearSelectedFilters,
+          },
+        }
+      : {}
+  );
+
   useCatalogueFiltersModalNavigation({
     visible,
     searchFocusId: activeSearchFocusId,
-    clearSelectedFocusId: CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID,
     items: activeItems,
     selectedItems: selectedFilterItems,
     focusItem: (index, alignment) =>
@@ -936,20 +913,19 @@ export function CatalogueFiltersModal({
 
           {selectedFilterItems.length > 0 ? (
             <div className="catalogue-filters-modal__selected-actions">
-              <FocusItem
-                id={CATALOGUE_FILTERS_MODAL_SELECTED_CLEAR_FOCUS_ID}
-                actions={{
-                  primary: clearSelectedFilters,
-                  hold: { x: clearSelectedFilters },
-                }}
-                asChild
-              >
+              <FocusItem focusable={false} asChild>
                 <button
                   type="button"
                   className="catalogue-filters-modal__clear-selected-button"
                   onClick={clearSelectedFilters}
                 >
-                  <Typography variant="label">Clear all</Typography>
+                  <span
+                    className="catalogue-filters-modal__clear-selected-icon"
+                    aria-hidden
+                  >
+                    <XIcon size={14} weight="bold" />
+                  </span>
+                  <Typography variant="label">Hold to Clear</Typography>
                 </button>
               </FocusItem>
             </div>
