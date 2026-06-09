@@ -47,7 +47,10 @@ export function CatalogueFilterCheckbox({
         </span>
 
         {isRemoveVariant ? (
-          <span className="catalogue-filter-checkbox__remove-button" aria-hidden>
+          <span
+            className="catalogue-filter-checkbox__remove-button"
+            aria-hidden
+          >
             <XIcon size={12} weight="bold" />
           </span>
         ) : (
