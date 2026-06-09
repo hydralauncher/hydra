@@ -1258,6 +1258,13 @@ export function Hero({
       : 0;
 
   return (
+    /* The hero wrapper carries mouse handlers for drag-to-advance
+       and auto-rotate pause/resume; both behaviours are
+       supplementary to the inner clickable slide <button>s.
+       Keyboard / AT users navigate the slide buttons + tab buttons
+       directly, so adding a misleading interactive role on this
+       wrapper would confuse screen readers. */
+    /* eslint-disable-next-line jsx-a11y/no-static-element-interactions */
     <div
       ref={heroRef}
       className={`hero hero--carousel${paused ? " hero--paused" : ""}${
