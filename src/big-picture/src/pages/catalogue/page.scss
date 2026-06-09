@@ -468,19 +468,39 @@
 }
 
 .catalogue-filters-modal {
+  min-width: min(92vw, 72rem);
+  max-width: min(92vw, 84rem);
+
   .sidebar-modal__content {
     overflow: hidden;
+    padding: 0;
   }
 
   &__content {
     display: flex;
     flex: 1;
-    flex-direction: column;
-    gap: calc(var(--spacing-unit) * 2);
+    flex-direction: row;
     min-width: 0;
     min-height: 0;
     height: 100%;
     width: 100%;
+  }
+
+  &__main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+    min-width: 0;
+    min-height: 0;
+    padding: 24px;
+  }
+
+  &__secondary-sidebar {
+    flex: 0 0 16rem;
+    width: 16rem;
+    min-height: 0;
+    background: var(--background);
   }
 
   &__search {

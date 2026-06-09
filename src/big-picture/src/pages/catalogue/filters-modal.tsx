@@ -9,6 +9,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
+  type RefObject,
 } from "react";
 import { Input, SidebarModal, Typography } from "../../components";
 import { useNavigationActions, useNavigationScreenActions } from "../../hooks";
@@ -28,9 +30,59 @@ import {
 const CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX = "catalogue-filters-modal";
 const CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT = 56;
 const CATALOGUE_FILTERS_MODAL_FALLBACK_VISIBLE_ITEMS = 8;
+const CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS = 180;
 
 function getCatalogueFiltersModalInputFocusId(filterType: FilterType) {
   return `${CATALOGUE_FILTERS_MODAL_FOCUS_PREFIX}:input:${filterType}`;
+}
+
+function easeOutCubic(progress: number): number {
+  return 1 - Math.pow(1 - progress, 3);
+}
+
+function animateCatalogueFiltersModalScroll(
+  listRef: RefObject<ListRef | null>,
+  animationFrameRef: MutableRefObject<number | null>,
+  targetTop: number
+) {
+  if (animationFrameRef.current !== null) {
+    globalThis.cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+  }
+
+  const list = listRef.current;
+
+  if (!list) return;
+
+  const startTop = list.getScrollInfo().y;
+  const distanceTop = targetTop - startTop;
+
+  if (distanceTop === 0) return;
+
+  const startTime = performance.now();
+
+  const step = (now: number) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(
+      Math.max(elapsed / CATALOGUE_FILTERS_MODAL_SCROLL_DURATION_MS, 0),
+      1
+    );
+    const easedProgress = easeOutCubic(progress);
+
+    listRef.current?.scrollTo({
+      top: startTop + distanceTop * easedProgress,
+    });
+
+    if (progress < 1) {
+      animationFrameRef.current = globalThis.requestAnimationFrame(step);
+      return;
+    }
+
+    listRef.current?.scrollTo({ top: targetTop });
+    animationFrameRef.current = null;
+  };
+
+  animationFrameRef.current = globalThis.requestAnimationFrame(step);
 }
 
 interface CatalogueFiltersModalProps {
@@ -97,8 +149,7 @@ function useCatalogueFiltersModalNavigation({
         return;
       }
 
-      const nextIndex =
-        currentItemIndex + (direction === "down" ? 1 : -1);
+      const nextIndex = currentItemIndex + (direction === "down" ? 1 : -1);
 
       if (nextIndex < 0) {
         setFocus(searchFocusId);
@@ -144,16 +195,14 @@ function useCatalogueFiltersModalNavigation({
 const CatalogueFiltersModalList = forwardRef<
   CatalogueFiltersModalListHandle,
   Readonly<CatalogueFiltersModalListProps>
->(function CatalogueFiltersModalList({
-  items,
-  name,
-  color,
-  values,
-  updateSearchParams,
-}, ref) {
+>(function CatalogueFiltersModalList(
+  { items, name, color, values, updateSearchParams },
+  ref
+) {
   const listRef = useRef<ListRef>(null);
   const pendingFocusIdRef = useRef<string | null>(null);
   const pendingFrameIdRef = useRef<number | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
   const { setFocus } = useNavigationActions();
@@ -235,7 +284,11 @@ const CatalogueFiltersModalList = forwardRef<
             (height - CATALOGUE_FILTERS_MODAL_ITEM_HEIGHT) / 2;
           const clampedTargetTop = Math.min(Math.max(targetTop, 0), maxTop);
 
-          listRef.current?.scrollTo({ top: clampedTargetTop });
+          animateCatalogueFiltersModalScroll(
+            listRef,
+            scrollAnimationFrameRef,
+            clampedTargetTop
+          );
         });
       },
     }),
@@ -257,6 +310,10 @@ const CatalogueFiltersModalList = forwardRef<
     return () => {
       if (pendingFrameIdRef.current !== null) {
         globalThis.cancelAnimationFrame(pendingFrameIdRef.current);
+      }
+
+      if (scrollAnimationFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(scrollAnimationFrameRef.current);
       }
     };
   }, []);
@@ -390,40 +447,53 @@ export function CatalogueFiltersModal({
           label: catalogueData[filterType].label,
           content: (
             <div className="catalogue-filters-modal__content">
-              <Input
-                className="catalogue-filters-modal__search"
-                focusId={getCatalogueFiltersModalInputFocusId(filterType)}
-                type="text"
-                placeholder={`Search ${catalogueData[
-                  filterType
-                ].label.toLowerCase()}`}
-                iconLeft={<MagnifyingGlassIcon size={24} />}
-                value={filtersSearchTerms[filterType] ?? ""}
-                onChange={(event) =>
-                  setFiltersSearchTerms((previousState) => ({
-                    ...previousState,
-                    [filterType]: event.target.value,
-                  }))
-                }
-                autoComplete="off"
-                spellCheck={false}
-              />
+              <div className="catalogue-filters-modal__main">
+                <Input
+                  className="catalogue-filters-modal__search"
+                  focusId={getCatalogueFiltersModalInputFocusId(filterType)}
+                  type="text"
+                  placeholder={`Search ${catalogueData[
+                    filterType
+                  ].label.toLowerCase()}`}
+                  iconLeft={<MagnifyingGlassIcon size={24} />}
+                  value={filtersSearchTerms[filterType] ?? ""}
+                  onChange={(event) =>
+                    setFiltersSearchTerms((previousState) => ({
+                      ...previousState,
+                      [filterType]: event.target.value,
+                    }))
+                  }
+                  autoComplete="off"
+                  spellCheck={false}
+                />
 
-              <CatalogueFiltersModalList
-                ref={(handle) => {
-                  filterListRefs.current[filterType] = handle;
-                }}
-                name={filterType}
-                color={catalogueData[filterType].color}
-                items={items}
-                values={values}
-                updateSearchParams={updateSearchParams}
+                <CatalogueFiltersModalList
+                  ref={(handle) => {
+                    filterListRefs.current[filterType] = handle;
+                  }}
+                  name={filterType}
+                  color={catalogueData[filterType].color}
+                  items={items}
+                  values={values}
+                  updateSearchParams={updateSearchParams}
+                />
+              </div>
+
+              <aside
+                className="catalogue-filters-modal__secondary-sidebar"
+                aria-hidden
               />
             </div>
           ),
         };
       }),
-    [catalogueData, filteredItems, filtersSearchTerms, updateSearchParams, values]
+    [
+      catalogueData,
+      filteredItems,
+      filtersSearchTerms,
+      updateSearchParams,
+      values,
+    ]
   );
 
   return (
