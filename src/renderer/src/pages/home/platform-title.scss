@@ -1,0 +1,46 @@
+.platform-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+
+  &__logo-box {
+    /* Box sizes to its content's natural width (capped at max-width
+       so the very wide PS2 wordmark doesn't dominate). The old fixed
+       64px width left a ~35px gap of empty space between the
+       near-square PS1 logo and the row's text — the user explicitly
+       called this out. Letting the box auto-size keeps the gap
+       between logo and text consistent (the parent's `gap: 10px`). */
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 26px;
+    max-width: 90px;
+    flex-shrink: 0;
+    color: inherit;
+  }
+
+  &__logo {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    color: inherit;
+
+    & * {
+      fill: currentColor;
+    }
+  }
+
+  /* PS1 is near-square so it'd render too tall against PS2/PS3's
+     wide-and-short marks at the same height. Cap its height lower
+     so all three logos read at a similar visual weight regardless
+     of their native aspect. */
+  &__logo-box[data-system="ps1"] .platform-title__logo {
+    max-height: 22px;
+  }
+
+  &__text {
+    font: inherit;
+  }
+}

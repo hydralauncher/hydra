@@ -1,0 +1,79 @@
+@use "../../scss/globals.scss";
+
+/* Per-card "friends playing this game" badge.
+   - Lives in the hover-revealed stats area of each card variant.
+   - Compact: just the icon + the friend count.
+   - Tooltip on hover shows up to 5 friend avatars + names.
+   Design follows Hydra's existing chip / badge pattern (subtle
+   white-on-dark, muted text, gap-based row layout). */
+
+.card-friends-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* Slightly larger hover target so the tooltip is comfortable to
+     trigger — the bare icon + count was only ~28px wide, hard to
+     hit cleanly while the cursor is moving. The padding doesn't
+     visibly grow the badge much because the surrounding flex row
+     uses gap. */
+  padding: 2px 4px;
+  cursor: help;
+  color: globals.$muted-color;
+  font-size: 12px;
+  line-height: 1;
+  /* Pointer-events MUST stay enabled even when the card has its own
+     hover transitions firing — react-tooltip listens for
+     mouseover/mouseout on this anchor. Explicit declaration to
+     guard against any parent that might set pointer-events: none. */
+  pointer-events: auto;
+
+  &__count {
+    font-weight: 500;
+  }
+
+  &__tooltip {
+    /* Override react-tooltip defaults to match Hydra's chrome:
+       darker background, subtle border, tighter padding, no big
+       outer arrow. Pinned width so it fits 5 rows without wrapping
+       names too aggressively but stays compact. */
+    background: #1c1c1c !important;
+    border: 1px solid globals.$border-color !important;
+    border-radius: 6px !important;
+    padding: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    max-width: 220px !important;
+    z-index: 1000 !important;
+  }
+
+  &__tooltip-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 12px;
+    color: globals.$body-color;
+    font-weight: 500;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__more {
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    color: globals.$muted-color;
+    text-align: center;
+  }
+}

@@ -1,0 +1,293 @@
+@use "../../scss/globals.scss";
+
+.home-game-card-vertical {
+  position: relative;
+  /* Scaled 1.3× from the previous 220×293 to match the horizontal
+     card's bump. Aspect ratio is preserved (~0.751) so Steam's
+     600×900 portrait capsule still fits with minimal cropping. */
+  width: 286px;
+  min-width: 286px;
+  height: 381px;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid globals.$border-color;
+  background: #1c1c1c;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  flex-shrink: 0;
+  /* No translateY on hover — the row's overflow-x: auto implicitly
+     clips vertical overflow, so a lift would chop the top border. */
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+
+  /* Border-glow removed per user request — the outline previously
+     brightened to rgba(255, 255, 255, 0.2) on hover. The portrait
+     scale and content reveal below still telegraph hover; the
+     border stays consistent with the rest state. */
+  &:hover {
+    .home-game-card-vertical__portrait,
+    .home-game-card-vertical__cover {
+      transform: scale(1.04);
+    }
+  }
+
+  /* Placeholder shown when every fallback image URL fails to load.
+     Mirrors the LibraryGameCard placeholder so the missing-asset
+     story is consistent between Home and Library. */
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #161616;
+    color: rgba(255, 255, 255, 0.25);
+    z-index: 0;
+  }
+
+  /* ── Classics: blurred backdrop fill behind centered portrait —
+        full library-card visual restored at blur(16px) per user
+        request. Per-card GPU layer is accepted as the price of the
+        visual. */
+  &__blur-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: blur(16px) saturate(1.1);
+    transform: scale(1.25);
+    opacity: 0.65;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── PC: landscape header cropped to fit the portrait card — no
+        blur. object-position keeps the top of the image visible. ── */
+  &__cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    z-index: 1;
+    transition: transform 0.2s ease;
+  }
+
+  /* ── Classics: centred portrait box-art with margin frame. ── */
+  &__portrait {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    display: block;
+    max-width: 80%;
+    max-height: 80%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 11px 7px rgba(0, 0, 0, 0.05),
+      0 5px 5px rgba(0, 0, 0, 0.09),
+      0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    transition: transform 0.2s ease;
+  }
+
+  /* Platform chip — sized 1.3× alongside the card bump. */
+  &__chip {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    z-index: 3;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    /* Solid background (was rgba 0.7 with backdrop-filter blur).
+       backdrop-filter promoted each vertical card's overlay pill to
+       its own compositor layer — removed to cut Layerize cost. */
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  /* ── Bottom-to-top gradient. Fixed opacity — does NOT deepen on
+        hover (user request). Dialled back so more of the portrait
+        art stays visible while still keeping the footer copy
+        readable: stops 0.92/0.7/0.2/0 → 0.78/0.55/0.15/0, and the
+        gradient now covers only the bottom 65% instead of 75%. ── */
+  &__backdrop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 65%;
+    z-index: 2;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.55) 40%,
+      rgba(0, 0, 0, 0.15) 75%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  /* ── Content stack sits at the bottom and slides up on hover —
+        matches the horizontal card's transform-based reveal so the
+        feel is identical. Title + sources stay visible at rest; the
+        stats row sits below the bottom edge and slides into view.
+        Transform animates fluidly (unlike max-height). ── */
+  &__content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    /* Padding scaled 1.3× alongside the card bump. */
+    padding: calc(globals.$spacing-unit * 1.3)
+      calc(globals.$spacing-unit * 1.625) calc(globals.$spacing-unit * 1.625);
+    display: flex;
+    flex-direction: column;
+    /* Anchor children to the left edge so a paragraph child like
+       __no-downloads sits flush with the title + source badges
+       above it (default `stretch` made the <p> fill the row, leaving
+       text-align inheritance to decide alignment — inconsistent
+       across browsers). */
+    align-items: flex-start;
+    gap: 8px;
+    pointer-events: none;
+    transition: transform ease 0.2s;
+    /* Hover-reveal distance trimmed from 36 → 30 — subtle lift at
+       rest so the title + sources/no-downloads strip sits a bit
+       higher above the bottom edge with more breathing room. Stats
+       row still parks just below the visible area; the remaining
+       30px hover-slide reveals it fully. */
+    transform: translateY(30px);
+  }
+
+  &:hover &__content {
+    transform: translateY(0);
+  }
+
+  &__title-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: globals.$muted-color;
+  }
+
+  &__shop-icon {
+    /* Trimmed from 18 → 16 — still larger than the original 14 but
+       less heavy against the new card size. */
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    flex-shrink: 0;
+    opacity: 0.9;
+    /* Force every SVG element inside to use currentColor instead of
+       any inline `fill="..."` set on the source file. Matches the
+       horizontal card so platform logos with hardcoded black/white
+       fills still inherit the muted gray of the surrounding title
+       text — keeping them visually consistent with the Steam logo
+       (which already uses fill="currentColor"). */
+    &,
+    & * {
+      fill: currentColor;
+    }
+
+    /* PS2 + PS3 wordmarks read optically smaller than the PS1
+       "PS" mark and the Steam wordmark at the same 16×16 box.
+       Bump them with a CSS transform so the row stays visually
+       balanced without touching the SVG sources. Mirrors the
+       horizontal card rule. */
+    &.home-shop-logo--ps2,
+    &.home-shop-logo--ps3 {
+      transform: scale(1.2);
+      transform-origin: left center;
+    }
+  }
+
+  &__title {
+    /* Trimmed from 16 → 14. */
+    font-size: 14px;
+    font-weight: 700;
+    color: globals.$muted-color;
+    margin: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-align: left;
+    line-height: 1.25;
+  }
+
+  /* Stats row — always laid out. Reveal is driven by the parent
+     __content's translateY shift (mirrors the horizontal card). */
+  &__hover-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__download-options {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    gap: 5px;
+    flex-wrap: wrap;
+    list-style: none;
+  }
+
+  &__no-downloads {
+    margin: 0;
+    /* Explicit left-alignment + zero side padding so the string
+       sits flush with the title and source-badge row above it.
+       Without `text-align: left` the <p> inherits whatever its
+       ancestor declares (sometimes centered via globals), making it
+       look asymmetric against the other left-anchored content. */
+    text-align: left;
+    padding-left: 0;
+    /* Trimmed from 14 → 12. */
+    font-size: 12px;
+    font-weight: 500;
+    color: globals.$body-color;
+    line-height: 1.2;
+  }
+
+  &__specifics {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  &__specifics-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: globals.$muted-color;
+    /* Trimmed from 14 → 12. */
+    font-size: 12px;
+
+    .star-rating {
+      align-items: center;
+    }
+
+    /* Friend-playing slot — pushed to the right edge so it doesn't
+       crowd the existing left-aligned stats. */
+    &--friends {
+      margin-left: auto;
+    }
+  }
+}

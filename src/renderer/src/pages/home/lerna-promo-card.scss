@@ -1,0 +1,72 @@
+@use "../../scss/globals.scss";
+
+.lerna-promo-card {
+  display: block;
+  /* Sized to match the horizontal game card (507×238 — bumped 1.3×
+     from the original 390×183) so the promo slot reads as the same
+     visual unit as the rows it lives next to. Keep in sync with
+     home-game-card.scss + CARD_SIZES.horizontal in home-row.tsx. */
+  width: 507px;
+  min-width: 507px;
+  height: 238px;
+  overflow: hidden;
+  border-radius: 4px;
+  border: solid 1px rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  background: #0040f0;
+  box-shadow: 0px 0px 15px 0px #000000;
+  transition:
+    border-color ease 0.2s,
+    transform ease 0.2s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+
+    .lerna-promo-card__overlay {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+
+  &__image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    opacity: 0;
+    transition: opacity ease 0.2s;
+  }
+
+  &__cta {
+    color: #fff;
+    /* Scaled 1.3× alongside the card bump (12 → 16). */
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    /* Solid background (was rgba 0.5 with backdrop-filter blur).
+       Cut backdrop-filter to drop the per-element GPU layer
+       promotion. */
+    background: rgba(0, 0, 0, 0.7);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+}
