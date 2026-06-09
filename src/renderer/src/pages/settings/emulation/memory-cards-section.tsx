@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ChevronRightIcon,
@@ -113,6 +113,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
     cardLabel: string;
   } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const didInitCollapse = useRef(false);
 
   const loadSaves = useCallback(async () => {
     const list = await api.list();
@@ -144,6 +145,12 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
       records: group.records,
     }));
   }, [saves]);
+
+  useEffect(() => {
+    if (didInitCollapse.current || groups.length === 0) return;
+    didInitCollapse.current = true;
+    setCollapsed(new Set(groups.map((g) => g.cardFilePath)));
+  }, [groups]);
 
   const toggleCard = useCallback((cardFilePath: string) => {
     setCollapsed((prev) => {

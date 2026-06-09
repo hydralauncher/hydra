@@ -324,11 +324,6 @@ export function EmulatorDetail({
                 ? t("detected", { name: binaryName })
                 : t("not_detected")}
             </span>
-            {config.detectedVersion && (
-              <span className="emulator-detail__hero-version">
-                v{config.detectedVersion}
-              </span>
-            )}
             <span className="emulator-detail__dot" />
             <span className="emulator-detail__hero-count">
               <span className="emulator-detail__hero-count-dot" />
@@ -356,7 +351,21 @@ export function EmulatorDetail({
       <section className="emulator-detail__section">
         <header className="emulator-detail__section-header">
           <div className="emulator-detail__section-text">
-            <h3>{t("emulator_section_title")}</h3>
+            <div className="emulator-detail__section-title-row">
+              <h3>{t("emulator_section_title")}</h3>
+              {isConfigured &&
+                (executableExists ? (
+                  <span className="emulator-detail__synced">
+                    <CheckCircleFillIcon size={14} />
+                    <span>{t("synced")}</span>
+                  </span>
+                ) : (
+                  <span className="emulator-detail__path-missing">
+                    <AlertIcon size={14} />
+                    <span>{t("executable_missing")}</span>
+                  </span>
+                ))}
+            </div>
             <p>{t("emulator_section_description")}</p>
           </div>
         </header>
@@ -383,18 +392,6 @@ export function EmulatorDetail({
                   </span>
                 </>
               )}
-              {isConfigured &&
-                (executableExists ? (
-                  <span className="emulator-detail__synced">
-                    <CheckCircleFillIcon size={14} />
-                    <span>{t("synced")}</span>
-                  </span>
-                ) : (
-                  <span className="emulator-detail__path-missing">
-                    <AlertIcon size={14} />
-                    <span>{t("executable_missing")}</span>
-                  </span>
-                ))}
             </div>
             <span className="emulator-detail__exec-label">
               {t("executable_path")}
