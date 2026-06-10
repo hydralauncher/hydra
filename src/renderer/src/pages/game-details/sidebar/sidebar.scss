@@ -327,7 +327,8 @@
   padding: calc(globals.$spacing-unit * 2);
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 1.5);
+  align-items: center;
+  gap: globals.$spacing-unit;
   color: globals.$muted-color;
 
   &__skeleton {
@@ -338,24 +339,37 @@
 
   &__icons {
     display: flex;
-    gap: calc(globals.$spacing-unit * 2);
+    gap: calc(globals.$spacing-unit * 1.5);
     justify-content: center;
+    align-items: center;
     color: globals.$muted-color;
+    margin-bottom: calc(globals.$spacing-unit / 2);
   }
 
   &__icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     color: globals.$body-color;
+    display: block;
+    flex-shrink: 0;
+
+    path {
+      fill: currentColor !important;
+    }
+  }
+
+  &__icon--playstation {
+    width: 47px;
   }
 
   &__badge {
-    align-self: flex-end;
+    align-self: center;
     padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
     border-radius: 999px;
     font-weight: bold;
     text-transform: uppercase;
     font-size: globals.$small-font-size;
+    line-height: 1.2;
 
     &--full {
       background: rgba(154, 205, 50, 0.15);
@@ -374,7 +388,10 @@
 
   &__description {
     margin: 0;
+    margin-top: calc(globals.$spacing-unit / 2);
+    max-width: 280px;
     text-align: center;
+    line-height: 1.45;
     color: globals.$body-color;
   }
 
