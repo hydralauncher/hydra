@@ -15,6 +15,7 @@ import {
 import { createPortal } from "react-dom";
 import { IS_BROWSER } from "../../../constants";
 import { useNavigationScreenActions } from "../../../hooks";
+import { useVirtualKeyboardStore } from "../../../stores";
 import { FocusRegionContext } from "../../context";
 import { Backdrop } from "../backdrop";
 import { FocusItem } from "../focus-item";
@@ -83,6 +84,9 @@ export function SidebarModal({
   const [activeTabMetrics, setActiveTabMetrics] =
     useState<ActiveTabMetrics | null>(null);
   const [highlightedTabId, setHighlightedTabId] = useState<string | null>(null);
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
   const resolvedActiveTabId = activeTabId ?? internalActiveTabId;
   const activeTab =
     tabs.find((tab) => tab.id === resolvedActiveTabId && !tab.disabled) ??
@@ -96,6 +100,7 @@ export function SidebarModal({
     [modalId]
   );
   const activeTabFocusId = activeTab ? getTabFocusId(activeTab.id) : undefined;
+  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
     const openModals = document.querySelectorAll("[role=dialog]");
@@ -204,7 +209,7 @@ export function SidebarModal({
   }, [activeTab, updateActiveTabMetrics, visible]);
 
   useNavigationScreenActions(
-    visible && closeOnB
+    visible && closeOnB && !isVirtualKeyboardOpen
       ? {
           press: {
             b: () => {
@@ -220,9 +225,12 @@ export function SidebarModal({
     if (!visible || !closeOnEscape) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isTopMostModal()) {
-        handleClose();
-      }
+      if (event.key !== "Escape") return;
+      if (event.defaultPrevented) return;
+      if (useVirtualKeyboardStore.getState().target !== null) return;
+      if (!isTopMostModal()) return;
+
+      handleClose();
     };
 
     globalThis.window.addEventListener("keydown", onKeyDown);

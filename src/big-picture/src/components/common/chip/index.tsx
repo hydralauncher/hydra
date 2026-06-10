@@ -80,12 +80,11 @@ export function Chip({
   );
 
   const chip = onRemove ? removableChip : onClick ? actionChip : staticChip;
-  const actions =
-    onClick
-      ? { primary: () => onClick() }
-      : onRemove
-        ? { primary: () => onRemove() }
-        : undefined;
+  const actions = onClick
+    ? { primary: () => onClick() }
+    : onRemove
+      ? { primary: () => onRemove() }
+      : undefined;
 
   return focusId ? (
     <FocusItem

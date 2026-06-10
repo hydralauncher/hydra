@@ -1,12 +1,6 @@
 import { DeviceDesktopIcon } from "@primer/octicons-react";
 import { FunnelIcon, SortAscendingIcon } from "@phosphor-icons/react";
-import {
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 import {
   Button,
@@ -311,7 +305,8 @@ export function CatalogueHeader({
       const nextMeasurements: HeaderFilterMeasurements = {
         containerWidth: filtersContainer.getBoundingClientRect().width,
         gap:
-          Number.parseFloat(computedStyles.columnGap || computedStyles.gap) || 0,
+          Number.parseFloat(computedStyles.columnGap || computedStyles.gap) ||
+          0,
         chipWidths: {},
         hiddenChipWidths: {},
         clearAllWidth:
@@ -563,7 +558,9 @@ export function CatalogueHeader({
                       color={catalogueData[filter.type].color}
                       label={filter.label}
                       focusId={focusId}
-                      focusNavigationOverrides={navigationOverridesById[focusId]}
+                      focusNavigationOverrides={
+                        navigationOverridesById[focusId]
+                      }
                       onRemove={() => handleRemoveFilter(filter, index)}
                     />
                   );
@@ -575,7 +572,9 @@ export function CatalogueHeader({
                     label={hiddenFiltersLabel}
                     onClick={handleOpenHiddenFilters}
                     focusNavigationOverrides={
-                      navigationOverridesById[CATALOGUE_HIDDEN_FILTERS_BUTTON_ID]
+                      navigationOverridesById[
+                        CATALOGUE_HIDDEN_FILTERS_BUTTON_ID
+                      ]
                     }
                   />
                 ) : null}

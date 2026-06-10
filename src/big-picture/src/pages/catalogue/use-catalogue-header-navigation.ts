@@ -35,7 +35,9 @@ export function useCatalogueHeaderNavigation(itemIds: string[]) {
       const positionsById = Object.fromEntries(
         positions.map((position) => [position.id, position])
       );
-      const chipIds = ids.filter((id) => isCatalogueActiveFilterChipFocusId(id));
+      const chipIds = ids.filter((id) =>
+        isCatalogueActiveFilterChipFocusId(id)
+      );
       const chipSequenceIds = [
         ...chipIds,
         ...(ids.includes(CATALOGUE_HIDDEN_FILTERS_BUTTON_ID)
@@ -47,7 +49,9 @@ export function useCatalogueHeaderNavigation(itemIds: string[]) {
       ];
       const chipSequencePositions = chipSequenceIds
         .map((id) => positionsById[id])
-        .filter((position): position is NonNullable<typeof position> => !!position);
+        .filter(
+          (position): position is NonNullable<typeof position> => !!position
+        );
       const gridPositions = getActivePositionsInRegion(
         CATALOGUE_GRID_REGION_ID
       );

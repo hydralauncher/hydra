@@ -1,6 +1,6 @@
 import type { ScreenActions } from "../types";
 import { NavigationScreenActionsService } from "../services";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 const navigationScreenActions = NavigationScreenActionsService.getInstance();
 
@@ -8,7 +8,7 @@ export function useNavigationScreenActions(actions: ScreenActions) {
   const registrationIdRef = useRef<number | null>(null);
   const initialActionsRef = useRef(actions);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const registration = navigationScreenActions.createRegistration(
       initialActionsRef.current
     );
@@ -17,7 +17,7 @@ export function useNavigationScreenActions(actions: ScreenActions) {
     return registration.unregister;
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (registrationIdRef.current === null) {
       return;
     }
