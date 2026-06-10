@@ -2,6 +2,7 @@ import { useContext, useMemo } from "react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import type { SteamCategory } from "@types";
 
 import { gameDetailsContext } from "@renderer/context";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
@@ -11,15 +12,9 @@ import PlayStationLogo from "@renderer/assets/PlayStation Logo Wordmark.svg?reac
 import "./sidebar.scss";
 
 type ControllerSupportStatus = "full" | "partial" | "none";
-type ControllerSupportSource = "field" | "category" | null;
 
 interface ControllerSupportResult {
   status: ControllerSupportStatus;
-  source: ControllerSupportSource;
-}
-
-interface SteamCategory {
-  id: number;
 }
 
 interface SteamDetailsWithController {
@@ -43,16 +38,7 @@ export function ControllerSupportSection() {
     if (!shopDetails || shop !== "steam") return null;
 
     const details = shopDetails as SteamDetailsWithController;
-    const support = resolveControllerSupport(details);
-
-    console.log("[ControllerSupportSection] gamepad support", {
-      status: support.status,
-      source: support.source,
-      controller_support: details.controller_support,
-      categories: details.categories,
-    });
-
-    return support;
+    return resolveControllerSupport(details);
   }, [shop, shopDetails]);
 
   const isPending = shop === "steam" && isLoading && !shopDetails;
@@ -105,24 +91,24 @@ function resolveControllerSupport(
   details: SteamDetailsWithController
 ): ControllerSupportResult {
   if (details.controller_support === "full") {
-    return { status: "full", source: "field" };
+    return { status: "full" };
   }
 
   if (details.controller_support === "partial") {
-    return { status: "partial", source: "field" };
+    return { status: "partial" };
   }
 
   const categories = details.categories ?? [];
 
   if (categories.some(({ id }) => id === FULL_SUPPORT_CATEGORY_ID)) {
-    return { status: "full", source: "category" };
+    return { status: "full" };
   }
 
   if (categories.some(({ id }) => id === PARTIAL_SUPPORT_CATEGORY_ID)) {
-    return { status: "partial", source: "category" };
+    return { status: "partial" };
   }
 
-  return { status: "none", source: null };
+  return { status: "none" };
 }
 
 function getStatusCopy(

@@ -1,4 +1,6 @@
 import type { GameShop, ShopDetails } from "@types";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { FocusOverrides } from "../../../../services";
 import { FocusItem, Typography } from "../../../common";
 import XboxLogo from "@renderer/assets/Xbox Logo.svg?react";
@@ -33,13 +35,16 @@ export function ControllerSupportBox({
   focusNavigationOverrides,
   focusNavigationOrder,
 }: Readonly<ControllerSupportBoxProps>) {
+  const { t } = useTranslation("game_details");
+
   if (shop !== "steam") return null;
 
   const controllerSupport = resolveControllerSupport(shopDetails);
 
   if (controllerSupport.status === "none") return null;
 
-  const copy = getStatusCopy(controllerSupport.status);
+  const copy = getStatusCopy(controllerSupport.status, t);
+  const title = t("controller_support");
 
   return (
     <FocusItem
@@ -50,10 +55,10 @@ export function ControllerSupportBox({
     >
       <section
         className="game-page__sidebar-section game-page__controller-support"
-        aria-label="Controller Support"
+        aria-label={title}
       >
         <div className="game-page__controller-support-title">
-          <Typography>Controller Support</Typography>
+          <Typography>{title}</Typography>
         </div>
 
         <div className="game-page__controller-support-row">
@@ -65,7 +70,7 @@ export function ControllerSupportBox({
               />
             </div>
             <Typography className="game-page__controller-support-label">
-              Xbox Controller
+              {t("controller_support_xbox_label")}
             </Typography>
           </div>
 
@@ -83,7 +88,7 @@ export function ControllerSupportBox({
               />
             </div>
             <Typography className="game-page__controller-support-label">
-              PlayStation Controller
+              {t("controller_support_playstation_label")}
             </Typography>
           </div>
 
@@ -126,23 +131,26 @@ function resolveControllerSupport(
   return { status: "none" };
 }
 
-function getStatusCopy(status: ControllerSupportStatus): StatusCopy {
+function getStatusCopy(
+  status: ControllerSupportStatus,
+  t: TFunction<"game_details">
+): StatusCopy {
   if (status === "full") {
     return {
-      label: "Full support",
-      description: "Plays great with Xbox and PlayStation controllers.",
+      label: t("controller_support_full_label"),
+      description: t("controller_support_full_description"),
     };
   }
 
   if (status === "partial") {
     return {
-      label: "Partial support",
-      description: "Some menus may require a keyboard and mouse.",
+      label: t("controller_support_partial_label"),
+      description: t("controller_support_partial_description"),
     };
   }
 
   return {
-    label: "No official support",
+    label: t("controller_support_none_label"),
     description: "",
   };
 }
