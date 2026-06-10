@@ -2,10 +2,7 @@ import type { LibraryGame } from "@types";
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
-import type {
-  MouseEvent as ReactMouseEvent,
-  RefObject,
-} from "react";
+import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
 import {
   FocusItem,
   HorizontalLibraryGameCard,
