@@ -22,16 +22,15 @@
 }
 
 .library-focus-grid__card--classics {
-  --library-classics-rainbow:
-    conic-gradient(
-      from 0deg,
-      #fcdc33 5deg,
-      #4cbd47 70deg,
-      #13aceb 145deg,
-      #ee473b 220deg,
-      #ef833a 290deg,
-      #fcdc33 365deg
-    );
+  --library-classics-rainbow: conic-gradient(
+    from 0deg,
+    #fcdc33 5deg,
+    #4cbd47 70deg,
+    #13aceb 145deg,
+    #ee473b 220deg,
+    #ef833a 290deg,
+    #fcdc33 365deg
+  );
 
   .library-classics-badges {
     position: absolute;
