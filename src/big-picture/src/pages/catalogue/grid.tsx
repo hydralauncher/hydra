@@ -6,12 +6,16 @@ import {
   CATALOGUE_GRID_REGION_ID,
   getCatalogueCardFocusId,
 } from "./navigation";
-import type { SearchGamesResponseData } from "./use-catalogue-data";
+import type {
+  CatalogueMode,
+  SearchGamesResponseData,
+} from "./use-catalogue-data";
 import { CatalogueCard } from "./card";
 import { CatalogueSkeletonCard } from "./skeleton-card";
 import { useCatalogueGridNavigation } from "./use-catalogue-grid-navigation";
 
 interface GridProps {
+  mode: CatalogueMode;
   pageSize: number;
   hasNextPage: boolean;
   loadMore: () => void;
@@ -26,6 +30,7 @@ interface GridProps {
 }
 
 export function CatalogueGrid({
+  mode,
   search,
   pageSize,
   hasNextPage,
@@ -84,12 +89,11 @@ export function CatalogueGrid({
     >
       {search.isLoading && !hasGridItems ? (
         <>
-          <div className="catalogue-grid__status catalogue-grid__status--loading">
-            <Typography variant="label">Loading catalogue…</Typography>
-          </div>
-
           {Array.from({ length: pageSize }, (_, index) => (
-            <CatalogueSkeletonCard key={`catalogue-skeleton-${index}`} />
+            <CatalogueSkeletonCard
+              key={`catalogue-skeleton-${index}`}
+              mode={mode}
+            />
           ))}
         </>
       ) : null}
@@ -108,6 +112,7 @@ export function CatalogueGrid({
         ? Array.from({ length: pageSize }, (_, index) => (
             <CatalogueSkeletonCard
               key={`catalogue-load-more-skeleton-${index}`}
+              mode={mode}
             />
           ))
         : null}
