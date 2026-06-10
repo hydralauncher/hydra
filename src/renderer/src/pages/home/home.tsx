@@ -2236,77 +2236,60 @@ export default function Home() {
     return interleaved;
   }, [retroPcGames, classicsGames]);
 
-  const globallySeen = new Set<string>();
-  for (const g of weeklyGames.slice(0, 3)) globallySeen.add(keyOf(g));
-  for (const g of classicsGames.slice(0, 3)) globallySeen.add(keyOf(g));
-  for (const g of hotGames.slice(0, 3)) globallySeen.add(keyOf(g));
-  for (const g of topReviewedGames.slice(0, 3)) globallySeen.add(keyOf(g));
-  for (const g of recentlyAddedGames.slice(0, 3)) globallySeen.add(keyOf(g));
+  const { d, randomPicks, randomPicksPool, extraPlatformRows } = useMemo(() => {
+    const globallySeen = new Set<string>();
+    for (const g of weeklyGames.slice(0, 3)) globallySeen.add(keyOf(g));
+    for (const g of classicsGames.slice(0, 3)) globallySeen.add(keyOf(g));
+    for (const g of hotGames.slice(0, 3)) globallySeen.add(keyOf(g));
+    for (const g of topReviewedGames.slice(0, 3)) globallySeen.add(keyOf(g));
+    for (const g of recentlyAddedGames.slice(0, 3)) globallySeen.add(keyOf(g));
 
-  type SliceOpts = {
-    rowKey: string;
-    tier: number;
-    excludeLibrary?: boolean;
-    dedup?: boolean;
-    shuffle?: boolean;
-    recordSeenAnyway?: boolean;
-    fallbackPool?: HomeRowGame[];
-  };
-
-  const sliceDiscovery = (
-    games: HomeRowGame[],
-    opts: SliceOpts
-  ): HomeRowGame[] => {
-    const {
-      rowKey,
-      excludeLibrary = true,
-      dedup = true,
-      shuffle = true,
-      recordSeenAnyway = false,
-      fallbackPool = [],
-    } = opts;
-
-    const filter = (
-      src: HomeRowGame[],
-      allowLibrary: boolean,
-      allowSeen: boolean
-    ): HomeRowGame[] => {
-      const out: HomeRowGame[] = [];
-      for (const g of src) {
-        const k = keyOf(g);
-        if (!allowSeen && dedup && globallySeen.has(k)) continue;
-        if (!allowLibrary && excludeLibrary && librarySet.has(k)) continue;
-        out.push(g);
-      }
-      return out;
+    type SliceOpts = {
+      rowKey: string;
+      tier: number;
+      excludeLibrary?: boolean;
+      dedup?: boolean;
+      shuffle?: boolean;
+      recordSeenAnyway?: boolean;
+      fallbackPool?: HomeRowGame[];
     };
 
-    let pool = filter(games, false, false);
+    const sliceDiscovery = (
+      games: HomeRowGame[],
+      opts: SliceOpts
+    ): HomeRowGame[] => {
+      const {
+        rowKey,
+        excludeLibrary = true,
+        dedup = true,
+        shuffle = true,
+        recordSeenAnyway = false,
+        fallbackPool = [],
+      } = opts;
 
-    if (pool.length < POOL_RELAX_THRESHOLD && excludeLibrary) {
-      pool = filter(games, true, false);
-    }
+      const filter = (
+        src: HomeRowGame[],
+        allowLibrary: boolean,
+        allowSeen: boolean
+      ): HomeRowGame[] => {
+        const out: HomeRowGame[] = [];
+        for (const g of src) {
+          const k = keyOf(g);
+          if (!allowSeen && dedup && globallySeen.has(k)) continue;
+          if (!allowLibrary && excludeLibrary && librarySet.has(k)) continue;
+          out.push(g);
+        }
+        return out;
+      };
 
-    if (pool.length === 0 && games.length > 0) {
-      const unseen = games.filter(
-        (g) => !excludeLibrary || !librarySet.has(keyOf(g))
-      );
-      pool = [
-        ...unseen.filter((g) => !globallySeen.has(keyOf(g))),
-        ...unseen.filter((g) => globallySeen.has(keyOf(g))),
-      ];
-    }
+      let pool = filter(games, false, false);
 
-    if (pool.length === 0 && fallbackPool.length > 0) {
-      const usable = fallbackPool.filter((g) => {
-        const k = keyOf(g);
-        if (dedup && globallySeen.has(k)) return false;
-        if (excludeLibrary && librarySet.has(k)) return false;
-        return true;
-      });
-      pool = usable;
-      if (pool.length === 0) {
-        const unseen = fallbackPool.filter(
+      if (pool.length < POOL_RELAX_THRESHOLD && excludeLibrary) {
+        pool = filter(games, true, false);
+      }
+
+      if (pool.length === 0 && games.length > 0) {
+        const unseen = games.filter(
           (g) => !excludeLibrary || !librarySet.has(keyOf(g))
         );
         pool = [
@@ -2314,419 +2297,510 @@ export default function Home() {
           ...unseen.filter((g) => globallySeen.has(keyOf(g))),
         ];
       }
-    }
 
-    const picked = shuffle
-      ? pickNDiverse(pool, MAX_ROW_GAMES, hashRowKey(rowKey, sessionSeed))
-      : pool.slice(0, MAX_ROW_GAMES);
-
-    if (dedup || recordSeenAnyway) {
-      for (const g of picked) globallySeen.add(keyOf(g));
-    }
-
-    return enrichSources(picked);
-  };
-
-  const personal = (games: HomeRowGame[]) =>
-    enrichSources(games.slice(0, MAX_ROW_GAMES));
-
-  const randomPicksPool = (() => {
-    const pool: HomeRowGame[] = [];
-    const ids = new Set<string>();
-    const ingest = (list: HomeRowGame[]) => {
-      for (const g of list) {
-        const k = keyOf(g);
-        if (ids.has(k)) continue;
-        ids.add(k);
-        pool.push(g);
+      if (pool.length === 0 && fallbackPool.length > 0) {
+        const usable = fallbackPool.filter((g) => {
+          const k = keyOf(g);
+          if (dedup && globallySeen.has(k)) return false;
+          if (excludeLibrary && librarySet.has(k)) return false;
+          return true;
+        });
+        pool = usable;
+        if (pool.length === 0) {
+          const unseen = fallbackPool.filter(
+            (g) => !excludeLibrary || !librarySet.has(keyOf(g))
+          );
+          pool = [
+            ...unseen.filter((g) => !globallySeen.has(keyOf(g))),
+            ...unseen.filter((g) => globallySeen.has(keyOf(g))),
+          ];
+        }
       }
+
+      const picked = shuffle
+        ? pickNDiverse(pool, MAX_ROW_GAMES, hashRowKey(rowKey, sessionSeed))
+        : pool.slice(0, MAX_ROW_GAMES);
+
+      if (dedup || recordSeenAnyway) {
+        for (const g of picked) globallySeen.add(keyOf(g));
+      }
+
+      return enrichSources(picked);
     };
-    ingest(universalPool);
-    ingest(classicsGames);
-    ingest(criticallyAcclaimedGames);
-    ingest(brandNewGames);
-    for (const arr of Object.values(genreData)) ingest(arr);
-    for (const arr of Object.values(tagData)) ingest(arr);
-    return pool;
-  })();
 
-  const randomPicks = enrichSources(pickN(randomPicksPool, 12, surpriseSeed));
+    const personal = (games: HomeRowGame[]) =>
+      enrichSources(games.slice(0, MAX_ROW_GAMES));
 
-  const d = {
-    hot: sliceDiscovery(hotGames, {
-      rowKey: "hot",
-      tier: 0,
-      dedup: false,
-      excludeLibrary: false,
-      shuffle: false,
-      recordSeenAnyway: true,
-    }),
-    mostPlayedHydra: sliceDiscovery(mostPlayedHydraGames, {
-      rowKey: "mostPlayedHydra",
-      tier: 0,
-      shuffle: false,
-    }),
-    weekly: sliceDiscovery(weeklyGames, {
-      rowKey: "weekly",
-      tier: 0,
-      shuffle: false,
-    }),
-    topReviewed: sliceDiscovery(topReviewedGames, {
-      rowKey: "topReviewed",
-      tier: 0,
-    }),
-    recentlyAdded: sliceDiscovery(recentlyAddedGames, {
-      rowKey: "recentlyAdded",
-      tier: 0,
-    }),
-    hiddenGems: sliceDiscovery(hiddenGemsGames, {
-      rowKey: "hiddenGems",
-      tier: 0,
-    }),
+    const randomPicksPool = (() => {
+      const pool: HomeRowGame[] = [];
+      const ids = new Set<string>();
+      const ingest = (list: HomeRowGame[]) => {
+        for (const g of list) {
+          const k = keyOf(g);
+          if (ids.has(k)) continue;
+          ids.add(k);
+          pool.push(g);
+        }
+      };
+      ingest(universalPool);
+      ingest(classicsGames);
+      ingest(criticallyAcclaimedGames);
+      ingest(brandNewGames);
+      for (const arr of Object.values(genreData)) ingest(arr);
+      for (const arr of Object.values(tagData)) ingest(arr);
+      return pool;
+    })();
 
-    friendsPlaying: personal(friendsPlayingGamesEnriched),
-    recentlyPlayed: personal(recentlyPlayedGames),
-    favorites: personal(favoriteGames),
-    gamesToBeat: personal(gamesToBeatGames),
-    playedGamesBySeed: new Map(
-      becauseYouPlayedSeeds.map((seed) => [
-        seed.objectId,
-        sliceDiscovery(allSimilarBySeed.get(seed.objectId) ?? [], {
-          rowKey: `playedGames:${seed.objectId}`,
-          tier: 1,
-          excludeLibrary: true,
-          dedup: false,
-          fallbackPool: hotGames,
-        }),
-      ])
-    ),
-    loveGamesBySeed: new Map(
-      becauseYouLoveSeeds.map((seed) => [
-        seed.objectId,
-        sliceDiscovery(allSimilarBySeed.get(seed.objectId) ?? [], {
-          rowKey: `loveGames:${seed.objectId}`,
-          tier: 1,
-          excludeLibrary: true,
-          dedup: false,
-          fallbackPool: hotGames,
-        }),
-      ])
-    ),
-    collections: personal(fromCollectionsGames),
-    library: personal(fromLibraryGames),
+    const randomPicks = enrichSources(pickN(randomPicksPool, 12, surpriseSeed));
 
-    action: sliceDiscovery(
-      personalizeRowPool("Action", genreData["Action"] ?? []),
-      {
-        rowKey: "g:Action",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    rpg: sliceDiscovery(personalizeRowPool("RPG", genreData["RPG"] ?? []), {
-      rowKey: "g:RPG",
-      tier: 2,
-      fallbackPool: universalPool,
-    }),
-    adventure: sliceDiscovery(
-      personalizeRowPool("Adventure", genreData["Adventure"] ?? []),
-      {
-        rowKey: "g:Adventure",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    openWorld: sliceDiscovery(tagData["openWorld"] ?? [], {
-      rowKey: "t:openWorld",
-      tier: 2,
-      fallbackPool: universalPool,
-    }),
-    storyRich: sliceDiscovery(tagData["storyRich"] ?? [], {
-      rowKey: "t:storyRich",
-      tier: 2,
-      fallbackPool: universalPool,
-    }),
-    strategy: sliceDiscovery(
-      personalizeRowPool("Strategy", genreData["Strategy"] ?? []),
-      {
-        rowKey: "g:Strategy",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    simulation: sliceDiscovery(
-      personalizeRowPool("Simulation", genreData["Simulation"] ?? []),
-      {
-        rowKey: "g:Simulation",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    indie: sliceDiscovery(
-      personalizeRowPool("Indie", genreData["Indie"] ?? []),
-      {
-        rowKey: "g:Indie",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    sports: sliceDiscovery(
-      personalizeRowPool("Sports", genreData["Sports"] ?? []),
-      {
-        rowKey: "g:Sports",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    racing: sliceDiscovery(
-      personalizeRowPool("Racing", genreData["Racing"] ?? []),
-      {
-        rowKey: "g:Racing",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
-    puzzle: sliceDiscovery(
-      personalizeRowPool("Puzzle", genreData["Puzzle"] ?? []),
-      {
-        rowKey: "g:Puzzle",
-        tier: 2,
-        fallbackPool: universalPool,
-      }
-    ),
+    const d = {
+      hot: sliceDiscovery(hotGames, {
+        rowKey: "hot",
+        tier: 0,
+        dedup: false,
+        excludeLibrary: false,
+        shuffle: false,
+        recordSeenAnyway: true,
+      }),
+      mostPlayedHydra: sliceDiscovery(mostPlayedHydraGames, {
+        rowKey: "mostPlayedHydra",
+        tier: 0,
+        shuffle: false,
+      }),
+      weekly: sliceDiscovery(weeklyGames, {
+        rowKey: "weekly",
+        tier: 0,
+        shuffle: false,
+      }),
+      topReviewed: sliceDiscovery(topReviewedGames, {
+        rowKey: "topReviewed",
+        tier: 0,
+      }),
+      recentlyAdded: sliceDiscovery(recentlyAddedGames, {
+        rowKey: "recentlyAdded",
+        tier: 0,
+      }),
+      hiddenGems: sliceDiscovery(hiddenGemsGames, {
+        rowKey: "hiddenGems",
+        tier: 0,
+      }),
 
-    casual: sliceDiscovery(
-      personalizeRowPool("Casual", genreData["Casual"] ?? []),
-      {
-        rowKey: "g:Casual",
-        tier: 3,
-        fallbackPool: universalPool,
-      }
-    ),
-    mm: sliceDiscovery(
-      personalizeRowPool(
-        "Massively Multiplayer",
-        genreData["Massively Multiplayer"] ?? []
+      friendsPlaying: personal(friendsPlayingGamesEnriched),
+      recentlyPlayed: personal(recentlyPlayedGames),
+      favorites: personal(favoriteGames),
+      gamesToBeat: personal(gamesToBeatGames),
+      playedGamesBySeed: new Map(
+        becauseYouPlayedSeeds.map((seed) => [
+          seed.objectId,
+          sliceDiscovery(allSimilarBySeed.get(seed.objectId) ?? [], {
+            rowKey: `playedGames:${seed.objectId}`,
+            tier: 1,
+            excludeLibrary: true,
+            dedup: false,
+            fallbackPool: hotGames,
+          }),
+        ])
       ),
-      {
-        rowKey: "g:MM",
+      loveGamesBySeed: new Map(
+        becauseYouLoveSeeds.map((seed) => [
+          seed.objectId,
+          sliceDiscovery(allSimilarBySeed.get(seed.objectId) ?? [], {
+            rowKey: `loveGames:${seed.objectId}`,
+            tier: 1,
+            excludeLibrary: true,
+            dedup: false,
+            fallbackPool: hotGames,
+          }),
+        ])
+      ),
+      collections: personal(fromCollectionsGames),
+      library: personal(fromLibraryGames),
+
+      action: sliceDiscovery(
+        personalizeRowPool("Action", genreData["Action"] ?? []),
+        {
+          rowKey: "g:Action",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      rpg: sliceDiscovery(personalizeRowPool("RPG", genreData["RPG"] ?? []), {
+        rowKey: "g:RPG",
+        tier: 2,
+        fallbackPool: universalPool,
+      }),
+      adventure: sliceDiscovery(
+        personalizeRowPool("Adventure", genreData["Adventure"] ?? []),
+        {
+          rowKey: "g:Adventure",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      openWorld: sliceDiscovery(tagData["openWorld"] ?? [], {
+        rowKey: "t:openWorld",
+        tier: 2,
+        fallbackPool: universalPool,
+      }),
+      storyRich: sliceDiscovery(tagData["storyRich"] ?? [], {
+        rowKey: "t:storyRich",
+        tier: 2,
+        fallbackPool: universalPool,
+      }),
+      strategy: sliceDiscovery(
+        personalizeRowPool("Strategy", genreData["Strategy"] ?? []),
+        {
+          rowKey: "g:Strategy",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      simulation: sliceDiscovery(
+        personalizeRowPool("Simulation", genreData["Simulation"] ?? []),
+        {
+          rowKey: "g:Simulation",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      indie: sliceDiscovery(
+        personalizeRowPool("Indie", genreData["Indie"] ?? []),
+        {
+          rowKey: "g:Indie",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      sports: sliceDiscovery(
+        personalizeRowPool("Sports", genreData["Sports"] ?? []),
+        {
+          rowKey: "g:Sports",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      racing: sliceDiscovery(
+        personalizeRowPool("Racing", genreData["Racing"] ?? []),
+        {
+          rowKey: "g:Racing",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+      puzzle: sliceDiscovery(
+        personalizeRowPool("Puzzle", genreData["Puzzle"] ?? []),
+        {
+          rowKey: "g:Puzzle",
+          tier: 2,
+          fallbackPool: universalPool,
+        }
+      ),
+
+      casual: sliceDiscovery(
+        personalizeRowPool("Casual", genreData["Casual"] ?? []),
+        {
+          rowKey: "g:Casual",
+          tier: 3,
+          fallbackPool: universalPool,
+        }
+      ),
+      mm: sliceDiscovery(
+        personalizeRowPool(
+          "Massively Multiplayer",
+          genreData["Massively Multiplayer"] ?? []
+        ),
+        {
+          rowKey: "g:MM",
+          tier: 3,
+          fallbackPool: universalPool,
+        }
+      ),
+      coOp: sliceDiscovery(tagData["coOp"] ?? [], {
+        rowKey: "t:coOp",
         tier: 3,
         fallbackPool: universalPool,
-      }
-    ),
-    coOp: sliceDiscovery(tagData["coOp"] ?? [], {
-      rowKey: "t:coOp",
-      tier: 3,
-      fallbackPool: universalPool,
-    }),
-    horror: sliceDiscovery(
-      personalizeRowPool("Horror", genreData["Horror"] ?? []),
-      {
-        rowKey: "g:Horror",
+      }),
+      horror: sliceDiscovery(
+        personalizeRowPool("Horror", genreData["Horror"] ?? []),
+        {
+          rowKey: "g:Horror",
+          tier: 3,
+          fallbackPool: universalPool,
+        }
+      ),
+      soulsLike: sliceDiscovery(tagData["soulsLike"] ?? [], {
+        rowKey: "t:soulsLike",
         tier: 3,
         fallbackPool: universalPool,
-      }
-    ),
-    soulsLike: sliceDiscovery(tagData["soulsLike"] ?? [], {
-      rowKey: "t:soulsLike",
-      tier: 3,
-      fallbackPool: universalPool,
-    }),
-    fighting: sliceDiscovery(
-      personalizeRowPool("Fighting", genreData["Fighting"] ?? []),
-      {
-        rowKey: "g:Fighting",
+      }),
+      fighting: sliceDiscovery(
+        personalizeRowPool("Fighting", genreData["Fighting"] ?? []),
+        {
+          rowKey: "g:Fighting",
+          tier: 3,
+          fallbackPool: universalPool,
+        }
+      ),
+      platformers: sliceDiscovery(
+        personalizeRowPool("Platformer", genreData["Platformer"] ?? []),
+        {
+          rowKey: "g:Platformer",
+          tier: 3,
+          fallbackPool: universalPool,
+        }
+      ),
+      roguelite: sliceDiscovery(tagData["roguelite"] ?? [], {
+        rowKey: "t:roguelite",
         tier: 3,
         fallbackPool: universalPool,
-      }
-    ),
-    platformers: sliceDiscovery(
-      personalizeRowPool("Platformer", genreData["Platformer"] ?? []),
-      {
-        rowKey: "g:Platformer",
+      }),
+      ps1: enrichSources(
+        (() => {
+          if (ps1Games.length > 0) return ps1Games;
+          const libPs1 = libraryClassicsPool.filter(
+            (g) => platformToSystem(g.platform) === "ps1"
+          );
+          if (libPs1.length > 0) return libPs1;
+          const fromBroad = classicsGames.filter(
+            (g) => platformToSystem(g.platform) === "ps1"
+          );
+          if (fromBroad.length > 0) return fromBroad;
+          return crossSourceClassicsByPlatform.ps1;
+        })().slice(0, MAX_ROW_GAMES)
+      ),
+      ps2: enrichSources(
+        (() => {
+          if (ps2Games.length > 0) return ps2Games;
+          const libPs2 = libraryClassicsPool.filter(
+            (g) => platformToSystem(g.platform) === "ps2"
+          );
+          if (libPs2.length > 0) return libPs2;
+          const fromBroad = classicsGames.filter(
+            (g) => platformToSystem(g.platform) === "ps2"
+          );
+          if (fromBroad.length > 0) return fromBroad;
+          const cross = crossSourceClassicsByPlatform.ps2;
+          if (cross.length > 0) return cross;
+          return MOCK_PS2_GAMES;
+        })().slice(0, MAX_ROW_GAMES)
+      ),
+      ps3: enrichSources(
+        (() => {
+          if (ps3Games.length > 0) return ps3Games;
+          const libPs3 = libraryClassicsPool.filter(
+            (g) => platformToSystem(g.platform) === "ps3"
+          );
+          if (libPs3.length > 0) return libPs3;
+          const fromBroad = classicsGames.filter(
+            (g) => platformToSystem(g.platform) === "ps3"
+          );
+          if (fromBroad.length > 0) return fromBroad;
+          const cross = crossSourceClassicsByPlatform.ps3;
+          if (cross.length > 0) return cross;
+          return MOCK_PS3_GAMES;
+        })().slice(0, MAX_ROW_GAMES)
+      ),
+      browseClassics: sliceDiscovery(browseClassicsPool, {
+        rowKey: "browseClassics",
+        tier: 4,
+        fallbackPool: classicsFallbackPool,
+      }),
+      retro: sliceDiscovery(retroMixedPool, {
+        rowKey: "retro",
         tier: 3,
-        fallbackPool: universalPool,
-      }
-    ),
-    roguelite: sliceDiscovery(tagData["roguelite"] ?? [], {
-      rowKey: "t:roguelite",
-      tier: 3,
-      fallbackPool: universalPool,
-    }),
-    ps1: enrichSources(
-      (() => {
-        if (ps1Games.length > 0) return ps1Games;
-        const libPs1 = libraryClassicsPool.filter(
-          (g) => platformToSystem(g.platform) === "ps1"
-        );
-        if (libPs1.length > 0) return libPs1;
-        const fromBroad = classicsGames.filter(
-          (g) => platformToSystem(g.platform) === "ps1"
-        );
-        if (fromBroad.length > 0) return fromBroad;
-        return crossSourceClassicsByPlatform.ps1;
-      })().slice(0, MAX_ROW_GAMES)
-    ),
-    ps2: enrichSources(
-      (() => {
-        if (ps2Games.length > 0) return ps2Games;
-        const libPs2 = libraryClassicsPool.filter(
-          (g) => platformToSystem(g.platform) === "ps2"
-        );
-        if (libPs2.length > 0) return libPs2;
-        const fromBroad = classicsGames.filter(
-          (g) => platformToSystem(g.platform) === "ps2"
-        );
-        if (fromBroad.length > 0) return fromBroad;
-        const cross = crossSourceClassicsByPlatform.ps2;
-        if (cross.length > 0) return cross;
-        return MOCK_PS2_GAMES;
-      })().slice(0, MAX_ROW_GAMES)
-    ),
-    ps3: enrichSources(
-      (() => {
-        if (ps3Games.length > 0) return ps3Games;
-        const libPs3 = libraryClassicsPool.filter(
-          (g) => platformToSystem(g.platform) === "ps3"
-        );
-        if (libPs3.length > 0) return libPs3;
-        const fromBroad = classicsGames.filter(
-          (g) => platformToSystem(g.platform) === "ps3"
-        );
-        if (fromBroad.length > 0) return fromBroad;
-        const cross = crossSourceClassicsByPlatform.ps3;
-        if (cross.length > 0) return cross;
-        return MOCK_PS3_GAMES;
-      })().slice(0, MAX_ROW_GAMES)
-    ),
-    browseClassics: sliceDiscovery(browseClassicsPool, {
-      rowKey: "browseClassics",
-      tier: 4,
-      fallbackPool: classicsFallbackPool,
-    }),
-    retro: sliceDiscovery(retroMixedPool, {
-      rowKey: "retro",
-      tier: 3,
-      /* No universalPool fallback — if the merged retro pool is
+        /* No universalPool fallback — if the merged retro pool is
          empty (both pre-2010 PC fetch AND classics fetch returned
          0), better to hide the row than fill it with modern hot
          games that defeat the row's whole concept. */
-    }),
+      }),
 
-    criticallyAcclaimed: sliceDiscovery(criticallyAcclaimedGames, {
-      rowKey: "criticallyAcclaimed",
-      tier: 2,
-      fallbackPool: universalPool,
-    }),
-    brandNew: sliceDiscovery(brandNewGames, {
-      rowKey: "brandNew",
-      tier: 3,
-      fallbackPool: universalPool,
-    }),
-    ps2Horror: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Horror"), {
-      rowKey: "classics:ps2:horror",
-      tier: 4,
-    }),
-    ps1Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps1", "RPG"), {
-      rowKey: "classics:ps1:rpg",
-      tier: 3,
-    }),
-    ps1Action: sliceDiscovery(classicsByPlatformAndGenre("ps1", "Action"), {
-      rowKey: "classics:ps1:action",
-      tier: 4,
-    }),
-    ps1Platformer: sliceDiscovery(
-      classicsByPlatformAndGenre("ps1", "Platformer"),
-      { rowKey: "classics:ps1:platformer", tier: 4 }
-    ),
-    ps1Fighting: sliceDiscovery(classicsByPlatformAndGenre("ps1", "Fighting"), {
-      rowKey: "classics:ps1:fighting",
-      tier: 4,
-    }),
-    ps1Adventure: sliceDiscovery(
-      classicsByPlatformAndGenre("ps1", "Adventure"),
-      { rowKey: "classics:ps1:adventure", tier: 4 }
-    ),
-    ps2Action: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Action"), {
-      rowKey: "classics:ps2:action",
-      tier: 4,
-    }),
-    ps3Action: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Action"), {
-      rowKey: "classics:ps3:action",
-      tier: 4,
-    }),
-    ps3Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps3", "RPG"), {
-      rowKey: "classics:ps3:rpg",
-      tier: 4,
-    }),
-    ps3Adventure: sliceDiscovery(
-      classicsByPlatformAndGenre("ps3", "Adventure"),
-      { rowKey: "classics:ps3:adventure", tier: 4 }
-    ),
-    ps2Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps2", "RPG"), {
-      rowKey: "classics:ps2:rpg",
-      tier: 4,
-    }),
-    ps2Adventure: sliceDiscovery(
-      classicsByPlatformAndGenre("ps2", "Adventure"),
-      { rowKey: "classics:ps2:adventure", tier: 4 }
-    ),
-    ps2Platformer: sliceDiscovery(
-      classicsByPlatformAndGenre("ps2", "Platformer"),
-      { rowKey: "classics:ps2:platformer", tier: 4 }
-    ),
-    ps2Fighting: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Fighting"), {
-      rowKey: "classics:ps2:fighting",
-      tier: 4,
-    }),
-    ps2Racing: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Racing"), {
-      rowKey: "classics:ps2:racing",
-      tier: 4,
-    }),
-    ps3Horror: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Horror"), {
-      rowKey: "classics:ps3:horror",
-      tier: 4,
-    }),
-    ps3Platformer: sliceDiscovery(
-      classicsByPlatformAndGenre("ps3", "Platformer"),
-      { rowKey: "classics:ps3:platformer", tier: 4 }
-    ),
-    ps3Fighting: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Fighting"), {
-      rowKey: "classics:ps3:fighting",
-      tier: 4,
-    }),
-    ps3Racing: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Racing"), {
-      rowKey: "classics:ps3:racing",
-      tier: 4,
-    }),
+      criticallyAcclaimed: sliceDiscovery(criticallyAcclaimedGames, {
+        rowKey: "criticallyAcclaimed",
+        tier: 2,
+        fallbackPool: universalPool,
+      }),
+      brandNew: sliceDiscovery(brandNewGames, {
+        rowKey: "brandNew",
+        tier: 3,
+        fallbackPool: universalPool,
+      }),
+      ps2Horror: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Horror"), {
+        rowKey: "classics:ps2:horror",
+        tier: 4,
+      }),
+      ps1Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps1", "RPG"), {
+        rowKey: "classics:ps1:rpg",
+        tier: 3,
+      }),
+      ps1Action: sliceDiscovery(classicsByPlatformAndGenre("ps1", "Action"), {
+        rowKey: "classics:ps1:action",
+        tier: 4,
+      }),
+      ps1Platformer: sliceDiscovery(
+        classicsByPlatformAndGenre("ps1", "Platformer"),
+        { rowKey: "classics:ps1:platformer", tier: 4 }
+      ),
+      ps1Fighting: sliceDiscovery(
+        classicsByPlatformAndGenre("ps1", "Fighting"),
+        {
+          rowKey: "classics:ps1:fighting",
+          tier: 4,
+        }
+      ),
+      ps1Adventure: sliceDiscovery(
+        classicsByPlatformAndGenre("ps1", "Adventure"),
+        { rowKey: "classics:ps1:adventure", tier: 4 }
+      ),
+      ps2Action: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Action"), {
+        rowKey: "classics:ps2:action",
+        tier: 4,
+      }),
+      ps3Action: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Action"), {
+        rowKey: "classics:ps3:action",
+        tier: 4,
+      }),
+      ps3Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps3", "RPG"), {
+        rowKey: "classics:ps3:rpg",
+        tier: 4,
+      }),
+      ps3Adventure: sliceDiscovery(
+        classicsByPlatformAndGenre("ps3", "Adventure"),
+        { rowKey: "classics:ps3:adventure", tier: 4 }
+      ),
+      ps2Rpg: sliceDiscovery(classicsByPlatformAndGenre("ps2", "RPG"), {
+        rowKey: "classics:ps2:rpg",
+        tier: 4,
+      }),
+      ps2Adventure: sliceDiscovery(
+        classicsByPlatformAndGenre("ps2", "Adventure"),
+        { rowKey: "classics:ps2:adventure", tier: 4 }
+      ),
+      ps2Platformer: sliceDiscovery(
+        classicsByPlatformAndGenre("ps2", "Platformer"),
+        { rowKey: "classics:ps2:platformer", tier: 4 }
+      ),
+      ps2Fighting: sliceDiscovery(
+        classicsByPlatformAndGenre("ps2", "Fighting"),
+        {
+          rowKey: "classics:ps2:fighting",
+          tier: 4,
+        }
+      ),
+      ps2Racing: sliceDiscovery(classicsByPlatformAndGenre("ps2", "Racing"), {
+        rowKey: "classics:ps2:racing",
+        tier: 4,
+      }),
+      ps3Horror: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Horror"), {
+        rowKey: "classics:ps3:horror",
+        tier: 4,
+      }),
+      ps3Platformer: sliceDiscovery(
+        classicsByPlatformAndGenre("ps3", "Platformer"),
+        { rowKey: "classics:ps3:platformer", tier: 4 }
+      ),
+      ps3Fighting: sliceDiscovery(
+        classicsByPlatformAndGenre("ps3", "Fighting"),
+        {
+          rowKey: "classics:ps3:fighting",
+          tier: 4,
+        }
+      ),
+      ps3Racing: sliceDiscovery(classicsByPlatformAndGenre("ps3", "Racing"), {
+        rowKey: "classics:ps3:racing",
+        tier: 4,
+      }),
 
-    spotlight: sliceDiscovery(spotlightGames, {
-      rowKey: `spotlight:${currentSpotlight.key}`,
-      tier: 2,
-      fallbackPool: universalPool,
-    }),
+      spotlight: sliceDiscovery(spotlightGames, {
+        rowKey: `spotlight:${currentSpotlight.key}`,
+        tier: 2,
+        fallbackPool: universalPool,
+      }),
 
-    pixelArt: sliceDiscovery(tagData["pixelArt"] ?? [], {
-      rowKey: "t:pixelArt",
-      tier: 4,
-      fallbackPool: universalPool,
-    }),
-    sciFi: sliceDiscovery(tagData["sciFi"] ?? [], {
-      rowKey: "t:sciFi",
-      tier: 4,
-      fallbackPool: universalPool,
-    }),
-    fantasy: sliceDiscovery(tagData["fantasy"] ?? [], {
-      rowKey: "t:fantasy",
-      tier: 4,
-      fallbackPool: universalPool,
-    }),
-    survival: sliceDiscovery(tagData["survival"] ?? [], {
-      rowKey: "t:survival",
-      tier: 4,
-      fallbackPool: universalPool,
-    }),
-  };
+      pixelArt: sliceDiscovery(tagData["pixelArt"] ?? [], {
+        rowKey: "t:pixelArt",
+        tier: 4,
+        fallbackPool: universalPool,
+      }),
+      sciFi: sliceDiscovery(tagData["sciFi"] ?? [], {
+        rowKey: "t:sciFi",
+        tier: 4,
+        fallbackPool: universalPool,
+      }),
+      fantasy: sliceDiscovery(tagData["fantasy"] ?? [], {
+        rowKey: "t:fantasy",
+        tier: 4,
+        fallbackPool: universalPool,
+      }),
+      survival: sliceDiscovery(tagData["survival"] ?? [], {
+        rowKey: "t:survival",
+        tier: 4,
+        fallbackPool: universalPool,
+      }),
+    };
+
+    const extraPlatformRows: {
+      platformKey: string;
+      platformLabel: string;
+      sliced: HomeRowGame[];
+    }[] = [];
+    for (const platform of launchboxFilters.platforms) {
+      if (platformToSystem(platform.name) !== null) continue;
+      const platformGames = extraPlatformGames[platform.key];
+      if (!platformGames || platformGames.length === 0) continue;
+      const sliced = sliceDiscovery(platformGames, {
+        rowKey: `platform:${platform.key}`,
+        tier: 2,
+      });
+      if (sliced.length === 0) continue;
+      extraPlatformRows.push({
+        platformKey: platform.key,
+        platformLabel: platform.name,
+        sliced,
+      });
+    }
+
+    return { d, randomPicks, randomPicksPool, extraPlatformRows };
+  }, [
+    allSimilarBySeed,
+    extraPlatformGames,
+    launchboxFilters,
+    becauseYouLoveSeeds,
+    becauseYouPlayedSeeds,
+    brandNewGames,
+    browseClassicsPool,
+    classicsByPlatformAndGenre,
+    classicsFallbackPool,
+    classicsGames,
+    criticallyAcclaimedGames,
+    crossSourceClassicsByPlatform,
+    currentSpotlight.key,
+    enrichSources,
+    favoriteGames,
+    friendsPlayingGamesEnriched,
+    fromCollectionsGames,
+    fromLibraryGames,
+    gamesToBeatGames,
+    genreData,
+    hiddenGemsGames,
+    hotGames,
+    libraryClassicsPool,
+    librarySet,
+    mostPlayedHydraGames,
+    personalizeRowPool,
+    ps1Games,
+    ps2Games,
+    ps3Games,
+    recentlyAddedGames,
+    recentlyPlayedGames,
+    retroMixedPool,
+    sessionSeed,
+    spotlightGames,
+    surpriseSeed,
+    tagData,
+    topReviewedGames,
+    universalPool,
+    weeklyGames,
+  ]);
 
   useEffect(() => {
     if (!hasPersonalSignal && visibleTier === 1) {
@@ -3602,17 +3676,7 @@ export default function Home() {
     ),
   });
 
-  for (const platform of launchboxFilters.platforms) {
-    if (platformToSystem(platform.name) !== null) continue;
-    const games = extraPlatformGames[platform.key];
-    if (!games || games.length === 0) continue;
-    const platformLabel = platform.name;
-    const platformKey = platform.key;
-    const sliced = sliceDiscovery(games, {
-      rowKey: `platform:${platformKey}`,
-      tier: 2,
-    });
-    if (sliced.length === 0) continue;
+  for (const { platformKey, platformLabel, sliced } of extraPlatformRows) {
     allSpecs.push({
       id: `platform:${platformKey}`,
       category: "classics-platform",
@@ -4014,6 +4078,207 @@ export default function Home() {
       : TIER_START_INDICES[visibleTier + 1];
   const renderedRows = orderedRows.slice(0, tierEnd);
 
+  const heroCandidates = useMemo<HeroCandidate[]>(() => {
+    const out: HeroCandidate[] = [];
+    const used = new Set<string>();
+    const claim = (g: HomeRowGame) => {
+      const k = `${g.shop}:${g.objectId}`;
+      if (used.has(k)) return false;
+      used.add(k);
+      return true;
+    };
+
+    const hasPcAssets = (g: HomeRowGame) =>
+      !!g.logoImageUrl && !!(g.libraryHeroImageUrl ?? g.libraryImageUrl);
+
+    const hasDisplayableAssets = (g: HomeRowGame) => {
+      if (g.shop === "launchbox") {
+        return !!(g.coverImageUrl ?? g.libraryImageUrl);
+      }
+      return hasPcAssets(g);
+    };
+
+    for (const g of hotGames) {
+      if (!hasPcAssets(g)) continue;
+      if (!claim(g)) continue;
+      out.push({ kind: "hot-now", game: g });
+      break;
+    }
+
+    if (hasPersonalSignal) {
+      const WEEKLY_HOURS_CAP = 20;
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const recentlyActive = library
+        .filter(
+          (g) =>
+            !g.isDeleted &&
+            (g.playTimeInMilliseconds ?? 0) > 0 &&
+            g.lastTimePlayed != null &&
+            new Date(g.lastTimePlayed).getTime() >= sevenDaysAgo
+        )
+        .sort(
+          (a, b) =>
+            (b.playTimeInMilliseconds ?? 0) - (a.playTimeInMilliseconds ?? 0)
+        );
+      for (const cand of recentlyActive) {
+        const row = libraryGameToRowGame(cand);
+        if (!claim(row)) continue;
+        const totalHours =
+          (cand.playTimeInMilliseconds ?? 0) / (1000 * 60 * 60);
+        out.push({
+          kind: "recently-played",
+          game: row,
+          becauseOfTitle: cand.title,
+          hoursThisWeek: Math.min(totalHours, WEEKLY_HOURS_CAP),
+        });
+        break;
+      }
+    }
+
+    const downloadedSources: HomeRowGame[][] = [
+      weeklyGames,
+      recentlyAddedGames,
+      hotGames,
+      topReviewedGames,
+    ];
+    md_outer: for (const src of downloadedSources) {
+      for (const g of src) {
+        if (!hasPcAssets(g)) continue;
+        if (!claim(g)) continue;
+        out.push({ kind: "most-downloaded-this-week", game: g });
+        break md_outer;
+      }
+    }
+
+    const randomPool = randomPicksPool ?? [];
+    if (randomPool.length > 0) {
+      const shuffled = randomPool.slice();
+      let s = (sessionSeed ^ 0x99) >>> 0 || 1;
+      const rng = () => {
+        s = (s + 0x6d2b79f5) | 0;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      for (const g of shuffled) {
+        if (!hasDisplayableAssets(g)) continue;
+        if (!claim(g)) continue;
+        out.push({ kind: "random-pick", game: g });
+        break;
+      }
+    }
+
+    if (hasPersonalSignal) {
+      const libPc = library.filter(
+        (g) => !g.isDeleted && g.shop !== "launchbox"
+      );
+      if (libPc.length > 0) {
+        const idx = sessionSeed % libPc.length;
+        for (let i = 0; i < libPc.length; i++) {
+          const cand = libPc[(idx + i) % libPc.length];
+          const row = libraryGameToRowGame(cand);
+          if (!claim(row)) continue;
+          out.push({
+            kind: "from-library",
+            game: row,
+            becauseOfTitle: cand.title,
+          });
+          break;
+        }
+      }
+    }
+
+    if (hasPersonalSignal) {
+      const libClassics = library.filter(
+        (g) => !g.isDeleted && g.shop === "launchbox"
+      );
+      if (libClassics.length > 0) {
+        const idx = (sessionSeed ^ 0x5a5a) % libClassics.length;
+        for (let i = 0; i < libClassics.length; i++) {
+          const cand = libClassics[(idx + i) % libClassics.length];
+          const row = libraryGameToRowGame(cand);
+          if (!claim(row)) continue;
+          out.push({ kind: "good-old-days", game: row });
+          break;
+        }
+      }
+    }
+
+    if (hasPersonalSignal) {
+      const libClassics = library.filter(
+        (g) => !g.isDeleted && g.shop === "launchbox"
+      );
+      if (libClassics.length >= 2) {
+        const idx = (sessionSeed ^ 0xa5a5) % libClassics.length;
+        for (let i = 0; i < libClassics.length; i++) {
+          const cand = libClassics[(idx + i) % libClassics.length];
+          const row = libraryGameToRowGame(cand);
+          if (!claim(row)) continue;
+          out.push({ kind: "hot-now-classics", game: row });
+          break;
+        }
+      }
+    }
+
+    if (hasPersonalSignal) {
+      const withTrophies = library
+        .filter(
+          (g) =>
+            !g.isDeleted &&
+            (g.unlockedAchievementCount ?? 0) > 0 &&
+            g.lastTimePlayed != null
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.lastTimePlayed as string | Date).getTime() -
+            new Date(a.lastTimePlayed as string | Date).getTime()
+        );
+      for (const cand of withTrophies) {
+        const row = libraryGameToRowGame(cand);
+        if (!claim(row)) continue;
+        out.push({
+          kind: "trophy-hunter",
+          game: row,
+          becauseOfTitle: cand.title,
+        });
+        break;
+      }
+    }
+
+    if (hasPersonalSignal && becauseYouPlayedSeed) {
+      const similar = allSimilarBySeed.get(becauseYouPlayedSeed.objectId) ?? [];
+      for (const g of similar) {
+        if (!hasDisplayableAssets(g)) continue;
+        if (!claim(g)) continue;
+        out.push({
+          kind: "because-you-played",
+          game: g,
+          seedGameTitle: becauseYouPlayedSeed.title,
+          seedGameLogoUrl: becauseYouPlayedSeed.logoImageUrl ?? null,
+        });
+        break;
+      }
+    }
+
+    return out;
+  }, [
+    hotGames,
+    hasPersonalSignal,
+    library,
+    weeklyGames,
+    recentlyAddedGames,
+    topReviewedGames,
+    randomPicksPool,
+    sessionSeed,
+    becauseYouPlayedSeed,
+    allSimilarBySeed,
+  ]);
+
   return (
     <HomeHydrationContext.Provider value={isHydrating}>
       <HomeFriendsProvider value={friendsByGameKey}>
@@ -4021,203 +4286,7 @@ export default function Home() {
           <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
             <section ref={contentRef} className="home__content">
               <Hero
-                candidates={(() => {
-                  const out: HeroCandidate[] = [];
-                  const used = new Set<string>();
-                  const claim = (g: HomeRowGame) => {
-                    const k = `${g.shop}:${g.objectId}`;
-                    if (used.has(k)) return false;
-                    used.add(k);
-                    return true;
-                  };
-
-                  const hasPcAssets = (g: HomeRowGame) =>
-                    !!g.logoImageUrl &&
-                    !!(g.libraryHeroImageUrl ?? g.libraryImageUrl);
-
-                  const hasDisplayableAssets = (g: HomeRowGame) => {
-                    if (g.shop === "launchbox") {
-                      return !!(g.coverImageUrl ?? g.libraryImageUrl);
-                    }
-                    return hasPcAssets(g);
-                  };
-
-                  for (const g of hotGames) {
-                    if (!hasPcAssets(g)) continue;
-                    if (!claim(g)) continue;
-                    out.push({ kind: "hot-now", game: g });
-                    break;
-                  }
-
-                  if (hasPersonalSignal) {
-                    const WEEKLY_HOURS_CAP = 20;
-                    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                    const recentlyActive = library
-                      .filter(
-                        (g) =>
-                          !g.isDeleted &&
-                          (g.playTimeInMilliseconds ?? 0) > 0 &&
-                          g.lastTimePlayed != null &&
-                          new Date(g.lastTimePlayed).getTime() >= sevenDaysAgo
-                      )
-                      .sort(
-                        (a, b) =>
-                          (b.playTimeInMilliseconds ?? 0) -
-                          (a.playTimeInMilliseconds ?? 0)
-                      );
-                    for (const cand of recentlyActive) {
-                      const row = libraryGameToRowGame(cand);
-                      if (!claim(row)) continue;
-                      const totalHours =
-                        (cand.playTimeInMilliseconds ?? 0) / (1000 * 60 * 60);
-                      out.push({
-                        kind: "recently-played",
-                        game: row,
-                        becauseOfTitle: cand.title,
-                        hoursThisWeek: Math.min(totalHours, WEEKLY_HOURS_CAP),
-                      });
-                      break;
-                    }
-                  }
-
-                  const downloadedSources: HomeRowGame[][] = [
-                    weeklyGames,
-                    recentlyAddedGames,
-                    hotGames,
-                    topReviewedGames,
-                  ];
-                  md_outer: for (const src of downloadedSources) {
-                    for (const g of src) {
-                      if (!hasPcAssets(g)) continue;
-                      if (!claim(g)) continue;
-                      out.push({ kind: "most-downloaded-this-week", game: g });
-                      break md_outer;
-                    }
-                  }
-
-                  const randomPool = randomPicksPool ?? [];
-                  if (randomPool.length > 0) {
-                    const shuffled = randomPool.slice();
-                    let s = (sessionSeed ^ 0x99) >>> 0 || 1;
-                    const rng = () => {
-                      s = (s + 0x6d2b79f5) | 0;
-                      let t = s;
-                      t = Math.imul(t ^ (t >>> 15), t | 1);
-                      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-                      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-                    };
-                    for (let i = shuffled.length - 1; i > 0; i--) {
-                      const j = Math.floor(rng() * (i + 1));
-                      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-                    }
-                    for (const g of shuffled) {
-                      if (!hasDisplayableAssets(g)) continue;
-                      if (!claim(g)) continue;
-                      out.push({ kind: "random-pick", game: g });
-                      break;
-                    }
-                  }
-
-                  if (hasPersonalSignal) {
-                    const libPc = library.filter(
-                      (g) => !g.isDeleted && g.shop !== "launchbox"
-                    );
-                    if (libPc.length > 0) {
-                      const idx = sessionSeed % libPc.length;
-                      for (let i = 0; i < libPc.length; i++) {
-                        const cand = libPc[(idx + i) % libPc.length];
-                        const row = libraryGameToRowGame(cand);
-                        if (!claim(row)) continue;
-                        out.push({
-                          kind: "from-library",
-                          game: row,
-                          becauseOfTitle: cand.title,
-                        });
-                        break;
-                      }
-                    }
-                  }
-
-                  if (hasPersonalSignal) {
-                    const libClassics = library.filter(
-                      (g) => !g.isDeleted && g.shop === "launchbox"
-                    );
-                    if (libClassics.length > 0) {
-                      const idx = (sessionSeed ^ 0x5a5a) % libClassics.length;
-                      for (let i = 0; i < libClassics.length; i++) {
-                        const cand =
-                          libClassics[(idx + i) % libClassics.length];
-                        const row = libraryGameToRowGame(cand);
-                        if (!claim(row)) continue;
-                        out.push({ kind: "good-old-days", game: row });
-                        break;
-                      }
-                    }
-                  }
-
-                  if (hasPersonalSignal) {
-                    const libClassics = library.filter(
-                      (g) => !g.isDeleted && g.shop === "launchbox"
-                    );
-                    if (libClassics.length >= 2) {
-                      const idx = (sessionSeed ^ 0xa5a5) % libClassics.length;
-                      for (let i = 0; i < libClassics.length; i++) {
-                        const cand =
-                          libClassics[(idx + i) % libClassics.length];
-                        const row = libraryGameToRowGame(cand);
-                        if (!claim(row)) continue;
-                        out.push({ kind: "hot-now-classics", game: row });
-                        break;
-                      }
-                    }
-                  }
-
-                  if (hasPersonalSignal) {
-                    const withTrophies = library
-                      .filter(
-                        (g) =>
-                          !g.isDeleted &&
-                          (g.unlockedAchievementCount ?? 0) > 0 &&
-                          g.lastTimePlayed != null
-                      )
-                      .sort(
-                        (a, b) =>
-                          new Date(
-                            b.lastTimePlayed as string | Date
-                          ).getTime() -
-                          new Date(a.lastTimePlayed as string | Date).getTime()
-                      );
-                    for (const cand of withTrophies) {
-                      const row = libraryGameToRowGame(cand);
-                      if (!claim(row)) continue;
-                      out.push({
-                        kind: "trophy-hunter",
-                        game: row,
-                        becauseOfTitle: cand.title,
-                      });
-                      break;
-                    }
-                  }
-
-                  if (hasPersonalSignal && becauseYouPlayedSeed) {
-                    const similar =
-                      allSimilarBySeed.get(becauseYouPlayedSeed.objectId) ?? [];
-                    for (const g of similar) {
-                      if (!hasDisplayableAssets(g)) continue;
-                      if (!claim(g)) continue;
-                      out.push({
-                        kind: "because-you-played",
-                        game: g,
-                        seedGameTitle: becauseYouPlayedSeed.title,
-                        seedGameLogoUrl:
-                          becauseYouPlayedSeed.logoImageUrl ?? null,
-                      });
-                      break;
-                    }
-                  }
-
-                  return out;
-                })()}
+                candidates={heroCandidates}
                 sessionSeed={sessionSeed}
                 popularityRanking={hotGames}
                 discoveryPicks={[

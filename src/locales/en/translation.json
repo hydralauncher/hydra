@@ -940,6 +940,7 @@
     "enable_friend_start_game_notifications": "When a friend starts playing a game",
     "autoplay_trailers_on_game_page": "Automatically start playing trailers on the game page",
     "hide_to_tray_on_game_start": "Hide Hydra to tray on game startup",
+    "disable_home_slide_animations": "Disable home carousel slide animations (auto-rotate and row momentum)",
     "downloads": "Downloads",
     "create_shortcuts_on_download": "Create desktop and Start Menu shortcuts when a game finishes downloading",
     "default_proton_version": "Default Proton version",

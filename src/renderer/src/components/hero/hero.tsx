@@ -484,11 +484,14 @@ export function Hero({
   const { i18n } = useTranslation();
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
   const classicsUseHeroLayout = userPreferences?.classicsUseHeroLayout ?? false;
+  const disableSlideAnimations =
+    userPreferences?.disableHomeSlideAnimations ?? false;
 
   useEffect(() => {
     setIsLoading(true);
@@ -846,13 +849,14 @@ export function Hero({
 
   const scheduleAdvance = useCallback(() => {
     clearAdvanceTimeout();
+    if (disableSlideAnimations) return;
     if (slidesLen <= 1) return;
     const elapsed = Date.now() - slideStartRef.current - totalPausedRef.current;
     const remaining = Math.max(0, ROTATION_INTERVAL_MS - elapsed);
     advanceTimeoutRef.current = setTimeout(() => {
       setTrackIndex((t) => t + 1);
     }, remaining);
-  }, [slidesLen]);
+  }, [slidesLen, disableSlideAnimations]);
 
   useEffect(() => {
     slideStartRef.current = Date.now();
@@ -864,6 +868,7 @@ export function Hero({
 
   const handleTrackTransitionEnd = useCallback(
     (e: React.TransitionEvent) => {
+      if (e.target !== e.currentTarget) return;
       if (e.propertyName !== "transform") return;
       if (trackIndex === 0) {
         setTransitionEnabled(false);
@@ -882,6 +887,19 @@ export function Hero({
     [trackIndex, slidesLen]
   );
 
+  const scheduleResume = useCallback(() => {
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    resumeTimeoutRef.current = setTimeout(() => {
+      if (pauseStartRef.current != null) {
+        totalPausedRef.current += Date.now() - pauseStartRef.current;
+        pauseStartRef.current = null;
+      }
+      setPaused(false);
+      scheduleAdvance();
+      resumeTimeoutRef.current = null;
+    }, RESUME_DELAY_MS);
+  }, [scheduleAdvance]);
+
   const handleMouseEnter = useCallback(() => {
     if (resumeTimeoutRef.current) {
       clearTimeout(resumeTimeoutRef.current);
@@ -897,20 +915,45 @@ export function Hero({
   const isMouseDownRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragDeltaRef = useRef(0);
+  const dragSeedRef = useRef(0);
+  const dragStartIndexRef = useRef(1);
   const wasDraggedRef = useRef(false);
+  const heroWidthRef = useRef(0);
+  const dragRafRef = useRef<number | null>(null);
+  const snapRafRef = useRef<number | null>(null);
 
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
       if (slidesLen <= 1) return;
+
+      if (snapRafRef.current != null) {
+        cancelAnimationFrame(snapRafRef.current);
+        snapRafRef.current = null;
+      }
+
+      const width = heroRef.current?.clientWidth ?? 0;
+      heroWidthRef.current = width;
+
+      let seed = 0;
+      const track = trackRef.current;
+      if (track && width > 0) {
+        const transform = getComputedStyle(track).transform;
+        if (transform && transform !== "none") {
+          seed = new DOMMatrixReadOnly(transform).m41 + trackIndex * width;
+        }
+      }
+
       isMouseDownRef.current = true;
       dragStartXRef.current = e.clientX;
+      dragSeedRef.current = seed;
+      dragStartIndexRef.current = trackIndex;
       dragDeltaRef.current = 0;
       wasDraggedRef.current = false;
       setIsDragging(true);
-      setDragOffset(0);
+      setDragOffset(seed);
       handleMouseEnter();
     },
-    [slidesLen, handleMouseEnter]
+    [slidesLen, trackIndex, handleMouseEnter]
   );
 
   useEffect(() => {
@@ -923,26 +966,59 @@ export function Hero({
       if (Math.abs(delta) > DRAG_CLICK_GUARD_PX) {
         wasDraggedRef.current = true;
       }
-      setDragOffset(delta);
+      if (dragRafRef.current == null) {
+        dragRafRef.current = requestAnimationFrame(() => {
+          dragRafRef.current = null;
+          let next = dragSeedRef.current + dragDeltaRef.current;
+          const width = heroWidthRef.current;
+          if (width > 0) {
+            const idx = dragStartIndexRef.current;
+            const min = (idx - (slidesLen + 1)) * width;
+            const max = idx * width;
+            next = Math.max(min, Math.min(max, next));
+          }
+          setDragOffset(next);
+        });
+      }
     };
 
-    const onUp = () => {
+    const onUp = (e: MouseEvent) => {
       if (!isMouseDownRef.current) return;
       isMouseDownRef.current = false;
+      if (dragRafRef.current != null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
       const delta = dragDeltaRef.current;
       dragDeltaRef.current = 0;
+      dragSeedRef.current = 0;
 
       setIsDragging(false);
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      const rect = heroRef.current?.getBoundingClientRect();
+      const pointerLeft =
+        !rect ||
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom;
+      if (pointerLeft) scheduleResume();
+
+      snapRafRef.current = requestAnimationFrame(() => {
+        snapRafRef.current = requestAnimationFrame(() => {
+          snapRafRef.current = null;
           setDragOffset(0);
-          if (Math.abs(delta) > DRAG_SNAP_THRESHOLD_PX && slidesLen > 1) {
-            if (delta < 0) {
-              setTrackIndex((t) => Math.min(slidesLen + 1, t + 1));
-            } else {
-              setTrackIndex((t) => Math.max(0, t - 1));
-            }
+          const width = heroWidthRef.current;
+          if (
+            slidesLen > 1 &&
+            width > 0 &&
+            Math.abs(delta) > DRAG_SNAP_THRESHOLD_PX
+          ) {
+            const direction = delta < 0 ? 1 : -1;
+            const steps = Math.max(1, Math.round(Math.abs(delta) / width));
+            setTrackIndex((t) =>
+              Math.max(0, Math.min(slidesLen + 1, t + direction * steps))
+            );
           }
         });
       });
@@ -953,21 +1029,17 @@ export function Hero({
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      if (dragRafRef.current != null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
     };
-  }, [isDragging, slidesLen]);
+  }, [isDragging, slidesLen, scheduleResume]);
 
   const handleMouseLeave = useCallback(() => {
-    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-    resumeTimeoutRef.current = setTimeout(() => {
-      if (pauseStartRef.current != null) {
-        totalPausedRef.current += Date.now() - pauseStartRef.current;
-        pauseStartRef.current = null;
-      }
-      setPaused(false);
-      scheduleAdvance();
-      resumeTimeoutRef.current = null;
-    }, RESUME_DELAY_MS);
-  }, [scheduleAdvance]);
+    if (isMouseDownRef.current) return;
+    scheduleResume();
+  }, [scheduleResume]);
 
   useEffect(
     () => () => {
@@ -1000,10 +1072,9 @@ export function Hero({
   const lastSlide = slides[slidesLen - 1];
   const firstSlide = slides[0];
 
-  const heroWidth = heroRef.current?.clientWidth ?? 0;
   const dragFraction =
-    isDragging && heroWidth > 0
-      ? Math.max(-1, Math.min(1, dragOffset / heroWidth))
+    isDragging && heroWidthRef.current > 0
+      ? Math.max(-1, Math.min(1, dragOffset / heroWidthRef.current))
       : 0;
 
   return (
@@ -1023,6 +1094,7 @@ export function Hero({
       }
     >
       <div
+        ref={trackRef}
         className={`hero__track${
           transitionEnabled ? "" : " hero__track--no-transition"
         }`}
@@ -1078,43 +1150,6 @@ export function Hero({
                 : i > displayIndex
                   ? "future"
                   : "active";
-            /* Live drag-driven fill override. While the user is
-               dragging the carousel, the active tab visibly drains
-               and the destination tab (next on negative dragFraction,
-               previous on positive) visibly fills, both at the same
-               rate as the cursor travel — so the progress reads as
-               smoothly handing off from one tab to the next instead
-               of holding static and snapping after release.
-
-               `transition: none` keeps the inline scaleX value
-               tracking 1:1 with the drag; the carousel's normal
-               class-based transition picks back up on release. */
-            let fillStyle: React.CSSProperties | undefined;
-            if (isDragging) {
-              const t = Math.abs(dragFraction);
-              const nextIndex = (displayIndex + 1) % slides.length;
-              const prevIndex =
-                (displayIndex - 1 + slides.length) % slides.length;
-              if (i === displayIndex) {
-                fillStyle = {
-                  transform: `scaleX(${1 - t})`,
-                  transition: "none",
-                  animation: "none",
-                };
-              } else if (dragFraction < 0 && i === nextIndex) {
-                fillStyle = {
-                  transform: `scaleX(${t})`,
-                  transition: "none",
-                  animation: "none",
-                };
-              } else if (dragFraction > 0 && i === prevIndex) {
-                fillStyle = {
-                  transform: "scaleX(1)",
-                  transition: "none",
-                  animation: "none",
-                };
-              }
-            }
             return (
               <button
                 type="button"
@@ -1133,7 +1168,6 @@ export function Hero({
                       : `still:${i}`
                   }
                   className={`hero__tab-fill hero__tab-fill--${state}`}
-                  style={fillStyle}
                 />
               </button>
             );

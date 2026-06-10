@@ -23,11 +23,14 @@
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-2px);
 
     .lerna-promo-card__overlay {
       opacity: 1;
     }
+  }
+
+  &:hover &__image {
+    transform: scale(1.04);
   }
 
   &:active {
@@ -42,6 +45,7 @@
     object-fit: cover;
     object-position: center top;
     display: block;
+    transition: transform ease 0.2s;
   }
 
   &__overlay {

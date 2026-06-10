@@ -18,6 +18,7 @@ import { HomeGameCardVertical } from "./home-game-card-vertical";
 import { HomeRecentlyPlayedCard } from "./home-recently-played-card";
 import { useHomeHydration } from "./home-hydration-context";
 import { useHomeScrollState } from "./home-scroll-state-context";
+import { useAppSelector } from "@renderer/hooks";
 import "./home-row.scss";
 
 const CARD_SIZES = {
@@ -30,6 +31,11 @@ const INITIAL_VISIBLE_CARDS = 6;
 const CARD_BATCH_SIZE = 4;
 
 const ARROW_EDGE_ZONE_PX = 220;
+
+const MOMENTUM_FRICTION = 0.94;
+const MOMENTUM_MIN_VELOCITY = 0.02;
+const MOMENTUM_MAX_VELOCITY = 4;
+const MOMENTUM_STALE_MS = 80;
 
 type CardStyle = "horizontal" | "vertical" | "recently-played";
 
@@ -61,6 +67,10 @@ function HomeRowImpl({
   const isHydrating = useHomeHydration();
   const effectiveIsLoading = isLoading || isHydrating;
 
+  const disableSlideAnimations = useAppSelector(
+    (state) => state.userPreferences.value?.disableHomeSlideAnimations ?? false
+  );
+
   const sectionRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -69,6 +79,11 @@ function HomeRowImpl({
   const hasDragged = useRef(false);
   const startX = useRef(0);
   const savedLeft = useRef(0);
+
+  const velocityRef = useRef(0);
+  const lastDragXRef = useRef(0);
+  const lastDragTimeRef = useRef(0);
+  const momentumRafRef = useRef<number | null>(null);
 
   const [atStart, setAtStart] = useState(true);
   const [arrowHover, setArrowHover] = useState<"left" | "right" | null>(null);
@@ -202,8 +217,54 @@ function HomeRowImpl({
     }
   }, [cardGap, cardWidth, games.length, visibleCardCount]);
 
+  const cancelMomentum = () => {
+    if (momentumRafRef.current !== null) {
+      cancelAnimationFrame(momentumRafRef.current);
+      momentumRafRef.current = null;
+    }
+  };
+
+  const startMomentum = () => {
+    cancelMomentum();
+    if (disableSlideAnimations) return;
+    if (performance.now() - lastDragTimeRef.current > MOMENTUM_STALE_MS) return;
+    let velocity = Math.max(
+      -MOMENTUM_MAX_VELOCITY,
+      Math.min(MOMENTUM_MAX_VELOCITY, velocityRef.current)
+    );
+    velocityRef.current = 0;
+    if (Math.abs(velocity) < MOMENTUM_MIN_VELOCITY) return;
+
+    let prev = performance.now();
+    const step = (now: number) => {
+      const el = scrollRef.current;
+      if (!el) {
+        momentumRafRef.current = null;
+        return;
+      }
+      const dt = now - prev;
+      prev = now;
+      el.scrollLeft += velocity * dt;
+      velocity *= Math.pow(MOMENTUM_FRICTION, dt / 16.67);
+      const atEdge =
+        el.scrollLeft <= 0 ||
+        el.scrollLeft >= el.scrollWidth - el.clientWidth - 1;
+      if (Math.abs(velocity) < MOMENTUM_MIN_VELOCITY || atEdge) {
+        momentumRafRef.current = null;
+        updateArrows();
+        return;
+      }
+      momentumRafRef.current = requestAnimationFrame(step);
+    };
+    momentumRafRef.current = requestAnimationFrame(step);
+  };
+
   const onScrollMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
+    cancelMomentum();
+    velocityRef.current = 0;
+    lastDragXRef.current = e.pageX;
+    lastDragTimeRef.current = performance.now();
     isDragging.current = true;
     hasDragged.current = false;
     startX.current = e.pageX;
@@ -227,6 +288,16 @@ function HomeRowImpl({
       hasDragged.current = true;
     }
     scrollRef.current.scrollLeft = savedLeft.current - diff;
+
+    const now = performance.now();
+    const dt = now - lastDragTimeRef.current;
+    if (dt > 0) {
+      const instant = -(e.pageX - lastDragXRef.current) / dt;
+      velocityRef.current = velocityRef.current * 0.7 + instant * 0.3;
+    }
+    lastDragXRef.current = e.pageX;
+    lastDragTimeRef.current = now;
+
     if (arrowHoverRef.current !== null) {
       arrowHoverRef.current = null;
       setArrowHover(null);
@@ -255,8 +326,10 @@ function HomeRowImpl({
   };
 
   const stopDrag = () => {
+    const wasDragging = isDragging.current;
     isDragging.current = false;
     scrollRef.current?.classList.remove("home-row__scroll--dragging");
+    if (wasDragging && hasDragged.current) startMomentum();
     updateArrows();
   };
 
@@ -297,6 +370,9 @@ function HomeRowImpl({
     () => () => {
       if (scrollResetCleanupRef.current !== null) {
         window.clearTimeout(scrollResetCleanupRef.current);
+      }
+      if (momentumRafRef.current !== null) {
+        cancelAnimationFrame(momentumRafRef.current);
       }
     },
     []
@@ -364,7 +440,7 @@ function HomeRowImpl({
   return (
     <section
       ref={sectionRef}
-      className={`home-row${
+      className={`home-row home-row--${cardStyle}${
         isVisible ? " home-row--visible" : ""
       }${skipEntrance ? " home-row--instant" : ""}`}
       style={{ animationDelay: `${animationDelay}ms` } as React.CSSProperties}
