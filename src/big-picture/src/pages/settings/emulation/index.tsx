@@ -239,9 +239,8 @@ export function EmulationSettingsSection({
 
       const refreshed = { ...initial };
       for (const system of staleSystems) {
-        refreshed[system] = await globalThis.window.electron.detectEmulator(
-          system
-        );
+        refreshed[system] =
+          await globalThis.window.electron.detectEmulator(system);
         if (cancelled) return;
       }
 

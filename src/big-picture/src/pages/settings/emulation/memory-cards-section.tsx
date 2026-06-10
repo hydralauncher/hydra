@@ -29,10 +29,18 @@ import {
   VerticalFocusGroup,
 } from "../../../components";
 import { ConfirmationModal } from "../../../components/modals";
-import { useBigPictureToast, useNavigation, useUserDetails } from "../../../hooks";
+import {
+  useBigPictureToast,
+  useNavigation,
+  useUserDetails,
+} from "../../../hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import { EMULATION_DETAIL_MEMORY_CARDS_REGION_ID } from "../settings-navigation";
-import { SETTINGS_TOAST_OPTIONS, formatBytes, sanitizeFocusToken } from "./shared";
+import {
+  SETTINGS_TOAST_OPTIONS,
+  formatBytes,
+  sanitizeFocusToken,
+} from "./shared";
 
 interface MemoryCardsSectionProps {
   config: EmulatorConfig;
@@ -67,8 +75,7 @@ interface MemcardApi {
 const SCAN_MODAL_REGION_ID = "emulation-memcard-scan-modal-region";
 const SCAN_MODAL_ACTIONS_REGION_ID = "emulation-memcard-scan-modal-actions";
 const SCAN_MODAL_CANCEL_BUTTON_ID = "emulation-memcard-scan-modal-cancel";
-const SCAN_MODAL_CONTINUE_BUTTON_ID =
-  "emulation-memcard-scan-modal-continue";
+const SCAN_MODAL_CONTINUE_BUTTON_ID = "emulation-memcard-scan-modal-continue";
 
 const ps2Api: MemcardApi = {
   list: () => globalThis.window.electron.listPs2MemcardSaves(),
@@ -138,9 +145,9 @@ function MemoryCardScanModal({
 }: Readonly<MemoryCardScanModalProps>) {
   const { t } = useTranslation("settings");
   const { setFocus } = useNavigation();
-  const [phase, setPhase] = useState<"scanning" | "matching" | "done" | "error">(
-    "scanning"
-  );
+  const [phase, setPhase] = useState<
+    "scanning" | "matching" | "done" | "error"
+  >("scanning");
   const [processed, setProcessed] = useState(0);
   const [total, setTotal] = useState(0);
   const [currentLabel, setCurrentLabel] = useState<string | null>(null);
@@ -301,7 +308,9 @@ function MemoryCardScanModal({
               <span className="emulation-settings__scan-stat-label">
                 {t("memcard_stat_matched")}
               </span>
-              <strong>{isComplete ? summary?.matched ?? matched : matched}</strong>
+              <strong>
+                {isComplete ? (summary?.matched ?? matched) : matched}
+              </strong>
             </div>
             <div className="emulation-settings__scan-stat">
               <span className="emulation-settings__scan-stat-label">
@@ -470,10 +479,11 @@ export function MemoryCardsSection({
     async (cardFilePath: string) => {
       setBackingUpCard(cardFilePath);
       try {
-        const result = await globalThis.window.electron.uploadEmulationSavesForCard(
-          platform,
-          cardFilePath
-        );
+        const result =
+          await globalThis.window.electron.uploadEmulationSavesForCard(
+            platform,
+            cardFilePath
+          );
         showSuccessToast("Cloud backup complete", {
           ...SETTINGS_TOAST_OPTIONS,
           message: `${result.uploaded}/${result.total} saves uploaded.`,
@@ -511,9 +521,7 @@ export function MemoryCardsSection({
                 void handlePickFile();
               }}
             >
-              {t(
-                isPs1 ? "pick_memory_card_file_ps1" : "pick_memory_card_file"
-              )}
+              {t(isPs1 ? "pick_memory_card_file_ps1" : "pick_memory_card_file")}
             </Button>
             <Button
               variant="secondary"
@@ -539,7 +547,10 @@ export function MemoryCardsSection({
             {groups.map(({ cardFilePath, cardLabel, records }) => {
               const isCollapsed = collapsed.has(cardFilePath);
               return (
-                <div key={cardFilePath} className="emulator-detail__memcard-group">
+                <div
+                  key={cardFilePath}
+                  className="emulator-detail__memcard-group"
+                >
                   <div className="emulator-detail__memcard-group-header">
                     <FocusItem
                       id={`emulation-memcard-group-${sanitizeFocusToken(cardFilePath)}`}
@@ -676,7 +687,8 @@ export function MemoryCardsSection({
                                 className="emulator-detail__memcard-menu"
                                 aria-label={title}
                                 onClick={(event) => {
-                                  const rect = event.currentTarget.getBoundingClientRect();
+                                  const rect =
+                                    event.currentTarget.getBoundingClientRect();
                                   setOpenMenu({
                                     key: currentKey,
                                     position: {
@@ -703,13 +715,14 @@ export function MemoryCardsSection({
                                 {
                                   id: "export",
                                   icon: <DownloadIcon size={16} />,
-                                  label: exportingKey === currentKey
-                                    ? t("memcard_exporting")
-                                    : t(
-                                        isPs1
-                                          ? "memcard_export_mcs"
-                                          : "memcard_export"
-                                      ),
+                                  label:
+                                    exportingKey === currentKey
+                                      ? t("memcard_exporting")
+                                      : t(
+                                          isPs1
+                                            ? "memcard_export_mcs"
+                                            : "memcard_export"
+                                        ),
                                   disabled: exportingKey === currentKey,
                                   onSelect: () => handleExport(save),
                                 },
