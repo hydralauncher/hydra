@@ -18,7 +18,7 @@ export function ProgressBar({
   return (
     <div className={trackClassName}>
       <div
-        className={`${barClassName}${completed ? ` ${barClassName}--platinum` : ""}`}
+        className={`${barClassName}${completed && barClassName ? ` ${barClassName}--platinum` : ""}`}
         role="progressbar"
         aria-label={label}
         aria-valuenow={now}

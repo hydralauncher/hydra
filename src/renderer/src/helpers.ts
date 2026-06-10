@@ -175,8 +175,6 @@ export const isGameCompleted = (
   achievementCount?: number | null,
   unlockedAchievementCount?: number | null
 ): boolean => {
-  return (
-    (achievementCount ?? 0) > 0 &&
-    (unlockedAchievementCount ?? 0) >= (achievementCount ?? 1)
-  );
+  if (!achievementCount) return false;
+  return (unlockedAchievementCount ?? 0) >= achievementCount;
 };
