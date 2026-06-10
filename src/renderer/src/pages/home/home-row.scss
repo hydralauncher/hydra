@@ -30,6 +30,34 @@
      repaint across sibling row areas on any horizontal drag). */
   contain: layout paint;
 
+  /* Skip rendering work (layout + paint) for rows the compositor
+     can't see. Complements the rowInView observer: that swaps cards
+     for skeletons ~2400px out, this tells Chromium not to paint even
+     those skeletons until the row nears the screen.
+
+     The intrinsic-size MUST match the row's real rendered height per
+     card variant, otherwise every row that first-renders during a
+     scroll snaps from the placeholder to its true height and the
+     scrollbar jitters. Heights below = header (~36) + gap (8) +
+     scroll (card height + 16px shadow padding):
+       horizontal       36 + 8 + (238 + 16) = 298
+       recently-played  36 + 8 + (272 + 16) = 332
+       vertical         36 + 8 + (381 + 16) = 441
+     `auto` keeps the browser's remembered real size once a row has
+     rendered, so these are only the pre-first-render estimates. When
+     the estimate equals the real height, toggling content-visibility
+     causes zero layout shift. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 298px;
+
+  &--vertical {
+    contain-intrinsic-size: auto 441px;
+  }
+
+  &--recently-played {
+    contain-intrinsic-size: auto 332px;
+  }
+
   /* Row-to-row spacing. Owned by the row itself (NOT by a parent
      `gap` on `.home__content`) so every row carries the SAME
      explicit bottom buffer regardless of card variant. The 16px
@@ -70,6 +98,15 @@
     /* Title is now the only header element — left-align it so the
        chevron + title read as a single clickable lane. */
     justify-content: flex-start;
+    /* Fixed header height so every row is exactly as tall as the
+       `contain-intrinsic-size` reserved for it (header 36 + gap 8 +
+       card + 16px shadow pad). Clickable titles are ~34px and plain
+       headings ~22px; without this the per-row height varied by up
+       to ~14px, so rows first-rendering during a fast scroll snapped
+       from their estimate to their real height and the scrollbar
+       jumped. align-items: center keeps shorter titles vertically
+       centred in the 36px lane. */
+    min-height: 36px;
   }
 
   /* Title — when not clickable, just a plain heading. When clickable

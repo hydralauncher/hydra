@@ -65,11 +65,13 @@ $card-height: 272px;
   }
 
   &:hover {
-    transform: scale(1.01);
-
     &::before {
       opacity: 0.8;
     }
+  }
+
+  &:hover &__cover-image {
+    transform: scale(1.04);
   }
 
   &:active {
@@ -86,6 +88,7 @@ $card-height: 272px;
     object-position: center;
     border-radius: 4px;
     z-index: 0;
+    transition: transform ease 0.2s;
 
     /* Classics variant — centered + framed cover on top of the dark
        backdrop, mirroring the library card's classics layout.
