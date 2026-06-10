@@ -60,8 +60,7 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
   ps2: "emulation-overview-ps2-card",
   ps3: "emulation-overview-ps3-card",
 } as const;
-export const EMULATION_DETAIL_BACK_BUTTON_ID =
-  "emulation-detail-back-button";
+export const EMULATION_DETAIL_BACK_BUTTON_ID = "emulation-detail-back-button";
 export const EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID =
   "emulation-detail-remove-emulator";
 export const EMULATION_DETAIL_EXECUTABLE_BUTTON_ID =

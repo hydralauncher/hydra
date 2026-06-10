@@ -17,11 +17,7 @@ import type { EmulatorConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  Button,
-  FocusItem,
-  VerticalFocusGroup,
-} from "../../../components";
+import { Button, FocusItem, VerticalFocusGroup } from "../../../components";
 import { ConfirmationModal } from "../../../components/modals";
 import {
   useBigPictureToast,
@@ -112,7 +108,8 @@ export function EmulationDetail({
 }: Readonly<EmulationDetailProps>) {
   const { t, i18n } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
-  const { currentFocusId, moveFocus, nodes, regions, setFocus } = useNavigation();
+  const { currentFocusId, moveFocus, nodes, regions, setFocus } =
+    useNavigation();
   const [isBusy, setIsBusy] = useState(false);
   const [cloudRefreshKey, setCloudRefreshKey] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
@@ -169,10 +166,11 @@ export function EmulationDetail({
     setIsBusy(true);
 
     try {
-      const preview = await globalThis.window.electron.previewEmulatorExecutable(
-        config.system,
-        result.filePaths[0]
-      );
+      const preview =
+        await globalThis.window.electron.previewEmulatorExecutable(
+          config.system,
+          result.filePaths[0]
+        );
       if (!preview) {
         showErrorToast("Invalid emulator executable", SETTINGS_TOAST_OPTIONS);
         return;
@@ -185,7 +183,10 @@ export function EmulationDetail({
       onChange(next);
       showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
     } catch {
-      showErrorToast("Failed to update executable path", SETTINGS_TOAST_OPTIONS);
+      showErrorToast(
+        "Failed to update executable path",
+        SETTINGS_TOAST_OPTIONS
+      );
     } finally {
       setIsBusy(false);
     }
@@ -203,7 +204,9 @@ export function EmulationDetail({
     try {
       const previousPath = config.executablePath;
       const previousVersion = config.detectedVersion;
-      const next = await globalThis.window.electron.detectEmulator(config.system);
+      const next = await globalThis.window.electron.detectEmulator(
+        config.system
+      );
       onChange(next);
 
       if (next.executablePath === null) {
@@ -346,7 +349,9 @@ export function EmulationDetail({
     setIsBusy(true);
 
     try {
-      const next = await globalThis.window.electron.removeEmulator(config.system);
+      const next = await globalThis.window.electron.removeEmulator(
+        config.system
+      );
       onChange(next);
       setRemoveEmulatorOpen(false);
       showSuccessToast(
@@ -368,13 +373,25 @@ export function EmulationDetail({
       const previousFocusId = currentFocusId;
       const nextFocusId = moveFocus(direction);
 
-      if (!isNodeWithinRegion(previousFocusId, EMULATION_DETAIL_REGION_ID, nodes, regions)) {
+      if (
+        !isNodeWithinRegion(
+          previousFocusId,
+          EMULATION_DETAIL_REGION_ID,
+          nodes,
+          regions
+        )
+      ) {
         return;
       }
 
       if (
         nextFocusId &&
-        !isNodeWithinRegion(nextFocusId, EMULATION_DETAIL_REGION_ID, nodes, regions)
+        !isNodeWithinRegion(
+          nextFocusId,
+          EMULATION_DETAIL_REGION_ID,
+          nodes,
+          regions
+        )
       ) {
         setFocus(previousFocusId);
       }
@@ -586,7 +603,9 @@ export function EmulationDetail({
               <FileDirectoryIcon size={24} />
 
               <div className="emulator-detail__folder-info">
-                <span className="emulator-detail__folder-path">{folder.path}</span>
+                <span className="emulator-detail__folder-path">
+                  {folder.path}
+                </span>
                 <div className="emulator-detail__folder-meta">
                   <span>
                     {t(
@@ -679,7 +698,9 @@ export function EmulationDetail({
                 {t("stat_games")}
               </span>
             </div>
-            <span className="emulator-detail__stat-value">{config.totalFiles}</span>
+            <span className="emulator-detail__stat-value">
+              {config.totalFiles}
+            </span>
             <span className="emulator-detail__stat-caption">
               {t("stat_games_caption", { system: systemLabel })}
             </span>

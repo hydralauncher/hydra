@@ -32,13 +32,13 @@ import {
   VerticalFocusGroup,
 } from "../../../components";
 import { ConfirmationModal } from "../../../components/modals";
-import { useBigPictureToast, useNavigation, useUserDetails } from "../../../hooks";
-import { EMULATION_DETAIL_CLOUD_SAVES_REGION_ID } from "../settings-navigation";
 import {
-  SETTINGS_TOAST_OPTIONS,
-  basename,
-  sanitizeFocusToken,
-} from "./shared";
+  useBigPictureToast,
+  useNavigation,
+  useUserDetails,
+} from "../../../hooks";
+import { EMULATION_DETAIL_CLOUD_SAVES_REGION_ID } from "../settings-navigation";
+import { SETTINGS_TOAST_OPTIONS, basename, sanitizeFocusToken } from "./shared";
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
@@ -73,8 +73,7 @@ const BRANCH_GAP = 40;
 const CORNER_RADIUS = 8;
 
 const RESTORE_MODAL_REGION_ID = "emulation-cloud-restore-modal-region";
-const RESTORE_MODAL_ACTIONS_REGION_ID =
-  "emulation-cloud-restore-modal-actions";
+const RESTORE_MODAL_ACTIONS_REGION_ID = "emulation-cloud-restore-modal-actions";
 const RESTORE_MODAL_PICK_BUTTON_ID = "emulation-cloud-restore-pick-button";
 const RESTORE_MODAL_CONFIRM_BUTTON_ID = "emulation-cloud-restore-confirm";
 const RENAME_MODAL_REGION_ID = "emulation-cloud-rename-modal-region";
@@ -269,11 +268,7 @@ function RestoreModal({
   );
 }
 
-function RenameModal({
-  save,
-  onClose,
-  onRenamed,
-}: Readonly<RenameModalProps>) {
+function RenameModal({ save, onClose, onRenamed }: Readonly<RenameModalProps>) {
   const { t } = useTranslation("settings");
   const { setFocus } = useNavigation();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -588,7 +583,8 @@ export function CloudSavesSection({
                         className="emulator-detail__cloud-menu"
                         aria-label={saveName}
                         onClick={(event) => {
-                          const rect = event.currentTarget.getBoundingClientRect();
+                          const rect =
+                            event.currentTarget.getBoundingClientRect();
                           setOpenMenu({
                             key: save.id,
                             position: {
@@ -635,7 +631,10 @@ export function CloudSavesSection({
                     />
                   </div>
 
-                  <span className="emulator-detail__cloud-card-title" title={saveName}>
+                  <span
+                    className="emulator-detail__cloud-card-title"
+                    title={saveName}
+                  >
                     {saveName}
                   </span>
 
