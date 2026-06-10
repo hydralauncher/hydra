@@ -591,172 +591,172 @@ export function EmulationDetail({
         asChild
       >
         <section>
-        <header className="emulator-detail__section-header">
-          <div className="emulator-detail__section-text">
-            <h3>{t("rom_folders_section_title")}</h3>
-            <p>{t("rom_folders_section_description")}</p>
-          </div>
-          <div className="emulator-detail__section-actions">
-            <Button
-              focusId={EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID}
-              focusNavigationOverrides={{
-                left: { type: "block" },
-                right: { type: "block" },
-                up: {
-                  type: "item",
-                  itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
-                },
-                down: firstRomFolderFocusId
-                  ? {
-                      type: "item",
-                      itemId: firstRomFolderFocusId,
-                    }
-                  : {
-                      type: "item",
-                      itemId: romSectionDownTargetId,
-                    },
-              }}
-              variant="secondary"
-              disabled={isBusy}
-              icon={<PlusIcon size={14} />}
-              onClick={() => {
-                void handleAddFolder();
-              }}
-            >
-              {t("add_folder")}
-            </Button>
-          </div>
-        </header>
-
-        <div className="emulator-detail__folders">
-          {config.romFolders.length === 0 ? (
-            <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
-          ) : null}
-
-          {config.romFolders.map((folder, index) => (
-            <div className="emulator-detail__row" key={folder.id}>
-              <FileDirectoryIcon size={24} />
-
-              <div className="emulator-detail__folder-info">
-                <span className="emulator-detail__folder-path">
-                  {folder.path}
-                </span>
-                <div className="emulator-detail__folder-meta">
-                  <span>
-                    {t(
-                      folder.fileCount === 1
-                        ? "file_count_one"
-                        : "file_count_other",
-                      { count: folder.fileCount }
-                    )}
-                  </span>
-                  <span className="emulator-detail__dot" />
-                  <span>
-                    {folder.lastScanAt
-                      ? t("last_scan_relative", {
-                          value: formatRelative(folder.lastScanAt),
-                        })
-                      : t("last_scan_never")}
-                  </span>
-                </div>
-              </div>
-
-              <FocusItem
-                id={getEmulationRomFolderToggleFocusId(folder.id)}
-                navigationOverrides={{
-                  left: { type: "block" },
-                  right: {
-                    type: "item",
-                    itemId: getEmulationRomFolderRemoveFocusId(folder.id),
-                  },
-                  up:
-                    index === 0
-                      ? {
-                          type: "item",
-                          itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
-                        }
-                      : {
-                          type: "item",
-                          itemId: getEmulationRomFolderToggleFocusId(
-                            config.romFolders[index - 1]!.id
-                          ),
-                        },
-                  down:
-                    index < config.romFolders.length - 1
-                      ? {
-                          type: "item",
-                          itemId: getEmulationRomFolderToggleFocusId(
-                            config.romFolders[index + 1]!.id
-                          ),
-                        }
-                      : {
-                          type: "item",
-                          itemId: romSectionDownTargetId,
-                        },
-                }}
-                asChild
-              >
-                <label className="emulator-detail__subfolders-toggle">
-                  <input
-                    type="checkbox"
-                    checked={folder.scanSubfolders}
-                    disabled={isBusy}
-                    onChange={() => {
-                      void handleToggleSubfolders(folder);
-                    }}
-                  />
-                  <span>{t("scan_subfolders")}</span>
-                </label>
-              </FocusItem>
-
-              <FocusItem
-                id={getEmulationRomFolderRemoveFocusId(folder.id)}
-                navigationOverrides={{
-                  left: {
-                    type: "item",
-                    itemId: getEmulationRomFolderToggleFocusId(folder.id),
-                  },
-                  right: { type: "block" },
-                  up:
-                    index === 0
-                      ? {
-                          type: "item",
-                          itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
-                        }
-                      : {
-                          type: "item",
-                          itemId: getEmulationRomFolderRemoveFocusId(
-                            config.romFolders[index - 1]!.id
-                          ),
-                        },
-                  down:
-                    index < config.romFolders.length - 1
-                      ? {
-                          type: "item",
-                          itemId: getEmulationRomFolderRemoveFocusId(
-                            config.romFolders[index + 1]!.id
-                          ),
-                        }
-                      : {
-                          type: "item",
-                          itemId: romSectionDownTargetId,
-                        },
-                }}
-                asChild
-              >
-                <button
-                  type="button"
-                  className="emulator-detail__remove"
-                  onClick={() => setFolderToRemove(folder)}
-                  aria-label={t("remove")}
-                  disabled={isBusy}
-                >
-                  <XIcon size={16} />
-                </button>
-              </FocusItem>
+          <header className="emulator-detail__section-header">
+            <div className="emulator-detail__section-text">
+              <h3>{t("rom_folders_section_title")}</h3>
+              <p>{t("rom_folders_section_description")}</p>
             </div>
-          ))}
-        </div>
+            <div className="emulator-detail__section-actions">
+              <Button
+                focusId={EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID}
+                focusNavigationOverrides={{
+                  left: { type: "block" },
+                  right: { type: "block" },
+                  up: {
+                    type: "item",
+                    itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+                  },
+                  down: firstRomFolderFocusId
+                    ? {
+                        type: "item",
+                        itemId: firstRomFolderFocusId,
+                      }
+                    : {
+                        type: "item",
+                        itemId: romSectionDownTargetId,
+                      },
+                }}
+                variant="secondary"
+                disabled={isBusy}
+                icon={<PlusIcon size={14} />}
+                onClick={() => {
+                  void handleAddFolder();
+                }}
+              >
+                {t("add_folder")}
+              </Button>
+            </div>
+          </header>
+
+          <div className="emulator-detail__folders">
+            {config.romFolders.length === 0 ? (
+              <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
+            ) : null}
+
+            {config.romFolders.map((folder, index) => (
+              <div className="emulator-detail__row" key={folder.id}>
+                <FileDirectoryIcon size={24} />
+
+                <div className="emulator-detail__folder-info">
+                  <span className="emulator-detail__folder-path">
+                    {folder.path}
+                  </span>
+                  <div className="emulator-detail__folder-meta">
+                    <span>
+                      {t(
+                        folder.fileCount === 1
+                          ? "file_count_one"
+                          : "file_count_other",
+                        { count: folder.fileCount }
+                      )}
+                    </span>
+                    <span className="emulator-detail__dot" />
+                    <span>
+                      {folder.lastScanAt
+                        ? t("last_scan_relative", {
+                            value: formatRelative(folder.lastScanAt),
+                          })
+                        : t("last_scan_never")}
+                    </span>
+                  </div>
+                </div>
+
+                <FocusItem
+                  id={getEmulationRomFolderToggleFocusId(folder.id)}
+                  navigationOverrides={{
+                    left: { type: "block" },
+                    right: {
+                      type: "item",
+                      itemId: getEmulationRomFolderRemoveFocusId(folder.id),
+                    },
+                    up:
+                      index === 0
+                        ? {
+                            type: "item",
+                            itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                          }
+                        : {
+                            type: "item",
+                            itemId: getEmulationRomFolderToggleFocusId(
+                              config.romFolders[index - 1]!.id
+                            ),
+                          },
+                    down:
+                      index < config.romFolders.length - 1
+                        ? {
+                            type: "item",
+                            itemId: getEmulationRomFolderToggleFocusId(
+                              config.romFolders[index + 1]!.id
+                            ),
+                          }
+                        : {
+                            type: "item",
+                            itemId: romSectionDownTargetId,
+                          },
+                  }}
+                  asChild
+                >
+                  <label className="emulator-detail__subfolders-toggle">
+                    <input
+                      type="checkbox"
+                      checked={folder.scanSubfolders}
+                      disabled={isBusy}
+                      onChange={() => {
+                        void handleToggleSubfolders(folder);
+                      }}
+                    />
+                    <span>{t("scan_subfolders")}</span>
+                  </label>
+                </FocusItem>
+
+                <FocusItem
+                  id={getEmulationRomFolderRemoveFocusId(folder.id)}
+                  navigationOverrides={{
+                    left: {
+                      type: "item",
+                      itemId: getEmulationRomFolderToggleFocusId(folder.id),
+                    },
+                    right: { type: "block" },
+                    up:
+                      index === 0
+                        ? {
+                            type: "item",
+                            itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                          }
+                        : {
+                            type: "item",
+                            itemId: getEmulationRomFolderRemoveFocusId(
+                              config.romFolders[index - 1]!.id
+                            ),
+                          },
+                    down:
+                      index < config.romFolders.length - 1
+                        ? {
+                            type: "item",
+                            itemId: getEmulationRomFolderRemoveFocusId(
+                              config.romFolders[index + 1]!.id
+                            ),
+                          }
+                        : {
+                            type: "item",
+                            itemId: romSectionDownTargetId,
+                          },
+                  }}
+                  asChild
+                >
+                  <button
+                    type="button"
+                    className="emulator-detail__remove"
+                    onClick={() => setFolderToRemove(folder)}
+                    aria-label={t("remove")}
+                    disabled={isBusy}
+                  >
+                    <XIcon size={16} />
+                  </button>
+                </FocusItem>
+              </div>
+            ))}
+          </div>
         </section>
       </VerticalFocusGroup>
 
@@ -775,93 +775,97 @@ export function EmulationDetail({
         asChild
       >
         <section>
-        <header className="emulator-detail__section-header">
-          <div className="emulator-detail__section-text">
-            <h3>{t("library_section_title")}</h3>
-            <p>{t("library_section_description", { system: systemLabel })}</p>
-          </div>
-          <div className="emulator-detail__section-actions">
-            <Button
-              focusId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
-              focusNavigationOverrides={{
-                left: { type: "block" },
-                right: { type: "block" },
-                up: {
-                  type: "item",
-                  itemId: hasMemoryCardsSection
-                    ? EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID
-                    : lastRomFolderFocusId,
-                },
-              }}
-              variant="secondary"
-              disabled={isBusy}
-              icon={<SyncIcon size={13} />}
-              onClick={() => {
-                void handleRescan();
-              }}
-            >
-              {t("rescan")}
-            </Button>
-          </div>
-        </header>
+          <header className="emulator-detail__section-header">
+            <div className="emulator-detail__section-text">
+              <h3>{t("library_section_title")}</h3>
+              <p>{t("library_section_description", { system: systemLabel })}</p>
+            </div>
+            <div className="emulator-detail__section-actions">
+              <Button
+                focusId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
+                focusNavigationOverrides={{
+                  left: { type: "block" },
+                  right: { type: "block" },
+                  up: {
+                    type: "item",
+                    itemId: hasMemoryCardsSection
+                      ? EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID
+                      : lastRomFolderFocusId,
+                  },
+                }}
+                variant="secondary"
+                disabled={isBusy}
+                icon={<SyncIcon size={13} />}
+                onClick={() => {
+                  void handleRescan();
+                }}
+              >
+                {t("rescan")}
+              </Button>
+            </div>
+          </header>
 
-        <div className="emulator-detail__stats">
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <GamepadIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_games")}
+          <div className="emulator-detail__stats">
+            <div className="emulator-detail__stat">
+              <div className="emulator-detail__stat-head">
+                <GamepadIcon size={16} />
+                <span className="emulator-detail__stat-label">
+                  {t("stat_games")}
+                </span>
+              </div>
+              <span className="emulator-detail__stat-value">
+                {config.totalFiles}
+              </span>
+              <span className="emulator-detail__stat-caption">
+                {t("stat_games_caption", { system: systemLabel })}
               </span>
             </div>
-            <span className="emulator-detail__stat-value">
-              {config.totalFiles}
-            </span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_games_caption", { system: systemLabel })}
-            </span>
-          </div>
 
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <DatabaseIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_storage")}
+            <div className="emulator-detail__stat">
+              <div className="emulator-detail__stat-head">
+                <DatabaseIcon size={16} />
+                <span className="emulator-detail__stat-label">
+                  {t("stat_storage")}
+                </span>
+              </div>
+              <span className="emulator-detail__stat-value">
+                {storageLabel}
+              </span>
+              <span className="emulator-detail__stat-caption">
+                {t(
+                  config.totalFiles === 1
+                    ? "stat_storage_caption_one"
+                    : config.totalFiles === 0
+                      ? "stat_storage_caption_zero"
+                      : "stat_storage_caption_other",
+                  {
+                    count: config.totalFiles,
+                    folders: t(
+                      config.romFolders.length === 1
+                        ? "folder_count_one"
+                        : "folder_count_other",
+                      { count: config.romFolders.length }
+                    ),
+                  }
+                )}
               </span>
             </div>
-            <span className="emulator-detail__stat-value">{storageLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t(
-                config.totalFiles === 1
-                  ? "stat_storage_caption_one"
-                  : config.totalFiles === 0
-                    ? "stat_storage_caption_zero"
-                    : "stat_storage_caption_other",
-                {
-                  count: config.totalFiles,
-                  folders: t(
-                    config.romFolders.length === 1
-                      ? "folder_count_one"
-                      : "folder_count_other",
-                    { count: config.romFolders.length }
-                  ),
-                }
-              )}
-            </span>
-          </div>
 
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <ClockIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_last_scan")}
+            <div className="emulator-detail__stat">
+              <div className="emulator-detail__stat-head">
+                <ClockIcon size={16} />
+                <span className="emulator-detail__stat-label">
+                  {t("stat_last_scan")}
+                </span>
+              </div>
+              <span className="emulator-detail__stat-value">
+                {lastScanLabel}
+              </span>
+              <span className="emulator-detail__stat-caption">
+                {t("stat_last_scan_caption")}
               </span>
             </div>
-            <span className="emulator-detail__stat-value">{lastScanLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_last_scan_caption")}
-            </span>
           </div>
-        </div>
         </section>
       </VerticalFocusGroup>
 

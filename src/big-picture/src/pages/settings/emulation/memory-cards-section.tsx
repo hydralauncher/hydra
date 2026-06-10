@@ -45,10 +45,7 @@ import {
   getEmulationMemcardMenuFocusId,
   getEmulationMemcardRemoveCardFocusId,
 } from "../settings-navigation";
-import {
-  SETTINGS_TOAST_OPTIONS,
-  formatBytes,
-} from "./shared";
+import { SETTINGS_TOAST_OPTIONS, formatBytes } from "./shared";
 
 interface MemoryCardsSectionProps {
   config: EmulatorConfig;
@@ -616,14 +613,14 @@ export function MemoryCardsSection({
                         up: previousGroup
                           ? {
                               type: "item",
-                              itemId:
-                                getEmulationMemcardGroupCollapseFocusId(
-                                  previousGroup.cardFilePath
-                                ),
+                              itemId: getEmulationMemcardGroupCollapseFocusId(
+                                previousGroup.cardFilePath
+                              ),
                             }
                           : {
                               type: "item",
-                              itemId: EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
+                              itemId:
+                                EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
                             },
                         down:
                           !isCollapsed && firstRecordMenuId
@@ -712,10 +709,9 @@ export function MemoryCardsSection({
                               : nextGroup
                                 ? {
                                     type: "item",
-                                    itemId:
-                                      getEmulationMemcardBackupAllFocusId(
-                                        nextGroup.cardFilePath
-                                      ),
+                                    itemId: getEmulationMemcardBackupAllFocusId(
+                                      nextGroup.cardFilePath
+                                    ),
                                   }
                                 : {
                                     type: "item",
@@ -747,7 +743,9 @@ export function MemoryCardsSection({
                       focusNavigationOverrides={{
                         left: {
                           type: "item",
-                          itemId: hasActiveSubscription ? backupAllId : collapseId,
+                          itemId: hasActiveSubscription
+                            ? backupAllId
+                            : collapseId,
                         },
                         right: { type: "block" },
                         up: previousGroup
@@ -771,10 +769,9 @@ export function MemoryCardsSection({
                             : nextGroup
                               ? {
                                   type: "item",
-                                  itemId:
-                                    getEmulationMemcardRemoveCardFocusId(
-                                      nextGroup.cardFilePath
-                                    ),
+                                  itemId: getEmulationMemcardRemoveCardFocusId(
+                                    nextGroup.cardFilePath
+                                  ),
                                 }
                               : {
                                   type: "item",
@@ -802,7 +799,8 @@ export function MemoryCardsSection({
                         const title = save.title ?? save.folderName;
                         const region = save.sku ? getSkuRegion(save.sku) : null;
                         const currentKey = saveKey(save);
-                        const menuId = getEmulationMemcardMenuFocusId(currentKey);
+                        const menuId =
+                          getEmulationMemcardMenuFocusId(currentKey);
                         const previousSave = records[saveIndex - 1];
                         const nextSave = records[saveIndex + 1];
 
