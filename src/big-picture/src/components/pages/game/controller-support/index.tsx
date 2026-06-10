@@ -1,16 +1,13 @@
 import type { GameShop, ShopDetails } from "@types";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
+import {
+  getControllerSupportCopyKeys,
+  resolveControllerSupport,
+} from "@shared";
 import type { FocusOverrides } from "../../../../services";
 import { FocusItem, Typography } from "../../../common";
 import XboxLogo from "@renderer/assets/Xbox Logo.svg?react";
 import PlayStationLogo from "@renderer/assets/PlayStation Logo Wordmark.svg?react";
-
-type ControllerSupportStatus = "full" | "partial" | "none";
-
-interface ControllerSupportResult {
-  status: ControllerSupportStatus;
-}
 
 export interface ControllerSupportBoxProps {
   shop?: GameShop;
@@ -19,14 +16,6 @@ export interface ControllerSupportBoxProps {
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationOrder?: number;
 }
-
-interface StatusCopy {
-  label: string;
-  description: string;
-}
-
-const FULL_SUPPORT_CATEGORY_ID = 28;
-const PARTIAL_SUPPORT_CATEGORY_ID = 18;
 
 export function ControllerSupportBox({
   shop,
@@ -41,9 +30,9 @@ export function ControllerSupportBox({
 
   const controllerSupport = resolveControllerSupport(shopDetails);
 
-  if (controllerSupport.status === "none") return null;
+  if (controllerSupport === "none") return null;
 
-  const copy = getStatusCopy(controllerSupport.status, t);
+  const copy = getControllerSupportCopyKeys(controllerSupport);
   const title = t("controller_support");
 
   return (
@@ -75,7 +64,7 @@ export function ControllerSupportBox({
           </div>
 
           <Typography className="game-page__controller-support-value">
-            {copy.label}
+            {t(copy.labelKey)}
           </Typography>
         </div>
 
@@ -93,64 +82,16 @@ export function ControllerSupportBox({
           </div>
 
           <Typography className="game-page__controller-support-value">
-            {copy.label}
+            {t(copy.labelKey)}
           </Typography>
         </div>
 
         <div className="game-page__controller-support-row game-page__controller-support-row--description">
           <Typography className="game-page__controller-support-description">
-            {copy.description}
+            {copy.descriptionKey ? t(copy.descriptionKey) : ""}
           </Typography>
         </div>
       </section>
     </FocusItem>
   );
-}
-
-function resolveControllerSupport(
-  details: ShopDetails
-): ControllerSupportResult {
-  if (details.controller_support === "full") {
-    return { status: "full" };
-  }
-
-  if (details.controller_support === "partial") {
-    return { status: "partial" };
-  }
-
-  const categories = details.categories ?? [];
-
-  if (categories.some(({ id }) => id === FULL_SUPPORT_CATEGORY_ID)) {
-    return { status: "full" };
-  }
-
-  if (categories.some(({ id }) => id === PARTIAL_SUPPORT_CATEGORY_ID)) {
-    return { status: "partial" };
-  }
-
-  return { status: "none" };
-}
-
-function getStatusCopy(
-  status: ControllerSupportStatus,
-  t: TFunction<"game_details">
-): StatusCopy {
-  if (status === "full") {
-    return {
-      label: t("controller_support_full_label"),
-      description: t("controller_support_full_description"),
-    };
-  }
-
-  if (status === "partial") {
-    return {
-      label: t("controller_support_partial_label"),
-      description: t("controller_support_partial_description"),
-    };
-  }
-
-  return {
-    label: t("controller_support_none_label"),
-    description: "",
-  };
 }
