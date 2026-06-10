@@ -14,6 +14,8 @@ export const GAME_SIDEBAR_REGION_ID = "game-sidebar";
 export const GAME_SIDEBAR_STATS_ID = "game-sidebar-stats";
 export const GAME_SIDEBAR_HLTB_ID = "game-sidebar-hltb";
 export const GAME_SIDEBAR_PROTONDB_ID = "game-sidebar-protondb";
+export const GAME_SIDEBAR_CONTROLLER_SUPPORT_ID =
+  "game-sidebar-controller-support";
 export const GAME_SIDEBAR_ACHIEVEMENTS_ID = "game-sidebar-achievements";
 export const GAME_SIDEBAR_METADATA_ID = "game-sidebar-metadata";
 export const GAME_SIDEBAR_REQUIREMENTS_ID = "game-sidebar-requirements";
