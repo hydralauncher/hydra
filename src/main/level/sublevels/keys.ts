@@ -23,4 +23,11 @@ export const levelKeys = {
   downloadSourcesSinceValue: "downloadSourcesSinceValue", // The 'since' value API used (for modal comparison)
   localNotifications: "localNotifications",
   commonRedistPassed: "commonRedistPassed", // Whether common redistributables preflight has passed
+  emulators: "emulators",
+  ps2MemoryCardSaves: "ps2MemoryCardSaves",
+  ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>
+    `${cardFilePath}::${folderName}`,
+  ps1MemoryCardSaves: "ps1MemoryCardSaves",
+  ps1MemoryCardSave: (cardFilePath: string, identifier: string) =>
+    `${cardFilePath}::${identifier}`,
 };

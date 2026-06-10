@@ -65,6 +65,53 @@
       justify-content: center;
       opacity: 0.9;
     }
+
+    &-label {
+      flex: 1;
+    }
+
+    &-badge {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: #fafafa;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(#3f3f3f, #3f3f3f) padding-box,
+        conic-gradient(
+            from 0deg,
+            #fcdc33 5deg,
+            #4cbd47 70deg,
+            #13aceb 145deg,
+            #ee473b 220deg,
+            #ef833a 290deg,
+            #fcdc33 365deg
+          )
+          border-box;
+    }
+  }
+
+  &__sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  &__sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin-bottom: 4px;
+  }
+
+  &__sidebar-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.8px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
   }
 
   &__panel {

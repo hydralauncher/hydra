@@ -18,7 +18,8 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
     white-space: nowrap;
   }
 

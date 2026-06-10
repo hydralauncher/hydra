@@ -50,7 +50,8 @@ export function GameItem({ game }: GameItemProps) {
       await window.electron.addGameToLibrary(
         game.shop,
         game.objectId,
-        game.title
+        game.title,
+        game.platform ?? null
       );
       updateLibrary();
     } catch (error) {

@@ -44,6 +44,7 @@
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__description {

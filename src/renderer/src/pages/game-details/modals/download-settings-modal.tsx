@@ -35,6 +35,7 @@ import { motion } from "framer-motion";
 import {
   type ReactNode,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -44,6 +45,8 @@ import { Trans, useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
+import { gameDetailsContext } from "@renderer/context";
+import { platformToSystem } from "@renderer/helpers";
 
 export interface DownloadSettingsModalProps {
   visible: boolean;
@@ -236,6 +239,13 @@ export function DownloadSettingsModal({
   repack,
 }: Readonly<DownloadSettingsModalProps>) {
   const { t } = useTranslation("game_details");
+
+  const { game, shopDetails, shop } = useContext(gameDetailsContext);
+
+  const emulatorSystem = useMemo(() => {
+    if (shop !== "launchbox") return null;
+    return platformToSystem(game?.platform ?? shopDetails?.platform ?? null);
+  }, [shop, game?.platform, shopDetails?.platform]);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -461,20 +471,49 @@ export function DownloadSettingsModal({
   );
 
   useEffect(() => {
-    if (userPreferences?.downloadsPath) {
-      setSelectedPath(userPreferences.downloadsPath);
-    } else {
-      globalThis.electron
-        .getDefaultDownloadsPath()
-        .then((defaultDownloadsPath) => setSelectedPath(defaultDownloadsPath));
-    }
+    let cancelled = false;
+
+    const resolveDefaultPath = async () => {
+      const romPath = emulatorSystem
+        ? await globalThis.electron
+            .getEmulatorConfigs()
+            .then(
+              (configs) =>
+                configs[emulatorSystem]?.romFolders?.[0]?.path ?? null
+            )
+            .catch(() => null)
+        : null;
+
+      if (cancelled) return;
+
+      if (romPath) {
+        setSelectedPath(romPath);
+      } else if (userPreferences?.downloadsPath) {
+        setSelectedPath(userPreferences.downloadsPath);
+      } else {
+        const defaultDownloadsPath =
+          await globalThis.electron.getDefaultDownloadsPath();
+        if (!cancelled) setSelectedPath(defaultDownloadsPath);
+      }
+    };
+
+    void resolveDefaultPath();
 
     const availableDownloaders = downloadOptions
       .filter((option) => option.isAvailable)
       .map((option) => option.downloader);
 
     setSelectedDownloader(getDefaultDownloader(availableDownloaders));
-  }, [getDefaultDownloader, userPreferences?.downloadsPath, downloadOptions]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    getDefaultDownloader,
+    userPreferences?.downloadsPath,
+    downloadOptions,
+    emulatorSystem,
+  ]);
 
   useEffect(() => {
     if (visible) {
