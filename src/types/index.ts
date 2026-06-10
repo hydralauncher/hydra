@@ -151,6 +151,7 @@ export interface UserFriend {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl?: string | null;
   currentGame:
     | (ShopAssets & {
         sessionDurationInSeconds: number;

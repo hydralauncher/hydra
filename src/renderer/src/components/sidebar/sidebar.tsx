@@ -623,13 +623,17 @@ export function Sidebar() {
                   >
                     <span className="sidebar__friends-icon">
                       <PeopleIcon />
-                      {onlineFriendsCount > 0 && (
-                        <span className="sidebar__online-orb">
-                          {onlineFriendsCount}
-                        </span>
-                      )}
                     </span>
                     <span>{t("friends")}</span>
+                    <span
+                      className={`sidebar__online-count${
+                        onlineFriendsCount > 0
+                          ? " sidebar__online-count--online"
+                          : ""
+                      }`}
+                    >
+                      {onlineFriendsCount}
+                    </span>
                   </button>
                 </li>
               )}

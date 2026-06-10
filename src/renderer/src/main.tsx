@@ -95,6 +95,16 @@ if (userPreferences?.language) {
 syncDocumentLanguage(i18n.language);
 i18n.on("languageChanged", syncDocumentLanguage);
 
+// Every BrowserWindow runs its own renderer with its own i18n instance, so a
+// language change must be applied per-window. Subscribe here (the shared entry
+// for all routes) so detached windows — friends, game-launcher, etc. — react
+// too, not just the routes mounted under <App />.
+globalThis.electron.onUserPreferencesUpdated((preferences) => {
+  if (preferences?.language && preferences.language !== i18n.language) {
+    void i18n.changeLanguage(preferences.language);
+  }
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>

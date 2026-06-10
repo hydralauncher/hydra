@@ -5,13 +5,14 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   CopyIcon,
+  DashIcon,
   PlusIcon,
   SearchIcon,
   XIcon,
 } from "@primer/octicons-react";
 
 import { Avatar } from "@renderer/components";
-import { useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ProfileFriends, UserFriend } from "@types";
 
@@ -31,7 +32,6 @@ export default function FriendsWindow() {
     updateUserDetails,
     fetchFriendRequests,
     updateFriendRequestState,
-    undoFriendship,
   } = useUserDetails();
 
   const [friends, setFriends] = useState<UserFriend[]>([]);
@@ -160,12 +160,16 @@ export default function FriendsWindow() {
     (request) => request.type === "RECEIVED"
   );
 
+  const profile = userDetails;
+
+  const selfGame = useAppSelector((state) => state.gameRunning.gameRunning);
+
   const requestsCollapsed = requestsOverride ?? receivedRequests.length === 0;
 
   const handleCopyFriendCode = () => {
-    if (!userDetails?.id) return;
+    if (!profile?.id) return;
 
-    navigator.clipboard.writeText(userDetails.id);
+    navigator.clipboard.writeText(profile.id);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), COPIED_FEEDBACK_MS);
   };
@@ -190,12 +194,6 @@ export default function FriendsWindow() {
     updateFriendRequestState(userId, "REFUSED").catch(() => {});
   };
 
-  const handleRemoveFriend = (userId: string) => {
-    undoFriendship(userId)
-      .then(() => fetchFriends())
-      .catch(() => {});
-  };
-
   const getGameIcon = (game: { iconUrl: string | null; title: string }) => {
     if (game.iconUrl) {
       return (
@@ -213,7 +211,21 @@ export default function FriendsWindow() {
   };
 
   const renderFriend = (friend: UserFriend) => (
-    <li key={friend.id} className="friends-window__friend">
+    <li
+      key={friend.id}
+      className={`friends-window__friend${
+        friend.backgroundImageUrl ? " friends-window__friend--has-bg" : ""
+      }`}
+    >
+      {friend.backgroundImageUrl && (
+        <img
+          src={friend.backgroundImageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="friends-window__friend-bg"
+        />
+      )}
       <button
         type="button"
         className="friends-window__friend-button"
@@ -252,15 +264,6 @@ export default function FriendsWindow() {
             </small>
           )}
         </div>
-      </button>
-
-      <button
-        type="button"
-        className="friends-window__remove-button"
-        title={t("remove_friend")}
-        onClick={() => handleRemoveFriend(friend.id)}
-      >
-        <XIcon size={16} />
       </button>
     </li>
   );
@@ -312,14 +315,12 @@ export default function FriendsWindow() {
     <div className="friends-window">
       <div
         className={`friends-window__header${
-          userDetails?.backgroundImageUrl
-            ? " friends-window__header--has-bg"
-            : ""
+          profile?.backgroundImageUrl ? " friends-window__header--has-bg" : ""
         }`}
       >
-        {userDetails?.backgroundImageUrl && (
+        {profile?.backgroundImageUrl && (
           <img
-            src={userDetails.backgroundImageUrl}
+            src={profile.backgroundImageUrl}
             alt=""
             className="friends-window__header-bg"
           />
@@ -327,6 +328,26 @@ export default function FriendsWindow() {
 
         <header className="friends-window__title-bar">
           <h4>{t("title")}</h4>
+          <div className="friends-window__window-controls">
+            <button
+              type="button"
+              className="friends-window__window-control"
+              onClick={() => window.electron.minimizeFriendsWindow()}
+              title={t("minimize")}
+              aria-label={t("minimize")}
+            >
+              <DashIcon size={16} />
+            </button>
+            <button
+              type="button"
+              className="friends-window__window-control friends-window__window-control--close"
+              onClick={() => window.electron.closeFriendsWindow()}
+              title={t("close")}
+              aria-label={t("close")}
+            >
+              <XIcon size={16} />
+            </button>
+          </div>
         </header>
 
         <section className="friends-window__profile">
@@ -334,65 +355,96 @@ export default function FriendsWindow() {
             <button
               type="button"
               className="friends-window__profile-avatar"
-              onClick={() =>
-                userDetails?.id && handleFriendClick(userDetails.id)
-              }
-              disabled={!userDetails?.id}
-              title={userDetails?.displayName}
+              onClick={() => profile?.id && handleFriendClick(profile.id)}
+              disabled={!profile?.id}
+              title={profile?.displayName}
             >
-              <Avatar
-                size={56}
-                src={userDetails?.profileImageUrl}
-                alt={userDetails?.displayName}
-              />
+              <div className="friends-window__avatar-wrapper">
+                <Avatar
+                  size={56}
+                  src={profile?.profileImageUrl}
+                  alt={profile?.displayName}
+                />
+                <span className="friends-window__status-orb friends-window__status-orb--online friends-window__status-orb--profile" />
+              </div>
             </button>
             <div className="friends-window__profile-info">
-              <button
-                type="button"
-                className="friends-window__profile-name"
-                onClick={() =>
-                  userDetails?.id && handleFriendClick(userDetails.id)
-                }
-                disabled={!userDetails?.id}
-              >
-                {userDetails?.displayName}
-              </button>
-              {userDetails?.id && (
+              <div className="friends-window__profile-name-row">
                 <button
                   type="button"
-                  className="friends-window__friend-code"
-                  onClick={handleCopyFriendCode}
-                  title={t("copy_friend_code")}
+                  className="friends-window__profile-name"
+                  onClick={() => profile?.id && handleFriendClick(profile.id)}
+                  disabled={!profile?.id}
                 >
-                  <span className="friends-window__friend-code-value">
-                    {isCopied ? t("copied") : userDetails.id}
-                  </span>
-                  <CopyIcon size={14} />
+                  {profile?.displayName}
                 </button>
+                {profile?.id && (
+                  <button
+                    type="button"
+                    className={`friends-window__friend-code${
+                      isCopied ? " friends-window__friend-code--copied" : ""
+                    }`}
+                    onClick={handleCopyFriendCode}
+                    title={t("copy_friend_code")}
+                  >
+                    <span className="friends-window__friend-code-value">
+                      {isCopied ? t("copied") : profile.id}
+                    </span>
+                    <CopyIcon size={14} />
+                  </button>
+                )}
+              </div>
+
+              {selfGame ? (
+                <div className="friends-window__profile-game">
+                  {getGameIcon({
+                    iconUrl: selfGame.iconUrl,
+                    title: selfGame.title,
+                  })}
+                  <small>{selfGame.title}</small>
+                </div>
+              ) : (
+                <small className="friends-window__profile-status">
+                  {t("online")}
+                </small>
               )}
             </div>
-            <button
-              type="button"
-              className="friends-window__add-friend"
-              onClick={handleAddFriend}
-            >
-              <PlusIcon size={16} />
-              {t("add_friend")}
-            </button>
           </div>
         </section>
       </div>
 
       <div className="friends-window__content">
-        <div className="friends-window__search">
-          <SearchIcon size={16} className="friends-window__search-icon" />
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("search_placeholder")}
-            className="friends-window__search-input"
-          />
+        <div className="friends-window__search-row">
+          <div className="friends-window__search">
+            <SearchIcon size={16} className="friends-window__search-icon" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={t("search_placeholder")}
+              className="friends-window__search-input"
+            />
+            {search && (
+              <button
+                type="button"
+                className="friends-window__search-clear"
+                onClick={() => setSearch("")}
+                title={t("clear_search")}
+                aria-label={t("clear_search")}
+              >
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="friends-window__add-friend"
+            onClick={handleAddFriend}
+            title={t("add_friend")}
+          >
+            <PlusIcon size={16} />
+            {t("add_friend")}
+          </button>
         </div>
 
         <div className="friends-window__list-container">

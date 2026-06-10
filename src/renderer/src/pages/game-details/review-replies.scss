@@ -101,7 +101,7 @@
     gap: 6px;
     background: none;
     border: none;
-    color: globals.$brand-teal;
+    color: rgba(255, 255, 255, 0.6);
     font-size: globals.$small-font-size;
     font-weight: 600;
     cursor: pointer;
@@ -109,6 +109,7 @@
     transition: color 0.2s ease;
 
     &:hover {
+      color: #ffffff;
       text-decoration: underline;
     }
 
@@ -119,8 +120,6 @@
     }
 
     &--primary {
-      color: rgba(255, 255, 255, 0.6);
-
       &:hover {
         color: #ffffff;
       }

@@ -392,16 +392,10 @@ export class WindowManager {
       minHeight: 560,
       maximizable: false,
       backgroundColor: "#1c1c1c",
-      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+      // No native frame/controls — the renderer draws its own minimize and
+      // close buttons in the title bar (see friends-window.tsx).
+      frame: false,
       icon,
-      trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        // Transparent so a profile background banner can show through behind the
-        // native window controls.
-        color: "#00000000",
-        height: 34,
-      },
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
@@ -423,6 +417,12 @@ export class WindowManager {
     this.friendsWindow.on("closed", () => {
       this.friendsWindow = null;
     });
+  }
+
+  public static minimizeFriendsWindow() {
+    if (this.friendsWindow && !this.friendsWindow.isDestroyed()) {
+      this.friendsWindow.minimize();
+    }
   }
 
   public static closeFriendsWindow() {

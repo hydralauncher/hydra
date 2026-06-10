@@ -30,13 +30,22 @@
         position: absolute;
         inset: 0;
         z-index: 1;
-        background: linear-gradient(135deg, rgb(0 0 0 / 60%), rgb(0 0 0 / 45%));
+        background: linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%));
         pointer-events: none;
       }
 
       .friends-window__title-bar {
         background-color: transparent;
         border-bottom: none;
+      }
+
+      // Lighter scrim makes the image pop but hurts text contrast — restore
+      // readability with full opacity + a soft shadow (matches profile hero).
+      .friends-window__profile-status,
+      .friends-window__profile-name,
+      .friends-window__profile-game {
+        opacity: 1;
+        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
       }
     }
   }
@@ -57,7 +66,9 @@
     width: 100%;
     height: 35px;
     min-height: 35px;
-    padding: 0 calc(globals.$spacing-unit * 2);
+    // Leave room on the right for the window controls so the title stays
+    // clear of them.
+    padding: 0 0 0 calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
     border-bottom: 1px solid globals.$border-color;
     -webkit-app-region: drag;
@@ -71,15 +82,51 @@
     }
   }
 
+  &__window-controls {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    margin-left: auto;
+    // Buttons must stay clickable on the otherwise-draggable title bar.
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+
   &__content {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    padding: calc(globals.$spacing-unit * 2);
-    // The scroll area owns the bottom spacing so the last row can scroll fully
-    // into view instead of ending flush against the scroll boundary.
-    padding-bottom: 0;
+    // Vertical padding only. The horizontal padding lives on the scrolling
+    // list (and the search row) so the scrollbar renders outside the right
+    // padding — same as the main sidebar, which keeps rows off the scrollbar.
+    // Bottom spacing stays here on the non-scrolling wrapper so it survives
+    // Blink dropping padding-bottom from a scroll container's overflow region.
+    padding: calc(globals.$spacing-unit * 2) 0;
     gap: calc(globals.$spacing-unit * 2);
   }
 
@@ -125,7 +172,36 @@
     min-width: 0;
   }
 
+  &__profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__profile-game {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+    color: globals.$body-color;
+
+    small {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__profile-status {
+    color: globals.$body-color;
+    opacity: 0.7;
+  }
+
   &__profile-name {
+    flex-shrink: 0;
+    max-width: 100%;
     background: none;
     border: none;
     padding: 0;
@@ -133,6 +209,9 @@
     font-weight: 700;
     color: globals.$muted-color;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     transition: color 0.2s ease;
 
     &:hover {
@@ -148,7 +227,8 @@
   &__friend-code {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
+    flex-shrink: 0;
+    min-width: 0;
     background: none;
     border: none;
     padding: 0;
@@ -157,37 +237,67 @@
     cursor: pointer;
     transition: color 0.2s ease;
 
-    &:hover {
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover,
+    &--copied {
       color: globals.$muted-color;
 
       .friends-window__friend-code-value {
+        max-width: 160px;
+        margin-right: calc(globals.$spacing-unit / 2);
+        opacity: 1;
         color: globals.$muted-color;
       }
     }
   }
 
   &__friend-code-value {
+    // Hidden until the copy button is hovered (or right after copying), then
+    // expands inline — mirrors the profile-page hero.
+    max-width: 0;
+    margin-right: 0;
+    opacity: 0;
+    overflow: hidden;
     font-family: monospace;
     color: globals.$muted-color;
-    transition: color 0.2s ease;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition:
+      max-width 0.2s ease,
+      margin-right 0.2s ease,
+      opacity 0.2s ease,
+      color 0.2s ease;
+  }
+
+  &__search-row {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 2);
   }
 
   &__add-friend {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    background-color: globals.$brand-teal;
+    flex-shrink: 0;
+    background-color: globals.$muted-color;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     color: globals.$dark-background-color;
     font-size: globals.$small-font-size;
     font-weight: 600;
-    padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 1.5);
+    white-space: nowrap;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    height: 36px;
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: background-color 0.2s ease;
 
     &:hover {
-      opacity: globals.$active-opacity;
+      background-color: #dadbe1;
     }
   }
 
@@ -195,11 +305,22 @@
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+    flex: 1;
+    min-width: 0;
     padding: 0 calc(globals.$spacing-unit * 1.5);
     height: 36px;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 6px;
+    transition: border-color ease 0.2s;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus-within {
+      border-color: #dadbe1;
+    }
   }
 
   &__search-icon {
@@ -221,6 +342,24 @@
     }
   }
 
+  &__search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: globals.$body-color;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
   &__list-container {
     display: flex;
     flex-direction: column;
@@ -228,7 +367,9 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding-bottom: calc(globals.$spacing-unit * 2);
+    // Symmetric horizontal padding on the scroll element itself, so the
+    // scrollbar sits outside it and rows clear it evenly on both sides.
+    padding: 0 calc(globals.$spacing-unit * 2);
   }
 
   &__section {
@@ -238,13 +379,17 @@
   }
 
   &__section-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     width: 100%;
-    background: none;
+    // Opaque so list rows scroll cleanly underneath the pinned header.
+    background-color: globals.$background-color;
     border: none;
-    padding: calc(globals.$spacing-unit / 2) 0;
+    padding: globals.$spacing-unit 0;
     cursor: pointer;
     color: globals.$body-color;
     transition: color 0.2s ease;
@@ -273,6 +418,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    gap: globals.$spacing-unit;
   }
 
   &__friend {
@@ -281,14 +427,55 @@
     flex-shrink: 0;
     border-radius: 6px;
     transition: background-color 0.2s ease;
+    // Skip layout + paint for rows outside the viewport — near-free
+    // virtualization for the ~100-row list.
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
+    position: relative;
 
     &:hover {
       background-color: globals.$dark-background-color;
+    }
 
-      .friends-window__remove-button {
+    // Image rows: lazy <img> behind a gradient scrim. Image is a Cloudflare-
+    // resized (~400px) variant so it stays light to raster.
+    &--has-bg {
+      // Scrim pseudo over the image; clips its own corners (no overflow:hidden,
+      // which caused scroll repaint flicker).
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgb(0 0 0 / 40%), rgb(0 0 0 / 30%));
+        pointer-events: none;
+      }
+
+      // Very slight hover: just fade the row (opacity is GPU-composited, no
+      // re-raster of the photo).
+      &:hover {
+        background-color: transparent;
+        opacity: 0.9;
+      }
+
+      .friends-window__friend-name,
+      .friends-window__friend-status {
+        color: #ffffff;
         opacity: 1;
       }
     }
+  }
+
+  &__friend-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
   }
 
   &__friend-button {
@@ -302,6 +489,8 @@
     padding: globals.$spacing-unit;
     cursor: pointer;
     text-align: left;
+    position: relative;
+    z-index: 2;
   }
 
   &__avatar-wrapper {
@@ -321,6 +510,15 @@
 
     &--online {
       background-color: globals.$success-color;
+    }
+
+    // Larger orb for the 56px profile-hero avatar.
+    &--profile {
+      width: 15px;
+      height: 15px;
+      bottom: 2px;
+      right: 2px;
+      border-width: 3px;
     }
   }
 
@@ -348,7 +546,7 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    color: globals.$brand-teal;
+    color: globals.$body-color;
 
     small {
       white-space: nowrap;
@@ -360,27 +558,6 @@
   &__game-icon {
     border-radius: 2px;
     flex-shrink: 0;
-  }
-
-  &__remove-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: globals.$body-color;
-    padding: globals.$spacing-unit;
-    margin-right: globals.$spacing-unit;
-    cursor: pointer;
-    opacity: 0;
-    border-radius: 4px;
-    transition:
-      opacity 0.2s ease,
-      color 0.2s ease;
-
-    &:hover {
-      color: globals.$error-color;
-    }
   }
 
   &__request-actions {
