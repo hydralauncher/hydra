@@ -239,6 +239,20 @@
     font-size: 16px;
   }
 
+  &__metadata-flags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__metadata-flag {
+    width: 28px;
+    height: 20px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
   &__protondb-value--text {
     font-size: 16px;
   }

@@ -123,15 +123,31 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     };
   }, [game?.id]);
 
-  const openGame = useCallback(async () => {
-    if (!game?.executablePath) return;
-    globalThis.window.electron.openGame(
-      game.shop,
-      game.objectId,
-      game.executablePath,
-      game.launchOptions
-    );
-  }, [game]);
+  const openGame = useCallback(
+    async (discPath?: string, force?: boolean) => {
+      if (!game) return;
+
+      if (game.shop === "launchbox") {
+        await globalThis.window.electron.openClassicsGame(
+          game.shop,
+          game.objectId,
+          discPath,
+          force
+        );
+        return;
+      }
+
+      if (!game.executablePath) return;
+
+      globalThis.window.electron.openGame(
+        game.shop,
+        game.objectId,
+        game.executablePath,
+        game.launchOptions
+      );
+    },
+    [game]
+  );
 
   const closeGame = useCallback(() => {
     if (!game) return;

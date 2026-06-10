@@ -13,6 +13,8 @@ import {
   CATALOGUE_CLEAR_FILTERS_ID,
   CATALOGUE_FILTERS_BUTTON_ID,
   CATALOGUE_HEADER_CONTROLS_REGION_ID,
+  CATALOGUE_MODE_CLASSICS_ID,
+  CATALOGUE_MODE_MODERN_ID,
   CATALOGUE_SORT_SELECT_ID,
   getCatalogueActiveFilterChipFocusId,
 } from "./navigation";
@@ -20,6 +22,7 @@ import {
   CATALOGUE_SORT_OPTIONS,
   type CatalogueSortValue,
   type CatalogueData,
+  type CatalogueMode,
   FilterType,
   type SearchGamesFormValues,
 } from "./use-catalogue-data";
@@ -45,7 +48,9 @@ export function CatalogueHeader({
   onOpenFilters,
 }: Readonly<HeaderProps>) {
   const {
+    mode = "modern",
     title,
+    platforms,
     genres,
     tags,
     publishers,
@@ -61,23 +66,39 @@ export function CatalogueHeader({
     ) ?? CATALOGUE_SORT_OPTIONS[0];
 
   const activeFilters: FilterItem[] = [
+    ...(mode === "classics"
+      ? (platforms?.map((value) => {
+          const label =
+            Object.entries(catalogueData[FilterType.Platforms].data).find(
+              ([, platformKey]) => platformKey === value
+            )?.[0] ?? value;
+
+          return {
+            type: FilterType.Platforms,
+            label,
+            value,
+          };
+        }) ?? [])
+      : []),
     ...(genres?.map((value) => ({
       type: FilterType.Genres,
       label: value,
       value,
     })) ?? []),
-    ...(tags?.map((id) => {
-      const name =
-        Object.entries(catalogueData[FilterType.Tags].data).find(
-          ([, tagId]) => tagId === id
-        )?.[0] ?? id.toString();
+    ...(mode === "modern"
+      ? (tags?.map((id) => {
+          const name =
+            Object.entries(catalogueData[FilterType.Tags].data).find(
+              ([, tagId]) => tagId === id
+            )?.[0] ?? id.toString();
 
-      return {
-        type: FilterType.Tags,
-        label: name,
-        value: id,
-      };
-    }) ?? []),
+          return {
+            type: FilterType.Tags,
+            label: name,
+            value: id,
+          };
+        }) ?? [])
+      : []),
     ...(publishers?.map((value) => ({
       type: FilterType.Publishers,
       label: value,
@@ -105,6 +126,8 @@ export function CatalogueHeader({
     getCatalogueActiveFilterChipFocusId(filter.type, filter.value)
   );
   const headerFocusIds = [
+    CATALOGUE_MODE_MODERN_ID,
+    CATALOGUE_MODE_CLASSICS_ID,
     ...chipFocusIds,
     ...(activeFilters.length > 0 ? [CATALOGUE_CLEAR_FILTERS_ID] : []),
     CATALOGUE_FILTERS_BUTTON_ID,
@@ -144,6 +167,7 @@ export function CatalogueHeader({
 
   const handleRemoveAllFilters = () => {
     updateSearchParams({
+      platforms: [],
       genres: [],
       tags: [],
       publishers: [],
@@ -151,6 +175,20 @@ export function CatalogueHeader({
       downloadSourceFingerprints: [],
     });
     restoreHeaderFocus(CATALOGUE_CLEAR_FILTERS_ID, CATALOGUE_FILTERS_BUTTON_ID);
+  };
+
+  const handleModeChange = (nextMode: CatalogueMode) => {
+    if (mode === nextMode) return;
+
+    updateSearchParams({
+      mode: nextMode,
+      platforms: [],
+      genres: [],
+      tags: [],
+      publishers: [],
+      developers: [],
+      downloadSourceFingerprints: [],
+    });
   };
 
   const handleSortChange = (value: CatalogueSortValue) => {
@@ -236,6 +274,52 @@ export function CatalogueHeader({
       </div>
 
       <div className="catalogue-header__actions">
+        <div
+          className="catalogue-header__mode-switch"
+          role="radiogroup"
+          aria-label="Catalogue mode"
+        >
+          <FocusItem
+            id={CATALOGUE_MODE_MODERN_ID}
+            actions={{ primary: () => handleModeChange("modern") }}
+            navigationOverrides={
+              navigationOverridesById[CATALOGUE_MODE_MODERN_ID]
+            }
+            asChild
+          >
+            <button
+              type="button"
+              className="catalogue-header__mode-button"
+              data-active={mode === "modern"}
+              role="radio"
+              aria-checked={mode === "modern"}
+              onClick={() => handleModeChange("modern")}
+            >
+              PC
+            </button>
+          </FocusItem>
+
+          <FocusItem
+            id={CATALOGUE_MODE_CLASSICS_ID}
+            actions={{ primary: () => handleModeChange("classics") }}
+            navigationOverrides={
+              navigationOverridesById[CATALOGUE_MODE_CLASSICS_ID]
+            }
+            asChild
+          >
+            <button
+              type="button"
+              className="catalogue-header__mode-button"
+              data-active={mode === "classics"}
+              role="radio"
+              aria-checked={mode === "classics"}
+              onClick={() => handleModeChange("classics")}
+            >
+              Classics
+            </button>
+          </FocusItem>
+        </div>
+
         <Button
           className="catalogue-header__filters-button"
           variant="rounded"
