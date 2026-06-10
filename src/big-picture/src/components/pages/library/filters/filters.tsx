@@ -137,6 +137,16 @@ export function LibraryFilters({
         label: `All (${counts.all})`,
       },
       {
+        id: getLibraryFiltersTabFocusId("moderns"),
+        value: "moderns",
+        label: `Moderns (${counts.moderns})`,
+      },
+      {
+        id: getLibraryFiltersTabFocusId("classics"),
+        value: "classics",
+        label: `Classics (${counts.classics})`,
+      },
+      {
         id: getLibraryFiltersTabFocusId("favorites"),
         value: "favorites",
         label: `Favorites (${counts.favorites})`,

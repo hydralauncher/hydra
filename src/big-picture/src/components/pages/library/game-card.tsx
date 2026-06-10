@@ -1,6 +1,11 @@
 import type { LibraryGame } from "@types";
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
-import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
+import type {
+  MouseEvent as ReactMouseEvent,
+  RefObject,
+} from "react";
 import {
   FocusItem,
   HorizontalLibraryGameCard,
@@ -44,20 +49,39 @@ export interface HorizontalLibraryGameListCardProps {
   ) => void;
 }
 
+const PLATFORM_LABELS: Partial<
+  Record<NonNullable<ReturnType<typeof platformToSystem>>, string>
+> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
+
 function useLibraryGameCardPresentation(
   game: LibraryGame,
   variant: "vertical" | "horizontal"
 ) {
   const imageSources = useMemo(() => {
     if (variant === "horizontal") {
-      return [
-        game.customHeroImageUrl,
-        game.libraryHeroImageUrl,
-        game.coverImageUrl,
-        game.libraryImageUrl,
-        game.customIconUrl,
-        game.iconUrl,
-      ]
+      const horizontalSources =
+        game.shop === "launchbox"
+          ? [
+              game.customHeroImageUrl,
+              game.libraryHeroImageUrl,
+              game.libraryImageUrl,
+              game.customIconUrl,
+              game.iconUrl,
+            ]
+          : [
+              game.customHeroImageUrl,
+              game.libraryHeroImageUrl,
+              game.coverImageUrl,
+              game.libraryImageUrl,
+              game.customIconUrl,
+              game.iconUrl,
+            ];
+
+      return horizontalSources
         .map((source) => resolveImageSource(source))
         .filter((source, index, array) => {
           return source !== "" && array.indexOf(source) === index;
@@ -72,6 +96,7 @@ function useLibraryGameCardPresentation(
     game.iconUrl,
     game.libraryHeroImageUrl,
     game.libraryImageUrl,
+    game.shop,
     variant,
   ]);
   const [imageSourceIndex, setImageSourceIndex] = useState(0);
@@ -86,9 +111,16 @@ function useLibraryGameCardPresentation(
   const activeImageSource = imageExhausted
     ? null
     : (imageSources[imageSourceIndex] ?? null);
-
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
+  const classicsSystem =
+    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
+  const classicsPlatformLabel = classicsSystem
+    ? (PLATFORM_LABELS[classicsSystem] ?? null)
+    : null;
+  const classicsEmulatorIcon = classicsSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
+    : undefined;
 
   const handleCoverImageError = () => {
     if (imageSourceIndex < imageSources.length - 1) {
@@ -102,12 +134,65 @@ function useLibraryGameCardPresentation(
   return {
     activeImageSource,
     achievementProgress,
+    classicsEmulatorIcon,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     playtimeLabel: formatPlayedTime(game.playTimeInMilliseconds, {
       zeroFallback: "Never played",
     }),
   };
+}
+
+interface ClassicsCoverBadgesProps {
+  platformLabel: string;
+  emulatorIcon?: string;
+}
+
+function ClassicsCoverBadges({
+  platformLabel,
+  emulatorIcon,
+}: Readonly<ClassicsCoverBadgesProps>) {
+  return (
+    <div className="library-classics-badges" aria-hidden="true">
+      <span className="library-classics-platform-badge">{platformLabel}</span>
+      {emulatorIcon ? (
+        <span className="library-classics-emulator-badge">
+          <img src={emulatorIcon} alt="" />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+interface ClassicsVerticalCoverMediaProps {
+  imageUrl: string;
+  gameTitle: string;
+  onImageError?: () => void;
+}
+
+function ClassicsVerticalCoverMedia({
+  imageUrl,
+  gameTitle,
+  onImageError,
+}: Readonly<ClassicsVerticalCoverMediaProps>) {
+  return (
+    <div className="vertical-game-card__classics-cover" aria-hidden="true">
+      <img
+        src={imageUrl}
+        alt=""
+        className="vertical-game-card__classics-backdrop"
+        draggable={false}
+      />
+      <img
+        src={imageUrl}
+        alt={gameTitle}
+        className="vertical-game-card__classics-image"
+        draggable={false}
+        onError={onImageError}
+      />
+    </div>
+  );
 }
 
 interface LibraryGameCardActionProps {
@@ -152,12 +237,29 @@ export function VerticalLibraryGameCard({
   const {
     activeImageSource,
     achievementProgress,
+    classicsEmulatorIcon,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "vertical");
   const focusId = getLibraryFocusGridItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
+  const coverMedia =
+    game.shop === "launchbox" && activeImageSource ? (
+      <ClassicsVerticalCoverMedia
+        imageUrl={activeImageSource}
+        gameTitle={game.title}
+        onImageError={handleCoverImageError}
+      />
+    ) : null;
+  const coverOverlay =
+    classicsPlatformLabel != null ? (
+      <ClassicsCoverBadges
+        platformLabel={classicsPlatformLabel}
+        emulatorIcon={classicsEmulatorIcon}
+      />
+    ) : null;
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -194,8 +296,14 @@ export function VerticalLibraryGameCard({
       navigationOverrides={navigationOverrides}
     >
       <VerticalGameCard
-        className="library-focus-grid__card"
+        className={
+          game.shop === "launchbox"
+            ? "library-focus-grid__card library-focus-grid__card--classics"
+            : "library-focus-grid__card"
+        }
         coverImageUrl={activeImageSource}
+        coverMedia={coverMedia}
+        coverOverlay={coverOverlay}
         gameTitle={game.title}
         subtitle={playtimeLabel}
         progressLabel={achievementProgress.label}
@@ -245,6 +353,8 @@ export function HorizontalLibraryGameListCard({
   const {
     activeImageSource,
     achievementProgress,
+    classicsEmulatorIcon,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     playtimeLabel,
@@ -254,6 +364,13 @@ export function HorizontalLibraryGameListCard({
   const logoImageUrl = resolveImageSource(
     game.customLogoImageUrl ?? game.logoImageUrl
   );
+  const coverOverlay =
+    classicsPlatformLabel != null ? (
+      <ClassicsCoverBadges
+        platformLabel={classicsPlatformLabel}
+        emulatorIcon={classicsEmulatorIcon}
+      />
+    ) : null;
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -290,9 +407,14 @@ export function HorizontalLibraryGameListCard({
       navigationOverrides={navigationOverrides}
     >
       <HorizontalLibraryGameCard
-        className="library-focus-list__card"
+        className={
+          game.shop === "launchbox"
+            ? "library-focus-list__card library-focus-list__card--classics"
+            : "library-focus-list__card"
+        }
         coverImageUrl={activeImageSource}
         logoImageUrl={logoImageUrl || null}
+        coverOverlay={coverOverlay}
         gameTitle={game.title}
         subtitle={playtimeLabel}
         progressLabel={achievementProgress.label}
