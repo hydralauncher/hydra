@@ -5,6 +5,7 @@ import type {
   UnlockedAchievement,
 } from "./game.types";
 import type { DownloadStatus } from "./download.types";
+import type { ClassicsDisc } from "./emulator.types";
 
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
@@ -71,6 +72,10 @@ export interface Game {
   installedSizeInBytes?: number | null;
   installerSizeInBytes?: number | null;
   steamShortcutAppId?: number;
+  platform?: string | null;
+  discs?: ClassicsDisc[];
+  selectedDiscPath?: string | null;
+  dontAskDiscSelection?: boolean;
 }
 
 export interface Download {
@@ -163,6 +168,8 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  hideClassicsBookmark?: boolean;
+  classicsUseHeroLayout?: boolean;
 }
 
 export interface ScreenState {

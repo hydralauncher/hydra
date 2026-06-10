@@ -7,8 +7,30 @@ import {
   downloadsSublevel,
   gameAchievementsSublevel,
   gamesShopAssetsSublevel,
+  gamesShopCacheSublevel,
   gamesSublevel,
 } from "@main/level";
+
+const lookupCachedPlatform = async (
+  gameKey: string
+): Promise<string | null> => {
+  const prefix = `${gameKey}:`;
+  try {
+    const entries = await gamesShopCacheSublevel.iterator().all();
+    for (const [key, value] of entries) {
+      if (
+        typeof key === "string" &&
+        key.startsWith(prefix) &&
+        value?.platform
+      ) {
+        return value.platform;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
 
 const getLibrary = async (): Promise<LibraryGame[]> => {
   return gamesSublevel
@@ -52,6 +74,17 @@ const getLibrary = async (): Promise<LibraryGame[]> => {
               if (!fs.existsSync(installerPath)) {
                 installerSizeInBytes = null;
                 gamesSublevel.put(key, { ...game, installerSizeInBytes: null });
+              }
+            }
+
+            if (
+              game.shop === "launchbox" &&
+              (!game.platform || game.platform === null)
+            ) {
+              const cachedPlatform = await lookupCachedPlatform(key);
+              if (cachedPlatform) {
+                game.platform = cachedPlatform;
+                gamesSublevel.put(key, game).catch(() => {});
               }
             }
 

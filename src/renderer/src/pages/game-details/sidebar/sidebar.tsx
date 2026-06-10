@@ -20,6 +20,7 @@ import {
   StarIcon,
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
+import { LaunchboxDetailsSection } from "./launchbox-details-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -301,41 +302,53 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
+      {shop === "launchbox" && (
+        <LaunchboxDetailsSection
+          platform={shopDetails?.platform}
+          genres={shopDetails?.genres?.map((g) => g.name)}
+          skus={shopDetails?.skus}
+        />
+      )}
+
       <HowLongToBeatSection
         howLongToBeatData={howLongToBeat.data}
         isLoading={howLongToBeat.isLoading}
       />
 
-      <SidebarSection title={t("requirements")}>
-        <div className="requirement__button-container">
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("minimum")}
-            theme={activeRequirement === "minimum" ? "primary" : "outline"}
-          >
-            {t("minimum")}
-          </Button>
+      {shop !== "launchbox" && (
+        <SidebarSection title={t("requirements")}>
+          <div className="requirement__button-container">
+            <Button
+              className="requirement__button"
+              onClick={() => setActiveRequirement("minimum")}
+              theme={activeRequirement === "minimum" ? "primary" : "outline"}
+            >
+              {t("minimum")}
+            </Button>
 
-          <Button
-            className="requirement__button"
-            onClick={() => setActiveRequirement("recommended")}
-            theme={activeRequirement === "recommended" ? "primary" : "outline"}
-          >
-            {t("recommended")}
-          </Button>
-        </div>
+            <Button
+              className="requirement__button"
+              onClick={() => setActiveRequirement("recommended")}
+              theme={
+                activeRequirement === "recommended" ? "primary" : "outline"
+              }
+            >
+              {t("recommended")}
+            </Button>
+          </div>
 
-        <div
-          className="requirement__details"
-          dangerouslySetInnerHTML={{
-            __html:
-              shopDetails?.pc_requirements?.[activeRequirement] ??
-              t(`no_${activeRequirement}_requirements`, {
-                gameTitle,
-              }),
-          }}
-        />
-      </SidebarSection>
+          <div
+            className="requirement__details"
+            dangerouslySetInnerHTML={{
+              __html:
+                shopDetails?.pc_requirements?.[activeRequirement] ??
+                t(`no_${activeRequirement}_requirements`, {
+                  gameTitle,
+                }),
+            }}
+          />
+        </SidebarSection>
+      )}
 
       <GameLanguageSection />
     </aside>

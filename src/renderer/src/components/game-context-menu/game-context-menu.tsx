@@ -99,6 +99,9 @@ export function GameContextMenu({
     handleRemoveFromLibrary,
     handleRemoveFiles,
     handleOpenGameOptions,
+    rpcs3ConfirmPending,
+    handleConfirmRpcs3Launch,
+    handleCancelRpcs3Launch,
   } = useGameActions(game);
   const selectedCollectionId = searchParams.get("collection");
 
@@ -472,6 +475,16 @@ export function GameContextMenu({
         }}
         cancelButtonLabel={t("cancel")}
         confirmButtonLabel={t("remove")}
+      />
+
+      <ConfirmationModal
+        visible={rpcs3ConfirmPending !== null}
+        title={t("rpcs3_already_running_title")}
+        descriptionText={t("rpcs3_already_running_description")}
+        confirmButtonLabel={t("rpcs3_already_running_confirm")}
+        cancelButtonLabel={t("cancel")}
+        onClose={handleCancelRpcs3Launch}
+        onConfirm={handleConfirmRpcs3Launch}
       />
     </>
   );

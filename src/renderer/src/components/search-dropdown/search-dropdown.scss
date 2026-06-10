@@ -36,6 +36,44 @@
     letter-spacing: 0.5px;
   }
 
+  &__shop-switch {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background-color: globals.$background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+  }
+
+  &__shop-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      color: #fafafa;
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #fafafa;
+    }
+  }
+
   &__clear-text-button {
     color: globals.$muted-color;
     cursor: pointer;

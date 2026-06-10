@@ -18,6 +18,7 @@ import "./torrenting";
 import "./user";
 import "./user-preferences";
 import "./library/transfer-game-files";
+import "./emulators";
 
 import { isPortableVersion } from "@main/helpers";
 

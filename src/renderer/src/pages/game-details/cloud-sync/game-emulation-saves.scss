@@ -1,0 +1,241 @@
+.game-emulation-saves {
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fafafa;
+      margin: 0;
+    }
+
+    p {
+      font-size: 13px;
+      color: #8e919b;
+      margin: 4px 0 0;
+    }
+  }
+
+  &__header-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__empty {
+    color: #8e919b;
+    font-size: 13px;
+  }
+
+  &__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__group-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8e919b;
+    margin: 0;
+  }
+
+  &__prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 40px 24px;
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fafafa;
+      margin: 0;
+    }
+
+    p {
+      font-size: 13px;
+      color: #8e919b;
+      margin: 0;
+      max-width: 360px;
+    }
+  }
+
+  &__prompt-icon {
+    width: 56px;
+    height: 72px;
+    object-fit: contain;
+    opacity: 0.55;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  }
+
+  &__prompt-octicon {
+    width: 56px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8e919b;
+    opacity: 0.55;
+    margin-bottom: 4px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 28px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+
+  &__card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #0d0d0d;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 16px 12px;
+  }
+
+  &__card-body {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__card-icon {
+    width: 64px;
+    height: 82px;
+    object-fit: contain;
+    flex-shrink: 0;
+    margin-top: -36px;
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  }
+
+  &__card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fafafa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  &__card-size {
+    color: #8e919b;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  &__icon-button {
+    background: transparent;
+    border: 0;
+    color: #8e919b;
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
+  &__card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #c0c1c7;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      svg {
+        flex-shrink: 0;
+        color: #8e919b;
+      }
+    }
+  }
+
+  &__card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 8px 16px;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(244, 67, 54, 0.2);
+      border-color: #f44336;
+      color: #ff5722;
+    }
+  }
+
+  &__upgrade {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  &__sync-icon {
+    animation: game-emulation-saves-spin 1s linear infinite;
+  }
+}
+
+@keyframes game-emulation-saves-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { PencilIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -14,7 +21,10 @@ import { AuthPage } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
-import { useUserDetails, useLibrary } from "@renderer/hooks";
+import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
+import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./game-details.scss";
 import "./hero.scss";
 
@@ -94,7 +104,10 @@ export function GameDetailsContent() {
 
   const [backdropOpacity, setBackdropOpacity] = useState(1);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
+    useState(false);
   const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
   const isGameInLibrary = useMemo(() => {
@@ -107,6 +120,35 @@ export function GameDetailsContent() {
   useEffect(() => {
     setBackdropOpacity(1);
   }, [objectId]);
+
+  useLayoutEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) {
+      setIsDescriptionOverflowing(false);
+      return;
+    }
+
+    const measure = () => {
+      const collapsedMaxHeight = 300;
+      setIsDescriptionOverflowing(el.scrollHeight > collapsedMaxHeight);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+
+    const images = Array.from(el.querySelectorAll("img"));
+    const onMediaLoad = () => measure();
+    images.forEach((img) => {
+      if (!img.complete) img.addEventListener("load", onMediaLoad);
+    });
+
+    return () => {
+      observer.disconnect();
+      images.forEach((img) => img.removeEventListener("load", onMediaLoad));
+    };
+  }, [aboutTheGame]);
 
   const handleCloudSaveButtonClick = () => {
     if (!userDetails) {
@@ -143,33 +185,189 @@ export function GameDetailsContent() {
     }
   }, [searchParams, objectId]);
 
-  const isCustomGame = game?.shop === "custom";
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const hideClassicsBookmark = userPreferences?.hideClassicsBookmark ?? false;
+  const classicsUseHeroLayout = userPreferences?.classicsUseHeroLayout ?? false;
 
-  const heroImage = isCustomGame
+  const isCustomGame = game?.shop === "custom";
+  const isLaunchboxGame = shop === "launchbox";
+  const renderClassicsHero = isLaunchboxGame && !classicsUseHeroLayout;
+
+  const resolvedHeroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
         game?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
+  const launchboxCover = isLaunchboxGame
+    ? game?.customIconUrl ||
+      shopDetails?.assets?.libraryImageUrl ||
+      game?.libraryImageUrl ||
+      shopDetails?.assets?.iconUrl ||
+      game?.iconUrl ||
+      ""
+    : "";
+
+  const launchboxPlatform = isLaunchboxGame
+    ? (game?.platform ?? shopDetails?.platform ?? null)
+    : null;
+
+  const launchboxSystem = isLaunchboxGame
+    ? platformToSystem(launchboxPlatform)
+    : null;
+
+  const launchboxTitle = isLaunchboxGame
+    ? (game?.title ?? shopDetails?.name ?? "")
+    : "";
+
+  const launchboxEmulatorIcon = launchboxSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[launchboxSystem]]
+    : undefined;
+
   return (
     <div
       className={`game-details__wrapper ${hasNSFWContentBlocked ? "game-details__wrapper--blurred" : ""}`}
     >
       <section className="game-details__container">
-        <div className="game-details__hero">
-          <img
-            src={heroImage}
-            className="game-details__hero-image"
-            alt={game?.title}
-          />
+        <div
+          className={`game-details__hero${renderClassicsHero ? " game-details__hero--classics-wrapper" : ""}`}
+        >
+          {renderClassicsHero ? (
+            <>
+              <div className="game-details__hero--classics">
+                <div className="game-details__hero-classics-backdrop">
+                  {launchboxCover && (
+                    <img src={launchboxCover} alt="" aria-hidden="true" />
+                  )}
+                  <div className="game-details__hero-classics-backdrop-overlay" />
+                </div>
+              </div>
+              <div className="game-details__hero-classics-content">
+                <div className="game-details__hero-classics-cover">
+                  {launchboxCover && (
+                    <img src={launchboxCover} alt={game?.title} />
+                  )}
+                </div>
+                <div className="game-details__hero-classics-meta">
+                  <h1 className="game-details__hero-classics-title">
+                    {launchboxTitle}
+                  </h1>
+                  {launchboxPlatform && (
+                    <div className="game-details__hero-classics-chips">
+                      <span className="game-details__hero-classics-chip">
+                        {launchboxPlatform}
+                      </span>
+                      {launchboxEmulatorIcon && (
+                        <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
+                          <img src={launchboxEmulatorIcon} alt="" />
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <img
+              src={
+                isLaunchboxGame
+                  ? resolvedHeroImage || launchboxCover
+                  : resolvedHeroImage
+              }
+              className="game-details__hero-image"
+              alt={game?.title}
+            />
+          )}
+
+          {isLaunchboxGame && !hideClassicsBookmark && (
+            <div className="game-details__hero-bookmark" aria-hidden="true">
+              <div className="game-details__hero-classics-rainbow">
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--orange">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--red">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--yellow">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--green">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--shadow game-details__hero-classics-stripe--blue">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--shadow" />
+                </span>
+
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--red">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-1">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--orange">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--ltr game-details__hero-classics-stripe-band--delay-2">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--yellow">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-3">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--green">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--ltr game-details__hero-classics-stripe-band--delay-4">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+                <span className="game-details__hero-classics-stripe game-details__hero-classics-stripe--blue">
+                  <span className="game-details__hero-classics-stripe-band game-details__hero-classics-stripe-band--rtl game-details__hero-classics-stripe-band--delay-5">
+                    <video
+                      src={tvEffectVideo}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
 
           <div
             className="game-details__hero-logo-backdrop"
             style={{ opacity: backdropOpacity }}
           >
             <div className="game-details__hero-content">
-              <GameLogo game={game} shopDetails={shopDetails} />
+              {!renderClassicsHero && (
+                <GameLogo game={game} shopDetails={shopDetails} />
+              )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
                 {game && (
@@ -214,17 +412,20 @@ export function GameDetailsContent() {
             <GallerySlider />
 
             <div
+              ref={descriptionRef}
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
               className={`game-details__description ${
                 isDescriptionExpanded
                   ? "game-details__description--expanded"
-                  : "game-details__description--collapsed"
+                  : isDescriptionOverflowing
+                    ? "game-details__description--collapsed"
+                    : ""
               }`}
             />
 
-            {aboutTheGame && aboutTheGame.length > 500 && (
+            {aboutTheGame && isDescriptionOverflowing && (
               <button
                 type="button"
                 className="game-details__description-toggle"

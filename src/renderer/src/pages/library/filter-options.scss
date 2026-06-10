@@ -5,7 +5,8 @@
     display: flex;
     gap: calc(globals.$spacing-unit);
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
   }
 
   &__label {
@@ -15,6 +16,15 @@
   }
 
   &__select {
-    min-width: 220px;
+    flex: 0 0 auto;
+    width: auto;
+
+    .select-field {
+      width: 100%;
+    }
+
+    .select-field__option {
+      width: 100%;
+    }
   }
 }
