@@ -55,6 +55,11 @@ declare global {
     export default content;
   }
 
+  declare module "*.svg?url" {
+    const src: string;
+    export default src;
+  }
+
   interface Electron {
     /* Torrenting */
     startGameDownload: (

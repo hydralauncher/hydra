@@ -1,10 +1,27 @@
-import type { GameShop } from "@types";
+import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
 
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
+
+export const platformToSystem = (
+  platform?: string | null
+): EmulatorSystem | null => {
+  if (!platform) return null;
+  const p = platform.toLowerCase();
+  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
+  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
+  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  return null;
+};
+
+export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
+  ps1: "duckstation",
+  ps2: "pcsx2",
+  ps3: "rpcs3",
+};
 
 export const formatDownloadProgress = (
   progress?: number,

@@ -1,115 +1,85 @@
 @use "../../scss/globals.scss";
 
 .home {
+  /* Re-added scroll-active class. The earlier removal was based on the
+     pre-windowing cost math (40 rows × 16 cards = thousands of style-
+     invalidation nodes). With bi-directional windowing now capping
+     mounted cards to ~30–60 at any moment, the descendant walk cost
+     is small enough that it's outweighed by what the class actually
+     buys: zero per-card :hover transitions firing as the cursor
+     sweeps across cards during vertical scroll. Without this class
+     each card the cursor crosses fires :hover (scale, content slide,
+     border colour) and unfires :hover, repeated dozens of times per
+     second — the dominant remaining vertical-scroll cost post-
+     windowing. Tight selector list (only the costly transforms/
+     animations) keeps the invalidation walk narrow. */
+  &__content--scrolling {
+    .home-game-card,
+    .home-game-card-vertical,
+    .home-recently-played-card,
+    .home-game-card__content,
+    .home-game-card__img,
+    .home-game-card__portrait-cover,
+    .home-game-card-vertical__cover-image,
+    .home-recently-played-card::before {
+      transition: none !important;
+      animation-play-state: paused;
+    }
+  }
+
   &__content {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
+    /* Row-to-row spacing lives on `.home-row` itself (margin-bottom)
+       — see home-row.scss. The previous `gap` approach LOOKED
+       consistent but interacted oddly with each row's internal
+       `__scroll padding-bottom: 16px` (shadow bleed buffer): rows
+       whose cards visually reached lower into that 16px buffer
+       (taller cards / heavier shadows) felt closer to the next row
+       than rows whose cards stopped higher. Moving the spacing onto
+       the row means every row carries the SAME explicit bottom
+       buffer regardless of its card variant. The Hero above and the
+       Back-to-Top below need their own spacing — both have explicit
+       margins, no parent gap needed. */
     padding: 0;
+    padding-bottom: calc(globals.$spacing-unit * 4);
     flex: 1;
     overflow-y: auto;
   }
 
-  &__header {
-    display: flex;
-    gap: globals.$spacing-unit;
-    justify-content: space-between;
-    align-items: center;
-    padding: calc(globals.$spacing-unit * 3);
+  &__sentinel {
+    height: 1px;
+    flex-shrink: 0;
   }
 
-  &__buttons-list {
+  &__back-to-top-container {
     display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    gap: globals.$spacing-unit;
+    justify-content: center;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 3);
   }
 
-  &__card-skeleton {
-    width: 100%;
-    height: 180px;
-    box-shadow: 0px 0px 15px 0px #000000;
-    overflow: hidden;
-    border-radius: 4px;
-    transition: all ease 0.2s;
-    z-index: 1;
+  &__back-to-top {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    font-size: 13px;
+    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 3);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: globals.$muted-color;
+    }
 
     &:active {
       opacity: globals.$active-opacity;
-    }
-  }
-
-  &__no-results {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    grid-column: 1 / -1;
-  }
-
-  &__flame-icon {
-    width: 30px;
-    top: -10px;
-    left: -5px;
-    position: absolute;
-  }
-
-  &__stars-icon {
-    width: 70px;
-    position: absolute;
-    top: -28px;
-    left: -27px;
-  }
-
-  &__icon-wrapper {
-    width: 16px;
-    height: 16px;
-    position: relative;
-  }
-
-  &__title-icon {
-    width: 24px;
-    height: 24px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__title-flame-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-  }
-
-  &__title {
-    display: flex;
-    gap: globals.$spacing-unit;
-    padding: 0 calc(globals.$spacing-unit * 3);
-  }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: calc(globals.$spacing-unit * 2);
-    transition: all ease 0.2s;
-    padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
-
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: 1250px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    @media (min-width: 1600px) {
-      grid-template-columns: repeat(4, 1fr);
     }
   }
 }

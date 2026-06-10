@@ -1,0 +1,407 @@
+@use "../../scss/globals.scss";
+
+@keyframes rowFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-row {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  padding: 0 calc(globals.$spacing-unit * 3);
+
+  /* `contain: layout paint` — restored after windowing landed. The
+     earlier revert to `layout` only was triggered by 40-rows-mounted
+     compositor overload: each `contain: paint` row promoted to its
+     own GPU layer, and 40 layers ate Layerize budget. Now that the
+     bi-directional rowInView observer caps mounted rows to ~6–8
+     (those within ~1.5 viewports of the visible area), paint
+     isolation gives the per-row benefit without the layer-count
+     blowup: scrolling row A's horizontal carousel no longer
+     invalidates paint regions on row B (relevant when classics rows
+     carry the `filter: blur(16px)` backdrop, which would otherwise
+     repaint across sibling row areas on any horizontal drag). */
+  contain: layout paint;
+
+  /* Skip rendering work (layout + paint) for rows the compositor
+     can't see. Complements the rowInView observer: that swaps cards
+     for skeletons ~2400px out, this tells Chromium not to paint even
+     those skeletons until the row nears the screen.
+
+     The intrinsic-size MUST match the row's real rendered height per
+     card variant, otherwise every row that first-renders during a
+     scroll snaps from the placeholder to its true height and the
+     scrollbar jitters. Heights below = header (~36) + gap (8) +
+     scroll (card height + 16px shadow padding):
+       horizontal       36 + 8 + (238 + 16) = 298
+       recently-played  36 + 8 + (272 + 16) = 332
+       vertical         36 + 8 + (381 + 16) = 441
+     `auto` keeps the browser's remembered real size once a row has
+     rendered, so these are only the pre-first-render estimates. When
+     the estimate equals the real height, toggling content-visibility
+     causes zero layout shift. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 298px;
+
+  &--vertical {
+    contain-intrinsic-size: auto 441px;
+  }
+
+  &--recently-played {
+    contain-intrinsic-size: auto 332px;
+  }
+
+  /* Row-to-row spacing. Owned by the row itself (NOT by a parent
+     `gap` on `.home__content`) so every row carries the SAME
+     explicit bottom buffer regardless of card variant. The 16px
+     padding-bottom inside `__scroll` (shadow bleed) used to combine
+     with the parent gap and produce subtly different perceived
+     spacing per row when card heights / shadow profiles varied.
+     This explicit margin keeps the inter-row gap constant. */
+  margin-bottom: calc(globals.$spacing-unit * 5);
+
+  /* The last row in the list shouldn't add trailing space — the
+     home content's own `padding-bottom` already provides the bottom
+     breathing room before the back-to-top button. */
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+
+  /* Invisible until the timeout fires */
+  opacity: 0;
+
+  &--visible {
+    /* animation-delay is injected via inline style */
+    animation: rowFadeUp 0.4s ease both;
+  }
+
+  /* Bypass the entrance fade entirely — used by Home on every remount
+     after the first (Library → Home roundtrips). Sets opacity to 1
+     directly so the row is visible from the first paint with no
+     animation cost. Must override `opacity: 0` above so the row paints
+     immediately even before its setTimeout fires. */
+  &--instant {
+    opacity: 1;
+    animation: none;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    /* Title is now the only header element — left-align it so the
+       chevron + title read as a single clickable lane. */
+    justify-content: flex-start;
+    /* Fixed header height so every row is exactly as tall as the
+       `contain-intrinsic-size` reserved for it (header 36 + gap 8 +
+       card + 16px shadow pad). Clickable titles are ~34px and plain
+       headings ~22px; without this the per-row height varied by up
+       to ~14px, so rows first-rendering during a fast scroll snapped
+       from their estimate to their real height and the scrollbar
+       jumped. align-items: center keeps shorter titles vertically
+       centred in the 36px lane. */
+    min-height: 36px;
+  }
+
+  /* Title — when not clickable, just a plain heading. When clickable
+     (the row's caller supplied onSeeAll, or the row uses it as a
+     reshuffle trigger like Picks for you), it becomes a button that
+     keeps the affordance icon faintly visible at all times so the
+     user knows the title is interactive without having to discover
+     it through hover. Hover then amplifies that signal (icon goes
+     full opacity, slides; text colour brightens; subtle pill bg). */
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: globals.$muted-color;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  &__title--clickable {
+    /* Reset the button look. At rest the title reads visually
+       identical to a plain (non-clickable) heading — same colour,
+       same weight, no underline. The ONLY rest-state hint is the
+       always-visible affordance chevron next to the text (see
+       .home-row__title-chevron below). On hover, a subtle pill
+       background fades in to confirm the click target.
+
+       `line-height: 28px` fixes the inline-flex box height so the
+       hover pill is the SAME size on every clickable row regardless
+       of whether the title carries an icon or just text. Combined
+       with the smaller personalized-title icon (24px, see
+       personalized-title.scss) the icon fits comfortably inside the
+       28-px line-box and rows align visually.
+
+       Asymmetric vertical padding (2px top / 6px bottom) shifts the
+       pill slightly downward relative to the text, so the highlight
+       reads as anchored at the row baseline rather than balanced
+       above-and-below the glyphs — matches the design feedback that
+       the previous symmetric pill looked too centered.
+
+       `border-radius: 3px` keeps the corners crisper than the prior
+       6px — softer than sharp corners, but tighter than the rounded
+       pill look. */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* Asymmetric padding — extra room on the right for the
+       affordance chevron's translateX(2px) hover-slide so the icon
+       still lives inside the highlight pill. Right + bottom dialled
+       back from the previous (14 / 6) to (10 / 4) per user feedback
+       that the pill felt slightly too large on those sides. */
+    padding: 2px 10px 4px 6px;
+    margin: -2px -10px -4px -6px;
+    line-height: 28px;
+    background: transparent;
+    border: none;
+    /* Softer corners — small uptick from 3px. The previous value
+       read as a sharp tile rather than a hover pill; 5px gives a
+       gentle round without going full-pill. */
+    border-radius: 5px;
+    cursor: pointer;
+    color: inherit;
+    text-align: left;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+
+      .home-row__title-chevron {
+        opacity: 1;
+        transform: translateX(2px);
+      }
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.25);
+      outline-offset: 2px;
+    }
+  }
+
+  &__title-text {
+    /* Inherits font-size / weight / color from .home-row__title. */
+  }
+
+  &__title-chevron {
+    display: inline-flex;
+    align-items: center;
+    color: globals.$body-color;
+    /* Baseline opacity — keeps the chevron faintly visible at rest
+       so the user spots the affordance without hovering. Boosts to
+       1 on hover via .home-row__title--clickable:hover. */
+    opacity: 0.5;
+    transform: translateX(0);
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  /* Refresh affordance — used by "Picks for you" so the title click
+     telegraphs re-roll rather than go-elsewhere. The icon spins one
+     full 360° turn on every click via a one-shot keyframe animation.
+     Previous implementation used `:active` (mouse-held) which reset
+     the rotation as soon as the user released the click — felt
+     broken if they tapped quickly. Now the JS handler in home-row.tsx
+     toggles the `.spinning` modifier, the animation runs to
+     completion, then the modifier is cleared so the next click can
+     re-trigger it. */
+  &__title-chevron--refresh {
+    transform: rotate(0deg);
+    transition: opacity 0.15s ease;
+  }
+
+  &__title-chevron--refresh.home-row__title-chevron--spinning {
+    animation: titleRefreshSpin 0.5s ease;
+  }
+
+  /* Viewport wraps the scroll container so the overlay arrows have a
+     positioning context independent of the row header above. */
+  &__viewport {
+    position: relative;
+  }
+
+  &__scroll {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    overflow-x: auto;
+    /* Force-block any vertical scroll capability on this container.
+       Per the CSS overflow spec, declaring `overflow-x: auto` quietly
+       promotes `overflow-y` to a computed `auto` — which means
+       Chromium can swallow a vertical wheel event here instead of
+       bubbling it up to the page scroller. The taller recently-
+       played card (272px) gave the wheel just enough room to land
+       inside the carousel and stall the page scroll until the cursor
+       moved off the card. `clip` is the modern equivalent of `hidden`
+       that doesn't establish a scroll container OR force a stacking
+       context — vertical wheel now ALWAYS bubbles up at native speed
+       (no JS forwarding, no doubled deltas). */
+    overflow-y: clip;
+    /* Box-shadows on cards extend ~16px below their box. Without
+       this padding, `overflow-y: clip` cuts them off and rows look
+       flat. Padding lives INSIDE the scroll area so it doesn't
+       enlarge the row's outer rhythm. */
+    padding-bottom: 16px;
+    cursor: grab;
+    user-select: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    /* Drag-active state — toggled imperatively by the mousedown /
+       stopDrag handlers in home-row.tsx, NOT React state. The
+       initial burst of "drag feels laggy" comes from the browser
+       firing mouseenter/mouseleave + :hover style recalc on every
+       card the cursor crosses during the first few frames of drag.
+       Even with `transition: none`, the hover RECALC alone is
+       expensive when multiplied by 16 cards × multiple sub-elements.
+       `pointer-events: none` on the immediate card children stops
+       the browser from hit-testing them entirely while dragging —
+       no hover state activates, no per-card style recalc, no
+       repaint. The cursor (`grabbing`) stays correct because it's
+       set on this `.home-row__scroll` parent which keeps its own
+       pointer-events. Drag handlers also live on this parent, so
+       mousemove/mouseup still flow through.
+
+       Earlier `pointer-events: none` attempt felt unresponsive
+       because it was combined with rAF batching that added a
+       frame of input latency — without the rAF, the pointer
+       suppression is purely a paint optimisation with no UX
+       downside (user can't click cards while dragging, which is
+       what they intuitively expect anyway). */
+    &--dragging > * {
+      pointer-events: none;
+    }
+  }
+
+  /* Overlay arrows — compact vertical pill big enough for just the
+     chevron icon plus a touch of padding. Faded in only while the
+     cursor sits in the matching half of the viewport (see the 50/50
+     split in home-row.tsx). Centered vertically against the
+     viewport so they sit at the row's midline regardless of card
+     height. */
+  &__overlay-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 56px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    /* Heavier opaque background (was rgba 0.72 with backdrop-filter
+       blur). backdrop-filter creates a GPU compositor layer per
+       overlay arrow — with 30 rows × 2 arrows each, that's 60
+       extra layers contributing to Layerize cost during scroll/
+       drag. Solid colour gives the same dark-pill chrome with no
+       per-arrow layer promotion. */
+    background-color: rgba(20, 20, 20, 0.92);
+    color: globals.$muted-color;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.18s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+
+    &--left {
+      left: 8px;
+    }
+
+    &--right {
+      right: 8px;
+    }
+
+    &--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.88);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    &:active {
+      transform: translateY(-50%) scale(0.94);
+      opacity: globals.$active-opacity;
+    }
+  }
+
+  /* Empty placeholder used while a row is off-screen — preserves the
+     row's height so the scroll container's total height stays stable. */
+  &__shell {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  /* Skeleton sizes must match the post-1.3× card dimensions
+     (home-game-card.scss + home-game-card-vertical.scss). Mismatch
+     causes a jarring layout shift when the cards mount on top of
+     placeholders that are smaller than the real cards. */
+  &__skeleton {
+    min-width: 507px;
+    width: 507px;
+    height: 238px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  &__skeleton--vertical {
+    min-width: 286px;
+    width: 286px;
+    height: 381px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Sized to match the recently-played card dimensions in
+     home-recently-played-card.scss (580×272). Keep these in lockstep so
+     skeleton placeholders don't pop on mount. */
+  &__skeleton--recently-played {
+    min-width: 580px;
+    width: 580px;
+    height: 272px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+}
+
+/* One-shot spin animation for the Picks-for-you refresh chevron.
+   Lives outside `.home-row` so the keyframes are reusable and the
+   SCSS nesting stays shallow. The animation runs to completion
+   once per `.home-row__title-chevron--spinning` class application;
+   the JS handler in home-row.tsx removes the class on `animationend`
+   so the next click can re-trigger it. */
+@keyframes titleRefreshSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

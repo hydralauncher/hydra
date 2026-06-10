@@ -38,6 +38,7 @@ export function SettingsBehavior() {
     hideToTrayOnGameStart: false,
     enableNewDownloadOptionsBadges: true,
     createStartMenuShortcut: true,
+    disableHomeSlideAnimations: false,
   });
 
   const { t } = useTranslation("settings");
@@ -87,6 +88,8 @@ export function SettingsBehavior() {
           userPreferences.enableNewDownloadOptionsBadges ?? true,
         createStartMenuShortcut:
           userPreferences.createStartMenuShortcut ?? true,
+        disableHomeSlideAnimations:
+          userPreferences.disableHomeSlideAnimations ?? false,
       });
 
       setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
@@ -240,6 +243,16 @@ export function SettingsBehavior() {
         checked={form.autoplayGameTrailers}
         onChange={() =>
           handleChange({ autoplayGameTrailers: !form.autoplayGameTrailers })
+        }
+      />
+
+      <CheckboxField
+        label={t("disable_home_slide_animations")}
+        checked={form.disableHomeSlideAnimations}
+        onChange={() =>
+          handleChange({
+            disableHomeSlideAnimations: !form.disableHomeSlideAnimations,
+          })
         }
       />
 
