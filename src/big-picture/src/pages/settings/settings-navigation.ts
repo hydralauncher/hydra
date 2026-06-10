@@ -70,6 +70,12 @@ export const EMULATION_DETAIL_REDETECT_BUTTON_ID =
 export const EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID =
   "emulation-detail-add-folder";
 export const EMULATION_DETAIL_RESCAN_BUTTON_ID = "emulation-detail-rescan";
+export const EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID =
+  "emulation-detail-memory-cards-pick";
+export const EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID =
+  "emulation-detail-memory-cards-detect";
+export const EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID =
+  "emulation-detail-cloud-refresh";
 
 export const BEHAVIOR_ITEM_FOCUS_IDS = {
   preferQuitInsteadOfHiding: "behavior-prefer-quit-instead-of-hiding",
@@ -183,4 +189,32 @@ export function getEmulationRomFolderToggleFocusId(folderId: string) {
 
 export function getEmulationRomFolderRemoveFocusId(folderId: string) {
   return `emulation-rom-folder-remove-${folderId}`;
+}
+
+function sanitizeEmulationFocusToken(value: string) {
+  return value.replaceAll(/[^a-z0-9_-]/gi, "-").toLowerCase();
+}
+
+export function getEmulationMemcardGroupCollapseFocusId(cardFilePath: string) {
+  return `emulation-memcard-group-${sanitizeEmulationFocusToken(cardFilePath)}`;
+}
+
+export function getEmulationMemcardBackupAllFocusId(cardFilePath: string) {
+  return `emulation-memcard-backup-all-${sanitizeEmulationFocusToken(cardFilePath)}`;
+}
+
+export function getEmulationMemcardRemoveCardFocusId(cardFilePath: string) {
+  return `emulation-memcard-remove-card-${sanitizeEmulationFocusToken(cardFilePath)}`;
+}
+
+export function getEmulationMemcardMenuFocusId(saveKey: string) {
+  return `emulation-memcard-menu-${sanitizeEmulationFocusToken(saveKey)}`;
+}
+
+export function getEmulationCloudMenuFocusId(saveId: string) {
+  return `emulation-cloud-menu-${sanitizeEmulationFocusToken(saveId)}`;
+}
+
+export function getEmulationCloudRestoreTargetFocusId(cardFilePath: string) {
+  return `emulation-cloud-restore-target-${sanitizeEmulationFocusToken(cardFilePath)}`;
 }

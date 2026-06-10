@@ -37,8 +37,13 @@ import {
   useNavigation,
   useUserDetails,
 } from "../../../hooks";
-import { EMULATION_DETAIL_CLOUD_SAVES_REGION_ID } from "../settings-navigation";
-import { SETTINGS_TOAST_OPTIONS, basename, sanitizeFocusToken } from "./shared";
+import {
+  EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID,
+  EMULATION_DETAIL_CLOUD_SAVES_REGION_ID,
+  getEmulationCloudMenuFocusId,
+  getEmulationCloudRestoreTargetFocusId,
+} from "../settings-navigation";
+import { SETTINGS_TOAST_OPTIONS, basename } from "./shared";
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
@@ -46,6 +51,7 @@ import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png"
 interface CloudSavesSectionProps {
   config: EmulatorConfig;
   refreshKey: number;
+  upTargetId: string;
 }
 
 interface RestoreModalProps {
@@ -129,7 +135,7 @@ function RestoreModal({
     const frameId = globalThis.window.requestAnimationFrame(() => {
       setFocus(
         selectedTarget
-          ? `emulation-cloud-restore-target-${sanitizeFocusToken(selectedTarget)}`
+          ? getEmulationCloudRestoreTargetFocusId(selectedTarget)
           : RESTORE_MODAL_PICK_BUTTON_ID
       );
     });
@@ -213,7 +219,9 @@ function RestoreModal({
             </div>
           ) : (
             targets.map((target) => {
-              const targetId = `emulation-cloud-restore-target-${sanitizeFocusToken(target.cardFilePath)}`;
+              const targetId = getEmulationCloudRestoreTargetFocusId(
+                target.cardFilePath
+              );
               const isSelected = selectedTarget === target.cardFilePath;
 
               return (
@@ -356,6 +364,7 @@ function RenameModal({ save, onClose, onRenamed }: Readonly<RenameModalProps>) {
 export function CloudSavesSection({
   config,
   refreshKey,
+  upTargetId,
 }: Readonly<CloudSavesSectionProps>) {
   const { t } = useTranslation("settings");
   const { hasActiveSubscription } = useUserDetails();
@@ -503,6 +512,8 @@ export function CloudSavesSection({
     return null;
   }
 
+  const firstSaveMenuId = getEmulationCloudMenuFocusId(saves[0]!.id);
+
   return (
     <>
       <VerticalFocusGroup
@@ -514,8 +525,15 @@ export function CloudSavesSection({
             <h3>{t("cloud_saves_section_title")}</h3>
             <p>{t("cloud_saves_section_description")}</p>
           </div>
-          <div className="emulator-detail__section-actions">
+          <HorizontalFocusGroup className="emulator-detail__section-actions">
             <Button
+              focusId={EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: { type: "block" },
+                right: { type: "block" },
+                up: { type: "item", itemId: upTargetId },
+                down: { type: "item", itemId: firstSaveMenuId },
+              }}
               variant="secondary"
               disabled={isRefreshing}
               icon={
@@ -534,7 +552,7 @@ export function CloudSavesSection({
             >
               {t("cloud_refresh")}
             </Button>
-          </div>
+          </HorizontalFocusGroup>
         </header>
 
         <div className="emulator-detail__cloud-stage" ref={stageRef}>
@@ -563,10 +581,11 @@ export function CloudSavesSection({
           </svg>
 
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
-            {saves.map((save) => {
+            {saves.map((save, index) => {
               const saveName = save.label ?? save.fileName;
-              const saveToken = sanitizeFocusToken(save.id);
-              const menuId = `emulation-cloud-menu-${saveToken}`;
+              const menuId = getEmulationCloudMenuFocusId(save.id);
+              const previousSave = saves[index - 1];
+              const nextSave = saves[index + 1];
 
               return (
                 <div key={save.id} className="emulator-detail__cloud-card">
@@ -577,7 +596,34 @@ export function CloudSavesSection({
                       alt=""
                     />
 
-                    <FocusItem id={menuId} asChild>
+                    <FocusItem
+                      id={menuId}
+                      navigationOverrides={{
+                        left: previousSave
+                          ? {
+                              type: "item",
+                              itemId: getEmulationCloudMenuFocusId(
+                                previousSave.id
+                              ),
+                            }
+                          : {
+                              type: "block",
+                            },
+                        right: nextSave
+                          ? {
+                              type: "item",
+                              itemId: getEmulationCloudMenuFocusId(nextSave.id),
+                            }
+                          : {
+                              type: "block",
+                            },
+                        up: {
+                          type: "item",
+                          itemId: EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID,
+                        },
+                      }}
+                      asChild
+                    >
                       <button
                         type="button"
                         className="emulator-detail__cloud-menu"
