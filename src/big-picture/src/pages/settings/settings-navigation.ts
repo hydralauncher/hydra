@@ -43,6 +43,34 @@ export const ACCOUNT_PRIVACY_UPDATE_PASSWORD_BUTTON_ID =
   "account-privacy-update-password";
 export const ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID =
   "account-privacy-hydra-cloud";
+export const EMULATION_OVERVIEW_REGION_ID = "emulation-overview-region";
+export const EMULATION_DETAIL_REGION_ID = "emulation-detail-region";
+export const EMULATION_DETAIL_EXECUTABLE_REGION_ID =
+  "emulation-detail-executable-region";
+export const EMULATION_DETAIL_ROM_FOLDERS_REGION_ID =
+  "emulation-detail-rom-folders-region";
+export const EMULATION_DETAIL_MEMORY_CARDS_REGION_ID =
+  "emulation-detail-memory-cards-region";
+export const EMULATION_DETAIL_CLOUD_SAVES_REGION_ID =
+  "emulation-detail-cloud-saves-region";
+export const EMULATION_DETAIL_LIBRARY_REGION_ID =
+  "emulation-detail-library-region";
+export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
+  ps1: "emulation-overview-ps1-card",
+  ps2: "emulation-overview-ps2-card",
+  ps3: "emulation-overview-ps3-card",
+} as const;
+export const EMULATION_DETAIL_BACK_BUTTON_ID =
+  "emulation-detail-back-button";
+export const EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID =
+  "emulation-detail-remove-emulator";
+export const EMULATION_DETAIL_EXECUTABLE_BUTTON_ID =
+  "emulation-detail-executable-button";
+export const EMULATION_DETAIL_REDETECT_BUTTON_ID =
+  "emulation-detail-redetect-button";
+export const EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID =
+  "emulation-detail-add-folder";
+export const EMULATION_DETAIL_RESCAN_BUTTON_ID = "emulation-detail-rescan";
 
 export const BEHAVIOR_ITEM_FOCUS_IDS = {
   preferQuitInsteadOfHiding: "behavior-prefer-quit-instead-of-hiding",
@@ -148,4 +176,12 @@ export function getCompatibilityProtonOptionFocusId(path: string) {
 
 export function getAccountPrivacyBlockedUserButtonFocusId(userId: string) {
   return `account-privacy-blocked-user-${userId}`;
+}
+
+export function getEmulationRomFolderToggleFocusId(folderId: string) {
+  return `emulation-rom-folder-toggle-${folderId}`;
+}
+
+export function getEmulationRomFolderRemoveFocusId(folderId: string) {
+  return `emulation-rom-folder-remove-${folderId}`;
 }

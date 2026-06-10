@@ -9,6 +9,7 @@ import { AccountPrivacySettingsSection } from "./account-privacy";
 import { CompatibilitySettingsSection } from "./compatibility";
 import { ContentSettingsSection } from "./content";
 import { DownloadsSettingsSection } from "./downloads";
+import { EmulationSettingsSection } from "./emulation";
 import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
@@ -21,6 +22,7 @@ import {
   CONTENT_ITEM_FOCUS_IDS,
   DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS,
   DOWNLOAD_DIRECTORIES_DEFAULT_SELECT_ID,
+  EMULATION_OVERVIEW_CARD_FOCUS_IDS,
   getIntegrationProviderCheckboxFocusId,
   NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS,
 } from "./settings-navigation";
@@ -32,6 +34,7 @@ const ALL_SETTINGS_TABS = [
   { id: "downloads", label: "Downloads" },
   { id: "notifications", label: "Notifications" },
   { id: "content", label: "Content" },
+  { id: "emulation", label: "Emulation" },
   { id: "integrations", label: "Integrations" },
   { id: "compatibility", label: "Compatibility" },
   { id: "account-privacy", label: "Account and Privacy" },
@@ -64,6 +67,7 @@ const SETTINGS_TAB_CONTENT: Record<
   downloads: DownloadsSettingsSection,
   notifications: NotificationsSettingsSection,
   content: ContentSettingsSection,
+  emulation: EmulationSettingsSection,
   integrations: IntegrationsSettingsSection,
   compatibility: CompatibilitySettingsSection,
   "account-privacy": AccountPrivacySettingsSection,
@@ -216,6 +220,8 @@ export default function Settings() {
         return NOTIFICATIONS_LIBRARY_ITEM_FOCUS_IDS.downloadNotificationsEnabled;
       case "content":
         return CONTENT_ITEM_FOCUS_IDS.autoplayGameTrailers;
+      case "emulation":
+        return EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps1;
       case "integrations":
         return getIntegrationProviderCheckboxFocusId("real-debrid");
       case "compatibility":
