@@ -1,5 +1,7 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
+import { isGameCompleted } from "@renderer/helpers";
+import { ProgressBar } from "@renderer/components";
 import { formatBytes } from "@shared";
 import {
   ClockIcon,
@@ -126,15 +128,9 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
   }, [heroIndex, heroSources]);
 
-  const isCompleted =
-    (game.achievementCount ?? 0) > 0 &&
-    unlockedAchievementsCount >= (game.achievementCount ?? 1);
-
-  const achievementBarStyle = useMemo(
-    () => ({
-      width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
-    }),
-    [unlockedAchievementsCount, game.achievementCount]
+  const isCompleted = useMemo(
+    () => isGameCompleted(game.achievementCount, unlockedAchievementsCount),
+    [game.achievementCount, unlockedAchievementsCount]
   );
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
@@ -218,13 +214,16 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                     {unlockedAchievementsCount} / {game.achievementCount ?? 0}
                   </span>
                 </div>
-                <span className={`library-game-card-large__achievement-percentage${isCompleted ? " library-game-card-large__achievement-percentage--completed" : ""}`}>
+                <span
+                  className={`library-game-card-large__achievement-percentage${isCompleted ? " library-game-card-large__achievement-percentage--completed" : ""}`}
+                >
                   {isCompleted ? (
                     <TrophyIcon size={14} />
                   ) : (
                     <>
                       {Math.round(
-                        (unlockedAchievementsCount / (game.achievementCount ?? 1)) *
+                        (unlockedAchievementsCount /
+                          (game.achievementCount ?? 1)) *
                           100
                       )}
                       %
@@ -232,17 +231,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                   )}
                 </span>
               </div>
-              <div className="library-game-card-large__achievement-progress">
-                <div
-                  className={`library-game-card-large__achievement-bar${isCompleted ? " library-game-card-large__achievement-bar--platinum" : ""}`}
-                  role="progressbar"
-                  aria-label={`${game.title} achievements`}
-                  aria-valuenow={unlockedAchievementsCount}
-                  aria-valuemin={0}
-                  aria-valuemax={game.achievementCount ?? 1}
-                  style={achievementBarStyle}
-                />
-              </div>
+              <ProgressBar
+                now={unlockedAchievementsCount}
+                max={game.achievementCount ?? 1}
+                label={`${game.title} achievements`}
+                completed={isCompleted}
+                trackClassName="library-game-card-large__achievement-progress"
+                barClassName="library-game-card-large__achievement-bar"
+              />
             </div>
           )}
         </div>

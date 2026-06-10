@@ -170,3 +170,13 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
 export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
 };
+
+export const isGameCompleted = (
+  achievementCount?: number | null,
+  unlockedAchievementCount?: number | null
+): boolean => {
+  return (
+    (achievementCount ?? 0) > 0 &&
+    (unlockedAchievementCount ?? 0) >= (achievementCount ?? 1)
+  );
+};

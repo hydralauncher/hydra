@@ -1,6 +1,8 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useEffect, useState } from "react";
+import { isGameCompleted } from "@renderer/helpers";
+import { ProgressBar } from "@renderer/components";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -31,9 +33,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const isCompleted =
-    (game.achievementCount ?? 0) > 0 &&
-    (game.unlockedAchievementCount ?? 0) >= (game.achievementCount ?? 1);
+  const isCompleted = useMemo(
+    () => isGameCompleted(game.achievementCount, game.unlockedAchievementCount),
+    [game.achievementCount, game.unlockedAchievementCount]
+  );
 
   const sources = [
     game.customIconUrl, // Level 0
@@ -140,7 +143,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                   {game.achievementCount ?? 0}
                 </span>
               </div>
-              <span className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}>
+              <span
+                className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}
+              >
                 {isCompleted ? (
                   <TrophyIcon size={13} />
                 ) : (
@@ -155,19 +160,14 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 )}
               </span>
             </div>
-            <div className="library-game-card__achievement-progress">
-              <div
-                className={`library-game-card__achievement-bar${isCompleted ? " library-game-card__achievement-bar--platinum" : ""}`}
-                role="progressbar"
-                aria-label={`${game.title} achievements`}
-                aria-valuenow={game.unlockedAchievementCount ?? 0}
-                aria-valuemin={0}
-                aria-valuemax={game.achievementCount ?? 1}
-                style={{
-                  width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
-                }}
-              />
-            </div>
+            <ProgressBar
+              now={game.unlockedAchievementCount ?? 0}
+              max={game.achievementCount ?? 1}
+              label={`${game.title} achievements`}
+              completed={isCompleted}
+              trackClassName="library-game-card__achievement-progress"
+              barClassName="library-game-card__achievement-bar"
+            />
           </div>
         )}
       </div>

@@ -5,11 +5,12 @@ import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
+  isGameCompleted,
 } from "@renderer/helpers";
 import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
-import { Link } from "@renderer/components";
+import { Link, ProgressBar } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
 import { AchievementPanel } from "./achievement-panel";
@@ -80,9 +81,10 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
     );
   }
 
-  const isCompleted =
-    user.totalAchievementCount > 0 &&
-    user.unlockedAchievementCount >= user.totalAchievementCount;
+  const isCompleted = isGameCompleted(
+    user.totalAchievementCount,
+    user.unlockedAchievementCount
+  );
 
   return (
     <div className="achievements-content__user-summary">
@@ -91,37 +93,37 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
         <h1>{user.displayName}</h1>
         <div className="achievements-content__user-summary__container__stats">
           <div className="achievements-content__user-summary__container__stats__trophy-count">
-            {!isCompleted && (
-              <TrophyIcon size={13} />
-            )}
+            {!isCompleted && <TrophyIcon size={13} />}
             <span>
               {user.unlockedAchievementCount} / {user.totalAchievementCount}
             </span>
           </div>
 
-          <span className={`achievements-content__user-summary__container__stats__percentage${isCompleted ? " achievements-content__user-summary__container__stats__percentage--completed" : ""}`}>
+          <span
+            className={`achievements-content__user-summary__container__stats__percentage${isCompleted ? " achievements-content__user-summary__container__stats__percentage--completed" : ""}`}
+          >
             {isCompleted ? (
               <TrophyIcon size={13} />
             ) : (
               formatDownloadProgress(
-                user.totalAchievementCount > 0 ? user.unlockedAchievementCount / user.totalAchievementCount : 0
+                user.totalAchievementCount > 0
+                  ? user.unlockedAchievementCount / user.totalAchievementCount
+                  : 0
               )
             )}
           </span>
         </div>
-        <div className="achievements-content__user-summary__container__stats__progress-track">
-          <div
-            className={`achievements-content__user-summary__container__stats__progress-bar${isCompleted ? " achievements-content__user-summary__container__stats__progress-bar--platinum" : ""}`}
-            role="progressbar"
-            aria-label={t("achievement_progress", { unlockedCount: user.unlockedAchievementCount, totalCount: user.totalAchievementCount })}
-            aria-valuenow={user.unlockedAchievementCount}
-            aria-valuemin={0}
-            aria-valuemax={user.totalAchievementCount}
-            style={{
-              width: `${user.totalAchievementCount > 0 ? (user.unlockedAchievementCount / user.totalAchievementCount) * 100 : 0}%`,
-            }}
-          />
-        </div>
+        <ProgressBar
+          now={user.unlockedAchievementCount}
+          max={user.totalAchievementCount}
+          label={t("achievement_progress", {
+            unlockedCount: user.unlockedAchievementCount,
+            totalCount: user.totalAchievementCount,
+          })}
+          completed={isCompleted}
+          trackClassName="achievements-content__user-summary__container__stats__progress-track"
+          barClassName="achievements-content__user-summary__container__stats__progress-bar"
+        />
       </div>
     </div>
   );

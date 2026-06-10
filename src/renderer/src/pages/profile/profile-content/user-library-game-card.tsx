@@ -7,6 +7,7 @@ import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
+  isGameCompleted,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
 import {
@@ -20,6 +21,7 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
+import { ProgressBar } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -47,9 +49,10 @@ export function UserLibraryGameCard({
     setImageError(false);
   }, [game.coverImageUrl]);
 
-  const isCompleted =
-    (game.achievementCount ?? 0) > 0 &&
-    (game.unlockedAchievementCount ?? 0) >= (game.achievementCount ?? 1);
+  const isCompleted = isGameCompleted(
+    game.achievementCount,
+    game.unlockedAchievementCount
+  );
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -196,9 +199,7 @@ export function UserLibraryGameCard({
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        {!isCompleted && (
-                          <TrophyIcon size={13} />
-                        )}
+                        {!isCompleted && <TrophyIcon size={13} />}
                         <span>
                           {game.unlockedAchievementCount} /{" "}
                           {game.achievementCount}
@@ -220,7 +221,9 @@ export function UserLibraryGameCard({
                       )}
                     </div>
 
-                    <span className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}>
+                    <span
+                      className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}
+                    >
                       {isCompleted ? (
                         <TrophyIcon size={13} />
                       ) : (
@@ -232,17 +235,14 @@ export function UserLibraryGameCard({
                     </span>
                   </div>
 
-                  <div className="user-library-game__achievements-progress-track">
-                    <div
-                      className={`user-library-game__achievements-progress${isCompleted ? " user-library-game__achievements-progress--platinum" : ""}`}
-                      role="progressbar"
-                      aria-label={`${game.title} achievements`}
-                      aria-valuenow={game.unlockedAchievementCount ?? 0}
-                      aria-valuemin={0}
-                      aria-valuemax={game.achievementCount ?? 1}
-                      style={{ width: `${(game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1) * 100}%` }}
-                    />
-                  </div>
+                  <ProgressBar
+                    now={game.unlockedAchievementCount ?? 0}
+                    max={game.achievementCount ?? 1}
+                    label={`${game.title} achievements`}
+                    completed={isCompleted}
+                    trackClassName="user-library-game__achievements-progress-track"
+                    barClassName="user-library-game__achievements-progress"
+                  />
                 </div>
               )}
           </div>
