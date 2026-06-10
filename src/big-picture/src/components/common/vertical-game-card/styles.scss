@@ -24,14 +24,14 @@
     overflow: hidden;
     background-color: var(--surface);
 
-    img,
+    &-image,
     &-placeholder {
       width: 100%;
       height: 100%;
       display: block;
     }
 
-    img {
+    &-image {
       object-fit: cover;
     }
 
@@ -67,6 +67,54 @@
         rgba(255, 255, 255, 0.02) 100%
       ),
       var(--secondary);
+  }
+
+  &__cover-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  &__classics-cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0a;
+    z-index: 0;
+  }
+
+  &__classics-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(16px) saturate(1.1);
+    transform: scale(1.25);
+    opacity: 0.65;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &__classics-image {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    z-index: 1;
+    max-width: 80%;
+    max-height: 80%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 11px 7px rgba(0, 0, 0, 0.05),
+      0 5px 5px rgba(0, 0, 0, 0.09),
+      0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   &__body {

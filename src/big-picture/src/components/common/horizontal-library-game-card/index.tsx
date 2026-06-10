@@ -12,6 +12,7 @@ import type {
 export interface HorizontalLibraryGameCardProps {
   coverImageUrl?: string | null;
   logoImageUrl?: string | null;
+  coverOverlay?: ReactNode;
   gameTitle: string;
   subtitle: string;
   progressLabel?: string;
@@ -34,6 +35,7 @@ function clampProgress(value: number) {
 export function HorizontalLibraryGameCard({
   coverImageUrl,
   logoImageUrl,
+  coverOverlay,
   gameTitle,
   subtitle,
   progressLabel,
@@ -110,6 +112,12 @@ export function HorizontalLibraryGameCard({
             </span>
           )}
         </div>
+
+        {coverOverlay ? (
+          <div className="horizontal-library-game-card__cover-overlay">
+            {coverOverlay}
+          </div>
+        ) : null}
       </div>
 
       <div className="horizontal-library-game-card__body">
