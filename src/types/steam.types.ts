@@ -3,6 +3,11 @@ export interface SteamGenre {
   name: string;
 }
 
+export interface SteamCategory {
+  id: number;
+  description: string;
+}
+
 export interface SteamScreenshot {
   id: number;
   path_thumbnail: string;
@@ -37,6 +42,8 @@ export interface SteamAppDetails {
   genres: SteamGenre[];
   movies?: SteamMovie[];
   supported_languages: string;
+  controller_support?: "full" | "partial";
+  categories?: SteamCategory[];
   screenshots?: SteamScreenshot[];
   pc_requirements: {
     minimum: string;

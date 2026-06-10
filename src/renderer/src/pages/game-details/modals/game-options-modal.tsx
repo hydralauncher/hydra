@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { formatBytes } from "@shared";
+import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -62,8 +62,6 @@ export function GameOptionsModal({
   onNavigateHome,
   initialCategory,
 }: Readonly<GameOptionsModalProps>) {
-  const MANGOHUD_SITE_URL = "https://mangohud.com";
-  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();

@@ -4,6 +4,7 @@ import {
   GearIcon,
   HouseIcon,
   MagnifyingGlassIcon,
+  PuzzlePieceIcon,
   SignOutIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -87,6 +88,12 @@ function SidebarRouter() {
         path: `${basePath}/settings`,
         icon: GearIcon,
       },
+      {
+        key: "componentLab",
+        label: "Component Lab",
+        path: `${basePath}/component-lab`,
+        icon: PuzzlePieceIcon,
+      },
     ] satisfies Array<{
       key: BigPictureSidebarRouteKey;
       label: string;
@@ -95,7 +102,7 @@ function SidebarRouter() {
     }>
   ).filter((route) => {
     if (import.meta.env.DEV) return true;
-    return route.key !== "catalogue";
+    return route.key !== "componentLab";
   });
 
   return (

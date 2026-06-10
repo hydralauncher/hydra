@@ -66,7 +66,7 @@ function UserProfileContent({
   const handleCopy = () => {
     if (isCopied) return;
     setIsCopied(true);
-    navigator.clipboard.writeText(friendCode).catch(() => {});
+    globalThis.window.electron.clipboard.writeText(friendCode).catch(() => {});
 
     globalThis.window.setTimeout(() => {
       setIsCopied(false);
