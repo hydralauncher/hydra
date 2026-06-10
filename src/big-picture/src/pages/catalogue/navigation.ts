@@ -6,9 +6,12 @@ export const CATALOGUE_ERROR_STATE_ID = "catalogue-error-state";
 export const CATALOGUE_FILTERS_BUTTON_ID = "catalogue-filters-button";
 export const CATALOGUE_SORT_SELECT_ID = "catalogue-sort-select";
 export const CATALOGUE_CLEAR_FILTERS_ID = "catalogue-clear-filters";
+export const CATALOGUE_HIDDEN_FILTERS_BUTTON_ID =
+  "catalogue-hidden-filters-button";
 export const CATALOGUE_MODE_MODERN_ID = "catalogue-mode-modern";
 export const CATALOGUE_MODE_CLASSICS_ID = "catalogue-mode-classics";
 const CATALOGUE_CARD_FOCUS_ID_PREFIX = "catalogue-card:";
+const CATALOGUE_FILTER_CHIP_FOCUS_ID_PREFIX = "catalogue-filter-chip:";
 
 export function getCatalogueCardFocusId(id: string) {
   return `${CATALOGUE_CARD_FOCUS_ID_PREFIX}${id}`;
@@ -30,5 +33,9 @@ export function getCatalogueActiveFilterChipFocusId(
   key: string,
   value: string | number
 ) {
-  return `catalogue-filter-chip:${key}:${value}`;
+  return `${CATALOGUE_FILTER_CHIP_FOCUS_ID_PREFIX}${key}:${value}`;
+}
+
+export function isCatalogueActiveFilterChipFocusId(id: string) {
+  return id.startsWith(CATALOGUE_FILTER_CHIP_FOCUS_ID_PREFIX);
 }

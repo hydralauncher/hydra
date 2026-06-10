@@ -24,6 +24,7 @@ export default function Catalogue() {
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
 
   const {
+    mode,
     filterTypes,
     values,
     updateSearchParams,
@@ -189,6 +190,7 @@ export default function Catalogue() {
 
           <div className="catalogue-content">
             <CatalogueGrid
+              mode={mode}
               search={search}
               pageSize={pageSize}
               hasNextPage={hasNextPage}
