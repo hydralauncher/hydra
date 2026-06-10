@@ -19,6 +19,7 @@ export function SelectField({
   theme = "primary",
   onChange,
   className,
+  disabled,
 }: Readonly<SelectProps>) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
@@ -34,12 +35,14 @@ export function SelectField({
       <div
         className={cn("select-field", `select-field--${theme}`, {
           "select-field--focused": isFocused,
+          "select-field--disabled": disabled,
         })}
       >
         <select
           id={id}
           value={value}
           className="select-field__option"
+          disabled={disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onChange={onChange}
