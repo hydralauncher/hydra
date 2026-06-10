@@ -7,6 +7,7 @@ import {
   DatanodesApi,
   MediafireApi,
   PixelDrainApi,
+  FuckingFastApi,
   VikingFileApi,
   RootzApi,
 } from "../hosters";
@@ -27,7 +28,6 @@ import { GameFilesManager } from "../game-files-manager";
 import { HydraDebridClient } from "./hydra-debrid";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
-import { BuzzheavierApi, FuckingFastApi } from "@main/services/hosters";
 import { JsHttpDownloader } from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import {
@@ -865,8 +865,6 @@ export class DownloadManager {
         return this.getPixelDrainDownloadOptions(download, resumingFilename);
       case Downloader.Datanodes:
         return this.getDatanodesDownloadOptions(download, resumingFilename);
-      case Downloader.Buzzheavier:
-        return this.getBuzzheavierDownloadOptions(download, resumingFilename);
       case Downloader.FuckingFast:
         return this.getFuckingFastDownloadOptions(download, resumingFilename);
       case Downloader.Mediafire:
@@ -1042,26 +1040,6 @@ export class DownloadManager {
     );
     return this.buildDownloadOptions(
       downloadUrl,
-      download.downloadPath,
-      filename
-    );
-  }
-
-  private static async getBuzzheavierDownloadOptions(
-    download: Download,
-    resumingFilename?: string
-  ) {
-    logger.log(
-      `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
-    );
-    const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-    const filename = this.resolveFilename(
-      resumingFilename,
-      download.uri,
-      directUrl
-    );
-    return this.buildDownloadOptions(
-      directUrl,
       download.downloadPath,
       filename
     );
@@ -1268,27 +1246,6 @@ export class DownloadManager {
           url: downloadUrl,
           save_path: download.downloadPath,
         };
-      }
-      case Downloader.Buzzheavier: {
-        logger.log(
-          `[DownloadManager] Processing Buzzheavier download for URI: ${download.uri}`
-        );
-        try {
-          const directUrl = await BuzzheavierApi.getDirectLink(download.uri);
-          logger.log(`[DownloadManager] Buzzheavier direct URL obtained`);
-          return this.createDownloadPayload(
-            directUrl,
-            download.uri,
-            downloadId,
-            download.downloadPath
-          );
-        } catch (error) {
-          logger.error(
-            `[DownloadManager] Error processing Buzzheavier download:`,
-            error
-          );
-          throw error;
-        }
       }
       case Downloader.FuckingFast: {
         logger.log(

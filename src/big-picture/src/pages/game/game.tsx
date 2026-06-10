@@ -1,9 +1,9 @@
 import { StarIcon } from "@phosphor-icons/react";
 import { formatNumber } from "@renderer/helpers";
-import type { GameShop } from "@types";
+import type { GameShop, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getItemFocusTarget } from "../../helpers";
+import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
 import {
   Typography,
   VerticalFocusGroup,
@@ -13,6 +13,7 @@ import {
 import { DownloadGameModal } from "../../components/modals";
 import {
   AchievementsBox,
+  ControllerSupportBox,
   GameReviews,
   Hero,
   HowLongToBeatBox,
@@ -23,6 +24,7 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import {
+  useBigPictureToast,
   useGameDetails,
   useHeaderTitle,
   useNavigationScreenActions,
@@ -40,6 +42,7 @@ import {
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
   GAME_SIDEBAR_ACHIEVEMENTS_ID,
+  GAME_SIDEBAR_CONTROLLER_SUPPORT_ID,
   GAME_SIDEBAR_HLTB_ID,
   GAME_SIDEBAR_LANGUAGES_ID,
   GAME_SIDEBAR_METADATA_ID,
@@ -263,6 +266,7 @@ function buildDescriptionSections(document: Document | null) {
 }
 
 export default function Game() {
+  const { showSuccessToast } = useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
@@ -341,6 +345,28 @@ export default function Game() {
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
+  const gameToastSource = useMemo<ShopAssets>(
+    () => ({
+      objectId: objectId ?? "",
+      shop: shop ?? "steam",
+      title: resolvedGameTitle,
+      iconUrl: shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? null,
+      libraryHeroImageUrl:
+        shopDetails?.assets?.libraryHeroImageUrl ??
+        game?.libraryHeroImageUrl ??
+        null,
+      libraryImageUrl:
+        shopDetails?.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
+      logoImageUrl:
+        shopDetails?.assets?.logoImageUrl ?? game?.logoImageUrl ?? null,
+      logoPosition:
+        shopDetails?.assets?.logoPosition ?? game?.logoPosition ?? null,
+      coverImageUrl:
+        shopDetails?.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
+      downloadSources: shopDetails?.assets?.downloadSources ?? [],
+    }),
+    [game, objectId, resolvedGameTitle, shop, shopDetails?.assets]
+  );
   const shouldShowProtonSection =
     Boolean(protonDBData) &&
     (import.meta.env.DEV || globalThis.window.electron?.platform === "linux");
@@ -492,16 +518,24 @@ export default function Game() {
       );
       await updateGame();
       globalThis.window.dispatchEvent(new Event("library-update"));
+
+      const { title, ...toastOptions } = await buildLibraryToastOptions(
+        gameToastSource,
+        "added"
+      );
+      showSuccessToast(title, toastOptions);
     } finally {
       setIsAddingToLibrary(false);
     }
   }, [
     canAddToLibrary,
     game,
+    gameToastSource,
     isAddingToLibrary,
     objectId,
     resolvedGameTitle,
     shop,
+    showSuccessToast,
     shopDetails,
     updateGame,
   ]);
@@ -1120,16 +1154,24 @@ export default function Game() {
                   />
                 )}
 
+                <ControllerSupportBox
+                  shop={shop}
+                  shopDetails={shopDetails}
+                  focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
+                  focusNavigationOrder={3}
+                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
+                />
+
                 <AchievementsBox
                   achievements={achievements ?? []}
                   focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
-                  focusNavigationOrder={3}
+                  focusNavigationOrder={4}
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
-                  navigationOrder={4}
+                  navigationOrder={5}
                   navigationOverrides={sidebarCarouselNavigationOverrides}
                   asChild
                 >
@@ -1173,14 +1215,14 @@ export default function Game() {
                 <RequirementsToPlay
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
-                  focusNavigationOrder={5}
+                  focusNavigationOrder={6}
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
                 <SupportedLanguages
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_LANGUAGES_ID}
-                  focusNavigationOrder={6}
+                  focusNavigationOrder={7}
                   focusNavigationOverrides={sidebarLanguagesNavigationOverrides}
                 />
               </div>
@@ -1195,8 +1237,17 @@ export default function Game() {
             objectId: objectId!,
             shop: shop!,
             title: shopDetails.assets?.title ?? game?.title ?? "Download Game",
+            iconUrl: shopDetails.assets?.iconUrl ?? game?.iconUrl ?? null,
             libraryHeroImageUrl:
-              shopDetails.assets?.libraryHeroImageUrl ?? null,
+              shopDetails.assets?.libraryHeroImageUrl ??
+              game?.libraryHeroImageUrl ??
+              null,
+            libraryImageUrl:
+              shopDetails.assets?.libraryImageUrl ??
+              game?.libraryImageUrl ??
+              null,
+            coverImageUrl:
+              shopDetails.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
           }}
         />
       </div>

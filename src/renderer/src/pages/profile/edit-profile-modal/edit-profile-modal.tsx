@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -18,6 +18,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 
 import { userProfileContext } from "@renderer/context";
+import { getProfileImageMetadata } from "../profile-image-metadata";
+import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import "./edit-profile-modal.scss";
 
 interface FormValues {
@@ -49,6 +51,10 @@ export function EditProfileModal(
   });
 
   const { getUserProfile } = useContext(userProfileContext);
+  const [profileImageToCrop, setProfileImageToCrop] = useState<string | null>(
+    null
+  );
+  const [cropIsAnimated, setCropIsAnimated] = useState(false);
 
   const { userDetails, fetchUserDetails, hasActiveSubscription } =
     useUserDetails();
@@ -86,32 +92,49 @@ export function EditProfileModal(
             control={control}
             name="profileImageUrl"
             render={({ field: { value, onChange } }) => {
+              const handleProfileImagePath = async (path: string) => {
+                const metadata = await getProfileImageMetadata(path);
+
+                if (metadata.isAnimated && hasActiveSubscription) {
+                  // Crop while preserving animation (handled in main/sharp).
+                  setCropIsAnimated(true);
+                  setProfileImageToCrop(path);
+                  return;
+                }
+
+                if (metadata.isAnimated && !hasActiveSubscription) {
+                  const { imagePath } = await window.electron
+                    .processProfileImage(path)
+                    .catch(() => {
+                      showErrorToast(t("image_process_failure"));
+                      return { imagePath: null };
+                    });
+
+                  if (imagePath) {
+                    setCropIsAnimated(false);
+                    setProfileImageToCrop(imagePath);
+                  }
+
+                  return;
+                }
+
+                setCropIsAnimated(false);
+                setProfileImageToCrop(path);
+              };
+
               const handleChangeProfileAvatar = async () => {
                 const { filePaths } = await window.electron.showOpenDialog({
                   properties: ["openFile"],
                   filters: [
                     {
                       name: "Image",
-                      extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+                      extensions: ["jpg", "jpeg", "png", "apng", "gif", "webp"],
                     },
                   ],
                 });
 
                 if (filePaths && filePaths.length > 0) {
-                  const path = filePaths[0];
-
-                  if (!hasActiveSubscription) {
-                    const { imagePath } = await window.electron
-                      .processProfileImage(path)
-                      .catch(() => {
-                        showErrorToast(t("image_process_failure"));
-                        return { imagePath: null };
-                      });
-
-                    onChange(imagePath);
-                  } else {
-                    onChange(path);
-                  }
+                  handleProfileImagePath(filePaths[0]);
                 }
               };
 
@@ -126,21 +149,36 @@ export function EditProfileModal(
               const imageUrl = getImageUrl();
 
               return (
-                <button
-                  type="button"
-                  className="edit-profile-modal__avatar-container"
-                  onClick={handleChangeProfileAvatar}
-                >
-                  <Avatar
-                    size={128}
-                    src={imageUrl}
-                    alt={userDetails?.displayName}
-                  />
+                <>
+                  <button
+                    type="button"
+                    className="edit-profile-modal__avatar-container"
+                    onClick={handleChangeProfileAvatar}
+                    aria-label={t("change_profile_picture")}
+                  >
+                    <Avatar
+                      size={128}
+                      src={imageUrl}
+                      alt={userDetails?.displayName}
+                    />
 
-                  <div className="edit-profile-modal__avatar-overlay">
-                    <DeviceCameraIcon size={38} />
-                  </div>
-                </button>
+                    <div className="edit-profile-modal__avatar-overlay">
+                      <DeviceCameraIcon size={38} />
+                    </div>
+                  </button>
+
+                  <ProfileImageCropModal
+                    visible={!!profileImageToCrop}
+                    imagePath={profileImageToCrop}
+                    variant="avatar"
+                    isAnimated={cropIsAnimated}
+                    onClose={() => setProfileImageToCrop(null)}
+                    onApply={(croppedImagePath) => {
+                      onChange(croppedImagePath);
+                      setProfileImageToCrop(null);
+                    }}
+                  />
+                </>
               );
             }}
           />

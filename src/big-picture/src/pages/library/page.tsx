@@ -7,8 +7,18 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
-import { useGameCollections, useLibrary, useNavigation } from "../../hooks";
+import {
+  buildLibraryToastOptions,
+  getBigPictureGameAchievementsPath,
+} from "../../helpers";
+import {
+  useBigPictureToast,
+  useGameCollections,
+  useLibrary,
+  useNavigation,
+} from "../../hooks";
 import {
   isBuiltinLibraryTab,
   type LibraryViewMode,
@@ -100,7 +110,9 @@ function getInitialLibraryStoredValue<TValue extends string>(
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const navigate = useNavigate();
   const { setFocus } = useNavigation();
+  const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const { collections, loadCollections } = useGameCollections();
   const [selectedFilterTab, setSelectedFilterTab] =
@@ -211,6 +223,13 @@ export default function LibraryPage() {
     )
   );
 
+  const handleViewAchievements = useCallback(
+    (game: LibraryGame) => {
+      navigate(getBigPictureGameAchievementsPath(game));
+    },
+    [navigate]
+  );
+
   const handleRequestRemoveFiles = useCallback(
     (game: LibraryGame) => {
       setPendingAction({
@@ -287,6 +306,15 @@ export default function LibraryPage() {
       }
 
       await refreshLibraryData();
+
+      if (currentAction.type === "remove-from-library") {
+        const { title, ...toastOptions } = await buildLibraryToastOptions(
+          game,
+          "removed"
+        );
+        showSuccessToast(title, toastOptions);
+      }
+
       setPendingAction(null);
       setIsSubmittingAction(false);
 
@@ -301,7 +329,7 @@ export default function LibraryPage() {
       logger.error("Failed to execute library action", error);
       setIsSubmittingAction(false);
     }
-  }, [pendingAction, refreshLibraryData, setFocus]);
+  }, [pendingAction, refreshLibraryData, setFocus, showSuccessToast]);
 
   useEffect(() => {
     updateLibrary();
@@ -464,6 +492,7 @@ export default function LibraryPage() {
         onClose={handleCloseGameContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={toggleFavorite}
+        onViewAchievements={handleViewAchievements}
         onUninstall={handleRequestRemoveFiles}
         onRemoveFromLibrary={handleRequestRemoveFromLibrary}
       />

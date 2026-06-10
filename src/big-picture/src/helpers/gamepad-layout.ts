@@ -259,6 +259,12 @@ const GAMEPAD_LAYOUTS: GamepadLayout[] = [
     mappings: LINUX_XGEAR_MAPPINGS,
   },
   {
+    name: "Linux 8BitDo Ultimate Wireless Controller",
+    platforms: ["linux"],
+    idPatterns: [/Vendor:\s*2dc8\s+Product:\s*3106/i],
+    mappings: STANDARD_GAMEPAD_MAPPINGS,
+  },
+  {
     name: "Standard Gamepad",
     idPatterns: [],
     mappings: STANDARD_GAMEPAD_MAPPINGS,

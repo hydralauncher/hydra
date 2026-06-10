@@ -115,6 +115,9 @@ const INTEGRATION_PROVIDERS: IntegrationProviderDefinition[] = [
     getSuccessIdentity: (user) => {
       return (user as TorBoxUser).email ?? null;
     },
+    getSuccessToastMessage: (user) => {
+      return (user as TorBoxUser).email ?? null;
+    },
   },
 ];
 
