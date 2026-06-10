@@ -3555,12 +3555,19 @@
   dependencies:
     undici-types "~6.21.0"
 
-"@types/node@^22.10.3", "@types/node@^22.7.7":
+"@types/node@^22.10.3":
   version "22.19.7"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-22.19.7.tgz#434094ee1731ae76c16083008590a5835a8c39c1"
   integrity sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==
   dependencies:
     undici-types "~6.21.0"
+
+"@types/node@^24.9.0":
+  version "24.12.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-24.12.2.tgz#353cb161dbf1785ea25e8829ba7ec574c5c629ac"
+  integrity sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==
+  dependencies:
+    undici-types "~7.16.0"
 
 "@types/parse-torrent-file@*":
   version "4.0.6"
@@ -4119,12 +4126,12 @@ axios-cookiejar-support@^5.0.5:
   dependencies:
     http-cookie-agent "^6.0.8"
 
-axios@^1.15.2:
-  version "1.15.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.15.2.tgz#eb8fb6d30349abace6ade5b4cb4d9e8a0dc23e5b"
-  integrity sha512-wLrXxPtcrPTsNlJmKjkPnNPK2Ihe0hn0wGSaTEiHRPxwjvJwT3hKmXF4dpqxmPO9SoNb2FsYXj/xEo0gHN+D5A==
+axios@^1.16.0:
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.16.0.tgz#f8e5dd931cef2a5f8c32216d5784eda2f8750eb7"
+  integrity sha512-6hp5CwvTPlN2A31g5dxnwAX0orzM7pmCRDLnZSX772mv8WDqICwFjowHuPs04Mc8deIld1+ejhtaMn5vp6b+1w==
   dependencies:
-    follow-redirects "^1.15.11"
+    follow-redirects "^1.16.0"
     form-data "^4.0.5"
     proxy-from-env "^2.1.0"
 
@@ -5101,13 +5108,13 @@ electron-vite@^4.0.1:
     magic-string "^0.30.17"
     picocolors "^1.1.1"
 
-electron@^39.8.5:
-  version "39.8.5"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-39.8.5.tgz#422d42318d993a77a960ea1a9b4bfb4822221388"
-  integrity sha512-q6+LiQIcTadSyvtPgLDQkCtVA9jQJXQVMrQcctfOJILh6OFMN+UJJLRkuUTy8CZDYeCIBn1ZycqsL1dAXugxZA==
+electron@^40.9.3:
+  version "40.9.3"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-40.9.3.tgz#a6e474728bee9dde090c74fcc83cc3235ce3f2af"
+  integrity sha512-rDcJOT6BBE689Ada+4jD3rVr05pMv9MZOgT0x/rIMVDF9c4ttx4RTb6lVARTyxZC7uqpirttCtcli1eg1DX5qg==
   dependencies:
     "@electron/get" "^2.0.0"
-    "@types/node" "^22.7.7"
+    "@types/node" "^24.9.0"
     extract-zip "^2.0.1"
 
 embla-carousel-autoplay@^8.6.0:
@@ -5682,7 +5689,7 @@ flatted@^3.2.9:
   resolved "https://registry.yarnpkg.com/flatted/-/flatted-3.4.2.tgz#f5c23c107f0f37de8dbdf24f13722b3b98d52726"
   integrity sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==
 
-follow-redirects@^1.15.11:
+follow-redirects@^1.16.0:
   version "1.16.0"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.16.0.tgz#28474a159d3b9d11ef62050a14ed60e4df6d61bc"
   integrity sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==
@@ -7290,9 +7297,9 @@ node-7z@^3.0.0:
     normalize-path "^3.0.0"
 
 node-abi@^3.45.0:
-  version "3.78.0"
-  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.78.0.tgz#fd0ecbd0aa89857b98da06bd3909194abb0821ba"
-  integrity sha512-E2wEyrgX/CqvicaQYU3Ze1PFGjc4QYPGsjUrlYkqAE0WjHEZwgOsGMPMzkMse4LjJbDmaEuDX3CM036j5K2DSQ==
+  version "3.90.0"
+  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.90.0.tgz#5aca953aa58deb903738adf14a33fb79a32c48f3"
+  integrity sha512-pZNQT7UnYlMwMBy5N1lV5X/YLTbZM5ncytN3xL7CHEzhDN8uVe0u55yaPUJICIJjaCW8NrM5BFdqr7HLweStNA==
   dependencies:
     semver "^7.3.5"
 
@@ -9030,10 +9037,10 @@ tar@^6.0.5, tar@^6.1.11, tar@^6.1.12, tar@^6.2.1:
     mkdirp "^1.0.3"
     yallist "^4.0.0"
 
-tar@^7.5.14:
-  version "7.5.14"
-  resolved "https://registry.yarnpkg.com/tar/-/tar-7.5.14.tgz#4a5021989e5f53a2bdaa2e25592873c1ee3b447c"
-  integrity sha512-/7sHKgQO3JLP9ESlwTYUUftHUadOURUqq23xs1vjcnp8Vss6k0wCfzulyEtk5g91pjvnuriimGlyG7k6msrzRw==
+tar@^7.5.15:
+  version "7.5.15"
+  resolved "https://registry.yarnpkg.com/tar/-/tar-7.5.15.tgz#afe6d1316cddf614a566e3813e42fe01aed46fee"
+  integrity sha512-dzGK0boVlC4W5QFuQN1EFSl3bIDYsk7Tj40U6eIBnK2k/8ml7TZ5agbI5j5+qnoVcAA+rNtBml8SEiLxZpNqRQ==
   dependencies:
     "@isaacs/fs-minipass" "^4.0.0"
     chownr "^3.0.0"
@@ -9327,6 +9334,11 @@ undici-types@~7.14.0:
   version "7.14.0"
   resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.14.0.tgz#4c037b32ca4d7d62fae042174604341588bc0840"
   integrity sha512-QQiYxHuyZ9gQUIrmPo3IA+hUl4KYk8uSA7cHrcKd/l3p1OTpZcM0Tbp9x7FAtXdAYhlasd60ncPpgu6ihG6TOA==
+
+undici-types@~7.16.0:
+  version "7.16.0"
+  resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.16.0.tgz#ffccdff36aea4884cbfce9a750a0580224f58a46"
+  integrity sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==
 
 unicorn-magic@^0.1.0:
   version "0.1.0"
@@ -9623,10 +9635,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.4.2:
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.4.2.tgz#81ea9f46c955e0929b4b72ccaaea8a4c53b1e99e"
-  integrity sha512-PA9kj5dLkcnmgO9y0h3EAFRrRzDCCYWUvTagxYdN+OPNtNs0IEroBPsWLCCu6KAGqEv700tdYX33JF15EjxAuA==
+workwonders-sdk@0.4.4:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.4.4.tgz#1f779541971993564d35c1b98f41af0e00df3d9e"
+  integrity sha512-zNnncw7MFCupKpu+8KqXHr2TYUWfWE/bePyT9uM933VgOPHjTZqrpNReUATgc3mal/f91XmAvC0knEyC1Nrb8w==
   dependencies:
     ky "^1.14.2"
 

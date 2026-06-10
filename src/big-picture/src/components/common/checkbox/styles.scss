@@ -65,6 +65,7 @@
   &__copy {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 0;
     min-width: 0;
     color: var(--text);
@@ -78,6 +79,7 @@
 
   &__label {
     cursor: pointer;
+    text-align: left;
   }
 
   &__label-primary {
