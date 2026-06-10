@@ -9,6 +9,21 @@ export function useLibraryLaunchGame(
     async (game: LibraryGame) => {
       if (!IS_DESKTOP) return;
 
+      if (game.shop === "launchbox") {
+        if ((game.discs?.length ?? 0) === 0) {
+          onMissingExecutable(game);
+          return;
+        }
+
+        await globalThis.window.electron.openClassicsGame(
+          game.shop,
+          game.objectId,
+          game.selectedDiscPath ?? undefined
+        );
+        globalThis.window.dispatchEvent(new Event("library-update"));
+        return;
+      }
+
       if (!game.executablePath) {
         onMissingExecutable(game);
         return;

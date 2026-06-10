@@ -24,6 +24,7 @@ export default function Catalogue() {
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
 
   const {
+    filterTypes,
     values,
     updateSearchParams,
     catalogueData,
@@ -199,6 +200,7 @@ export default function Catalogue() {
         <CatalogueFiltersModal
           visible={isFiltersModalOpen}
           catalogueData={catalogueData}
+          filterTypes={filterTypes}
           values={values}
           updateSearchParams={updateSearchParams}
           onClose={() => setIsFiltersModalOpen(false)}

@@ -26,6 +26,7 @@ function getCataloguePageSize() {
 }
 
 export enum FilterType {
+  Platforms = "platforms",
   Genres = "genres",
   Tags = "tags",
   DownloadSourceFingerprints = "downloadSourceFingerprints",
@@ -33,7 +34,26 @@ export enum FilterType {
   Developers = "developers",
 }
 
+export type CatalogueMode = "modern" | "classics";
+
+export interface LaunchboxPlatform {
+  key: string;
+  name: string;
+}
+
+interface LaunchboxCatalogueFilters {
+  platforms: LaunchboxPlatform[];
+  genres: string[];
+  developers: string[];
+  publishers: string[];
+}
+
 export interface CatalogueData {
+  [FilterType.Platforms]: {
+    data: Record<string, string>;
+    label: string;
+    color: string;
+  };
   [FilterType.Genres]: { data: string[]; label: string; color: string };
   [FilterType.Tags]: {
     data: Record<string, number>;
@@ -58,9 +78,11 @@ export interface CatalogueData {
 }
 
 export interface SearchGamesFormValues {
+  mode?: CatalogueMode;
   title?: string;
   sortBy?: CatalogueSearchPayload["sortBy"];
   sortOrder?: CatalogueSearchPayload["sortOrder"];
+  [FilterType.Platforms]?: string[];
   [FilterType.Tags]?: number[];
   [FilterType.Genres]?: string[];
   [FilterType.Publishers]?: string[];
@@ -122,6 +144,28 @@ export type CatalogueSortValue =
   (typeof CATALOGUE_SORT_OPTIONS)[number]["value"];
 
 const DEFAULT_CATALOGUE_SORT_OPTION = CATALOGUE_SORT_OPTIONS[0];
+const DEFAULT_LAUNCHBOX_FILTERS: LaunchboxCatalogueFilters = {
+  platforms: [],
+  genres: [],
+  developers: [],
+  publishers: [],
+};
+
+export const MODERN_CATALOGUE_FILTER_TYPES = [
+  FilterType.Genres,
+  FilterType.Tags,
+  FilterType.DownloadSourceFingerprints,
+  FilterType.Developers,
+  FilterType.Publishers,
+] as const;
+
+export const CLASSICS_CATALOGUE_FILTER_TYPES = [
+  FilterType.Platforms,
+  FilterType.Genres,
+  FilterType.Developers,
+  FilterType.Publishers,
+  FilterType.DownloadSourceFingerprints,
+] as const;
 
 export interface SearchGamesResponseData {
   edges: CatalogueSearchResult[];
@@ -134,6 +178,13 @@ interface SteamGenresResponse {
 
 interface SteamTagsResponse {
   en: Record<string, number>;
+}
+
+interface LaunchboxFiltersResponse {
+  platforms?: Array<string | LaunchboxPlatform>;
+  genres?: string[];
+  developers?: string[];
+  publishers?: string[];
 }
 
 const externalResourcesInstance = axios.create({
@@ -177,6 +228,30 @@ function getCatalogueSortOption(searchParams: URLSearchParams) {
   );
 }
 
+function getCatalogueMode(searchParams: URLSearchParams): CatalogueMode {
+  return searchParams.get("mode") === "classics" ? "classics" : "modern";
+}
+
+function normalizeLaunchboxFilters(
+  filters: LaunchboxFiltersResponse
+): LaunchboxCatalogueFilters {
+  return {
+    platforms: (filters.platforms ?? [])
+      .map((platform) =>
+        typeof platform === "string"
+          ? { key: platform, name: platform }
+          : platform
+      )
+      .filter(
+        (platform): platform is LaunchboxPlatform =>
+          Boolean(platform.key) && Boolean(platform.name)
+      ),
+    genres: filters.genres ?? [],
+    developers: filters.developers ?? [],
+    publishers: filters.publishers ?? [],
+  };
+}
+
 export function useCatalogueData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deferredTitle = useDeferredValue(searchParams.get("title") ?? "");
@@ -186,6 +261,8 @@ export function useCatalogueData() {
   const [steamTags, setSteamTags] = useState<Record<string, number>>({});
   const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
   const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
+  const [launchboxFilters, setLaunchboxFilters] =
+    useState<LaunchboxCatalogueFilters>(DEFAULT_LAUNCHBOX_FILTERS);
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [searchData, setSearchData] = useState<SearchGamesResponseData>();
   const [isLoadingSearch, setIsLoadingSearch] = useState(true);
@@ -212,11 +289,14 @@ export function useCatalogueData() {
 
   const values = useMemo<SearchGamesFormValues>(() => {
     const sortOption = getCatalogueSortOption(searchParams);
+    const mode = getCatalogueMode(searchParams);
 
     return {
+      mode,
       title: searchParams.get("title") ?? "",
       sortBy: sortOption.sortBy,
       sortOrder: sortOption.sortOrder,
+      platforms: parseStringArrayParam(searchParams.get("platforms")),
       tags: parseNumberArrayParam(searchParams.get("tags")),
       genres: parseStringArrayParam(searchParams.get("genres")),
       publishers: parseStringArrayParam(searchParams.get("publishers")),
@@ -233,6 +313,16 @@ export function useCatalogueData() {
         const nextSearchParams = new URLSearchParams(currentSearchParams);
 
         Object.entries(newValues).forEach(([key, value]) => {
+          if (key === "mode") {
+            if (value === "classics") {
+              nextSearchParams.set(key, value);
+            } else {
+              nextSearchParams.delete(key);
+            }
+
+            return;
+          }
+
           if (typeof value === "string") {
             if (value.trim().length > 0) {
               nextSearchParams.set(key, value);
@@ -259,10 +349,12 @@ export function useCatalogueData() {
   const searchKey = useMemo(
     () =>
       JSON.stringify({
+        mode: values.mode ?? "modern",
         title: deferredTitle,
         sortBy: values.sortBy ?? DEFAULT_CATALOGUE_SORT_OPTION.sortBy,
         sortOrder: values.sortOrder ?? DEFAULT_CATALOGUE_SORT_OPTION.sortOrder,
         downloadSourceFingerprints: values.downloadSourceFingerprints ?? [],
+        platforms: values.platforms ?? [],
         tags: values.tags ?? [],
         publishers: values.publishers ?? [],
         genres: values.genres ?? [],
@@ -275,6 +367,8 @@ export function useCatalogueData() {
       values.developers,
       values.downloadSourceFingerprints,
       values.genres,
+      values.mode,
+      values.platforms,
       values.publishers,
       values.sortBy,
       values.sortOrder,
@@ -293,6 +387,7 @@ export function useCatalogueData() {
         tagsResponse,
         developersResponse,
         publishersResponse,
+        launchboxFiltersResponse,
         rawDownloadSources,
       ] = await Promise.allSettled([
         externalResourcesInstance.get<SteamGenresResponse>(
@@ -303,6 +398,10 @@ export function useCatalogueData() {
         ),
         externalResourcesInstance.get<string[]>("/steam-developers.json"),
         externalResourcesInstance.get<string[]>("/steam-publishers.json"),
+        globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
+          "/catalogue/filters?shop=launchbox",
+          { needsAuth: false }
+        ),
         levelDBService.values("downloadSources"),
       ]);
 
@@ -322,6 +421,12 @@ export function useCatalogueData() {
 
       if (publishersResponse.status === "fulfilled") {
         setSteamPublishers(publishersResponse.value.data);
+      }
+
+      if (launchboxFiltersResponse.status === "fulfilled") {
+        setLaunchboxFilters(
+          normalizeLaunchboxFilters(launchboxFiltersResponse.value)
+        );
       }
 
       if (rawDownloadSources.status === "fulfilled") {
@@ -359,19 +464,30 @@ export function useCatalogueData() {
       }
 
       try {
-        const payload: CatalogueSearchPayload = {
+        const catalogueMode = values.mode ?? "modern";
+        const payload: Omit<CatalogueSearchPayload, "tags"> & {
+          tags?: CatalogueSearchPayload["tags"];
+          shops?: string[];
+          platforms?: string[];
+        } = {
           title: deferredTitle,
           sortBy: values.sortBy ?? DEFAULT_CATALOGUE_SORT_OPTION.sortBy,
           sortOrder:
             values.sortOrder ?? DEFAULT_CATALOGUE_SORT_OPTION.sortOrder,
           downloadSourceFingerprints: values.downloadSourceFingerprints ?? [],
-          tags: values.tags ?? [],
           publishers: values.publishers ?? [],
           genres: values.genres ?? [],
           developers: values.developers ?? [],
           protondbSupportBadges: [],
           deckCompatibility: [],
         };
+
+        if (catalogueMode === "modern") {
+          payload.tags = values.tags ?? [];
+        } else {
+          payload.shops = ["launchbox"];
+          payload.platforms = values.platforms ?? [];
+        }
 
         const response =
           await globalThis.window.electron.hydraApi.post<SearchGamesResponseData>(
@@ -438,6 +554,8 @@ export function useCatalogueData() {
       values.developers,
       values.downloadSourceFingerprints,
       values.genres,
+      values.mode,
+      values.platforms,
       values.publishers,
       values.sortBy,
       values.sortOrder,
@@ -501,9 +619,22 @@ export function useCatalogueData() {
   }, [downloadSources]);
 
   const catalogueData = useMemo<CatalogueData>(() => {
+    const isClassicsMode = values.mode === "classics";
+    const launchboxPlatforms = launchboxFilters.platforms.reduce<
+      Record<string, string>
+    >((acc, platform) => {
+      acc[platform.name] = platform.key;
+      return acc;
+    }, {});
+
     return {
+      [FilterType.Platforms]: {
+        data: launchboxPlatforms,
+        label: "Platforms",
+        color: "teal",
+      },
       [FilterType.Genres]: {
-        data: steamGenres,
+        data: isClassicsMode ? launchboxFilters.genres : steamGenres,
         label: "Genres",
         color: "magenta",
       },
@@ -518,24 +649,37 @@ export function useCatalogueData() {
         color: "red",
       },
       [FilterType.Developers]: {
-        data: steamDevelopers,
+        data: isClassicsMode ? launchboxFilters.developers : steamDevelopers,
         label: "Developers",
         color: "cyan",
       },
       [FilterType.Publishers]: {
-        data: steamPublishers,
+        data: isClassicsMode ? launchboxFilters.publishers : steamPublishers,
         label: "Publishers",
         color: "lime",
       },
     };
   }, [
     downloadSourcesAndFingerprints,
+    launchboxFilters,
     steamDevelopers,
     steamGenres,
     steamPublishers,
     steamTags,
+    values.mode,
   ]);
+
+  const filterTypes = useMemo(
+    () =>
+      values.mode === "classics"
+        ? [...CLASSICS_CATALOGUE_FILTER_TYPES]
+        : [...MODERN_CATALOGUE_FILTER_TYPES],
+    [values.mode]
+  );
+
   return {
+    mode: values.mode ?? "modern",
+    filterTypes,
     pageSize,
     hasNextPage,
     loadMore,

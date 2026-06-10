@@ -103,6 +103,7 @@ function animateCatalogueFiltersModalScroll(
 interface CatalogueFiltersModalProps {
   visible: boolean;
   catalogueData: CatalogueData;
+  filterTypes: FilterType[];
   values: SearchGamesFormValues;
   updateSearchParams: (newValues: Partial<SearchGamesFormValues>) => void;
   onClose: () => void;
@@ -508,6 +509,7 @@ const CatalogueFiltersModalList = forwardRef<
 export function CatalogueFiltersModal({
   visible,
   catalogueData,
+  filterTypes,
   values,
   updateSearchParams,
   onClose,
@@ -523,6 +525,7 @@ export function CatalogueFiltersModal({
   const [filtersSearchTerms, setFiltersSearchTerms] = useState<
     Record<FilterType, string>
   >({
+    [FilterType.Platforms]: "",
     [FilterType.Genres]: "",
     [FilterType.Tags]: "",
     [FilterType.Developers]: "",
@@ -597,6 +600,12 @@ export function CatalogueFiltersModal({
   }, []);
 
   useEffect(() => {
+    if (filterTypes.includes(activeFilterType)) return;
+
+    setActiveFilterType(filterTypes[0] ?? FilterType.Genres);
+  }, [activeFilterType, filterTypes]);
+
+  useEffect(() => {
     if (activeFilterType === displayedFilterType) return;
 
     setIsMainFading(true);
@@ -635,29 +644,27 @@ export function CatalogueFiltersModal({
   );
   const selectedFilterItems = useMemo(
     () =>
-      Object.values(FilterType).flatMap<SelectedCatalogueFilterItem>(
-        (filterType) => {
-          const selectedValues = (values[filterType] ?? []) as Array<
-            string | number
-          >;
+      filterTypes.flatMap<SelectedCatalogueFilterItem>((filterType) => {
+        const selectedValues = (values[filterType] ?? []) as Array<
+          string | number
+        >;
 
-          if (selectedValues.length === 0) return [];
+        if (selectedValues.length === 0) return [];
 
-          return getCatalogueFilterListItems(
-            catalogueData[filterType].data,
+        return getCatalogueFilterListItems(
+          catalogueData[filterType].data,
+          filterType,
+          "",
+          CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX
+        )
+          .filter((item) => selectedValues.includes(item.value))
+          .map((item) => ({
+            ...item,
             filterType,
-            "",
-            CATALOGUE_FILTERS_MODAL_SELECTED_FOCUS_PREFIX
-          )
-            .filter((item) => selectedValues.includes(item.value))
-            .map((item) => ({
-              ...item,
-              filterType,
-              color: catalogueData[filterType].color,
-            }));
-        }
-      ),
-    [catalogueData, values]
+            color: catalogueData[filterType].color,
+          }));
+      }),
+    [catalogueData, filterTypes, values]
   );
 
   useLayoutEffect(() => {
@@ -849,7 +856,7 @@ export function CatalogueFiltersModal({
   );
 
   const clearSelectedFilters = useCallback(() => {
-    const nextValues = Object.values(FilterType).reduce<
+    const nextValues = filterTypes.reduce<
       Partial<Record<FilterType, Array<string | number>>>
     >((accumulator, filterType) => {
       accumulator[filterType] = [];
@@ -858,7 +865,7 @@ export function CatalogueFiltersModal({
 
     updateSearchParams(nextValues as Partial<SearchGamesFormValues>);
     focusLastValidMainFocus();
-  }, [focusLastValidMainFocus, updateSearchParams]);
+  }, [filterTypes, focusLastValidMainFocus, updateSearchParams]);
 
   useNavigationScreenActions(
     visible && selectedFilterItems.length > 0
@@ -1030,12 +1037,12 @@ export function CatalogueFiltersModal({
 
   const tabs = useMemo(
     () =>
-      Object.values(FilterType).map((filterType) => ({
+      filterTypes.map((filterType) => ({
         id: filterType,
         label: catalogueData[filterType].label,
         content: catalogueFiltersModalContent,
       })),
-    [catalogueData, catalogueFiltersModalContent]
+    [catalogueData, catalogueFiltersModalContent, filterTypes]
   );
 
   return (

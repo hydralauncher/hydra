@@ -149,16 +149,24 @@ export function getLastPlayedGames(library: LibraryGame[]) {
     .slice(0, LAST_PLAYED_GAMES_COUNT);
 }
 
+export function isLibraryGamePlayable(game: LibraryGame) {
+  if (game.shop === "launchbox") {
+    return (game.discs?.length ?? 0) > 0;
+  }
+
+  return Boolean(game.executablePath);
+}
+
 export function filterLibraryBySecondaryFilter(
   library: LibraryGame[],
   selectedFilter: LibrarySecondaryFilter
 ) {
   if (selectedFilter === "installed") {
-    return library.filter((game) => Boolean(game.executablePath));
+    return library.filter(isLibraryGamePlayable);
   }
 
   if (selectedFilter === "not_installed") {
-    return library.filter((game) => !game.executablePath);
+    return library.filter((game) => !isLibraryGamePlayable(game));
   }
 
   if (selectedFilter === "never_played") {
