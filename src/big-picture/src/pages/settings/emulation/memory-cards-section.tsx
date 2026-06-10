@@ -24,6 +24,7 @@ import {
   Button,
   ContextMenu,
   FocusItem,
+  GridFocusGroup,
   HorizontalFocusGroup,
   Modal,
   VerticalFocusGroup,
@@ -35,15 +36,24 @@ import {
   useUserDetails,
 } from "../../../hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
-import { EMULATION_DETAIL_MEMORY_CARDS_REGION_ID } from "../settings-navigation";
+import {
+  EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
+  EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
+  EMULATION_DETAIL_MEMORY_CARDS_REGION_ID,
+  getEmulationMemcardBackupAllFocusId,
+  getEmulationMemcardGroupCollapseFocusId,
+  getEmulationMemcardMenuFocusId,
+  getEmulationMemcardRemoveCardFocusId,
+} from "../settings-navigation";
 import {
   SETTINGS_TOAST_OPTIONS,
   formatBytes,
-  sanitizeFocusToken,
 } from "./shared";
 
 interface MemoryCardsSectionProps {
   config: EmulatorConfig;
+  upTargetId: string;
+  downTargetId: string;
   onUploaded?: () => void;
 }
 
@@ -349,6 +359,8 @@ function MemoryCardScanModal({
 
 export function MemoryCardsSection({
   config,
+  upTargetId,
+  downTargetId,
   onUploaded,
 }: Readonly<MemoryCardsSectionProps>) {
   const { t } = useTranslation("settings");
@@ -410,6 +422,10 @@ export function MemoryCardsSection({
     didInitCollapse.current = true;
     setCollapsed(new Set(groups.map((group) => group.cardFilePath)));
   }, [groups]);
+
+  const firstGroupFocusId = groups[0]
+    ? getEmulationMemcardGroupCollapseFocusId(groups[0].cardFilePath)
+    : downTargetId;
 
   const toggleCard = useCallback((cardFilePath: string) => {
     setCollapsed((current) => {
@@ -513,8 +529,18 @@ export function MemoryCardsSection({
           <div className="emulator-detail__section-text">
             <h3>{t("memory_cards_section_title")}</h3>
           </div>
-          <div className="emulator-detail__section-actions">
+          <HorizontalFocusGroup className="emulator-detail__section-actions">
             <Button
+              focusId={EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: { type: "block" },
+                right: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
+                },
+                up: { type: "item", itemId: upTargetId },
+                down: { type: "item", itemId: firstGroupFocusId },
+              }}
               variant="secondary"
               icon={<FileDirectoryIcon size={14} />}
               onClick={() => {
@@ -524,6 +550,16 @@ export function MemoryCardsSection({
               {t(isPs1 ? "pick_memory_card_file_ps1" : "pick_memory_card_file")}
             </Button>
             <Button
+              focusId={EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
+                },
+                right: { type: "block" },
+                up: { type: "item", itemId: upTargetId },
+                down: { type: "item", itemId: firstGroupFocusId },
+              }}
               variant="secondary"
               icon={<SyncIcon size={13} />}
               onClick={() => setScanInput({ autoDetect: true })}
@@ -532,7 +568,7 @@ export function MemoryCardsSection({
                 ? t("redetect_memory_cards")
                 : t("detect_memory_cards")}
             </Button>
-          </div>
+          </HorizontalFocusGroup>
         </header>
 
         {saves.length === 0 ? (
@@ -544,8 +580,20 @@ export function MemoryCardsSection({
             regionId={EMULATION_DETAIL_MEMORY_CARDS_REGION_ID}
             className="emulator-detail__memcards"
           >
-            {groups.map(({ cardFilePath, cardLabel, records }) => {
+            {groups.map(({ cardFilePath, cardLabel, records }, index) => {
               const isCollapsed = collapsed.has(cardFilePath);
+              const collapseId =
+                getEmulationMemcardGroupCollapseFocusId(cardFilePath);
+              const backupAllId =
+                getEmulationMemcardBackupAllFocusId(cardFilePath);
+              const removeCardId =
+                getEmulationMemcardRemoveCardFocusId(cardFilePath);
+              const previousGroup = groups[index - 1];
+              const nextGroup = groups[index + 1];
+              const firstRecord = records[0];
+              const firstRecordMenuId = firstRecord
+                ? getEmulationMemcardMenuFocusId(saveKey(firstRecord))
+                : null;
               return (
                 <div
                   key={cardFilePath}
@@ -553,7 +601,49 @@ export function MemoryCardsSection({
                 >
                   <div className="emulator-detail__memcard-group-header">
                     <FocusItem
-                      id={`emulation-memcard-group-${sanitizeFocusToken(cardFilePath)}`}
+                      id={collapseId}
+                      navigationOverrides={{
+                        left: { type: "block" },
+                        right: hasActiveSubscription
+                          ? {
+                              type: "item",
+                              itemId: backupAllId,
+                            }
+                          : {
+                              type: "item",
+                              itemId: removeCardId,
+                            },
+                        up: previousGroup
+                          ? {
+                              type: "item",
+                              itemId:
+                                getEmulationMemcardGroupCollapseFocusId(
+                                  previousGroup.cardFilePath
+                                ),
+                            }
+                          : {
+                              type: "item",
+                              itemId: EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
+                            },
+                        down:
+                          !isCollapsed && firstRecordMenuId
+                            ? {
+                                type: "item",
+                                itemId: firstRecordMenuId,
+                              }
+                            : nextGroup
+                              ? {
+                                  type: "item",
+                                  itemId:
+                                    getEmulationMemcardGroupCollapseFocusId(
+                                      nextGroup.cardFilePath
+                                    ),
+                                }
+                              : {
+                                  type: "item",
+                                  itemId: downTargetId,
+                                },
+                      }}
                       asChild
                     >
                       <button
@@ -591,7 +681,47 @@ export function MemoryCardsSection({
 
                     {hasActiveSubscription ? (
                       <FocusItem
-                        id={`emulation-memcard-backup-all-${sanitizeFocusToken(cardFilePath)}`}
+                        id={backupAllId}
+                        navigationOverrides={{
+                          left: {
+                            type: "item",
+                            itemId: collapseId,
+                          },
+                          right: {
+                            type: "item",
+                            itemId: removeCardId,
+                          },
+                          up: previousGroup
+                            ? {
+                                type: "item",
+                                itemId: getEmulationMemcardBackupAllFocusId(
+                                  previousGroup.cardFilePath
+                                ),
+                              }
+                            : {
+                                type: "item",
+                                itemId:
+                                  EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
+                              },
+                          down:
+                            !isCollapsed && firstRecordMenuId
+                              ? {
+                                  type: "item",
+                                  itemId: firstRecordMenuId,
+                                }
+                              : nextGroup
+                                ? {
+                                    type: "item",
+                                    itemId:
+                                      getEmulationMemcardBackupAllFocusId(
+                                        nextGroup.cardFilePath
+                                      ),
+                                  }
+                                : {
+                                    type: "item",
+                                    itemId: downTargetId,
+                                  },
+                        }}
                         asChild
                       >
                         <button
@@ -613,7 +743,44 @@ export function MemoryCardsSection({
                     ) : null}
 
                     <Button
-                      focusId={`emulation-memcard-remove-card-${sanitizeFocusToken(cardFilePath)}`}
+                      focusId={removeCardId}
+                      focusNavigationOverrides={{
+                        left: {
+                          type: "item",
+                          itemId: hasActiveSubscription ? backupAllId : collapseId,
+                        },
+                        right: { type: "block" },
+                        up: previousGroup
+                          ? {
+                              type: "item",
+                              itemId: getEmulationMemcardRemoveCardFocusId(
+                                previousGroup.cardFilePath
+                              ),
+                            }
+                          : {
+                              type: "item",
+                              itemId:
+                                EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
+                            },
+                        down:
+                          !isCollapsed && firstRecordMenuId
+                            ? {
+                                type: "item",
+                                itemId: firstRecordMenuId,
+                              }
+                            : nextGroup
+                              ? {
+                                  type: "item",
+                                  itemId:
+                                    getEmulationMemcardRemoveCardFocusId(
+                                      nextGroup.cardFilePath
+                                    ),
+                                }
+                              : {
+                                  type: "item",
+                                  itemId: downTargetId,
+                                },
+                      }}
                       variant="danger"
                       size="small"
                       icon={<TrashIcon size={16} />}
@@ -629,13 +796,15 @@ export function MemoryCardsSection({
                   </div>
 
                   {!isCollapsed ? (
-                    <div className="emulator-detail__memcard-grid">
-                      {records.map((save) => {
+                    <GridFocusGroup className="emulator-detail__memcard-grid">
+                      {records.map((save, saveIndex) => {
                         const cover = save.libraryImageUrl ?? save.iconUrl;
                         const title = save.title ?? save.folderName;
                         const region = save.sku ? getSkuRegion(save.sku) : null;
                         const currentKey = saveKey(save);
-                        const currentSaveId = sanitizeFocusToken(currentKey);
+                        const menuId = getEmulationMemcardMenuFocusId(currentKey);
+                        const previousSave = records[saveIndex - 1];
+                        const nextSave = records[saveIndex + 1];
 
                         return (
                           <div
@@ -679,7 +848,33 @@ export function MemoryCardsSection({
                             </div>
 
                             <FocusItem
-                              id={`emulation-memcard-menu-${currentSaveId}`}
+                              id={menuId}
+                              navigationOverrides={{
+                                left: previousSave
+                                  ? {
+                                      type: "item",
+                                      itemId: getEmulationMemcardMenuFocusId(
+                                        saveKey(previousSave)
+                                      ),
+                                    }
+                                  : {
+                                      type: "block",
+                                    },
+                                right: nextSave
+                                  ? {
+                                      type: "item",
+                                      itemId: getEmulationMemcardMenuFocusId(
+                                        saveKey(nextSave)
+                                      ),
+                                    }
+                                  : {
+                                      type: "block",
+                                    },
+                                up: {
+                                  type: "item",
+                                  itemId: collapseId,
+                                },
+                              }}
                               asChild
                             >
                               <button
@@ -708,7 +903,7 @@ export function MemoryCardsSection({
                             <ContextMenu
                               visible={openMenu?.key === currentKey}
                               position={openMenu?.position ?? { x: 0, y: 0 }}
-                              restoreFocusId={`emulation-memcard-menu-${currentSaveId}`}
+                              restoreFocusId={menuId}
                               onClose={() => setOpenMenu(null)}
                               ariaLabel={title}
                               items={[
@@ -743,7 +938,7 @@ export function MemoryCardsSection({
                           </div>
                         );
                       })}
-                    </div>
+                    </GridFocusGroup>
                   ) : null}
                 </div>
               );

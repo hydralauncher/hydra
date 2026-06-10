@@ -17,20 +17,26 @@ import type { EmulatorConfig, RomFolder } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button, FocusItem, VerticalFocusGroup } from "../../../components";
-import { ConfirmationModal } from "../../../components/modals";
 import {
-  useBigPictureToast,
-  useNavigation,
-  useNavigationScreenActions,
-} from "../../../hooks";
+  Button,
+  FocusItem,
+  HorizontalFocusGroup,
+  VerticalFocusGroup,
+} from "../../../components";
+import { ConfirmationModal } from "../../../components/modals";
+import { useBigPictureToast, useNavigationScreenActions } from "../../../hooks";
 import {
   EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
   EMULATION_DETAIL_BACK_BUTTON_ID,
+  EMULATION_DETAIL_EXECUTABLE_REGION_ID,
+  EMULATION_DETAIL_LIBRARY_REGION_ID,
+  EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
+  EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_DETAIL_REDETECT_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
   EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
+  EMULATION_DETAIL_ROM_FOLDERS_REGION_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
   getEmulationRomFolderRemoveFocusId,
@@ -51,31 +57,6 @@ interface EmulationDetailProps {
   systemLabel: string;
   onBack: () => void;
   onChange: (nextConfig: EmulatorConfig) => void;
-}
-
-function isNodeWithinRegion(
-  nodeId: string,
-  regionId: string,
-  nodes: ReturnType<typeof useNavigation>["nodes"],
-  regions: ReturnType<typeof useNavigation>["regions"]
-) {
-  const node = nodes.find((candidate) => candidate.id === nodeId);
-
-  if (!node) return false;
-
-  let currentRegionId: string | null = node.regionId;
-
-  while (currentRegionId) {
-    if (currentRegionId === regionId) {
-      return true;
-    }
-
-    currentRegionId =
-      regions.find((candidate) => candidate.id === currentRegionId)
-        ?.parentRegionId ?? null;
-  }
-
-  return false;
 }
 
 function GamepadIcon({ size = 16 }: Readonly<{ size?: number }>) {
@@ -108,8 +89,6 @@ export function EmulationDetail({
 }: Readonly<EmulationDetailProps>) {
   const { t, i18n } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
-  const { currentFocusId, moveFocus, nodes, regions, setFocus } =
-    useNavigation();
   const [isBusy, setIsBusy] = useState(false);
   const [cloudRefreshKey, setCloudRefreshKey] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
@@ -150,6 +129,20 @@ export function EmulationDetail({
     () => formatRelative(config.lastScanAt),
     [config.lastScanAt]
   );
+  const hasMemoryCardsSection =
+    config.system === "ps1" || config.system === "ps2";
+  const firstRomFolderFocusId = config.romFolders[0]
+    ? getEmulationRomFolderToggleFocusId(config.romFolders[0].id)
+    : null;
+  const lastRomFolderFocusId =
+    config.romFolders.length > 0
+      ? getEmulationRomFolderRemoveFocusId(
+          config.romFolders[config.romFolders.length - 1]!.id
+        )
+      : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID;
+  const romSectionDownTargetId = hasMemoryCardsSection
+    ? EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID
+    : EMULATION_DETAIL_RESCAN_BUTTON_ID;
 
   const handleBrowseExecutable = useCallback(async () => {
     const result = await globalThis.window.electron.showOpenDialog({
@@ -366,51 +359,10 @@ export function EmulationDetail({
     }
   }, [config.system, onBack, onChange, showErrorToast, showSuccessToast]);
 
-  const handleContainedDetailDirection = useCallback(
-    (direction: "left" | "right") => {
-      if (!currentFocusId) return;
-
-      const previousFocusId = currentFocusId;
-      const nextFocusId = moveFocus(direction);
-
-      if (
-        !isNodeWithinRegion(
-          previousFocusId,
-          EMULATION_DETAIL_REGION_ID,
-          nodes,
-          regions
-        )
-      ) {
-        return;
-      }
-
-      if (
-        nextFocusId &&
-        !isNodeWithinRegion(
-          nextFocusId,
-          EMULATION_DETAIL_REGION_ID,
-          nodes,
-          regions
-        )
-      ) {
-        setFocus(previousFocusId);
-      }
-    },
-    [currentFocusId, moveFocus, nodes, regions, setFocus]
-  );
-
   useNavigationScreenActions({
     press: {
       b: () => {
         onBack();
-      },
-    },
-    direction: {
-      left: () => {
-        handleContainedDetailDirection("left");
-      },
-      right: () => {
-        handleContainedDetailDirection("right");
       },
     },
   });
@@ -421,7 +373,21 @@ export function EmulationDetail({
       navigationOverrides={{ up: SETTINGS_HEADER_RETURN_TARGET }}
       className="emulator-detail"
     >
-      <FocusItem id={EMULATION_DETAIL_BACK_BUTTON_ID} asChild>
+      <FocusItem
+        id={EMULATION_DETAIL_BACK_BUTTON_ID}
+        navigationOverrides={{
+          left: { type: "block" },
+          right: {
+            type: "item",
+            itemId: EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
+          },
+          down: {
+            type: "item",
+            itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+          },
+        }}
+        asChild
+      >
         <button
           type="button"
           className="emulator-detail__breadcrumb"
@@ -460,6 +426,17 @@ export function EmulationDetail({
         <div className="emulator-detail__hero-actions">
           <Button
             focusId={EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID}
+            focusNavigationOverrides={{
+              left: {
+                type: "item",
+                itemId: EMULATION_DETAIL_BACK_BUTTON_ID,
+              },
+              right: { type: "block" },
+              down: {
+                type: "item",
+                itemId: EMULATION_DETAIL_REDETECT_BUTTON_ID,
+              },
+            }}
             variant="danger"
             disabled={isBusy || !isConfigured}
             icon={<TrashIcon size={14} />}
@@ -498,7 +475,10 @@ export function EmulationDetail({
           </div>
         </header>
 
-        <div className="emulator-detail__row emulator-detail__exec-row">
+        <HorizontalFocusGroup
+          regionId={EMULATION_DETAIL_EXECUTABLE_REGION_ID}
+          className="emulator-detail__row emulator-detail__exec-row"
+        >
           {binaryIcon ? (
             <img
               src={binaryIcon}
@@ -527,7 +507,25 @@ export function EmulationDetail({
               {t("executable_path")}
             </span>
 
-            <FocusItem id={EMULATION_DETAIL_EXECUTABLE_BUTTON_ID} asChild>
+            <FocusItem
+              id={EMULATION_DETAIL_EXECUTABLE_BUTTON_ID}
+              navigationOverrides={{
+                left: { type: "block" },
+                right: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_REDETECT_BUTTON_ID,
+                },
+                up: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_BACK_BUTTON_ID,
+                },
+                down: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                },
+              }}
+              asChild
+            >
               <button
                 type="button"
                 className="emulator-detail__exec-path-button"
@@ -559,6 +557,21 @@ export function EmulationDetail({
           <div className="emulator-detail__exec-actions">
             <Button
               focusId={EMULATION_DETAIL_REDETECT_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+                },
+                right: { type: "block" },
+                up: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_REMOVE_EMULATOR_BUTTON_ID,
+                },
+                down: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                },
+              }}
               variant="secondary"
               disabled={isBusy}
               icon={<SyncIcon size={13} />}
@@ -569,10 +582,15 @@ export function EmulationDetail({
               {t("re_detect")}
             </Button>
           </div>
-        </div>
+        </HorizontalFocusGroup>
       </section>
 
-      <section className="emulator-detail__section">
+      <VerticalFocusGroup
+        regionId={EMULATION_DETAIL_ROM_FOLDERS_REGION_ID}
+        className="emulator-detail__section"
+        asChild
+      >
+        <section>
         <header className="emulator-detail__section-header">
           <div className="emulator-detail__section-text">
             <h3>{t("rom_folders_section_title")}</h3>
@@ -581,6 +599,23 @@ export function EmulationDetail({
           <div className="emulator-detail__section-actions">
             <Button
               focusId={EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: { type: "block" },
+                right: { type: "block" },
+                up: {
+                  type: "item",
+                  itemId: EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
+                },
+                down: firstRomFolderFocusId
+                  ? {
+                      type: "item",
+                      itemId: firstRomFolderFocusId,
+                    }
+                  : {
+                      type: "item",
+                      itemId: romSectionDownTargetId,
+                    },
+              }}
               variant="secondary"
               disabled={isBusy}
               icon={<PlusIcon size={14} />}
@@ -598,7 +633,7 @@ export function EmulationDetail({
             <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
           ) : null}
 
-          {config.romFolders.map((folder) => (
+          {config.romFolders.map((folder, index) => (
             <div className="emulator-detail__row" key={folder.id}>
               <FileDirectoryIcon size={24} />
 
@@ -628,6 +663,37 @@ export function EmulationDetail({
 
               <FocusItem
                 id={getEmulationRomFolderToggleFocusId(folder.id)}
+                navigationOverrides={{
+                  left: { type: "block" },
+                  right: {
+                    type: "item",
+                    itemId: getEmulationRomFolderRemoveFocusId(folder.id),
+                  },
+                  up:
+                    index === 0
+                      ? {
+                          type: "item",
+                          itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                        }
+                      : {
+                          type: "item",
+                          itemId: getEmulationRomFolderToggleFocusId(
+                            config.romFolders[index - 1]!.id
+                          ),
+                        },
+                  down:
+                    index < config.romFolders.length - 1
+                      ? {
+                          type: "item",
+                          itemId: getEmulationRomFolderToggleFocusId(
+                            config.romFolders[index + 1]!.id
+                          ),
+                        }
+                      : {
+                          type: "item",
+                          itemId: romSectionDownTargetId,
+                        },
+                }}
                 asChild
               >
                 <label className="emulator-detail__subfolders-toggle">
@@ -645,6 +711,37 @@ export function EmulationDetail({
 
               <FocusItem
                 id={getEmulationRomFolderRemoveFocusId(folder.id)}
+                navigationOverrides={{
+                  left: {
+                    type: "item",
+                    itemId: getEmulationRomFolderToggleFocusId(folder.id),
+                  },
+                  right: { type: "block" },
+                  up:
+                    index === 0
+                      ? {
+                          type: "item",
+                          itemId: EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID,
+                        }
+                      : {
+                          type: "item",
+                          itemId: getEmulationRomFolderRemoveFocusId(
+                            config.romFolders[index - 1]!.id
+                          ),
+                        },
+                  down:
+                    index < config.romFolders.length - 1
+                      ? {
+                          type: "item",
+                          itemId: getEmulationRomFolderRemoveFocusId(
+                            config.romFolders[index + 1]!.id
+                          ),
+                        }
+                      : {
+                          type: "item",
+                          itemId: romSectionDownTargetId,
+                        },
+                }}
                 asChild
               >
                 <button
@@ -660,16 +757,24 @@ export function EmulationDetail({
             </div>
           ))}
         </div>
-      </section>
+        </section>
+      </VerticalFocusGroup>
 
-      {(config.system === "ps2" || config.system === "ps1") && (
+      {hasMemoryCardsSection && (
         <MemoryCardsSection
           config={config}
+          upTargetId={lastRomFolderFocusId}
+          downTargetId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
           onUploaded={() => setCloudRefreshKey((current) => current + 1)}
         />
       )}
 
-      <section className="emulator-detail__section">
+      <VerticalFocusGroup
+        regionId={EMULATION_DETAIL_LIBRARY_REGION_ID}
+        className="emulator-detail__section"
+        asChild
+      >
+        <section>
         <header className="emulator-detail__section-header">
           <div className="emulator-detail__section-text">
             <h3>{t("library_section_title")}</h3>
@@ -678,6 +783,16 @@ export function EmulationDetail({
           <div className="emulator-detail__section-actions">
             <Button
               focusId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
+              focusNavigationOverrides={{
+                left: { type: "block" },
+                right: { type: "block" },
+                up: {
+                  type: "item",
+                  itemId: hasMemoryCardsSection
+                    ? EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID
+                    : lastRomFolderFocusId,
+                },
+              }}
               variant="secondary"
               disabled={isBusy}
               icon={<SyncIcon size={13} />}
@@ -747,10 +862,15 @@ export function EmulationDetail({
             </span>
           </div>
         </div>
-      </section>
+        </section>
+      </VerticalFocusGroup>
 
-      {config.system === "ps1" || config.system === "ps2" ? (
-        <CloudSavesSection config={config} refreshKey={cloudRefreshKey} />
+      {hasMemoryCardsSection ? (
+        <CloudSavesSection
+          config={config}
+          refreshKey={cloudRefreshKey}
+          upTargetId={EMULATION_DETAIL_RESCAN_BUTTON_ID}
+        />
       ) : null}
 
       <ConfirmationModal

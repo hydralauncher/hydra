@@ -13,6 +13,23 @@
   }
 }
 
+@mixin emulation-primary-focus-ring {
+  outline: 1px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.emulator-detail,
+.emulation-settings__scan-modal,
+.emu-save-modal__restore,
+.emu-save-modal__rename {
+  .button {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      @include emulation-primary-focus-ring;
+    }
+  }
+}
+
 .settings-emulation {
   display: flex;
   flex-direction: column;
@@ -276,8 +293,7 @@
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.32);
-      outline-offset: 6px;
+      @include emulation-primary-focus-ring;
       border-radius: 4px;
     }
   }
@@ -522,8 +538,7 @@
 
     &:focus-visible,
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(12, 241, 202, 0.4);
-      outline-offset: 4px;
+      @include emulation-primary-focus-ring;
       border-radius: 2px;
     }
 
@@ -620,14 +635,13 @@
     cursor: pointer;
     padding: 4px;
 
-    &:hover,
-    &[data-focus-visible="true"] {
+    &:hover {
       color: #e11d48;
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(225, 29, 72, 0.28);
-      outline-offset: 4px;
+      color: #fafafa;
+      @include emulation-primary-focus-ring;
       border-radius: 4px;
     }
 
@@ -725,8 +739,7 @@
     text-align: left;
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.24);
-      outline-offset: 4px;
+      @include emulation-primary-focus-ring;
       border-radius: 4px;
     }
   }
@@ -861,8 +874,7 @@
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.24);
-      outline-offset: 4px;
+      @include emulation-primary-focus-ring;
     }
   }
 
@@ -886,8 +898,7 @@
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.24);
-      outline-offset: 4px;
+      @include emulation-primary-focus-ring;
     }
 
     &:disabled {
@@ -990,8 +1001,7 @@
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.24);
-      outline-offset: 4px;
+      @include emulation-primary-focus-ring;
       border-radius: 4px;
     }
   }
@@ -1073,12 +1083,12 @@
     cursor: pointer;
 
     &--selected {
-      border-color: #f6746b;
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 10%, #0d0d0d);
     }
 
     &[data-focus-visible="true"] {
-      outline: 2px solid rgba(246, 116, 107, 0.24);
-      outline-offset: 3px;
+      @include emulation-primary-focus-ring;
     }
   }
 
