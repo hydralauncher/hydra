@@ -7,6 +7,7 @@ import type {
   EmulationCloudSave,
   EmulationSaveEmulator,
   EmulationSavePlatform,
+  EmulatorBinary,
 } from "@types";
 
 /*
@@ -21,6 +22,15 @@ import type {
 
 const SUB = { needsAuth: true, needsSubscription: true } as const;
 const SAVE_KIND = "game_save" as const;
+
+export const toEmulationSaveEmulator = (
+  binary: EmulatorBinary
+): EmulationSaveEmulator => {
+  if (binary !== "duckstation" && binary !== "pcsx2") {
+    throw new Error(`Emulator "${binary}" has no cloud emulation saves`);
+  }
+  return binary;
+};
 
 export interface UploadEmulationSaveInput {
   platform: EmulationSavePlatform;

@@ -11,17 +11,30 @@ const isRpcs3RunningExternally = async (): Promise<number[]> => {
     .map((p) => p.pid);
 };
 
-const killPids = (pids: number[]): void => {
+const RPCS3_EXIT_POLL_INTERVAL_MS = 100;
+const RPCS3_EXIT_TIMEOUT_MS = 10_000;
+
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+const killPids = (pids: number[], signal: NodeJS.Signals = "SIGTERM"): void => {
   for (const pid of pids) {
     try {
-      process.kill(pid, "SIGTERM");
+      process.kill(pid, signal);
     } catch {
       void 0;
     }
   }
 };
 
-const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+const waitForRpcs3Exit = async (pids: number[]): Promise<boolean> => {
+  const start = Date.now();
+  while (Date.now() - start < RPCS3_EXIT_TIMEOUT_MS) {
+    const alive = await isRpcs3RunningExternally();
+    if (!pids.some((pid) => alive.includes(pid))) return true;
+    await sleep(RPCS3_EXIT_POLL_INTERVAL_MS);
+  }
+  return false;
+};
 
 const openClassicsGame = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -72,7 +85,18 @@ const openClassicsGame = async (
         throw error;
       }
       killPids(running);
-      await sleep(500);
+      let exited = await waitForRpcs3Exit(running);
+      if (!exited) {
+        killPids(running, "SIGKILL");
+        exited = await waitForRpcs3Exit(running);
+      }
+      if (!exited) {
+        const error: Error & { code?: string } = new Error(
+          `EMULATOR_ALREADY_RUNNING: rpcs3 did not exit before relaunch`
+        );
+        error.code = "EMULATOR_ALREADY_RUNNING";
+        throw error;
+      }
     }
   }
 
