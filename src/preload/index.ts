@@ -1128,6 +1128,8 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Friends */
   openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
+  minimizeFriendsWindow: () => ipcRenderer.invoke("minimizeFriendsWindow"),
+  closeFriendsWindow: () => ipcRenderer.invoke("closeFriendsWindow"),
   openFriendProfileInMainWindow: (userId: string) =>
     ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
   openAddFriendModalInMainWindow: () =>

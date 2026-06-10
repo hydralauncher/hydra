@@ -1448,6 +1448,7 @@
     "your_friend_code": "Your friend code:",
     "add_friend": "Add friend",
     "search_placeholder": "Search friends",
+    "clear_search": "Clear search",
     "friend_requests": "Friend requests",
     "accept": "Accept",
     "refuse": "Refuse",
@@ -1456,6 +1457,8 @@
     "no_results": "No friends found",
     "no_friends": "No friends online",
     "try_again": "Something went wrong. Please try again.",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "minimize": "Minimize",
+    "close": "Close"
   }
 }

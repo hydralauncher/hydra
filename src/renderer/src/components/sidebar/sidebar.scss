@@ -114,23 +114,25 @@
     flex-shrink: 0;
   }
 
-  &__online-orb {
-    position: absolute;
-    top: -6px;
-    right: -8px;
+  &__online-count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 8px;
-    background-color: globals.$success-color;
-    color: #ffffff;
-    font-size: 10px;
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: globals.$body-color;
+    font-size: 11px;
     font-weight: 700;
     line-height: 1;
-    border: 2px solid globals.$dark-background-color;
+
+    &--online {
+      background-color: globals.$success-color;
+      color: #ffffff;
+    }
   }
 
   &__game-icon {

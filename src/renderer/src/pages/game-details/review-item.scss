@@ -173,7 +173,7 @@
   &__blocked-review-hide-link {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: #ffc107;
     font-size: globals.$small-font-size;
     cursor: pointer;
     text-decoration: underline;
@@ -181,7 +181,7 @@
     transition: color 0.2s ease;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.8);
+      color: #ffeb3b;
     }
   }
 

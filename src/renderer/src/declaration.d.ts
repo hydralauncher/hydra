@@ -811,6 +811,8 @@ declare global {
 
     /* Friends Window */
     openFriendsWindow: () => Promise<void>;
+    minimizeFriendsWindow: () => Promise<void>;
+    closeFriendsWindow: () => Promise<void>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
     onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
