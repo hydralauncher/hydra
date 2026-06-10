@@ -21,15 +21,11 @@ import { Hero } from "@renderer/components";
 import type { HeroCandidate } from "@renderer/components/hero/hero";
 import type {
   CatalogueSearchPayload,
-  CatalogueSearchResult,
   DownloadSource,
-  GameRepack,
   LibraryGame,
-  ShopAssets,
   UserFriend,
 } from "@types";
 
-import { CatalogueCategory } from "@shared";
 import {
   useLibrary,
   useAppDispatch,
@@ -48,8 +44,13 @@ import { HomeScrollStateContext } from "./home-scroll-state-context";
 import { LernaPromoCard } from "./lerna-promo-card";
 import lernaLogo from "@renderer/assets/lerna-logo.svg?url";
 import { PlatformTitle } from "./platform-title";
-import { MOCK_PS2_GAMES, MOCK_PS3_GAMES } from "./mock-classics";
-import { fetchSteamSpyTopTags } from "./steamspy-tags";
+import {
+  fetchCategoryRow,
+  fetchShelfRow,
+  fetchSimilarRow,
+  batchDownloadSources,
+  type HomeFeedRow,
+} from "./home-feed-api";
 import {
   readHomeCache,
   readHomeCacheMany,
@@ -140,7 +141,6 @@ function refreshSessionSeedIfStale(): { seed: number; wasFresh: boolean } {
 
 const MAX_ROW_GAMES = 16;
 const FETCH_SIZE = 96;
-const CLASSICS_FETCH_SIZE = 128;
 const POOL_RELAX_THRESHOLD = 8;
 const REFETCH_THROTTLE_MS = 2 * 60 * 1000;
 const SURPRISE_SKELETON_MS = 520;
@@ -194,13 +194,6 @@ const TAG_ROWS = [
   { key: "fantasy", tag: "Fantasy" },
   { key: "survival", tag: "Survival" },
 ] as const;
-
-const PSEUDO_GENRE_TAGS: Record<string, string> = {
-  Puzzle: "Puzzle",
-  Fighting: "Fighting",
-  Platformer: "Platformer",
-  Horror: "Horror",
-};
 
 const SPOTLIGHTS = [
   {
@@ -311,7 +304,7 @@ function pickNDiverse<T extends { title: string }>(
     .map((x) => x.item);
 }
 
-const apiGameToRowGame = (g: ShopAssets): HomeRowGame => ({
+const apiGameToRowGame = (g: HomeFeedRow): HomeRowGame => ({
   objectId: g.objectId,
   shop: g.shop,
   title: g.title,
@@ -320,16 +313,7 @@ const apiGameToRowGame = (g: ShopAssets): HomeRowGame => ({
   coverImageUrl: g.coverImageUrl,
   logoImageUrl: g.logoImageUrl,
   downloadSources: g.downloadSources,
-});
-
-const catalogueToRowGame = (g: CatalogueSearchResult): HomeRowGame => ({
-  objectId: g.objectId,
-  shop: g.shop,
-  title: g.title,
-  libraryImageUrl: g.libraryImageUrl,
-  downloadSources: g.downloadSources,
-  platform: g.platform,
-  genres: g.genres,
+  genres: g.genres ?? undefined,
 });
 
 const EMPTY_ROW_GAME: HomeRowGame = {
@@ -356,26 +340,6 @@ const libraryGameToRowGame = (g: LibraryGame): HomeRowGame => {
     lastTimePlayed: g.lastTimePlayed,
   };
 };
-
-const buildSearch = (
-  overrides: Record<string, unknown>,
-  sourceIds: string[]
-) => ({
-  title: "",
-  sortBy: "popularity",
-  sortOrder: "desc",
-  take: FETCH_SIZE,
-  skip: 0,
-  downloadSourceIds: sourceIds,
-  tags: [],
-  publishers: [],
-  genres: [],
-  developers: [],
-  protondbSupportBadges: [],
-  deckCompatibility: [],
-  downloadSourceFingerprints: [],
-  ...overrides,
-});
 
 export default function Home() {
   const { t } = useTranslation("home");
@@ -507,7 +471,6 @@ export default function Home() {
   const [isLoadingTopReviewed, setIsLoadingTopReviewed] = useState(true);
   const [isLoadingPrimary, setIsLoadingPrimary] = useState(true);
 
-  const [classicsGames, setClassicsGames] = useState<HomeRowGame[]>([]);
   const [ps1Games, setPs1Games] = useState<HomeRowGame[]>([]);
   const [ps2Games, setPs2Games] = useState<HomeRowGame[]>([]);
   const [ps3Games, setPs3Games] = useState<HomeRowGame[]>([]);
@@ -576,7 +539,6 @@ export default function Home() {
       "topReviewed",
       "recentlyAdded",
       "hiddenGems",
-      "classics",
       "ps1",
       "ps2",
       "ps3",
@@ -609,7 +571,6 @@ export default function Home() {
         if (cache.hiddenGems) setHiddenGemsGames(cache.hiddenGems);
         setIsLoadingPrimary(false);
       }
-      if (cache.classics) setClassicsGames(cache.classics);
       if (cache.ps1) setPs1Games(cache.ps1);
       if (cache.ps2) setPs2Games(cache.ps2);
       if (cache.ps3) setPs3Games(cache.ps3);
@@ -647,130 +608,14 @@ export default function Home() {
 
       setIsHydrating(false);
     });
-  }, []);
-
-  const fetchCatalogueRowRaw = useCallback(
-    (category: CatalogueCategory, ids: string[]) =>
-      window.electron.hydraApi
-        .get<ShopAssets[]>(`/catalogue/${category}`, {
-          params: { take: FETCH_SIZE, skip: 0, downloadSourceIds: ids },
-          needsAuth: false,
-        })
-        .catch(() => [] as ShopAssets[]),
-    []
-  );
-
-  const fetchCatalogueRow = useCallback(
-    async (category: CatalogueCategory, ids: string[]) => {
-      const primary = await fetchCatalogueRowRaw(category, ids);
-      if (primary.length >= POOL_RELAX_THRESHOLD || ids.length === 0) {
-        return primary;
-      }
-      const fallback = await fetchCatalogueRowRaw(category, []);
-      const seen = new Set(primary.map((g) => `${g.shop}:${g.objectId}`));
-      for (const g of fallback) {
-        const k = `${g.shop}:${g.objectId}`;
-        if (!seen.has(k)) {
-          primary.push(g);
-          seen.add(k);
-        }
-      }
-      return primary;
-    },
-    [fetchCatalogueRowRaw]
-  );
-
-  const postSearch = useCallback(
-    <T,>(body: Record<string, unknown>) =>
-      window.electron.hydraApi
-        .post<{ edges: T[]; count: number }>("/catalogue/search", {
-          data: body,
-          needsAuth: false,
-        })
-        .then((r) => r.edges)
-        .catch(() => [] as T[]),
-    []
-  );
-
-  const fetchClassicsRow = useCallback(
-    async (extra: Record<string, unknown>, ids: string[]) => {
-      const body = {
-        shops: ["launchbox"],
-        take: CLASSICS_FETCH_SIZE,
-        ...extra,
-      };
-      const primary = await postSearch<CatalogueSearchResult>(
-        buildSearch(body, ids)
-      );
-      const accumulator = [...primary];
-      const seen = new Set(primary.map(keyOf));
-      const addUnique = (list: CatalogueSearchResult[]) => {
-        for (const g of list) {
-          const k = keyOf(g);
-          if (!seen.has(k)) {
-            seen.add(k);
-            accumulator.push(g);
-          }
-        }
-      };
-
-      if (accumulator.length < POOL_RELAX_THRESHOLD && ids.length > 0) {
-        const fallback = await postSearch<CatalogueSearchResult>(
-          buildSearch(body, [])
-        );
-        addUnique(fallback);
-      }
-
-      if (
-        accumulator.length < POOL_RELAX_THRESHOLD &&
-        Array.isArray(extra.platforms) &&
-        (extra.platforms as unknown[]).length > 0
-      ) {
-        const noShops = {
-          take: CLASSICS_FETCH_SIZE,
-          platforms: extra.platforms,
-        };
-        const platformOnly = await postSearch<CatalogueSearchResult>(
-          buildSearch(noShops, [])
-        );
-        addUnique(platformOnly.filter((g) => g.shop === "launchbox"));
-      }
-
-      return accumulator;
-    },
-    [postSearch]
-  );
-
-  const fetchPcDiscoveryRow = useCallback(
-    async (body: Record<string, unknown>, ids: string[]) => {
-      const primary = await postSearch<CatalogueSearchResult>(
-        buildSearch(body, ids)
-      );
-      if (primary.length >= POOL_RELAX_THRESHOLD || ids.length === 0) {
-        return primary;
-      }
-      const fallback = await postSearch<CatalogueSearchResult>(
-        buildSearch(body, [])
-      );
-      const seen = new Set(primary.map(keyOf));
-      for (const g of fallback) {
-        const k = keyOf(g);
-        if (!seen.has(k)) {
-          primary.push(g);
-          seen.add(k);
-        }
-      }
-      return primary;
-    },
-    [postSearch]
-  );
+  }, [currentSpotlight.key]);
 
   useEffect(() => {
     if (!sourcesLoaded) return;
 
-    const swrSet = <T extends HomeRowGame[]>(
-      setter: (v: T) => void,
-      rows: T,
+    const swrSet = (
+      setter: (v: HomeRowGame[]) => void,
+      rows: HomeRowGame[],
       cacheKey: HomeCacheKey
     ) => {
       if (rows.length > 0) {
@@ -779,66 +624,49 @@ export default function Home() {
       }
     };
 
-    fetchCatalogueRow(CatalogueCategory.Hot, sourceIds)
+    fetchCategoryRow("hot", sourceIds)
       .then((g) => swrSet(setHotGames, g.map(apiGameToRowGame), "popular"))
-      .catch(() => {})
       .finally(() => setIsLoadingHot(false));
 
-    const mostPlayedPromise = fetchPcDiscoveryRow(
-      { sortBy: "hydraScore", sortOrder: "desc" },
-      sourceIds
-    );
-    mostPlayedPromise
-      .then((games) =>
+    fetchCategoryRow("most-played", sourceIds)
+      .then((g) =>
         swrSet(
           setMostPlayedHydraGames,
-          games.map(catalogueToRowGame),
+          g.map(apiGameToRowGame),
           "mostPlayedHydra"
         )
       )
       .finally(() => setIsLoadingMostPlayedHydra(false));
 
-    fetchCatalogueRow(CatalogueCategory.Weekly, sourceIds)
+    fetchCategoryRow("weekly", sourceIds)
       .then((g) => swrSet(setWeeklyGames, g.map(apiGameToRowGame), "weekly"))
-      .catch(() => {})
       .finally(() => setIsLoadingWeekly(false));
 
-    fetchCatalogueRow(CatalogueCategory.Achievements, sourceIds)
+    fetchCategoryRow("achievements", sourceIds)
       .then((g) =>
         swrSet(setTopReviewedGames, g.map(apiGameToRowGame), "topReviewed")
       )
-      .catch(() => {})
       .finally(() => setIsLoadingTopReviewed(false));
 
+    fetchCategoryRow("acclaimed", sourceIds).then((g) =>
+      swrSet(
+        setCriticallyAcclaimedGames,
+        g.map(apiGameToRowGame),
+        "criticallyAcclaimed"
+      )
+    );
+
     Promise.all([
-      fetchPcDiscoveryRow(
-        { sortBy: "releaseDate", sortOrder: "desc" },
-        sourceIds
+      fetchCategoryRow("recently-added", sourceIds).then((g) => {
+        const rows = g.map(apiGameToRowGame);
+        swrSet(setRecentlyAddedGames, rows, "recentlyAdded");
+        swrSet(setBrandNewGames, rows, "brandNew");
+      }),
+      fetchCategoryRow("hidden-gems", sourceIds).then((g) =>
+        swrSet(setHiddenGemsGames, g.map(apiGameToRowGame), "hiddenGems")
       ),
-      fetchPcDiscoveryRow(
-        { sortBy: "reviewScore", sortOrder: "desc" },
-        sourceIds
-      ),
-      mostPlayedPromise,
-    ])
-      .then(([recent, acclaimed, popular]) => {
-        swrSet(
-          setRecentlyAddedGames,
-          recent.map(catalogueToRowGame),
-          "recentlyAdded"
-        );
-        const popularKeys = new Set(popular.map(keyOf));
-        const gems = acclaimed.filter((g) => !popularKeys.has(keyOf(g)));
-        swrSet(setHiddenGemsGames, gems.map(catalogueToRowGame), "hiddenGems");
-      })
-      .finally(() => setIsLoadingPrimary(false));
-  }, [
-    fetchCatalogueRow,
-    fetchPcDiscoveryRow,
-    sourceIds,
-    sourcesLoaded,
-    refetchToken,
-  ]);
+    ]).finally(() => setIsLoadingPrimary(false));
+  }, [sourceIds, sourcesLoaded, refetchToken]);
 
   useEffect(() => {
     if (!userDetails) {
@@ -1082,99 +910,30 @@ export default function Home() {
   const lastSecondaryFetchToken = useRef<string>("");
   useEffect(() => {
     if (!sourcesLoaded) return;
-    const filtersReady = launchboxFilters.platforms.length > 0;
-    const gateKey = `${refetchToken}:${filtersReady ? "1" : "0"}`;
+    const gateKey = `${refetchToken}`;
     if (lastSecondaryFetchToken.current === gateKey) return;
     lastSecondaryFetchToken.current = gateKey;
 
-    const platformsList = launchboxFilters.platforms;
-    const findKeyForBroad = (system: "ps1" | "ps2" | "ps3") =>
-      platformsList.find((p) => platformToSystem(p.name) === system)?.key ??
-      null;
-    const ps2KeyBroad = findKeyForBroad("ps2");
-    const ps3KeyBroad = findKeyForBroad("ps3");
-
     setIsLoadingClassics(true);
-    Promise.all([
-      fetchClassicsRow({}, sourceIds),
-      fetchClassicsRow({ skip: CLASSICS_FETCH_SIZE }, sourceIds),
-      fetchClassicsRow({ skip: CLASSICS_FETCH_SIZE * 2 }, sourceIds),
-      ps2KeyBroad
-        ? fetchClassicsRow({ platforms: [ps2KeyBroad] }, sourceIds)
-        : Promise.resolve([] as CatalogueSearchResult[]),
-      ps3KeyBroad
-        ? fetchClassicsRow({ platforms: [ps3KeyBroad] }, sourceIds)
-        : Promise.resolve([] as CatalogueSearchResult[]),
-    ])
-      .then((batches) => {
-        const seen = new Set<string>();
-        const merged: HomeRowGame[] = [];
-        const ingest = (list: CatalogueSearchResult[]) => {
-          for (const g of list) {
-            const k = keyOf(g);
-            if (seen.has(k)) continue;
-            seen.add(k);
-            merged.push(catalogueToRowGame(g));
-          }
-        };
-        for (const b of batches) ingest(b);
-        if (merged.length > 0) {
-          setClassicsGames(merged);
-          writeHomeCache("classics", merged);
-        }
-        const ps2Rows = batches[3].map(catalogueToRowGame);
-        const ps3Rows = batches[4].map(catalogueToRowGame);
-        if (ps2Rows.length > 0) {
-          setPs2Games(ps2Rows);
-          writeHomeCache("ps2", ps2Rows);
-        }
-        if (ps3Rows.length > 0) {
-          setPs3Games(ps3Rows);
-          writeHomeCache("ps3", ps3Rows);
+    fetchCategoryRow("retro", sourceIds)
+      .then((games) => {
+        const rows = games.map(apiGameToRowGame);
+        if (rows.length > 0) {
+          setRetroPcGames(rows);
+          writeHomeCache("retroPc", rows);
         }
       })
       .finally(() => setIsLoadingClassics(false));
 
-    fetchPcDiscoveryRow(
-      { releaseYear: { lte: RETRO_PC_BEFORE_YEAR } },
-      sourceIds
-    ).then((games) => {
-      const rows = games.map(catalogueToRowGame);
-      if (rows.length > 0) {
-        setRetroPcGames(rows);
-        writeHomeCache("retroPc", rows);
+    fetchCategoryRow("spotlight", sourceIds, { seed: sessionSeed }).then(
+      (games) => {
+        const rows = games.map(apiGameToRowGame);
+        if (rows.length > 0) {
+          setSpotlightGames(rows);
+          writeHomeCache(`spotlight:${currentSpotlight.key}`, rows);
+        }
       }
-    });
-
-    fetchPcDiscoveryRow(
-      { sortBy: "reviewScore", sortOrder: "desc" },
-      sourceIds
-    ).then((games) => {
-      const rows = games.map(catalogueToRowGame);
-      if (rows.length > 0) {
-        setCriticallyAcclaimedGames(rows);
-        writeHomeCache("criticallyAcclaimed", rows);
-      }
-    });
-
-    fetchPcDiscoveryRow(
-      { sortBy: "releaseDate", sortOrder: "desc" },
-      sourceIds
-    ).then((games) => {
-      const rows = games.map(catalogueToRowGame);
-      if (rows.length > 0) {
-        setBrandNewGames(rows);
-        writeHomeCache("brandNew", rows);
-      }
-    });
-
-    fetchPcDiscoveryRow(currentSpotlight.filter, sourceIds).then((games) => {
-      const rows = games.map(catalogueToRowGame);
-      if (rows.length > 0) {
-        setSpotlightGames(rows);
-        writeHomeCache(`spotlight:${currentSpotlight.key}`, rows);
-      }
-    });
+    );
 
     const genreList = [
       "Action",
@@ -1193,20 +952,14 @@ export default function Home() {
       "Platformer",
     ];
     setIsLoadingGenres(true);
-    const tagMap = steamUserTags["en"] ?? {};
     Promise.all(
-      genreList.map((genre) => {
-        const pseudoTagName = PSEUDO_GENRE_TAGS[genre];
-        const search: Partial<CatalogueSearchPayload> =
-          pseudoTagName && typeof tagMap[pseudoTagName] === "number"
-            ? { tags: [tagMap[pseudoTagName]] }
-            : { genres: [genre] };
-        return fetchPcDiscoveryRow(search, sourceIds).then((games) => {
-          const rows = games.map(catalogueToRowGame);
+      genreList.map((genre) =>
+        fetchShelfRow({ genre }, sourceIds).then((games) => {
+          const rows = games.map(apiGameToRowGame);
           if (rows.length > 0) writeHomeCache(`genre:${genre}`, rows);
           return [genre, rows] as const;
-        });
-      })
+        })
+      )
     )
       .then((entries) => {
         setGenreData((prev) => {
@@ -1218,46 +971,30 @@ export default function Home() {
         });
       })
       .finally(() => setIsLoadingGenres(false));
-
-    /* Tag-themed rows fetch in a separate effect because they depend on
-       the steamUserTags map being loaded first to resolve names → IDs. */
   }, [
-    visibleTier,
     sourcesLoaded,
     sourceIds,
-    postSearch,
-    fetchPcDiscoveryRow,
-    fetchClassicsRow,
     refetchToken,
-    launchboxFilters,
-    steamUserTags,
+    sessionSeed,
+    currentSpotlight.key,
   ]);
 
   const lastTagFetchKeyRef = useRef<string>("");
   useEffect(() => {
     if (!sourcesLoaded) return;
-    const map = steamUserTags["en"];
-    if (!map || Object.keys(map).length === 0) return;
-
-    const fetchKey = `${refetchToken}:en`;
+    const fetchKey = `${refetchToken}`;
     if (lastTagFetchKeyRef.current === fetchKey) return;
     lastTagFetchKeyRef.current = fetchKey;
 
     setIsLoadingTags(true);
     Promise.all(
-      TAG_ROWS.map(({ key, tag }) => {
-        const tagId = map[tag];
-        if (typeof tagId !== "number") {
-          return Promise.resolve([key, [] as HomeRowGame[]] as const);
-        }
-        return fetchPcDiscoveryRow({ tags: [tagId] }, sourceIds).then(
-          (games) => {
-            const rows = games.map(catalogueToRowGame);
-            if (rows.length > 0) writeHomeCache(`tag:${key}`, rows);
-            return [key, rows] as const;
-          }
-        );
-      })
+      TAG_ROWS.map(({ key, tag }) =>
+        fetchShelfRow({ tag }, sourceIds).then((games) => {
+          const rows = games.map(apiGameToRowGame);
+          if (rows.length > 0) writeHomeCache(`tag:${key}`, rows);
+          return [key, rows] as const;
+        })
+      )
     )
       .then((entries) => {
         setTagData((prev) => {
@@ -1269,14 +1006,7 @@ export default function Home() {
         });
       })
       .finally(() => setIsLoadingTags(false));
-  }, [
-    visibleTier,
-    sourcesLoaded,
-    sourceIds,
-    refetchToken,
-    steamUserTags,
-    fetchPcDiscoveryRow,
-  ]);
+  }, [sourcesLoaded, sourceIds, refetchToken]);
 
   const lastPlatformFetchTokenRef = useRef<number>(-1);
   useEffect(() => {
@@ -1285,30 +1015,30 @@ export default function Home() {
     if (lastPlatformFetchTokenRef.current === refetchToken) return;
     lastPlatformFetchTokenRef.current = refetchToken;
 
-    const findKey = (system: "ps1" | "ps2" | "ps3") =>
+    const findPlatform = (system: "ps1" | "ps2" | "ps3") =>
       launchboxFilters.platforms.find(
         (p) => platformToSystem(p.name) === system
-      )?.key ?? null;
+      ) ?? null;
 
-    const ps1Key = findKey("ps1");
-    const ps2Key = findKey("ps2");
-    const ps3Key = findKey("ps3");
-
-    const fetchPlatform = (key: string | null) =>
-      key
-        ? fetchClassicsRow({ platforms: [key] }, sourceIds)
-        : Promise.resolve([] as CatalogueSearchResult[]);
+    const fetchPlatform = (
+      platform: { key: string; name: string } | null
+    ): Promise<HomeRowGame[]> =>
+      platform
+        ? fetchShelfRow({ platform: platform.key }, sourceIds).then((games) =>
+            games.map((g) => ({
+              ...apiGameToRowGame(g),
+              platform: platform.name,
+            }))
+          )
+        : Promise.resolve([]);
 
     setIsLoadingPlatformClassics(true);
     Promise.all([
-      fetchPlatform(ps1Key),
-      fetchPlatform(ps2Key),
-      fetchPlatform(ps3Key),
+      fetchPlatform(findPlatform("ps1")),
+      fetchPlatform(findPlatform("ps2")),
+      fetchPlatform(findPlatform("ps3")),
     ])
-      .then(([ps1, ps2, ps3]) => {
-        const r1 = ps1.map(catalogueToRowGame);
-        const r2 = ps2.map(catalogueToRowGame);
-        const r3 = ps3.map(catalogueToRowGame);
+      .then(([r1, r2, r3]) => {
         if (r1.length > 0) {
           setPs1Games(r1);
           writeHomeCache("ps1", r1);
@@ -1323,14 +1053,7 @@ export default function Home() {
         }
       })
       .finally(() => setIsLoadingPlatformClassics(false));
-  }, [
-    visibleTier,
-    sourcesLoaded,
-    sourceIds,
-    launchboxFilters,
-    fetchClassicsRow,
-    refetchToken,
-  ]);
+  }, [sourcesLoaded, sourceIds, launchboxFilters, refetchToken]);
 
   const lastClassicsPgKeyRef = useRef<string>("");
   useEffect(() => {
@@ -1338,14 +1061,17 @@ export default function Home() {
     if (visibleTier < 3) return;
     if (launchboxFilters.platforms.length === 0) return;
 
-    const findKey = (system: "ps1" | "ps2" | "ps3") =>
+    const findPlatform = (system: "ps1" | "ps2" | "ps3") =>
       launchboxFilters.platforms.find(
         (p) => platformToSystem(p.name) === system
-      )?.key ?? null;
-    const psKeys: Record<"ps1" | "ps2" | "ps3", string | null> = {
-      ps1: findKey("ps1"),
-      ps2: findKey("ps2"),
-      ps3: findKey("ps3"),
+      ) ?? null;
+    const psPlatforms: Record<
+      "ps1" | "ps2" | "ps3",
+      { key: string; name: string } | null
+    > = {
+      ps1: findPlatform("ps1"),
+      ps2: findPlatform("ps2"),
+      ps3: findPlatform("ps3"),
     };
     const psGenres = [
       "Action",
@@ -1356,28 +1082,32 @@ export default function Home() {
       "Fighting",
       "Racing",
     ];
-    const fetchKey = `${refetchToken}:${psKeys.ps1 ?? ""}:${psKeys.ps2 ?? ""}:${psKeys.ps3 ?? ""}`;
+    const fetchKey = `${refetchToken}:${psPlatforms.ps1?.key ?? ""}:${psPlatforms.ps2?.key ?? ""}:${psPlatforms.ps3?.key ?? ""}`;
     if (lastClassicsPgKeyRef.current === fetchKey) return;
     lastClassicsPgKeyRef.current = fetchKey;
 
     let cancelled = false;
     const combos: Array<{
       ps: "ps1" | "ps2" | "ps3";
-      key: string;
+      platform: { key: string; name: string };
       genre: string;
     }> = [];
     for (const ps of ["ps1", "ps2", "ps3"] as const) {
-      const key = psKeys[ps];
-      if (!key) continue;
-      for (const g of psGenres) combos.push({ ps, key, genre: g });
+      const platform = psPlatforms[ps];
+      if (!platform) continue;
+      for (const g of psGenres) combos.push({ ps, platform, genre: g });
     }
     Promise.all(
-      combos.map(async ({ ps, key, genre }) => {
-        const rows = await fetchClassicsRow(
-          { platforms: [key], genres: [genre] },
+      combos.map(async ({ ps, platform, genre }) => {
+        const games = await fetchShelfRow(
+          { platform: platform.key, genre },
           sourceIds
         );
-        return [`${ps}:${genre}`, rows.map(catalogueToRowGame)] as const;
+        const rows = games.map((g) => ({
+          ...apiGameToRowGame(g),
+          platform: platform.name,
+        }));
+        return [`${ps}:${genre}`, rows] as const;
       })
     ).then((entries) => {
       if (cancelled) return;
@@ -1395,14 +1125,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [
-    visibleTier,
-    sourcesLoaded,
-    sourceIds,
-    launchboxFilters,
-    fetchClassicsRow,
-    refetchToken,
-  ]);
+  }, [visibleTier, sourcesLoaded, sourceIds, launchboxFilters, refetchToken]);
 
   const lastExtraPlatformsKeyRef = useRef<string>("");
   useEffect(() => {
@@ -1419,11 +1142,15 @@ export default function Home() {
     let cancelled = false;
     Promise.all(
       extras.map(async (platform) => {
-        const rows = await fetchClassicsRow(
-          { platforms: [platform.key] },
+        const games = await fetchShelfRow(
+          { platform: platform.key },
           sourceIds
         );
-        return [platform.key, rows.map(catalogueToRowGame)] as const;
+        const rows = games.map((g) => ({
+          ...apiGameToRowGame(g),
+          platform: platform.name,
+        }));
+        return [platform.key, rows] as const;
       })
     ).then((entries) => {
       if (cancelled) return;
@@ -1438,13 +1165,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [
-    sourcesLoaded,
-    sourceIds,
-    launchboxFilters,
-    fetchClassicsRow,
-    refetchToken,
-  ]);
+  }, [sourcesLoaded, sourceIds, launchboxFilters, refetchToken]);
 
   const [librarySourcesCache, setLibrarySourcesCache] = useState<
     Map<string, string[]>
@@ -1466,34 +1187,18 @@ export default function Home() {
     if (targets.length === 0) return;
 
     let cancelled = false;
-    Promise.all(
-      targets.map(async (game) => {
-        try {
-          const repacks = await window.electron.hydraApi.get<GameRepack[]>(
-            `/games/${game.shop}/${game.objectId}/download-sources`,
-            {
-              params: { take: 100, skip: 0, downloadSourceIds: sourceIds },
-              needsAuth: false,
-            }
-          );
-          const names = Array.from(
-            new Set(
-              repacks
-                .map((r) => r.downloadSourceName)
-                .filter((n): n is string => !!n)
-            )
-          );
-          return [game.objectId, names] as const;
-        } catch {
-          return [game.objectId, [] as string[]] as const;
-        }
-      })
-    ).then((entries) => {
+    batchDownloadSources(
+      targets.map((game) => ({ shop: game.shop, objectId: game.objectId })),
+      sourceIds
+    ).then((sourcesByGame) => {
       if (cancelled) return;
       setLibrarySourcesCache((prev) => {
         const next = new Map(prev);
-        for (const [id, names] of entries) {
-          next.set(id, names);
+        for (const game of targets) {
+          next.set(
+            game.objectId,
+            sourcesByGame[`${game.objectId}-${game.shop}`] ?? []
+          );
         }
         return next;
       });
@@ -1502,8 +1207,6 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-    /* librarySourcesCache intentionally omitted — we mutate via the
-       setter only, and including it here would trigger re-fetch loops. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [library, sourcesLoaded, sourceIds, refetchToken]);
 
@@ -1523,7 +1226,6 @@ export default function Home() {
     ingest(topReviewedGames);
     ingest(recentlyAddedGames);
     ingest(hiddenGemsGames);
-    ingest(classicsGames);
     for (const arr of Object.values(genreData)) ingest(arr);
     for (const arr of Object.values(tagData)) ingest(arr);
 
@@ -1541,7 +1243,6 @@ export default function Home() {
     topReviewedGames,
     recentlyAddedGames,
     hiddenGemsGames,
-    classicsGames,
     genreData,
     tagData,
     librarySourcesCache,
@@ -1658,55 +1359,12 @@ export default function Home() {
         pool.push(g);
       }
     };
-    ingest(classicsGames);
     ingest(ps1Games);
     ingest(ps2Games);
     ingest(ps3Games);
     ingest(libraryClassicsPool);
     return pool;
-  }, [classicsGames, ps1Games, ps2Games, ps3Games, libraryClassicsPool]);
-
-  const crossSourceClassicsByPlatform = useMemo(() => {
-    const buckets: Record<"ps1" | "ps2" | "ps3", HomeRowGame[]> = {
-      ps1: [],
-      ps2: [],
-      ps3: [],
-    };
-    const seenIds: Record<"ps1" | "ps2" | "ps3", Set<string>> = {
-      ps1: new Set(),
-      ps2: new Set(),
-      ps3: new Set(),
-    };
-    const ingest = (games: HomeRowGame[]) => {
-      for (const g of games) {
-        if (g.shop !== "launchbox") continue;
-        const system = platformToSystem(g.platform);
-        if (system !== "ps1" && system !== "ps2" && system !== "ps3") continue;
-        const k = keyOf(g);
-        if (seenIds[system].has(k)) continue;
-        seenIds[system].add(k);
-        buckets[system].push(g);
-      }
-    };
-    ingest(weeklyGames);
-    ingest(hotGames);
-    ingest(topReviewedGames);
-    ingest(mostPlayedHydraGames);
-    ingest(recentlyAddedGames);
-    ingest(hiddenGemsGames);
-    ingest(criticallyAcclaimedGames);
-    ingest(brandNewGames);
-    return buckets;
-  }, [
-    weeklyGames,
-    hotGames,
-    topReviewedGames,
-    mostPlayedHydraGames,
-    recentlyAddedGames,
-    hiddenGemsGames,
-    criticallyAcclaimedGames,
-    brandNewGames,
-  ]);
+  }, [ps1Games, ps2Games, ps3Games, libraryClassicsPool]);
 
   const hasPersonalSignal = useMemo(
     () => library.some((g) => !g.isDeleted),
@@ -1884,43 +1542,18 @@ export default function Home() {
   useEffect(() => {
     if (!sourcesLoaded) return;
     if (similarSeedGames.size === 0) return;
-    const tagMap = steamUserTags["en"];
-    if (!tagMap || Object.keys(tagMap).length === 0) return;
 
     let cancelled = false;
 
     Promise.all(
       Array.from(similarSeedGames.values()).map(async (seed) => {
-        let rows: HomeRowGame[] = [];
-
-        if (seed.shop === "steam") {
-          const tagNames = await fetchSteamSpyTopTags(seed.objectId);
-          const tagIds: number[] = [];
-          for (const name of tagNames) {
-            const id = tagMap[name];
-            if (typeof id === "number") {
-              tagIds.push(id);
-              if (tagIds.length === 2) break;
-            }
-          }
-          if (tagIds.length >= 2) {
-            const games = await postSearch<CatalogueSearchResult>(
-              buildSearch({ tags: tagIds }, sourceIds)
-            );
-            rows = games.map(catalogueToRowGame);
-          }
-        }
-
-        if (rows.length === 0) {
-          const gs = libraryGameGenres.get(seed.objectId);
-          if (gs && gs.length >= 2) {
-            const games = await postSearch<CatalogueSearchResult>(
-              buildSearch({ genres: gs.slice(0, 2) }, sourceIds)
-            );
-            rows = games.map(catalogueToRowGame);
-          }
-        }
-
+        const games = await fetchSimilarRow(
+          seed.shop,
+          seed.objectId,
+          sourceIds,
+          { needsAuth: Boolean(userDetails) }
+        );
+        const rows = games.map(apiGameToRowGame);
         if (rows.length > 0) {
           writeHomeCache(`similar:${seed.objectId}` as HomeCacheKey, rows);
         }
@@ -1940,15 +1573,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [
-    similarSeedGames,
-    libraryGameGenres,
-    sourcesLoaded,
-    sourceIds,
-    refetchToken,
-    postSearch,
-    steamUserTags,
-  ]);
+  }, [similarSeedGames, sourcesLoaded, sourceIds, refetchToken, userDetails]);
 
   const personalizedRowGames = useMemo(() => {
     const map = new Map<string, HomeRowGame[]>();
@@ -2142,104 +1767,39 @@ export default function Home() {
         `${system}:${genre}`
       );
       if (fetched && fetched.length > 0) return fetched;
+
+      const wantedGenre = genre.toLowerCase();
       const seenIds = new Set<string>();
       const out: HomeRowGame[] = [];
-      const wantedGenre = genre.toLowerCase();
-      const keywords: Record<string, string[]> = {
-        horror: ["horror", "silent hill", "resident evil", "fatal frame"],
-        rpg: [
-          "rpg",
-          "final fantasy",
-          "dragon quest",
-          "tales of",
-          "kingdom hearts",
-        ],
-        action: ["action", "devil may cry", "god of war", "metal gear"],
-        platformer: [
-          "platformer",
-          "platform",
-          "crash bandicoot",
-          "spyro",
-          "rayman",
-          "klonoa",
-          "jak",
-          "ratchet",
-        ],
-        fighting: [
-          "fighting",
-          "tekken",
-          "mortal kombat",
-          "street fighter",
-          "soulcalibur",
-          "soul calibur",
-          "virtua fighter",
-          "dead or alive",
-        ],
-        adventure: [
-          "adventure",
-          "myst",
-          "broken sword",
-          "syphon filter",
-          "tomb raider",
-        ],
-      };
-      const titleKeywords = keywords[wantedGenre] ?? [wantedGenre];
+      const platformPool =
+        system === "ps1" ? ps1Games : system === "ps2" ? ps2Games : ps3Games;
       const consider = (g: HomeRowGame) => {
         if (platformToSystem(g.platform) !== system) return;
         const k = keyOf(g);
         if (seenIds.has(k)) return;
         const gs = g.genres;
-        const matchesByGenre =
-          gs && gs.some((x) => x.toLowerCase() === wantedGenre);
-        const lt = g.title?.toLowerCase() ?? "";
-        const matchesByTitle =
-          !gs && titleKeywords.some((kw) => lt.includes(kw));
-        if (!matchesByGenre && !matchesByTitle) return;
+        if (!gs || !gs.some((x) => x.toLowerCase() === wantedGenre)) return;
         seenIds.add(k);
         out.push(g);
       };
-      for (const g of classicsGames) consider(g);
+      for (const g of platformPool) consider(g);
       for (const g of libraryClassicsPool) consider(g);
-      if (system === "ps1") {
-        for (const g of crossSourceClassicsByPlatform.ps1) consider(g);
-      } else if (system === "ps2") {
-        for (const g of crossSourceClassicsByPlatform.ps2) consider(g);
-      } else if (system === "ps3") {
-        for (const g of crossSourceClassicsByPlatform.ps3) consider(g);
-      }
-      if (system === "ps2") {
-        for (const g of MOCK_PS2_GAMES) consider(g);
-      } else if (system === "ps3") {
-        for (const g of MOCK_PS3_GAMES) consider(g);
-      }
       return out;
     },
     [
-      classicsGames,
-      libraryClassicsPool,
       classicsByPlatformAndGenreFetched,
-      crossSourceClassicsByPlatform,
+      ps1Games,
+      ps2Games,
+      ps3Games,
+      libraryClassicsPool,
     ]
   );
 
-  const retroMixedPool = useMemo(() => {
-    const pc = retroPcGames;
-    const classics = classicsGames;
-    if (pc.length === 0) return classics;
-    if (classics.length === 0) return pc;
-    const interleaved: HomeRowGame[] = [];
-    const maxLen = Math.max(pc.length, classics.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (pc[i]) interleaved.push(pc[i]);
-      if (classics[i]) interleaved.push(classics[i]);
-    }
-    return interleaved;
-  }, [retroPcGames, classicsGames]);
+  const retroMixedPool = retroPcGames;
 
   const { d, randomPicks, randomPicksPool, extraPlatformRows } = useMemo(() => {
     const globallySeen = new Set<string>();
     for (const g of weeklyGames.slice(0, 3)) globallySeen.add(keyOf(g));
-    for (const g of classicsGames.slice(0, 3)) globallySeen.add(keyOf(g));
     for (const g of hotGames.slice(0, 3)) globallySeen.add(keyOf(g));
     for (const g of topReviewedGames.slice(0, 3)) globallySeen.add(keyOf(g));
     for (const g of recentlyAddedGames.slice(0, 3)) globallySeen.add(keyOf(g));
@@ -2343,7 +1903,9 @@ export default function Home() {
         }
       };
       ingest(universalPool);
-      ingest(classicsGames);
+      ingest(ps1Games);
+      ingest(ps2Games);
+      ingest(ps3Games);
       ingest(criticallyAcclaimedGames);
       ingest(brandNewGames);
       for (const arr of Object.values(genreData)) ingest(arr);
@@ -2555,50 +2117,28 @@ export default function Home() {
         fallbackPool: universalPool,
       }),
       ps1: enrichSources(
-        (() => {
-          if (ps1Games.length > 0) return ps1Games;
-          const libPs1 = libraryClassicsPool.filter(
-            (g) => platformToSystem(g.platform) === "ps1"
-          );
-          if (libPs1.length > 0) return libPs1;
-          const fromBroad = classicsGames.filter(
-            (g) => platformToSystem(g.platform) === "ps1"
-          );
-          if (fromBroad.length > 0) return fromBroad;
-          return crossSourceClassicsByPlatform.ps1;
-        })().slice(0, MAX_ROW_GAMES)
+        (ps1Games.length > 0
+          ? ps1Games
+          : libraryClassicsPool.filter(
+              (g) => platformToSystem(g.platform) === "ps1"
+            )
+        ).slice(0, MAX_ROW_GAMES)
       ),
       ps2: enrichSources(
-        (() => {
-          if (ps2Games.length > 0) return ps2Games;
-          const libPs2 = libraryClassicsPool.filter(
-            (g) => platformToSystem(g.platform) === "ps2"
-          );
-          if (libPs2.length > 0) return libPs2;
-          const fromBroad = classicsGames.filter(
-            (g) => platformToSystem(g.platform) === "ps2"
-          );
-          if (fromBroad.length > 0) return fromBroad;
-          const cross = crossSourceClassicsByPlatform.ps2;
-          if (cross.length > 0) return cross;
-          return MOCK_PS2_GAMES;
-        })().slice(0, MAX_ROW_GAMES)
+        (ps2Games.length > 0
+          ? ps2Games
+          : libraryClassicsPool.filter(
+              (g) => platformToSystem(g.platform) === "ps2"
+            )
+        ).slice(0, MAX_ROW_GAMES)
       ),
       ps3: enrichSources(
-        (() => {
-          if (ps3Games.length > 0) return ps3Games;
-          const libPs3 = libraryClassicsPool.filter(
-            (g) => platformToSystem(g.platform) === "ps3"
-          );
-          if (libPs3.length > 0) return libPs3;
-          const fromBroad = classicsGames.filter(
-            (g) => platformToSystem(g.platform) === "ps3"
-          );
-          if (fromBroad.length > 0) return fromBroad;
-          const cross = crossSourceClassicsByPlatform.ps3;
-          if (cross.length > 0) return cross;
-          return MOCK_PS3_GAMES;
-        })().slice(0, MAX_ROW_GAMES)
+        (ps3Games.length > 0
+          ? ps3Games
+          : libraryClassicsPool.filter(
+              (g) => platformToSystem(g.platform) === "ps3"
+            )
+        ).slice(0, MAX_ROW_GAMES)
       ),
       browseClassics: sliceDiscovery(browseClassicsPool, {
         rowKey: "browseClassics",
@@ -2770,9 +2310,7 @@ export default function Home() {
     browseClassicsPool,
     classicsByPlatformAndGenre,
     classicsFallbackPool,
-    classicsGames,
     criticallyAcclaimedGames,
-    crossSourceClassicsByPlatform,
     currentSpotlight.key,
     enrichSources,
     favoriteGames,
