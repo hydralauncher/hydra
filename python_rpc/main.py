@@ -5,9 +5,20 @@ import re
 import sys
 import tempfile
 import threading
-import time
 import urllib.parse
 from typing import Any, Optional
+import sys
+import os
+
+if sys.platform == "win32":
+    dll_dir = os.path.join(sys.base_prefix, "DLLs")
+    if os.path.isdir(dll_dir):
+        try:
+            os.add_dll_directory(dll_dir)
+        except Exception:
+            pass
+
+print(f"USING PYTHON: {sys.executable}", file=sys.stderr)
 
 import libtorrent as lt
 
@@ -340,10 +351,12 @@ def status():
         downloader = downloads.get(downloading_game_id)
 
     if not downloader:
+        logger.debug("status(): downloader not found for %s", downloading_game_id)
         return None
 
     status_payload = downloader.get_download_status()
     if not status_payload:
+        logger.debug("status(): status_payload is None for %s", downloading_game_id)
         return None
 
     return status_payload
@@ -437,7 +450,7 @@ def action(data: Optional[dict] = None):
     if not action_name:
         raise RpcError("invalid_action")
 
-    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding"}
+    requires_game_id = {"start", "pause", "cancel", "resume_seeding", "pause_seeding", "force_recheck"}
     if action_name in requires_game_id and not game_id:
         raise RpcError("invalid_game_id")
 
@@ -511,6 +524,37 @@ def action(data: Optional[dict] = None):
 
             for downloader in active_downloaders:
                 apply_download_limit(downloader)
+        elif action_name == "force_recheck":
+            logger.info("force_recheck received for %s with data: %s", game_id, data)
+            downloading_game_id = game_id
+            with downloads_lock:
+                downloader = downloads.get(game_id)
+
+            if not downloader and "url" in data and "save_path" in data:
+                logger.info("force_recheck: creating new downloader (paused)")
+                # Use paused flag so the torrent doesn't start downloading immediately
+                start_torrent_download(
+                    game_id,
+                    data["url"],
+                    data["save_path"],
+                    flags=lt.torrent_flags.paused,
+                )
+                with downloads_lock:
+                    downloader = downloads.get(game_id)
+
+            if downloader:
+                logger.info("force_recheck: pausing then executing force_recheck on downloader")
+                downloading_game_id = game_id
+                # Pause the torrent first so force_recheck doesn't trigger a download
+                with downloads_lock:
+                    handle = getattr(downloader, "torrent_handle", None)
+                    if handle and handle.is_valid():
+                        handle.pause()
+                        handle.unset_flags(lt.torrent_flags.auto_managed)
+                downloader.force_recheck()
+                logger.info("force_recheck: force_recheck() called successfully for %s", game_id)
+            else:
+                logger.warning("force_recheck: failed to get or create downloader")
         else:
             raise RpcError("invalid_action")
     except RpcError:

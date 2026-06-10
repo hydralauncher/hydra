@@ -5,7 +5,6 @@ from typing import List, Optional, Set
 
 import libtorrent as lt
 
-
 class TorrentDownloader:
     def __init__(
         self,
@@ -315,6 +314,11 @@ class TorrentDownloader:
         self.torrent_handle = None
         self.selected_file_indices = None
         self.selected_size_bytes = None
+
+    def force_recheck(self):
+        with self.session_lock:
+            if self.torrent_handle and self.torrent_handle.is_valid():
+                self.torrent_handle.force_recheck()
 
     def _get_handle_status(self):
         if self.torrent_handle is None:

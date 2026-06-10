@@ -99,6 +99,9 @@ export function GameOptionsModal({
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
+  const [customDownloadPath, setCustomDownloadPath] = useState<string | null>(
+    null
+  );
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [selectedProtonPath, setSelectedProtonPath] = useState(
     game.protonPath ?? ""
@@ -119,6 +122,48 @@ export function GameOptionsModal({
   >(null);
   const [showSteamShortcutModal, setShowSteamShortcutModal] = useState(false);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
+  const [verifyingIntegrity, setVerifyingIntegrity] = useState(false);
+
+  const handleVerifyIntegrity = async () => {
+    try {
+      setVerifyingIntegrity(true);
+      // Pass uri + downloadPath as fallback so the handler can create a DB entry if missing
+      const uri = game.download?.uri || repacks[0]?.uris[0];
+      const downloadPath = customDownloadPath || game.download?.downloadPath;
+
+      if (!uri)
+        throw new Error(
+          t("no_repacks_found", "Aucune source trouvée pour ce jeu.")
+        );
+      if (!downloadPath)
+        throw new Error(
+          t(
+            "no_download_path",
+            "Veuillez sélectionner un dossier de téléchargement."
+          )
+        );
+
+      await window.electron.verifyGameIntegrity(
+        game.shop,
+        game.objectId,
+        uri,
+        downloadPath
+      );
+      showSuccessToast(
+        t(
+          "verify_integrity_success",
+          "Vérification lancée avec succès. Regardez la barre de téléchargement."
+        )
+      );
+    } catch (err: any) {
+      showErrorToast(
+        err?.message ||
+          t("verify_integrity_error", "Erreur lors de la vérification.")
+      );
+    } finally {
+      setVerifyingIntegrity(false);
+    }
+  };
 
   const {
     removeGameInstaller,
@@ -617,6 +662,16 @@ export function GameOptionsModal({
   const displayedWinePrefixPath =
     game.winePrefixPath ?? defaultHydraWinePrefixPath;
 
+  const handleSelectDownloadPath = async () => {
+    const { filePaths, canceled } = await window.electron.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+
+    if (!canceled && filePaths.length > 0) {
+      setCustomDownloadPath(filePaths[0]);
+    }
+  };
+
   const categories = useMemo(
     () => [
       {
@@ -782,6 +837,10 @@ export function GameOptionsModal({
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
+                onVerifyIntegrity={handleVerifyIntegrity}
+                verifyingIntegrity={verifyingIntegrity}
+                customDownloadPath={customDownloadPath}
+                onSelectDownloadPath={handleSelectDownloadPath}
                 isTransferring={isTransferring}
                 transferProgress={transferProgress}
                 drives={drives}
@@ -824,6 +883,10 @@ export function GameOptionsModal({
                 onBlurGameTitle={handleBlurGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
+                onVerifyIntegrity={handleVerifyIntegrity}
+                verifyingIntegrity={verifyingIntegrity}
+                customDownloadPath={customDownloadPath}
+                onSelectDownloadPath={handleSelectDownloadPath}
                 isTransferring={isTransferring}
                 transferProgress={transferProgress}
                 drives={drives}

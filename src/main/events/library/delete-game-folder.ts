@@ -55,12 +55,13 @@ const deleteGameFolder = async (
   await downloadsSublevel.del(gameKey);
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
 
-  // Clear installer size from game record
+  // Clear installer size and executable path from game record
   const game = await gamesSublevel.get(gameKey);
   if (game) {
     await gamesSublevel.put(gameKey, {
       ...game,
       installerSizeInBytes: null,
+      executablePath: null,
     });
   }
 };

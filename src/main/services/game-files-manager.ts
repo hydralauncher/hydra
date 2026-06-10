@@ -12,6 +12,7 @@ import axios from "axios";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
 import fs from "node:fs";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
@@ -286,10 +287,26 @@ export class GameFilesManager {
         return;
       }
 
-      const foundExePath = await this.findExecutableInFolder(
-        gameFolderPath,
-        executableNames
-      );
+      let foundExePath: string | null = null;
+      let isSetup = false;
+
+      if (executableNames && executableNames.length > 0) {
+        foundExePath = await this.findExecutableInFolder(
+          gameFolderPath,
+          executableNames
+        );
+      }
+
+      if (!foundExePath) {
+        const detectResult = await this.autoDetectExecutable(
+          gameFolderPath,
+          game.title
+        );
+        if (detectResult) {
+          foundExePath = detectResult.exePath;
+          isSetup = detectResult.isSetup;
+        }
+      }
 
       if (foundExePath) {
         logger.info(
@@ -304,6 +321,24 @@ export class GameFilesManager {
         WindowManager.sendToAppWindows("on-library-batch-complete");
 
         await this.createDesktopShortcutForGame(game.title);
+
+        if (isSetup) {
+          logger.info(
+            `[GameFilesManager] Setup detected, launching installer: ${foundExePath}`
+          );
+          try {
+            spawn(foundExePath, [], {
+              detached: true,
+              stdio: "ignore",
+              cwd: path.dirname(foundExePath),
+            }).unref();
+          } catch (e) {
+            logger.error(
+              `[GameFilesManager] Failed to launch setup for ${this.objectId}`,
+              e
+            );
+          }
+        }
       }
     } catch (err) {
       logger.error(
@@ -629,6 +664,119 @@ export class GameFilesManager {
       }
     } catch {
       // Silently fail if folder cannot be read
+    }
+
+    return null;
+  }
+
+  private static computeExeScore(
+    normalizedExeName: string,
+    normalizedTitle: string
+  ): number {
+    if (normalizedExeName === normalizedTitle) return 100;
+    if (
+      normalizedExeName.includes(normalizedTitle) ||
+      normalizedTitle.includes(normalizedExeName)
+    )
+      return 50;
+    if (normalizedExeName === "game" || normalizedExeName.includes("game"))
+      return 10;
+    return 0;
+  }
+
+  private async autoDetectExecutable(
+    folderPath: string,
+    gameTitle: string
+  ): Promise<{ exePath: string; isSetup: boolean } | null> {
+    const allExeFiles: string[] = [];
+    const maxDepth = 3;
+
+    const findExes = async (currentPath: string, depth: number) => {
+      if (depth > maxDepth) return;
+      try {
+        const entries = await fs.promises.readdir(currentPath, {
+          withFileTypes: true,
+        });
+        for (const entry of entries) {
+          const fullPath = path.join(currentPath, entry.name);
+          if (entry.isDirectory()) {
+            await findExes(fullPath, depth + 1);
+          } else if (
+            entry.isFile() &&
+            entry.name.toLowerCase().endsWith(".exe")
+          ) {
+            allExeFiles.push(fullPath);
+          }
+        }
+      } catch {
+        // Ignore read errors
+      }
+    };
+
+    await findExes(folderPath, 0);
+
+    if (allExeFiles.length === 0) return null;
+
+    const ignoreKeywords = [
+      "crash",
+      "uninst",
+      "redist",
+      "dxweb",
+      "vcredist",
+      "dotnet",
+      "launcher",
+    ];
+    const validExes = allExeFiles.filter((exePath) => {
+      const lowerName = path.basename(exePath).toLowerCase();
+      return !ignoreKeywords.some((keyword) => lowerName.includes(keyword));
+    });
+
+    if (validExes.length === 0) return null;
+
+    const normalizedTitle = removeSymbolsFromName(gameTitle)
+      .toLowerCase()
+      .replace(/\s+/g, "");
+
+    let bestMatch: string | null = null;
+    let bestScore = -1;
+    let setupPath: string | null = null;
+
+    for (const exePath of validExes) {
+      const exeName = path.basename(exePath).toLowerCase().replace(".exe", "");
+      const normalizedExeName = removeSymbolsFromName(exeName)
+        .toLowerCase()
+        .replace(/\s+/g, "");
+
+      if (normalizedExeName === "setup" || normalizedExeName === "install") {
+        setupPath = exePath;
+        continue;
+      }
+
+      const score = GameFilesManager.computeExeScore(
+        normalizedExeName,
+        normalizedTitle
+      );
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = exePath;
+      }
+    }
+
+    if (bestMatch && bestScore > 0) {
+      return { exePath: bestMatch, isSetup: false };
+    }
+
+    if (setupPath) {
+      return { exePath: setupPath, isSetup: true };
+    }
+
+    if (validExes.length > 0 && !bestMatch) {
+      bestMatch = validExes.reduce(
+        (a, b) => (path.basename(a).length <= path.basename(b).length ? a : b),
+        validExes[0]
+      );
+      return { exePath: bestMatch, isSetup: false };
     }
 
     return null;

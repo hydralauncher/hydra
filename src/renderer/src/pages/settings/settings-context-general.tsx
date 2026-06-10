@@ -11,7 +11,7 @@ import {
 } from "@renderer/components";
 import type { DownloadDirectoryPreference } from "@types";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useWindowsDefenderExclusion } from "@renderer/hooks";
 import languageResources from "@locales";
 import {
   prepareDefaultDownloadPathSync,
@@ -65,6 +65,7 @@ export function SettingsContextGeneral({
     launchToLibraryPage: false,
     launchInBigPicture: false,
     enableAutoInstall: false,
+    hasWindowsDefenderExclusion: false,
   });
 
   useEffect(() => {
@@ -111,6 +112,8 @@ export function SettingsContextGeneral({
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
       launchInBigPicture: userPreferences.launchInBigPicture ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
+      hasWindowsDefenderExclusion:
+        userPreferences.hasWindowsDefenderExclusion ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
 
@@ -118,6 +121,17 @@ export function SettingsContextGeneral({
     setForm((prev) => ({ ...prev, ...values }));
     updateUserPreferences(values);
   };
+
+  const {
+    isWindows,
+    handleToggleExclusion,
+    syncExclusionOnPathChange,
+    exclusionButtonLabel,
+  } = useWindowsDefenderExclusion({
+    downloadsPath: form.downloadsPath,
+    hasExclusion: form.hasWindowsDefenderExclusion,
+    onPreferenceChange: handleChange,
+  });
 
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
@@ -139,6 +153,8 @@ export function SettingsContextGeneral({
       return;
     }
 
+    const oldPath = form.downloadsPath;
+
     const nextAction = prepareDefaultDownloadPathSync(
       userPreferences,
       path,
@@ -158,6 +174,7 @@ export function SettingsContextGeneral({
         downloadsPath: nextAction.nextDefaultPath,
       }));
       await updateUserPreferences(nextAction.nextPreferences);
+      await syncExclusionOnPathChange(oldPath, nextAction.nextDefaultPath);
       return;
     }
 
@@ -204,6 +221,15 @@ export function SettingsContextGeneral({
             </Button>
           }
         />
+        {isWindows && (
+          <Button
+            theme="outline"
+            onClick={handleToggleExclusion}
+            style={{ alignSelf: "flex-start", marginTop: -8 }}
+          >
+            {exclusionButtonLabel}
+          </Button>
+        )}
 
         <SelectField
           label={t("language")}

@@ -576,6 +576,9 @@ export class DownloadManager {
       if (shouldPauseSeedingForExtraction) {
         await this.cancelDownload(gameId);
 
+        // Wait for libtorrent to fully release file handles
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         void this.handleExtraction(download, game).finally(() => {
           this.resumeSeeding(download).catch((error) => {
             logger.error(
@@ -585,6 +588,8 @@ export class DownloadManager {
           });
         });
       } else {
+        // Wait for libtorrent to fully release file handles (if it was just cancelled)
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         void this.handleExtraction(download, game);
       }
     } else {
@@ -831,6 +836,46 @@ export class DownloadManager {
         .call("action", { action: "cancel", game_id: downloadKey })
         .catch((err) => logger.error("Failed to cancel game download", err));
     }
+  }
+
+  static async forceRecheck(downloadKey: string) {
+    logger.log(`[DownloadManager] forceRecheck called for ${downloadKey}`);
+    const download = await downloadsSublevel.get(downloadKey).catch(() => null);
+    if (!download) {
+      logger.error(
+        `[DownloadManager] forceRecheck: download not found for ${downloadKey}`
+      );
+      return;
+    }
+
+    if (this.downloadingGameId && this.downloadingGameId !== downloadKey) {
+      logger.log(
+        `[DownloadManager] forceRecheck: cancelling current download ${this.downloadingGameId}`
+      );
+      await this.cancelDownload(this.downloadingGameId);
+    }
+
+    this.downloadingGameId = downloadKey;
+    this.usingJsDownloader = false;
+
+    await downloadsSublevel.put(downloadKey, {
+      ...download,
+      status: "active",
+    });
+
+    logger.log(
+      `[DownloadManager] forceRecheck: sending RPC action for ${downloadKey}`
+    );
+    await PythonRPC.rpc
+      .call("action", {
+        action: "force_recheck",
+        game_id: downloadKey,
+        url: download.uri,
+        save_path: download.downloadPath,
+      })
+      .catch((err) =>
+        logger.error("[DownloadManager] Failed to force recheck", err)
+      );
   }
 
   static async resumeSeeding(download: Download) {

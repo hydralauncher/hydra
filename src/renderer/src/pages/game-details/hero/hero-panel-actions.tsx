@@ -7,6 +7,7 @@ import {
   PinSlashIcon,
   PlayIcon,
   PlusCircleIcon,
+  ToolsIcon,
 } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
 import { XCircle } from "lucide-react";
@@ -53,7 +54,7 @@ export function HeroPanelActions() {
 
   const { updateLibrary } = useLibrary();
 
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
 
   const { t } = useTranslation("game_details");
 
@@ -101,6 +102,44 @@ export function HeroPanelActions() {
       );
     };
   }, [updateLibrary, updateGame]);
+
+  const handleVerifyIntegrity = async () => {
+    if (!game) return;
+    try {
+      const uri = game.download?.uri || repacks[0]?.uris[0];
+      const downloadPath = game.download?.downloadPath;
+
+      if (!uri)
+        throw new Error(
+          t("no_repacks_found", "Aucune source trouvée pour ce jeu.")
+        );
+      if (!downloadPath)
+        throw new Error(
+          t(
+            "no_download_path",
+            "Veuillez sélectionner un dossier de téléchargement."
+          )
+        );
+
+      await window.electron.verifyGameIntegrity(
+        game.shop,
+        game.objectId,
+        uri,
+        downloadPath
+      );
+      showSuccessToast(
+        t(
+          "verify_integrity_success",
+          "Vérification lancée avec succès. Regardez la barre de téléchargement."
+        )
+      );
+    } catch (err: any) {
+      showErrorToast(
+        err?.message ||
+          t("verify_integrity_error", "Erreur lors de la vérification.")
+      );
+    }
+  };
 
   const addGameToLibrary = async () => {
     setToggleLibraryGameDisabled(true);
@@ -256,6 +295,21 @@ export function HeroPanelActions() {
         >
           <PlayIcon />
           {t("play")}
+        </Button>
+      );
+    }
+
+    // Show a "Repair" button when the game has a download folder but no executable yet
+    if (game?.download?.downloadPath) {
+      return (
+        <Button
+          onClick={handleVerifyIntegrity}
+          theme="outline"
+          disabled={deleting || isGameDownloading}
+          className="hero-panel-actions__action"
+        >
+          <ToolsIcon />
+          {t("repair", "Réparer")}
         </Button>
       );
     }
