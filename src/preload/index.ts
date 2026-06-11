@@ -562,6 +562,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
+  getClassicsImportStatus: (): Promise<boolean> =>
+    ipcRenderer.invoke("getClassicsImportStatus"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   getGameInstallerActionType: (shop: GameShop, objectId: string) =>
@@ -667,6 +669,13 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-downloads-updated", listener);
     return () => ipcRenderer.removeListener("on-downloads-updated", listener);
+  },
+  onClassicsImportStatus: (cb: (importing: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, importing: boolean) =>
+      cb(importing);
+    ipcRenderer.on("on-classics-import-status", listener);
+    return () =>
+      ipcRenderer.removeListener("on-classics-import-status", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (

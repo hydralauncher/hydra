@@ -34,12 +34,12 @@ export function ClassicsOnboardingModal({
 }: Readonly<ClassicsOnboardingModalProps>) {
   const { t } = useTranslation("classics_onboarding");
   const [stepIndex, setStepIndex] = useState(0);
-  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(true);
 
   useEffect(() => {
     if (visible) {
       setStepIndex(0);
-      setDontShowAgain(false);
+      setDontShowAgain(true);
     }
   }, [visible]);
 
