@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { IS_DESKTOP } from "../constants";
 import type {
   FriendRequestAction,
@@ -6,36 +6,7 @@ import type {
   UserDetails,
   UserProfile,
 } from "@types";
-
-const USER_DETAILS_STORAGE_KEY = "userDetails";
-
-function getInitialUserDetails() {
-  try {
-    const cachedUserDetails = globalThis.window.localStorage.getItem(
-      USER_DETAILS_STORAGE_KEY
-    );
-
-    if (!cachedUserDetails) {
-      return null;
-    }
-
-    return JSON.parse(cachedUserDetails) as UserDetails;
-  } catch {
-    return null;
-  }
-}
-
-function persistUserDetails(userDetails: UserDetails | null) {
-  if (!userDetails) {
-    globalThis.window.localStorage.removeItem(USER_DETAILS_STORAGE_KEY);
-    return;
-  }
-
-  globalThis.window.localStorage.setItem(
-    USER_DETAILS_STORAGE_KEY,
-    JSON.stringify(userDetails)
-  );
-}
+import { useBigPictureUserDetailsStore } from "../stores";
 
 function mergeUserProfileIntoDetails(
   currentUserDetails: UserDetails | null,
@@ -58,30 +29,42 @@ function mergeUserProfileIntoDetails(
 }
 
 export function useUserDetails() {
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(
-    getInitialUserDetails
+  const userDetails = useBigPictureUserDetailsStore(
+    (state) => state.userDetails
+  );
+  const setUserDetails = useBigPictureUserDetailsStore(
+    (state) => state.setUserDetails
+  );
+  const clearUserDetails = useBigPictureUserDetailsStore(
+    (state) => state.clearUserDetails
   );
 
   const fetchUserDetails = useCallback(async () => {
-    if (!IS_DESKTOP) return;
+    if (!IS_DESKTOP) return null;
 
     try {
       const details = await window.electron.getMe();
-      persistUserDetails(details);
       setUserDetails(details);
       return details;
     } catch {
-      persistUserDetails(null);
-      setUserDetails(null);
+      clearUserDetails();
       return null;
     }
-  }, []);
+  }, [clearUserDetails, setUserDetails]);
 
-  const updateUserDetails = useCallback((nextDetails: UserDetails | null) => {
-    persistUserDetails(nextDetails);
-    setUserDetails(nextDetails);
-    return nextDetails;
-  }, []);
+  const updateUserDetails = useCallback(
+    (nextDetails: UserDetails | null) => {
+      setUserDetails(nextDetails);
+      return nextDetails;
+    },
+    [setUserDetails]
+  );
+
+  const signOut = useCallback(async () => {
+    clearUserDetails();
+
+    return globalThis.window.electron.signOut();
+  }, [clearUserDetails]);
 
   const patchUser = useCallback(
     async (values: UpdateProfileRequest) => {
@@ -93,12 +76,11 @@ export function useUserDetails() {
         updatedProfile
       );
 
-      persistUserDetails(nextUserDetails);
       setUserDetails(nextUserDetails);
 
       return nextUserDetails;
     },
-    [userDetails]
+    [setUserDetails, userDetails]
   );
 
   const unblockUser = useCallback(async (userId: string) => {
@@ -157,8 +139,7 @@ export function useUserDetails() {
       void fetchUserDetails();
     });
     const unsubscribeSignOut = globalThis.window.electron.onSignOut(() => {
-      persistUserDetails(null);
-      setUserDetails(null);
+      clearUserDetails();
     });
 
     return () => {
@@ -166,7 +147,7 @@ export function useUserDetails() {
       unsubscribeSignIn();
       unsubscribeSignOut();
     };
-  }, [fetchUserDetails]);
+  }, [clearUserDetails, fetchUserDetails]);
 
   const hasActiveSubscription = useMemo(() => {
     const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
@@ -177,6 +158,7 @@ export function useUserDetails() {
     userDetails,
     hasActiveSubscription,
     fetchUserDetails,
+    signOut,
     updateUserDetails,
     patchUser,
     sendFriendRequest,

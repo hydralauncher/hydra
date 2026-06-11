@@ -48,6 +48,7 @@
 
   &__image {
     display: flex;
+    justify-content: center;
     align-items: center;
     width: 48px;
     height: 48px;
@@ -56,6 +57,11 @@
     object-position: center;
     overflow: hidden;
     flex-shrink: 0;
+  }
+
+  &__image--fallback {
+    background: var(--secondary);
+    color: var(--text-secondary);
   }
 
   &__notification-badge {

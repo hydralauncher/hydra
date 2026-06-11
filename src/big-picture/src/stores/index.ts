@@ -4,3 +4,4 @@ export * from "./navigation-history.store";
 export * from "./virtual-keyboard.store";
 export * from "./downloads.store";
 export * from "./toast.store";
+export * from "./user-details.store";
