@@ -7,6 +7,7 @@ import "./add-rom-folder";
 import "./remove-rom-folder";
 import "./toggle-rom-folder-subfolders";
 import "./rescan-emulator";
+import "./get-classics-import-status";
 import "./check-ps3-firmware";
 import "./rom-scan-progress";
 import "./emulator-rom-paths";
