@@ -1,12 +1,12 @@
 import "./styles.scss";
 
-import { BellIcon, CheckIcon, CopyIcon } from "@phosphor-icons/react";
+import { BellIcon, CheckIcon, CopyIcon, UserIcon } from "@phosphor-icons/react";
 import { type KeyboardEvent, type MouseEvent, type Ref, useState } from "react";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "../focus-item";
 
 export interface UserProfileProps {
-  image: string;
+  image?: string | null;
   name: string;
   friendCode: string;
   profileFocusId?: string;
@@ -20,7 +20,7 @@ export interface UserProfileProps {
 }
 
 interface UserProfileContentProps {
-  image: string;
+  image?: string | null;
   name: string;
   friendCode: string;
   notificationCount?: number;
@@ -35,6 +35,45 @@ interface UserProfileNotificationProps {
   notificationCount?: number;
   notificationsButtonRef?: Ref<HTMLButtonElement>;
   onNotificationsClick?: () => void;
+}
+
+interface UserProfileAvatarProps {
+  image?: string | null;
+  alt: string;
+  className: string;
+  fallbackClassName: string;
+  width: number;
+  height: number;
+  iconSize: number;
+}
+
+export function UserProfileAvatar({
+  image,
+  alt,
+  className,
+  fallbackClassName,
+  width,
+  height,
+  iconSize,
+}: Readonly<UserProfileAvatarProps>) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={alt}
+        className={className}
+        width={width}
+        height={height}
+        draggable={false}
+      />
+    );
+  }
+
+  return (
+    <div className={`${className} ${fallbackClassName}`} aria-hidden="true">
+      <UserIcon size={iconSize} weight="fill" />
+    </div>
+  );
 }
 
 function UserProfileNotification({
@@ -119,13 +158,14 @@ function UserProfileContent({
       onKeyDown={handleProfileKeyDown}
     >
       <div className="user-profile-content__image-container">
-        <img
-          src={image}
+        <UserProfileAvatar
+          image={image}
           alt={name}
           className="user-profile-content__image"
+          fallbackClassName="user-profile-content__image--fallback"
           width={48}
           height={48}
-          draggable={false}
+          iconSize={30}
         />
 
         {notificationCount > 0 ? (

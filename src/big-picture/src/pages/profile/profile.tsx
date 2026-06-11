@@ -15,11 +15,11 @@ import {
 } from "@phosphor-icons/react";
 import type {
   Badge,
+  ComparedAchievements,
   FriendRequestAction,
   LibraryGame,
   ShopAssets,
   UserDetails,
-  UserAchievement,
   UserFriend,
   UserFriends,
   UserGame,
@@ -42,6 +42,7 @@ import {
   FocusCarousel,
   HorizontalFocusGroup,
   Tooltip,
+  UserProfileAvatar,
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
@@ -125,12 +126,18 @@ type ProfileClassicsAssetFields = {
   customLogoImageUrl?: string | null;
 };
 
-type ProfileRecentAchievement = UserAchievement & {
+type ProfileComparedAchievement = ComparedAchievements["achievements"][number];
+
+type ProfileRecentAchievement = {
+  key: string;
+  icon: string;
+  displayName: string;
+  description: string;
   unlockTime: number;
 };
 
 type ProfileRecentAchievementGroup = {
-  game: LibraryGame;
+  game: UserGame;
   newCount: number;
   achievements: ProfileRecentAchievement[];
 };
@@ -148,16 +155,41 @@ type ProfileHeroAction = {
   onClick: () => void;
 };
 
-const PROFILE_AVATAR_FALLBACK =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Crect width='160' height='160' rx='24' fill='%2320242d'/%3E%3Ccircle cx='80' cy='60' r='30' fill='%23838383'/%3E%3Cpath d='M34 142c9-36 35-54 46-54s37 18 46 54' fill='%23838383'/%3E%3C/svg%3E";
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
 const WEEKLY_BAR_PLACEHOLDER = [0.62, 0.14, 0.36, 0.26, 0.34, 0.42, 0.72];
 const WEEKDAY_LABELS = ["M", "S", "T", "W", "T", "F", "S"];
 const PROFILE_RECENT_ACHIEVEMENT_GROUP_LIMIT = 2;
 const PROFILE_RECENT_ACHIEVEMENTS_PER_GAME = 2;
+const PROFILE_RECENT_ACHIEVEMENT_LIBRARY_TAKE = 12;
 const PROFILE_FRIENDS_LIMIT = 5;
 const PROFILE_REMOTE_LIBRARY_PAGE_SIZE = 12;
+const LOCKED_ACHIEVEMENT_PREVIEW = {
+  gameTitle: "Achievement preview",
+  gameIconUrl:
+    "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/capsule_184x69.jpg",
+  newCount: 3,
+  unlockedCount: 14,
+  achievementCount: 35,
+  achievements: [
+    {
+      displayName: "Nice One, Stranger!",
+      description: "Complete a request for the Merchant.",
+      imageUrl:
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/header.jpg",
+      points: 760,
+      earnedLabel: "Earned recently",
+    },
+    {
+      displayName: "A Masterpiece",
+      description: "Get the exclusive upgrade for a weapon.",
+      imageUrl:
+        "https://cdn.cloudflare.steamstatic.com/steam/apps/2050650/capsule_231x87.jpg",
+      points: 1280,
+      earnedLabel: "Earned 2 days ago",
+    },
+  ],
+};
 
 function getBasePath() {
   return IS_DESKTOP ? "/big-picture" : "";
@@ -280,19 +312,37 @@ function getProfileActivityFocusId(game: ProfileActivityGame) {
   return getProfileActivityItemId(getProfileGameFocusKey(game));
 }
 
-function getUnlockedAchievement(achievement: UserAchievement) {
-  if (!achievement.unlocked || typeof achievement.unlockTime !== "number") {
+function getComparedAchievement(
+  achievement: ProfileComparedAchievement
+): ProfileRecentAchievement | null {
+  if (
+    !achievement.targetStat.unlocked ||
+    typeof achievement.targetStat.unlockTime !== "number"
+  ) {
     return null;
   }
 
-  return achievement as ProfileRecentAchievement;
+  return {
+    key: `${achievement.displayName}-${achievement.targetStat.unlockTime}`,
+    icon: achievement.icon,
+    displayName: achievement.displayName,
+    description: achievement.description,
+    unlockTime: achievement.targetStat.unlockTime,
+  };
 }
 
-function getRecentAchievementGameIcon(game: LibraryGame) {
-  return game.iconUrl ?? game.customIconUrl ?? game.coverImageUrl ?? null;
+function getRecentAchievementGameIcon(game: UserGame) {
+  const classicsAssetFields = game as ProfileClassicsAssetFields;
+
+  return (
+    game.iconUrl ??
+    classicsAssetFields.customIconUrl ??
+    game.coverImageUrl ??
+    null
+  );
 }
 
-function getRecentAchievementGameKey(game: LibraryGame) {
+function getRecentAchievementGameKey(game: UserGame) {
   return getGameIdentityKey(game);
 }
 
@@ -305,7 +355,7 @@ function getProfileGameFocusKey(game: {
   });
 }
 
-function getProfileAchievementFocusId(game: LibraryGame) {
+function getProfileAchievementFocusId(game: UserGame) {
   return getProfileAchievementGameItemId(getProfileGameFocusKey(game));
 }
 
@@ -332,7 +382,7 @@ function formatSessionDuration(valueInSeconds: number | null | undefined) {
 
 function buildRecentAchievementGroups(
   achievementsByGame: Array<{
-    game: LibraryGame;
+    game: UserGame;
     achievements: ProfileRecentAchievement[];
   }>
 ): ProfileRecentAchievementGroup[] {
@@ -369,11 +419,7 @@ function buildRecentAchievementGroups(
 
     const game = gameByKey.get(currentGameKey);
 
-    if (
-      !game ||
-      selectedGameKeys.has(currentGameKey) ||
-      block.length < PROFILE_RECENT_ACHIEVEMENTS_PER_GAME
-    ) {
+    if (!game || selectedGameKeys.has(currentGameKey) || block.length === 0) {
       continue;
     }
 
@@ -447,6 +493,8 @@ export default function Profile() {
   const navigate = useNavigate();
   const {
     userDetails,
+    hasActiveSubscription,
+    signOut,
     sendFriendRequest,
     updateFriendRequestState,
     undoFriendship,
@@ -489,6 +537,9 @@ export default function Profile() {
 
   const targetUserId = userId ?? userDetails?.id;
   const isOwnProfileTarget = !userId || userId === userDetails?.id;
+  const targetHasActiveSubscription = isOwnProfileTarget
+    ? hasActiveSubscription
+    : Boolean(externalProfile?.hasActiveSubscription);
 
   useEffect(() => {
     if (!targetUserId) {
@@ -703,41 +754,59 @@ export default function Profile() {
   }, []);
 
   useEffect(() => {
-    if (!isOwnProfileTarget) {
-      setRecentAchievementGroups([]);
-      return;
-    }
-
-    const gamesWithAchievements = library.filter(
-      (game) => (game.unlockedAchievementCount ?? 0) > 0
-    );
-
-    if (gamesWithAchievements.length === 0) {
+    if (!targetUserId || !targetHasActiveSubscription) {
       setRecentAchievementGroups([]);
       return;
     }
 
     let isMounted = true;
 
-    Promise.all(
-      gamesWithAchievements.map(async (game) => {
-        const achievements =
-          await globalThis.window.electron.getUnlockedAchievements(
-            game.objectId,
-            game.shop
-          );
+    const fetchRecentAchievementGroups = async () => {
+      const searchParams = new URLSearchParams({
+        take: String(PROFILE_RECENT_ACHIEVEMENT_LIBRARY_TAKE),
+        skip: "0",
+        sortBy: "achievementCount",
+      });
 
-        return {
-          game,
-          achievements: achievements
-            .map(getUnlockedAchievement)
-            .filter(
-              (achievement): achievement is ProfileRecentAchievement =>
-                achievement !== null
-            ),
-        };
-      })
-    )
+      searchParams.append("shop", "steam");
+      searchParams.append("shop", "launchbox");
+
+      const response =
+        await globalThis.window.electron.hydraApi.get<UserLibraryResponse>(
+          `/users/${targetUserId}/library?${searchParams.toString()}`
+        );
+
+      const gamesWithAchievements = response.library.filter(
+        (game) => (game.unlockedAchievementCount ?? 0) > 0
+      );
+
+      if (gamesWithAchievements.length === 0) {
+        return [];
+      }
+
+      return Promise.all(
+        gamesWithAchievements.map(async (game) => {
+          const comparedAchievements =
+            await globalThis.window.electron.getComparedUnlockedAchievements(
+              game.objectId,
+              game.shop,
+              targetUserId
+            );
+
+          return {
+            game,
+            achievements: comparedAchievements.achievements
+              .map(getComparedAchievement)
+              .filter(
+                (achievement): achievement is ProfileRecentAchievement =>
+                  achievement !== null
+              ),
+          };
+        })
+      );
+    };
+
+    fetchRecentAchievementGroups()
       .then((achievementsByGame) => {
         if (!isMounted) return;
 
@@ -756,7 +825,7 @@ export default function Profile() {
     return () => {
       isMounted = false;
     };
-  }, [achievementRefreshKey, isOwnProfileTarget, library]);
+  }, [achievementRefreshKey, targetHasActiveSubscription, targetUserId]);
 
   const profileUser = useMemo(
     () => getProfileHeroUser(userDetails, externalProfile, userId),
@@ -764,7 +833,7 @@ export default function Profile() {
   );
 
   const handleSignOut = async () => {
-    await globalThis.window.electron.signOut();
+    await signOut();
     navigate(getBasePath() || "/");
   };
 
@@ -892,6 +961,11 @@ export default function Profile() {
   const totalLibraryGames = profileUser?.isOwnProfile
     ? library.length
     : (userStats?.libraryCount ?? remoteLibraryTotalCount);
+  const profileHasActiveSubscription = targetHasActiveSubscription;
+  const canViewRecentAchievements =
+    Boolean(profileUser) && profileHasActiveSubscription;
+  const canFocusRecentAchievements =
+    canViewRecentAchievements && Boolean(profileUser?.isOwnProfile);
   const firstActivityFocusId = recentActivityGames[0]
     ? getProfileActivityFocusId(recentActivityGames[0])
     : null;
@@ -906,7 +980,7 @@ export default function Profile() {
     ? getProfileLibraryGameItemId(libraryCarouselGames[0])
     : null;
   const firstAchievementFocusId =
-    profileUser?.isOwnProfile && recentAchievementGroups[0]
+    canFocusRecentAchievements && recentAchievementGroups[0]
       ? getProfileAchievementFocusId(recentAchievementGroups[0].game)
       : null;
   const lastAchievementGroup =
@@ -914,7 +988,7 @@ export default function Profile() {
       ? recentAchievementGroups[recentAchievementGroups.length - 1]
       : null;
   const lastAchievementFocusId =
-    profileUser?.isOwnProfile && lastAchievementGroup
+    canFocusRecentAchievements && lastAchievementGroup
       ? getProfileAchievementFocusId(lastAchievementGroup.game)
       : null;
   const firstFriendFocusId = friends[0]
@@ -1115,11 +1189,14 @@ export default function Profile() {
 
           <div className="profile-page__hero-content">
             <div className="profile-page__identity">
-              <img
-                src={profileUser?.profileImageUrl ?? PROFILE_AVATAR_FALLBACK}
+              <UserProfileAvatar
+                image={profileUser?.profileImageUrl}
                 alt={profileUser?.displayName ?? "Profile"}
                 className="profile-page__avatar"
-                draggable={false}
+                fallbackClassName="profile-page__avatar--fallback"
+                width={128}
+                height={128}
+                iconSize={88}
               />
 
               <div className="profile-page__copy">
@@ -1472,7 +1549,7 @@ export default function Profile() {
               asChild
             >
               <section className="profile-page__social-section">
-                {profileUser.isOwnProfile ? (
+                {profileUser ? (
                   <VerticalFocusGroup
                     regionId={PROFILE_ACHIEVEMENTS_REGION_ID}
                     className="profile-page__achievements-section"
@@ -1485,66 +1562,21 @@ export default function Profile() {
                       </span>
                     </div>
 
-                    {recentAchievementGroups.length > 0 ? (
-                      <div className="profile-page__achievement-groups">
-                        {recentAchievementGroups.map((group) => {
-                          const gameIconUrl = getRecentAchievementGameIcon(
-                            group.game
-                          );
-                          const focusId = getProfileAchievementFocusId(
-                            group.game
-                          );
-
-                          return (
-                            <FocusItem
-                              key={getRecentAchievementGameKey(group.game)}
-                              id={focusId}
-                              actions={{
-                                primary: () =>
-                                  navigate(
-                                    getBigPictureGameAchievementsPath(
-                                      group.game
-                                    )
-                                  ),
-                              }}
-                              navigationOverrides={{
-                                up:
-                                  focusId === firstAchievementFocusId
-                                    ? socialUpFocusId
-                                      ? {
-                                          type: "item",
-                                          itemId: socialUpFocusId,
-                                        }
-                                      : {
-                                          type: "block",
-                                        }
-                                    : undefined,
-                                right: firstFriendFocusId
-                                  ? {
-                                      type: "item",
-                                      itemId: firstFriendFocusId,
-                                    }
-                                  : undefined,
-                                down:
-                                  focusId === lastAchievementFocusId
-                                    ? {
-                                        type: "block",
-                                      }
-                                    : undefined,
-                              }}
-                              asChild
-                            >
-                              <button
-                                type="button"
-                                className="profile-page__achievement-group"
-                                onClick={() =>
-                                  navigate(
-                                    getBigPictureGameAchievementsPath(
-                                      group.game
-                                    )
-                                  )
-                                }
-                              >
+                    {canViewRecentAchievements ? (
+                      recentAchievementGroups.length > 0 ? (
+                        <div className="profile-page__achievement-groups">
+                          {recentAchievementGroups.map((group) => {
+                            const groupKey = getRecentAchievementGameKey(
+                              group.game
+                            );
+                            const gameIconUrl = getRecentAchievementGameIcon(
+                              group.game
+                            );
+                            const focusId = getProfileAchievementFocusId(
+                              group.game
+                            );
+                            const achievementGroupContent = (
+                              <>
                                 <div className="profile-page__achievement-game-header">
                                   <div className="profile-page__achievement-game-copy">
                                     {gameIconUrl ? (
@@ -1572,7 +1604,7 @@ export default function Profile() {
                                   {group.achievements.map((achievement) => {
                                     return (
                                       <div
-                                        key={`${group.game.objectId}-${achievement.name}`}
+                                        key={`${group.game.objectId}-${achievement.key}`}
                                         className="profile-page__achievement-row"
                                       >
                                         <img
@@ -1589,11 +1621,6 @@ export default function Profile() {
                                         </div>
 
                                         <div className="profile-page__achievement-meta">
-                                          {achievement.points != null ? (
-                                            <strong>
-                                              +{achievement.points} pts.
-                                            </strong>
-                                          ) : null}
                                           <span>
                                             Earned{" "}
                                             {formatRelativeDate(
@@ -1608,15 +1635,161 @@ export default function Profile() {
                                     );
                                   })}
                                 </div>
-                              </button>
-                            </FocusItem>
-                          );
-                        })}
-                      </div>
+                              </>
+                            );
+
+                            if (!profileUser?.isOwnProfile) {
+                              return (
+                                <div
+                                  key={groupKey}
+                                  className="profile-page__achievement-group"
+                                >
+                                  {achievementGroupContent}
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <FocusItem
+                                key={groupKey}
+                                id={focusId}
+                                actions={{
+                                  primary: () =>
+                                    navigate(
+                                      getBigPictureGameAchievementsPath(
+                                        group.game
+                                      )
+                                    ),
+                                }}
+                                navigationOverrides={{
+                                  up:
+                                    focusId === firstAchievementFocusId
+                                      ? socialUpFocusId
+                                        ? {
+                                            type: "item",
+                                            itemId: socialUpFocusId,
+                                          }
+                                        : {
+                                            type: "block",
+                                          }
+                                      : undefined,
+                                  right: firstFriendFocusId
+                                    ? {
+                                        type: "item",
+                                        itemId: firstFriendFocusId,
+                                      }
+                                    : undefined,
+                                  down:
+                                    focusId === lastAchievementFocusId
+                                      ? {
+                                          type: "block",
+                                        }
+                                      : undefined,
+                                }}
+                                asChild
+                              >
+                                <button
+                                  type="button"
+                                  className="profile-page__achievement-group"
+                                  onClick={() =>
+                                    navigate(
+                                      getBigPictureGameAchievementsPath(
+                                        group.game
+                                      )
+                                    )
+                                  }
+                                >
+                                  {achievementGroupContent}
+                                </button>
+                              </FocusItem>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="profile-page__activity-empty">
+                          No recent achievements
+                        </p>
+                      )
                     ) : (
-                      <p className="profile-page__activity-empty">
-                        No recent achievements
-                      </p>
+                      <div className="profile-page__achievements-lock-frame">
+                        <div
+                          className="profile-page__achievement-groups profile-page__achievement-groups--locked"
+                          aria-hidden
+                        >
+                          <div className="profile-page__achievement-group profile-page__achievement-group--locked-preview">
+                            <div className="profile-page__achievement-game-header">
+                              <div className="profile-page__achievement-game-copy">
+                                <span className="profile-page__locked-preview-game-icon">
+                                  <img
+                                    src={LOCKED_ACHIEVEMENT_PREVIEW.gameIconUrl}
+                                    alt=""
+                                    draggable={false}
+                                    onError={(event) => {
+                                      event.currentTarget.style.opacity = "0";
+                                    }}
+                                  />
+                                </span>
+                                <span className="profile-page__locked-preview-game-title">
+                                  {LOCKED_ACHIEVEMENT_PREVIEW.gameTitle}
+                                </span>
+                              </div>
+
+                              <div className="profile-page__achievement-game-meta">
+                                <span>
+                                  ({LOCKED_ACHIEVEMENT_PREVIEW.newCount} new)
+                                </span>
+                                <strong>
+                                  {LOCKED_ACHIEVEMENT_PREVIEW.unlockedCount}/
+                                  {LOCKED_ACHIEVEMENT_PREVIEW.achievementCount}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div className="profile-page__achievement-list">
+                              {LOCKED_ACHIEVEMENT_PREVIEW.achievements.map(
+                                (achievement) => (
+                                  <div
+                                    key={achievement.displayName}
+                                    className="profile-page__achievement-row"
+                                  >
+                                    <span className="profile-page__locked-preview-achievement-icon">
+                                      <img
+                                        src={achievement.imageUrl}
+                                        alt=""
+                                        draggable={false}
+                                        onError={(event) => {
+                                          event.currentTarget.style.opacity =
+                                            "0";
+                                        }}
+                                      />
+                                    </span>
+
+                                    <div className="profile-page__achievement-copy profile-page__locked-preview-achievement-copy">
+                                      <h3>{achievement.displayName}</h3>
+                                      <p>{achievement.description}</p>
+                                    </div>
+
+                                    <div className="profile-page__achievement-meta">
+                                      <strong>
+                                        +{achievement.points} pts.
+                                      </strong>
+                                      <span>{achievement.earnedLabel}</span>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="profile-page__achievements-lock-overlay">
+                          <SparkleIcon size={24} weight="fill" />
+                          <p>
+                            Hydra Cloud is required to show achievements on this
+                            profile.
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </VerticalFocusGroup>
                 ) : (

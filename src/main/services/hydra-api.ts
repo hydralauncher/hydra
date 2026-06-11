@@ -121,6 +121,7 @@ export class HydraApi {
       subscription: null,
     };
 
+    this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
   }
 
@@ -230,9 +231,7 @@ export class HydraApi {
   }
 
   private static sendSignOutEvent() {
-    if (WindowManager.mainWindow) {
-      WindowManager.mainWindow.webContents.send("on-signout");
-    }
+    WindowManager.sendToAppWindows("on-signout");
   }
 
   public static async refreshToken() {

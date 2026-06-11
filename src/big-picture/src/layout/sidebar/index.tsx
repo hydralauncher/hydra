@@ -31,13 +31,18 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { IS_DESKTOP } from "../../constants";
-import { useLibrary, useNavigationActions, useSearch } from "../../hooks";
+import {
+  useLibrary,
+  useNavigationActions,
+  useSearch,
+  useUserDetails,
+} from "../../hooks";
 import { getItemFocusTarget } from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
   useBigPictureDownloadsStore,
 } from "../../stores/downloads.store";
-import type { DownloadProgress, LibraryGame, UserDetails } from "@types";
+import type { DownloadProgress, LibraryGame } from "@types";
 import type { FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_SIDEBAR_EXIT_ID,
@@ -62,9 +67,6 @@ import {
 } from "../navigation";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
-
-const DEFAULT_PROFILE_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='8' fill='%2320242d'/%3E%3Ccircle cx='24' cy='18' r='8' fill='%23838383'/%3E%3Cpath d='M10 42c2.4-8.2 7.5-12 14-12s11.6 3.8 14 12' fill='%23838383'/%3E%3C/svg%3E";
 
 type SidebarLibraryFilter =
   | "all"
@@ -597,19 +599,6 @@ function SidebarLibrary() {
   );
 }
 
-function getCachedUserDetails() {
-  try {
-    const cachedUserDetails =
-      globalThis.window.localStorage.getItem("userDetails");
-
-    return cachedUserDetails
-      ? (JSON.parse(cachedUserDetails) as UserDetails)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 interface SidebarProfileProps {
   notificationsOpen: boolean;
   onNotificationsOpenChange: (isOpen: boolean) => void;
@@ -622,9 +611,7 @@ function SidebarProfile({
   onNotificationsRestoringFocusChange,
 }: Readonly<SidebarProfileProps>) {
   const navigate = useNavigate();
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(
-    getCachedUserDetails
-  );
+  const { userDetails } = useUserDetails();
   const notificationsButtonRef = useRef<HTMLButtonElement>(null);
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -660,40 +647,11 @@ function SidebarProfile({
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
   };
 
-  useEffect(() => {
-    if (!IS_DESKTOP) return;
-
-    const fetchUserDetails = () => {
-      void globalThis.window.electron
-        .getMe()
-        .then(setUserDetails)
-        .catch(() => {
-          setUserDetails(null);
-        });
-    };
-
-    fetchUserDetails();
-
-    const unsubscribeSignIn =
-      globalThis.window.electron.onSignIn(fetchUserDetails);
-    const unsubscribeAccountUpdated =
-      globalThis.window.electron.onAccountUpdated(fetchUserDetails);
-    const unsubscribeSignOut = globalThis.window.electron.onSignOut(() => {
-      setUserDetails(null);
-    });
-
-    return () => {
-      unsubscribeSignIn();
-      unsubscribeAccountUpdated();
-      unsubscribeSignOut();
-    };
-  }, []);
-
   return (
     <>
       <div className="sidebar-profile">
         <UserProfile
-          image={userDetails?.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
+          image={userDetails?.profileImageUrl}
           name={userDetails?.displayName ?? "Sign in"}
           friendCode={userDetails?.id ?? "Not signed in"}
           profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
