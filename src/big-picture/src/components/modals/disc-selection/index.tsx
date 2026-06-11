@@ -177,7 +177,7 @@ export function DiscSelectionModal({
                   <CheckCircleIcon size={18} weight="fill" />
                 ) : null}
               </span>
-              Don't ask again
+              Don&apos;t ask again
             </button>
           </FocusItem>
 
