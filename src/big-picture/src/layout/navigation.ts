@@ -24,7 +24,6 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
 
 export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
 export const BIG_PICTURE_SIDEBAR_PROFILE_ID = "big-picture-sidebar-profile";
-export const BIG_PICTURE_SIDEBAR_FRIENDS_ID = "big-picture-sidebar-friends";
 export const BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID =
   "big-picture-sidebar-notifications";
 export const BIG_PICTURE_SIDEBAR_LIBRARY_SEARCH_ID =
