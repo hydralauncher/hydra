@@ -1,5 +1,7 @@
-import { emulators, WindowManager, logger } from "@main/services";
-import { db } from "@main/level";
+import { chunk } from "lodash-es";
+
+import { HydraApi, emulators, WindowManager, logger } from "@main/services";
+import { db, gamesSublevel } from "@main/level";
 import { levelKeys } from "@main/level/sublevels";
 import type { EmulatorSystem } from "@types";
 
@@ -7,6 +9,65 @@ import { runLaunchboxImport } from "./import-launchbox-roms";
 import { setClassicsImporting } from "./classics-import-state";
 
 const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+
+const PLAYTIME_FETCH_CHUNK_SIZE = 10;
+
+interface ProfileGameDetail {
+  id?: string;
+  playTimeInSeconds?: number;
+  lastTimePlayed?: string | null;
+  hasManuallyUpdatedPlaytime?: boolean;
+}
+
+const syncClassicsPlaytime = async () => {
+  const launchboxGames = (await gamesSublevel.iterator().all()).filter(
+    ([, game]) => game.shop === "launchbox" && !game.isDeleted
+  );
+
+  const chunks = chunk(launchboxGames, PLAYTIME_FETCH_CHUNK_SIZE);
+
+  for (const batch of chunks) {
+    await Promise.all(
+      batch.map(async ([key, game]) => {
+        try {
+          const profile = await HydraApi.get<ProfileGameDetail>(
+            `/profile/games/launchbox/${encodeURIComponent(game.objectId)}`
+          );
+
+          const remotePlayTime = (profile.playTimeInSeconds ?? 0) * 1000;
+          const remoteLastPlayed = profile.lastTimePlayed
+            ? new Date(profile.lastTimePlayed)
+            : null;
+
+          const mergedLastPlayed =
+            remoteLastPlayed &&
+            (!game.lastTimePlayed ||
+              remoteLastPlayed > new Date(game.lastTimePlayed))
+              ? remoteLastPlayed
+              : game.lastTimePlayed;
+
+          await gamesSublevel.put(key, {
+            ...game,
+            remoteId: profile.id ?? game.remoteId,
+            playTimeInMilliseconds: Math.max(
+              game.playTimeInMilliseconds ?? 0,
+              remotePlayTime
+            ),
+            lastTimePlayed: mergedLastPlayed,
+            hasManuallyUpdatedPlaytime:
+              profile.hasManuallyUpdatedPlaytime ??
+              game.hasManuallyUpdatedPlaytime,
+          });
+        } catch (err) {
+          logger.error(
+            `Failed to sync classics playtime for ${game.objectId}`,
+            err
+          );
+        }
+      })
+    );
+  }
+};
 
 export const reimportClassicsGames = async () => {
   const language =
@@ -46,6 +107,8 @@ export const reimportClassicsGames = async () => {
         logger.error(`Failed to reimport classics games for ${system}`, err);
       }
     }
+
+    await syncClassicsPlaytime();
 
     WindowManager.sendToAppWindows("on-library-batch-complete");
   } finally {
