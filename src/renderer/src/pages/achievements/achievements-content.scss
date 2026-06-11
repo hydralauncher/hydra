@@ -101,25 +101,34 @@ $logo-max-width: 200px;
         margin-bottom: 8px;
         color: globals.$muted-color;
 
+        &__percentage {
+          &--completed {
+            color: globals.$brand-teal;
+          }
+        }
+
         &__trophy-count {
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
-        &__progress-bar {
+        &__progress-track {
           width: 100%;
           height: 8px;
-          transition: all ease 0.2s;
+          background-color: rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+          overflow: hidden;
+        }
 
-          &::-webkit-progress-bar {
-            background-color: rgba(255, 255, 255, 0.15);
-            border-radius: 4px;
-          }
+        &__progress-bar {
+          height: 100%;
+          background-color: globals.$muted-color;
+          border-radius: 4px;
+          transition: width 0.2s ease;
 
-          &::-webkit-progress-value {
-            background-color: globals.$muted-color;
-            border-radius: 4px;
+          &--platinum {
+            @include globals.platinum-gradient;
           }
         }
       }

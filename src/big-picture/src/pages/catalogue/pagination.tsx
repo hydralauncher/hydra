@@ -29,24 +29,29 @@ interface CataloguePaginationProps {
 interface VisiblePageRange {
   start: number;
   end: number;
-  isLastThree: boolean;
+  showLeadingJump: boolean;
+  showTrailingJump: boolean;
 }
 
 function getVisiblePageRange(page: number, totalPages: number) {
-  const visiblePages = 3;
-  const isLastThree = totalPages > visiblePages && page >= totalPages - 2;
+  const visiblePages = 5;
   let start = Math.max(1, page - 1);
   let end = start + visiblePages - 1;
 
-  if (isLastThree) {
-    start = Math.max(1, totalPages - 2);
-    end = totalPages;
-  } else if (end > totalPages) {
+  if (end > totalPages) {
     end = totalPages;
     start = Math.max(1, end - visiblePages + 1);
   }
 
-  return { start, end, isLastThree } satisfies VisiblePageRange;
+  const showTrailingJump = end < totalPages;
+  const showLeadingJump = !showTrailingJump && start > 1;
+
+  return {
+    start,
+    end,
+    showLeadingJump,
+    showTrailingJump,
+  } satisfies VisiblePageRange;
 }
 
 function PaginationArrow({
@@ -83,8 +88,8 @@ export function CataloguePagination({
     { length: range.end - range.start + 1 },
     (_, index) => range.start + index
   );
-  const showLeadingJump = range.isLastThree && range.start > 1;
-  const showTrailingJump = !range.isLastThree && page < totalPages - 1;
+  const showLeadingJump = range.showLeadingJump;
+  const showTrailingJump = range.showTrailingJump;
   const itemIds = useMemo(
     () => [
       ...(range.start > 1 ? [CATALOGUE_PAGINATION_FIRST_ID] : []),

@@ -363,6 +363,7 @@ export default function Home() {
         {
           onLaunchOrDownload: handleLaunchFromMenu,
           onToggleFavorite: toggleFavorite,
+          onViewAchievements: handleCatalogViewAchievementsFromMenu,
           onUninstall: handleRequestRemoveFilesFromMenu,
           onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
         },

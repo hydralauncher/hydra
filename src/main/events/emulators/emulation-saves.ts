@@ -1,10 +1,6 @@
 import { registerEvent } from "../register-event";
 import { emulators, logger } from "@main/services";
-import type {
-  EmulationCloudSave,
-  EmulationSaveEmulator,
-  EmulationSavePlatform,
-} from "@types";
+import type { EmulationCloudSave, EmulationSavePlatform } from "@types";
 
 const listEmulationSaves = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -15,7 +11,7 @@ const listEmulationSaves = async (
     const config = await emulators.getEmulatorConfig(platform);
     return await emulators.listEmulationSaves(
       platform,
-      config.binary as EmulationSaveEmulator,
+      emulators.toEmulationSaveEmulator(config.binary),
       objectId
     );
   } catch (err) {

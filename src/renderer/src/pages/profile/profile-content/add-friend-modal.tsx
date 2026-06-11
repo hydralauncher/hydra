@@ -30,7 +30,7 @@ export function AddFriendModal({ visible, onClose }: AddFriendModalProps) {
 
   const copyMyFriendCode = () => {
     if (userDetails?.id) {
-      navigator.clipboard.writeText(userDetails.id);
+      globalThis.window.electron.clipboard.writeText(userDetails.id);
       showSuccessToast(t("friend_code_copied"));
     }
   };
