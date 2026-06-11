@@ -1,28 +1,24 @@
 import type { LibraryGame } from "@types";
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
-import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
-import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
 import {
   FocusItem,
   HorizontalLibraryGameCard,
   VerticalGameCard,
 } from "../../common";
-import {
-  formatPlayedTime,
-  getBigPictureGameDetailsPath,
-  getGameAchievementProgress,
-  getGameImageSources,
-  resolveImageSource,
-} from "../../../helpers";
+import { getBigPictureGameDetailsPath } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
-import { useDominantColor } from "../../../hooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getLibraryFocusGridItemId,
   getLibraryFocusListItemId,
 } from "./navigation";
+import {
+  ClassicsCoverBadges,
+  ClassicsVerticalCoverMedia,
+  useLibraryGameCardPresentation,
+} from "./card-presentation";
 
 export interface VerticalLibraryGameCardProps {
   game: LibraryGame;
@@ -44,152 +40,6 @@ export interface HorizontalLibraryGameListCardProps {
     position: { x: number; y: number },
     restoreFocusId: string
   ) => void;
-}
-
-const PLATFORM_LABELS: Partial<
-  Record<NonNullable<ReturnType<typeof platformToSystem>>, string>
-> = {
-  ps1: "PS",
-  ps2: "PS2",
-  ps3: "PS3",
-};
-
-function useLibraryGameCardPresentation(
-  game: LibraryGame,
-  variant: "vertical" | "horizontal"
-) {
-  const imageSources = useMemo(() => {
-    if (variant === "horizontal") {
-      const horizontalSources =
-        game.shop === "launchbox"
-          ? [
-              game.customHeroImageUrl,
-              game.libraryHeroImageUrl,
-              game.libraryImageUrl,
-              game.customIconUrl,
-              game.iconUrl,
-            ]
-          : [
-              game.customHeroImageUrl,
-              game.libraryHeroImageUrl,
-              game.coverImageUrl,
-              game.libraryImageUrl,
-              game.customIconUrl,
-              game.iconUrl,
-            ];
-
-      return horizontalSources
-        .map((source) => resolveImageSource(source))
-        .filter((source, index, array) => {
-          return source !== "" && array.indexOf(source) === index;
-        });
-    }
-
-    return getGameImageSources(game);
-  }, [
-    game.coverImageUrl,
-    game.customHeroImageUrl,
-    game.customIconUrl,
-    game.iconUrl,
-    game.libraryHeroImageUrl,
-    game.libraryImageUrl,
-    game.shop,
-    variant,
-  ]);
-  const [imageSourceIndex, setImageSourceIndex] = useState(0);
-  const [imageExhausted, setImageExhausted] = useState(false);
-  const imageSourcesSignature = imageSources.join("|");
-
-  useEffect(() => {
-    setImageSourceIndex(0);
-    setImageExhausted(false);
-  }, [game.id, imageSourcesSignature]);
-
-  const activeImageSource = imageExhausted
-    ? null
-    : (imageSources[imageSourceIndex] ?? null);
-  const dominantColor = useDominantColor(activeImageSource);
-  const achievementProgress = getGameAchievementProgress(game);
-  const classicsSystem =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  const classicsPlatformLabel = classicsSystem
-    ? (PLATFORM_LABELS[classicsSystem] ?? null)
-    : null;
-  const classicsEmulatorIcon = classicsSystem
-    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
-    : undefined;
-
-  const handleCoverImageError = () => {
-    if (imageSourceIndex < imageSources.length - 1) {
-      setImageSourceIndex((currentIndex) => currentIndex + 1);
-      return;
-    }
-
-    setImageExhausted(true);
-  };
-
-  return {
-    activeImageSource,
-    achievementProgress,
-    classicsEmulatorIcon,
-    classicsPlatformLabel,
-    dominantColor,
-    handleCoverImageError,
-    playtimeLabel: formatPlayedTime(game.playTimeInMilliseconds, {
-      zeroFallback: "Never played",
-    }),
-  };
-}
-
-interface ClassicsCoverBadgesProps {
-  platformLabel: string;
-  emulatorIcon?: string;
-}
-
-function ClassicsCoverBadges({
-  platformLabel,
-  emulatorIcon,
-}: Readonly<ClassicsCoverBadgesProps>) {
-  return (
-    <div className="library-classics-badges" aria-hidden="true">
-      <span className="library-classics-platform-badge">{platformLabel}</span>
-      {emulatorIcon ? (
-        <span className="library-classics-emulator-badge">
-          <img src={emulatorIcon} alt="" />
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-interface ClassicsVerticalCoverMediaProps {
-  imageUrl: string;
-  gameTitle: string;
-  onImageError?: () => void;
-}
-
-function ClassicsVerticalCoverMedia({
-  imageUrl,
-  gameTitle,
-  onImageError,
-}: Readonly<ClassicsVerticalCoverMediaProps>) {
-  return (
-    <div className="vertical-game-card__classics-cover" aria-hidden="true">
-      <img
-        src={imageUrl}
-        alt=""
-        className="vertical-game-card__classics-backdrop"
-        draggable={false}
-      />
-      <img
-        src={imageUrl}
-        alt={gameTitle}
-        className="vertical-game-card__classics-image"
-        draggable={false}
-        onError={onImageError}
-      />
-    </div>
-  );
 }
 
 interface LibraryGameCardActionProps {
@@ -354,13 +204,11 @@ export function HorizontalLibraryGameListCard({
     classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
+    logoImageUrl,
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
-  const logoImageUrl = resolveImageSource(
-    game.customLogoImageUrl ?? game.logoImageUrl
-  );
   const coverOverlay =
     classicsPlatformLabel != null ? (
       <ClassicsCoverBadges

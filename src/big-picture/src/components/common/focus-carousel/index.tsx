@@ -17,13 +17,16 @@ import { HorizontalStoreGameCard } from "../horizontal-store-game-card";
 import { VerticalGameCard } from "../vertical-game-card";
 import { VerticalStoreGameCard } from "../vertical-store-game-card";
 import {
-  formatPlayedTime,
-  getGameAchievementProgress,
   getGameCoverImageSource,
   getGameIdentityKey,
   getGameLandscapeImageSource,
   getOptionalItemFocusTarget,
 } from "../../../helpers";
+import {
+  ClassicsCoverBadges,
+  ClassicsVerticalCoverMedia,
+  useLibraryGameCardPresentation,
+} from "../../pages/library/card-presentation";
 
 import "./styles.scss";
 
@@ -39,6 +42,10 @@ type EmblaApi = ReturnType<typeof useEmblaCarousel>[1];
 type ResolvedEmblaApi = NonNullable<EmblaApi>;
 
 interface FocusCarouselGame extends ShopAssets {
+  platform?: string | null;
+  customIconUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
@@ -491,26 +498,56 @@ function FocusCarouselCard({
   onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }>) {
+  const libraryPresentation = useLibraryGameCardPresentation(game, "vertical");
   const coverImageUrl = getGameCoverImageSource(game);
-  const dominantColor = useDominantColor(
+  const defaultLibraryDominantColor = useDominantColor(
     cardMode === "library" ? (coverImageUrl ?? null) : null
   );
 
   if (cardMode === "library") {
-    const achievementProgress = getGameAchievementProgress(game);
+    const isClassicsGame = game.shop === "launchbox";
+    const coverMedia =
+      isClassicsGame && libraryPresentation.activeImageSource ? (
+        <ClassicsVerticalCoverMedia
+          imageUrl={libraryPresentation.activeImageSource}
+          gameTitle={game.title}
+          onImageError={libraryPresentation.handleCoverImageError}
+        />
+      ) : null;
+    const coverOverlay =
+      libraryPresentation.classicsPlatformLabel != null ? (
+        <ClassicsCoverBadges
+          platformLabel={libraryPresentation.classicsPlatformLabel}
+          emulatorIcon={libraryPresentation.classicsEmulatorIcon}
+        />
+      ) : null;
 
     return (
       <VerticalGameCard
-        coverImageUrl={coverImageUrl}
+        className={
+          isClassicsGame && cardVariant === "vertical"
+            ? "library-focus-grid__card--classics"
+            : undefined
+        }
+        coverImageUrl={
+          isClassicsGame ? libraryPresentation.activeImageSource : coverImageUrl
+        }
+        coverMedia={coverMedia}
+        coverOverlay={coverOverlay}
         gameTitle={game.title}
-        subtitle={formatPlayedTime(game.playTimeInMilliseconds, {
-          zeroFallback: "Never played",
-        })}
-        progressLabel={achievementProgress.label}
-        progressValue={achievementProgress.value}
-        progressColor={dominantColor ?? undefined}
+        subtitle={libraryPresentation.playtimeLabel}
+        progressLabel={libraryPresentation.achievementProgress.label}
+        progressValue={libraryPresentation.achievementProgress.value}
+        progressColor={
+          (isClassicsGame
+            ? libraryPresentation.dominantColor
+            : defaultLibraryDominantColor) ?? undefined
+        }
         onClick={onClick}
         onContextMenu={onContextMenu}
+        onCoverImageError={
+          isClassicsGame ? libraryPresentation.handleCoverImageError : undefined
+        }
       />
     );
   }

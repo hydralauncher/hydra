@@ -109,9 +109,20 @@ type ProfileActivityGame = {
 };
 
 type ProfileLibraryCarouselGame = ShopAssets & {
+  platform?: string | null;
+  customIconUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
+};
+
+type ProfileClassicsAssetFields = {
+  platform?: string | null;
+  customIconUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
 };
 
 type ProfileRecentAchievement = UserAchievement & {
@@ -402,6 +413,8 @@ function getLibraryCarouselPlaytimeInMilliseconds(
 function toProfileLibraryCarouselGame(
   game: LibraryGame | UserGame
 ): ProfileLibraryCarouselGame {
+  const classicsAssetFields = game as ProfileClassicsAssetFields;
+
   return {
     objectId: game.objectId,
     shop: game.shop,
@@ -413,6 +426,10 @@ function toProfileLibraryCarouselGame(
     logoPosition: game.logoPosition ?? null,
     coverImageUrl: game.coverImageUrl ?? null,
     downloadSources: game.downloadSources ?? [],
+    platform: classicsAssetFields.platform ?? null,
+    customIconUrl: classicsAssetFields.customIconUrl ?? null,
+    customHeroImageUrl: classicsAssetFields.customHeroImageUrl ?? null,
+    customLogoImageUrl: classicsAssetFields.customLogoImageUrl ?? null,
     playTimeInMilliseconds: getLibraryCarouselPlaytimeInMilliseconds(game),
     achievementCount: game.achievementCount ?? null,
     unlockedAchievementCount: game.unlockedAchievementCount ?? null,
