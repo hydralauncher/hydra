@@ -213,18 +213,14 @@ class TorrentDownloader:
                 self.session.remove_torrent(self.torrent_handle)
                 self.torrent_handle = None
 
-            initial_flags = self.flags | lt.torrent_flags.paused
-
+            initial_flags = self.flags | lt.torrent_flags.paused | lt.torrent_flags.auto_managed
             if selective_download:
                 initial_flags |= lt.torrent_flags.default_dont_download
-                initial_flags |= lt.torrent_flags.auto_managed
-            else:
-                initial_flags |= lt.torrent_flags.auto_managed
 
             params = {
                 "url": magnet,
                 "save_path": save_path,
-                "trackers": self.trackers,
+                "trackers": [],
                 "flags": initial_flags,
             }
 
@@ -234,35 +230,50 @@ class TorrentDownloader:
         self.selected_file_indices = None
         self.selected_size_bytes = None
 
-        if selective_download:
-            try:
-                self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
-                self.torrent_handle.resume()
-
-                if not self._wait_for_metadata(timeout_seconds=wait_timeout_seconds):
-                    raise TimeoutError("metadata_timeout")
-
-                try:
-                    info = self.torrent_handle.get_torrent_info()
-                    files_storage = info.files()
-                except RuntimeError as error:
-                    raise RuntimeError("metadata_incomplete") from error
-
-                self.torrent_handle.pause()
-                self.torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
-
-                sanitized_indices = self._sanitize_file_indices(file_indices, files_storage)
-                self._set_selected_file_priorities(sanitized_indices, files_storage)
-
-                self.selected_file_indices = sanitized_indices
-                self.selected_size_bytes = sum(files_storage.file_size(index) for index in sanitized_indices)
-            except Exception:
-                self.cancel_download()
-                raise
+        try:
+            self._run_selective_logic(file_indices, wait_timeout_seconds)
+        except Exception as e:
+            self.logger.error(f"Error during download initialization: {e}")
+            self.cancel_download()
+            raise
 
         self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
         self.torrent_handle.resume()
 
+    def _run_selective_logic(self, file_indices, timeout):
+        self.torrent_handle.set_flags(lt.torrent_flags.auto_managed)
+        self.torrent_handle.resume()
+
+        if not self._wait_for_metadata(timeout_seconds=timeout):
+            raise TimeoutError("metadata_timeout")
+
+        info = self.torrent_handle.get_torrent_info()
+
+        if not info.priv():
+            self.logger.info(f"Torrent '{info.name()}' is PUBLIC. Injecting {len(self.trackers)} trackers.")
+            for t in self.trackers:
+                self.torrent_handle.add_tracker({"url": t})
+            
+            actual_trackers = [t.get('url') if isinstance(t, dict) else t.url for t in self.torrent_handle.trackers()]
+            self.logger.info(f"Successfully added trackers. Total count: {len(actual_trackers)}")
+            self.logger.debug(f"Trackers list: {actual_trackers}")
+        else:
+            existing_trackers = [t.get('url') if isinstance(t, dict) else t.url for t in self.torrent_handle.trackers()]
+            self.logger.info(f"Torrent '{info.name()}' is PRIVATE. Staying with: {existing_trackers}")
+
+        files_storage = info.files()
+        self.torrent_handle.pause()
+        self.torrent_handle.unset_flags(lt.torrent_flags.auto_managed)
+
+        if file_indices is not None:
+            sanitized = self._sanitize_file_indices(file_indices, files_storage)
+            self._set_selected_file_priorities(sanitized, files_storage)
+            self.selected_file_indices = sanitized
+            self.selected_size_bytes = sum(files_storage.file_size(i) for i in sanitized)
+        else:
+            self.selected_file_indices = list(range(files_storage.num_files()))
+            self.selected_size_bytes = info.total_size()
+    
     def get_torrent_files(self, timeout_seconds: float = 30.0, max_files: int = 100000):
         if not self._wait_for_metadata(timeout_seconds=timeout_seconds):
             raise TimeoutError("metadata_timeout")
