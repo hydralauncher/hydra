@@ -1,6 +1,7 @@
 import type { LibraryGame } from "@types";
 import { useCallback } from "react";
 import { IS_DESKTOP } from "../../../constants";
+import { NavigationAudioService } from "../../../services";
 
 export function useLibraryLaunchGame(
   onMissingExecutable: (game: LibraryGame) => void
@@ -15,6 +16,7 @@ export function useLibraryLaunchGame(
           return;
         }
 
+        NavigationAudioService.getInstance().play("launch");
         await globalThis.window.electron.openClassicsGame(
           game.shop,
           game.objectId,
@@ -29,6 +31,7 @@ export function useLibraryLaunchGame(
         return;
       }
 
+      NavigationAudioService.getInstance().play("launch");
       await globalThis.window.electron.openGame(
         game.shop,
         game.objectId,

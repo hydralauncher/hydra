@@ -1,13 +1,15 @@
 import backSoundUrl from "../assets/audio/Back sound effect.wav";
+import launchSoundUrl from "../assets/audio/Launch Sound.wav";
 import scrollSoundUrl from "../assets/audio/Scroll Sound.wav";
 import selectSoundUrl from "../assets/audio/Select Sound.wav";
 
-export type NavigationAudioCue = "back" | "scroll" | "select";
+export type NavigationAudioCue = "back" | "launch" | "scroll" | "select";
 
 const NAVIGATION_AUDIO_VOLUME = 0.25;
 
 const NAVIGATION_AUDIO_URLS: Record<NavigationAudioCue, string> = {
   back: backSoundUrl,
+  launch: launchSoundUrl,
   scroll: scrollSoundUrl,
   select: selectSoundUrl,
 };

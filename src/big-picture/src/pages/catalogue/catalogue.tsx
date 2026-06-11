@@ -7,6 +7,7 @@ import { CatalogueGrid } from "./grid";
 import { CatalogueHeader } from "./header";
 import { CatalogueFiltersModal } from "./filters-modal";
 import { useCatalogueData } from "./use-catalogue-data";
+import { NavigationAudioService } from "../../services";
 import "./page.scss";
 
 const POINTER_SCROLL_SUPPRESSION_DURATION_MS = 500;
@@ -87,8 +88,11 @@ export default function Catalogue() {
   }, [loadMore]);
 
   const openFiltersModal = useCallback(() => {
+    if (isFiltersModalOpen) return;
+
+    NavigationAudioService.getInstance().play("select");
     setIsFiltersModalOpen(true);
-  }, []);
+  }, [isFiltersModalOpen]);
 
   useEffect(() => {
     restorePointerScrollTopRef.current = null;

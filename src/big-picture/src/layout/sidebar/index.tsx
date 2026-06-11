@@ -130,8 +130,8 @@ function isFocusedNodeWithinRegion(
     }
 
     currentRegionId =
-      regions.find((region) => region.id === currentRegionId)
-        ?.parentRegionId ?? null;
+      regions.find((region) => region.id === currentRegionId)?.parentRegionId ??
+      null;
   }
 
   return false;
@@ -728,12 +728,7 @@ const SidebarContainer = forwardRef<
     onHoverChange?: (isHovered: boolean) => void;
   }>
 >(function SidebarContainer(
-  {
-    children,
-    forcedOpen = false,
-    onFocusWithinChange,
-    onHoverChange,
-  },
+  { children, forcedOpen = false, onFocusWithinChange, onHoverChange },
   ref
 ) {
   const handleMouseEnter = () => {

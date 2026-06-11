@@ -15,6 +15,7 @@ import {
   getSteamLanguage,
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
+import { NavigationAudioService } from "../services";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
@@ -128,6 +129,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
       if (!game) return;
 
       if (game.shop === "launchbox") {
+        NavigationAudioService.getInstance().play("launch");
         await globalThis.window.electron.openClassicsGame(
           game.shop,
           game.objectId,
@@ -139,6 +141,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
       if (!game.executablePath) return;
 
+      NavigationAudioService.getInstance().play("launch");
       globalThis.window.electron.openGame(
         game.shop,
         game.objectId,
