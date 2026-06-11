@@ -35,7 +35,9 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
         .map(([key]) => ({ type: "del" as const, key }));
 
       return Promise.all([
-        gamesSublevel.batch(cloudGameDeletions),
+        cloudGameDeletions.length > 0
+          ? gamesSublevel.batch(cloudGameDeletions)
+          : Promise.resolve(),
         downloadsSublevel.clear(),
         downloadLayoutStateSublevel.clear(),
       ]);
