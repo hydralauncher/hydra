@@ -11,6 +11,7 @@ export interface UserProfileProps {
   friendCode: string;
   profileFocusId?: string;
   notificationsFocusId?: string;
+  notificationsFocusable?: boolean;
   profileFocusNavigationOverrides?: FocusOverrides;
   notificationsFocusNavigationOverrides?: FocusOverrides;
   notificationCount?: number;
@@ -31,6 +32,7 @@ interface UserProfileContentProps {
 
 interface UserProfileNotificationProps {
   notificationsFocusId?: string;
+  notificationsFocusable?: boolean;
   notificationsFocusNavigationOverrides?: FocusOverrides;
   notificationCount?: number;
   notificationsButtonRef?: Ref<HTMLButtonElement>;
@@ -78,6 +80,7 @@ export function UserProfileAvatar({
 
 function UserProfileNotification({
   notificationsFocusId,
+  notificationsFocusable = true,
   notificationsFocusNavigationOverrides,
   notificationCount = 0,
   notificationsButtonRef,
@@ -109,6 +112,7 @@ function UserProfileNotification({
   return (
     <FocusItem
       id={notificationsFocusId}
+      focusable={notificationsFocusable}
       navigationOverrides={notificationsFocusNavigationOverrides}
       asChild
     >
@@ -218,6 +222,7 @@ export function UserProfile({
   friendCode,
   profileFocusId,
   notificationsFocusId,
+  notificationsFocusable = true,
   profileFocusNavigationOverrides,
   notificationsFocusNavigationOverrides,
   notificationCount,
@@ -239,6 +244,7 @@ export function UserProfile({
         />
         <UserProfileNotification
           notificationsFocusId={notificationsFocusId}
+          notificationsFocusable={notificationsFocusable}
           notificationsFocusNavigationOverrides={
             notificationsFocusNavigationOverrides
           }

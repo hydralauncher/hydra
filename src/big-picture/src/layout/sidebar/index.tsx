@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { AuthPage } from "@shared";
 import {
+  type FocusEvent,
   forwardRef,
   useCallback,
   useEffect,
@@ -43,7 +44,8 @@ import {
   useBigPictureDownloadsStore,
 } from "../../stores/downloads.store";
 import type { DownloadProgress, LibraryGame } from "@types";
-import type { FocusOverrides } from "../../services";
+import type { FocusNode, FocusOverrides, FocusRegion } from "../../services";
+import { useNavigationSnapshot } from "../../stores";
 import {
   BIG_PICTURE_SIDEBAR_EXIT_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
@@ -107,6 +109,33 @@ const SIDEBAR_LIBRARY_FILTER_FOCUS_IDS: Record<SidebarLibraryFilter, string> = {
   recently_played: BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_RECENTLY_PLAYED_ID,
   favorites: BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID,
 };
+
+function isFocusedNodeWithinRegion(
+  currentFocusId: string | null,
+  nodes: FocusNode[],
+  regions: FocusRegion[],
+  regionId: string
+) {
+  const focusedNode = currentFocusId
+    ? nodes.find((node) => node.id === currentFocusId)
+    : null;
+
+  if (!focusedNode) return false;
+
+  let currentRegionId: string | null = focusedNode.regionId;
+
+  while (currentRegionId) {
+    if (currentRegionId === regionId) {
+      return true;
+    }
+
+    currentRegionId =
+      regions.find((region) => region.id === currentRegionId)
+        ?.parentRegionId ?? null;
+  }
+
+  return false;
+}
 
 function compareGamesByTitle(a: LibraryGame, b: LibraryGame) {
   return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
@@ -601,19 +630,24 @@ function SidebarLibrary() {
 
 interface SidebarProfileProps {
   notificationsOpen: boolean;
+  notificationsFocusable: boolean;
   onNotificationsOpenChange: (isOpen: boolean) => void;
   onNotificationsRestoringFocusChange: (isRestoring: boolean) => void;
 }
 
 function SidebarProfile({
   notificationsOpen,
+  notificationsFocusable,
   onNotificationsOpenChange,
   onNotificationsRestoringFocusChange,
 }: Readonly<SidebarProfileProps>) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { userDetails } = useUserDetails();
   const notificationsButtonRef = useRef<HTMLButtonElement>(null);
   const [notificationCount, setNotificationCount] = useState(0);
+  const contentEntryTarget =
+    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
 
   const toggleNotifications = useCallback(() => {
     onNotificationsOpenChange(!notificationsOpen);
@@ -636,7 +670,11 @@ function SidebarProfile({
     up: {
       type: "block",
     },
-    right: getItemFocusTarget(BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID),
+    ...(notificationsFocusable
+      ? {
+          right: getItemFocusTarget(BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID),
+        }
+      : {}),
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
   };
   const notificationsFocusNavigationOverrides: FocusOverrides = {
@@ -644,6 +682,7 @@ function SidebarProfile({
       type: "block",
     },
     left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+    right: contentEntryTarget,
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
   };
 
@@ -656,6 +695,7 @@ function SidebarProfile({
           friendCode={userDetails?.id ?? "Not signed in"}
           profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
           notificationsFocusId={BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID}
+          notificationsFocusable={notificationsFocusable}
           profileFocusNavigationOverrides={profileFocusNavigationOverrides}
           notificationsFocusNavigationOverrides={
             notificationsFocusNavigationOverrides
@@ -681,9 +721,28 @@ function SidebarProfile({
 
 const SidebarContainer = forwardRef<
   HTMLDivElement,
-  Readonly<{ children: React.ReactNode; forcedOpen?: boolean }>
->(function SidebarContainer({ children, forcedOpen = false }, ref) {
+  Readonly<{
+    children: React.ReactNode;
+    forcedOpen?: boolean;
+    onFocusWithinChange?: (hasFocusWithin: boolean) => void;
+    onHoverChange?: (isHovered: boolean) => void;
+  }>
+>(function SidebarContainer(
+  {
+    children,
+    forcedOpen = false,
+    onFocusWithinChange,
+    onHoverChange,
+  },
+  ref
+) {
+  const handleMouseEnter = () => {
+    onHoverChange?.(true);
+  };
+
   const handleMouseLeave = () => {
+    onHoverChange?.(false);
+
     const activeElement = document.activeElement;
 
     if (!(activeElement instanceof HTMLElement)) return;
@@ -692,11 +751,31 @@ const SidebarContainer = forwardRef<
     activeElement.blur();
   };
 
+  const handleFocusCapture = () => {
+    onFocusWithinChange?.(true);
+  };
+
+  const handleBlurCapture = (event: FocusEvent<HTMLDivElement>) => {
+    const nextFocusedElement = event.relatedTarget;
+
+    if (
+      nextFocusedElement instanceof Node &&
+      event.currentTarget.contains(nextFocusedElement)
+    ) {
+      return;
+    }
+
+    onFocusWithinChange?.(false);
+  };
+
   return (
     <div
       ref={ref}
       role="presentation"
       className={`sidebar-container${forcedOpen ? " sidebar-container--open" : ""}`}
+      onBlurCapture={handleBlurCapture}
+      onFocusCapture={handleFocusCapture}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
@@ -707,9 +786,28 @@ const SidebarContainer = forwardRef<
 function Sidebar() {
   const { pathname } = useLocation();
   const { setFocusRegion } = useNavigationActions();
+  const { currentFocusId, nodes, regions } = useNavigationSnapshot();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
+  const sidebarHasNavigationFocus = useMemo(
+    () =>
+      isFocusedNodeWithinRegion(
+        currentFocusId,
+        nodes,
+        regions,
+        BIG_PICTURE_SIDEBAR_REGION_ID
+      ),
+    [currentFocusId, nodes, regions]
+  );
+  const sidebarForcedOpen =
+    notificationsOpen ||
+    restoringNotificationsFocus ||
+    sidebarHasNavigationFocus;
+  const sidebarExpanded =
+    sidebarHovered || sidebarFocusWithin || sidebarForcedOpen;
 
   const handleOverlayPointerDown = () => {
     const activeElement = document.activeElement;
@@ -736,10 +834,13 @@ function Sidebar() {
     <>
       <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
         <SidebarContainer
-          forcedOpen={notificationsOpen || restoringNotificationsFocus}
+          forcedOpen={sidebarForcedOpen}
+          onFocusWithinChange={setSidebarFocusWithin}
+          onHoverChange={setSidebarHovered}
         >
           <SidebarProfile
             notificationsOpen={notificationsOpen}
+            notificationsFocusable={sidebarExpanded}
             onNotificationsOpenChange={setNotificationsOpen}
             onNotificationsRestoringFocusChange={setRestoringNotificationsFocus}
           />
