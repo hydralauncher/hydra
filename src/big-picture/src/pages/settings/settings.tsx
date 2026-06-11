@@ -131,6 +131,7 @@ export default function Settings() {
 
   const visibleTabs = useMemo(() => {
     return ALL_SETTINGS_TABS.filter((tab) => {
+      if (tab.id === "emulation") return false;
       if (tab.id !== "account-privacy") return true;
 
       return Boolean(userDetails);
