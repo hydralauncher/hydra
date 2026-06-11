@@ -1,9 +1,18 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SyncIcon } from "@primer/octicons-react";
+import {
+  AlertIcon,
+  FileDirectoryIcon,
+  SyncIcon,
+  XIcon,
+} from "@primer/octicons-react";
+import cn from "classnames";
 
 import { Button, Modal } from "@renderer/components";
 
 import "./scan-games-modal.scss";
+
+type ScanMode = "automatic" | "manual";
 
 interface FoundGame {
   title: string;
@@ -20,7 +29,10 @@ export interface ScanGamesModalProps {
   onClose: () => void;
   isScanning: boolean;
   scanResult: ScanResult | null;
-  onStartScan: () => void;
+  onStartScan: (
+    additionalDirectories: string[],
+    includeDefaultDirectories: boolean
+  ) => void;
   onClearResult: () => void;
 }
 
@@ -34,17 +46,49 @@ export function ScanGamesModal({
 }: Readonly<ScanGamesModalProps>) {
   const { t } = useTranslation("header");
 
+  const isWindows = window.electron.platform === "win32";
+
+  const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+  const [scanMode, setScanMode] = useState<ScanMode>(
+    isWindows ? "automatic" : "manual"
+  );
+
+  const isManualMode = !isWindows || scanMode === "manual";
+  const requiresFolderSelection = isManualMode && selectedFolders.length === 0;
+
   const handleClose = () => {
+    setSelectedFolders([]);
+    setScanMode(isWindows ? "automatic" : "manual");
     onClose();
   };
 
   const handleStartScan = () => {
-    onStartScan();
+    if (isManualMode) {
+      onStartScan(selectedFolders, false);
+    } else {
+      onStartScan([], true);
+    }
   };
 
   const handleScanAgain = () => {
     onClearResult();
-    onStartScan();
+  };
+
+  const handleAddFolder = async () => {
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      properties: ["openDirectory", "multiSelections"],
+    });
+
+    if (canceled) return;
+
+    setSelectedFolders((prev) => [
+      ...prev,
+      ...filePaths.filter((filePath) => !prev.includes(filePath)),
+    ]);
+  };
+
+  const handleRemoveFolder = (folder: string) => {
+    setSelectedFolders((prev) => prev.filter((item) => item !== folder));
   };
 
   return (
@@ -56,9 +100,84 @@ export function ScanGamesModal({
     >
       <div className="scan-games-modal">
         {!scanResult && !isScanning && (
-          <p className="scan-games-modal__description">
-            {t("scan_games_description")}
-          </p>
+          <>
+            {isWindows && (
+              <div className="scan-games-modal__mode-toggle">
+                <button
+                  type="button"
+                  className={cn("scan-games-modal__mode-option", {
+                    "scan-games-modal__mode-option--active":
+                      scanMode === "automatic",
+                  })}
+                  onClick={() => setScanMode("automatic")}
+                >
+                  {t("scan_games_mode_automatic")}
+                </button>
+                <button
+                  type="button"
+                  className={cn("scan-games-modal__mode-option", {
+                    "scan-games-modal__mode-option--active":
+                      scanMode === "manual",
+                  })}
+                  onClick={() => setScanMode("manual")}
+                >
+                  {t("scan_games_mode_manual")}
+                </button>
+              </div>
+            )}
+
+            <div className="scan-games-modal__warning">
+              <AlertIcon size={14} className="scan-games-modal__warning-icon" />
+              <span>{t("scan_games_detection_warning")}</span>
+            </div>
+
+            {!isManualMode && (
+              <p className="scan-games-modal__description">
+                {t("scan_games_description")}
+              </p>
+            )}
+
+            {isManualMode && (
+              <div className="scan-games-modal__folders">
+                <div className="scan-games-modal__folders-header">
+                  <span className="scan-games-modal__folders-title">
+                    {t("scan_games_folders_title")}
+                  </span>
+                  <Button theme="outline" onClick={handleAddFolder}>
+                    <FileDirectoryIcon size={14} />
+                    {t("scan_games_add_folder")}
+                  </Button>
+                </div>
+
+                {selectedFolders.length > 0 ? (
+                  <ul className="scan-games-modal__folders-list">
+                    {selectedFolders.map((folder) => (
+                      <li
+                        key={folder}
+                        className="scan-games-modal__folder-item"
+                      >
+                        <span className="scan-games-modal__folder-path">
+                          {folder}
+                        </span>
+                        <button
+                          type="button"
+                          className="scan-games-modal__folder-remove"
+                          onClick={() => handleRemoveFolder(folder)}
+                          aria-label={t("scan_games_remove_folder")}
+                        >
+                          <XIcon size={14} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="scan-games-modal__folders-hint">
+                    {t("scan_games_folders_hint_manual")}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {isScanning && !scanResult && (
@@ -66,6 +185,9 @@ export function ScanGamesModal({
             <SyncIcon size={24} className="scan-games-modal__spinner" />
             <p className="scan-games-modal__scanning-text">
               {t("scan_games_in_progress")}
+            </p>
+            <p className="scan-games-modal__scanning-hint">
+              {t("scan_games_in_progress_hint")}
             </p>
           </div>
         )}
@@ -107,10 +229,17 @@ export function ScanGamesModal({
 
         <div className="scan-games-modal__actions">
           <Button theme="outline" onClick={handleClose}>
-            {scanResult ? t("scan_games_close") : t("scan_games_cancel")}
+            {scanResult
+              ? t("scan_games_close")
+              : isScanning
+                ? t("scan_games_hide")
+                : t("scan_games_cancel")}
           </Button>
           {!scanResult && (
-            <Button onClick={handleStartScan} disabled={isScanning}>
+            <Button
+              onClick={handleStartScan}
+              disabled={isScanning || requiresFolderSelection}
+            >
               {t("scan_games_start")}
             </Button>
           )}
