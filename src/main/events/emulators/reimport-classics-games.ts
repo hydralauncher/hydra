@@ -1,4 +1,5 @@
 import { chunk } from "lodash-es";
+import { AxiosError } from "axios";
 
 import { HydraApi, emulators, WindowManager, logger } from "@main/services";
 import { db, gamesSublevel } from "@main/level";
@@ -20,6 +21,8 @@ interface ProfileGameDetail {
 }
 
 const syncClassicsPlaytime = async () => {
+  if (!HydraApi.isLoggedIn()) return;
+
   const launchboxGames = (await gamesSublevel.iterator().all()).filter(
     ([, game]) => game.shop === "launchbox" && !game.isDeleted
   );
@@ -59,6 +62,10 @@ const syncClassicsPlaytime = async () => {
               game.hasManuallyUpdatedPlaytime,
           });
         } catch (err) {
+          if (err instanceof AxiosError && err.response?.status === 404) {
+            return;
+          }
+
           logger.error(
             `Failed to sync classics playtime for ${game.objectId}`,
             err
