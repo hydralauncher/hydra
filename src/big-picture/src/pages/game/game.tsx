@@ -407,12 +407,17 @@ export default function Game() {
     (shopDetails?.screenshots?.length ?? 0) > 0;
   const isLaunchboxGame = shop === "launchbox";
   const launchboxGenres = useMemo(() => {
-    return (shopDetails?.genres ?? [])
+    return ((shopDetails?.genres ?? []) as unknown[])
       .map((genre) => {
         if (typeof genre === "string") return genre;
-        return genre.name;
+        if (genre && typeof genre === "object" && "name" in genre) {
+          const { name } = genre as { name?: unknown };
+          return typeof name === "string" ? name : "";
+        }
+
+        return "";
       })
-      .filter((genre) => genre.length > 0);
+      .filter((genre) => genre.trim().length > 0);
   }, [shopDetails?.genres]);
   const launchboxRegions = useMemo(
     () =>
