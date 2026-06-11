@@ -1056,6 +1056,8 @@
     "amount_hours_short": "{{amount}}h",
     "amount_minutes_short": "{{amount}}m",
     "manual_playtime_tooltip": "This playtime has been manually updated",
+    "installed": "Ready",
+    "installed_tooltip": "Executable set, ready to play",
     "all_games": "All Games",
     "sort_by": "Sort by",
     "sort_title_asc": "Title (A-Z)",
