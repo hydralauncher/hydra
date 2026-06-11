@@ -10,13 +10,9 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useToast } from "@renderer/hooks";
 import "./report-profile.scss";
 
-const reportReasons = [
-  "hate",
-  "sexual_content",
-  "violence",
-  "spam",
-  "other_option",
-];
+const reportReasons = ["hate", "sexual_content", "violence", "spam", "other"];
+
+const MAX_REPORT_DESCRIPTION_LENGTH = 255;
 
 interface FormValues {
   reason: string;
@@ -32,7 +28,16 @@ export function ReportProfile() {
 
   const schema = yup.object().shape({
     reason: yup.string().required(t("required_field")),
-    description: yup.string().required(t("required_field")),
+    description: yup
+      .string()
+      .required(t("required_field"))
+      .max(
+        MAX_REPORT_DESCRIPTION_LENGTH,
+        t("max_length_field", {
+          ns: "game_details",
+          length: MAX_REPORT_DESCRIPTION_LENGTH,
+        })
+      ),
   });
 
   const {
@@ -115,7 +120,9 @@ export function ReportProfile() {
             error={errors.description?.message}
           />
 
-          <Button className="report-profile__submit">{t("report")}</Button>
+          <Button type="submit" className="report-profile__submit">
+            {t("report")}
+          </Button>
         </form>
       </Modal>
 

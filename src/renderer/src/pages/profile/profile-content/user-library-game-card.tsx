@@ -7,6 +7,7 @@ import {
   buildGameAchievementPath,
   buildGameDetailsPath,
   formatDownloadProgress,
+  isGameCompleted,
 } from "@renderer/helpers";
 import { userProfileContext } from "@renderer/context";
 import {
@@ -20,6 +21,7 @@ import {
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { Tooltip } from "react-tooltip";
 import { useTranslation } from "react-i18next";
+import { ProgressBar } from "@renderer/components";
 import "./user-library-game-card.scss";
 
 interface UserLibraryGameCardProps {
@@ -46,6 +48,11 @@ export function UserLibraryGameCard({
   useEffect(() => {
     setImageError(false);
   }, [game.coverImageUrl]);
+
+  const isCompleted = isGameCompleted(
+    game.achievementCount,
+    game.unlockedAchievementCount
+  );
 
   const getStatsItemCount = useCallback(() => {
     let statsCount = 1;
@@ -194,7 +201,7 @@ export function UserLibraryGameCard({
                           transform: `translateY(${-100 * (statIndex % getStatsItemCount())}%)`,
                         }}
                       >
-                        <TrophyIcon size={13} />
+                        {!isCompleted && <TrophyIcon size={13} />}
                         <span>
                           {game.unlockedAchievementCount} /{" "}
                           {game.achievementCount}
@@ -216,20 +223,27 @@ export function UserLibraryGameCard({
                       )}
                     </div>
 
-                    <span>
-                      {formatDownloadProgress(
-                        game.unlockedAchievementCount / game.achievementCount,
-                        1
+                    <span
+                      className={`user-library-game__stats-percentage${isCompleted ? " user-library-game__stats-percentage--completed" : ""}`}
+                    >
+                      {isCompleted ? (
+                        <TrophyIcon size={13} />
+                      ) : (
+                        formatDownloadProgress(
+                          game.unlockedAchievementCount / game.achievementCount,
+                          1
+                        )
                       )}
                     </span>
                   </div>
 
-                  <progress
-                    max={1}
-                    value={
-                      game.unlockedAchievementCount / game.achievementCount
-                    }
-                    className="user-library-game__achievements-progress"
+                  <ProgressBar
+                    now={game.unlockedAchievementCount ?? 0}
+                    max={game.achievementCount ?? 1}
+                    label={`${game.title} achievements`}
+                    completed={isCompleted}
+                    trackClassName="user-library-game__achievements-progress-track"
+                    barClassName="user-library-game__achievements-progress"
                   />
                 </div>
               )}

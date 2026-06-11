@@ -11,7 +11,9 @@ import {
   PS1_FILENAME_MAX,
   PS1_FILENAME_OFFSET,
   PS1_FRAME_BYTES,
+  PS1_FREE_BLOCK_MASK,
   PS1_LINK_END,
+  PS1_LINK_OFFSET,
   PS1_STATE,
 } from "./types";
 
@@ -71,7 +73,8 @@ const frameOffset = (block: number): number => block * PS1_FRAME_BYTES;
 const blockState = (directory: Buffer, block: number): number =>
   directory.readUInt32LE(frameOffset(block)) & 0xff;
 
-const isFreeState = (state: number): boolean => (state & 0xf0) === 0xa0;
+const isFreeState = (state: number): boolean =>
+  (state & PS1_FREE_BLOCK_MASK) === FREE_STATE;
 
 // XOR of bytes 0x00..0x7E, stored at 0x7F.
 const writeFrameChecksum = (directory: Buffer, block: number): void => {
@@ -94,7 +97,7 @@ const chainFrom = (directory: Buffer, firstBlock: number): number[] => {
   const seen = new Set<number>([firstBlock]);
   let cur = firstBlock;
   for (let step = 0; step < PS1_DATA_BLOCKS; step += 1) {
-    const link = directory.readUInt16LE(frameOffset(cur) + 0x08);
+    const link = directory.readUInt16LE(frameOffset(cur) + PS1_LINK_OFFSET);
     if (link === PS1_LINK_END) break;
     const next = link + 1;
     if (next < 1 || next > PS1_DATA_BLOCKS || seen.has(next)) break;
@@ -153,7 +156,7 @@ const applyMcsToCard = (card: Buffer, mcs: McsContents): ApplyResult => {
       directory.writeUInt32LE(state, base);
     }
     const link = i === need - 1 ? PS1_LINK_END : freeBlocks[i + 1] - 1;
-    directory.writeUInt16LE(link, base + 0x08);
+    directory.writeUInt16LE(link, base + PS1_LINK_OFFSET);
     writeFrameChecksum(directory, block);
 
     mcs.blocks[i].copy(card, block * PS1_BLOCK_BYTES);
