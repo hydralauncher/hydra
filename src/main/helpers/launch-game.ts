@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { GameShop, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
+import { updateGameExecutablePath } from "./update-executable-path";
 import {
   WindowManager,
   logger,
@@ -211,8 +212,7 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
 
   if (game) {
     await gamesSublevel.put(gameKey, {
-      ...game,
-      executablePath: parsedPath,
+      ...updateGameExecutablePath(game, parsedPath),
       launchOptions,
     });
   }

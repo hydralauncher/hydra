@@ -1,6 +1,7 @@
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
@@ -366,8 +367,7 @@ export class GameFilesManager {
         );
 
         await gamesSublevel.put(this.gameKey, {
-          ...game,
-          executablePath: foundExePath,
+          ...updateGameExecutablePath(game, foundExePath),
         });
 
         WindowManager.sendToAppWindows("on-library-batch-complete");

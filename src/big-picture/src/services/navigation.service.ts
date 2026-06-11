@@ -61,6 +61,7 @@ interface FocusLayerRecord extends FocusLayer {
   isPersistent: boolean;
   explicitRootRegionId: string | null;
   hasWarnedAboutMultipleRoots: boolean;
+  restoreFocusOnUnmount: () => boolean;
 }
 
 type Listener = () => void;
@@ -157,6 +158,7 @@ export class NavigationService {
       isPersistent: true,
       explicitRootRegionId: null,
       hasWarnedAboutMultipleRoots: false,
+      restoreFocusOnUnmount: () => true,
     });
   }
 
@@ -172,6 +174,7 @@ export class NavigationService {
     id: string;
     rootRegionId?: string | null;
     isPersistent?: boolean;
+    restoreFocusOnUnmount?: boolean | (() => boolean);
   }) {
     if (layer.id === ROOT_NAVIGATION_LAYER_ID) {
       throw new Error(
@@ -193,6 +196,7 @@ export class NavigationService {
     const openerRegionId = openerFocusId
       ? (this.nodes.get(openerFocusId)?.regionId ?? null)
       : null;
+    const restoreFocusOnUnmount = layer.restoreFocusOnUnmount;
 
     this.layers.set(layer.id, {
       id: layer.id,
@@ -202,6 +206,10 @@ export class NavigationService {
       isPersistent: Boolean(layer.isPersistent),
       explicitRootRegionId: layer.rootRegionId ?? null,
       hasWarnedAboutMultipleRoots: false,
+      restoreFocusOnUnmount:
+        typeof restoreFocusOnUnmount === "function"
+          ? restoreFocusOnUnmount
+          : () => restoreFocusOnUnmount ?? true,
     });
 
     this.layerStack.push(layer.id);
@@ -224,7 +232,9 @@ export class NavigationService {
       this.layers.delete(layer.id);
 
       if (wasActiveLayer) {
-        this.currentFocusId = this.restoreFocusForLayer(registeredLayer);
+        this.currentFocusId = registeredLayer.restoreFocusOnUnmount()
+          ? this.restoreFocusForLayer(registeredLayer)
+          : null;
 
         if (this.currentFocusId) {
           this.updateLastFocusedForNode(this.currentFocusId);
