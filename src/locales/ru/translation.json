@@ -987,7 +987,7 @@
     "report_reason_sexual_content": "Сексуальный контент",
     "report_reason_violence": "Насилие",
     "report_reason_spam": "Спам",
-    "report_reason_other_option": "Другое",
+    "report_reason_other": "Другое",
     "profile_reported": "Жалоба на профиль отправлена",
     "your_friend_code": "Ваш код друга:",
     "copy_friend_code": "Копировать код друга",
@@ -1105,7 +1105,7 @@
     "show_and_compare_achievements": "Показывайте и сравнивайте свои достижения с достижениями других пользователей",
     "animated_profile_banner": "Анимированный баннер профиля",
     "hydra_cloud": "Hydra Cloud",
-    "hydra_cloud_feature_found": "Вы только что открыли для себя функцию Hydra Cloud!",
+    "hydra_cloud_feature_found": "Эта функция доступна только пользователям Hydra Cloud.",
     "learn_more": "Подробнее",
     "debrid_description": "Скачивайте в 4 раза быстрее с Nimbus"
   },

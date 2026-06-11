@@ -34,6 +34,7 @@ import {
   getNextQueuedDownloadFromLayout,
   setDownloadLayoutQueues,
 } from "../download-layout-state";
+import { shouldFinalizeDownload } from "./download-completion";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -509,11 +510,15 @@ export class DownloadManager {
 
     this.sendProgressUpdate(progress, status, game);
 
-    const isComplete =
-      !status.isCheckingFiles &&
-      !status.isDownloadingMetadata &&
-      (progress === 1 || download.status === "complete");
-    if (isComplete) {
+    if (
+      shouldFinalizeDownload({
+        usingJsDownloader: this.usingJsDownloader,
+        isCheckingFiles: status.isCheckingFiles,
+        isDownloadingMetadata: status.isDownloadingMetadata,
+        progress,
+        downloadStatus: download.status,
+      })
+    ) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
   }

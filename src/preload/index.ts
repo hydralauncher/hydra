@@ -625,7 +625,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
-  scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
+  scanInstalledGames: (
+    additionalDirectories?: string[],
+    includeDefaultDirectories?: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "scanInstalledGames",
+      additionalDirectories,
+      includeDefaultDirectories
+    ),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -765,6 +773,13 @@ contextBridge.exposeInMainWorld("electron", {
         `on-backup-download-complete-${objectId}-${shop}`,
         listener
       );
+  },
+
+  /* Clipboard (renderer-side `navigator.clipboard.*` is deprecated in Electron 40+;
+     direct `electron.clipboard` access from preload is also deprecated, so go through main via IPC) */
+  clipboard: {
+    writeText: (text: string) =>
+      ipcRenderer.invoke("clipboardWriteText", text) as Promise<void>,
   },
 
   /* Misc */
