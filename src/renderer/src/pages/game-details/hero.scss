@@ -73,7 +73,7 @@ $hero-height: 350px;
 
   &__hero-classics-content {
     position: absolute;
-    left: 64px;
+    left: calc(globals.$spacing-unit * 2);
     right: 200px;
     top: 0;
     bottom: 80px;
@@ -190,31 +190,31 @@ $hero-height: 350px;
     pointer-events: none;
 
     &--orange {
-      color: #f0843b;
+      color: #fc5812;
       right: -116px;
       top: -69px;
     }
 
     &--red {
-      color: #ee473b;
+      color: #f8c802;
       right: -127.23px;
       top: -83.84px;
     }
 
     &--yellow {
-      color: #fcdc33;
+      color: #fb0026;
       right: -101.23px;
       top: -57.84px;
     }
 
     &--green {
-      color: #4cbd47;
+      color: #c80078;
       right: -88.23px;
       top: -44.84px;
     }
 
     &--blue {
-      color: #13aceb;
+      color: #7300a4;
       right: -75.23px;
       top: -31.84px;
     }
@@ -233,7 +233,7 @@ $hero-height: 350px;
       width: 500px;
       box-shadow:
         inset 0 -1px 1px 0 rgba(255, 255, 255, 0.25),
-        0 4px 16px 0 rgba(19, 172, 235, 0.24);
+        0 4px 16px 0 rgba(115, 0, 164, 0.24);
     }
 
     &--shadow {
