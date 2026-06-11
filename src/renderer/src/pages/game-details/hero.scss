@@ -73,7 +73,7 @@ $hero-height: 350px;
 
   &__hero-classics-content {
     position: absolute;
-    left: 64px;
+    left: calc(globals.$spacing-unit * 2);
     right: 200px;
     top: 0;
     bottom: 80px;
