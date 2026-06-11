@@ -23,6 +23,7 @@ import {
 } from "../../components/modals";
 import {
   AchievementsBox,
+  ControllerSupportBox,
   GameReviews,
   Hero,
   HowLongToBeatBox,
@@ -51,6 +52,7 @@ import {
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
   GAME_SIDEBAR_ACHIEVEMENTS_ID,
+  GAME_SIDEBAR_CONTROLLER_SUPPORT_ID,
   GAME_SIDEBAR_HLTB_ID,
   GAME_SIDEBAR_LANGUAGES_ID,
   GAME_SIDEBAR_METADATA_ID,
@@ -1295,16 +1297,24 @@ export default function Game() {
                   />
                 )}
 
+                <ControllerSupportBox
+                  shop={shop}
+                  shopDetails={shopDetails}
+                  focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
+                  focusNavigationOrder={3}
+                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
+                />
+
                 <AchievementsBox
                   achievements={achievements ?? []}
                   focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
-                  focusNavigationOrder={3}
+                  focusNavigationOrder={4}
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
-                  navigationOrder={4}
+                  navigationOrder={5}
                   navigationOverrides={sidebarCarouselNavigationOverrides}
                   asChild
                 >
@@ -1390,7 +1400,7 @@ export default function Game() {
                   <RequirementsToPlay
                     shopDetails={shopDetails}
                     focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
-                    focusNavigationOrder={5}
+                    focusNavigationOrder={6}
                     focusNavigationOverrides={
                       sidebarCarouselNavigationOverrides
                     }
@@ -1400,7 +1410,7 @@ export default function Game() {
                 <SupportedLanguages
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_LANGUAGES_ID}
-                  focusNavigationOrder={6}
+                  focusNavigationOrder={7}
                   focusNavigationOverrides={sidebarLanguagesNavigationOverrides}
                 />
               </div>

@@ -66,6 +66,10 @@ export function Header() {
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
 
+  const isLibraryScanSupported =
+    window.electron.platform === "win32" ||
+    window.electron.platform === "linux";
+
   const searchValue = isOnLibraryPage
     ? librarySearchValue
     : catalogueSearchValue;
@@ -311,15 +315,20 @@ export function Header() {
     setActiveIndex(-1);
   };
 
-  const handleStartScan = async () => {
+  const handleStartScan = async (
+    additionalDirectories: string[] = [],
+    includeDefaultDirectories = true
+  ) => {
     if (isScanning) return;
 
     setIsScanning(true);
     setScanResult(null);
-    setShowScanModal(false);
 
     try {
-      const result = await window.electron.scanInstalledGames();
+      const result = await window.electron.scanInstalledGames(
+        additionalDirectories,
+        includeDefaultDirectories
+      );
       setScanResult(result);
     } finally {
       setIsScanning(false);
@@ -379,7 +388,7 @@ export function Header() {
         </section>
 
         <section className="header__section">
-          {isOnLibraryPage && window.electron.platform === "win32" && (
+          {isOnLibraryPage && isLibraryScanSupported && (
             <button
               type="button"
               className={cn("header__action-button", {
@@ -435,7 +444,7 @@ export function Header() {
         </section>
       </header>
 
-      {isOnLibraryPage && window.electron.platform === "win32" && (
+      {isOnLibraryPage && isLibraryScanSupported && (
         <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
       )}
 

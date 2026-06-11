@@ -29,7 +29,9 @@ export const PS1_STATE = {
   FREE_DELETED_LAST: 0xa3,
 } as const;
 
-export const PS1_LINK_END = 0xffff; // offset 0x08: 0xFFFF = last block of file
+export const PS1_FREE_BLOCK_MASK = 0xf0;
+export const PS1_LINK_OFFSET = 0x08;
+export const PS1_LINK_END = 0xffff; // value at PS1_LINK_OFFSET = last block of file
 
 /** One game save on the card (metadata only — no block contents). */
 export interface Ps1Save {

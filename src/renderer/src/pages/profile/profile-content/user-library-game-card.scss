@@ -177,6 +177,15 @@
     height: 18px;
   }
 
+  &__stats-percentage {
+    display: inline-flex;
+    align-items: center;
+
+    &--completed {
+      color: globals.$brand-teal;
+    }
+  }
+
   &__stats-content {
     display: flex;
     flex-direction: column;
@@ -263,19 +272,22 @@
     }
   }
 
-  &__achievements-progress {
+  &__achievements-progress-track {
     width: 100%;
     height: 4px;
-    transition: all ease 0.2s;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
 
-    &::-webkit-progress-bar {
-      background-color: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
+  &__achievements-progress {
+    height: 100%;
+    background-color: globals.$muted-color;
+    border-radius: 4px;
+    transition: width 0.2s ease;
 
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-      border-radius: 4px;
+    &--platinum {
+      @include globals.platinum-gradient;
     }
   }
 }

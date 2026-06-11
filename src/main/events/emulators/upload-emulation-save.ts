@@ -7,7 +7,6 @@ import {
 } from "@main/level";
 import type {
   EmulationCloudSave,
-  EmulationSaveEmulator,
   EmulationSavePlatform,
   MemoryCardSaveRecord,
 } from "@types";
@@ -64,7 +63,7 @@ const uploadOne = async (
 
   return emulators.uploadEmulationSave({
     platform,
-    emulator: config.binary as EmulationSaveEmulator,
+    emulator: emulators.toEmulationSaveEmulator(config.binary),
     shop: record?.objectId ? "launchbox" : null,
     objectId: record?.objectId ?? null,
     saveIdentity: folderName,

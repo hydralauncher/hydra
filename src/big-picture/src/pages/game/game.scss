@@ -151,17 +151,27 @@
     width: 100%;
   }
 
+  &__controller-support {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
   &__stats-title,
   &__stats-row,
   &__metadata-row,
   &__protondb-title,
-  &__protondb-row {
+  &__protondb-row,
+  &__controller-support-title,
+  &__controller-support-row {
     background-color: var(--secondary);
     padding: 16px;
   }
 
   &__stats-title,
-  &__protondb-title {
+  &__protondb-title,
+  &__controller-support-title {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -174,6 +184,83 @@
       line-height: 1;
       letter-spacing: 0.01em;
     }
+  }
+
+  &__controller-support-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__controller-support-row--description {
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 0 12px 12px;
+  }
+
+  &__controller-support-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__controller-support-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  &__controller-support-icon {
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+    display: block;
+    flex-shrink: 0;
+
+    path {
+      fill: currentColor !important;
+    }
+  }
+
+  &__controller-support-icon--playstation {
+    width: 26px;
+    color: #0070cc;
+  }
+
+  &__controller-support-icon--xbox {
+    color: #107c10;
+  }
+
+  &__controller-support-label,
+  &__controller-support-value {
+    line-height: 1;
+  }
+
+  &__controller-support-label {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  &__controller-support-value {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &__controller-support-description {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: center;
   }
 
   &__stats-row,
