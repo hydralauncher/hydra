@@ -13,6 +13,16 @@ $warning-color: #ffc107;
 $brand-teal: #16b195;
 $brand-blue: #3e62c0;
 
+$classics-rainbow: conic-gradient(
+  from 0deg,
+  #fb0026 5deg,
+  #c80078 70deg,
+  #7300a4 145deg,
+  #f8c802 220deg,
+  #fc5812 290deg,
+  #fb0026 365deg
+);
+
 $disabled-opacity: 0.5;
 $active-opacity: 0.7;
 

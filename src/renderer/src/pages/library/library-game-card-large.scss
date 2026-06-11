@@ -1,15 +1,5 @@
 @use "../../scss/globals.scss";
 
-$classics-rainbow: conic-gradient(
-  from 0deg,
-  #fcdc33 5deg,
-  #4cbd47 70deg,
-  #13aceb 145deg,
-  #ee473b 220deg,
-  #ef833a 290deg,
-  #fcdc33 365deg
-);
-
 .library-game-card-large {
   width: 100%;
   height: 300px;
@@ -245,7 +235,7 @@ $classics-rainbow: conic-gradient(
     border-radius: 6px;
     background:
       linear-gradient(#1c1c1c, #1c1c1c) padding-box,
-      $classics-rainbow border-box;
+      globals.$classics-rainbow border-box;
     padding: 0 8px;
     height: 28px;
     box-sizing: border-box;
@@ -269,7 +259,7 @@ $classics-rainbow: conic-gradient(
     border-radius: 6px;
     background:
       linear-gradient(#1c1c1c, #1c1c1c) padding-box,
-      $classics-rainbow border-box;
+      globals.$classics-rainbow border-box;
     width: 28px;
     height: 28px;
     box-sizing: border-box;
