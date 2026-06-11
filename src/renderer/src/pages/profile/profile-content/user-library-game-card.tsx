@@ -135,7 +135,9 @@ export function UserLibraryGameCard({
           className="user-library-game__cover"
           onClick={() => navigate(buildUserGameDetailsPath(game))}
         >
-          <div className="user-library-game__overlay">
+          <div
+            className={`user-library-game__overlay${game.shop === "launchbox" ? " user-library-game__overlay--classics" : ""}`}
+          >
             {isMe && (
               <div className="user-library-game__actions-container">
                 <button
@@ -236,6 +238,26 @@ export function UserLibraryGameCard({
           {imageError || !game.coverImageUrl ? (
             <div className="user-library-game__cover-placeholder">
               <ImageIcon size={48} />
+            </div>
+          ) : game.shop === "launchbox" ? (
+            <div className="user-library-game__classics-cover">
+              <img
+                src={game.coverImageUrl}
+                alt=""
+                aria-hidden="true"
+                className="user-library-game__classics-backdrop"
+                loading="lazy"
+                decoding="async"
+                onError={() => setImageError(true)}
+              />
+              <img
+                src={game.coverImageUrl}
+                alt={game.title}
+                className="user-library-game__classics-image"
+                loading="lazy"
+                decoding="async"
+                onError={() => setImageError(true)}
+              />
             </div>
           ) : (
             <img

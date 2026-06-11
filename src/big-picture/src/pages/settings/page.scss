@@ -8,12 +8,18 @@
   height: calc(100% + var(--big-picture-header-height));
   min-height: calc(100% + var(--big-picture-header-height));
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--background);
   color: var(--text);
   box-sizing: border-box;
   padding: calc(var(--spacing-unit) * 24) calc(var(--spacing-unit) * 16)
     calc(var(--spacing-unit) * 12);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .settings-page__stack {

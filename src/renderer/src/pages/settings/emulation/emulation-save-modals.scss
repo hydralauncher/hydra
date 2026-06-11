@@ -1,0 +1,66 @@
+.emu-save-modal {
+  &__restore {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 420px;
+  }
+
+  &__targets {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  &__target {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    background: #0d0d0d;
+    border: 1px solid #1c1c1c;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+
+    &--selected {
+      border-color: #f6746b;
+    }
+  }
+
+  &__target-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fafafa;
+  }
+
+  &__target-path {
+    font-size: 12px;
+    color: #8e919b;
+    word-break: break-all;
+  }
+
+  &__empty {
+    color: #8e919b;
+    font-size: 13px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__rename {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 360px;
+  }
+}

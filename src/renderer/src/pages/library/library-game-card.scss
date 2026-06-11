@@ -1,5 +1,15 @@
 @use "../../scss/globals.scss";
 
+$classics-rainbow: conic-gradient(
+  from 0deg,
+  #fcdc33 5deg,
+  #4cbd47 70deg,
+  #13aceb 145deg,
+  #ee473b 220deg,
+  #ef833a 290deg,
+  #fcdc33 365deg
+);
+
 .library-game-card {
   &__wrapper {
     cursor: pointer;
@@ -48,6 +58,8 @@
 
   &__overlay {
     position: absolute;
+    top: 0;
+    left: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -56,13 +68,18 @@
     width: 100%;
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 20%, transparent 100%);
     padding: 8px;
-    z-index: 2;
+    z-index: 3;
+
+    &--classics {
+      background: none;
+    }
   }
 
   &__top-section {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    gap: 4px;
     width: 100%;
   }
 
@@ -73,10 +90,13 @@
     color: rgba(255, 255, 255, 0.8);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px;
+    padding: 0 6px;
+    height: 24px;
+    box-sizing: border-box;
+    line-height: 1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all ease 0.2s;
 
@@ -90,8 +110,7 @@
       font-size: 12px;
     }
 
-    // When the card is narrow (less than 140px), show short format
-    @container (max-width: 140px) {
+    @container (max-width: 200px) {
       &-long {
         display: none;
       }
@@ -104,6 +123,93 @@
 
   &__manual-playtime {
     color: globals.$warning-color;
+  }
+
+  &__classics-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__platform-badge {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
+      $classics-rainbow border-box;
+    padding: 0 8px;
+    height: 24px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fafafa;
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  }
+
+  &__emulator-badge {
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
+      $classics-rainbow border-box;
+    width: 24px;
+    height: 24px;
+    box-sizing: border-box;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+
+    img {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 15px;
+      height: 15px;
+      object-fit: contain;
+      border-radius: 3px;
+      display: block;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+  }
+
+  &__installed-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.8);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all ease 0.2s;
+  }
+
+  &__installed-icon {
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  &__installed-text {
+    font-size: 12px;
+    display: inline;
+
+    // Hide label on narrow cards, keep the icon as the indicator
+    @container (max-width: 140px) {
+      display: none;
+    }
   }
 
   &__achievements {
@@ -220,6 +326,48 @@
     top: 0;
     left: 0;
     z-index: 0;
+  }
+
+  &__classics-cover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #0a0a0a;
+    z-index: 0;
+  }
+
+  &__classics-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(16px) saturate(1.1);
+    transform: scale(1.25);
+    opacity: 0.65;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &__classics-image {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    z-index: 1;
+    max-width: 80%;
+    max-height: 80%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 11px 7px rgba(0, 0, 0, 0.05),
+      0 5px 5px rgba(0, 0, 0, 0.09),
+      0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   &__cover-placeholder {

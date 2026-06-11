@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { formatBytes } from "@shared";
+import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -62,8 +62,6 @@ export function GameOptionsModal({
   onNavigateHome,
   initialCategory,
 }: Readonly<GameOptionsModalProps>) {
-  const MANGOHUD_SITE_URL = "https://mangohud.com";
-  const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
   const { t } = useTranslation("game_details");
 
   const { showSuccessToast, showErrorToast } = useToast();
@@ -611,6 +609,7 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const isLaunchbox = game.shop === "launchbox";
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
@@ -626,11 +625,15 @@ export function GameOptionsModal({
         label: t("settings_category_general"),
         icon: <GearIcon size={16} />,
       },
-      {
-        id: "locations" as const,
-        label: t("settings_category_locations"),
-        icon: <FileDirectoryIcon size={16} />,
-      },
+      ...(isLaunchbox
+        ? []
+        : [
+            {
+              id: "locations" as const,
+              label: t("settings_category_locations"),
+              icon: <FileDirectoryIcon size={16} />,
+            },
+          ]),
       {
         id: "assets" as const,
         label: t("settings_category_assets"),
@@ -661,7 +664,7 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [shouldShowWinePrefixConfiguration, t]
+    [isLaunchbox, shouldShowWinePrefixConfiguration, t]
   );
 
   useEffect(() => {
@@ -795,8 +798,9 @@ export function GameOptionsModal({
                 onShowCancelConfirm={() => setShowCancelConfirm(true)}
                 onHideCancelConfirm={() => setShowCancelConfirm(false)}
                 onConfirmCancelTransfer={handleCancelTransfer}
-                showExecutableSection={false}
+                showExecutableSection={isLaunchbox}
                 showTransferSection={false}
+                showLaunchOptionsSection={!isLaunchbox}
               />
             )}
             {selectedCategory === "locations" && (

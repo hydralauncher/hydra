@@ -1,0 +1,46 @@
+@use "../../../scss/globals.scss";
+
+.launchbox-details {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 2);
+
+  &__row {
+    display: flex;
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit / 2);
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: globals.$small-font-size;
+    font-weight: bold;
+    color: globals.$muted-color;
+  }
+
+  &__value {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  &__flags {
+    display: flex;
+    flex-direction: row;
+    gap: calc(globals.$spacing-unit / 2);
+    align-items: center;
+  }
+
+  &__flag {
+    width: 24px;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    border-radius: 2px;
+    display: block;
+  }
+}

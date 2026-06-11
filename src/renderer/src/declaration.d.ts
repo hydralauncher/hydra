@@ -27,6 +27,10 @@ import type {
   Theme,
   Auth,
   ShortcutLocation,
+  Ps2MemcardScanInput,
+  Ps2MemcardScanProgress,
+  Ps2MemoryCardSaveRecord,
+  Ps2ExportResult,
   ShopAssets,
   ShopDetailsWithAssets,
   AchievementCustomNotificationPosition,
@@ -39,6 +43,13 @@ import type {
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorConfig,
+  EmulatorConfigMap,
+  EmulatorSystem,
+  EmulationCloudSave,
+  EmulationSavePlatform,
+  MemcardRestoreResult,
+  MemcardRestoreTarget,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -150,7 +161,8 @@ declare global {
     addGameToLibrary: (
       shop: GameShop,
       objectId: string,
-      title: string
+      title: string,
+      platform?: string | null
     ) => Promise<void>;
     addCustomGameToLibrary: (
       title: string,
@@ -264,6 +276,26 @@ declare global {
       executablePath: string,
       launchOptions?: string | null
     ) => Promise<void>;
+    openClassicsGame: (
+      shop: GameShop,
+      objectId: string,
+      discPath?: string,
+      force?: boolean
+    ) => Promise<void>;
+    updateClassicsDisc: (
+      shop: GameShop,
+      objectId: string,
+      patch: {
+        selectedDiscPath?: string | null;
+        dontAskDiscSelection?: boolean;
+        platform?: string | null;
+        addDisc?: { path: string; label: string; fileName: string };
+        removeDiscPath?: string;
+      }
+    ) => Promise<LibraryGame>;
+    getEmulatorRomExtensions: (
+      system: "ps1" | "ps2" | "ps3"
+    ) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
@@ -294,6 +326,189 @@ declare global {
     updateUserPreferences: (
       preferences: Partial<UserPreferences>
     ) => Promise<void>;
+    /* Emulators */
+    getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    detectEmulators: () => Promise<EmulatorConfigMap>;
+    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    previewEmulatorExecutable: (
+      system: EmulatorSystem,
+      executablePath?: string | null
+    ) => Promise<{
+      executablePath: string;
+      detectedVersion: string | null;
+    } | null>;
+    setEmulatorExecutablePath: (
+      system: EmulatorSystem,
+      executablePath: string | null
+    ) => Promise<EmulatorConfig>;
+    addRomFolder: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean,
+      language?: string
+    ) => Promise<EmulatorConfig>;
+    removeRomFolder: (
+      system: EmulatorSystem,
+      folderId: string
+    ) => Promise<EmulatorConfig>;
+    toggleRomFolderSubfolders: (
+      system: EmulatorSystem,
+      folderId: string,
+      scanSubfolders: boolean
+    ) => Promise<EmulatorConfig>;
+    rescanEmulator: (
+      system: EmulatorSystem,
+      language?: string
+    ) => Promise<EmulatorConfig>;
+    checkPs3Firmware: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean }>;
+    startRomScan: (
+      system: EmulatorSystem,
+      folderPath: string,
+      scanSubfolders: boolean
+    ) => Promise<{ requestId: string }>;
+    cancelRomScan: (requestId: string) => Promise<void>;
+    getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
+    addEmulatorRomPath: (
+      system: EmulatorSystem,
+      folderPath: string
+    ) => Promise<boolean>;
+    getRpcs3DefaultSources: () => Promise<{
+      gamesDir: string | null;
+      gamesYmlPath: string | null;
+      gamesYmlEntries: { titleId: string; path: string }[];
+    }>;
+    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    checkEmulatorExecutable: (
+      system: EmulatorSystem
+    ) => Promise<{ exists: boolean }>;
+    onRomScanProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | { type: "done"; fileCount: number; sizeBytes: number }
+          | { type: "cancelled"; fileCount: number; sizeBytes: number }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    importLaunchboxRoms: (
+      system: EmulatorSystem,
+      folders: { path: string; scanSubfolders: boolean }[],
+      language: string
+    ) => Promise<{ requestId: string }>;
+    cancelLaunchboxImport: (requestId: string) => Promise<void>;
+    onLaunchboxImportProgress: (
+      requestId: string,
+      cb: (
+        payload:
+          | {
+              type: "scan_progress";
+              phase: "scanning";
+              processed: number;
+              total: number;
+              currentFile: string | null;
+            }
+          | {
+              type: "match_progress";
+              phase: "matching";
+              processed: number;
+              total: number;
+              currentFile: string;
+              status: "matched" | "unmatched";
+              matched: number;
+              unmatched: number;
+              fileCount: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+              unmatchedFiles: string[];
+            }
+          | {
+              type: "cancelled";
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+            }
+          | { type: "error"; message: string }
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    scanPs2Memcards: (
+      input: Ps2MemcardScanInput
+    ) => Promise<{ requestId: string }>;
+    cancelPs2MemcardScan: (requestId: string) => Promise<void>;
+    onPs2MemcardScanProgress: (
+      requestId: string,
+      cb: (payload: Ps2MemcardScanProgress) => void
+    ) => () => Electron.IpcRenderer;
+    listPs2MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
+    forgetPs2MemcardSave: (
+      cardFilePath: string,
+      folderName: string
+    ) => Promise<void>;
+    forgetPs2MemcardCard: (cardFilePath: string) => Promise<void>;
+    exportPs2Save: (
+      cardFilePath: string,
+      folderName: string,
+      suggestedName: string
+    ) => Promise<Ps2ExportResult>;
+    scanPs1Memcards: (
+      input: Ps2MemcardScanInput
+    ) => Promise<{ requestId: string }>;
+    cancelPs1MemcardScan: (requestId: string) => Promise<void>;
+    onPs1MemcardScanProgress: (
+      requestId: string,
+      cb: (payload: Ps2MemcardScanProgress) => void
+    ) => () => Electron.IpcRenderer;
+    listPs1MemcardSaves: () => Promise<Ps2MemoryCardSaveRecord[]>;
+    forgetPs1MemcardSave: (
+      cardFilePath: string,
+      identifier: string
+    ) => Promise<void>;
+    forgetPs1MemcardCard: (cardFilePath: string) => Promise<void>;
+    exportPs1Save: (
+      cardFilePath: string,
+      identifier: string,
+      suggestedName: string
+    ) => Promise<Ps2ExportResult>;
+    uploadEmulationSave: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string,
+      folderName: string
+    ) => Promise<EmulationCloudSave>;
+    uploadEmulationSavesForCard: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string
+    ) => Promise<{ uploaded: number; total: number }>;
+    listEmulationSaves: (
+      platform: EmulationSavePlatform,
+      objectId?: string | null
+    ) => Promise<EmulationCloudSave[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform
+    ) => Promise<MemcardRestoreTarget[]>;
+    restoreEmulationSave: (
+      platform: EmulationSavePlatform,
+      saveId: string,
+      targetCardFilePath: string
+    ) => Promise<MemcardRestoreResult>;
+    deleteEmulationSave: (saveId: string) => Promise<void>;
+    updateEmulationSaveLabel: (
+      saveId: string,
+      label: string
+    ) => Promise<EmulationCloudSave>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;
@@ -382,6 +597,11 @@ declare global {
       shop: GameShop,
       cb: (progress: AxiosProgressEvent) => void
     ) => () => Electron.IpcRenderer;
+
+    /* Clipboard */
+    clipboard: {
+      writeText: (text: string) => Promise<void>;
+    };
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
@@ -499,9 +719,24 @@ declare global {
       updateProfile: UpdateProfileRequest
     ) => Promise<UserProfile>;
     updateProfile: (updateProfile: UpdateProfileProps) => Promise<UserProfile>;
+    getProfileImageMetadata: (
+      path: string
+    ) => Promise<{ mimeType: string | null; isAnimated: boolean }>;
     processProfileImage: (
       path: string
     ) => Promise<{ imagePath: string; mimeType: string }>;
+    cropProfileImage: (
+      path: string,
+      params: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+        outputWidth: number;
+        outputHeight: number;
+        rotation?: number;
+      }
+    ) => Promise<{ imagePath: string }>;
     onSyncFriendRequests: (
       cb: (friendRequests: FriendRequestSync) => void
     ) => () => Electron.IpcRenderer;
@@ -528,6 +763,12 @@ declare global {
       cb: (
         position?: AchievementCustomNotificationPosition,
         achievements?: AchievementNotificationInfo[]
+      ) => void
+    ) => () => Electron.IpcRenderer;
+    onInAppAchievementUnlocked: (
+      cb: (
+        position: AchievementCustomNotificationPosition,
+        achievements: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onCombinedAchievementsUnlocked: (
