@@ -25,19 +25,12 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
         key: levelKeys.user,
       },
     ])
-    .then(async () => {
+    .then(() => {
       /* Removes all games being played */
       gamesPlaytime.clear();
 
-      const games = await gamesSublevel.iterator().all();
-      const cloudGameDeletions = games
-        .filter(([, game]) => game.shop !== "launchbox")
-        .map(([key]) => ({ type: "del" as const, key }));
-
       return Promise.all([
-        cloudGameDeletions.length > 0
-          ? gamesSublevel.batch(cloudGameDeletions)
-          : Promise.resolve(),
+        gamesSublevel.clear(),
         downloadsSublevel.clear(),
         downloadLayoutStateSublevel.clear(),
       ]);
