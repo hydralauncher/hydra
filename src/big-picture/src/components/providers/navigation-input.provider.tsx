@@ -2,7 +2,13 @@ import { useGamepad, useNavigationActions } from "../../hooks";
 import { GamepadService } from "../../services";
 import { useNavigationStore } from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 interface NavigationInputProviderProps {
   children: ReactNode;
@@ -87,10 +93,7 @@ function isWindowInputActive() {
 
 function isSystemSwitcherModifierEvent(event: KeyboardEvent) {
   return (
-    event.key === "Alt" ||
-    event.key === "Meta" ||
-    event.altKey ||
-    event.metaKey
+    event.key === "Alt" || event.key === "Meta" || event.altKey || event.metaKey
   );
 }
 
