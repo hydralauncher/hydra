@@ -41,7 +41,6 @@ import type { DownloadProgress, LibraryGame, UserDetails } from "@types";
 import type { FocusOverrides } from "../../services";
 import {
   BIG_PICTURE_SIDEBAR_EXIT_ID,
-  BIG_PICTURE_SIDEBAR_FRIENDS_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
   BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID,
   BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID,
@@ -274,7 +273,7 @@ function SidebarRouter() {
     itemId === BIG_PICTURE_SIDEBAR_ITEM_IDS.home
       ? {
           ...sidebarItemNavigationOverrides,
-          up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
+          up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
         }
       : sidebarItemNavigationOverrides;
   const handleExitBigPicture = () => {
@@ -482,6 +481,11 @@ function SidebarLibrary() {
     ...(index === 0 && {
       up: getItemFocusTarget(selectedFilterFocusId),
     }),
+    ...(index === filteredItems.length - 1 && {
+      down: {
+        type: "block" as const,
+      },
+    }),
   });
 
   return (
@@ -642,16 +646,17 @@ function SidebarProfile({
   }, [navigate, userDetails?.id]);
 
   const profileFocusNavigationOverrides: FocusOverrides = {
-    down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
-  };
-  const friendsFocusNavigationOverrides: FocusOverrides = {
-    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
+    up: {
+      type: "block",
+    },
     right: getItemFocusTarget(BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID),
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
   };
   const notificationsFocusNavigationOverrides: FocusOverrides = {
-    up: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
-    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_FRIENDS_ID),
+    up: {
+      type: "block",
+    },
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_PROFILE_ID),
     down: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
   };
 
@@ -690,14 +695,10 @@ function SidebarProfile({
         <UserProfile
           image={userDetails?.profileImageUrl ?? DEFAULT_PROFILE_IMAGE}
           name={userDetails?.displayName ?? "Sign in"}
-          friendCode={
-            userDetails?.username || userDetails?.id || "Not signed in"
-          }
+          friendCode={userDetails?.id ?? "Not signed in"}
           profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
-          friendsFocusId={BIG_PICTURE_SIDEBAR_FRIENDS_ID}
           notificationsFocusId={BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID}
           profileFocusNavigationOverrides={profileFocusNavigationOverrides}
-          friendsFocusNavigationOverrides={friendsFocusNavigationOverrides}
           notificationsFocusNavigationOverrides={
             notificationsFocusNavigationOverrides
           }

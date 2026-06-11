@@ -230,9 +230,27 @@
   }
 
   .user-profile-content__info,
-  .user-profile__actions__notification,
-  .user-profile__actions__friends__count__text {
+  .user-profile__notification {
     display: none;
+  }
+
+  .user-profile-container {
+    align-items: center;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .user-profile-header {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .user-profile-content {
+    flex: 0 0 auto;
+  }
+
+  .user-profile-content__notification-badge {
+    display: inline-flex;
   }
 }
 

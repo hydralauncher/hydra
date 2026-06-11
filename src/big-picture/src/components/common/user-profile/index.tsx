@@ -1,13 +1,7 @@
 import "./styles.scss";
 
-import {
-  BellIcon,
-  CheckIcon,
-  CopyIcon,
-  UsersIcon,
-} from "@phosphor-icons/react";
+import { BellIcon, CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { type KeyboardEvent, type MouseEvent, type Ref, useState } from "react";
-import { Link } from "react-router-dom";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "../focus-item";
 
@@ -16,10 +10,8 @@ export interface UserProfileProps {
   name: string;
   friendCode: string;
   profileFocusId?: string;
-  friendsFocusId?: string;
   notificationsFocusId?: string;
   profileFocusNavigationOverrides?: FocusOverrides;
-  friendsFocusNavigationOverrides?: FocusOverrides;
   notificationsFocusNavigationOverrides?: FocusOverrides;
   notificationCount?: number;
   notificationsButtonRef?: Ref<HTMLButtonElement>;
@@ -31,61 +23,41 @@ interface UserProfileContentProps {
   image: string;
   name: string;
   friendCode: string;
+  notificationCount?: number;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
   onProfileClick?: () => void;
 }
 
-interface UserProfileActionsProps {
-  friendsCount: number;
-  friendsFocusId?: string;
+interface UserProfileNotificationProps {
   notificationsFocusId?: string;
-  friendsFocusNavigationOverrides?: FocusOverrides;
   notificationsFocusNavigationOverrides?: FocusOverrides;
   notificationCount?: number;
   notificationsButtonRef?: Ref<HTMLButtonElement>;
   onNotificationsClick?: () => void;
 }
 
-function UserProfileActions({
-  friendsCount,
-  friendsFocusId,
+function UserProfileNotification({
   notificationsFocusId,
-  friendsFocusNavigationOverrides,
   notificationsFocusNavigationOverrides,
   notificationCount = 0,
   notificationsButtonRef,
   onNotificationsClick,
-}: Readonly<UserProfileActionsProps>) {
+}: Readonly<UserProfileNotificationProps>) {
   const [isHovering, setIsHovering] = useState(false);
-
-  const friendsLink = (
-    <Link to="/friends" className="user-profile__actions__friends">
-      <UsersIcon size={20} className="user-profile__actions__friends__icon" />
-
-      <p className="user-profile__actions__friends__count">
-        <span className="user-profile__actions__friends__count__number">
-          {friendsCount}
-        </span>{" "}
-        <span className="user-profile__actions__friends__count__text">
-          friends online
-        </span>
-      </p>
-    </Link>
-  );
 
   const notificationsButton = (
     <button
       type="button"
       ref={notificationsButtonRef}
-      className="user-profile__actions__notification"
+      className="user-profile__notification"
       onClick={onNotificationsClick}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       aria-label="Open notifications"
     >
       {notificationCount > 0 ? (
-        <span className="user-profile__actions__notification-badge">
+        <span className="user-profile__notification-badge">
           {notificationCount > 99 ? "99+" : notificationCount}
         </span>
       ) : null}
@@ -93,32 +65,16 @@ function UserProfileActions({
     </button>
   );
 
-  return (
-    <div className="user-profile__actions">
-      {friendsFocusId ? (
-        <FocusItem
-          id={friendsFocusId}
-          navigationOverrides={friendsFocusNavigationOverrides}
-          asChild
-        >
-          {friendsLink}
-        </FocusItem>
-      ) : (
-        friendsLink
-      )}
+  if (!notificationsFocusId) return notificationsButton;
 
-      {notificationsFocusId ? (
-        <FocusItem
-          id={notificationsFocusId}
-          navigationOverrides={notificationsFocusNavigationOverrides}
-          asChild
-        >
-          {notificationsButton}
-        </FocusItem>
-      ) : (
-        notificationsButton
-      )}
-    </div>
+  return (
+    <FocusItem
+      id={notificationsFocusId}
+      navigationOverrides={notificationsFocusNavigationOverrides}
+      asChild
+    >
+      {notificationsButton}
+    </FocusItem>
   );
 }
 
@@ -126,6 +82,7 @@ function UserProfileContent({
   image,
   name,
   friendCode,
+  notificationCount = 0,
   focusId,
   focusNavigationOverrides,
   onProfileClick,
@@ -161,14 +118,22 @@ function UserProfileContent({
       onClick={onProfileClick}
       onKeyDown={handleProfileKeyDown}
     >
-      <img
-        src={image}
-        alt={name}
-        className="user-profile-content__image"
-        width={48}
-        height={48}
-        draggable={false}
-      />
+      <div className="user-profile-content__image-container">
+        <img
+          src={image}
+          alt={name}
+          className="user-profile-content__image"
+          width={48}
+          height={48}
+          draggable={false}
+        />
+
+        {notificationCount > 0 ? (
+          <span className="user-profile-content__notification-badge">
+            {notificationCount > 99 ? "99+" : notificationCount}
+          </span>
+        ) : null}
+      </div>
 
       <div className="user-profile-content__info">
         <p className="user-profile-content__info__name">{name}</p>
@@ -212,10 +177,8 @@ export function UserProfile({
   name,
   friendCode,
   profileFocusId,
-  friendsFocusId,
   notificationsFocusId,
   profileFocusNavigationOverrides,
-  friendsFocusNavigationOverrides,
   notificationsFocusNavigationOverrides,
   notificationCount,
   notificationsButtonRef,
@@ -224,26 +187,26 @@ export function UserProfile({
 }: Readonly<UserProfileProps>) {
   return (
     <div className="user-profile-container">
-      <UserProfileContent
-        image={image}
-        name={name}
-        friendCode={friendCode}
-        focusId={profileFocusId}
-        focusNavigationOverrides={profileFocusNavigationOverrides}
-        onProfileClick={onProfileClick}
-      />
-      <UserProfileActions
-        friendsCount={8}
-        friendsFocusId={friendsFocusId}
-        notificationsFocusId={notificationsFocusId}
-        friendsFocusNavigationOverrides={friendsFocusNavigationOverrides}
-        notificationsFocusNavigationOverrides={
-          notificationsFocusNavigationOverrides
-        }
-        notificationCount={notificationCount}
-        notificationsButtonRef={notificationsButtonRef}
-        onNotificationsClick={onNotificationsClick}
-      />
+      <div className="user-profile-header">
+        <UserProfileContent
+          image={image}
+          name={name}
+          friendCode={friendCode}
+          notificationCount={notificationCount}
+          focusId={profileFocusId}
+          focusNavigationOverrides={profileFocusNavigationOverrides}
+          onProfileClick={onProfileClick}
+        />
+        <UserProfileNotification
+          notificationsFocusId={notificationsFocusId}
+          notificationsFocusNavigationOverrides={
+            notificationsFocusNavigationOverrides
+          }
+          notificationCount={notificationCount}
+          notificationsButtonRef={notificationsButtonRef}
+          onNotificationsClick={onNotificationsClick}
+        />
+      </div>
     </div>
   );
 }

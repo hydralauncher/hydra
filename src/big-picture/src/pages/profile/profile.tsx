@@ -4,7 +4,6 @@ import {
   CheckCircleIcon,
   ClockIcon,
   GameController,
-  PencilSimpleIcon,
   ProhibitIcon,
   SparkleIcon,
   SignOutIcon,
@@ -60,7 +59,6 @@ import { BIG_PICTURE_SIDEBAR_PROFILE_ID } from "../../layout";
 import type { FocusOverrides } from "../../services";
 import {
   PROFILE_HERO_ACTIONS_REGION_ID,
-  PROFILE_HERO_EDIT_BUTTON_ID,
   PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID,
   PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID,
   PROFILE_HERO_SIGN_OUT_BUTTON_ID,
@@ -748,10 +746,6 @@ export default function Profile() {
     [externalProfile, userDetails, userId]
   );
 
-  const handleEditProfile = () => {
-    navigate(`${getBasePath()}/settings?tab=account-privacy`);
-  };
-
   const handleSignOut = async () => {
     await globalThis.window.electron.signOut();
     navigate(getBasePath() || "/");
@@ -919,7 +913,7 @@ export default function Profile() {
   const activityDownFocusId = firstLibraryFocusId ?? firstSocialFocusId;
   const libraryDownFocusId = firstSocialFocusId;
   const heroActionsFocusId = profileUser?.isOwnProfile
-    ? PROFILE_HERO_EDIT_BUTTON_ID
+    ? PROFILE_HERO_SIGN_OUT_BUTTON_ID
     : profileUser
       ? PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID
       : null;
@@ -1006,28 +1000,10 @@ export default function Profile() {
   }, [externalProfile, handleFriendAction, profileUser]);
   const hasSecondaryExternalAction = externalProfileActions.length > 1;
 
-  const editNavigationOverrides: FocusOverrides = {
-    left: {
-      type: "item",
-      itemId: BIG_PICTURE_SIDEBAR_PROFILE_ID,
-    },
-    right: {
-      type: "item",
-      itemId: PROFILE_HERO_SIGN_OUT_BUTTON_ID,
-    },
-    down: firstContentFocusId
-      ? {
-          type: "item",
-          itemId: firstContentFocusId,
-        }
-      : {
-          type: "block",
-        },
-  };
   const signOutNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
-      itemId: PROFILE_HERO_EDIT_BUTTON_ID,
+      itemId: BIG_PICTURE_SIDEBAR_PROFILE_ID,
     },
     right: {
       type: "block",
@@ -1165,16 +1141,6 @@ export default function Profile() {
                 regionId={PROFILE_HERO_ACTIONS_REGION_ID}
                 className="profile-page__actions"
               >
-                <Button
-                  variant="secondary"
-                  icon={<PencilSimpleIcon size={20} />}
-                  focusId={PROFILE_HERO_EDIT_BUTTON_ID}
-                  focusNavigationOverrides={editNavigationOverrides}
-                  onClick={handleEditProfile}
-                >
-                  Edit Profile
-                </Button>
-
                 <Button
                   variant="danger"
                   icon={<SignOutIcon size={20} />}
