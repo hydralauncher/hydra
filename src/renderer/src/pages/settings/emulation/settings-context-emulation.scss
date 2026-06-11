@@ -1,0 +1,59 @@
+@use "../../../scss/globals.scss";
+
+.settings-emulation {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+
+  &__loading {
+    color: #8e919b;
+    font-size: 13px;
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fafafa;
+    letter-spacing: -0.56px;
+    margin: 0;
+  }
+
+  &__new-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: #c0c1c7;
+    background: rgba(192, 193, 199, 0.12);
+    border: 1px solid rgba(192, 193, 199, 0.3);
+  }
+
+  &__description,
+  &__disclaimer {
+    font-size: 14px;
+    color: #8e919b;
+    line-height: 22px;
+    margin: 0;
+    max-width: 680px;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 44px 16px;
+    padding-top: 32px;
+  }
+}

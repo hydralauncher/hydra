@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { logger, Wine } from "@main/services";
+import { emulators, logger, Wine } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -20,6 +20,8 @@ const closeGame = async (
   shop: GameShop,
   objectId: string
 ) => {
+  if (emulators.closeEmulatorSession(levelKeys.game(shop, objectId))) return;
+
   const processes = await NativeAddon.listProcesses();
 
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
