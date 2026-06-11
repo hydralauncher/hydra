@@ -149,6 +149,20 @@
     align-items: center;
     justify-content: center;
     margin-bottom: calc(globals.$spacing-unit * 2);
+
+    &--spinning svg {
+      animation: library-classics-spin 1s linear infinite;
+    }
+  }
+
+  @keyframes library-classics-spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   &__collections {
