@@ -20,12 +20,15 @@ interface ProfileGameDetail {
   hasManuallyUpdatedPlaytime?: boolean;
 }
 
-const syncClassicsPlaytime = async () => {
-  if (!HydraApi.isLoggedIn()) return;
-
-  const launchboxGames = (await gamesSublevel.iterator().all()).filter(
+const readClassicsGames = async () =>
+  (await gamesSublevel.iterator().all()).filter(
     ([, game]) => game.shop === "launchbox" && !game.isDeleted
   );
+
+type ClassicsGameEntries = Awaited<ReturnType<typeof readClassicsGames>>;
+
+const syncClassicsPlaytime = async (launchboxGames: ClassicsGameEntries) => {
+  if (!HydraApi.isLoggedIn() || launchboxGames.length === 0) return;
 
   const chunks = chunk(launchboxGames, PLAYTIME_FETCH_CHUNK_SIZE);
 
@@ -93,11 +96,9 @@ export const reimportClassicsGames = async () => {
     ({ config }) => config.romFolders.length > 0
   );
 
-  const hasClassicsGames = (await gamesSublevel.iterator().all()).some(
-    ([, game]) => game.shop === "launchbox" && !game.isDeleted
-  );
+  let classicsGames = await readClassicsGames();
 
-  if (systemsToScan.length === 0 && !hasClassicsGames) return;
+  if (systemsToScan.length === 0 && classicsGames.length === 0) return;
 
   setClassicsImporting(true);
   WindowManager.sendToAppWindows("on-classics-import-status", true);
@@ -119,7 +120,9 @@ export const reimportClassicsGames = async () => {
       }
     }
 
-    await syncClassicsPlaytime();
+    if (systemsToScan.length > 0) classicsGames = await readClassicsGames();
+
+    await syncClassicsPlaytime(classicsGames);
 
     WindowManager.sendToAppWindows("on-library-batch-complete");
   } finally {
