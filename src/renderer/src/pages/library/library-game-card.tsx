@@ -1,6 +1,8 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useEffect, useState } from "react";
+import { isGameCompleted } from "@renderer/helpers";
+import { ProgressBar } from "@renderer/components";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
@@ -41,6 +43,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const isCompleted = useMemo(
+    () => isGameCompleted(game.achievementCount, game.unlockedAchievementCount),
+    [game.achievementCount, game.unlockedAchievementCount]
+  );
 
   const isInstalled = Boolean(game.executablePath);
 
@@ -177,32 +184,42 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           <div className="library-game-card__achievements">
             <div className="library-game-card__achievement-header">
               <div className="library-game-card__achievements-gap">
-                <TrophyIcon
-                  size={13}
-                  className="library-game-card__achievement-trophy"
-                />
+                {!isCompleted && (
+                  <TrophyIcon
+                    size={13}
+                    className="library-game-card__achievement-trophy"
+                  />
+                )}
                 <span className="library-game-card__achievement-count">
                   {game.unlockedAchievementCount ?? 0} /{" "}
                   {game.achievementCount ?? 0}
                 </span>
               </div>
-              <span className="library-game-card__achievement-percentage">
-                {Math.round(
-                  ((game.unlockedAchievementCount ?? 0) /
-                    (game.achievementCount ?? 1)) *
-                    100
+              <span
+                className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}
+              >
+                {isCompleted ? (
+                  <TrophyIcon size={13} />
+                ) : (
+                  <>
+                    {Math.round(
+                      ((game.unlockedAchievementCount ?? 0) /
+                        (game.achievementCount ?? 1)) *
+                        100
+                    )}
+                    %
+                  </>
                 )}
-                %
               </span>
             </div>
-            <div className="library-game-card__achievement-progress">
-              <div
-                className="library-game-card__achievement-bar"
-                style={{
-                  width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
-                }}
-              />
-            </div>
+            <ProgressBar
+              now={game.unlockedAchievementCount ?? 0}
+              max={game.achievementCount ?? 1}
+              label={`${game.title} achievements`}
+              completed={isCompleted}
+              trackClassName="library-game-card__achievement-progress"
+              barClassName="library-game-card__achievement-bar"
+            />
           </div>
         )}
       </div>
