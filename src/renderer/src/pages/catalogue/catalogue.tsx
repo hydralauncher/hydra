@@ -145,6 +145,7 @@ export default function Catalogue() {
   const [isFetching, setIsFetching] = useState(false);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
+  const [resultsMode, setResultsMode] = useState(mode);
 
   const [itemsCount, setItemsCount] = useState(0);
 
@@ -210,6 +211,7 @@ export default function Catalogue() {
           if (requestId !== requestSequenceRef.current) return;
 
           setResults(response.edges);
+          setResultsMode(mode);
           setItemsCount(response.count);
           setIsLoading(false);
         } finally {
@@ -228,6 +230,9 @@ export default function Catalogue() {
   useEffect(() => {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
+
+  const isModeTransitioning = resultsMode !== mode;
+  const showSkeleton = isLoading || isModeTransitioning;
 
   useEffect(() => {
     const requestId = ++requestSequenceRef.current;
@@ -726,7 +731,7 @@ export default function Catalogue() {
             "catalogue__games-container--classics": mode === "classics",
           })}
         >
-          {isLoading ? (
+          {showSkeleton ? (
             <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <Skeleton
@@ -745,7 +750,7 @@ export default function Catalogue() {
             results.map((game) => <GameItem key={game.id} game={game} />)
           )}
 
-          {isFetching && !isLoading && (
+          {isFetching && !showSkeleton && (
             <span className="catalogue__result-count">{t("loading")}</span>
           )}
 

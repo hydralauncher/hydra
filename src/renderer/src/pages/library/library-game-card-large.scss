@@ -199,6 +199,37 @@ $classics-rainbow: conic-gradient(
     justify-content: flex-end;
   }
 
+  &__top-right {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit);
+    margin-left: auto;
+  }
+
+  &__installed-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.95);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 28px;
+    box-sizing: border-box;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &__installed-icon {
+    color: #fff;
+    flex-shrink: 0;
+  }
+
   &__playtime {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -321,16 +352,6 @@ $classics-rainbow: conic-gradient(
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
-
-    &::-webkit-progress-bar {
-      background-color: transparent;
-      border-radius: 4px;
-    }
-
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-      border-radius: 4px;
-    }
   }
 
   &__achievement-bar {
@@ -338,6 +359,10 @@ $classics-rainbow: conic-gradient(
     background-color: globals.$muted-color;
     border-radius: 4px;
     transition: width 0.3s ease;
+
+    &--platinum {
+      @include globals.platinum-gradient;
+    }
   }
 
   &__achievement-count {
@@ -351,5 +376,11 @@ $classics-rainbow: conic-gradient(
     font-size: 14px;
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+
+    &--completed {
+      color: globals.$brand-teal;
+    }
   }
 }

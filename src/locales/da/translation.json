@@ -872,7 +872,7 @@
     "report_reason_sexual_content": "Seksuelt indhold",
     "report_reason_violence": "Vold",
     "report_reason_spam": "Spam",
-    "report_reason_other_option": "Andet",
+    "report_reason_other": "Andet",
     "profile_reported": "Profil rapporteret",
     "amount_hours_short": "{{amount}}h",
     "amount_minutes_short": "{{amount}}m",
