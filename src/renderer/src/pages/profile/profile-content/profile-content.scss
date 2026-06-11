@@ -7,6 +7,15 @@
     padding: calc(globals.$spacing-unit * 3);
   }
 
+  &__library-filters {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(globals.$spacing-unit);
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
   &__main {
     flex: 1;
   }

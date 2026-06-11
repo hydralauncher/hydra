@@ -609,6 +609,7 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const isLaunchbox = game.shop === "launchbox";
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
@@ -624,11 +625,15 @@ export function GameOptionsModal({
         label: t("settings_category_general"),
         icon: <GearIcon size={16} />,
       },
-      {
-        id: "locations" as const,
-        label: t("settings_category_locations"),
-        icon: <FileDirectoryIcon size={16} />,
-      },
+      ...(isLaunchbox
+        ? []
+        : [
+            {
+              id: "locations" as const,
+              label: t("settings_category_locations"),
+              icon: <FileDirectoryIcon size={16} />,
+            },
+          ]),
       {
         id: "assets" as const,
         label: t("settings_category_assets"),
@@ -659,7 +664,7 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [shouldShowWinePrefixConfiguration, t]
+    [isLaunchbox, shouldShowWinePrefixConfiguration, t]
   );
 
   useEffect(() => {
@@ -793,8 +798,9 @@ export function GameOptionsModal({
                 onShowCancelConfirm={() => setShowCancelConfirm(true)}
                 onHideCancelConfirm={() => setShowCancelConfirm(false)}
                 onConfirmCancelTransfer={handleCancelTransfer}
-                showExecutableSection={false}
+                showExecutableSection={isLaunchbox}
                 showTransferSection={false}
+                showLaunchOptionsSection={!isLaunchbox}
               />
             )}
             {selectedCategory === "locations" && (
