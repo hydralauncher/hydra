@@ -1,5 +1,15 @@
 @use "../../scss/globals.scss";
 
+$classics-rainbow: conic-gradient(
+  from 0deg,
+  #fcdc33 5deg,
+  #4cbd47 70deg,
+  #13aceb 145deg,
+  #ee473b 220deg,
+  #ef833a 290deg,
+  #fcdc33 365deg
+);
+
 .library-game-card {
   &__wrapper {
     cursor: pointer;
@@ -172,6 +182,36 @@
     }
   }
 
+  &__installed-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.8);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all ease 0.2s;
+  }
+
+  &__installed-icon {
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  &__installed-text {
+    font-size: 12px;
+    display: inline;
+
+    // Hide label on narrow cards, keep the icon as the indicator
+    @container (max-width: 140px) {
+      display: none;
+    }
+  }
+
   &__achievements {
     display: flex;
     flex-direction: column;
@@ -209,16 +249,6 @@
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     overflow: hidden;
-
-    &::-webkit-progress-bar {
-      background-color: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
-
-    &::-webkit-progress-value {
-      background-color: globals.$muted-color;
-      border-radius: 4px;
-    }
   }
 
   &__achievement-bar {
@@ -227,6 +257,10 @@
     border-radius: 4px;
     transition: width 0.3s ease;
     position: relative;
+
+    &--platinum {
+      @include globals.platinum-gradient;
+    }
   }
 
   &__achievement-count {
@@ -235,6 +269,12 @@
 
   &__achievement-percentage {
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+
+    &--completed {
+      color: globals.$brand-teal;
+    }
   }
 
   &__action-button {

@@ -7296,7 +7296,7 @@ node-7z@^3.0.0:
     lodash.negate "^3.0.2"
     normalize-path "^3.0.0"
 
-node-abi@^3.45.0, node-abi@^3.90.0:
+node-abi@^3.45.0:
   version "3.90.0"
   resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.90.0.tgz#5aca953aa58deb903738adf14a33fb79a32c48f3"
   integrity sha512-pZNQT7UnYlMwMBy5N1lV5X/YLTbZM5ncytN3xL7CHEzhDN8uVe0u55yaPUJICIJjaCW8NrM5BFdqr7HLweStNA==
@@ -9635,10 +9635,10 @@ word-wrap@^1.2.5:
   resolved "https://registry.yarnpkg.com/word-wrap/-/word-wrap-1.2.5.tgz#d2c45c6dd4fbce621a66f136cbe328afd0410b34"
   integrity sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==
 
-workwonders-sdk@0.4.2:
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.4.2.tgz#81ea9f46c955e0929b4b72ccaaea8a4c53b1e99e"
-  integrity sha512-PA9kj5dLkcnmgO9y0h3EAFRrRzDCCYWUvTagxYdN+OPNtNs0IEroBPsWLCCu6KAGqEv700tdYX33JF15EjxAuA==
+workwonders-sdk@0.4.4:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/workwonders-sdk/-/workwonders-sdk-0.4.4.tgz#1f779541971993564d35c1b98f41af0e00df3d9e"
+  integrity sha512-zNnncw7MFCupKpu+8KqXHr2TYUWfWE/bePyT9uM933VgOPHjTZqrpNReUATgc3mal/f91XmAvC0knEyC1Nrb8w==
   dependencies:
     ky "^1.14.2"
 
