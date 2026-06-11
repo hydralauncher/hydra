@@ -93,7 +93,11 @@ export const reimportClassicsGames = async () => {
     ({ config }) => config.romFolders.length > 0
   );
 
-  if (systemsToScan.length === 0) return;
+  const hasClassicsGames = (await gamesSublevel.iterator().all()).some(
+    ([, game]) => game.shop === "launchbox" && !game.isDeleted
+  );
+
+  if (systemsToScan.length === 0 && !hasClassicsGames) return;
 
   setClassicsImporting(true);
   WindowManager.sendToAppWindows("on-classics-import-status", true);
