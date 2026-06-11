@@ -80,16 +80,7 @@
       border: 1px solid transparent;
       background:
         linear-gradient(#3f3f3f, #3f3f3f) padding-box,
-        conic-gradient(
-            from 0deg,
-            #fcdc33 5deg,
-            #4cbd47 70deg,
-            #13aceb 145deg,
-            #ee473b 220deg,
-            #ef833a 290deg,
-            #fcdc33 365deg
-          )
-          border-box;
+        globals.$classics-rainbow border-box;
     }
   }
 
