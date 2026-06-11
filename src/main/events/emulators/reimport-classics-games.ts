@@ -41,6 +41,9 @@ const syncClassicsPlaytime = async (launchboxGames: ClassicsGameEntries) => {
           );
 
           const remotePlayTime = (profile.playTimeInSeconds ?? 0) * 1000;
+          const localPlayTime = game.playTimeInMilliseconds ?? 0;
+          const remotePlayTimeWins = remotePlayTime > localPlayTime;
+
           const remoteLastPlayed = profile.lastTimePlayed
             ? new Date(profile.lastTimePlayed)
             : null;
@@ -55,14 +58,12 @@ const syncClassicsPlaytime = async (launchboxGames: ClassicsGameEntries) => {
           await gamesSublevel.put(key, {
             ...game,
             remoteId: profile.id ?? game.remoteId,
-            playTimeInMilliseconds: Math.max(
-              game.playTimeInMilliseconds ?? 0,
-              remotePlayTime
-            ),
+            playTimeInMilliseconds: Math.max(localPlayTime, remotePlayTime),
             lastTimePlayed: mergedLastPlayed,
-            hasManuallyUpdatedPlaytime:
-              profile.hasManuallyUpdatedPlaytime ??
-              game.hasManuallyUpdatedPlaytime,
+            hasManuallyUpdatedPlaytime: remotePlayTimeWins
+              ? (profile.hasManuallyUpdatedPlaytime ??
+                game.hasManuallyUpdatedPlaytime)
+              : game.hasManuallyUpdatedPlaytime,
           });
         } catch (err) {
           if (err instanceof AxiosError && err.response?.status === 404) {
