@@ -195,6 +195,14 @@ export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
 };
 
+export const isGameCompleted = (
+  achievementCount?: number | null,
+  unlockedAchievementCount?: number | null
+): boolean => {
+  if (!achievementCount) return false;
+  return (unlockedAchievementCount ?? 0) >= achievementCount;
+};
+
 export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
 
 const SKU_REGION_MAP: Record<string, SkuRegion> = {
