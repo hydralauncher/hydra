@@ -311,6 +311,10 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onClassicsImportStatus: (
+      cb: (importing: boolean) => void
+    ) => () => Electron.IpcRenderer;
+    getClassicsImportStatus: () => Promise<boolean>;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,

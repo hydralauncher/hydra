@@ -1353,6 +1353,8 @@
     "empty_favorites_description": "Mark games as favorites to keep them handy here.",
     "empty_collection_title": "This collection is empty",
     "empty_collection_description": "Right-click any game, open Collection, and add it here.",
+    "importing_classics_title": "Importing your classics",
+    "importing_classics_description": "We're scanning your ROM folders to bring your classics back. This can take a moment.",
     "disk_usage": "Disk usage",
     "disk_usage_tooltip": "Installed size on disk",
     "installer_size_tooltip": "Installer size",
