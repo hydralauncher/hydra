@@ -94,6 +94,7 @@ export class GamepadService {
   private activeGamepadIndex: number | null = null;
   private lastActiveGamepadSwitchTime = 0;
   private hasPendingActiveGamepadChange = false;
+  private inputEnabled = true;
 
   private readonly gamepads: GamepadRegistry = new Map();
   private readonly gamepadStates = new Map<number, GamepadRawState>();
@@ -287,6 +288,8 @@ export class GamepadService {
       value: buttonState.value,
       lastUpdated: now,
     });
+
+    if (!this.inputEnabled) return;
 
     if (buttonState.pressed && !prevState?.pressed) {
       const input = {
@@ -530,6 +533,7 @@ export class GamepadService {
     gamepadIndex: number,
     type: GamepadButtonType
   ): void {
+    if (!this.inputEnabled) return;
     if (!this.isRepeatableButton(type)) return;
 
     this.clearButtonRepeatTimer(gamepadIndex, type);
@@ -541,6 +545,7 @@ export class GamepadService {
     const timers = this.getButtonRepeatTimers(gamepadIndex);
     const timer = globalThis.window.setTimeout(() => {
       if (
+        !this.inputEnabled ||
         !this.isButtonPressed(gamepadIndex, type) ||
         !this.isRepeatOwner(gamepadIndex, input)
       ) {
@@ -589,6 +594,7 @@ export class GamepadService {
 
     const repeat = () => {
       if (
+        !this.inputEnabled ||
         !this.isButtonPressed(gamepadIndex, type) ||
         !this.isRepeatOwner(gamepadIndex, input)
       ) {
@@ -950,6 +956,8 @@ export class GamepadService {
     stickState.direction = newDirection;
 
     if (newDirection) {
+      if (!this.inputEnabled) return;
+
       const input = {
         kind: "stick" as const,
         side,
@@ -984,6 +992,7 @@ export class GamepadService {
 
     stickState.repeatTimer = globalThis.window.setTimeout(() => {
       if (
+        this.inputEnabled &&
         stickState.direction === direction &&
         this.isRepeatOwner(gamepadIndex, input)
       ) {
@@ -1030,6 +1039,7 @@ export class GamepadService {
 
     const repeat = () => {
       if (
+        !this.inputEnabled ||
         stickState.direction !== direction ||
         !this.isRepeatOwner(gamepadIndex, input)
       ) {
@@ -1182,6 +1192,17 @@ export class GamepadService {
 
   public getActiveGamepadIndex(): number | null {
     return this.activeGamepadIndex;
+  }
+
+  public setInputEnabled(enabled: boolean): void {
+    if (this.inputEnabled === enabled) return;
+
+    this.inputEnabled = enabled;
+
+    if (!enabled) {
+      this.clearAllTimers();
+      this.recentAcceptedInputs = [];
+    }
   }
 
   public getLastActiveGamepad(): number | null {
