@@ -14,8 +14,13 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
-  getUserLibraryGames: (sortBy?: string, reset?: boolean) => Promise<void>;
-  loadMoreLibraryGames: (sortBy?: string) => Promise<boolean>;
+  getUserStats: (shops?: string[]) => Promise<void>;
+  getUserLibraryGames: (
+    sortBy?: string,
+    reset?: boolean,
+    shops?: string[]
+  ) => Promise<void>;
+  loadMoreLibraryGames: (sortBy?: string, shops?: string[]) => Promise<boolean>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -33,8 +38,13 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
-  getUserLibraryGames: async (_sortBy?: string, _reset?: boolean) => {},
-  loadMoreLibraryGames: async (_sortBy?: string) => false,
+  getUserStats: async (_shops?: string[]) => {},
+  getUserLibraryGames: async (
+    _sortBy?: string,
+    _reset?: boolean,
+    _shops?: string[]
+  ) => {},
+  loadMoreLibraryGames: async (_sortBy?: string, _shops?: string[]) => false,
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -93,16 +103,22 @@ export function UserProfileContextProvider({
   const { showErrorToast } = useToast();
   const navigate = useNavigate();
 
-  const getUserStats = useCallback(async () => {
-    window.electron.hydraApi
-      .get<UserStats>(`/users/${userId}/stats`)
-      .then((stats) => {
-        setUserStats(stats);
-      });
-  }, [userId]);
+  const getUserStats = useCallback(
+    async (shops = ["steam", "launchbox"]) => {
+      const params = new URLSearchParams();
+      shops.forEach((shop) => params.append("shop", shop));
+
+      window.electron.hydraApi
+        .get<UserStats>(`/users/${userId}/stats?${params.toString()}`)
+        .then((stats) => {
+          setUserStats(stats);
+        });
+    },
+    [userId]
+  );
 
   const getUserLibraryGames = useCallback(
-    async (sortBy?: string, reset = true) => {
+    async (sortBy?: string, reset = true, shops = ["steam", "launchbox"]) => {
       if (reset) {
         setLibraryPage(0);
         setHasMoreLibraryGames(true);
@@ -113,14 +129,12 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", "0");
+        shops.forEach((shop) => params.append("shop", shop));
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
-        const queryString = params.toString();
-        const url = queryString
-          ? `/users/${userId}/library?${queryString}`
-          : `/users/${userId}/library`;
+        const url = `/users/${userId}/library?${params.toString()}`;
 
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
@@ -148,7 +162,10 @@ export function UserProfileContextProvider({
   );
 
   const loadMoreLibraryGames = useCallback(
-    async (sortBy?: string): Promise<boolean> => {
+    async (
+      sortBy?: string,
+      shops = ["steam", "launchbox"]
+    ): Promise<boolean> => {
       if (isLoadingLibraryGames || !hasMoreLibraryGames) {
         return false;
       }
@@ -159,14 +176,12 @@ export function UserProfileContextProvider({
         const params = new URLSearchParams();
         params.append("take", "12");
         params.append("skip", String(nextPage * 12));
+        shops.forEach((shop) => params.append("shop", shop));
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
-        const queryString = params.toString();
-        const url = queryString
-          ? `/users/${userId}/library?${queryString}`
-          : `/users/${userId}/library`;
+        const url = `/users/${userId}/library?${params.toString()}`;
 
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
@@ -202,8 +217,12 @@ export function UserProfileContextProvider({
     getUserStats();
     getUserLibraryGames();
 
+    const profileParams = new URLSearchParams();
+    profileParams.append("shop", "steam");
+    profileParams.append("shop", "launchbox");
+
     return window.electron.hydraApi
-      .get<UserProfile>(`/users/${userId}`)
+      .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`)
       .then((userProfile) => {
         setUserProfile(userProfile);
 
@@ -249,6 +268,7 @@ export function UserProfileContextProvider({
         heroBackground,
         isMe,
         getUserProfile,
+        getUserStats,
         getUserLibraryGames,
         loadMoreLibraryGames,
         setSelectedBackgroundImage,

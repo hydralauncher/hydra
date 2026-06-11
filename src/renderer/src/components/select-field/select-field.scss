@@ -22,6 +22,18 @@
     border-color: #dadbe1;
   }
 
+  &--disabled {
+    opacity: 0.5;
+
+    &:hover {
+      border-color: globals.$border-color;
+    }
+
+    .select-field__option {
+      cursor: not-allowed;
+    }
+  }
+
   &--primary {
     background-color: globals.$dark-background-color;
   }
