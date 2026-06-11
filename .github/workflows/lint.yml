@@ -25,6 +25,9 @@ jobs:
       - name: Validate current commit (last commit) with commitlint
         run: npx commitlint --last --verbose
 
+      - name: Test
+        run: yarn test
+
       - name: Typecheck
         run: yarn typecheck
 
