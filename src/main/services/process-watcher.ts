@@ -1,4 +1,5 @@
 import { WindowManager } from "./window-manager";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import axios from "axios";
@@ -126,8 +127,7 @@ const findGamePathByProcess = async (
 
           if (game) {
             const updatedGame: Game = {
-              ...game,
-              executablePath: path,
+              ...updateGameExecutablePath(game, path),
             };
 
             if (process.platform === "linux" && winePrefixMap.has(path)) {

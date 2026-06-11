@@ -671,22 +671,35 @@ export function VirtualKeyboardProvider() {
     useGamepad();
   const suppressedTargetRef = useRef<EditableTarget | null>(null);
   const activeTargetRef = useRef<EditableTarget | null>(null);
+  const shouldRestoreNavigationFocusOnUnmountRef = useRef(true);
   const pulseFrameRef = useRef<number | null>(null);
+  const focusOutFrameRef = useRef<number | null>(null);
   const pendingLayerFocusPositionRef =
     useRef<VirtualKeyboardKeyPosition | null>(null);
   const dockRef = useRef<HTMLDivElement | null>(null);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
   const isOpen = Boolean(target);
+  const shouldRestoreNavigationFocusOnUnmount = useCallback(
+    () => shouldRestoreNavigationFocusOnUnmountRef.current,
+    []
+  );
 
   const closeKeyboard = useCallback(
     (restoreFocus = true) => {
       const currentTarget = target;
+      shouldRestoreNavigationFocusOnUnmountRef.current = restoreFocus;
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
 
       if (restoreFocus && currentTarget) {
         suppressedTargetRef.current = currentTarget;
       }
 
       if (!restoreFocus && currentTarget) {
+        suppressedTargetRef.current = currentTarget;
         currentTarget.blur();
         globalThis.window.dispatchEvent(
           new CustomEvent(VIRTUAL_KEYBOARD_DISMISS_EVENT, {
@@ -1049,6 +1062,7 @@ export function VirtualKeyboardProvider() {
       const isNewTarget = activeTargetRef.current !== nextTarget;
 
       activeTargetRef.current = nextTarget;
+      shouldRestoreNavigationFocusOnUnmountRef.current = true;
       setVirtualKeyboardTarget(nextTarget);
 
       if (isNewTarget) {
@@ -1063,22 +1077,89 @@ export function VirtualKeyboardProvider() {
     const handleFocusOut = (event: FocusEvent) => {
       if (suppressedTargetRef.current === event.target) {
         suppressedTargetRef.current = null;
+        return;
       }
+
+      const blurredTarget =
+        event.target instanceof HTMLElement ? event.target : null;
+
+      if (!blurredTarget || activeTargetRef.current !== blurredTarget) {
+        return;
+      }
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+      }
+
+      focusOutFrameRef.current = globalThis.requestAnimationFrame(() => {
+        focusOutFrameRef.current = null;
+
+        if (activeTargetRef.current !== blurredTarget) return;
+
+        const activeElement =
+          globalThis.document.activeElement instanceof Element
+            ? globalThis.document.activeElement
+            : null;
+
+        if (isEditableTarget(activeElement)) return;
+        if (activeElement && dockRef.current?.contains(activeElement)) return;
+
+        closeKeyboard(false);
+      });
     };
 
     globalThis.window.addEventListener("focusin", handleFocusIn);
     globalThis.window.addEventListener("focusout", handleFocusOut);
 
     return () => {
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
+
       globalThis.window.removeEventListener("focusin", handleFocusIn);
       globalThis.window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [setVirtualKeyboardTarget]);
+  }, [closeKeyboard, setVirtualKeyboardTarget]);
+
+  useEffect(() => {
+    if (!IS_BROWSER || !target) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const pointerTarget =
+        event.target instanceof Element ? event.target : null;
+
+      if (!pointerTarget) return;
+      if (target === pointerTarget || target.contains(pointerTarget)) return;
+      if (dockRef.current?.contains(pointerTarget)) return;
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
+
+      closeKeyboard(false);
+    };
+
+    globalThis.window.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      globalThis.window.removeEventListener(
+        "pointerdown",
+        handlePointerDown,
+        true
+      );
+    };
+  }, [closeKeyboard, target]);
 
   useEffect(() => {
     return () => {
       if (pulseFrameRef.current !== null) {
         globalThis.cancelAnimationFrame(pulseFrameRef.current);
+      }
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
       }
 
       activeTargetRef.current = null;
@@ -1227,6 +1308,7 @@ export function VirtualKeyboardProvider() {
               layerId={VIRTUAL_KEYBOARD_LAYER_ID}
               rootRegionId={VIRTUAL_KEYBOARD_REGION_ID}
               initialFocusId={VIRTUAL_KEYBOARD_FIRST_KEY_ID}
+              restoreFocusOnUnmount={shouldRestoreNavigationFocusOnUnmount}
             >
               <motion.aside
                 ref={keyboardRef}
