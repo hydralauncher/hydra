@@ -11,7 +11,15 @@ import {
 } from "@primer/octicons-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -129,6 +137,13 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
   }, [heroIndex, heroSources]);
 
+  const isClassics = game.shop === "launchbox";
+  const classicsForegroundUrl = useMemo(() => {
+    if (!isClassics) return null;
+    const url = heroSources[heroIndex];
+    return url ? normalizePathForCss(url) : null;
+  }, [isClassics, heroIndex, heroSources]);
+
   const achievementBarStyle = useMemo(
     () => ({
       width: `${(unlockedAchievementsCount / (game.achievementCount ?? 1)) * 100}%`,
@@ -138,10 +153,18 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
 
+  const classicsSystem = isClassics ? platformToSystem(game.platform) : null;
+  const classicsPlatformLabel = classicsSystem
+    ? PLATFORM_LABELS[classicsSystem]
+    : null;
+  const classicsEmulatorIcon = classicsSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
+    : undefined;
+
   return (
     <button
       type="button"
-      className="library-game-card-large"
+      className={`library-game-card-large ${isClassics ? "library-game-card-large--classics" : ""}`}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -149,6 +172,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         className="library-game-card-large__background"
         style={backgroundStyle}
       />
+      {classicsForegroundUrl && (
+        <img
+          src={classicsForegroundUrl}
+          alt={game.title}
+          className="library-game-card-large__classics-foreground"
+          loading="lazy"
+        />
+      )}
       <div className="library-game-card-large__gradient" />
 
       <div className="library-game-card-large__overlay">
@@ -203,6 +234,19 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 {formatPlayTime(game.playTimeInMilliseconds)}
               </span>
             </div>
+
+            {classicsPlatformLabel && (
+              <div className="library-game-card-large__classics-badges">
+                <span className="library-game-card-large__platform-badge">
+                  {classicsPlatformLabel}
+                </span>
+                {classicsEmulatorIcon && (
+                  <span className="library-game-card-large__emulator-badge">
+                    <img src={classicsEmulatorIcon} alt="" />
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -37,6 +37,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit);
     width: 100%;
     position: relative;
   }
@@ -45,13 +47,14 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
-    flex: 1;
+    flex-shrink: 0;
   }
 
   &__controls-right {
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
+    flex-wrap: wrap;
   }
 
   &__header-controls {

@@ -1,17 +1,28 @@
 import { useTranslation } from "react-i18next";
-import { TelescopeIcon } from "@primer/octicons-react";
+import {
+  TelescopeIcon,
+  TrophyIcon,
+  ClockIcon,
+  HistoryIcon,
+  StackIcon,
+  DeviceDesktopIcon,
+} from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
-import { SortOptions } from "./sort-options";
+import { ClassicsIcon } from "@renderer/pages/library/category-filter";
+import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
 import { UserLibraryGameCard } from "./user-library-game-card";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
+export type ProfilePlatform = "all" | "pc" | "classics";
 
 interface LibraryTabProps {
   sortBy: SortOption;
   onSortChange: (sortBy: SortOption) => void;
+  platform: ProfilePlatform;
+  onPlatformChange: (platform: ProfilePlatform) => void;
   pinnedGames: UserGame[];
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
@@ -19,11 +30,16 @@ interface LibraryTabProps {
   userStats: { libraryCount: number } | null;
   onLoadMore: () => void;
   isMe: boolean;
+  titleKey?: string;
+  panelKey?: string;
+  count?: number | null;
 }
 
 export function LibraryTab({
   sortBy,
   onSortChange,
+  platform,
+  onPlatformChange,
   pinnedGames,
   libraryGames,
   hasMoreLibraryGames,
@@ -31,23 +47,58 @@ export function LibraryTab({
   userStats,
   onLoadMore,
   isMe,
+  titleKey = "library",
+  panelKey = "library",
+  count,
 }: Readonly<LibraryTabProps>) {
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+
+  const platformOptions: FilterDropdownOption<ProfilePlatform>[] = [
+    { value: "all", label: t("platform_all"), icon: StackIcon },
+    { value: "pc", label: t("platform_pc"), icon: DeviceDesktopIcon },
+    { value: "classics", label: t("platform_classics"), icon: ClassicsIcon },
+  ];
+
+  const sortOptions: FilterDropdownOption<SortOption>[] = [
+    {
+      value: "achievementCount",
+      label: t("achievements_earned"),
+      icon: TrophyIcon,
+    },
+    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
+    { value: "playtime", label: t("playtime"), icon: ClockIcon },
+  ];
 
   const hasGames = libraryGames.length > 0;
   const hasPinnedGames = pinnedGames.length > 0;
   const hasAnyGames = hasGames || hasPinnedGames;
 
+  const resolvedCount =
+    count !== undefined ? count : (userStats?.libraryCount ?? null);
+
   return (
     <div
-      key="library"
+      key={panelKey}
       className="profile-content__tab-panel"
       aria-hidden={false}
     >
-      {hasAnyGames && (
-        <SortOptions sortBy={sortBy} onSortChange={onSortChange} />
-      )}
+      <div className="profile-content__library-filters">
+        <FilterDropdown
+          placeholder={t("platform")}
+          value={platform}
+          options={platformOptions}
+          onChange={onPlatformChange}
+        />
+        {hasAnyGames && (
+          <FilterDropdown
+            placeholder={t("sort_by")}
+            value={sortBy}
+            options={sortOptions}
+            onChange={onSortChange}
+          />
+        )}
+      </div>
 
       {!hasAnyGames && (
         <div className="profile-content__no-games">
@@ -90,10 +141,10 @@ export function LibraryTab({
             <div>
               <div className="profile-content__section-header">
                 <div className="profile-content__section-title-group">
-                  <h2>{t("library")}</h2>
-                  {userStats && (
+                  <h2>{t(titleKey)}</h2>
+                  {resolvedCount !== null && (
                     <span className="profile-content__section-badge">
-                      {numberFormatter.format(userStats.libraryCount)}
+                      {numberFormatter.format(resolvedCount)}
                     </span>
                   )}
                 </div>
