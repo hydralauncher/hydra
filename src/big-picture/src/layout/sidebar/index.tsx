@@ -34,11 +34,16 @@ import {
 import { IS_DESKTOP } from "../../constants";
 import {
   useLibrary,
+  useBigPictureRunningGames,
   useNavigationActions,
   useSearch,
   useUserDetails,
 } from "../../hooks";
-import { getItemFocusTarget } from "../../helpers";
+import {
+  getGameLandscapeImageSource,
+  getItemFocusTarget,
+  resolveImageSource,
+} from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
   useBigPictureDownloadsStore,
@@ -405,8 +410,20 @@ function SidebarRouter() {
   );
 }
 
-function SidebarLibrary() {
-  const { library } = useLibrary();
+type SidebarRunningGamesById = Record<
+  string,
+  { sessionDurationInMillis: number }
+>;
+
+interface SidebarLibraryProps {
+  library: LibraryGame[];
+  runningGamesById: SidebarRunningGamesById;
+}
+
+function SidebarLibrary({
+  library,
+  runningGamesById,
+}: Readonly<SidebarLibraryProps>) {
   const { pathname } = useLocation();
   const lastDownloadPacket = useBigPictureDownloadsStore(
     (state) => state.lastPacket
@@ -414,8 +431,9 @@ function SidebarLibrary() {
   const extractionProgressByGameId = useBigPictureDownloadsStore(
     (state) => state.extractionProgressByGameId
   );
-  const [runningGameIds, setRunningGameIds] = useState<Set<string>>(
-    () => new Set()
+  const runningGameIds = useMemo(
+    () => new Set(Object.keys(runningGamesById)),
+    [runningGamesById]
   );
   const [selectedLibraryFilter, setSelectedLibraryFilter] =
     useState<SidebarLibraryFilter>("all");
@@ -432,16 +450,6 @@ function SidebarLibrary() {
     if (!IS_DESKTOP) return;
 
     initializeBigPictureDownloadsStore();
-
-    const unsubscribe = globalThis.window.electron.onGamesRunning(
-      (gamesRunning) => {
-        setRunningGameIds(new Set(gamesRunning.map((game) => game.id)));
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
   }, []);
 
   const sidebarLibrary = useMemo(() => {
@@ -629,6 +637,8 @@ function SidebarLibrary() {
 }
 
 interface SidebarProfileProps {
+  library: LibraryGame[];
+  runningGamesById: SidebarRunningGamesById;
   notificationsOpen: boolean;
   notificationsFocusable: boolean;
   onNotificationsOpenChange: (isOpen: boolean) => void;
@@ -636,6 +646,8 @@ interface SidebarProfileProps {
 }
 
 function SidebarProfile({
+  library,
+  runningGamesById,
   notificationsOpen,
   notificationsFocusable,
   onNotificationsOpenChange,
@@ -648,6 +660,14 @@ function SidebarProfile({
   const [notificationCount, setNotificationCount] = useState(0);
   const contentEntryTarget =
     getBigPictureContentSidebarReturnTargetFromPathname(pathname);
+  const runningGameBackgroundImageUrl = useMemo(() => {
+    const runningGameIds = Object.keys(runningGamesById);
+    const runningGame = library.find((game) => runningGameIds.includes(game.id));
+
+    if (!runningGame) return null;
+
+    return resolveImageSource(getGameLandscapeImageSource(runningGame));
+  }, [library, runningGamesById]);
 
   const toggleNotifications = useCallback(() => {
     onNotificationsOpenChange(!notificationsOpen);
@@ -691,6 +711,7 @@ function SidebarProfile({
       <div className="sidebar-profile">
         <UserProfile
           image={userDetails?.profileImageUrl}
+          backgroundImageUrl={runningGameBackgroundImageUrl}
           name={userDetails?.displayName ?? "Sign in"}
           friendCode={userDetails?.id ?? "Not signed in"}
           profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
@@ -780,6 +801,8 @@ const SidebarContainer = forwardRef<
 
 function Sidebar() {
   const { pathname } = useLocation();
+  const { library } = useLibrary();
+  const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
   const { currentFocusId, nodes, regions } = useNavigationSnapshot();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -834,6 +857,8 @@ function Sidebar() {
           onHoverChange={setSidebarHovered}
         >
           <SidebarProfile
+            library={library}
+            runningGamesById={runningGamesById}
             notificationsOpen={notificationsOpen}
             notificationsFocusable={sidebarExpanded}
             onNotificationsOpenChange={setNotificationsOpen}
@@ -842,7 +867,10 @@ function Sidebar() {
           <Divider />
           <SidebarRouter />
           <Divider />
-          <SidebarLibrary />
+          <SidebarLibrary
+            library={library}
+            runningGamesById={runningGamesById}
+          />
         </SidebarContainer>
       </VerticalFocusGroup>
       <div className="sidebar-spacer" />

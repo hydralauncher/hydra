@@ -19,6 +19,25 @@ export const gamesPlaytime = new Map<
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
 
+export const getGamesRunning = () => {
+  const now = performance.now();
+  const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
+    return {
+      id: entry[0],
+      sessionDurationInMillis: now - entry[1].firstTick,
+    } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
+  });
+
+  for (const [gameKey, session] of emulatorSessions) {
+    gamesRunning.push({
+      id: gameKey,
+      sessionDurationInMillis: now - session.startedAt,
+    });
+  }
+
+  return gamesRunning;
+};
+
 interface ExecutableInfo {
   name: string;
   os: string;
@@ -253,24 +272,7 @@ export const watchProcesses = async () => {
 
   currentTick++;
 
-  if (WindowManager.mainWindow) {
-    const now = performance.now();
-    const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
-      return {
-        id: entry[0],
-        sessionDurationInMillis: now - entry[1].firstTick,
-      } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
-    });
-
-    for (const [gameKey, session] of emulatorSessions) {
-      gamesRunning.push({
-        id: gameKey,
-        sessionDurationInMillis: now - session.startedAt,
-      });
-    }
-
-    WindowManager.mainWindow.webContents.send("on-games-running", gamesRunning);
-  }
+  WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
 };
 
 function onOpenGame(game: Game) {
