@@ -175,16 +175,24 @@ export function isLibraryGamePlayable(game: LibraryGame) {
   return Boolean(game.executablePath);
 }
 
+export function isLibraryGameInstalled(game: LibraryGame) {
+  if (game.shop === "launchbox") {
+    return false;
+  }
+
+  return Boolean(game.executablePath);
+}
+
 export function filterLibraryBySecondaryFilter(
   library: LibraryGame[],
   selectedFilter: LibrarySecondaryFilter
 ) {
   if (selectedFilter === "installed") {
-    return library.filter(isLibraryGamePlayable);
+    return library.filter(isLibraryGameInstalled);
   }
 
   if (selectedFilter === "not_installed") {
-    return library.filter((game) => !isLibraryGamePlayable(game));
+    return library.filter((game) => !isLibraryGameInstalled(game));
   }
 
   if (selectedFilter === "never_played") {
