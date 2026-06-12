@@ -145,13 +145,16 @@ export function EmulationDetail({
     : EMULATION_DETAIL_RESCAN_BUTTON_ID;
 
   const handleBrowseExecutable = useCallback(async () => {
+    const isMac = globalThis.window.electron.platform === "darwin";
     const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openFile"],
+      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
       defaultPath: config.executablePath ?? undefined,
       filters:
         globalThis.window.electron.platform === "win32"
           ? [{ name: "Executable", extensions: ["exe"] }]
-          : undefined,
+          : isMac
+            ? [{ name: "Application", extensions: ["app"] }]
+            : undefined,
     });
 
     if (result.canceled || result.filePaths.length === 0) return;

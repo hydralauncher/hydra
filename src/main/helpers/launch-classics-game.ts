@@ -83,9 +83,16 @@ export const launchClassicsGame = async (
   }
 
   const baseArgs = buildEmulatorArgs(config.binary, discPath);
+  const executablePath = path.normalize(config.executablePath);
+  const executableTarget =
+    emulators.resolveEmulatorExecutableTarget(executablePath);
+
+  if (!executableTarget || !existsSync(executableTarget)) {
+    throw new EmulatorNotConfiguredError(system);
+  }
 
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: config.executablePath,
+    baseCommand: executableTarget,
     baseArgs,
     launchOptions: null,
     wrapperCommands: [
@@ -94,7 +101,7 @@ export const launchClassicsGame = async (
     ],
   });
 
-  const workingDirectory = path.dirname(config.executablePath);
+  const workingDirectory = path.dirname(executableTarget);
 
   try {
     const processRef = spawn(
