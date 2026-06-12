@@ -34,7 +34,10 @@ const getCacheDir = () => {
   return path.join(SystemPath.getPath("userData"), "image-cache", "friends");
 };
 
-const getCacheKey = (imageUrl: string, options: Required<FriendImageOptions>) => {
+const getCacheKey = (
+  imageUrl: string,
+  options: Required<FriendImageOptions>
+) => {
   return crypto
     .createHash("sha256")
     .update(
