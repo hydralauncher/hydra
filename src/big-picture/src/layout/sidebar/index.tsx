@@ -72,6 +72,7 @@ import {
   getBigPictureSidebarItemIdFromPathname,
   normalizeBigPicturePathname,
 } from "../navigation";
+import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -279,7 +280,7 @@ function filterSidebarLibraryGames(
 
   if (selectedFilter === "ready_to_play") {
     return library
-      .filter((game) => Boolean(game.executablePath))
+      .filter(isLibraryGamePlayable)
       .sort(compareGamesByExecutablePathUpdatedAt);
   }
 
