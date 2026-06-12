@@ -153,6 +153,7 @@
   &__footer {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -164,6 +165,7 @@
     border-radius: 8px;
     font-size: 12px;
     font-weight: 400;
+    min-width: 0;
 
     &-dot {
       width: 7px;
