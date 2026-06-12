@@ -12,6 +12,7 @@ export type FocusOverrideTarget =
       type: "region";
       regionId: string;
       entryDirection?: FocusDirection;
+      initialFocusId?: string;
       preferRememberedFocus?: boolean;
     }
   | {
@@ -60,6 +61,7 @@ interface FocusLayerRecord extends FocusLayer {
   isPersistent: boolean;
   explicitRootRegionId: string | null;
   hasWarnedAboutMultipleRoots: boolean;
+  restoreFocusOnUnmount: () => boolean;
 }
 
 type Listener = () => void;
@@ -72,6 +74,7 @@ type PendingInitialFocusRequest = {
 };
 
 interface SetFocusRegionOptions {
+  initialFocusId?: string;
   preferRememberedFocus?: boolean;
 }
 
@@ -155,6 +158,7 @@ export class NavigationService {
       isPersistent: true,
       explicitRootRegionId: null,
       hasWarnedAboutMultipleRoots: false,
+      restoreFocusOnUnmount: () => true,
     });
   }
 
@@ -170,6 +174,7 @@ export class NavigationService {
     id: string;
     rootRegionId?: string | null;
     isPersistent?: boolean;
+    restoreFocusOnUnmount?: boolean | (() => boolean);
   }) {
     if (layer.id === ROOT_NAVIGATION_LAYER_ID) {
       throw new Error(
@@ -191,6 +196,7 @@ export class NavigationService {
     const openerRegionId = openerFocusId
       ? (this.nodes.get(openerFocusId)?.regionId ?? null)
       : null;
+    const restoreFocusOnUnmount = layer.restoreFocusOnUnmount;
 
     this.layers.set(layer.id, {
       id: layer.id,
@@ -200,6 +206,10 @@ export class NavigationService {
       isPersistent: Boolean(layer.isPersistent),
       explicitRootRegionId: layer.rootRegionId ?? null,
       hasWarnedAboutMultipleRoots: false,
+      restoreFocusOnUnmount:
+        typeof restoreFocusOnUnmount === "function"
+          ? restoreFocusOnUnmount
+          : () => restoreFocusOnUnmount ?? true,
     });
 
     this.layerStack.push(layer.id);
@@ -222,7 +232,9 @@ export class NavigationService {
       this.layers.delete(layer.id);
 
       if (wasActiveLayer) {
-        this.currentFocusId = this.restoreFocusForLayer(registeredLayer);
+        this.currentFocusId = registeredLayer.restoreFocusOnUnmount()
+          ? this.restoreFocusForLayer(registeredLayer)
+          : null;
 
         if (this.currentFocusId) {
           this.updateLastFocusedForNode(this.currentFocusId);
@@ -1457,6 +1469,7 @@ export class NavigationService {
       target.regionId,
       target.entryDirection ?? direction,
       {
+        initialFocusId: target.initialFocusId,
         preferRememberedFocus: target.preferRememberedFocus,
       }
     );
@@ -1501,6 +1514,16 @@ export class NavigationService {
   ): string | null {
     if (!this.isRegionInActiveLayer(regionId)) {
       return null;
+    }
+
+    if (
+      options.initialFocusId &&
+      this.nodes.has(options.initialFocusId) &&
+      this.isNodeActive(options.initialFocusId) &&
+      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
+      this.isNodeInActiveLayer(options.initialFocusId)
+    ) {
+      return options.initialFocusId;
     }
 
     const rememberedNodeId =
@@ -1693,7 +1716,9 @@ export class NavigationService {
     if (left.type === "region" && right.type === "region") {
       return (
         left.regionId === right.regionId &&
-        left.entryDirection === right.entryDirection
+        left.entryDirection === right.entryDirection &&
+        left.initialFocusId === right.initialFocusId &&
+        left.preferRememberedFocus === right.preferRememberedFocus
       );
     }
 
@@ -1865,6 +1890,7 @@ export class NavigationService {
       target.regionId,
       target.entryDirection ?? direction,
       {
+        initialFocusId: target.initialFocusId,
         preferRememberedFocus: target.preferRememberedFocus,
       }
     );

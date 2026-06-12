@@ -110,7 +110,7 @@
     "decky_plugin_installation_error": "Błąd podczas instalacji wtyczki Decky: {{error}}",
     "confirm": "Potwierdź",
     "cancel": "Anuluj",
-    "big_picture": "Tryb Big Picture (beta)"
+    "big_picture": "Tryb Big Picture"
   },
   "header": {
     "search": "Szukaj",

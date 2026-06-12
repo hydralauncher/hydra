@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 
 import type { ContextMenuItem } from "../../common";
+import { isLibraryGamePlayable } from "./library-data";
 
 export interface LibraryGameContextMenuHandlers {
   onLaunchOrDownload: (game: LibraryGame) => void | Promise<void>;
@@ -37,12 +38,13 @@ export function buildLibraryGameContextMenuItems(
     onUninstall,
     onRemoveFromLibrary,
   } = handlers;
+  const isPlayable = isLibraryGamePlayable(game);
 
   const nextItems: ContextMenuItem[] = [
     {
       id: "launch-or-download",
-      label: game.executablePath ? "Launch Game" : "Download Game",
-      icon: game.executablePath ? (
+      label: isPlayable ? "Launch Game" : "Download Game",
+      icon: isPlayable ? (
         <PlayIcon size={18} weight="fill" />
       ) : (
         <DownloadSimpleIcon size={18} />

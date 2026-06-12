@@ -302,6 +302,9 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGamesRunning: () => Promise<
+      Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+    >;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -309,6 +312,10 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onClassicsImportStatus: (
+      cb: (importing: boolean) => void
+    ) => () => Electron.IpcRenderer;
+    getClassicsImportStatus: () => Promise<boolean>;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,
@@ -760,6 +767,7 @@ declare global {
     getLocalNotifications: () => Promise<LocalNotification[]>;
     getLocalNotificationsCount: () => Promise<number>;
     markLocalNotificationRead: (id: string) => Promise<void>;
+    markLocalNotificationUnread: (id: string) => Promise<void>;
     markAllLocalNotificationsRead: () => Promise<void>;
     deleteLocalNotification: (id: string) => Promise<void>;
     clearAllLocalNotifications: () => Promise<void>;

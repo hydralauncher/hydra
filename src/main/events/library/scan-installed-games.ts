@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel } from "@main/level";
 import {
   GameExecutables,
@@ -103,7 +104,7 @@ const scanInstalledGames = async (
     );
 
     if (foundPath) {
-      await gamesSublevel.put(key, { ...game, executablePath: foundPath });
+      await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
 
       logger.info(
         `[ScanInstalledGames] Found executable for ${game.objectId}: ${foundPath}`

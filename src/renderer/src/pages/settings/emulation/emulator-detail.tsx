@@ -171,13 +171,16 @@ export function EmulatorDetail({
   ]);
 
   const handleBrowseExecutable = useCallback(async () => {
+    const isMac = window.electron.platform === "darwin";
     const result = await window.electron.showOpenDialog({
-      properties: ["openFile"],
+      properties: isMac ? ["openFile", "openDirectory"] : ["openFile"],
       defaultPath: config.executablePath ?? undefined,
       filters:
         window.electron.platform === "win32"
           ? [{ name: "Executable", extensions: ["exe"] }]
-          : undefined,
+          : isMac
+            ? [{ name: "Application", extensions: ["app"] }]
+            : undefined,
     });
     if (result.canceled || result.filePaths.length === 0) return;
 

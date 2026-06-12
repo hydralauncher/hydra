@@ -31,6 +31,9 @@ export interface TabsProps<TValue extends string = string> {
   value?: TValue;
   defaultValue?: TValue;
   onValueChange?: (value: TValue) => void;
+  manageFocusRegion?: boolean;
+  selectOnFocus?: boolean;
+  ignoreInitialFocusSelection?: boolean;
   variant?: "default" | "segmented" | "settings";
   beforeTabs?: ReactNode;
   afterTabs?: ReactNode;
@@ -48,6 +51,8 @@ interface TabsButtonProps<TValue extends string = string> {
   isSelected: boolean;
   variant: "default" | "segmented" | "settings";
   indicatorLayoutId: string;
+  selectOnFocus: boolean;
+  ignoreInitialFocusSelection: boolean;
   onSelect: (value: TValue) => void;
 }
 
@@ -58,18 +63,45 @@ function FocusableTabsButton<TValue extends string = string>({
   isSelected,
   variant,
   indicatorLayoutId,
+  selectOnFocus,
+  ignoreInitialFocusSelection,
   onSelect,
 }: Readonly<TabsButtonProps<TValue>>) {
   const isFocused = useNavigationIsFocused(resolvedId);
   const wasFocusedRef = useRef(false);
+  const hasHandledInitialFocusRef = useRef(false);
 
   useEffect(() => {
-    if (isFocused && !wasFocusedRef.current && !item.disabled && !isSelected) {
+    const isNewFocus = isFocused && !wasFocusedRef.current;
+    const shouldIgnoreSelection =
+      selectOnFocus &&
+      ignoreInitialFocusSelection &&
+      !hasHandledInitialFocusRef.current &&
+      isNewFocus &&
+      !item.disabled &&
+      !isSelected;
+
+    if (
+      selectOnFocus &&
+      isNewFocus &&
+      !item.disabled &&
+      !isSelected &&
+      !shouldIgnoreSelection
+    ) {
       onSelect(item.value);
     }
 
     wasFocusedRef.current = isFocused;
-  }, [isFocused, isSelected, item.disabled, item.value, onSelect]);
+    hasHandledInitialFocusRef.current = true;
+  }, [
+    ignoreInitialFocusSelection,
+    isFocused,
+    isSelected,
+    item.disabled,
+    item.value,
+    onSelect,
+    selectOnFocus,
+  ]);
 
   return (
     <FocusItem
@@ -177,6 +209,9 @@ export function Tabs<TValue extends string = string>({
   value,
   defaultValue,
   onValueChange,
+  manageFocusRegion = true,
+  selectOnFocus = true,
+  ignoreInitialFocusSelection = false,
   variant = "default",
   beforeTabs,
   afterTabs,
@@ -276,6 +311,15 @@ export function Tabs<TValue extends string = string>({
     return null;
   }
 
+  const tabsListClassName = cn("tabs__list", {
+    "tabs__list--segmented": variant === "segmented",
+  });
+  const tabsListStyle = {
+    gap: "calc(var(--spacing-unit) * 12)",
+    alignItems: "flex-start",
+    flexWrap: "nowrap",
+  } as CSSProperties;
+
   return (
     <div
       className={cn("tabs", className, {
@@ -325,70 +369,82 @@ export function Tabs<TValue extends string = string>({
             </div>
           </div>
         ) : (
-          <HorizontalFocusGroup
-            regionId={regionId}
-            navigationOverrides={navigationOverrides}
-            autoScrollMode="region"
-            className={cn("tabs__list", {
-              "tabs__list--segmented": variant === "segmented",
-            })}
-            style={
-              {
-                gap: "calc(var(--spacing-unit) * 12)",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-              } as CSSProperties
-            }
-          >
-            <div
-              ref={tabListRef}
-              role="tablist"
-              aria-label={ariaLabel}
-              className={cn("tabs__tablist", {
-                "tabs__tablist--segmented": variant === "segmented",
-              })}
-            >
-              {variant === "segmented" && segmentedIndicatorStyle && (
-                <motion.span
-                  className="tabs__segmented-indicator"
-                  initial={false}
-                  animate={{
-                    x: segmentedIndicatorStyle.x,
-                    width: segmentedIndicatorStyle.width,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.8,
-                  }}
-                />
-              )}
-
-              {beforeTabs && (
-                <div className="tabs__before-tabs">{beforeTabs}</div>
-              )}
-
-              {resolvedItems.map((item, index) => {
-                const isSelected = selectedItem?.value === item.value;
-
-                return (
-                  <FocusableTabsButton
-                    key={item.value}
-                    item={item}
-                    resolvedId={item.resolvedId}
-                    navigationOrder={index}
-                    isSelected={isSelected}
-                    variant={variant}
-                    indicatorLayoutId={indicatorLayoutId}
-                    onSelect={handleSelect}
+          (() => {
+            const tabList = (
+              <div
+                ref={tabListRef}
+                role="tablist"
+                aria-label={ariaLabel}
+                className={cn("tabs__tablist", {
+                  "tabs__tablist--segmented": variant === "segmented",
+                })}
+              >
+                {variant === "segmented" && segmentedIndicatorStyle && (
+                  <motion.span
+                    className="tabs__segmented-indicator"
+                    initial={false}
+                    animate={{
+                      x: segmentedIndicatorStyle.x,
+                      width: segmentedIndicatorStyle.width,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 34,
+                      mass: 0.8,
+                    }}
                   />
-                );
-              })}
+                )}
 
-              {afterTabs && <div className="tabs__after-tabs">{afterTabs}</div>}
-            </div>
-          </HorizontalFocusGroup>
+                {beforeTabs && (
+                  <div className="tabs__before-tabs">{beforeTabs}</div>
+                )}
+
+                {resolvedItems.map((item, index) => {
+                  const isSelected = selectedItem?.value === item.value;
+
+                  return (
+                    <FocusableTabsButton
+                      key={item.value}
+                      item={item}
+                      resolvedId={item.resolvedId}
+                      navigationOrder={index}
+                      isSelected={isSelected}
+                      variant={variant}
+                      indicatorLayoutId={indicatorLayoutId}
+                      selectOnFocus={selectOnFocus}
+                      ignoreInitialFocusSelection={ignoreInitialFocusSelection}
+                      onSelect={handleSelect}
+                    />
+                  );
+                })}
+
+                {afterTabs && (
+                  <div className="tabs__after-tabs">{afterTabs}</div>
+                )}
+              </div>
+            );
+
+            if (!manageFocusRegion) {
+              return (
+                <div className={tabsListClassName} style={tabsListStyle}>
+                  {tabList}
+                </div>
+              );
+            }
+
+            return (
+              <HorizontalFocusGroup
+                regionId={regionId}
+                navigationOverrides={navigationOverrides}
+                autoScrollMode="region"
+                className={tabsListClassName}
+                style={tabsListStyle}
+              >
+                {tabList}
+              </HorizontalFocusGroup>
+            );
+          })()
         )}
 
         {trailingAction && (

@@ -46,6 +46,7 @@ import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
 import BigPictureLibrary from "../../big-picture/src/pages/library/page";
 import BigPictureGame from "../../big-picture/src/pages/game/game";
 import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
+import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
 
 console.log = logger.log;
 
@@ -140,6 +141,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="downloads" element={<BigPictureDownloads />} />
             <Route path="settings" element={<BigPictureSettings />} />
             <Route path="library" element={<BigPictureLibrary />} />
+            <Route path="profile/:userId?" element={<BigPictureProfile />} />
             <Route path="game/:shop/:objectId" element={<BigPictureGame />} />
             <Route
               path="game/:shop/:objectId/achievements"

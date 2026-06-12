@@ -1,6 +1,7 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
 import type { EmulatorSystem } from "@types";
+import path from "node:path";
 
 interface PreviewResult {
   executablePath: string;
@@ -15,10 +16,15 @@ const previewEmulatorExecutable = async (
   const binary = emulators.KNOWN_BINARIES[system];
 
   if (executablePath) {
-    if (!emulators.isValidEmulatorExecutable(executablePath)) return null;
+    const normalizedPath = path.normalize(executablePath);
+    const resolvedPath =
+      emulators.findMacAppBundleRoot(normalizedPath) ?? normalizedPath;
+
+    if (!emulators.isValidEmulatorExecutable(resolvedPath)) return null;
+
     return {
-      executablePath,
-      detectedVersion: emulators.getEmulatorVersion(executablePath, binary),
+      executablePath: resolvedPath,
+      detectedVersion: emulators.getEmulatorVersion(resolvedPath, binary),
     };
   }
 
