@@ -131,6 +131,8 @@ export function useUserDetails() {
   }, [fetchUserDetails]);
 
   useEffect(() => {
+    if (!IS_DESKTOP) return;
+
     const unsubscribeAccountUpdated =
       globalThis.window.electron.onAccountUpdated(() => {
         void fetchUserDetails();
