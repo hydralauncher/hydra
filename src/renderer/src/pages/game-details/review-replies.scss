@@ -7,13 +7,36 @@
   }
 
   &__review-replies {
+    position: relative;
     margin-top: calc(globals.$spacing-unit * 2);
     margin-left: calc(globals.$spacing-unit * 2.5);
     padding-left: calc(globals.$spacing-unit * 2);
-    border-left: 2px solid rgba(255, 255, 255, 0.12);
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__reply-thread-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -5px;
+    width: 2px;
+    padding: 0 5px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.12);
+    background-clip: content-box;
+    box-sizing: content-box;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.32);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
   }
 
   &__reply-thread {
@@ -47,8 +70,8 @@
   }
 
   &__reply-content {
-    font-size: globals.$small-font-size;
-    line-height: 1.45;
+    font-size: globals.$body-font-size;
+    line-height: 1.5;
   }
 
   &__reply-actions {
@@ -69,7 +92,7 @@
     gap: 5px;
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.78);
     font-size: globals.$small-font-size;
     font-weight: 500;
     cursor: pointer;
@@ -79,7 +102,7 @@
 
     &:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.12);
     }
   }
 
@@ -101,7 +124,7 @@
     gap: 6px;
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.78);
     font-size: globals.$small-font-size;
     font-weight: 600;
     cursor: pointer;

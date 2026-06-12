@@ -31,6 +31,43 @@ interface ReviewThreadProps {
 
 const REPLIES_TAKE = 10;
 const PREVIEW_LIMIT = 5;
+const VOTE_FEEDBACK_MS = 500;
+const electron = globalThis.electron as Electron;
+
+const voteDelta = (next: boolean, previous: boolean) =>
+  Number(next) - Number(previous);
+
+const getOptimisticReplyVote = (
+  reply: GameReviewAnswer,
+  voteType: "upvote" | "downvote"
+) => {
+  let hasUpvoted = reply.hasUpvoted;
+  let hasDownvoted = reply.hasDownvoted;
+
+  if (voteType === "upvote") {
+    hasUpvoted = !reply.hasUpvoted;
+    hasDownvoted = hasUpvoted ? false : reply.hasDownvoted;
+  }
+
+  if (voteType === "downvote") {
+    hasDownvoted = !reply.hasDownvoted;
+    hasUpvoted = hasDownvoted ? false : reply.hasUpvoted;
+  }
+
+  return {
+    ...reply,
+    hasUpvoted,
+    hasDownvoted,
+    upvotes: Math.max(
+      0,
+      (reply.upvotes || 0) + voteDelta(hasUpvoted, reply.hasUpvoted)
+    ),
+    downvotes: Math.max(
+      0,
+      (reply.downvotes || 0) + voteDelta(hasDownvoted, reply.hasDownvoted)
+    ),
+  };
+};
 
 const mergeReplies = (
   existing: GameReviewAnswer[],
@@ -63,6 +100,7 @@ export function ReviewThread({
   );
   const [totalCount, setTotalCount] = useState(review.answerCount ?? 0);
   const [expanded, setExpanded] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverLoaded, setServerLoaded] = useState(0);
   const [votingAnswers, setVotingAnswers] = useState<Set<string>>(new Set());
@@ -71,7 +109,11 @@ export function ReviewThread({
 
   const baseUrl = `/games/${shop}/${objectId}/reviews/${review.id}/answers`;
 
-  const displayedReplies = expanded ? replies : replies.slice(0, PREVIEW_LIMIT);
+  const displayedReplies = hidden
+    ? []
+    : expanded
+      ? replies
+      : replies.slice(0, PREVIEW_LIMIT);
 
   const fetchReplies = async (skip: number, replace: boolean) => {
     setLoading(true);
@@ -81,12 +123,9 @@ export function ReviewThread({
         skip: skip.toString(),
       });
 
-      const response = (await window.electron.hydraApi.get(
-        `${baseUrl}?${params.toString()}`,
-        { needsAuth: false }
-      )) as unknown as
-        | { answers: GameReviewAnswer[]; totalCount: number }
-        | undefined;
+      const response = await electron.hydraApi.get<
+        { answers: GameReviewAnswer[]; totalCount: number } | undefined
+      >(`${baseUrl}?${params.toString()}`, { needsAuth: false });
 
       const fetched = response?.answers ?? [];
 
@@ -106,6 +145,7 @@ export function ReviewThread({
 
   const handleExpand = () => {
     if (loading) return;
+    setHidden(false);
     fetchReplies(0, true);
   };
 
@@ -115,7 +155,17 @@ export function ReviewThread({
   };
 
   const handleHide = () => {
+    setHidden(true);
     setExpanded(false);
+  };
+
+  const handleToggleReplies = () => {
+    if (loading) return;
+    if (hidden) {
+      handleExpand();
+    } else {
+      handleHide();
+    }
   };
 
   const handleReplyTo = (displayName: string) => {
@@ -135,49 +185,16 @@ export function ReviewThread({
     setVotingAnswers((prev) => new Set(prev).add(answerId));
 
     const originalReply = replies[replyIndex];
-    const updatedReply = { ...originalReply };
-
-    if (voteType === "upvote") {
-      if (originalReply.hasUpvoted) {
-        updatedReply.hasUpvoted = false;
-        updatedReply.upvotes = Math.max(0, (originalReply.upvotes || 0) - 1);
-      } else {
-        updatedReply.hasUpvoted = true;
-        updatedReply.upvotes = (originalReply.upvotes || 0) + 1;
-        if (originalReply.hasDownvoted) {
-          updatedReply.hasDownvoted = false;
-          updatedReply.downvotes = Math.max(
-            0,
-            (originalReply.downvotes || 0) - 1
-          );
-        }
-      }
-    } else {
-      if (originalReply.hasDownvoted) {
-        updatedReply.hasDownvoted = false;
-        updatedReply.downvotes = Math.max(
-          0,
-          (originalReply.downvotes || 0) - 1
-        );
-      } else {
-        updatedReply.hasDownvoted = true;
-        updatedReply.downvotes = (originalReply.downvotes || 0) + 1;
-        if (originalReply.hasUpvoted) {
-          updatedReply.hasUpvoted = false;
-          updatedReply.upvotes = Math.max(0, (originalReply.upvotes || 0) - 1);
-        }
-      }
-    }
+    const updatedReply = getOptimisticReplyVote(originalReply, voteType);
 
     setReplies((prev) =>
       prev.map((reply) => (reply.id === answerId ? updatedReply : reply))
     );
 
     try {
-      const response = (await window.electron.hydraApi.put(
-        `${baseUrl}/${answerId}/${voteType}`,
-        { data: {} }
-      )) as unknown as { upvotes: number; downvotes: number } | undefined;
+      const response = await electron.hydraApi.put<
+        { upvotes: number; downvotes: number } | undefined
+      >(`${baseUrl}/${answerId}/${voteType}`, { data: {} });
 
       if (response) {
         setReplies((prev) =>
@@ -205,13 +222,13 @@ export function ReviewThread({
           next.delete(answerId);
           return next;
         });
-      }, 500);
+      }, VOTE_FEEDBACK_MS);
     }
   };
 
   const handleDeleteReply = async (answerId: string) => {
     try {
-      await window.electron.hydraApi.delete(`${baseUrl}/${answerId}`);
+      await electron.hydraApi.delete(`${baseUrl}/${answerId}`);
       setReplies((prev) => prev.filter((reply) => reply.id !== answerId));
       setTotalCount((prev) => Math.max(0, prev - 1));
       setServerLoaded((prev) => Math.max(0, prev - 1));
@@ -237,13 +254,16 @@ export function ReviewThread({
     setSubmitting(true);
 
     try {
-      const response = (await window.electron.hydraApi.post(`${baseUrl}`, {
+      const response = await electron.hydraApi.post<
+        GameReviewAnswer | undefined
+      >(`${baseUrl}`, {
         data: { answerHtml },
-      })) as unknown as GameReviewAnswer | undefined;
+      });
 
       if (response) {
         setReplies((prev) => mergeReplies(prev, [response]));
         setTotalCount((prev) => prev + 1);
+        setHidden(false);
         setExpanded(true);
       }
 
@@ -260,8 +280,12 @@ export function ReviewThread({
 
   const blockedCollapsed = review.isBlocked && !isVisible;
   const hasReplies = replies.length > 0;
-  const canViewAll = !expanded && totalCount > displayedReplies.length;
-  const canLoadMore = expanded && replies.length < totalCount;
+  const effectiveTotal = Math.max(totalCount, replies.length);
+
+  const canViewAll =
+    !expanded && hasReplies && displayedReplies.length < effectiveTotal;
+  const canLoadMore = !hidden && expanded && replies.length < totalCount;
+  const showHide = !hidden && hasReplies;
 
   const showInlineReply =
     Boolean(userDetailsId) && !blockedCollapsed && !hasReplies && !composerOpen;
@@ -269,8 +293,8 @@ export function ReviewThread({
   const showThreadActions =
     canViewAll ||
     canLoadMore ||
-    (expanded && hasReplies) ||
-    (Boolean(userDetailsId) && !composerOpen && hasReplies);
+    showHide ||
+    (Boolean(userDetailsId) && !composerOpen && hasReplies && !hidden);
 
   const showRepliesSection = !blockedCollapsed && (hasReplies || composerOpen);
 
@@ -304,6 +328,19 @@ export function ReviewThread({
       {showRepliesSection && (
         <div className="game-details__review-replies">
           {hasReplies && (
+            <button
+              type="button"
+              className="game-details__reply-thread-line"
+              onClick={handleToggleReplies}
+              disabled={loading}
+              aria-label={
+                hidden
+                  ? t("view_all_replies", { count: effectiveTotal })
+                  : t("hide_replies")
+              }
+            />
+          )}
+          {hasReplies && (
             <div className="game-details__reply-thread">
               {displayedReplies.map((reply) => (
                 <ReviewReplyItem
@@ -329,7 +366,7 @@ export function ReviewThread({
                 >
                   {loading
                     ? t("loading_replies")
-                    : t("view_all_replies", { count: totalCount })}
+                    : t("view_all_replies", { count: effectiveTotal })}
                 </button>
               )}
               {canLoadMore && (
@@ -341,7 +378,7 @@ export function ReviewThread({
                   {loading ? t("loading_replies") : t("load_more_replies")}
                 </button>
               )}
-              {expanded && hasReplies && (
+              {showHide && (
                 <button
                   className="game-details__reply-toggle"
                   onClick={handleHide}
@@ -349,7 +386,7 @@ export function ReviewThread({
                   {t("hide_replies")}
                 </button>
               )}
-              {userDetailsId && !composerOpen && hasReplies && (
+              {userDetailsId && !composerOpen && hasReplies && !hidden && (
                 <button
                   className="game-details__reply-toggle game-details__reply-toggle--primary"
                   onClick={() => handleReplyTo("")}

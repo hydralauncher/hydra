@@ -48,9 +48,9 @@ export function AchievementNotificationOverlay() {
 
   useEffect(() => {
     const onInAppAchievementUnlocked =
-      window.electron.onInAppAchievementUnlocked;
+      globalThis.electron.onInAppAchievementUnlocked;
 
-    // TODO: Remove this once remote renderer and preload releases are guaranteed to use the same commit.
+    // Compatibility guard for remote renderer/preload releases on different commits.
     if (typeof onInAppAchievementUnlocked !== "function") {
       return () => {};
     }

@@ -437,8 +437,8 @@
       background-color: globals.$dark-background-color;
     }
 
-    // Image rows: lazy <img> behind a gradient scrim. Image is a Cloudflare-
-    // resized (~400px) variant so it stays light to raster.
+    // Image rows: lazy <img> behind a gradient scrim. The source is a native-
+    // processed local variant so it stays light to raster.
     &--has-bg {
       // Scrim pseudo over the image; clips its own corners (no overflow:hidden,
       // which caused scroll repaint flicker).

@@ -995,6 +995,8 @@
     "badge_received_description": "{{badgeName}}",
     "review_upvote_title": "A tua avaliação de {{gameTitle}} recebeu votos positivos!",
     "review_upvote_description": "A tua avaliação recebeu {{count}} novos votos positivos",
+    "review_answer_title": "Nova resposta à tua avaliação de {{gameTitle}}",
+    "review_answer_description": "{{displayName}} respondeu à tua avaliação",
     "marked_all_as_read": "Todas as notificações marcadas como lidas",
     "failed_to_mark_as_read": "Falha ao marcar notificações como lidas",
     "cleared_all": "Todas as notificações limpas",

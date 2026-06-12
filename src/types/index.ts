@@ -9,7 +9,8 @@ export * from "./download-contract";
 export type HydraCloudFeature =
   | "achievements"
   | "backup"
-  | "achievements-points";
+  | "achievements-points"
+  | "customization";
 
 export interface DiskUsage {
   free: number;
@@ -178,6 +179,11 @@ export interface UserBlocks {
 
 export interface FriendRequestSync {
   friendRequestCount: number;
+}
+
+export interface FriendPresenceSync {
+  friendId: string;
+  isOnline: boolean;
 }
 
 export interface NotificationSync {
@@ -381,7 +387,8 @@ export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
   | "BADGE_RECEIVED"
-  | "REVIEW_UPVOTE";
+  | "REVIEW_UPVOTE"
+  | "REVIEW_ANSWER";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"

@@ -1136,6 +1136,8 @@
     "badge_received_description": "{{badgeName}}",
     "review_upvote_title": "Ваш отзыв на {{gameTitle}} получил голоса!",
     "review_upvote_description": "Ваш отзыв получил {{count}} новых голосов",
+    "review_answer_title": "Новый ответ на ваш отзыв об игре {{gameTitle}}",
+    "review_answer_description": "{{displayName}} ответил на ваш отзыв",
     "marked_all_as_read": "Все уведомления отмечены как прочитанные",
     "failed_to_mark_as_read": "Не удалось отметить уведомления как прочитанные",
     "cleared_all": "Все уведомления очищены",

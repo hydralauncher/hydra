@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NoteIcon } from "@primer/octicons-react";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
 import { useTranslation } from "react-i18next";
 import type { GameReview, Game, GameShop } from "@types";
 
@@ -73,6 +74,7 @@ export function GameReviews({
       StarterKit.configure({
         link: false,
       }),
+      Underline,
     ],
     content: "",
     editorProps: {
