@@ -63,6 +63,14 @@ export function ReviewReplyItem({
     ? reply.translations[replyTranslationLanguage]
     : reply.answerHtml;
 
+  const getVoteButtonCursor = () => {
+    if (userDetailsId && isVoting) return "not-allowed";
+    if (userDetailsId) return "pointer";
+    return "default";
+  };
+
+  const voteButtonCursor = getVoteButtonCursor();
+
   return (
     <div className="game-details__reply-item">
       <div className="game-details__reply-header">
@@ -134,11 +142,7 @@ export function ReviewReplyItem({
             disabled={isVoting || !userDetailsId}
             style={{
               opacity: isVoting ? 0.5 : 1,
-              cursor: !userDetailsId
-                ? "default"
-                : isVoting
-                  ? "not-allowed"
-                  : "pointer",
+              cursor: voteButtonCursor,
             }}
             animate={
               reply.hasUpvoted
@@ -155,11 +159,7 @@ export function ReviewReplyItem({
             disabled={isVoting || !userDetailsId}
             style={{
               opacity: isVoting ? 0.5 : 1,
-              cursor: !userDetailsId
-                ? "default"
-                : isVoting
-                  ? "not-allowed"
-                  : "pointer",
+              cursor: voteButtonCursor,
             }}
             animate={
               reply.hasDownvoted

@@ -101,7 +101,9 @@ i18n.on("languageChanged", syncDocumentLanguage);
 // too, not just the routes mounted under <App />.
 globalThis.electron.onUserPreferencesUpdated((preferences) => {
   if (preferences?.language && preferences.language !== i18n.language) {
-    void i18n.changeLanguage(preferences.language);
+    i18n.changeLanguage(preferences.language).catch((error) => {
+      console.error("Failed to change language", error);
+    });
   }
 });
 

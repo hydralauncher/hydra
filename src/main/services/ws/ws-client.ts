@@ -4,6 +4,7 @@ import { Envelope } from "@main/generated/envelope";
 import { logger } from "../logger";
 import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
+import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
 
 export class WSClient {
@@ -51,6 +52,10 @@ export class WSClient {
 
         if (envelope.payload.oneofKind === "friendGameSession") {
           friendGameSessionEvent(envelope.payload.friendGameSession);
+        }
+
+        if (envelope.payload.oneofKind === "friendPresence") {
+          friendPresenceEvent(envelope.payload.friendPresence);
         }
 
         if (envelope.payload.oneofKind === "notification") {

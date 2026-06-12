@@ -15,6 +15,7 @@ import type {
   GameAchievement,
   Theme,
   FriendRequestSync,
+  FriendPresenceSync,
   NotificationSync,
   ShortcutLocation,
   CreateSteamShortcutOptions,
@@ -790,12 +791,17 @@ contextBridge.exposeInMainWorld("electron", {
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
+  getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
+  getProcessedFriendImage: (
+    imageUrl: string | null,
+    options: { width: number; height: number; preserveAnimation?: boolean }
+  ) => ipcRenderer.invoke("getProcessedFriendImage", imageUrl, options),
   hydraApi: {
     get: (
       url: string,
@@ -969,6 +975,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
+  syncFriendRequests: (friendRequestCount: number) =>
+    ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
   /* User */
   getComparedUnlockedAchievements: (
@@ -1159,6 +1167,14 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = () => cb();
     ipcRenderer.on("on-friends-updated", listener);
     return () => ipcRenderer.removeListener("on-friends-updated", listener);
+  },
+  onFriendPresence: (cb: (presence: FriendPresenceSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      presence: FriendPresenceSync
+    ) => cb(presence);
+    ipcRenderer.on("on-friend-presence", listener);
+    return () => ipcRenderer.removeListener("on-friend-presence", listener);
   },
   onProfileUpdated: (cb: () => void) => {
     const listener = () => cb();

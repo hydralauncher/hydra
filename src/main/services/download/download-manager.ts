@@ -756,19 +756,30 @@ export class DownloadManager {
     }
   }
 
+  private static getErrorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string") return error;
+
+    try {
+      return JSON.stringify(error) ?? "Unknown error";
+    } catch {
+      return "Unknown error";
+    }
+  }
+
   private static async handleRuntimeDownloadError(
     downloadId: string,
     error: unknown
   ) {
     if (this.downloadingGameId && this.downloadingGameId !== downloadId) {
+      const message = this.getErrorMessage(error);
       logger.warn(
-        `[DownloadManager] Ignoring stale download error for ${downloadId}`,
-        error
+        `[DownloadManager] Ignoring stale download error for ${downloadId}: ${message}`
       );
       return;
     }
 
-    const message = error instanceof Error ? error.message : String(error);
+    const message = this.getErrorMessage(error);
     logger.error(
       `[DownloadManager] Download failed for ${downloadId}: ${message}`,
       error

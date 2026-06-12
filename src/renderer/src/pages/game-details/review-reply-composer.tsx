@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
 
 import { Button } from "@renderer/components";
 
@@ -17,7 +18,10 @@ interface ReviewReplyComposerProps {
 }
 
 const escapeHtml = (value: string) =>
-  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 
 export function ReviewReplyComposer({
   prefill,
@@ -33,6 +37,7 @@ export function ReviewReplyComposer({
       StarterKit.configure({
         link: false,
       }),
+      Underline,
     ],
     content: prefill ? `<p>${escapeHtml(prefill)}</p>` : "",
     autofocus: "end",

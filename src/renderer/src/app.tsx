@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "./hooks/use-subscription";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
-import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 
 import type { UserPreferences } from "@types";
@@ -385,7 +385,7 @@ export function App() {
   }, [loadAndApplyTheme]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onNavigate((path) => {
+    const unsubscribe = globalThis.electron.onNavigate((path) => {
       navigate(path);
     });
 
@@ -393,7 +393,7 @@ export function App() {
   }, [navigate]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onOpenAddFriendModal(() => {
+    const unsubscribe = globalThis.electron.onOpenAddFriendModal(() => {
       setShowAddFriendModal(true);
     });
 
@@ -444,10 +444,10 @@ export function App() {
         duration={toast.duration}
       />
 
-      <HydraCloudModal
+      <CloudSubscriptionModal
         visible={isHydraCloudModalVisible}
         onClose={hideHydraCloudModal}
-        feature={hydraCloudFeature}
+        feature={hydraCloudFeature || undefined}
       />
 
       <ArchiveDeletionModal

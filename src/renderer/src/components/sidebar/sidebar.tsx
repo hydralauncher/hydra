@@ -54,6 +54,7 @@ const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
 const FAVORITES_COLLECTION_ID = "__favorites__";
+const electron = globalThis.electron as Electron;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
@@ -232,7 +233,7 @@ export function Sidebar() {
     }
 
     try {
-      const response = await window.electron.hydraApi.get<ProfileFriends>(
+      const response = await electron.hydraApi.get<ProfileFriends>(
         "/profile/friends",
         { params: { take: 5, skip: 0 } }
       );
@@ -245,14 +246,28 @@ export function Sidebar() {
   useEffect(() => {
     updateOnlineFriendsCount();
 
-    const interval = setInterval(updateOnlineFriendsCount, 30_000);
-    const unsubscribe = window.electron.onFriendsUpdated(() => {
+    // Authoritative refetches avoid count drift from duplicate/replayed
+    // presence messages while still avoiding polling on newer preloads.
+    const unsubscribeFriends = electron.onFriendsUpdated(() => {
       updateOnlineFriendsCount();
     });
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const unsubscribePresence =
+      typeof electron.onFriendPresence === "function"
+        ? electron.onFriendPresence(() => {
+            updateOnlineFriendsCount();
+          })
+        : () => {
+            if (interval) clearInterval(interval);
+          };
+
+    if (typeof electron.onFriendPresence !== "function") {
+      interval = setInterval(updateOnlineFriendsCount, 30_000);
+    }
 
     return () => {
-      clearInterval(interval);
-      unsubscribe();
+      unsubscribeFriends();
+      unsubscribePresence();
     };
   }, [updateOnlineFriendsCount]);
 
