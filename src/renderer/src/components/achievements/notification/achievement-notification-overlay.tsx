@@ -47,7 +47,15 @@ export function AchievementNotificationOverlay() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onInAppAchievementUnlocked(
+    const onInAppAchievementUnlocked =
+      globalThis.electron.onInAppAchievementUnlocked;
+
+    // Compatibility guard for remote renderer/preload releases on different commits.
+    if (typeof onInAppAchievementUnlocked !== "function") {
+      return () => {};
+    }
+
+    const unsubscribe = onInAppAchievementUnlocked(
       (nextPosition, nextAchievements) => {
         if (!nextAchievements?.length) return;
         if (nextPosition) setPosition(nextPosition);

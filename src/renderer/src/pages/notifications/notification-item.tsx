@@ -4,6 +4,7 @@ import {
   PersonIcon,
   ClockIcon,
   StarFillIcon,
+  CommentDiscussionIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +21,7 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   const badgeName = url.searchParams.get("name");
   const gameTitle = url.searchParams.get("title");
   const showReviews = url.searchParams.get("reviews");
+  const reviewId = url.searchParams.get("reviewId");
 
   if (url.pathname === "/profile" && userId) {
     return `/profile/${userId}`;
@@ -33,6 +35,7 @@ const parseNotificationUrl = (notificationUrl: string): string => {
     const params = new URLSearchParams();
     if (gameTitle) params.set("title", gameTitle);
     if (showReviews) params.set("reviews", showReviews);
+    if (reviewId) params.set("reviewId", reviewId);
     const queryString = params.toString();
     return queryString ? `${url.pathname}?${queryString}` : url.pathname;
   }
@@ -148,6 +151,16 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "REVIEW_ANSWER":
+        return {
+          title: t("review_answer_title", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          description: t("review_answer_description", {
+            displayName: notification.variables.answerAuthorDisplayName,
+          }),
+          showActions: false,
+        };
       default:
         return {
           title: t("notification"),
@@ -159,14 +172,19 @@ export function NotificationItem({
 
   const content = getNotificationContent();
   const isBadge = notification.type === "BADGE_RECEIVED";
-  const isReview = notification.type === "REVIEW_UPVOTE";
+  const isReviewUpvote = notification.type === "REVIEW_UPVOTE";
+  const isReviewAnswer = notification.type === "REVIEW_ANSWER";
+  const isReview = isReviewUpvote || isReviewAnswer;
 
   const getIcon = () => {
     if (notification.pictureUrl) {
       return <img src={notification.pictureUrl} alt="" />;
     }
-    if (isReview) {
+    if (isReviewUpvote) {
       return <StarFillIcon size={24} />;
+    }
+    if (isReviewAnswer) {
+      return <CommentDiscussionIcon size={24} />;
     }
     return <PersonIcon size={24} />;
   };

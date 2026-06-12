@@ -8,6 +8,9 @@ if (!process.env.BUILD_WEBHOOK_URL) {
   process.exit(0);
 }
 
+const flavor = process.env.BUILD_FLAVOR || "staging";
+const isProduction = flavor === "production";
+
 const s3 = new S3Client({
   region: "auto",
   endpoint: process.env.S3_ENDPOINT,
@@ -30,7 +33,7 @@ fs.readdir(dist, async (err, files) => {
       .filter((file) => extensionsToUpload.includes(path.extname(file)))
       .map(async (file) => {
         console.log(`⌛️ Uploading ${file}...`);
-        const fileName = `${new Date().getTime()}-${file}`;
+        const fileName = `${flavor}-${new Date().getTime()}-${file}`;
 
         const command = new PutObjectCommand({
           Bucket: process.env.S3_BUILDS_BUCKET_NAME,
@@ -60,8 +63,8 @@ fs.readdir(dist, async (err, files) => {
         embeds: [
           {
             description: process.env.BRANCH_NAME,
-            color: 5814783,
-            title: `🔥 Nova build do Hydra (versão ${packageJson.version})`,
+            color: isProduction ? 5763719 : 5814783,
+            title: `🔥 Nova build do Hydra [${flavor.toUpperCase()}] (versão ${packageJson.version})`,
             fields: [
               {
                 name: "",

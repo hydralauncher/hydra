@@ -82,9 +82,30 @@ export function useUserDetails() {
       .get<FriendRequest[]>("/profile/friend-requests")
       .then((friendRequests) => {
         dispatch(setFriendRequests(friendRequests));
+        return friendRequests;
       })
-      .catch(() => {});
+      .catch(() => null);
   }, [dispatch]);
+
+  // After a local accept/refuse/cancel/send, the API has already mutated the
+  // request server-side but only the *other* user gets a WS push. Fan the new
+  // state out to every app window (main, big picture, friends) so their request
+  // badges and notification lists refresh without a manual reload.
+  const broadcastFriendRequestSync = useCallback(
+    (requests: FriendRequest[] | null) => {
+      if (!requests) return;
+
+      const receivedCount = requests.filter(
+        (request) => request.type === "RECEIVED"
+      ).length;
+
+      const { syncFriendRequests } = globalThis.window.electron;
+      if (typeof syncFriendRequests !== "function") return;
+
+      syncFriendRequests(receivedCount).catch(() => {});
+    },
+    []
+  );
 
   const sendFriendRequest = useCallback(
     async (userId: string) => {
@@ -92,9 +113,10 @@ export function useUserDetails() {
         .post("/profile/friend-requests", {
           data: { friendCode: userId },
         })
-        .then(() => fetchFriendRequests());
+        .then(() => fetchFriendRequests())
+        .then(broadcastFriendRequestSync);
     },
-    [fetchFriendRequests]
+    [fetchFriendRequests, broadcastFriendRequestSync]
   );
 
   const updateFriendRequestState = useCallback(
@@ -102,7 +124,8 @@ export function useUserDetails() {
       if (action === "CANCEL") {
         return globalThis.window.electron.hydraApi
           .delete(`/profile/friend-requests/${userId}`)
-          .then(() => fetchFriendRequests());
+          .then(() => fetchFriendRequests())
+          .then(broadcastFriendRequestSync);
       }
 
       return globalThis.window.electron.hydraApi
@@ -111,9 +134,10 @@ export function useUserDetails() {
             requestState: action,
           },
         })
-        .then(() => fetchFriendRequests());
+        .then(() => fetchFriendRequests())
+        .then(broadcastFriendRequestSync);
     },
-    [fetchFriendRequests]
+    [fetchFriendRequests, broadcastFriendRequestSync]
   );
 
   const undoFriendship = (userId: string) =>

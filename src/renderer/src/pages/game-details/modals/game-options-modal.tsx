@@ -20,6 +20,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -126,7 +127,8 @@ export function GameOptionsModal({
     isGameDeleting,
     cancelDownload,
   } = useDownload();
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -668,8 +670,27 @@ export function GameOptionsModal({
   );
 
   useEffect(() => {
-    if (visible) setSelectedCategory(initialCategory ?? "general");
-  }, [initialCategory, visible]);
+    if (!visible) return;
+
+    const category = initialCategory ?? "general";
+    if (category === "hydra_cloud" && !hasActiveSubscription) {
+      setSelectedCategory("general");
+      showHydraCloudModal("backup");
+      return;
+    }
+
+    setSelectedCategory(category);
+  }, [hasActiveSubscription, initialCategory, showHydraCloudModal, visible]);
+
+  // Non-subscribers don't open the cloud-save panel; clicking the menu item
+  // presents the Hydra Cloud promo (highlighting cloud saving) instead.
+  const handleSelectCategory = (category: typeof selectedCategory) => {
+    if (category === "hydra_cloud" && !hasActiveSubscription) {
+      showHydraCloudModal("backup");
+      return;
+    }
+    setSelectedCategory(category);
+  };
   const shouldShowCreateStartMenuShortcut =
     window.electron.platform === "win32";
 
@@ -757,7 +778,7 @@ export function GameOptionsModal({
           <GameOptionsSidebar
             categories={categories}
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={handleSelectCategory}
           />
           <div className="game-options-modal__panel">
             {selectedCategory === "general" && (

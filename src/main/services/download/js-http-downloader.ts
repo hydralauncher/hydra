@@ -44,6 +44,13 @@ const RETRYABLE_ERROR_CODES = new Set([
   "ERR_STREAM_PREMATURE_CLOSE",
 ]);
 
+class HttpDownloadStatusError extends Error {
+  constructor(public readonly statusCode: number) {
+    super(`The download link is not available (HTTP ${statusCode}).`);
+    this.name = "HttpDownloadStatusError";
+  }
+}
+
 export class JsHttpDownloader {
   private abortController: AbortController | null = null;
   private writeStream: fs.WriteStream | null = null;
@@ -397,6 +404,10 @@ export class JsHttpDownloader {
       );
     }
 
+    if (response.status >= 400) {
+      throw new HttpDownloadStatusError(response.status);
+    }
+
     if (!response.ok && response.status !== 206) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -407,7 +418,7 @@ export class JsHttpDownloader {
       contentType.includes("application/xhtml")
     ) {
       throw new Error(
-        `Unexpected HTML response (content-type: ${contentType}). The download URL may have expired or is invalid.`
+        `The download link returned a web page instead of a file. It may have expired or be invalid.`
       );
     }
 

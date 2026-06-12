@@ -24,7 +24,7 @@
     "queued": "{{title}} (已加入下载队列)",
     "game_has_no_executable": "未选择游戏的可执行文件",
     "sign_in": "登入",
-    "friends": "好友",
+    "friends": "Friends",
     "favorites": "收藏",
     "need_help": "需要帮助？",
     "playable_button_title": "仅显示现在可以游玩的游戏",
@@ -1056,5 +1056,24 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }
