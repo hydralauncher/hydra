@@ -58,8 +58,11 @@ export class DownloadSourcesChecker {
 
     const gamesWithNewOptions: { gameId: string; count: number }[] = [];
 
+    // HOTFIX: temporarily suppress the new download options count
+    const suppressNewDownloadOptions: boolean = true;
+
     for (const gameUpdate of response as DownloadSourcesChangeResponse[]) {
-      if (gameUpdate.newDownloadOptionsCount > 0) {
+      if (!suppressNewDownloadOptions && gameUpdate.newDownloadOptionsCount > 0) {
         const game = nonCustomGames.find(
           (g) =>
             g.shop === gameUpdate.shop && g.objectId === gameUpdate.objectId
