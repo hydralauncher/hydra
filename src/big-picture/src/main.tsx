@@ -11,12 +11,15 @@ import Home from "./pages/home/home";
 import LibraryPage from "./pages/library/page";
 import Profile from "./pages/profile/profile";
 import Settings from "./pages/settings/settings";
+import { initializeBigPictureI18n } from "./i18n";
 
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
   throw new Error("Big Picture root element was not found.");
 }
+
+await initializeBigPictureI18n();
 
 ReactDOM.createRoot(rootElement).render(
   <StrictMode>
