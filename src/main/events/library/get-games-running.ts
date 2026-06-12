@@ -6,4 +6,3 @@ const getGamesRunningEvent = async () => {
 };
 
 registerEvent("getGamesRunning", getGamesRunningEvent);
-

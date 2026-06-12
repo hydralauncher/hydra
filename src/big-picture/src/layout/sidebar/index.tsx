@@ -662,7 +662,9 @@ function SidebarProfile({
     getBigPictureContentSidebarReturnTargetFromPathname(pathname);
   const runningGameBackgroundImageUrl = useMemo(() => {
     const runningGameIds = Object.keys(runningGamesById);
-    const runningGame = library.find((game) => runningGameIds.includes(game.id));
+    const runningGame = library.find((game) =>
+      runningGameIds.includes(game.id)
+    );
 
     if (!runningGame) return null;
 

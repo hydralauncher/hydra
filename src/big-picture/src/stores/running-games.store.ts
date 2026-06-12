@@ -39,7 +39,10 @@ export function initializeBigPictureRunningGamesStore() {
   };
 
   if (typeof electron.getGamesRunning === "function") {
-    electron.getGamesRunning().then(setRunningGames).catch(() => {});
+    electron
+      .getGamesRunning()
+      .then(setRunningGames)
+      .catch(() => {});
   }
 
   electron.onGamesRunning(setRunningGames);
