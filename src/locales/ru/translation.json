@@ -19,7 +19,7 @@
     "my_library": "Библиотека",
     "collections": "Коллекции",
     "games": "Игры",
-    "big_picture": "Big Picture (beta)",
+    "big_picture": "Big Picture",
     "downloading_metadata": "{{title}} (Загрузка метаданных…)",
     "paused": "{{title}} (Приостановлено)",
     "downloading": "{{title}} ({{percentage}} - Загрузка…)",
