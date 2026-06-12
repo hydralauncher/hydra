@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 
 import { Tabs, type TabsItem, VerticalFocusGroup } from "../../components";
 import { useGamepad, useNavigation } from "../../hooks";
+import { NavigationAudioService } from "../../services";
 import { GamepadButtonType } from "../../types";
 import { useVirtualKeyboardStore } from "../../stores";
 import { AccountPrivacySettingsSection } from "./account-privacy";
@@ -165,11 +166,12 @@ export default function Settings() {
       );
       const nextTab = visibleTabs[clampedIndex];
 
-      if (!nextTab) return;
+      if (!nextTab || nextTab.id === selectedTab) return false;
 
       setSelectedTab(nextTab.id);
+      return true;
     },
-    [visibleTabs]
+    [selectedTab, visibleTabs]
   );
 
   useEffect(() => {
@@ -184,7 +186,9 @@ export default function Settings() {
           return;
         }
 
-        selectTabByIndex(selectedTabIndex - 1);
+        if (selectTabByIndex(selectedTabIndex - 1)) {
+          NavigationAudioService.getInstance().play("scroll");
+        }
       }
     );
 
@@ -199,7 +203,9 @@ export default function Settings() {
           return;
         }
 
-        selectTabByIndex(selectedTabIndex + 1);
+        if (selectTabByIndex(selectedTabIndex + 1)) {
+          NavigationAudioService.getInstance().play("scroll");
+        }
       }
     );
 

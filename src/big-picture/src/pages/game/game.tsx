@@ -1293,12 +1293,16 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                <HowLongToBeatBox
-                  howLongToBeat={howLongToBeat ?? []}
-                  focusId={GAME_SIDEBAR_HLTB_ID}
-                  focusNavigationOrder={1}
-                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                />
+                {!isLaunchboxGame && (
+                  <HowLongToBeatBox
+                    howLongToBeat={howLongToBeat ?? []}
+                    focusId={GAME_SIDEBAR_HLTB_ID}
+                    focusNavigationOrder={1}
+                    focusNavigationOverrides={
+                      sidebarCarouselNavigationOverrides
+                    }
+                  />
+                )}
 
                 {shouldShowProtonSection && (
                   <ProtonDBSection
@@ -1319,12 +1323,16 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                <AchievementsBox
-                  achievements={achievements ?? []}
-                  focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
-                  focusNavigationOrder={4}
-                  focusNavigationOverrides={sidebarCarouselNavigationOverrides}
-                />
+                {!isLaunchboxGame && (
+                  <AchievementsBox
+                    achievements={achievements ?? []}
+                    focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
+                    focusNavigationOrder={4}
+                    focusNavigationOverrides={
+                      sidebarCarouselNavigationOverrides
+                    }
+                  />
+                )}
 
                 <FocusItem
                   id={GAME_SIDEBAR_METADATA_ID}
