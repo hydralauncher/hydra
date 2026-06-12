@@ -9,7 +9,6 @@ import type {
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
-  FriendRequestAction,
   UpdateProfileRequest,
   SeedingStatus,
   GameAchievement,
@@ -983,8 +982,6 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-sync-notification-count", listener);
   },
-  updateFriendRequest: (userId: string, action: FriendRequestAction) =>
-    ipcRenderer.invoke("updateFriendRequest", userId, action),
   syncFriendRequests: (friendRequestCount: number) =>
     ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
