@@ -3,6 +3,7 @@ import {
   DownloadManager,
   HydraApi,
   WSClient,
+  WindowManager,
   gamesPlaytime,
 } from "@main/services";
 import {
@@ -40,6 +41,9 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   DownloadManager.cancelDownload();
 
   HydraApi.handleSignOut();
+
+  /* The friends window is only meaningful while signed in */
+  WindowManager.closeFriendsWindow();
 
   await Promise.all([
     databaseOperations,

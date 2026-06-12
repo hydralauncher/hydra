@@ -56,6 +56,7 @@ export class GofileApi {
   private static readonly timeoutMs = 15000;
   private static readonly websiteTokenScriptUrl =
     "https://gofile.io/dist/js/wt.obf.js";
+  private static readonly alternateCdnBaseUrl = "https://gofilecdn.eu.cc";
   private static readonly pageSize = 1000;
   private static readonly cacheVersion = 1;
   private static token?: string;
@@ -411,6 +412,34 @@ export class GofileApi {
 
     logger.log(`[Gofile] Download link resolved for content ${id}`);
     return link;
+  }
+
+  public static async getAlternateCdnDownloadLinkIfAvailable(id: string) {
+    const downloadUrl = `${this.alternateCdnBaseUrl}/${encodeURIComponent(id)}`;
+
+    logger.log(`[Gofile] Checking alternate CDN downloader for ${id}`);
+
+    try {
+      const response = await this.fetchWithTimeout(downloadUrl, {
+        method: "OPTIONS",
+      });
+
+      if (!response.ok) {
+        logger.log(
+          `[Gofile] Alternate CDN unavailable for ${id}: ${response.status}`
+        );
+        return null;
+      }
+
+      logger.log(`[Gofile] Using alternate CDN downloader for ${id}`);
+      return downloadUrl;
+    } catch (error) {
+      logger.warn(
+        `[Gofile] Alternate CDN check failed for ${id}; falling back to official downloader`,
+        error
+      );
+      return null;
+    }
   }
 
   private static async parseLinksRecursively(
