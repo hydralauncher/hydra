@@ -1,6 +1,6 @@
 import { useGamepad, useNavigationActions } from "../../hooks";
-import { GamepadService } from "../../services";
-import { useNavigationStore } from "../../stores";
+import { GamepadService, NavigationAudioService } from "../../services";
+import { useNavigationHistoryStore, useNavigationStore } from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
 import {
   type ReactNode,
@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface NavigationInputProviderProps {
   children: ReactNode;
@@ -100,6 +101,7 @@ function isSystemSwitcherModifierEvent(event: KeyboardEvent) {
 export function NavigationInputProvider({
   children,
 }: Readonly<NavigationInputProviderProps>) {
+  const navigate = useNavigate();
   const {
     moveFocus,
     triggerPrimary,
@@ -189,6 +191,25 @@ export function NavigationInputProvider({
     isSystemSwitcherActiveRef.current = false;
     syncInputActivity();
   }, [syncInputActivity]);
+
+  const triggerBackAction = useCallback(
+    (originalEvent: Event | null = null) => {
+      if (triggerScreenPress("b", originalEvent)) {
+        return true;
+      }
+
+      const historyStack = useNavigationHistoryStore.getState().stack;
+
+      if (historyStack.length <= 1) {
+        return false;
+      }
+
+      NavigationAudioService.getInstance().play("back");
+      navigate(-1);
+      return true;
+    },
+    [navigate, triggerScreenPress]
+  );
 
   useEffect(() => {
     syncInputActivity();
@@ -324,7 +345,7 @@ export function NavigationInputProvider({
 
       if (event.key === "Escape" && !event.repeat) {
         event.preventDefault();
-        triggerScreenPress("b", event);
+        triggerBackAction(event);
       }
     };
 
@@ -336,6 +357,7 @@ export function NavigationInputProvider({
   }, [
     isInputActive,
     moveFocus,
+    triggerBackAction,
     triggerPrimary,
     triggerScreenDirection,
     triggerScreenPress,
@@ -514,7 +536,7 @@ export function NavigationInputProvider({
       }
 
       if (button === "b") {
-        return triggerScreenPress("b");
+        return triggerBackAction();
       }
 
       if (button === "x" || button === "y") {
