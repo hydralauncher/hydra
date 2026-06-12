@@ -26,7 +26,8 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "./hooks/use-subscription";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
-import { HydraCloudModal } from "./pages/shared-modals/hydra-cloud/hydra-cloud-modal";
+import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
+import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -88,6 +89,7 @@ export function App() {
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
   const [archivePaths, setArchivePaths] = useState<string[]>([]);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -382,6 +384,22 @@ export function App() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onNavigate((path) => {
+      navigate(path);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onOpenAddFriendModal(() => {
+      setShowAddFriendModal(true);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
     const volume = await getAchievementSoundVolume();
@@ -426,16 +444,21 @@ export function App() {
         duration={toast.duration}
       />
 
-      <HydraCloudModal
+      <CloudSubscriptionModal
         visible={isHydraCloudModalVisible}
         onClose={hideHydraCloudModal}
-        feature={hydraCloudFeature}
+        feature={hydraCloudFeature || undefined}
       />
 
       <ArchiveDeletionModal
         visible={showArchiveDeletionModal}
         archivePaths={archivePaths}
         onClose={() => setShowArchiveDeletionModal(false)}
+      />
+
+      <AddFriendModal
+        visible={showAddFriendModal}
+        onClose={() => setShowAddFriendModal(false)}
       />
 
       <main>

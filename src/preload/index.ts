@@ -15,6 +15,7 @@ import type {
   GameAchievement,
   Theme,
   FriendRequestSync,
+  FriendPresenceSync,
   NotificationSync,
   ShortcutLocation,
   CreateSteamShortcutOptions,
@@ -121,8 +122,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-seeding-status", listener);
     return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
-  checkDebridAvailability: (magnets: string[]) =>
-    ipcRenderer.invoke("checkDebridAvailability", magnets),
   getTorrentFiles: (magnet: string) =>
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
@@ -802,12 +801,17 @@ contextBridge.exposeInMainWorld("electron", {
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
+  getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
+  getProcessedFriendImage: (
+    imageUrl: string | null,
+    options: { width: number; height: number; preserveAnimation?: boolean }
+  ) => ipcRenderer.invoke("getProcessedFriendImage", imageUrl, options),
   hydraApi: {
     get: (
       url: string,
@@ -981,6 +985,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   updateFriendRequest: (userId: string, action: FriendRequestAction) =>
     ipcRenderer.invoke("updateFriendRequest", userId, action),
+  syncFriendRequests: (friendRequestCount: number) =>
+    ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
   /* User */
   getComparedUnlockedAchievements: (
@@ -1154,6 +1160,45 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
+
+  /* Friends */
+  openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
+  minimizeFriendsWindow: () => ipcRenderer.invoke("minimizeFriendsWindow"),
+  closeFriendsWindow: () => ipcRenderer.invoke("closeFriendsWindow"),
+  openFriendProfileInMainWindow: (userId: string) =>
+    ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
+  openAddFriendModalInMainWindow: () =>
+    ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+  onOpenAddFriendModal: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-open-add-friend-modal", listener);
+    return () =>
+      ipcRenderer.removeListener("on-open-add-friend-modal", listener);
+  },
+  onFriendsUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-friends-updated", listener);
+    return () => ipcRenderer.removeListener("on-friends-updated", listener);
+  },
+  onFriendPresence: (cb: (presence: FriendPresenceSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      presence: FriendPresenceSync
+    ) => cb(presence);
+    ipcRenderer.on("on-friend-presence", listener);
+    return () => ipcRenderer.removeListener("on-friend-presence", listener);
+  },
+  onProfileUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-profile-updated", listener);
+    return () => ipcRenderer.removeListener("on-profile-updated", listener);
+  },
+  onNavigate: (cb: (path: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, path: string) =>
+      cb(path);
+    ipcRenderer.on("on-navigate", listener);
+    return () => ipcRenderer.removeListener("on-navigate", listener);
+  },
 
   /* Game Launcher Window */
   showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),

@@ -16,6 +16,7 @@ import type {
   GameStats,
   UserDetails,
   FriendRequestSync,
+  FriendPresenceSync,
   NotificationSync,
   GameArtifact,
   LudusaviBackup,
@@ -112,9 +113,6 @@ declare global {
       cb: (value: SeedingStatus[]) => void
     ) => () => Electron.IpcRenderer;
     onHardDelete: (cb: () => void) => () => Electron.IpcRenderer;
-    checkDebridAvailability: (
-      magnets: string[]
-    ) => Promise<Record<string, boolean>>;
     getTorrentFiles: (
       magnet: string
     ) => Promise<
@@ -616,6 +614,7 @@ declare global {
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: () => Promise<void>;
+    getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     isStaging: () => Promise<boolean>;
     ping: () => string;
@@ -626,6 +625,10 @@ declare global {
     ) => Promise<Electron.OpenDialogReturnValue>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
+    getProcessedFriendImage: (
+      imageUrl: string | null,
+      options: { width: number; height: number; preserveAnimation?: boolean }
+    ) => Promise<string | null>;
     hydraApi: {
       get: <T = unknown>(
         url: string,
@@ -757,6 +760,7 @@ declare global {
       userId: string,
       action: FriendRequestAction
     ) => Promise<void>;
+    syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
@@ -776,7 +780,7 @@ declare global {
         achievements?: AchievementNotificationInfo[]
       ) => void
     ) => () => Electron.IpcRenderer;
-    onInAppAchievementUnlocked: (
+    onInAppAchievementUnlocked?: (
       cb: (
         position: AchievementCustomNotificationPosition,
         achievements: AchievementNotificationInfo[]
@@ -827,6 +831,20 @@ declare global {
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;
+
+    /* Friends Window */
+    openFriendsWindow: () => Promise<void>;
+    minimizeFriendsWindow: () => Promise<void>;
+    closeFriendsWindow: () => Promise<void>;
+    openFriendProfileInMainWindow: (userId: string) => Promise<void>;
+    openAddFriendModalInMainWindow: () => Promise<void>;
+    onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
+    onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onFriendPresence: (
+      cb: (presence: FriendPresenceSync) => void
+    ) => () => Electron.IpcRenderer;
+    onProfileUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onNavigate: (cb: (path: string) => void) => () => Electron.IpcRenderer;
 
     /* Download Options */
     onNewDownloadOptions: (

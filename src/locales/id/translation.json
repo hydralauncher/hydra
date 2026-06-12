@@ -28,7 +28,7 @@
     "queued": "{{title}} (Dalam antrean)",
     "game_has_no_executable": "Game tidak memiliki executable yang dipilih",
     "sign_in": "Masuk",
-    "friends": "Teman",
+    "friends": "Friends",
     "notifications": "Notifikasi",
     "need_help": "Butuh bantuan?",
     "favorites": "Favorit",
@@ -1159,5 +1159,24 @@
     "failed_to_dismiss": "Gagal mengabaikan notifikasi",
     "friend_request_accepted": "Permintaan pertemanan diterima",
     "friend_request_refused": "Permintaan pertemanan ditolak"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

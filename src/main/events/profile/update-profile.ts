@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { HydraApi } from "@main/services";
+import { HydraApi, WindowManager } from "@main/services";
 import fs from "node:fs";
 import path from "node:path";
 import type { UpdateProfileRequest, UserProfile } from "@types";
@@ -77,7 +77,13 @@ const updateProfile = async (
     }
   }
 
-  return patchUserProfile(payload);
+  const updatedProfile = await patchUserProfile(payload);
+
+  // Notify every window (e.g. the friends window, which has its own store) so
+  // they can re-fetch the signed-in user's details after a profile change.
+  WindowManager.sendToAppWindows("on-profile-updated");
+
+  return updatedProfile;
 };
 
 registerEvent("updateProfile", updateProfile);

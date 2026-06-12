@@ -15,11 +15,23 @@ type NativeProcessProfileImageResponse = {
   mime_type?: string;
 };
 
+type NativeProcessFriendImageResponse = NativeProcessProfileImageResponse & {
+  isAnimated?: boolean;
+  is_animated?: boolean;
+};
+
 type HydraNativeModule = {
   processProfileImage: (
     imagePath: string,
     targetExtension?: string
   ) => NativeProcessProfileImageResponse;
+  processFriendImage: (
+    imagePath: string,
+    outputPathBase: string,
+    width: number,
+    height: number,
+    preserveAnimation: boolean
+  ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
 };
 
@@ -215,6 +227,42 @@ export class NativeAddon {
       };
     } catch (error) {
       logger.error("Failed to process profile image via native addon", error);
+      throw error;
+    }
+  }
+
+  public static async processFriendImage(
+    imagePath: string,
+    outputPathBase: string,
+    width: number,
+    height: number,
+    preserveAnimation: boolean
+  ) {
+    try {
+      const response = await this.load().processFriendImage(
+        imagePath,
+        outputPathBase,
+        width,
+        height,
+        preserveAnimation
+      );
+
+      const normalizedImagePath = response.imagePath ?? response.image_path;
+      const normalizedMimeType = response.mimeType ?? response.mime_type;
+      const normalizedIsAnimated =
+        response.isAnimated ?? response.is_animated ?? false;
+
+      if (!normalizedImagePath || !normalizedMimeType) {
+        throw new Error("Hydra native addon returned an invalid payload");
+      }
+
+      return {
+        imagePath: normalizedImagePath,
+        mimeType: normalizedMimeType,
+        isAnimated: normalizedIsAnimated,
+      };
+    } catch (error) {
+      logger.error("Failed to process friend image via native addon", error);
       throw error;
     }
   }

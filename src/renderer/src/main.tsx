@@ -36,6 +36,7 @@ import Notifications from "./pages/notifications/notifications";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
 import GameLauncher from "./pages/game-launcher/game-launcher";
+import FriendsWindow from "./pages/friends-window/friends-window";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
 import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
@@ -95,6 +96,18 @@ if (userPreferences?.language) {
 syncDocumentLanguage(i18n.language);
 i18n.on("languageChanged", syncDocumentLanguage);
 
+// Every BrowserWindow runs its own renderer with its own i18n instance, so a
+// language change must be applied per-window. Subscribe here (the shared entry
+// for all routes) so detached windows — friends, game-launcher, etc. — react
+// too, not just the routes mounted under <App />.
+globalThis.electron.onUserPreferencesUpdated((preferences) => {
+  if (preferences?.language && preferences.language !== i18n.language) {
+    i18n.changeLanguage(preferences.language).catch((error) => {
+      console.error("Failed to change language", error);
+    });
+  }
+});
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Provider store={store}>
@@ -119,6 +132,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={<AchievementNotification />}
           />
           <Route path="/game-launcher" element={<GameLauncher />} />
+          <Route path="/friends-window" element={<FriendsWindow />} />
 
           <Route path="/big-picture" element={<BigPictureApp />}>
             <Route index element={<BigPictureHome />} />
