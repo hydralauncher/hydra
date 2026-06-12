@@ -40,9 +40,8 @@ import {
   useUserDetails,
 } from "../../hooks";
 import {
-  getGameLandscapeImageSource,
+  getGameHorizontalImageSource,
   getItemFocusTarget,
-  resolveImageSource,
 } from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
@@ -669,7 +668,7 @@ function SidebarProfile({
 
     if (!runningGame) return null;
 
-    return resolveImageSource(getGameLandscapeImageSource(runningGame));
+    return getGameHorizontalImageSource(runningGame) || null;
   }, [library, runningGamesById]);
 
   const toggleNotifications = useCallback(() => {
