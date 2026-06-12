@@ -66,6 +66,23 @@ export function getGameLandscapeImageSources(game: LibraryGame) {
     });
 }
 
+export function getGameHorizontalImageSource(game: LibraryGame): string {
+  const sources = [
+    game.customHeroImageUrl,
+    game.libraryHeroImageUrl,
+    game.libraryImageUrl,
+    game.customIconUrl,
+    game.iconUrl,
+  ];
+
+  for (const source of sources) {
+    const resolved = resolveImageSource(source);
+    if (resolved) return resolved;
+  }
+
+  return "";
+}
+
 export function getGameCoverImageSource(game: GameCoverImageSource) {
   return game.coverImageUrl ?? game.libraryImageUrl ?? game.iconUrl;
 }

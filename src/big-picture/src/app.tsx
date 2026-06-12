@@ -27,6 +27,7 @@ import {
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
+import { initializeBigPictureRunningGamesStore } from "./stores";
 import type { FocusOverrides } from "./services";
 
 import "./styles/globals.scss";
@@ -49,7 +50,10 @@ export default function App() {
   useEffect(() => {
     if (!IS_DESKTOP) {
       document.documentElement.style.colorScheme = "dark";
+      return;
     }
+
+    initializeBigPictureRunningGamesStore();
   }, []);
 
   useEffect(() => {

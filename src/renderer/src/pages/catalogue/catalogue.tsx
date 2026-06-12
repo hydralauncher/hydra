@@ -289,7 +289,10 @@ export default function Catalogue() {
       }));
   }, [steamUserTags, filters.tags, language]);
 
-  const classicsPlatforms = filters.platforms ?? [];
+  const classicsPlatforms = useMemo(
+    () => filters.platforms ?? [],
+    [filters.platforms]
+  );
 
   const classicsFilterSections = useMemo(() => {
     return [

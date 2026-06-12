@@ -6,21 +6,19 @@ import {
   HorizontalLibraryGameCard,
   VerticalGameCard,
 } from "../../common";
-import {
-  formatPlayedTime,
-  getBigPictureGameDetailsPath,
-  getGameAchievementProgress,
-  getGameImageSources,
-  resolveImageSource,
-} from "../../../helpers";
+import { getBigPictureGameDetailsPath } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
-import { useDominantColor } from "../../../hooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getLibraryFocusGridItemId,
   getLibraryFocusListItemId,
 } from "./navigation";
+import {
+  ClassicsCoverBadges,
+  ClassicsVerticalCoverMedia,
+  useLibraryGameCardPresentation,
+} from "./card-presentation";
 
 export interface VerticalLibraryGameCardProps {
   game: LibraryGame;
@@ -42,72 +40,6 @@ export interface HorizontalLibraryGameListCardProps {
     position: { x: number; y: number },
     restoreFocusId: string
   ) => void;
-}
-
-function useLibraryGameCardPresentation(
-  game: LibraryGame,
-  variant: "vertical" | "horizontal"
-) {
-  const imageSources = useMemo(() => {
-    if (variant === "horizontal") {
-      return [
-        game.customHeroImageUrl,
-        game.libraryHeroImageUrl,
-        game.coverImageUrl,
-        game.libraryImageUrl,
-        game.customIconUrl,
-        game.iconUrl,
-      ]
-        .map((source) => resolveImageSource(source))
-        .filter((source, index, array) => {
-          return source !== "" && array.indexOf(source) === index;
-        });
-    }
-
-    return getGameImageSources(game);
-  }, [
-    game.coverImageUrl,
-    game.customHeroImageUrl,
-    game.customIconUrl,
-    game.iconUrl,
-    game.libraryHeroImageUrl,
-    game.libraryImageUrl,
-    variant,
-  ]);
-  const [imageSourceIndex, setImageSourceIndex] = useState(0);
-  const [imageExhausted, setImageExhausted] = useState(false);
-  const imageSourcesSignature = imageSources.join("|");
-
-  useEffect(() => {
-    setImageSourceIndex(0);
-    setImageExhausted(false);
-  }, [game.id, imageSourcesSignature]);
-
-  const activeImageSource = imageExhausted
-    ? null
-    : (imageSources[imageSourceIndex] ?? null);
-
-  const dominantColor = useDominantColor(activeImageSource);
-  const achievementProgress = getGameAchievementProgress(game);
-
-  const handleCoverImageError = () => {
-    if (imageSourceIndex < imageSources.length - 1) {
-      setImageSourceIndex((currentIndex) => currentIndex + 1);
-      return;
-    }
-
-    setImageExhausted(true);
-  };
-
-  return {
-    activeImageSource,
-    achievementProgress,
-    dominantColor,
-    handleCoverImageError,
-    playtimeLabel: formatPlayedTime(game.playTimeInMilliseconds, {
-      zeroFallback: "Never played",
-    }),
-  };
 }
 
 interface LibraryGameCardActionProps {
@@ -152,12 +84,29 @@ export function VerticalLibraryGameCard({
   const {
     activeImageSource,
     achievementProgress,
+    classicsEmulatorIcon,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "vertical");
   const focusId = getLibraryFocusGridItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
+  const coverMedia =
+    game.shop === "launchbox" && activeImageSource ? (
+      <ClassicsVerticalCoverMedia
+        imageUrl={activeImageSource}
+        gameTitle={game.title}
+        onImageError={handleCoverImageError}
+      />
+    ) : null;
+  const coverOverlay =
+    classicsPlatformLabel != null ? (
+      <ClassicsCoverBadges
+        platformLabel={classicsPlatformLabel}
+        emulatorIcon={classicsEmulatorIcon}
+      />
+    ) : null;
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -194,8 +143,14 @@ export function VerticalLibraryGameCard({
       navigationOverrides={navigationOverrides}
     >
       <VerticalGameCard
-        className="library-focus-grid__card"
+        className={
+          game.shop === "launchbox"
+            ? "library-focus-grid__card library-focus-grid__card--classics"
+            : "library-focus-grid__card"
+        }
         coverImageUrl={activeImageSource}
+        coverMedia={coverMedia}
+        coverOverlay={coverOverlay}
         gameTitle={game.title}
         subtitle={playtimeLabel}
         progressLabel={achievementProgress.label}
@@ -245,15 +200,22 @@ export function HorizontalLibraryGameListCard({
   const {
     activeImageSource,
     achievementProgress,
+    classicsEmulatorIcon,
+    classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
+    logoImageUrl,
     playtimeLabel,
   } = useLibraryGameCardPresentation(game, "horizontal");
   const focusId = getLibraryFocusListItemId(game.id);
   const gameDetailsPath = getBigPictureGameDetailsPath(game);
-  const logoImageUrl = resolveImageSource(
-    game.customLogoImageUrl ?? game.logoImageUrl
-  );
+  const coverOverlay =
+    classicsPlatformLabel != null ? (
+      <ClassicsCoverBadges
+        platformLabel={classicsPlatformLabel}
+        emulatorIcon={classicsEmulatorIcon}
+      />
+    ) : null;
 
   const openContextMenuFromRect = (
     rect: DOMRect,
@@ -290,9 +252,14 @@ export function HorizontalLibraryGameListCard({
       navigationOverrides={navigationOverrides}
     >
       <HorizontalLibraryGameCard
-        className="library-focus-list__card"
+        className={
+          game.shop === "launchbox"
+            ? "library-focus-list__card library-focus-list__card--classics"
+            : "library-focus-list__card"
+        }
         coverImageUrl={activeImageSource}
         logoImageUrl={logoImageUrl || null}
+        coverOverlay={coverOverlay}
         gameTitle={game.title}
         subtitle={playtimeLabel}
         progressLabel={achievementProgress.label}

@@ -17,7 +17,7 @@
     "downloads": "Descargas",
     "settings": "Ajustes",
     "my_library": "Mi Librería",
-    "big_picture": "Big Picture (beta)",
+    "big_picture": "Big Picture",
     "downloading_metadata": "{{title}} (Descargando metadatos…)",
     "paused": "{{title}} (Pausado)",
     "downloading": "{{title}} ({{percentage}} - Descargando…)",

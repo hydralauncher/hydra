@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { createReadStream, createWriteStream } from "node:fs";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { WindowManager } from "@main/services/window-manager";
@@ -278,8 +279,7 @@ async function updateDatabaseAfterTransfer(
   const installedSizeInBytes = game.installedSizeInBytes ?? gameSize;
 
   await gamesSublevel.put(gameKey, {
-    ...game,
-    executablePath: newExePath,
+    ...updateGameExecutablePath(game, newExePath),
     installedSizeInBytes,
   });
 

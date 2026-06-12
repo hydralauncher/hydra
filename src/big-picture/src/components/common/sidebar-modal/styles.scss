@@ -1,0 +1,117 @@
+.sidebar-modal {
+  display: grid;
+  grid-template-columns: minmax(180px, 16rem) minmax(0, 1fr);
+  overflow: hidden;
+
+  width: fit-content;
+  min-width: min(92vw, 64rem);
+  max-width: min(92vw, 76rem);
+  min-height: min(42rem, calc(100vh - 4rem));
+  max-height: min(100%, calc(100vh - 4rem));
+  border-radius: calc(var(--spacing-unit) * 3);
+
+  background-color: var(--background);
+  border: 1px solid var(--secondary);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.sidebar-modal__sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sidebar-modal__title {
+  flex: none;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 6);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sidebar-modal__divider {
+  flex: none;
+  height: 1px;
+  margin: 0 24px;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-modal__tabs {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  overflow-y: auto;
+  padding: 16px 0 0;
+}
+
+.sidebar-modal__tab {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 16px 24px;
+  border-radius: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.2;
+  transition: color 0.16s ease;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+
+  &[data-active="true"] {
+    color: var(--text);
+  }
+
+  &:hover:not(:disabled),
+  &[data-focus-visible="true"] {
+    color: var(--text);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+}
+
+.sidebar-modal__tab-active-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  background: var(--secondary);
+  pointer-events: none;
+
+  &[data-highlighted="true"] {
+    background: color-mix(in srgb, var(--secondary) 85%, white 15%);
+  }
+}
+
+.sidebar-modal__tab-label {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-modal__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  background: var(--surface);
+}

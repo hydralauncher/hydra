@@ -649,6 +649,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
   checkSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
+  getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -1026,6 +1027,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getLocalNotificationsCount"),
   markLocalNotificationRead: (id: string) =>
     ipcRenderer.invoke("markLocalNotificationRead", id),
+  markLocalNotificationUnread: (id: string) =>
+    ipcRenderer.invoke("markLocalNotificationUnread", id),
   markAllLocalNotificationsRead: () =>
     ipcRenderer.invoke("markAllLocalNotificationsRead"),
   deleteLocalNotification: (id: string) =>

@@ -5,14 +5,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   MouseEventHandler,
   PointerEvent as ReactPointerEvent,
+  ReactNode,
 } from "react";
-import { useGamepad } from "../../../hooks";
+import { useDominantColor, useGamepad } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
 import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
 import { GamepadAxisType, GamepadButtonType } from "../../../types";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import { HorizontalStoreGameCard } from "../horizontal-store-game-card";
+import { VerticalGameCard } from "../vertical-game-card";
 import { VerticalStoreGameCard } from "../vertical-store-game-card";
 import {
   getGameCoverImageSource,
@@ -20,6 +22,11 @@ import {
   getGameLandscapeImageSource,
   getOptionalItemFocusTarget,
 } from "../../../helpers";
+import {
+  ClassicsCoverBadges,
+  ClassicsVerticalCoverMedia,
+  useLibraryGameCardPresentation,
+} from "../../pages/library/card-presentation";
 
 import "./styles.scss";
 
@@ -30,40 +37,54 @@ const LEFT_INPUT_HELD_THRESHOLD = -0.5;
 const CLICK_DRAG_THRESHOLD_PX = 8;
 
 type FadeSide = "left" | "right";
+type FocusCarouselCardMode = "store" | "library";
 type EmblaApi = ReturnType<typeof useEmblaCarousel>[1];
 type ResolvedEmblaApi = NonNullable<EmblaApi>;
 
+interface FocusCarouselGame extends ShopAssets {
+  platform?: string | null;
+  customIconUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  playTimeInMilliseconds?: number | null;
+  achievementCount?: number | null;
+  unlockedAchievementCount?: number | null;
+}
+
 interface FocusCarouselProps {
   title?: string;
-  games: ShopAssets[];
+  headerMeta?: ReactNode;
+  games: FocusCarouselGame[];
   regionId?: string;
   showRightFade?: boolean;
+  cardMode?: FocusCarouselCardMode;
   cardVariant?: "vertical" | "horizontal";
-  getItemId?: (game: ShopAssets) => string;
-  onItemActivate?: (game: ShopAssets) => void;
+  getItemId?: (game: FocusCarouselGame) => string;
+  onItemActivate?: (game: FocusCarouselGame) => void;
   getItemNavigationOverrides?: (
-    game: ShopAssets,
+    game: FocusCarouselGame,
     index: number,
-    games: ShopAssets[]
+    games: FocusCarouselGame[]
   ) => FocusOverrides | undefined;
   onCarouselItemOpenContextMenu?: (
-    game: ShopAssets,
+    game: FocusCarouselGame,
     position: { x: number; y: number },
     restoreFocusId: string
   ) => void;
 }
 
 interface FocusCarouselSlideProps {
-  game: ShopAssets;
+  game: FocusCarouselGame;
   index: number;
   itemId: string;
+  cardMode: FocusCarouselCardMode;
   cardVariant: "vertical" | "horizontal";
   navigationOverrides?: FocusOverrides;
   onFocused: () => void;
-  onActivate?: (game: ShopAssets) => void;
-  onCardClick?: (game: ShopAssets) => void;
+  onActivate?: (game: FocusCarouselGame) => void;
+  onCardClick?: (game: FocusCarouselGame) => void;
   onCarouselItemOpenContextMenu?: (
-    game: ShopAssets,
+    game: FocusCarouselGame,
     position: { x: number; y: number },
     restoreFocusId: string
   ) => void;
@@ -71,8 +92,8 @@ interface FocusCarouselSlideProps {
 
 function getDefaultItemNavigationOverrides(
   index: number,
-  games: ShopAssets[],
-  getItemId?: (game: ShopAssets) => string
+  games: FocusCarouselGame[],
+  getItemId?: (game: FocusCarouselGame) => string
 ): FocusOverrides {
   const previousGame = games[index - 1];
   const nextGame = games[index + 1];
@@ -466,15 +487,71 @@ function useCarouselControls(emblaApi: EmblaApi) {
 
 function FocusCarouselCard({
   game,
+  cardMode,
   cardVariant,
   onClick,
   onContextMenu,
 }: Readonly<{
-  game: ShopAssets;
+  game: FocusCarouselGame;
+  cardMode: FocusCarouselCardMode;
   cardVariant: "vertical" | "horizontal";
   onClick?: () => void;
   onContextMenu?: MouseEventHandler<HTMLElement>;
 }>) {
+  const libraryPresentation = useLibraryGameCardPresentation(game, "vertical");
+  const coverImageUrl = getGameCoverImageSource(game);
+  const defaultLibraryDominantColor = useDominantColor(
+    cardMode === "library" ? (coverImageUrl ?? null) : null
+  );
+
+  if (cardMode === "library") {
+    const isClassicsGame = game.shop === "launchbox";
+    const coverMedia =
+      isClassicsGame && libraryPresentation.activeImageSource ? (
+        <ClassicsVerticalCoverMedia
+          imageUrl={libraryPresentation.activeImageSource}
+          gameTitle={game.title}
+          onImageError={libraryPresentation.handleCoverImageError}
+        />
+      ) : null;
+    const coverOverlay =
+      libraryPresentation.classicsPlatformLabel != null ? (
+        <ClassicsCoverBadges
+          platformLabel={libraryPresentation.classicsPlatformLabel}
+          emulatorIcon={libraryPresentation.classicsEmulatorIcon}
+        />
+      ) : null;
+
+    return (
+      <VerticalGameCard
+        className={
+          isClassicsGame && cardVariant === "vertical"
+            ? "library-focus-grid__card--classics"
+            : undefined
+        }
+        coverImageUrl={
+          isClassicsGame ? libraryPresentation.activeImageSource : coverImageUrl
+        }
+        coverMedia={coverMedia}
+        coverOverlay={coverOverlay}
+        gameTitle={game.title}
+        subtitle={libraryPresentation.playtimeLabel}
+        progressLabel={libraryPresentation.achievementProgress.label}
+        progressValue={libraryPresentation.achievementProgress.value}
+        progressColor={
+          (isClassicsGame
+            ? libraryPresentation.dominantColor
+            : defaultLibraryDominantColor) ?? undefined
+        }
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        onCoverImageError={
+          isClassicsGame ? libraryPresentation.handleCoverImageError : undefined
+        }
+      />
+    );
+  }
+
   if (cardVariant === "horizontal") {
     return (
       <HorizontalStoreGameCard
@@ -489,7 +566,7 @@ function FocusCarouselCard({
 
   return (
     <VerticalStoreGameCard
-      coverImageUrl={getGameCoverImageSource(game)}
+      coverImageUrl={coverImageUrl}
       gameTitle={game.title}
       downloadSourceCount={game.downloadSources.length}
       onClick={onClick}
@@ -499,12 +576,17 @@ function FocusCarouselCard({
 }
 
 function renderStaticSlide(
-  game: ShopAssets,
+  game: FocusCarouselGame,
+  cardMode: FocusCarouselCardMode,
   cardVariant: "vertical" | "horizontal"
 ) {
   return (
     <article key={getGameIdentityKey(game)} className="focus-carousel__slide">
-      <FocusCarouselCard game={game} cardVariant={cardVariant} />
+      <FocusCarouselCard
+        game={game}
+        cardMode={cardMode}
+        cardVariant={cardVariant}
+      />
     </article>
   );
 }
@@ -513,6 +595,7 @@ function FocusCarouselSlide({
   game,
   index,
   itemId,
+  cardMode,
   cardVariant,
   navigationOverrides,
   onFocused,
@@ -574,6 +657,7 @@ function FocusCarouselSlide({
         navigationOverrides={navigationOverrides}
       >
         <FocusCarouselCard
+          cardMode={cardMode}
           cardVariant={cardVariant}
           game={game}
           onClick={onCardClick ? () => onCardClick(game) : undefined}
@@ -586,6 +670,7 @@ function FocusCarouselSlide({
 
 export function FocusCarousel({
   title,
+  headerMeta,
   games,
   regionId,
   getItemId,
@@ -593,6 +678,7 @@ export function FocusCarousel({
   onItemActivate,
   onCarouselItemOpenContextMenu,
   showRightFade = false,
+  cardMode = "store",
   cardVariant = "vertical",
 }: Readonly<FocusCarouselProps>) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -702,7 +788,7 @@ export function FocusCarousel({
   }, []);
 
   const handleCardClick = useCallback(
-    (game: ShopAssets) => {
+    (game: FocusCarouselGame) => {
       if (suppressPointerClickRef.current) {
         suppressPointerClickRef.current = false;
         return;
@@ -724,26 +810,30 @@ export function FocusCarousel({
       {title ? (
         <div className="focus-carousel__header">
           <h2 className="focus-carousel__title">{title}</h2>
-          <div className="focus-carousel__header-actions">
-            <button
-              type="button"
-              className="focus-carousel__header-button"
-              aria-label="Previous"
-              disabled={!canScrollPrev}
-              onClick={() => emblaApi?.scrollPrev()}
-            >
-              <CaretLeftIcon size={20} />
-            </button>
-            <button
-              type="button"
-              className="focus-carousel__header-button"
-              aria-label="Next"
-              disabled={!canScrollNext}
-              onClick={() => emblaApi?.scrollNext()}
-            >
-              <CaretRightIcon size={20} />
-            </button>
-          </div>
+          {headerMeta != null ? (
+            <div className="focus-carousel__header-meta">{headerMeta}</div>
+          ) : (
+            <div className="focus-carousel__header-actions">
+              <button
+                type="button"
+                className="focus-carousel__header-button"
+                aria-label="Previous"
+                disabled={!canScrollPrev}
+                onClick={() => emblaApi?.scrollPrev()}
+              >
+                <CaretLeftIcon size={20} />
+              </button>
+              <button
+                type="button"
+                className="focus-carousel__header-button"
+                aria-label="Next"
+                disabled={!canScrollNext}
+                onClick={() => emblaApi?.scrollNext()}
+              >
+                <CaretRightIcon size={20} />
+              </button>
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -769,7 +859,9 @@ export function FocusCarousel({
               {games.map((game, index) => {
                 const itemId = getItemId?.(game);
 
-                if (!itemId) return renderStaticSlide(game, cardVariant);
+                if (!itemId) {
+                  return renderStaticSlide(game, cardMode, cardVariant);
+                }
 
                 const navigationOverrides = mergeNavigationOverrides(
                   getDefaultItemNavigationOverrides(index, games, getItemId),
@@ -791,6 +883,7 @@ export function FocusCarousel({
                     game={game}
                     index={index}
                     itemId={itemId}
+                    cardMode={cardMode}
                     cardVariant={cardVariant}
                     navigationOverrides={navigationOverrides}
                     onCarouselItemOpenContextMenu={
