@@ -1,0 +1,171 @@
+@use "../../scss/globals.scss";
+
+.game-details {
+  &__review-thread {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__review-replies {
+    position: relative;
+    margin-top: calc(globals.$spacing-unit * 2);
+    margin-left: calc(globals.$spacing-unit * 2.5);
+    padding-left: calc(globals.$spacing-unit * 2);
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__reply-thread-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -5px;
+    width: 2px;
+    padding: 0 5px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.12);
+    background-clip: content-box;
+    box-sizing: content-box;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.32);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__reply-thread {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3.5);
+  }
+
+  &__reply-item {
+    word-wrap: break-word;
+    overflow: hidden;
+  }
+
+  &__reply-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    margin-bottom: calc(globals.$spacing-unit * 0.75);
+
+    button {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
+  &__reply-date {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+
+  &__reply-content {
+    font-size: globals.$body-font-size;
+    line-height: 1.5;
+  }
+
+  &__reply-actions {
+    margin-top: calc(globals.$spacing-unit * 1);
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1);
+
+    .game-details__vote-button {
+      padding: 4px 8px;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__reply-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+
+  &__delete-reply-button {
+    padding: 5px;
+    margin-left: auto;
+  }
+
+  &__reply-thread-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__reply-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+      text-decoration: none;
+    }
+
+    &--primary {
+      &:hover {
+        color: #ffffff;
+      }
+    }
+  }
+
+  &__reply-composer {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1);
+
+    .game-details__review-input {
+      min-height: 72px;
+
+      .ProseMirror {
+        min-height: 48px;
+      }
+    }
+  }
+
+  &__reply-composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(globals.$spacing-unit * 1);
+  }
+}
