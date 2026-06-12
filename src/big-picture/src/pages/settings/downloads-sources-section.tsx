@@ -5,6 +5,7 @@ import { DownloadSourceStatus } from "@shared";
 import { orderBy } from "lodash-es";
 import { ArrowsClockwiseIcon, TrashIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Button,
@@ -79,6 +80,7 @@ export function DownloadsSourcesSection({
 }: Readonly<DownloadsSourcesSectionProps>) {
   const { formatDateTime } = useDate();
   const { formatNumber } = useFormat();
+  const { t } = useTranslation("big_picture");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus, setFocusRegion } = useNavigation();
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
@@ -306,14 +308,13 @@ export function DownloadsSourcesSection({
       (total, downloadSource) => total + downloadSource.downloadCount,
       0
     );
-    const removedSourcesLabel = `${removedSourceCount} download source${
-      removedSourceCount === 1 ? " was" : "s were"
-    } removed`;
-    const removedDownloadOptionsLabel = `${formatNumber(
-      removedDownloadOptionCount
-    )} download option${
-      removedDownloadOptionCount === 1 ? "" : "s"
-    } are no longer available.`;
+    const removedSourcesLabel = t("download_sources_removed", {
+      count: removedSourceCount,
+    });
+    const removedDownloadOptionsLabel = t("download_options_unavailable", {
+      count: removedDownloadOptionCount,
+      formattedCount: formatNumber(removedDownloadOptionCount),
+    });
 
     setIsRemoving(true);
 
@@ -340,6 +341,7 @@ export function DownloadsSourcesSection({
     refreshDownloadSources,
     showErrorToast,
     showSuccessToast,
+    t,
   ]);
 
   return (
