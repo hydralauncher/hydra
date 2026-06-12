@@ -25,6 +25,7 @@ import { EMULATOR_ICONS } from "./emulator-icons";
 import { EmulatorScanModal, type ScanFolderInput } from "./emulator-scan-modal";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
+import { formatRelativeShort } from "./relative-time";
 
 import "./emulator-detail.scss";
 
@@ -45,18 +46,6 @@ const formatBytes = (bytes: number): string => {
   );
   const value = bytes / Math.pow(1024, i);
   return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-};
-
-const formatRelative = (ts: number | null): string => {
-  if (ts === null) return "—";
-  const diff = Date.now() - ts;
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 };
 
 function GamepadIcon({ size = 16 }: Readonly<{ size?: number }>) {
@@ -88,7 +77,10 @@ export function EmulatorDetail({
   onChange,
   refresh,
 }: Readonly<EmulatorDetailProps>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
+
+  const formatLastScan = (ts: number | null): string =>
+    ts !== null ? formatRelativeShort(ts, i18n.language) : "—";
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [busy, setBusy] = useState(false);
@@ -292,10 +284,7 @@ export function EmulatorDetail({
     () => formatBytes(config.totalSizeBytes),
     [config.totalSizeBytes]
   );
-  const lastScanLabel = useMemo(
-    () => formatRelative(config.lastScanAt),
-    [config.lastScanAt]
-  );
+  const lastScanLabel = formatLastScan(config.lastScanAt);
 
   const isConfigured = config.executablePath !== null;
 
@@ -469,7 +458,7 @@ export function EmulatorDetail({
                   <span>
                     {folder.lastScanAt
                       ? t("last_scan_relative", {
-                          value: formatRelative(folder.lastScanAt),
+                          value: formatLastScan(folder.lastScanAt),
                         })
                       : t("last_scan_never")}
                   </span>

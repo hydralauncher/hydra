@@ -5,6 +5,7 @@ import { ChevronRightIcon, GearIcon, AlertIcon } from "@primer/octicons-react";
 import type { EmulatorConfig } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
+import { formatRelativeShort } from "./relative-time";
 import ps1Art from "@renderer/assets/emulation/ps1.png";
 import ps2Art from "@renderer/assets/emulation/ps2.png";
 import ps3Art from "@renderer/assets/emulation/ps3.png";
@@ -24,25 +25,13 @@ interface ConsoleCardProps {
   onStartSetup: () => void;
 }
 
-const formatRelative = (ts: number | null): string | null => {
-  if (ts === null) return null;
-  const diff = Date.now() - ts;
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-};
-
 export function ConsoleCard({
   config,
   systemLabel,
   onConfigure,
   onStartSetup,
 }: Readonly<ConsoleCardProps>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
 
   const [executableExists, setExecutableExists] = useState(true);
 
@@ -71,7 +60,10 @@ export function ConsoleCard({
   const hasRomFolders = config.romFolders.length > 0;
   const hasRoms = hasRomFolders && config.totalFiles > 0;
   const isReady = isConfigured && executableExists && hasRomFolders;
-  const relative = formatRelative(config.lastScanAt);
+  const relative =
+    config.lastScanAt !== null
+      ? formatRelativeShort(config.lastScanAt, i18n.language)
+      : null;
 
   return (
     <div

@@ -25,6 +25,8 @@
   &__hero {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
     padding: 32px;
     background: linear-gradient(
       to right,
@@ -37,6 +39,7 @@
 
   &__hero-text {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -131,6 +134,7 @@
   &__section-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 16px;
 
     h3 {
@@ -151,6 +155,7 @@
 
   &__section-text {
     flex: 1;
+    min-width: 200px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -159,6 +164,7 @@
   &__section-title-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
   }
 
@@ -169,7 +175,12 @@
     padding: 16px 24px;
     display: flex;
     align-items: center;
-    gap: 24px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+
+    > svg {
+      flex-shrink: 0;
+    }
   }
 
   &__exec-row {
@@ -324,7 +335,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 0;
+    min-width: 200px;
   }
 
   &__folder-path {
@@ -376,7 +387,7 @@
 
   &__stats {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
   }
 
@@ -407,6 +418,7 @@
     color: #8e919b;
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    overflow-wrap: break-word;
   }
 
   &__stat-value {
@@ -414,6 +426,7 @@
     font-weight: 700;
     color: #fafafa;
     letter-spacing: -0.36px;
+    overflow-wrap: break-word;
   }
 
   &__stat-caption {
@@ -421,6 +434,7 @@
     color: #8e919b;
     line-height: 18px;
     margin-top: auto;
+    overflow-wrap: break-word;
   }
 
   &__section-actions {
