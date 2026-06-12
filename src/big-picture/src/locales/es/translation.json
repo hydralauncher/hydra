@@ -243,7 +243,7 @@
     "How Long to Beat": "Cuánto se tarda",
     "Hydra archive drive": "Hydra archive drive",
     "Hydra Cloud": "Hydra Cloud",
-    "Hydra Cloud is required to show achievements on this profile.": "Se necesita Hydra Cloud para mostrar logros en este perfil.",
+    "This user is required to have Hydra Cloud in order to display achievements in his profile.": "Este usuario necesita tener Hydra Cloud para mostrar logros en su perfil.",
     "Hydra could not identify an emulator for this platform.": "Hydra no pudo identificar un emulador para esta plataforma.",
     "Hydra could not launch this Classics game.": "Hydra no pudo iniciar este juego clásico.",
     "Hydra could not show the achievement preview.": "Hydra no pudo mostrar la vista previa del logro.",
