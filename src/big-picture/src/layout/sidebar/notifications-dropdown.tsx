@@ -40,6 +40,7 @@ import {
   useNavigationScreenActions,
 } from "../../hooks";
 import type {
+  FriendRequestAction,
   LibraryGame,
   LocalNotification,
   MergedNotification,
@@ -549,6 +550,21 @@ export function SidebarNotificationsDropdown({
     setMenuPosition({ x: event.clientX, y: event.clientY });
   };
 
+  const updateFriendRequest = (
+    senderId: string,
+    action: FriendRequestAction
+  ) => {
+    return globalThis.window.electron.hydraApi.patch(
+      `/profile/friend-requests/${senderId}`,
+      {
+        data: {
+          requestState: action,
+        },
+        needsAuth: true,
+      }
+    );
+  };
+
   const acceptFriendRequest = async (notification: MergedNotification) => {
     if (
       notification.source !== "api" ||
@@ -560,7 +576,7 @@ export function SidebarNotificationsDropdown({
     const senderId = notification.variables.senderId;
     if (!senderId) return;
 
-    await globalThis.window.electron.updateFriendRequest(senderId, "ACCEPTED");
+    await updateFriendRequest(senderId, "ACCEPTED");
     await dismissNotification(notification);
   };
 
@@ -575,7 +591,7 @@ export function SidebarNotificationsDropdown({
     const senderId = notification.variables.senderId;
     if (!senderId) return;
 
-    await globalThis.window.electron.updateFriendRequest(senderId, "REFUSED");
+    await updateFriendRequest(senderId, "REFUSED");
     await dismissNotification(notification);
   };
 
