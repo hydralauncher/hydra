@@ -934,8 +934,7 @@ export default function Profile() {
 
   const isLoading =
     isLoadingExternalProfile || (!profileUser && Boolean(targetUserId));
-  const heroImageUrl =
-    profileUser?.backgroundImageUrl ?? profileUser?.profileImageUrl ?? null;
+  const heroImageUrl = profileUser?.backgroundImageUrl ?? null;
   const { backgroundLayers, getLayerEventHandlers } =
     useHeroBackgroundLayers(heroImageUrl);
   const usernameLabel = profileUser?.username || profileUser?.id || "";
@@ -1836,8 +1835,8 @@ export default function Profile() {
                         <div className="profile-page__achievements-lock-overlay">
                           <SparkleIcon size={24} weight="fill" />
                           <p>
-                            Hydra Cloud is required to show achievements on this
-                            profile.
+                            This user is required to have Hydra Cloud in order
+                            to display achievements in his profile.
                           </p>
                         </div>
                       </div>
