@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrashIcon, ReplyIcon } from "@primer/octicons-react";
+import { TrashIcon } from "@primer/octicons-react";
 import { ThumbsUp, ThumbsDown, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -17,7 +17,6 @@ interface ReviewReplyItemProps {
   isVoting: boolean;
   onVote: (answerId: string, voteType: "upvote" | "downvote") => void;
   onDelete: (answerId: string) => void;
-  onReplyTo: (displayName: string) => void;
 }
 
 export function ReviewReplyItem({
@@ -26,7 +25,6 @@ export function ReviewReplyItem({
   isVoting,
   onVote,
   onDelete,
-  onReplyTo,
 }: Readonly<ReviewReplyItemProps>) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("game_details");
@@ -171,17 +169,6 @@ export function ReviewReplyItem({
             <span>{formatNumber(reply.downvotes || 0)}</span>
           </motion.button>
         </div>
-
-        {userDetailsId && (
-          <button
-            className="game-details__reply-action-link"
-            onClick={() => onReplyTo(reply.user.displayName || "")}
-            title={t("reply")}
-          >
-            <ReplyIcon size={14} />
-            <span>{t("reply")}</span>
-          </button>
-        )}
 
         {isOwnReply && (
           <button
