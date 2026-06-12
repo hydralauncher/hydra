@@ -5,16 +5,8 @@
   align-items: flex-start;
   align-self: stretch;
   position: relative;
-  overflow: hidden;
   transition: background-color 0.2s ease-in-out;
   padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 3) 0;
-
-  &--has-background {
-    min-height: 112px;
-    justify-content: flex-end;
-    padding: calc(var(--spacing-unit) * 5) calc(var(--spacing-unit) * 3)
-      calc(var(--spacing-unit) * 3);
-  }
 
   &__background {
     position: absolute;

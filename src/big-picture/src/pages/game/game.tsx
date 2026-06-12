@@ -9,7 +9,11 @@ import {
 import type { GameShop, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
+import {
+  buildLibraryToastOptions,
+  getItemFocusTarget,
+  resolveImageSource,
+} from "../../helpers";
 import {
   Typography,
   VerticalFocusGroup,
@@ -1452,6 +1456,16 @@ export default function Game() {
         {game?.shop === "launchbox" ? (
           <DiscSelectionModal
             visible={isDiscSelectionModalOpen}
+            coverImage={
+              resolveImageSource(game?.customHeroImageUrl) ||
+              resolveImageSource(shopDetails.assets?.libraryHeroImageUrl) ||
+              resolveImageSource(game?.libraryHeroImageUrl) ||
+              resolveImageSource(shopDetails.assets?.libraryImageUrl) ||
+              resolveImageSource(game?.libraryImageUrl) ||
+              resolveImageSource(game?.customIconUrl) ||
+              resolveImageSource(game?.iconUrl) ||
+              undefined
+            }
             discs={game.discs ?? []}
             defaultDiscPath={game.selectedDiscPath ?? null}
             defaultDontAsk={Boolean(game.dontAskDiscSelection)}

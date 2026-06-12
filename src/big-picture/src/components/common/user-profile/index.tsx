@@ -238,7 +238,7 @@ export function UserProfile({
         backgroundImageUrl ? " user-profile-container--has-background" : ""
       }`}
     >
-      {backgroundImageUrl ? (
+      {/* {backgroundImageUrl ? (
         <>
           <img
             src={backgroundImageUrl}
@@ -252,7 +252,7 @@ export function UserProfile({
             aria-hidden="true"
           />
         </>
-      ) : null}
+      ) : null} */}
       <div className="user-profile-header">
         <UserProfileContent
           image={image}

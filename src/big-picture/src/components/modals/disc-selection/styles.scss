@@ -27,34 +27,24 @@
     width: 100%;
     min-height: 64px;
     padding: calc(var(--spacing-unit) * 3);
-    border: 1px solid var(--secondary-border);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: calc(var(--spacing-unit) * 2);
-    background: var(--secondary);
+    background: var(--surface);
     color: var(--text);
     text-align: left;
+    outline: none;
     cursor: pointer;
     transition:
-      border-color 0.2s ease-in-out,
       background-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
+      outline-color 0.2s ease-in-out;
 
     &[data-selected="true"] {
-      border-color: color-mix(
-        in srgb,
-        var(--primary) 55%,
-        var(--secondary-border)
-      );
-      background: color-mix(in srgb, var(--primary) 12%, var(--secondary));
+      background: var(--secondary);
     }
 
-    &[data-focus-visible="true"],
-    &:hover {
-      border-color: color-mix(
-        in srgb,
-        var(--primary) 42%,
-        var(--secondary-border)
-      );
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent);
+    &[data-focus-visible="true"] {
+      outline: 2px solid var(--primary);
+      outline-offset: -1px;
     }
   }
 
@@ -104,41 +94,7 @@
     gap: calc(var(--spacing-unit) * 3);
   }
 
-  &__dont-ask {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(var(--spacing-unit) * 2);
-    min-height: 44px;
-    padding: 0 calc(var(--spacing-unit) * 3);
-    border-radius: calc(var(--spacing-unit) * 2);
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease-in-out,
-      color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
-
-    &[data-selected="true"] {
-      color: var(--text);
-    }
-
-    &[data-focus-visible="true"],
-    &:hover {
-      background: var(--secondary);
-      color: var(--text);
-      box-shadow: inset 0 0 0 1px
-        color-mix(in srgb, var(--primary) 35%, transparent);
-    }
-  }
-
-  &__dont-ask-box {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    color: var(--primary);
+  .checkbox__label {
+    outline: none;
   }
 }
