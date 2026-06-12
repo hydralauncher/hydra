@@ -16,6 +16,7 @@ import {
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
 import { NavigationAudioService } from "../services";
+import { useBigPictureRunningGame } from "./use-big-picture-running-games.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
@@ -24,7 +25,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   );
   const [stats, setStats] = useState<GameStats | null>(null);
   const [game, setGame] = useState<LibraryGame | null>(null);
-  const [isGameRunning, setIsGameRunning] = useState(false);
+  const runningGame = useBigPictureRunningGame(game?.id);
+  const isGameRunning = runningGame !== null;
+  const runningSessionDurationInMillis =
+    runningGame?.sessionDurationInMillis ?? null;
   const [howLongToBeat, setHowLongToBeat] = useState<
     HowLongToBeatCategory[] | null
   >(null);
@@ -108,21 +112,6 @@ export function useGameDetails(objectId: string, shop: GameShop) {
       setAchievements([]);
     }
   }, [fetchGameDetails, updateGame, objectId, shop]);
-
-  useEffect(() => {
-    if (!IS_DESKTOP || !game?.id) return;
-
-    const gameId = game.id;
-    const unsubscribe = globalThis.window.electron.onGamesRunning(
-      (gamesRunning) => {
-        setIsGameRunning(gamesRunning.some((g) => g.id == gameId));
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [game?.id]);
 
   const openGame = useCallback(
     async (discPath?: string, force?: boolean) => {
@@ -212,6 +201,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     stats,
     game,
     isGameRunning,
+    runningSessionDurationInMillis,
     isLoading,
     howLongToBeat,
     protonDBData,

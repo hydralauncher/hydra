@@ -304,6 +304,9 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGamesRunning: () => Promise<
+      Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+    >;
     onGamesRunning: (
       cb: (
         gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]

@@ -357,6 +357,7 @@ export default function Game() {
     game,
     stats,
     isGameRunning,
+    runningSessionDurationInMillis,
     isLoading,
     howLongToBeat,
     protonDBData,
@@ -1148,7 +1149,11 @@ export default function Game() {
         />
 
         <section className="game-page__content">
-          <PlaytimeBar game={game} />
+          <PlaytimeBar
+            game={game}
+            isGameRunning={isGameRunning}
+            runningSessionDurationInMillis={runningSessionDurationInMillis}
+          />
 
           <div className="game-page__main-layout">
             <div className="game-page__main-column">

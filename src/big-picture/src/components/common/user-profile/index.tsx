@@ -7,6 +7,7 @@ import { FocusItem } from "../focus-item";
 
 export interface UserProfileProps {
   image?: string | null;
+  backgroundImageUrl?: string | null;
   name: string;
   friendCode: string;
   profileFocusId?: string;
@@ -218,6 +219,7 @@ function UserProfileContent({
 
 export function UserProfile({
   image,
+  backgroundImageUrl,
   name,
   friendCode,
   profileFocusId,
@@ -231,7 +233,26 @@ export function UserProfile({
   onNotificationsClick,
 }: Readonly<UserProfileProps>) {
   return (
-    <div className="user-profile-container">
+    <div
+      className={`user-profile-container${
+        backgroundImageUrl ? " user-profile-container--has-background" : ""
+      }`}
+    >
+      {backgroundImageUrl ? (
+        <>
+          <img
+            src={backgroundImageUrl}
+            alt=""
+            className="user-profile-container__background"
+            draggable={false}
+            aria-hidden="true"
+          />
+          <div
+            className="user-profile-container__background-shade"
+            aria-hidden="true"
+          />
+        </>
+      ) : null}
       <div className="user-profile-header">
         <UserProfileContent
           image={image}
