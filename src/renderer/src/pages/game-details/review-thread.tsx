@@ -288,13 +288,9 @@ export function ReviewThread({
   const showHide = !hidden && hasReplies;
 
   const showInlineReply =
-    Boolean(userDetailsId) && !blockedCollapsed && !hasReplies && !composerOpen;
+    Boolean(userDetailsId) && !blockedCollapsed && !composerOpen;
 
-  const showThreadActions =
-    canViewAll ||
-    canLoadMore ||
-    showHide ||
-    (Boolean(userDetailsId) && !composerOpen && hasReplies && !hidden);
+  const showThreadActions = canViewAll || canLoadMore || showHide;
 
   const showRepliesSection = !blockedCollapsed && (hasReplies || composerOpen);
 
@@ -350,7 +346,6 @@ export function ReviewThread({
                   isVoting={votingAnswers.has(reply.id)}
                   onVote={handleVoteReply}
                   onDelete={handleDeleteReply}
-                  onReplyTo={handleReplyTo}
                 />
               ))}
             </div>
@@ -384,15 +379,6 @@ export function ReviewThread({
                   onClick={handleHide}
                 >
                   {t("hide_replies")}
-                </button>
-              )}
-              {userDetailsId && !composerOpen && hasReplies && !hidden && (
-                <button
-                  className="game-details__reply-toggle game-details__reply-toggle--primary"
-                  onClick={() => handleReplyTo("")}
-                >
-                  <ReplyIcon size={14} />
-                  <span>{t("reply")}</span>
                 </button>
               )}
             </div>
