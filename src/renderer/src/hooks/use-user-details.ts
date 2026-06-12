@@ -25,6 +25,7 @@ export function useUserDetails() {
     dispatch(clearCollections());
 
     globalThis.window.localStorage.removeItem("userDetails");
+    window["userDetails"] = null;
   }, [dispatch]);
 
   const signOut = useCallback(async () => {

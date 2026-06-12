@@ -12,6 +12,8 @@ export const LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID =
 export const LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID =
   "library-filters-grid-view-button";
 export const LIBRARY_FILTERS_ALL_TAB_ID = "library-filters-tab-all";
+export const LIBRARY_FILTERS_MODERNS_TAB_ID = "library-filters-tab-moderns";
+export const LIBRARY_FILTERS_CLASSICS_TAB_ID = "library-filters-tab-classics";
 export const LIBRARY_FILTERS_FAVORITES_TAB_ID = "library-filters-tab-favorites";
 export const LIBRARY_FILTERS_COMPLETED_TAB_ID = "library-filters-tab-completed";
 
@@ -24,6 +26,10 @@ export const LIBRARY_FILTERS_COLLECTION_TAB_PREFIX =
 
 export function getLibraryFiltersTabFocusId(tabValue: string) {
   if (tabValue === "all") return LIBRARY_FILTERS_ALL_TAB_ID;
+
+  if (tabValue === "moderns") return LIBRARY_FILTERS_MODERNS_TAB_ID;
+
+  if (tabValue === "classics") return LIBRARY_FILTERS_CLASSICS_TAB_ID;
 
   if (tabValue === "favorites") return LIBRARY_FILTERS_FAVORITES_TAB_ID;
 

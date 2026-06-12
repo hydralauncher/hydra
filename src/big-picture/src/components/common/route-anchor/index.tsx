@@ -10,11 +10,13 @@ export interface RouteAnchorProps
   extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
   label: string;
   icon: ReactNode | string;
+  subtitle?: string | null;
   href: string;
   active?: boolean;
   disabled?: boolean;
   isFavorite?: boolean;
   focusId?: string;
+  focusNavigationOrder?: number;
   focusNavigationOverrides?: FocusOverrides;
 }
 
@@ -22,10 +24,12 @@ export const RouteAnchor = ({
   href,
   label,
   icon,
+  subtitle,
   active = false,
   disabled = false,
   isFavorite = false,
   focusId,
+  focusNavigationOrder,
   focusNavigationOverrides,
   ...props
 }: Readonly<RouteAnchorProps>) => {
@@ -35,10 +39,14 @@ export const RouteAnchor = ({
     <div
       className={`state-wrapper ${disabled ? "state-wrapper--disabled" : ""} ${active ? "state-wrapper--active" : ""}`}
     >
-      <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
+      <FocusItem
+        id={focusId}
+        navigationOrder={focusNavigationOrder}
+        navigationOverrides={focusNavigationOverrides}
+      >
         <Link to={href} {...props}>
           <div
-            className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""}`}
+            className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""} ${subtitle ? "route-anchor--with-subtitle" : ""}`}
           >
             <div
               className={`route-anchor__icon ${isGameIcon ? "route-anchor__icon--large-size" : "route-anchor__icon--small-size"}`}
@@ -55,7 +63,13 @@ export const RouteAnchor = ({
                 icon
               )}
             </div>
-            <div className="route-anchor__label">{label}</div>
+            <div className="route-anchor__content">
+              <div className="route-anchor__label">{label}</div>
+
+              {subtitle && (
+                <div className="route-anchor__subtitle">{subtitle}</div>
+              )}
+            </div>
 
             {isFavorite && (
               <div className="route-anchor__favorite">

@@ -24,7 +24,7 @@ import {
   LIBRARY_HERO_FAVORITE_BUTTON_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
 } from "../navigation";
-import { getHeroPlaytimeLabel } from "../library-data";
+import { getHeroPlaytimeLabel, isLibraryGamePlayable } from "../library-data";
 import { useLibraryLaunchGame } from "../use-library-launch-game";
 import { useHeroBackgroundLayers } from "./use-hero-background-layers";
 
@@ -92,7 +92,7 @@ export function LibraryHero({
   const lastPlayedLabel = getLastPlayedLabel(featuredGame?.lastTimePlayed);
   const isFavoriteLoading =
     Boolean(featuredGame) && favoriteLoadingGameId === featuredGame?.id;
-  const hasExecutable = Boolean(featuredGame?.executablePath);
+  const isPlayable = featuredGame ? isLibraryGamePlayable(featuredGame) : false;
 
   const handlePlayOrDownloadClick = () => {
     if (!featuredGame) return;
@@ -173,7 +173,7 @@ export function LibraryHero({
               navigationOverrides={heroActionsNavigationOverrides}
               getScrollAnchor={getHeroScrollAnchor}
             >
-              {hasExecutable ? (
+              {isPlayable ? (
                 <Button
                   variant="primary"
                   icon={<PlayIcon size={24} weight="fill" />}

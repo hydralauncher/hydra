@@ -375,12 +375,17 @@ export class WindowManager {
   }
 
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
-    if (this.mainWindow) {
+    const parentWindow =
+      this.bigPicture && !this.bigPicture.isDestroyed()
+        ? this.bigPicture
+        : this.mainWindow;
+
+    if (parentWindow && !parentWindow.isDestroyed()) {
       const authWindow = new BrowserWindow({
         width: 600,
         height: 640,
         backgroundColor: "#1c1c1c",
-        parent: this.mainWindow,
+        parent: parentWindow,
         modal: true,
         show: false,
         maximizable: false,
@@ -404,6 +409,12 @@ export class WindowManager {
         authWindow.show();
       });
 
+      authWindow.once("closed", () => {
+        if (!parentWindow.isDestroyed()) {
+          parentWindow.focus();
+        }
+      });
+
       authWindow.webContents.on("will-navigate", (_event, url) => {
         if (url.startsWith("hydralauncher://auth")) {
           authWindow.close();
@@ -415,7 +426,7 @@ export class WindowManager {
         if (url.startsWith("hydralauncher://update-account")) {
           authWindow.close();
 
-          WindowManager.mainWindow?.webContents.send("on-account-updated");
+          WindowManager.sendToAppWindows("on-account-updated");
         }
       });
     }

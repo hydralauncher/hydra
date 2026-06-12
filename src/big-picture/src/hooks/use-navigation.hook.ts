@@ -1,4 +1,5 @@
 import {
+  NavigationAudioService,
   NavigationItemActionsService,
   NavigationScreenActionsService,
   NavigationService,
@@ -16,6 +17,7 @@ import { useCallback } from "react";
 const navigation = NavigationService.getInstance();
 const navigationItemActions = NavigationItemActionsService.getInstance();
 const navigationScreenActions = NavigationScreenActionsService.getInstance();
+const navigationAudio = NavigationAudioService.getInstance();
 
 export function useNavigationActions() {
   const registerRegion = useCallback(
@@ -48,11 +50,25 @@ export function useNavigationActions() {
   );
 
   const moveFocus = useCallback((direction: FocusDirection) => {
-    return navigation.moveFocus(direction);
+    const currentFocusId = navigation.getCurrentFocusId();
+    const nextFocusId = navigation.moveFocus(direction);
+
+    if (nextFocusId && nextFocusId !== currentFocusId) {
+      navigationAudio.play("scroll");
+    }
+
+    return nextFocusId;
   }, []);
 
   const triggerPrimary = useCallback((originalEvent: Event | null = null) => {
-    return navigationItemActions.triggerPrimaryForFocusedItem(originalEvent);
+    const wasHandled =
+      navigationItemActions.triggerPrimaryForFocusedItem(originalEvent);
+
+    if (wasHandled) {
+      navigationAudio.play("select");
+    }
+
+    return wasHandled;
   }, []);
 
   const triggerSecondary = useCallback((originalEvent: Event | null = null) => {
@@ -81,11 +97,17 @@ export function useNavigationActions() {
 
   const triggerScreenPress = useCallback(
     (button: NavigationActionButton, originalEvent: Event | null = null) => {
-      return navigationScreenActions.triggerAction(
+      const wasHandled = navigationScreenActions.triggerAction(
         "press",
         button,
         originalEvent
       );
+
+      if (wasHandled && button === "b") {
+        navigationAudio.play("back");
+      }
+
+      return wasHandled;
     },
     []
   );
@@ -136,7 +158,18 @@ export function useNavigationActions() {
       direction: NavigationDirectionAction,
       originalEvent: Event | null = null
     ) => {
-      return navigationScreenActions.triggerDirection(direction, originalEvent);
+      const currentFocusId = navigation.getCurrentFocusId();
+      const wasHandled = navigationScreenActions.triggerDirection(
+        direction,
+        originalEvent
+      );
+      const nextFocusId = navigation.getCurrentFocusId();
+
+      if (wasHandled && nextFocusId && nextFocusId !== currentFocusId) {
+        navigationAudio.play("scroll");
+      }
+
+      return wasHandled;
     },
     []
   );
