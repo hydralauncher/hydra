@@ -11,7 +11,6 @@ import type {
   PremiumizeUser,
   AllDebridUser,
   UserProfile,
-  FriendRequestAction,
   UpdateProfileRequest,
   GameStats,
   UserDetails,
@@ -753,11 +752,6 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
-    updateFriendRequest: (
-      userId: string,
-      action: FriendRequestAction
-    ) => Promise<void>;
-
     /* Notifications */
     publishNewRepacksNotification: (newRepacksCount: number) => Promise<void>;
     getLocalNotifications: () => Promise<LocalNotification[]>;
