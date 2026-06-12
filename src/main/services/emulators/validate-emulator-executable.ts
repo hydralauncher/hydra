@@ -1,5 +1,9 @@
 import { accessSync, constants, existsSync, statSync } from "node:fs";
 import path from "node:path";
+import {
+  findMacAppBundleRoot,
+  resolveMacAppBundleExecutable,
+} from "./macos-app-bundle";
 
 const NON_EXECUTABLE_EXTENSIONS = new Set([
   ".jpg",
@@ -47,15 +51,29 @@ const NON_EXECUTABLE_EXTENSIONS = new Set([
 ]);
 
 export const isValidEmulatorExecutable = (executablePath: string): boolean => {
-  if (!executablePath || !existsSync(executablePath)) return false;
+  if (!executablePath) return false;
+
+  const normalizedPath = path.normalize(executablePath);
+
+  if (!existsSync(normalizedPath)) return false;
+
+  const ext = path.extname(normalizedPath).toLowerCase();
+  const appBundlePath = findMacAppBundleRoot(normalizedPath);
+
+  if (appBundlePath) {
+    return (
+      ext === ".app" && resolveMacAppBundleExecutable(appBundlePath) !== null
+    );
+  }
 
   try {
-    if (!statSync(executablePath).isFile()) return false;
+    const stat = statSync(normalizedPath);
+
+    if (!stat.isFile()) return false;
   } catch {
     return false;
   }
 
-  const ext = path.extname(executablePath).toLowerCase();
   if (NON_EXECUTABLE_EXTENSIONS.has(ext)) return false;
 
   if (process.platform === "win32") {
@@ -63,7 +81,7 @@ export const isValidEmulatorExecutable = (executablePath: string): boolean => {
   }
 
   try {
-    accessSync(executablePath, constants.X_OK);
+    accessSync(normalizedPath, constants.X_OK);
     return true;
   } catch {
     return false;

@@ -1,7 +1,15 @@
 import { useGamepad, useNavigationActions } from "../../hooks";
-import { useNavigationStore } from "../../stores";
+import { GamepadService, NavigationAudioService } from "../../services";
+import { useNavigationHistoryStore, useNavigationStore } from "../../stores";
 import { GamepadAxisDirection, GamepadButtonType } from "../../types";
-import { type ReactNode, useCallback, useEffect, useRef } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useNavigate } from "react-router-dom";
 
 interface NavigationInputProviderProps {
   children: ReactNode;
@@ -80,9 +88,20 @@ function shouldIgnoreKeyboardNavigation(event: KeyboardEvent) {
   );
 }
 
+function isWindowInputActive() {
+  return document.hasFocus() && document.visibilityState === "visible";
+}
+
+function isSystemSwitcherModifierEvent(event: KeyboardEvent) {
+  return (
+    event.key === "Alt" || event.key === "Meta" || event.altKey || event.metaKey
+  );
+}
+
 export function NavigationInputProvider({
   children,
 }: Readonly<NavigationInputProviderProps>) {
+  const navigate = useNavigate();
   const {
     moveFocus,
     triggerPrimary,
@@ -107,6 +126,9 @@ export function NavigationInputProvider({
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const holdSessionsRef = useRef(createInitialHoldSessions());
   const warnedConflictsRef = useRef(new Set<string>());
+  const ignoredPressedButtonsRef = useRef(new Set<HoldManagedButton>());
+  const isSystemSwitcherActiveRef = useRef(false);
+  const [isInputActive, setIsInputActive] = useState(isWindowInputActive);
 
   const warnActionConflict = useCallback(
     (
@@ -152,8 +174,131 @@ export function NavigationInputProvider({
     });
   }, []);
 
+  const syncInputActivity = useCallback(() => {
+    setIsInputActive(
+      isWindowInputActive() && !isSystemSwitcherActiveRef.current
+    );
+  }, []);
+
+  const suspendInputForSystemSwitcher = useCallback(() => {
+    isSystemSwitcherActiveRef.current = true;
+    GamepadService.getInstance().setInputEnabled(false);
+    resetHoldSessions();
+    setIsInputActive(false);
+  }, [resetHoldSessions]);
+
+  const releaseSystemSwitcherInput = useCallback(() => {
+    isSystemSwitcherActiveRef.current = false;
+    syncInputActivity();
+  }, [syncInputActivity]);
+
+  const triggerBackAction = useCallback(
+    (originalEvent: Event | null = null) => {
+      if (triggerScreenPress("b", originalEvent)) {
+        return true;
+      }
+
+      const historyStack = useNavigationHistoryStore.getState().stack;
+
+      if (historyStack.length <= 1) {
+        return false;
+      }
+
+      NavigationAudioService.getInstance().play("back");
+      navigate(-1);
+      return true;
+    },
+    [navigate, triggerScreenPress]
+  );
+
+  useEffect(() => {
+    syncInputActivity();
+
+    globalThis.window.addEventListener("focus", syncInputActivity);
+    globalThis.window.addEventListener("blur", syncInputActivity);
+    globalThis.window.addEventListener("pagehide", syncInputActivity);
+    document.addEventListener("visibilitychange", syncInputActivity);
+
+    return () => {
+      globalThis.window.removeEventListener("focus", syncInputActivity);
+      globalThis.window.removeEventListener("blur", syncInputActivity);
+      globalThis.window.removeEventListener("pagehide", syncInputActivity);
+      document.removeEventListener("visibilitychange", syncInputActivity);
+    };
+  }, [syncInputActivity]);
+
+  useEffect(() => {
+    const handleSystemShortcutKeyDown = (event: KeyboardEvent) => {
+      if (isSystemSwitcherModifierEvent(event)) {
+        suspendInputForSystemSwitcher();
+      }
+    };
+
+    const handleSystemShortcutKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Alt" || event.key === "Meta") {
+        releaseSystemSwitcherInput();
+      }
+    };
+
+    const handleSystemShortcutFocus = () => {
+      releaseSystemSwitcherInput();
+    };
+
+    const handleSystemShortcutVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        releaseSystemSwitcherInput();
+      }
+    };
+
+    globalThis.window.addEventListener(
+      "keydown",
+      handleSystemShortcutKeyDown,
+      true
+    );
+    globalThis.window.addEventListener(
+      "keyup",
+      handleSystemShortcutKeyUp,
+      true
+    );
+    globalThis.window.addEventListener("focus", handleSystemShortcutFocus);
+    document.addEventListener(
+      "visibilitychange",
+      handleSystemShortcutVisibilityChange
+    );
+
+    return () => {
+      globalThis.window.removeEventListener(
+        "keydown",
+        handleSystemShortcutKeyDown,
+        true
+      );
+      globalThis.window.removeEventListener(
+        "keyup",
+        handleSystemShortcutKeyUp,
+        true
+      );
+      globalThis.window.removeEventListener("focus", handleSystemShortcutFocus);
+      document.removeEventListener(
+        "visibilitychange",
+        handleSystemShortcutVisibilityChange
+      );
+    };
+  }, [releaseSystemSwitcherInput, suspendInputForSystemSwitcher]);
+
+  useEffect(() => {
+    GamepadService.getInstance().setInputEnabled(isInputActive);
+
+    if (!isInputActive) {
+      resetHoldSessions();
+    }
+  }, [isInputActive, resetHoldSessions]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isInputActive || isSystemSwitcherActiveRef.current) {
+        return;
+      }
+
       if (shouldIgnoreKeyboardNavigation(event)) {
         return;
       }
@@ -200,7 +345,7 @@ export function NavigationInputProvider({
 
       if (event.key === "Escape" && !event.repeat) {
         event.preventDefault();
-        triggerScreenPress("b", event);
+        triggerBackAction(event);
       }
     };
 
@@ -209,10 +354,18 @@ export function NavigationInputProvider({
     return () => {
       globalThis.removeEventListener("keydown", handleKeyDown);
     };
-  }, [moveFocus, triggerPrimary, triggerScreenDirection, triggerScreenPress]);
+  }, [
+    isInputActive,
+    moveFocus,
+    triggerBackAction,
+    triggerPrimary,
+    triggerScreenDirection,
+    triggerScreenPress,
+  ]);
 
   useEffect(() => {
     const unsubDpadUp = onButtonPressed(GamepadButtonType.DPAD_UP, (event) => {
+      if (!isInputActive || isSystemSwitcherActiveRef.current) return;
       if (!isActiveGamepadEvent(event)) return;
 
       if (!triggerScreenDirection("up")) {
@@ -223,6 +376,7 @@ export function NavigationInputProvider({
     const unsubDpadLeft = onButtonPressed(
       GamepadButtonType.DPAD_LEFT,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("left")) {
@@ -234,6 +388,7 @@ export function NavigationInputProvider({
     const unsubDpadDown = onButtonPressed(
       GamepadButtonType.DPAD_DOWN,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("down")) {
@@ -245,6 +400,7 @@ export function NavigationInputProvider({
     const unsubDpadRight = onButtonPressed(
       GamepadButtonType.DPAD_RIGHT,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("right")) {
@@ -257,6 +413,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.UP,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("up")) {
@@ -269,6 +426,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.LEFT,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("left")) {
@@ -281,6 +439,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.DOWN,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("down")) {
@@ -293,6 +452,7 @@ export function NavigationInputProvider({
       "left",
       GamepadAxisDirection.RIGHT,
       (event) => {
+        if (!isInputActive || isSystemSwitcherActiveRef.current) return;
         if (!isActiveGamepadEvent(event)) return;
 
         if (!triggerScreenDirection("right")) {
@@ -312,6 +472,7 @@ export function NavigationInputProvider({
       unsubStickRight();
     };
   }, [
+    isInputActive,
     isActiveGamepadEvent,
     moveFocus,
     onButtonPressed,
@@ -331,7 +492,6 @@ export function NavigationInputProvider({
   const isSelectPressed = isButtonPressed(GamepadButtonType.BACK);
 
   useEffect(() => {
-    const holdSessions = holdSessionsRef.current;
     const buttonStates: Record<HoldManagedButton, boolean> = {
       a: isAPressed,
       b: isBPressed,
@@ -340,6 +500,19 @@ export function NavigationInputProvider({
       start: isStartPressed,
       select: isSelectPressed,
     };
+
+    if (!isInputActive) {
+      (Object.keys(buttonStates) as HoldManagedButton[]).forEach((button) => {
+        if (buttonStates[button]) {
+          ignoredPressedButtonsRef.current.add(button);
+        }
+      });
+
+      resetHoldSessions();
+      return;
+    }
+
+    const holdSessions = holdSessionsRef.current;
 
     const dispatchHold = (button: HoldManagedButton) => {
       if (button === "start" || button === "select") {
@@ -363,7 +536,7 @@ export function NavigationInputProvider({
       }
 
       if (button === "b") {
-        return triggerScreenPress("b");
+        return triggerBackAction();
       }
 
       if (button === "x" || button === "y") {
@@ -384,6 +557,14 @@ export function NavigationInputProvider({
     (Object.keys(buttonStates) as HoldManagedButton[]).forEach((button) => {
       const isPressed = buttonStates[button];
       const session = holdSessions[button];
+
+      if (ignoredPressedButtonsRef.current.has(button)) {
+        if (!isPressed) {
+          ignoredPressedButtonsRef.current.delete(button);
+        }
+
+        return;
+      }
 
       if (isPressed && !session.isPressed) {
         session.isPressed = true;
@@ -441,6 +622,7 @@ export function NavigationInputProvider({
   }, [
     isAPressed,
     isBPressed,
+    isInputActive,
     isXPressed,
     isYPressed,
     isStartPressed,

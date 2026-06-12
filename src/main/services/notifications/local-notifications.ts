@@ -76,6 +76,14 @@ export class LocalNotificationManager {
     }
   }
 
+  static async markAsUnread(id: string): Promise<void> {
+    const notification = await localNotificationsSublevel.get(id);
+    if (notification) {
+      notification.isRead = false;
+      await localNotificationsSublevel.put(id, notification);
+    }
+  }
+
   static async markAllAsRead(): Promise<void> {
     const batch = localNotificationsSublevel.batch();
 

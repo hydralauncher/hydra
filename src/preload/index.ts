@@ -561,6 +561,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
+  getClassicsImportStatus: (): Promise<boolean> =>
+    ipcRenderer.invoke("getClassicsImportStatus"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   getGameInstallerActionType: (shop: GameShop, objectId: string) =>
@@ -646,6 +648,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
   checkSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
+  getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -666,6 +669,13 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-downloads-updated", listener);
     return () => ipcRenderer.removeListener("on-downloads-updated", listener);
+  },
+  onClassicsImportStatus: (cb: (importing: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, importing: boolean) =>
+      cb(importing);
+    ipcRenderer.on("on-classics-import-status", listener);
+    return () =>
+      ipcRenderer.removeListener("on-classics-import-status", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
@@ -1023,6 +1033,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getLocalNotificationsCount"),
   markLocalNotificationRead: (id: string) =>
     ipcRenderer.invoke("markLocalNotificationRead", id),
+  markLocalNotificationUnread: (id: string) =>
+    ipcRenderer.invoke("markLocalNotificationUnread", id),
   markAllLocalNotificationsRead: () =>
     ipcRenderer.invoke("markAllLocalNotificationsRead"),
   deleteLocalNotification: (id: string) =>

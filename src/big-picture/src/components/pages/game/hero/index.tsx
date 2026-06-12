@@ -67,9 +67,12 @@ export function Hero({
     () => downNavigationTarget ?? { type: "block" },
     [downNavigationTarget]
   );
+  const isPlayableClassicsGame =
+    game?.shop === "launchbox" && (game.discs?.length ?? 0) > 0;
   const hasPrimaryAction =
     isGameRunning ||
     Boolean(game?.executablePath) ||
+    isPlayableClassicsGame ||
     Boolean(game) ||
     canAddToLibrary;
   const shouldShowCatalogActions = !game && canAddToLibrary;
@@ -145,7 +148,7 @@ export function Hero({
       };
     }
 
-    if (game?.executablePath) {
+    if (game?.executablePath || isPlayableClassicsGame) {
       return {
         primaryActionButton: (
           <Button
@@ -222,6 +225,7 @@ export function Hero({
     heroDownNavigationTarget,
     isAddingToLibrary,
     isGameRunning,
+    isPlayableClassicsGame,
     onAddToLibrary,
     onClose,
     onDownload,

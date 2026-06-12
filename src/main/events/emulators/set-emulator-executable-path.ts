@@ -1,6 +1,7 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
 import type { EmulatorSystem } from "@types";
+import path from "node:path";
 
 const setEmulatorExecutablePath = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -8,15 +9,24 @@ const setEmulatorExecutablePath = async (
   executablePath: string | null
 ) => {
   const binary = emulators.KNOWN_BINARIES[system];
-  const version = executablePath
-    ? emulators.getEmulatorVersion(executablePath, binary)
+  const normalizedPath = executablePath ? path.normalize(executablePath) : null;
+  const resolvedPath = normalizedPath
+    ? (emulators.findMacAppBundleRoot(normalizedPath) ?? normalizedPath)
+    : null;
+
+  if (resolvedPath && !emulators.isValidEmulatorExecutable(resolvedPath)) {
+    return null;
+  }
+
+  const version = resolvedPath
+    ? emulators.getEmulatorVersion(resolvedPath, binary)
     : null;
 
   return emulators.updateEmulatorConfig(system, (current) => ({
     ...current,
-    executablePath,
+    executablePath: resolvedPath,
     detectedVersion: version,
-    detectedAt: executablePath ? Date.now() : null,
+    detectedAt: resolvedPath ? Date.now() : null,
   }));
 };
 

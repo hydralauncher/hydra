@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
 import cn from "classnames";
 import { FocusItem } from "..";
+import type { FocusOverrides } from "../../../services";
 
 import "./styles.scss";
 
@@ -15,6 +16,7 @@ export interface SourceAnchorProps
   title: string;
   size?: keyof typeof sizes;
   focusId?: string;
+  focusNavigationOverrides?: FocusOverrides;
   href?: string;
   onClick?: () => void;
   isSelected?: boolean;
@@ -23,6 +25,7 @@ export interface SourceAnchorProps
 export function SourceAnchor({
   title,
   focusId,
+  focusNavigationOverrides,
   href,
   onClick,
   isSelected = false,
@@ -32,7 +35,7 @@ export function SourceAnchor({
   return (
     <>
       {href && (
-        <FocusItem id={focusId}>
+        <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
           <a href={href} {...props}>
             <div
               className={cn("source-anchor source-anchor--link", sizes[size], {
@@ -46,7 +49,7 @@ export function SourceAnchor({
       )}
 
       {onClick && (
-        <FocusItem id={focusId}>
+        <FocusItem id={focusId} navigationOverrides={focusNavigationOverrides}>
           <button
             type="button"
             onClick={onClick}

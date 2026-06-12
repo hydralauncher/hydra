@@ -54,6 +54,7 @@ const addCustomGameToLibrary = async (
     lastTimePlayed: null,
     addedToLibraryAt: new Date(),
     executablePath,
+    executablePathUpdatedAt: new Date(),
     launchOptions: null,
     favorite: false,
     automaticCloudSync: false,

@@ -1,6 +1,12 @@
 import type { LibraryGame } from "@types";
 
-export const BUILTIN_LIBRARY_TABS = ["all", "favorites", "completed"] as const;
+export const BUILTIN_LIBRARY_TABS = [
+  "all",
+  "moderns",
+  "classics",
+  "favorites",
+  "completed",
+] as const;
 export type BuiltinLibraryTab = (typeof BUILTIN_LIBRARY_TABS)[number];
 
 export function isBuiltinLibraryTab(value: string): value is BuiltinLibraryTab {
@@ -31,6 +37,8 @@ export const LIBRARY_SECONDARY_FILTER_STORAGE_KEY =
 
 export interface LibraryFilterCounts {
   all: number;
+  moderns: number;
+  classics: number;
   favorites: number;
   completed: number;
 }
@@ -116,6 +124,14 @@ export function filterLibraryByTab(
   library: LibraryGame[],
   selectedTab: LibraryFilterTab
 ) {
+  if (selectedTab === "moderns") {
+    return library.filter((game) => game.shop !== "launchbox");
+  }
+
+  if (selectedTab === "classics") {
+    return library.filter((game) => game.shop === "launchbox");
+  }
+
   if (selectedTab === "favorites") {
     return library.filter((game) => game.favorite);
   }
@@ -138,6 +154,8 @@ export function getLibraryFilterCounts(
 ): LibraryFilterCounts {
   return {
     all: library.length,
+    moderns: library.filter((game) => game.shop !== "launchbox").length,
+    classics: library.filter((game) => game.shop === "launchbox").length,
     favorites: library.filter((game) => game.favorite).length,
     completed: library.filter(isCompletedGame).length,
   };
@@ -149,16 +167,32 @@ export function getLastPlayedGames(library: LibraryGame[]) {
     .slice(0, LAST_PLAYED_GAMES_COUNT);
 }
 
+export function isLibraryGamePlayable(game: LibraryGame) {
+  if (game.shop === "launchbox") {
+    return (game.discs?.length ?? 0) > 0;
+  }
+
+  return Boolean(game.executablePath);
+}
+
+export function isLibraryGameInstalled(game: LibraryGame) {
+  if (game.shop === "launchbox") {
+    return false;
+  }
+
+  return Boolean(game.executablePath);
+}
+
 export function filterLibraryBySecondaryFilter(
   library: LibraryGame[],
   selectedFilter: LibrarySecondaryFilter
 ) {
   if (selectedFilter === "installed") {
-    return library.filter((game) => Boolean(game.executablePath));
+    return library.filter(isLibraryGameInstalled);
   }
 
   if (selectedFilter === "not_installed") {
-    return library.filter((game) => !game.executablePath);
+    return library.filter((game) => !isLibraryGameInstalled(game));
   }
 
   if (selectedFilter === "never_played") {
