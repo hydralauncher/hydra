@@ -1835,8 +1835,8 @@ export default function Profile() {
                         <div className="profile-page__achievements-lock-overlay">
                           <SparkleIcon size={24} weight="fill" />
                           <p>
-                            This user is required to have Hydra Cloud in order to
-                            display achievements in his profile.
+                            This user is required to have Hydra Cloud in order
+                            to display achievements in his profile.
                           </p>
                         </div>
                       </div>
