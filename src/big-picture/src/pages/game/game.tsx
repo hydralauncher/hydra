@@ -411,6 +411,9 @@ export default function Game() {
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
   const isLaunchboxGame = shop === "launchbox";
+  const developer = shopDetails?.developers?.[0] ?? "";
+  const publisher = shopDetails?.publishers?.[0] ?? "";
+  const releaseDate = shopDetails?.release_date?.date ?? "";
   const launchboxGenres = useMemo(() => {
     return ((shopDetails?.genres ?? []) as unknown[])
       .map((genre) => {
@@ -1385,36 +1388,38 @@ export default function Game() {
                       </div>
                     ) : null}
 
-                    {shopDetails.developers[0] && (
+                    {developer && (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Developed by
                         </Typography>
                         <Typography className="game-page__metadata-value">
-                          {shopDetails.developers[0]}
+                          {developer}
                         </Typography>
                       </div>
                     )}
 
-                    {shopDetails.publishers[0] && (
+                    {publisher && (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Published by
                         </Typography>
                         <Typography className="game-page__metadata-value">
-                          {shopDetails.publishers[0]}
+                          {publisher}
                         </Typography>
                       </div>
                     )}
 
-                    <div className="game-page__metadata-row">
-                      <Typography className="game-page__metadata-label">
-                        Release Date
-                      </Typography>
-                      <Typography className="game-page__metadata-value">
-                        {shopDetails.release_date.date}
-                      </Typography>
-                    </div>
+                    {releaseDate && (
+                      <div className="game-page__metadata-row">
+                        <Typography className="game-page__metadata-label">
+                          Release Date
+                        </Typography>
+                        <Typography className="game-page__metadata-value">
+                          {releaseDate}
+                        </Typography>
+                      </div>
+                    )}
                   </section>
                 </FocusItem>
 
