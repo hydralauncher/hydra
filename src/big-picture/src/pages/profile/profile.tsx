@@ -22,6 +22,7 @@ import type {
   UserDetails,
   UserFriend,
   UserFriends,
+  UserAchievement,
   UserGame,
   UserLibraryResponse,
   UserProfile,
@@ -328,6 +329,22 @@ function getComparedAchievement(
     displayName: achievement.displayName,
     description: achievement.description,
     unlockTime: achievement.targetStat.unlockTime,
+  };
+}
+
+function getOwnUnlockedAchievement(
+  achievement: UserAchievement
+): ProfileRecentAchievement | null {
+  if (!achievement.unlocked || typeof achievement.unlockTime !== "number") {
+    return null;
+  }
+
+  return {
+    key: `${achievement.displayName}-${achievement.unlockTime}`,
+    icon: achievement.icon,
+    displayName: achievement.displayName,
+    description: achievement.description ?? "",
+    unlockTime: achievement.unlockTime,
   };
 }
 
@@ -784,8 +801,26 @@ export default function Profile() {
         return [];
       }
 
-      return Promise.all(
+      const settled = await Promise.allSettled(
         gamesWithAchievements.map(async (game) => {
+          if (isOwnProfileTarget) {
+            const unlockedAchievements =
+              await globalThis.window.electron.getUnlockedAchievements(
+                game.objectId,
+                game.shop
+              );
+
+            return {
+              game,
+              achievements: unlockedAchievements
+                .map(getOwnUnlockedAchievement)
+                .filter(
+                  (achievement): achievement is ProfileRecentAchievement =>
+                    achievement !== null
+                ),
+            };
+          }
+
           const comparedAchievements =
             await globalThis.window.electron.getComparedUnlockedAchievements(
               game.objectId,
@@ -804,6 +839,17 @@ export default function Profile() {
           };
         })
       );
+
+      return settled
+        .filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<{
+            game: UserGame;
+            achievements: ProfileRecentAchievement[];
+          }> => result.status === "fulfilled"
+        )
+        .map((result) => result.value);
     };
 
     fetchRecentAchievementGroups()
@@ -825,7 +871,12 @@ export default function Profile() {
     return () => {
       isMounted = false;
     };
-  }, [achievementRefreshKey, targetHasActiveSubscription, targetUserId]);
+  }, [
+    achievementRefreshKey,
+    isOwnProfileTarget,
+    targetHasActiveSubscription,
+    targetUserId,
+  ]);
 
   const profileUser = useMemo(
     () => getProfileHeroUser(userDetails, externalProfile, userId),
