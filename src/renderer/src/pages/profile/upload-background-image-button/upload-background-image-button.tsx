@@ -6,6 +6,8 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
+import { getProfileImageMetadata } from "../profile-image-metadata";
+import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./upload-background-image-button.scss";
 
@@ -16,6 +18,10 @@ export function UploadBackgroundImageButton() {
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [showRemoveBannerModal, setShowRemoveBannerModal] = useState(false);
   const { showHydraCloudModal } = useSubscription();
+  const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(
+    null
+  );
+  const [cropIsAnimated, setCropIsAnimated] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { hasActiveSubscription } = useUserDetails();
@@ -69,7 +75,18 @@ export function UploadBackgroundImageButton() {
     });
 
     if (filePaths && filePaths.length > 0) {
-      uploadBanner(filePaths[0]);
+      const path = filePaths[0];
+      const metadata = await getProfileImageMetadata(path);
+
+      if (metadata.isAnimated) {
+        // Crop while preserving animation (handled in main/sharp).
+        setCropIsAnimated(true);
+        setBannerImageToCrop(path);
+        return;
+      }
+
+      setCropIsAnimated(false);
+      setBannerImageToCrop(path);
     }
   };
 
@@ -148,22 +165,39 @@ export function UploadBackgroundImageButton() {
     );
   }
 
+  const cropModal = (
+    <ProfileImageCropModal
+      visible={!!bannerImageToCrop}
+      imagePath={bannerImageToCrop}
+      variant="banner"
+      isAnimated={cropIsAnimated}
+      onClose={() => setBannerImageToCrop(null)}
+      onApply={(croppedImagePath) => {
+        setBannerImageToCrop(null);
+        uploadBanner(croppedImagePath);
+      }}
+    />
+  );
+
   // If no banner exists, show the original upload button
   if (!hasBanner) {
     return (
-      <div className="upload-background-image-button__wrapper">
-        <Button
-          theme="outline"
-          className="upload-background-image-button"
-          onClick={handleReplaceBanner}
-          disabled={isUploadingBackgroundImage}
-        >
-          <UploadIcon />
-          {isUploadingBackgroundImage
-            ? t("uploading_banner")
-            : t("upload_banner")}
-        </Button>
-      </div>
+      <>
+        {cropModal}
+        <div className="upload-background-image-button__wrapper">
+          <Button
+            theme="outline"
+            className="upload-background-image-button"
+            onClick={handleReplaceBanner}
+            disabled={isUploadingBackgroundImage}
+          >
+            <UploadIcon />
+            {isUploadingBackgroundImage
+              ? t("uploading_banner")
+              : t("upload_banner")}
+          </Button>
+        </div>
+      </>
     );
   }
 
@@ -214,6 +248,7 @@ export function UploadBackgroundImageButton() {
 
   return (
     <>
+      {cropModal}
       <div ref={buttonRef} className="upload-background-image-button__wrapper">
         <Button
           theme="outline"

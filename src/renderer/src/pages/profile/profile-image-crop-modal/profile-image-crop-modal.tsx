@@ -19,8 +19,8 @@ interface ProfileImageCropModalProps {
   visible: boolean;
   imagePath: string | null;
   variant: CropVariant;
-  /** When true the source is animated (GIF/WebP) and cropping is done in the
-   * main process via sharp so animation is preserved. */
+  /** Kept for callers that annotate animated inputs. All final crop/export
+   * work is handled in the main process so the renderer canvas is never tainted. */
   isAnimated?: boolean;
   onClose: () => void;
   onApply: (croppedImagePath: string) => void;
@@ -44,7 +44,6 @@ export function ProfileImageCropModal({
   visible,
   imagePath,
   variant,
-  isAnimated = false,
   onClose,
   onApply,
 }: ProfileImageCropModalProps) {
@@ -378,96 +377,24 @@ export function ProfileImageCropModal({
     setIsApplying(true);
 
     try {
-      // Animated sources (GIF/WebP) can't be cropped on a 2D canvas without
-      // losing animation, so delegate to the main process (sharp) with the
-      // crop rectangle expressed in natural source pixels.
       // Crop rectangle in the rotated source space the user is looking at.
       const sourceX = -position.x / scale;
       const sourceY = -position.y / scale;
       const sourceWidth = frameSize.width / scale;
       const sourceHeight = frameSize.height / scale;
 
-      if (isAnimated) {
-        const { imagePath: croppedImagePath } =
-          await window.electron.cropProfileImage(imagePath, {
-            left: sourceX,
-            top: sourceY,
-            width: sourceWidth,
-            height: sourceHeight,
-            outputWidth: outputSize.width,
-            outputHeight: outputSize.height,
-            rotation,
-          });
+      const { imagePath: croppedImagePath } =
+        await window.electron.cropProfileImage(imagePath, {
+          left: sourceX,
+          top: sourceY,
+          width: sourceWidth,
+          height: sourceHeight,
+          outputWidth: outputSize.width,
+          outputHeight: outputSize.height,
+          rotation,
+        });
 
-        onApply(croppedImagePath);
-        return;
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = outputSize.width;
-      canvas.height = outputSize.height;
-
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Could not create crop canvas");
-
-      // When rotated, render the rotated image into an intermediate canvas at
-      // natural resolution so the crop rectangle (which is in rotated space)
-      // maps correctly.
-      let cropSource: CanvasImageSource = imageRef.current;
-
-      if (rotation !== 0) {
-        const rotated = document.createElement("canvas");
-        rotated.width = effImageSize.width;
-        rotated.height = effImageSize.height;
-
-        const rotatedContext = rotated.getContext("2d");
-        if (!rotatedContext)
-          throw new Error("Could not create rotation canvas");
-
-        const naturalWidth = imageSize.width;
-        const naturalHeight = imageSize.height;
-
-        if (rotation === 90) rotatedContext.translate(naturalHeight, 0);
-        else if (rotation === 180)
-          rotatedContext.translate(naturalWidth, naturalHeight);
-        else if (rotation === 270) rotatedContext.translate(0, naturalWidth);
-
-        rotatedContext.rotate((rotation * Math.PI) / 180);
-        rotatedContext.drawImage(
-          imageRef.current,
-          0,
-          0,
-          naturalWidth,
-          naturalHeight
-        );
-
-        cropSource = rotated;
-      }
-
-      context.drawImage(
-        cropSource,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        outputSize.width,
-        outputSize.height
-      );
-
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/webp", 0.92)
-      );
-
-      if (!blob) throw new Error("Could not export cropped image");
-
-      const tempImagePath = await window.electron.saveTempFile(
-        `profile-${variant}-${Date.now()}.webp`,
-        new Uint8Array(await blob.arrayBuffer())
-      );
-
-      onApply(tempImagePath);
+      onApply(croppedImagePath);
     } catch (error) {
       logger.error("Failed to crop profile image", error);
       showErrorToast(t("image_process_failure"));
