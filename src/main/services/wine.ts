@@ -1,14 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { UserPreferences } from "@types";
 import { SystemPath } from "./system-path";
 
 export class Wine {
-  public static getDefaultPrefixPath(): string | null {
+  private static configuredDefaultPrefixPath: string | null = null;
+
+  private static getBuiltInDefaultPrefixPath(): string | null {
     if (process.platform !== "linux") {
       return null;
     }
 
     return path.join(SystemPath.getPath("userData"), "wine-prefixes");
+  }
+
+  public static syncUserPreferences(userPreferences: UserPreferences | null) {
+    this.configuredDefaultPrefixPath =
+      userPreferences?.defaultWinePrefixPath ?? null;
+  }
+
+  public static getDefaultPrefixPath(): string | null {
+    return (
+      this.configuredDefaultPrefixPath ?? this.getBuiltInDefaultPrefixPath()
+    );
   }
 
   public static getLegacyDefaultPrefixPath(): string | null {
