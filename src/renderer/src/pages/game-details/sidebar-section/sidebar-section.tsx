@@ -48,6 +48,7 @@ export function SidebarSection({
             className="sidebar-section__subtitle"
             target="_blank"
             rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
           >
             {subtitle}
             <LinkExternalIcon size={12} />
