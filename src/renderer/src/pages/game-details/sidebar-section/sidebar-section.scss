@@ -12,12 +12,17 @@
     flex-direction: column;
     padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
     gap: calc(globals.$spacing-unit / 2);
-    background-color: globals.$background-color;
     transition: background-color 0.2s ease;
+    cursor: pointer;
 
-    &:has(.sidebar-section__button:hover) {
+    &:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
+  }
+
+  &__button:active,
+  &__header:active &__button {
+    opacity: globals.$active-opacity;
   }
 
   &__button {
@@ -27,15 +32,10 @@
     background-color: transparent;
     color: globals.$muted-color;
     width: 100%;
-    cursor: pointer;
     transition: all ease 0.2s;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
     font-weight: bold;
-
-    &:active {
-      opacity: globals.$active-opacity;
-    }
   }
 
   &__subtitle {

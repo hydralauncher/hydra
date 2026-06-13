@@ -1,5 +1,4 @@
-import { ChevronDownIcon } from "@primer/octicons-react";
-import { LinkExternalIcon } from "@primer/octicons-react";
+import { ChevronDownIcon, LinkExternalIcon } from "@primer/octicons-react";
 import { useEffect, useRef, useState } from "react";
 import "./sidebar-section.scss";
 
@@ -30,19 +29,26 @@ export function SidebarSection({
 
   return (
     <div className="sidebar-section">
-      <div className="sidebar-section__header">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="sidebar-section__button"
-        >
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        className="sidebar-section__header"
+      >
+        <span className="sidebar-section__button">
           <ChevronDownIcon
             className={`sidebar-section__chevron ${
               isOpen ? "sidebar-section__chevron--open" : ""
             }`}
           />
           <span>{title}</span>
-        </button>
+        </span>
 
         {subtitle && subtitleHref && (
           <a
