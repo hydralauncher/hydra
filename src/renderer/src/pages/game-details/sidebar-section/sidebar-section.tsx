@@ -29,16 +29,8 @@ export function SidebarSection({
 
   return (
     <div className="sidebar-section">
-      <div
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setIsOpen(!isOpen);
-          }
-        }}
-        role="button"
-        tabIndex={0}
         className="sidebar-section__header"
       >
         <span className="sidebar-section__button">
@@ -61,7 +53,7 @@ export function SidebarSection({
             <LinkExternalIcon size={12} />
           </a>
         )}
-      </div>
+      </button>
 
       <div
         ref={content}

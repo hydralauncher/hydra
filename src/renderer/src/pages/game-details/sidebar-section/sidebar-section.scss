@@ -14,6 +14,8 @@
     gap: calc(globals.$spacing-unit / 2);
     transition: background-color 0.2s ease;
     cursor: pointer;
+    width: 100%;
+    border: none;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
