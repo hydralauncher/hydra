@@ -104,6 +104,7 @@ export function Header() {
   });
   const [showScanModal, setShowScanModal] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isRemovingExecutables, setIsRemovingExecutables] = useState(false);
   const [scanResult, setScanResult] = useState<{
     foundGames: { title: string; executablePath: string }[];
     total: number;
@@ -323,9 +324,10 @@ export function Header() {
     additionalDirectories: string[] = [],
     includeDefaultDirectories = true
   ) => {
-    if (isScanning) return;
+    if (isScanning || isRemovingExecutables) return;
 
     setIsScanning(true);
+    setIsRemovingExecutables(false);
     setScanResult(null);
     setRemoveExeResult(null);
 
@@ -335,11 +337,14 @@ export function Header() {
         includeDefaultDirectories
       );
       setScanResult(result);
+      setIsScanning(false);
+      setIsRemovingExecutables(true);
       const exeResult =
         await window.electron.removeUninstalledGameExecutables();
       setRemoveExeResult(exeResult);
     } finally {
       setIsScanning(false);
+      setIsRemovingExecutables(false);
     }
   };
 
@@ -488,6 +493,7 @@ export function Header() {
         visible={showScanModal}
         onClose={() => setShowScanModal(false)}
         isScanning={isScanning}
+        isRemovingExecutables={isRemovingExecutables}
         scanResult={scanResult}
         removeExecutableResult={removeExeResult}
         onStartScan={handleStartScan}
