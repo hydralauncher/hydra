@@ -381,7 +381,7 @@ export function GameDetailsContent() {
                   </button>
                 )}
 
-                {game?.shop !== "custom" && (
+                {game && game.shop !== "custom" && (
                   <button
                     type="button"
                     className="game-details__cloud-sync-button"
