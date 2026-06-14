@@ -29,10 +29,14 @@ export function SidebarSection({
 
   return (
     <div className="sidebar-section">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="sidebar-section__header"
-      >
+      <div className="sidebar-section__header">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="sidebar-section__toggle"
+          aria-expanded={isOpen}
+          aria-label={title}
+        />
+
         <span className="sidebar-section__button">
           <ChevronDownIcon
             className={`sidebar-section__chevron ${
@@ -48,20 +52,17 @@ export function SidebarSection({
             className="sidebar-section__subtitle"
             target="_blank"
             rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
           >
             {subtitle}
             <LinkExternalIcon size={12} />
           </a>
         )}
-      </button>
+      </div>
 
       <div
         ref={content}
         className="sidebar-section__content"
-        style={{
-          maxHeight: `${height}px`,
-        }}
+        style={{ maxHeight: `${height}px` }}
       >
         {children}
       </div>
