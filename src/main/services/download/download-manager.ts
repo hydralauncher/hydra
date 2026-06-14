@@ -27,7 +27,10 @@ import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
-import { JsHttpDownloader } from "./js-http-downloader";
+import {
+  DEFAULT_DOWNLOAD_USER_AGENT,
+  JsHttpDownloader,
+} from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import {
   getDownloadLayoutStateRecord,
@@ -1503,11 +1506,19 @@ export class DownloadManager {
   }) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const headers: Record<string, string> = { ...options.headers };
+    const hasUserAgentHeader = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "user-agent"
+    );
+
+    if (!hasUserAgentHeader) {
+      headers["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
+    }
 
     try {
       const response = await fetch(options.url, {
         method: "GET",
-        headers: options.headers,
+        headers,
         signal: controller.signal,
       });
       const contentType = response.headers.get("content-type") ?? "unknown";
