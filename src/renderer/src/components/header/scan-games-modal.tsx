@@ -33,6 +33,7 @@ export interface ScanGamesModalProps {
   visible: boolean;
   onClose: () => void;
   isScanning: boolean;
+  isRemovingExecutables: boolean;
   scanResult: ScanResult | null;
   removeExecutableResult: RemoveExecutableResult | null;
   onStartScan: (
@@ -46,6 +47,7 @@ export function ScanGamesModal({
   visible,
   onClose,
   isScanning,
+  isRemovingExecutables,
   scanResult,
   removeExecutableResult,
   onStartScan,
@@ -103,7 +105,7 @@ export function ScanGamesModal({
       visible={visible}
       title={t("scan_games_title")}
       onClose={handleClose}
-      clickOutsideToClose={!isScanning}
+      clickOutsideToClose={!isScanning && !isRemovingExecutables}
     >
       <div className="scan-games-modal">
         {!scanResult && !isScanning && (
@@ -232,6 +234,15 @@ export function ScanGamesModal({
               </p>
             )}
 
+            {isRemovingExecutables && !removeExecutableResult && (
+              <div className="scan-games-modal__scanning">
+                <SyncIcon size={24} className="scan-games-modal__spinner" />
+                <p className="scan-games-modal__scanning-text">
+                  {t("remove_executables_in_progress")}
+                </p>
+              </div>
+            )}
+
             {removeExecutableResult &&
               (removeExecutableResult.removedGames.length > 0 ? (
                 <>
@@ -266,7 +277,9 @@ export function ScanGamesModal({
         <div className="scan-games-modal__actions">
           <Button theme="outline" onClick={handleClose}>
             {scanResult
-              ? t("scan_games_close")
+              ? isRemovingExecutables
+                ? t("scan_games_hide")
+                : t("scan_games_close")
               : isScanning
                 ? t("scan_games_hide")
                 : t("scan_games_cancel")}
@@ -280,7 +293,7 @@ export function ScanGamesModal({
             </Button>
           )}
           {scanResult && (
-            <Button onClick={handleScanAgain}>
+            <Button onClick={handleScanAgain} disabled={isRemovingExecutables}>
               {t("scan_games_scan_again")}
             </Button>
           )}

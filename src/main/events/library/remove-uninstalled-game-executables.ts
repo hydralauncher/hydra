@@ -14,7 +14,9 @@ const removeUninstalledGameExecutables = async () => {
     .all()
     .then((results) =>
       results
-        .filter(([_key, game]) => game.isDeleted === false)
+        .filter(
+          ([_key, game]) => game.isDeleted === false && game.shop !== "custom"
+        )
         .map(([key, game]) => ({ key, game }))
     );
 

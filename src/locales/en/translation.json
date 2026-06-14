@@ -148,6 +148,7 @@
     "scan_games_remove_folder": "Remove folder",
     "scan_games_folders_hint_manual": "Add at least one folder to scan for games.",
     "scan_games_detection_warning": "Detection relies on a community-maintained list of known games and may be outdated, so some games might not be found.",
+    "remove_executables_in_progress": "Checking for uninstalled game executables...",
     "remove_executables_result": "Removed {{removed}} of {{total}} uninstalled game executables",
     "remove_executables_no_results": "No uninstalled game executables found."
   },
