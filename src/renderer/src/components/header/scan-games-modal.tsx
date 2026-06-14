@@ -24,11 +24,17 @@ interface ScanResult {
   total: number;
 }
 
+interface RemoveExecutableResult {
+  removedGames: { title: string }[];
+  total: number;
+}
+
 export interface ScanGamesModalProps {
   visible: boolean;
   onClose: () => void;
   isScanning: boolean;
   scanResult: ScanResult | null;
+  removeExecutableResult: RemoveExecutableResult | null;
   onStartScan: (
     additionalDirectories: string[],
     includeDefaultDirectories: boolean
@@ -41,6 +47,7 @@ export function ScanGamesModal({
   onClose,
   isScanning,
   scanResult,
+  removeExecutableResult,
   onStartScan,
   onClearResult,
 }: Readonly<ScanGamesModalProps>) {
@@ -224,6 +231,35 @@ export function ScanGamesModal({
                 {t("scan_games_no_results")}
               </p>
             )}
+
+            {removeExecutableResult &&
+              (removeExecutableResult.removedGames.length > 0 ? (
+                <>
+                  <p className="scan-games-modal__result">
+                    {t("remove_executables_result", {
+                      removed: removeExecutableResult.removedGames.length,
+                      total: removeExecutableResult.total,
+                    })}
+                  </p>
+
+                  <ul className="scan-games-modal__games-list">
+                    {removeExecutableResult.removedGames.map((game, index) => (
+                      <li
+                        key={`${game.title}-${index}`}
+                        className="scan-games-modal__game-item"
+                      >
+                        <span className="scan-games-modal__game-title">
+                          {game.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="scan-games-modal__no-results">
+                  {t("remove_executables_no_results")}
+                </p>
+              ))}
           </div>
         )}
 

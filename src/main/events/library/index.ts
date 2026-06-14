@@ -39,6 +39,7 @@ import "./remove-game";
 import "./reset-game-achievements";
 import "./reset-game-playtime";
 import "./scan-installed-games";
+import "./remove-uninstalled-game-executables";
 import "./select-game-proton-path";
 import "./select-game-wine-prefix";
 import "./toggle-automatic-cloud-sync";

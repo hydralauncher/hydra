@@ -112,6 +112,10 @@ export function Header() {
     foundGames: { title: string; executablePath: string }[];
     total: number;
   } | null>(null);
+  const [removeExeResult, setRemoveExeResult] = useState<{
+    removedGames: { title: string }[];
+    total: number;
+  } | null>(null);
 
   const { t } = useTranslation("header");
 
@@ -327,6 +331,7 @@ export function Header() {
 
     setIsScanning(true);
     setScanResult(null);
+    setRemoveExeResult(null);
 
     try {
       const result = await window.electron.scanInstalledGames(
@@ -334,6 +339,9 @@ export function Header() {
         includeDefaultDirectories
       );
       setScanResult(result);
+      const exeResult =
+        await window.electron.removeUninstalledGameExecutables();
+      setRemoveExeResult(exeResult);
     } finally {
       setIsScanning(false);
     }
@@ -341,6 +349,7 @@ export function Header() {
 
   const handleClearScanResult = () => {
     setScanResult(null);
+    setRemoveExeResult(null);
   };
 
   useEffect(() => {
@@ -507,6 +516,7 @@ export function Header() {
         onClose={() => setShowScanModal(false)}
         isScanning={isScanning}
         scanResult={scanResult}
+        removeExecutableResult={removeExeResult}
         onStartScan={handleStartScan}
         onClearResult={handleClearScanResult}
       />
