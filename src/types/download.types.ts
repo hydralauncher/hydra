@@ -98,6 +98,42 @@ export interface TorBoxAddTorrentRequest {
   };
 }
 
+export interface TorBoxAddWebDownloadRequest {
+  success: boolean;
+  detail: string;
+  error: string;
+  data: {
+    webdownload_id?: string;
+    name?: string;
+    hash?: string;
+  };
+}
+
+export interface TorBoxWebDownloadFile {
+  id: number;
+  name: string;
+  size?: number;
+  mimetype?: string;
+  short_name?: string;
+  s3_path?: string;
+}
+
+export interface TorBoxWebDownloadInfo {
+  id: number;
+  name?: string;
+  hash?: string;
+  cached?: boolean;
+  download_state?: string;
+  files?: TorBoxWebDownloadFile[];
+}
+
+export interface TorBoxWebDownloadInfoRequest {
+  success: boolean;
+  detail: string;
+  error: string;
+  data: TorBoxWebDownloadInfo[] | TorBoxWebDownloadInfo;
+}
+
 export interface TorBoxRequestLinkRequest {
   success: boolean;
   detail: string;
