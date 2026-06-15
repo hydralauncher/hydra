@@ -326,22 +326,24 @@ export function Header() {
   ) => {
     if (isScanning || isRemovingExecutables) return;
 
-    setIsScanning(true);
-    setIsRemovingExecutables(false);
+    setIsScanning(false);
+    setIsRemovingExecutables(true);
     setScanResult(null);
     setRemoveExeResult(null);
 
     try {
+      const exeResult =
+        await window.electron.removeUninstalledGameExecutables();
+      setRemoveExeResult(exeResult);
+
+      setIsRemovingExecutables(false);
+      setIsScanning(true);
+
       const result = await window.electron.scanInstalledGames(
         additionalDirectories,
         includeDefaultDirectories
       );
       setScanResult(result);
-      setIsScanning(false);
-      setIsRemovingExecutables(true);
-      const exeResult =
-        await window.electron.removeUninstalledGameExecutables();
-      setRemoveExeResult(exeResult);
     } finally {
       setIsScanning(false);
       setIsRemovingExecutables(false);
