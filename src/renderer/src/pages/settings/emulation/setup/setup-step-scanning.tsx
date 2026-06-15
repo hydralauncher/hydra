@@ -9,6 +9,8 @@ import {
 } from "@primer/octicons-react";
 import { Gamepad2 } from "lucide-react";
 
+import { ClassicsSpinner } from "@renderer/components";
+
 type Phase = "scanning" | "matching" | "done";
 
 interface Props {
@@ -18,11 +20,11 @@ interface Props {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
   discovered: number;
   matched: number;
   sizeBytes: number;
-  unmatchedFiles: string[];
+  unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
 }
 
 const formatBytes = (bytes: number): string => {
@@ -64,6 +66,11 @@ export function SetupStepScanning({
 
   const gamesValue = isDone || matched > 0 ? matched : discovered;
 
+  const reasonLabel = (reason: "wrong_platform" | "unmatched") =>
+    reason === "wrong_platform"
+      ? t("setup_match_wrong_platform")
+      : t("setup_match_unmatched");
+
   return (
     <>
       <h3 className="setup-modal__body-title">
@@ -79,7 +86,7 @@ export function SetupStepScanning({
               className="setup-modal__progress-check"
             />
           ) : (
-            <span className="setup-modal__ring" aria-hidden="true" />
+            <ClassicsSpinner size={14} />
           )}
           <span>{phaseLabel}</span>
         </span>
@@ -114,7 +121,7 @@ export function SetupStepScanning({
               {`→ ${
                 status === "matched"
                   ? t("setup_match_matched")
-                  : t("setup_match_unmatched")
+                  : reasonLabel(status)
               }`}
             </span>
           )}
@@ -123,17 +130,17 @@ export function SetupStepScanning({
 
       <div className="setup-modal__stats">
         <div className="setup-modal__stat">
-          <span className="setup-modal__stat-icon">
-            <Gamepad2 size={16} />
-          </span>
-          <span className="setup-modal__stat-label">{t("stat_games")}</span>
+          <div className="setup-modal__stat-head">
+            <Gamepad2 size={16} className="setup-modal__stat-icon" />
+            <span className="setup-modal__stat-label">{t("stat_games")}</span>
+          </div>
           <span className="setup-modal__stat-value">{gamesValue}</span>
         </div>
         <div className="setup-modal__stat">
-          <span className="setup-modal__stat-icon">
-            <DatabaseIcon size={16} />
-          </span>
-          <span className="setup-modal__stat-label">{t("stat_storage")}</span>
+          <div className="setup-modal__stat-head">
+            <DatabaseIcon size={16} className="setup-modal__stat-icon" />
+            <span className="setup-modal__stat-label">{t("stat_storage")}</span>
+          </div>
           <span className="setup-modal__stat-value">
             {formatBytes(sizeBytes)}
           </span>
@@ -161,14 +168,21 @@ export function SetupStepScanning({
             <ul className="setup-modal__unmatched-list">
               {unmatchedFiles.map((file, index) => (
                 <li
-                  key={`${file}-${index}`}
+                  key={`${file.name}-${index}`}
                   className="setup-modal__unmatched-item"
                 >
                   <FileDirectoryIcon
                     size={14}
                     className="setup-modal__unmatched-icon"
                   />
-                  <span className="setup-modal__unmatched-name">{file}</span>
+                  <span className="setup-modal__unmatched-name">
+                    {file.name}
+                  </span>
+                  <span
+                    className={`setup-modal__unmatched-reason setup-modal__unmatched-reason--${file.reason}`}
+                  >
+                    {reasonLabel(file.reason)}
+                  </span>
                 </li>
               ))}
             </ul>

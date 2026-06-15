@@ -288,6 +288,13 @@ const persistRomFolder = async (
 
 export type ProgressPhase = "scanning" | "matching";
 
+export type UnmatchedReason = "wrong_platform" | "unmatched";
+
+export interface UnmatchedFile {
+  name: string;
+  reason: UnmatchedReason;
+}
+
 export type LaunchboxImportProgress = {
   type: "progress";
   phase: ProgressPhase;
@@ -295,7 +302,7 @@ export type LaunchboxImportProgress = {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | UnmatchedReason | null;
   discovered: number;
   matched: number;
   sizeBytes: number;
@@ -340,7 +347,7 @@ export interface LaunchboxImportResult {
   sizeBytes: number;
   matched: number;
   unmatched: number;
-  unmatchedFiles: string[];
+  unmatchedFiles: UnmatchedFile[];
   cancelled: boolean;
 }
 
@@ -361,6 +368,7 @@ interface EnrichedGame {
   sku: string | null;
   entry: LaunchboxShopDetailsEntry | null;
   groupKey: string;
+  reason: "matched" | UnmatchedReason;
 }
 
 type SkuLookup = Awaited<ReturnType<typeof fetchShopDetailsForSkus>>;
@@ -377,7 +385,7 @@ const cancelledResult = (
   sizeBytes = 0,
   matched = 0,
   unmatched = 0,
-  unmatchedFiles: string[] = []
+  unmatchedFiles: UnmatchedFile[] = []
 ): LaunchboxImportResult => ({
   fileCount,
   sizeBytes,
@@ -517,7 +525,13 @@ const buildEnriched = (
     const platformOk = entry
       ? entryMatchesSystemPlatform(entry, system)
       : false;
-    const success = Boolean(entry?.objectId && entry?.data) && platformOk;
+    const hasEntry = Boolean(entry?.objectId && entry?.data);
+    const success = hasEntry && platformOk;
+    const reason: "matched" | UnmatchedReason = success
+      ? "matched"
+      : hasEntry
+        ? "wrong_platform"
+        : "unmatched";
     const groupKey =
       system === "ps3"
         ? game.primaryPath
@@ -527,13 +541,14 @@ const buildEnriched = (
       sku,
       normalizedSku: sku ? normalizeSku(sku) : null,
       matched: success,
+      reason,
       platform: entry?.platform ?? entry?.data?.platform ?? null,
       platformOk,
       objectId: success ? entry?.objectId : null,
       title: success ? entry?.data?.title : null,
       groupKey,
     });
-    return { game, sku, entry: success ? entry : null, groupKey };
+    return { game, sku, entry: success ? entry : null, groupKey, reason };
   });
 
   const groupCanonical = new Map<string, LaunchboxShopDetailsEntry>();
@@ -554,18 +569,18 @@ const aggregateMatches = (
     processed: number,
     total: number,
     currentFile: string,
-    status: "matched" | "unmatched",
+    status: "matched" | UnmatchedReason,
     matched: number,
     sizeBytes: number
   ) => void
 ): {
   unmatched: number;
-  unmatchedFiles: string[];
+  unmatchedFiles: UnmatchedFile[];
   titleByFolder: TitleByFolder;
   discsByTitle: DiscsByTitle;
 } => {
   let unmatched = 0;
-  const unmatchedFiles: string[] = [];
+  const unmatchedFiles: UnmatchedFile[] = [];
   const seenUnmatchedGroups = new Set<string>();
   const titleByFolder: TitleByFolder = new Map();
   const discsByTitle: DiscsByTitle = new Map();
@@ -573,7 +588,7 @@ const aggregateMatches = (
 
   for (let i = 0; i < enriched.length; i++) {
     if (signal.cancelled) break;
-    const { game, sku, groupKey } = enriched[i];
+    const { game, sku, groupKey, reason } = enriched[i];
     const canonical = groupCanonical.get(groupKey);
 
     if (canonical) {
@@ -601,14 +616,17 @@ const aggregateMatches = (
     } else if (!seenUnmatchedGroups.has(groupKey)) {
       seenUnmatchedGroups.add(groupKey);
       unmatched += 1;
-      unmatchedFiles.push(game.name);
+      unmatchedFiles.push({
+        name: game.name,
+        reason: reason === "matched" ? "unmatched" : reason,
+      });
     }
 
     onMatch?.(
       i + 1,
       enriched.length,
       game.name,
-      canonical ? "matched" : "unmatched",
+      canonical ? "matched" : reason,
       titleByFolder.size,
       matchedSizeBytes
     );

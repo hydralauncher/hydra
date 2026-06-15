@@ -1114,6 +1114,7 @@
     "setup_scan_complete": "Scan complete",
     "setup_match_matched": "matched",
     "setup_match_unmatched": "unmatched",
+    "setup_match_wrong_platform": "wrong platform",
     "setup_unmatched_title_one": "{{count}} file couldn't be matched",
     "setup_unmatched_title_other": "{{count}} files couldn't be matched",
     "setup_scan_count": "{{processed}} of {{total}}",

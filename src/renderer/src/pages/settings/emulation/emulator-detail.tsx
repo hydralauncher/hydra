@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
@@ -262,10 +262,11 @@ export function EmulatorDetail({
     );
   }, [config.romFolders, config.system, start, showErrorToast, t]);
 
+  const lastScanNonceRef = useRef(scan.completedNonce);
   useEffect(() => {
-    if (scan.completedNonce === 0 || scan.completedSystem !== config.system) {
-      return;
-    }
+    if (scan.completedNonce === lastScanNonceRef.current) return;
+    lastScanNonceRef.current = scan.completedNonce;
+    if (scan.completedSystem !== config.system) return;
     void refresh();
     showSuccessToast(
       t("scan_complete_toast", {
@@ -273,8 +274,15 @@ export function EmulatorDetail({
         unmatched: scan.result?.unmatched ?? 0,
       })
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scan.completedNonce]);
+  }, [
+    scan.completedNonce,
+    scan.completedSystem,
+    scan.result,
+    config.system,
+    refresh,
+    showSuccessToast,
+    t,
+  ]);
 
   const storageLabel = useMemo(
     () => formatBytes(config.totalSizeBytes),

@@ -62,7 +62,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 120px;
+    flex: 1 1 0;
+    min-width: 0;
 
     &--end {
       justify-content: flex-end;
@@ -87,6 +88,7 @@
   &__dots {
     display: flex;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   &__dot {
@@ -443,17 +445,8 @@
     font-weight: 600;
   }
 
-  &__ring {
-    width: 14px;
-    height: 14px;
-    border-radius: 999px;
-    border: 3px dashed globals.$classics-washed;
-    animation: setup-spin 1s linear infinite;
-    flex-shrink: 0;
-  }
-
   &__progress-check {
-    color: globals.$classics-washed;
+    color: #8e919b;
     flex-shrink: 0;
   }
 
@@ -489,6 +482,10 @@
     &--unmatched {
       color: #71717a;
     }
+
+    &--wrong_platform {
+      color: globals.$classics-washed;
+    }
   }
 
   &__spin {
@@ -520,29 +517,28 @@
     border-radius: 10px;
     padding: 16px;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 10px;
   }
 
-  &__stat-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #8e919b;
+  &__stat-head {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+  }
+
+  &__stat-icon {
+    color: #8e919b;
     flex-shrink: 0;
   }
 
   &__stat-label {
-    font-size: 14px;
-    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 500;
+    color: #8e919b;
   }
 
   &__stat-value {
-    margin-left: auto;
     font-size: 21px;
     font-weight: 700;
     letter-spacing: -0.21px;
@@ -754,5 +750,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  &__unmatched-reason {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+
+    &--unmatched {
+      color: #71717a;
+    }
+
+    &--wrong_platform {
+      color: globals.$classics-washed;
+    }
   }
 }

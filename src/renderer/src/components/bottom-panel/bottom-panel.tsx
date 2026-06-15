@@ -13,8 +13,6 @@ import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
 
-import { ClassicsScanIndicator } from "../classics-scan-indicator/classics-scan-indicator";
-
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
 
@@ -161,8 +159,6 @@ export function BottomPanel() {
       >
         <small>{status}</small>
       </button>
-
-      <ClassicsScanIndicator />
 
       <button
         data-open-workwonders-changelog-mini

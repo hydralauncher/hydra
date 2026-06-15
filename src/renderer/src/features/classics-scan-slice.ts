@@ -8,7 +8,7 @@ export interface ClassicsScanResult {
   sizeBytes: number;
   matched: number;
   unmatched: number;
-  unmatchedFiles: string[];
+  unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
 }
 
 export interface ClassicsScanState {
@@ -21,7 +21,7 @@ export interface ClassicsScanState {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
   discovered: number;
   matched: number;
   sizeBytes: number;
@@ -63,7 +63,7 @@ interface ProgressPayload {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
   discovered: number;
   matched: number;
   sizeBytes: number;
@@ -77,7 +77,7 @@ interface SnapshotPayload {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
   discovered: number;
   matched: number;
   sizeBytes: number;

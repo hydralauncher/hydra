@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next";
 
 import { useClassicsScan } from "@renderer/hooks";
 
+import { ClassicsSpinner } from "../classics-spinner/classics-spinner";
+
 import "./classics-scan-indicator.scss";
 
 interface Props {
@@ -22,7 +24,7 @@ export function ClassicsScanIndicator({ variant = "panel" }: Readonly<Props>) {
       className={`classics-scan-indicator classics-scan-indicator--${variant}`}
       onClick={openModal}
     >
-      <span className="classics-scan-indicator__ring" aria-hidden="true" />
+      <ClassicsSpinner size={13} />
       <span className="classics-scan-indicator__label">
         {t("scanning_system_label", { system: scan.system.toUpperCase() })}
       </span>

@@ -355,7 +355,7 @@ contextBridge.exposeInMainWorld("electron", {
             total: number;
             percent: number;
             currentFile: string | null;
-            status: "matched" | "unmatched" | null;
+            status: "matched" | "wrong_platform" | "unmatched" | null;
             discovered: number;
             matched: number;
             sizeBytes: number;
@@ -368,7 +368,10 @@ contextBridge.exposeInMainWorld("electron", {
             sizeBytes: number;
             matched: number;
             unmatched: number;
-            unmatchedFiles: string[];
+            unmatchedFiles: {
+              name: string;
+              reason: "wrong_platform" | "unmatched";
+            }[];
           }
         | {
             type: "error";
@@ -564,7 +567,7 @@ contextBridge.exposeInMainWorld("electron", {
     total: number;
     percent: number;
     currentFile: string | null;
-    status: "matched" | "unmatched" | null;
+    status: "matched" | "wrong_platform" | "unmatched" | null;
     discovered: number;
     matched: number;
     sizeBytes: number;

@@ -8,7 +8,7 @@ export interface ClassicsImportSnapshot {
   total: number;
   percent: number;
   currentFile: string | null;
-  status: "matched" | "unmatched" | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
   discovered: number;
   matched: number;
   sizeBytes: number;
