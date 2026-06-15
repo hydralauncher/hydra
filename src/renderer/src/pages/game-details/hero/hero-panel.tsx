@@ -34,11 +34,12 @@ export function HeroPanel() {
           ? formatDate(latestRepack.uploadDate!)
           : "";
         const repacksCount = repacks.length;
-
+        const downloadOptions =
+          repacksCount > 1 ? "download_options_other" : "download_options_one";
         return (
           <>
             <p>{t("updated_at", { updated_at: lastUpdate })}</p>
-            <p>{t("download_options", { count: repacksCount })}</p>
+            <p>{t(downloadOptions, { count: repacksCount })}</p>
           </>
         );
       }

@@ -196,7 +196,7 @@
     "open_download_options": "Открыть источники",
     "download_options_zero": "Нет источников",
     "download_options_one": "{{count}} источник",
-    "download_options_other": "{{count}} источников",
+    "download_options_other": "Источников: {{count}}",
     "updated_at": "Обновлено {{updated_at}}",
     "install": "Установить",
     "resume": "Возобновить",
@@ -301,7 +301,7 @@
     "edit_game_modal_fill_required": "Пожалуйста, заполните все обязательные поля",
     "edit_game_modal_failed": "Не удалось обновить ресурсы",
     "executable_section_title": "Файл",
-    "executable_section_description": "Путь к файлу, который будет запущен при нажатии на \"Play\"",
+    "executable_section_description": "Путь к файлу, который будет запущен при нажатии на \"Играть\"",
     "shortcuts_section_title": "Ярлыки",
     "shortcuts_section_description": "Создайте ярлыки для быстрого запуска этой игры",
     "downloads_section_title": "Загрузки",
@@ -1269,7 +1269,11 @@
     "loading_reviews": "Загрузка отзывов...",
     "wrapped_2025": "Wrapped 2025",
     "classics": "Классика",
-    "platform_classics": "Классика"
+    "platform": "Платформы",
+    "platform_classics": "Классика",
+    "platform_all": "Все",
+    "platform_pc": "ПК",
+    "no_reviews": "Пока нет отзывов"
   },
   "library": {
     "library": "Библиотека",
@@ -1289,7 +1293,12 @@
     "amount_hours_short": "{{amount}}ч",
     "amount_minutes_short": "{{amount}}м",
     "manual_playtime_tooltip": "Время игры было обновлено вручную",
+    "installed": "Готово",
     "all_games": "Все игры",
+    "category_all": "Все",
+    "category_pc": "ПК",
+    "category_classics": "Классика",
+    "all_consoles": "Все консоли",
     "sort_by": "Сортировать по",
     "sort_title_asc": "По названию (A-Z)",
     "sort_title_desc": "По названию (Z-A)",
@@ -1314,10 +1323,8 @@
     "disk_usage": "Использование диска",
     "disk_usage_tooltip": "Установленный размер на диске",
     "installer_size_tooltip": "Размер установщика",
-    "category_classics": "Классика",
     "importing_classics_title": "Импорт вашей классики",
-    "importing_classics_description": "Мы сканируем ваши папки ROM, чтобы вернуть вашу классику. Это может занять некоторое время.",
-    "all_consoles": "Все консоли"
+    "importing_classics_description": "Мы сканируем ваши папки ROM, чтобы вернуть вашу классику. Это может занять некоторое время."
   },
   "achievement": {
     "achievement_unlocked": "Достижение разблокировано",
