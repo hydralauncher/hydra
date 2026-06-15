@@ -201,6 +201,15 @@ export function ScanGamesModal({
           </div>
         )}
 
+        {isRemovingExecutables && !removeExecutableResult && !scanResult && (
+          <div className="scan-games-modal__scanning">
+            <SyncIcon size={24} className="scan-games-modal__spinner" />
+            <p className="scan-games-modal__scanning-text">
+              {t("remove_executables_in_progress")}
+            </p>
+          </div>
+        )}
+
         {scanResult && (
           <div className="scan-games-modal__results">
             {scanResult.foundGames.length > 0 ? (
@@ -232,15 +241,6 @@ export function ScanGamesModal({
               <p className="scan-games-modal__no-results">
                 {t("scan_games_no_results")}
               </p>
-            )}
-
-            {isRemovingExecutables && !removeExecutableResult && (
-              <div className="scan-games-modal__scanning">
-                <SyncIcon size={24} className="scan-games-modal__spinner" />
-                <p className="scan-games-modal__scanning-text">
-                  {t("remove_executables_in_progress")}
-                </p>
-              </div>
             )}
 
             {removeExecutableResult &&
@@ -280,14 +280,16 @@ export function ScanGamesModal({
               ? isRemovingExecutables
                 ? t("scan_games_hide")
                 : t("scan_games_close")
-              : isScanning
+              : isScanning || isRemovingExecutables
                 ? t("scan_games_hide")
                 : t("scan_games_cancel")}
           </Button>
           {!scanResult && (
             <Button
               onClick={handleStartScan}
-              disabled={isScanning || requiresFolderSelection}
+              disabled={
+                isScanning || isRemovingExecutables || requiresFolderSelection
+              }
             >
               {t("scan_games_start")}
             </Button>
