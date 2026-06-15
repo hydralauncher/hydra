@@ -356,6 +356,7 @@ type ScannedGameInfo = {
   primaryPath: string;
   name: string;
   sizeBytes: number;
+  wrongPlatform: boolean;
 };
 
 interface GameSku {
@@ -485,26 +486,27 @@ const resolveSkus = async (
     if (signal.cancelled) break;
     const game = collected[i];
 
-    let sku = ps3PathIndex
-      ? lookupYmlSku(ps3PathIndex, game.primaryPath)
-      : null;
-    const fromYml = sku !== null;
-    if (!sku) {
-      sku = await emulators.extractDiscSku(game.primaryPath, system);
-      if (system === "ps3" && sku) {
-        ps3ExtractedForYml.set(
-          normalizeSku(sku),
-          ymlValueForGame(game.primaryPath)
-        );
+    let sku: string | null = null;
+    if (!game.wrongPlatform) {
+      sku = ps3PathIndex ? lookupYmlSku(ps3PathIndex, game.primaryPath) : null;
+      const fromYml = sku !== null;
+      if (!sku) {
+        sku = await emulators.extractDiscSku(game.primaryPath, system);
+        if (system === "ps3" && sku) {
+          ps3ExtractedForYml.set(
+            normalizeSku(sku),
+            ymlValueForGame(game.primaryPath)
+          );
+        }
       }
-    }
 
-    logger.log("[launchbox-import] SKU extract", {
-      system,
-      file: game.primaryPath,
-      sku,
-      source: fromYml ? "games.yml" : "disc",
-    });
+      logger.log("[launchbox-import] SKU extract", {
+        system,
+        file: game.primaryPath,
+        sku,
+        source: fromYml ? "games.yml" : "disc",
+      });
+    }
     gameSkus.push({ game, sku });
     onExtract?.(i + 1, collected.length, game.name);
   }
@@ -521,6 +523,23 @@ const buildEnriched = (
   groupCanonical: Map<string, LaunchboxShopDetailsEntry>;
 } => {
   const enriched: EnrichedGame[] = gameSkus.map(({ game, sku }) => {
+    const groupKey =
+      system === "ps3"
+        ? game.primaryPath
+        : `${game.folderPath}::${stripDiscMarker(game.name)}`;
+
+    if (game.wrongPlatform) {
+      logger.log("[launchbox-import] match", {
+        file: game.primaryPath,
+        sku,
+        matched: false,
+        reason: "wrong_platform",
+        source: "sniff",
+        groupKey,
+      });
+      return { game, sku, entry: null, groupKey, reason: "wrong_platform" };
+    }
+
     const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
     const platformOk = entry
       ? entryMatchesSystemPlatform(entry, system)
@@ -532,10 +551,6 @@ const buildEnriched = (
       : hasEntry
         ? "wrong_platform"
         : "unmatched";
-    const groupKey =
-      system === "ps3"
-        ? game.primaryPath
-        : `${game.folderPath}::${stripDiscMarker(game.name)}`;
     logger.log("[launchbox-import] match", {
       file: game.primaryPath,
       sku,

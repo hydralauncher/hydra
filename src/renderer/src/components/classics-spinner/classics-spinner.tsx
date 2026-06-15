@@ -1,14 +1,14 @@
 import "./classics-spinner.scss";
 
 const SEGMENTS = [
-  { id: "a", color: "#ffe978" },
-  { id: "b", color: "#86cc83" },
-  { id: "c", color: "#86cc83" },
-  { id: "d", color: "#61c2ea" },
-  { id: "e", color: "#61c2ea" },
-  { id: "f", color: "#f6736a" },
-  { id: "g", color: "#f5a46d" },
-  { id: "h", color: "#f5a46d" },
+  { id: "a", color: "#fb0026" },
+  { id: "b", color: "#c80078" },
+  { id: "c", color: "#c80078" },
+  { id: "d", color: "#7300a4" },
+  { id: "e", color: "#7300a4" },
+  { id: "f", color: "#f8c802" },
+  { id: "g", color: "#fc5812" },
+  { id: "h", color: "#fc5812" },
 ];
 
 interface Props {
