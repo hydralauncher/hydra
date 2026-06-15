@@ -514,7 +514,7 @@ export function GeneralSettingsSection({
               {transferGameSize && (
                 <>
                   {" "}
-                  (<span style={{ color: "#4ade80" }}>{transferGameSize}</span>)
+                  (<span style={{ color: "#ffffff" }}>{transferGameSize}</span>)
                 </>
               )}
             </h4>
@@ -557,7 +557,7 @@ export function GeneralSettingsSection({
                       <HardDrive
                         size={18}
                         className="drive-card__icon"
-                        color={isCurrentDrive ? "#4ade80" : undefined}
+                        color={isCurrentDrive ? "#ffffff" : undefined}
                       />
                       <div className="drive-card__body">
                         <div className="drive-card__top">
