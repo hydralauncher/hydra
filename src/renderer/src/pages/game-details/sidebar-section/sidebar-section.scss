@@ -8,34 +8,46 @@
   overflow: hidden;
 
   &__header {
+    position: relative;
     display: flex;
     flex-direction: column;
     padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
     gap: calc(globals.$spacing-unit / 2);
-    background-color: globals.$background-color;
     transition: background-color 0.2s ease;
 
-    &:has(.sidebar-section__button:hover) {
+    &:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
   }
 
-  &__button {
-    padding: 0;
-    display: flex;
-    align-items: center;
-    background-color: transparent;
-    color: globals.$muted-color;
-    width: 100%;
+  &__toggle {
+    position: absolute;
+    inset: 0;
+    background: none;
+    border: none;
     cursor: pointer;
-    transition: all ease 0.2s;
-    gap: globals.$spacing-unit;
-    font-size: globals.$body-font-size;
-    font-weight: bold;
+    width: 100%;
+    height: 100%;
+    transition: opacity ease 0.2s;
 
     &:active {
       opacity: globals.$active-opacity;
     }
+  }
+
+  &__toggle:active + &__button {
+    opacity: globals.$active-opacity;
+  }
+
+  &__button {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+    transition: all ease 0.2s;
+    font-weight: bold;
+    pointer-events: none;
   }
 
   &__subtitle {
@@ -45,6 +57,8 @@
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     width: fit-content;
+    position: relative;
+    z-index: 1;
     transition: opacity ease 0.2s;
 
     &:hover {
