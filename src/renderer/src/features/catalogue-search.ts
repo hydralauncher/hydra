@@ -3,11 +3,14 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { CatalogueSearchPayload } from "@types";
 
+export type CatalogueMode = "modern" | "classics";
+
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
   page: number;
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
+  mode: CatalogueMode;
 }
 
 const initialState: CatalogueSearchState = {
@@ -22,10 +25,12 @@ const initialState: CatalogueSearchState = {
     developers: [],
     protondbSupportBadges: [],
     deckCompatibility: [],
+    platforms: [],
   },
   steamUserTags: {},
   steamGenres: {},
   page: 1,
+  mode: "modern",
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -58,6 +63,22 @@ export const catalogueSearchSlice = createSlice({
     setGenres: (state, action: PayloadAction<Record<string, string[]>>) => {
       state.steamGenres = action.payload;
     },
+    setMode: (state, action: PayloadAction<CatalogueMode>) => {
+      state.mode = action.payload;
+      state.page = initialState.page;
+      state.filters = {
+        ...state.filters,
+        tags: [],
+        genres: [],
+        developers: [],
+        publishers: [],
+        downloadSourceFingerprints: [],
+        protondbSupportBadges: [],
+        deckCompatibility: [],
+        releaseYear: undefined,
+        platforms: [],
+      };
+    },
   },
 });
 
@@ -68,4 +89,5 @@ export const {
   clearPage,
   setTags,
   setGenres,
+  setMode,
 } = catalogueSearchSlice.actions;

@@ -103,7 +103,11 @@ export class HydraApi {
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
-      uploadGamesBatch();
+      void uploadGamesBatch().finally(() => {
+        void import("../events/emulators/reimport-classics-games")
+          .then(({ reimportClassicsGames }) => reimportClassicsGames())
+          .catch(() => {});
+      });
 
       WSClient.close();
       WSClient.connect();
@@ -121,6 +125,7 @@ export class HydraApi {
       subscription: null,
     };
 
+    this.sendSignOutEvent();
     this.post("/auth/logout", {}, { needsAuth: false }).catch(() => {});
   }
 
@@ -230,9 +235,7 @@ export class HydraApi {
   }
 
   private static sendSignOutEvent() {
-    if (WindowManager.mainWindow) {
-      WindowManager.mainWindow.webContents.send("on-signout");
-    }
+    WindowManager.sendToAppWindows("on-signout");
   }
 
   public static async refreshToken() {

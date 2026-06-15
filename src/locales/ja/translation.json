@@ -27,7 +27,7 @@
     "queued": "{{title}}（待機中）",
     "game_has_no_executable": "実行ファイルが選択されていません",
     "sign_in": "サインイン",
-    "friends": "フレンド",
+    "friends": "Friends",
     "notifications": "通知",
     "need_help": "ヘルプが必要ですか？",
     "favorites": "お気に入り",
@@ -911,7 +911,7 @@
     "report_reason_sexual_content": "性的コンテンツ",
     "report_reason_violence": "暴力",
     "report_reason_spam": "スパム",
-    "report_reason_other_option": "その他",
+    "report_reason_other": "その他",
     "profile_reported": "プロフィールを報告しました",
     "your_friend_code": "あなたのフレンドコード:",
     "copy_friend_code": "フレンドコードをコピー",
@@ -1081,5 +1081,24 @@
     "failed_to_dismiss": "通知の閉じるに失敗しました",
     "friend_request_accepted": "フレンドリクエストを承認しました",
     "friend_request_refused": "フレンドリクエストを拒否しました"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

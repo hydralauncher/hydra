@@ -106,6 +106,8 @@ jobs:
           BUILDS_URL: ${{ secrets.BUILDS_URL }}
           BUILD_WEBHOOK_URL: ${{ secrets.BUILD_WEBHOOK_URL }}
           GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_ACTOR_ID: ${{ github.actor_id }}
+          BUILD_FLAVOR: production
         run: node scripts/upload-build.cjs
 
       - name: Release

@@ -27,7 +27,7 @@
     "queued": "{{title}} (W kolejce)",
     "game_has_no_executable": "Gra nie ma wybranego pliku wykonywalnego",
     "sign_in": "Zaloguj się",
-    "friends": "Znajomi",
+    "friends": "Friends",
     "notifications": "Powiadomienia",
     "need_help": "Potrzebujesz pomocy?",
     "favorites": "Ulubione",
@@ -110,7 +110,7 @@
     "decky_plugin_installation_error": "Błąd podczas instalacji wtyczki Decky: {{error}}",
     "confirm": "Potwierdź",
     "cancel": "Anuluj",
-    "big_picture": "Tryb Big Picture (beta)"
+    "big_picture": "Tryb Big Picture"
   },
   "header": {
     "search": "Szukaj",
@@ -969,7 +969,7 @@
     "report_reason_sexual_content": "Treści seksualne",
     "report_reason_violence": "Przemoc",
     "report_reason_spam": "Spam",
-    "report_reason_other_option": "Inne",
+    "report_reason_other": "Inne",
     "profile_reported": "Profil zgłoszony",
     "your_friend_code": "Twój kod znajomego:",
     "copy_friend_code": "Kopiuj kod znajomego",
@@ -1164,5 +1164,24 @@
   "system_tray": {
     "open": "Otwórz Hydrę",
     "quit": "Zamknij Hydrę"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

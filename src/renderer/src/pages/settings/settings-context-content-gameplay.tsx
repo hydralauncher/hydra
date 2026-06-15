@@ -22,6 +22,8 @@ export function SettingsContextContentGameplay() {
     showHiddenAchievementsDescription: false,
     enableSteamAchievements: false,
     enableNewDownloadOptionsBadges: true,
+    hideClassicsBookmark: false,
+    classicsUseHeroLayout: false,
   });
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export function SettingsContextContentGameplay() {
       enableSteamAchievements: userPreferences.enableSteamAchievements ?? false,
       enableNewDownloadOptionsBadges:
         userPreferences.enableNewDownloadOptionsBadges ?? true,
+      hideClassicsBookmark: userPreferences.hideClassicsBookmark ?? false,
+      classicsUseHeroLayout: userPreferences.classicsUseHeroLayout ?? false,
     });
   }, [userPreferences]);
 
@@ -107,6 +111,30 @@ export function SettingsContextContentGameplay() {
             handleChange({
               enableNewDownloadOptionsBadges:
                 !form.enableNewDownloadOptionsBadges,
+            })
+          }
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("classics_appearance")}</h3>
+
+        <CheckboxField
+          label={t("hide_classics_bookmark")}
+          checked={form.hideClassicsBookmark}
+          onChange={() =>
+            handleChange({
+              hideClassicsBookmark: !form.hideClassicsBookmark,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("classics_use_hero_layout")}
+          checked={form.classicsUseHeroLayout}
+          onChange={() =>
+            handleChange({
+              classicsUseHeroLayout: !form.classicsUseHeroLayout,
             })
           }
         />

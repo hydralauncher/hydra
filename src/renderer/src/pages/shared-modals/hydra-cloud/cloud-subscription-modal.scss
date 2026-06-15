@@ -1,0 +1,105 @@
+.cloud-subscription-modal {
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+
+    // Kept mounted (iframe stays loaded + sized) but invisible and
+    // click-through, so opening is instant with no layout shift.
+    &--hidden {
+      opacity: 0;
+      pointer-events: none;
+      backdrop-filter: none;
+    }
+
+    &--open {
+      opacity: 1;
+      animation: cloud-modal-fade-in 0.2s ease forwards;
+    }
+
+    &--closing {
+      animation: cloud-modal-fade-out 0.25s ease forwards;
+    }
+  }
+
+  // As large as fits on screen while keeping the design's aspect ratio, so the
+  // whole frame is visible with no scroll and the content reads comfortably.
+  &__frame {
+    position: relative;
+    aspect-ratio: 1536 / 836;
+    width: min(96vw, calc(94vh * 1536 / 836));
+    max-height: 94vh;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  }
+
+  &__iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background-color: #080808;
+  }
+
+  &__fallback {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px;
+    background-color: #080808;
+    color: #fff;
+    text-align: center;
+  }
+
+  &__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.24);
+    }
+  }
+}
+
+@keyframes cloud-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cloud-modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

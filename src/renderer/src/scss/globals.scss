@@ -13,6 +13,42 @@ $warning-color: #ffc107;
 $brand-teal: #16b195;
 $brand-blue: #3e62c0;
 
+$classics-rainbow: conic-gradient(
+  from 0deg,
+  #fb0026 5deg,
+  #c80078 70deg,
+  #7300a4 145deg,
+  #f8c802 220deg,
+  #fc5812 290deg,
+  #fb0026 365deg
+);
+
+$platinum-cyan: #30edc5;
+
+@mixin platinum-gradient {
+  background-image:
+    linear-gradient(
+      105deg,
+      transparent 70%,
+      rgba(255, 255, 255, 0.1) 80%,
+      rgba(255, 255, 255, 0.2) 85%,
+      rgba(255, 255, 255, 0.1) 90%,
+      transparent 100%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.15) 100%
+    ),
+    linear-gradient(
+      120deg,
+      transparent 0%,
+      $platinum-cyan 30%,
+      $brand-teal 100%
+    );
+}
+
 $disabled-opacity: 0.5;
 $active-opacity: 0.7;
 

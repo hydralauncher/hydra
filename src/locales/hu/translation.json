@@ -27,7 +27,7 @@
     "queued": "{{title}} (Várakozásban)",
     "game_has_no_executable": "A játékhoz nincs tallózva futtatható fájl",
     "sign_in": "Bejelentkezés",
-    "friends": "Barátok",
+    "friends": "Friends",
     "notifications": "Értesítések",
     "need_help": "Elakadtál?",
     "favorites": "Kedvenc Játékaim",
@@ -909,7 +909,7 @@
     "report_reason_sexual_content": "Szexuális tartalom",
     "report_reason_violence": "Fenyegető",
     "report_reason_spam": "Spam",
-    "report_reason_other_option": "Egyéb",
+    "report_reason_other": "Egyéb",
     "profile_reported": "Profil bejelentve",
     "your_friend_code": "A barát kódod:",
     "copy_friend_code": "Barátkód kimásolása",
@@ -1079,5 +1079,24 @@
     "failed_to_dismiss": "Értesítés eltüntetése nem sikerült",
     "friend_request_accepted": "Barátfelkérés elfogadva",
     "friend_request_refused": "Barátfelkérés elutasítva"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

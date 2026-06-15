@@ -19,6 +19,7 @@ export * from "./route-anchor";
 export * from "./scroll-area";
 export * from "./skeleton";
 export * from "./source-anchor";
+export * from "./sidebar-modal";
 export * from "./tabs";
 export * from "./tooltip";
 export * from "./typography";

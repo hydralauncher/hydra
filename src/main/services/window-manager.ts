@@ -33,6 +33,7 @@ export class WindowManager {
   public static notificationWindow: Electron.BrowserWindow | null = null;
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
+  private static friendsWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
@@ -118,7 +119,7 @@ export class WindowManager {
   }
 
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
-    const windows = [this.mainWindow, this.bigPicture];
+    const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
 
     for (const window of windows) {
       if (!window || window.isDestroyed()) continue;
@@ -374,13 +375,95 @@ export class WindowManager {
     });
   }
 
+  public static openFriendsWindow() {
+    if (this.friendsWindow) {
+      if (this.friendsWindow.isMinimized()) {
+        this.friendsWindow.restore();
+      }
+      this.friendsWindow.focus();
+      return;
+    }
+
+    this.friendsWindow = new BrowserWindow({
+      width: 420,
+      height: 780,
+      minWidth: 420,
+      maxWidth: 420,
+      minHeight: 560,
+      maximizable: false,
+      backgroundColor: "#1c1c1c",
+      // No native frame/controls — the renderer draws its own minimize and
+      // close buttons in the title bar (see friends-window.tsx).
+      frame: false,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+
+    this.friendsWindow.removeMenu();
+
+    this.loadWindowURL(this.friendsWindow, "friends-window");
+
+    this.friendsWindow.once("ready-to-show", () => {
+      this.friendsWindow?.show();
+      if (!app.isPackaged || isStaging) {
+        this.friendsWindow?.webContents.openDevTools();
+      }
+    });
+
+    this.friendsWindow.on("closed", () => {
+      this.friendsWindow = null;
+    });
+  }
+
+  public static minimizeFriendsWindow() {
+    if (this.friendsWindow && !this.friendsWindow.isDestroyed()) {
+      this.friendsWindow.minimize();
+    }
+  }
+
+  public static closeFriendsWindow() {
+    if (this.friendsWindow && !this.friendsWindow.isDestroyed()) {
+      this.friendsWindow.close();
+    }
+    this.friendsWindow = null;
+  }
+
+  private static focusMainWindow() {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      if (this.mainWindow.isMinimized()) this.mainWindow.restore();
+      this.mainWindow.show();
+      this.mainWindow.focus();
+    } else {
+      this.createMainWindow();
+    }
+  }
+
+  public static focusMainWindowAndNavigate(path: string) {
+    this.focusMainWindow();
+    this.mainWindow?.webContents.send("on-navigate", path);
+  }
+
+  public static openAddFriendModalInMainWindow() {
+    this.focusMainWindow();
+    this.mainWindow?.webContents.send("on-open-add-friend-modal");
+  }
+
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
-    if (this.mainWindow) {
+    const parentWindow =
+      this.bigPicture && !this.bigPicture.isDestroyed()
+        ? this.bigPicture
+        : this.mainWindow;
+
+    if (parentWindow && !parentWindow.isDestroyed()) {
       const authWindow = new BrowserWindow({
         width: 600,
         height: 640,
         backgroundColor: "#1c1c1c",
-        parent: this.mainWindow,
+        parent: parentWindow,
         modal: true,
         show: false,
         maximizable: false,
@@ -404,6 +487,12 @@ export class WindowManager {
         authWindow.show();
       });
 
+      authWindow.once("closed", () => {
+        if (!parentWindow.isDestroyed()) {
+          parentWindow.focus();
+        }
+      });
+
       authWindow.webContents.on("will-navigate", (_event, url) => {
         if (url.startsWith("hydralauncher://auth")) {
           authWindow.close();
@@ -415,7 +504,7 @@ export class WindowManager {
         if (url.startsWith("hydralauncher://update-account")) {
           authWindow.close();
 
-          WindowManager.mainWindow?.webContents.send("on-account-updated");
+          WindowManager.sendToAppWindows("on-account-updated");
         }
       });
     }

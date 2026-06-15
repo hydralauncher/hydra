@@ -7,8 +7,12 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
-import { buildLibraryToastOptions } from "../../helpers";
+import {
+  buildLibraryToastOptions,
+  getBigPictureGameAchievementsPath,
+} from "../../helpers";
 import {
   useBigPictureToast,
   useGameCollections,
@@ -106,6 +110,7 @@ function getInitialLibraryStoredValue<TValue extends string>(
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const navigate = useNavigate();
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
@@ -216,6 +221,13 @@ export default function LibraryPage() {
       },
       [openDownloadModalFromContextMenu]
     )
+  );
+
+  const handleViewAchievements = useCallback(
+    (game: LibraryGame) => {
+      navigate(getBigPictureGameAchievementsPath(game));
+    },
+    [navigate]
   );
 
   const handleRequestRemoveFiles = useCallback(
@@ -480,6 +492,7 @@ export default function LibraryPage() {
         onClose={handleCloseGameContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={toggleFavorite}
+        onViewAchievements={handleViewAchievements}
         onUninstall={handleRequestRemoveFiles}
         onRemoveFromLibrary={handleRequestRemoveFromLibrary}
       />
