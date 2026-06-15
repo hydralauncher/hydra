@@ -24,6 +24,7 @@ export interface ScanProgress {
   processed: number;
   total: number;
   currentFile: string | null;
+  kept: number;
 }
 
 export interface ScanOptions {
@@ -357,7 +358,7 @@ export const scanRomFolder = async (
   let processed = 0;
   const scannedGames: ScannedGame[] = [];
 
-  options?.onProgress?.({ processed: 0, total, currentFile: null });
+  options?.onProgress?.({ processed: 0, total, currentFile: null, kept: 0 });
 
   for (const game of games) {
     if (options?.signal?.cancelled) break;
@@ -378,8 +379,18 @@ export const scanRomFolder = async (
       processed,
       total,
       currentFile: game.primary.name,
+      kept: scannedGames.length,
     });
   }
 
   return { fileCount, sizeBytes, games: scannedGames };
+};
+
+export const countRomGroups = async (
+  rootPath: string,
+  binary: KnownBinary,
+  scanSubfolders: boolean
+): Promise<number> => {
+  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  return dedupGames(binary, raw).length;
 };

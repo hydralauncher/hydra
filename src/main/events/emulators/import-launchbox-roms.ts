@@ -3,6 +3,10 @@ import path from "node:path";
 import { chunk } from "lodash-es";
 
 import { registerEvent } from "../register-event";
+import {
+  setActiveClassicsImport,
+  updateActiveClassicsImport,
+} from "./classics-import-state";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
 import {
   fetchShopDetailsForSkus,
@@ -282,26 +286,54 @@ const persistRomFolder = async (
   });
 };
 
-export type LaunchboxImportProgress =
-  | {
-      type: "scan_progress";
-      phase: "scanning";
-      processed: number;
-      total: number;
-      currentFile: string | null;
-    }
-  | {
-      type: "match_progress";
-      phase: "matching";
-      processed: number;
-      total: number;
-      currentFile: string;
-      status: "matched" | "unmatched";
-      matched: number;
-      unmatched: number;
-      fileCount: number;
-      sizeBytes: number;
-    };
+export type ProgressPhase = "scanning" | "matching";
+
+export type LaunchboxImportProgress = {
+  type: "progress";
+  phase: ProgressPhase;
+  processed: number;
+  total: number;
+  percent: number;
+  currentFile: string | null;
+  status: "matched" | "unmatched" | null;
+  discovered: number;
+  matched: number;
+  sizeBytes: number;
+};
+
+const SCAN_BAND = 15;
+const EXTRACT_BAND = 70;
+
+const bandPercent = (
+  start: number,
+  span: number,
+  processed: number,
+  total: number
+): number => {
+  const frac = total > 0 ? Math.min(1, processed / total) : 0;
+  return Math.min(100, Math.round((start + frac * span) * 10) / 10);
+};
+
+const SYSTEM_CATALOGUE_PLATFORM: Record<EmulatorSystem, string> = {
+  ps1: "Sony Playstation",
+  ps2: "Sony Playstation 2",
+  ps3: "Sony Playstation 3",
+};
+
+const normalizePlatformName = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, " ");
+
+const entryMatchesSystemPlatform = (
+  entry: LaunchboxShopDetailsEntry,
+  system: EmulatorSystem
+): boolean => {
+  const raw = entry.platform ?? entry.data?.platform ?? "";
+  if (!raw) return true;
+  return (
+    normalizePlatformName(raw) ===
+    normalizePlatformName(SYSTEM_CATALOGUE_PLATFORM[system])
+  );
+};
 
 export interface LaunchboxImportResult {
   fileCount: number;
@@ -355,17 +387,41 @@ const cancelledResult = (
   cancelled: true,
 });
 
+type ScanReporter = (
+  processed: number,
+  total: number,
+  currentFile: string | null,
+  kept: number
+) => void;
+
 const scanFolders = async (
   system: EmulatorSystem,
   folders: FolderInput[],
   signal: CancelSignal,
-  onProgress?: ProgressFn
+  onScan?: ScanReporter
 ): Promise<ScannedGameInfo[]> => {
   const binary = emulators.KNOWN_BINARIES[system];
-  const collected: ScannedGameInfo[] = [];
 
+  const folderTotals: number[] = [];
+  let scanTotal = 0;
   for (const folder of folders) {
     if (signal.cancelled) break;
+    const count = await emulators.countRomGroups(
+      folder.path,
+      binary,
+      folder.scanSubfolders
+    );
+    folderTotals.push(count);
+    scanTotal += count;
+  }
+
+  let scanBase = 0;
+  let keptTotal = 0;
+  const collected: ScannedGameInfo[] = [];
+
+  for (let fi = 0; fi < folders.length; fi++) {
+    if (signal.cancelled) break;
+    const folder = folders[fi];
 
     const partial = await emulators.scanRomFolder(
       folder.path,
@@ -374,17 +430,18 @@ const scanFolders = async (
       {
         signal,
         onProgress: (p) => {
-          onProgress?.({
-            type: "scan_progress",
-            phase: "scanning",
-            processed: p.processed,
-            total: p.total,
-            currentFile: p.currentFile,
-          });
+          onScan?.(
+            scanBase + p.processed,
+            scanTotal,
+            p.currentFile,
+            keptTotal + p.kept
+          );
         },
       }
     );
 
+    scanBase += folderTotals[fi] ?? partial.games.length;
+    keptTotal += partial.games.length;
     for (const game of partial.games) {
       collected.push({ folderPath: folder.path, ...game });
     }
@@ -396,7 +453,8 @@ const scanFolders = async (
 const resolveSkus = async (
   system: EmulatorSystem,
   collected: ScannedGameInfo[],
-  signal: CancelSignal
+  signal: CancelSignal,
+  onExtract?: (processed: number, total: number, currentFile: string) => void
 ): Promise<{
   gameSkus: GameSku[];
   ps3Exe: string | null;
@@ -415,8 +473,9 @@ const resolveSkus = async (
     );
   }
 
-  for (const game of collected) {
+  for (let i = 0; i < collected.length; i++) {
     if (signal.cancelled) break;
+    const game = collected[i];
 
     let sku = ps3PathIndex
       ? lookupYmlSku(ps3PathIndex, game.primaryPath)
@@ -439,6 +498,7 @@ const resolveSkus = async (
       source: fromYml ? "games.yml" : "disc",
     });
     gameSkus.push({ game, sku });
+    onExtract?.(i + 1, collected.length, game.name);
   }
 
   return { gameSkus, ps3Exe, ps3ExtractedForYml };
@@ -454,7 +514,10 @@ const buildEnriched = (
 } => {
   const enriched: EnrichedGame[] = gameSkus.map(({ game, sku }) => {
     const entry = sku ? (skuLookup.get(normalizeSku(sku)) ?? null) : null;
-    const success = Boolean(entry?.objectId && entry?.data);
+    const platformOk = entry
+      ? entryMatchesSystemPlatform(entry, system)
+      : false;
+    const success = Boolean(entry?.objectId && entry?.data) && platformOk;
     const groupKey =
       system === "ps3"
         ? game.primaryPath
@@ -464,6 +527,8 @@ const buildEnriched = (
       sku,
       normalizedSku: sku ? normalizeSku(sku) : null,
       matched: success,
+      platform: entry?.platform ?? entry?.data?.platform ?? null,
+      platformOk,
       objectId: success ? entry?.objectId : null,
       title: success ? entry?.data?.title : null,
       groupKey,
@@ -484,10 +549,15 @@ const buildEnriched = (
 const aggregateMatches = (
   enriched: EnrichedGame[],
   groupCanonical: Map<string, LaunchboxShopDetailsEntry>,
-  matchedCount: number,
-  totalGames: number,
   signal: CancelSignal,
-  onProgress?: ProgressFn
+  onMatch?: (
+    processed: number,
+    total: number,
+    currentFile: string,
+    status: "matched" | "unmatched",
+    matched: number,
+    sizeBytes: number
+  ) => void
 ): {
   unmatched: number;
   unmatchedFiles: string[];
@@ -499,54 +569,49 @@ const aggregateMatches = (
   const seenUnmatchedGroups = new Set<string>();
   const titleByFolder: TitleByFolder = new Map();
   const discsByTitle: DiscsByTitle = new Map();
+  let matchedSizeBytes = 0;
 
   for (let i = 0; i < enriched.length; i++) {
     if (signal.cancelled) break;
     const { game, sku, groupKey } = enriched[i];
     const canonical = groupCanonical.get(groupKey);
-    const titleKey = canonical ? canonical.objectId : groupKey;
 
-    const existing = titleByFolder.get(titleKey);
-    if (existing) {
-      existing.sizeBytes += game.sizeBytes;
-    } else {
-      titleByFolder.set(titleKey, {
-        folderPath: game.folderPath,
-        sizeBytes: game.sizeBytes,
-      });
-    }
+    if (canonical) {
+      const titleKey = canonical.objectId;
+      const existing = titleByFolder.get(titleKey);
+      if (existing) {
+        existing.sizeBytes += game.sizeBytes;
+      } else {
+        titleByFolder.set(titleKey, {
+          folderPath: game.folderPath,
+          sizeBytes: game.sizeBytes,
+        });
+      }
+      matchedSizeBytes += game.sizeBytes;
 
-    const discsForTitle = discsByTitle.get(titleKey) ?? [];
-    if (!discsForTitle.some((d) => d.primaryPath === game.primaryPath)) {
-      discsForTitle.push({
-        primaryPath: game.primaryPath,
-        name: game.name,
-        sku,
-      });
-    }
-    discsByTitle.set(titleKey, discsForTitle);
-
-    if (!canonical && !seenUnmatchedGroups.has(groupKey)) {
+      const discsForTitle = discsByTitle.get(titleKey) ?? [];
+      if (!discsForTitle.some((d) => d.primaryPath === game.primaryPath)) {
+        discsForTitle.push({
+          primaryPath: game.primaryPath,
+          name: game.name,
+          sku,
+        });
+      }
+      discsByTitle.set(titleKey, discsForTitle);
+    } else if (!seenUnmatchedGroups.has(groupKey)) {
       seenUnmatchedGroups.add(groupKey);
       unmatched += 1;
       unmatchedFiles.push(game.name);
     }
 
-    let totalSizeSoFar = 0;
-    for (const v of titleByFolder.values()) totalSizeSoFar += v.sizeBytes;
-
-    onProgress?.({
-      type: "match_progress",
-      phase: "matching",
-      processed: i + 1,
-      total: totalGames,
-      currentFile: game.name,
-      status: canonical ? "matched" : "unmatched",
-      matched: matchedCount,
-      unmatched,
-      fileCount: titleByFolder.size,
-      sizeBytes: totalSizeSoFar,
-    });
+    onMatch?.(
+      i + 1,
+      enriched.length,
+      game.name,
+      canonical ? "matched" : "unmatched",
+      titleByFolder.size,
+      matchedSizeBytes
+    );
   }
 
   return { unmatched, unmatchedFiles, titleByFolder, discsByTitle };
@@ -631,14 +696,44 @@ export async function runLaunchboxImport(
 ): Promise<LaunchboxImportResult> {
   const folderInputBy = new Map(folders.map((f) => [f.path, f]));
 
-  const collected = await scanFolders(system, folders, signal, onProgress);
+  const collected = await scanFolders(
+    system,
+    folders,
+    signal,
+    (processed, total, currentFile, kept) =>
+      onProgress?.({
+        type: "progress",
+        phase: "scanning",
+        processed,
+        total,
+        percent: bandPercent(0, SCAN_BAND, processed, total),
+        currentFile,
+        status: null,
+        discovered: kept,
+        matched: 0,
+        sizeBytes: 0,
+      })
+  );
   if (signal.cancelled) return cancelledResult();
   const totalGames = collected.length;
 
   const { gameSkus, ps3Exe, ps3ExtractedForYml } = await resolveSkus(
     system,
     collected,
-    signal
+    signal,
+    (processed, total, currentFile) =>
+      onProgress?.({
+        type: "progress",
+        phase: "matching",
+        processed,
+        total,
+        percent: bandPercent(SCAN_BAND, EXTRACT_BAND, processed, total),
+        currentFile,
+        status: null,
+        discovered: totalGames,
+        matched: 0,
+        sizeBytes: 0,
+      })
   );
   if (signal.cancelled) return cancelledResult();
 
@@ -668,10 +763,25 @@ export async function runLaunchboxImport(
     aggregateMatches(
       enriched,
       groupCanonical,
-      matched,
-      totalGames,
       signal,
-      onProgress
+      (processed, total, currentFile, status, runningMatched, sizeBytes) =>
+        onProgress?.({
+          type: "progress",
+          phase: "matching",
+          processed,
+          total,
+          percent: bandPercent(
+            SCAN_BAND + EXTRACT_BAND,
+            100 - (SCAN_BAND + EXTRACT_BAND),
+            processed,
+            total
+          ),
+          currentFile,
+          status,
+          discovered: totalGames,
+          matched: runningMatched,
+          sizeBytes,
+        })
     );
 
   const { folderRollup, totalFileCount, totalSizeBytes } = rollupFolders(
@@ -715,6 +825,8 @@ export async function runLaunchboxImport(
   };
 }
 
+const CLASSICS_IMPORT_PROGRESS_CHANNEL = "on-classics-import-progress";
+
 const importLaunchboxRoms = async (
   _event: Electron.IpcMainInvokeEvent,
   system: EmulatorSystem,
@@ -725,7 +837,20 @@ const importLaunchboxRoms = async (
   const signal = { cancelled: false };
   inflight.set(requestId, signal);
 
-  const channel = `on-launchbox-import-progress-${requestId}`;
+  setActiveClassicsImport({
+    requestId,
+    system,
+    phase: "scanning",
+    processed: 0,
+    total: 0,
+    percent: 0,
+    currentFile: null,
+    status: null,
+    discovered: 0,
+    matched: 0,
+    sizeBytes: 0,
+  });
+  WindowManager.sendToAppWindows("on-classics-import-status", true);
 
   void (async () => {
     try {
@@ -735,12 +860,29 @@ const importLaunchboxRoms = async (
         language,
         signal,
         (payload) => {
-          WindowManager.mainWindow?.webContents.send(channel, payload);
+          updateActiveClassicsImport({
+            phase: payload.phase,
+            processed: payload.processed,
+            total: payload.total,
+            percent: payload.percent,
+            currentFile: payload.currentFile,
+            status: payload.status,
+            discovered: payload.discovered,
+            matched: payload.matched,
+            sizeBytes: payload.sizeBytes,
+          });
+          WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {
+            requestId,
+            system,
+            ...payload,
+          });
         }
       );
 
-      WindowManager.mainWindow?.webContents.send(channel, {
+      WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {
         type: result.cancelled ? "cancelled" : "done",
+        requestId,
+        system,
         fileCount: result.fileCount,
         sizeBytes: result.sizeBytes,
         matched: result.matched,
@@ -748,12 +890,16 @@ const importLaunchboxRoms = async (
         unmatchedFiles: result.unmatchedFiles,
       });
     } catch (err) {
-      WindowManager.mainWindow?.webContents.send(channel, {
+      WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {
         type: "error",
+        requestId,
+        system,
         message: err instanceof Error ? err.message : String(err),
       });
     } finally {
       inflight.delete(requestId);
+      setActiveClassicsImport(null);
+      WindowManager.sendToAppWindows("on-classics-import-status", false);
     }
   })();
 

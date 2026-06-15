@@ -343,31 +343,27 @@ contextBridge.exposeInMainWorld("electron", {
     label: string
   ): Promise<EmulationCloudSave> =>
     ipcRenderer.invoke("updateEmulationSaveLabel", saveId, label),
-  onLaunchboxImportProgress: (
-    requestId: string,
+  onClassicsImportProgress: (
     cb: (
       payload:
         | {
-            type: "scan_progress";
-            phase: "scanning";
+            type: "progress";
+            requestId: string;
+            system: EmulatorSystem;
+            phase: "scanning" | "matching";
             processed: number;
             total: number;
+            percent: number;
             currentFile: string | null;
-          }
-        | {
-            type: "match_progress";
-            phase: "matching";
-            processed: number;
-            total: number;
-            currentFile: string;
-            status: "matched" | "unmatched";
+            status: "matched" | "unmatched" | null;
+            discovered: number;
             matched: number;
-            unmatched: number;
-            fileCount: number;
             sizeBytes: number;
           }
         | {
-            type: "done";
+            type: "done" | "cancelled";
+            requestId: string;
+            system: EmulatorSystem;
             fileCount: number;
             sizeBytes: number;
             matched: number;
@@ -375,16 +371,14 @@ contextBridge.exposeInMainWorld("electron", {
             unmatchedFiles: string[];
           }
         | {
-            type: "cancelled";
-            fileCount: number;
-            sizeBytes: number;
-            matched: number;
-            unmatched: number;
+            type: "error";
+            requestId: string;
+            system: EmulatorSystem;
+            message: string;
           }
-        | { type: "error"; message: string }
     ) => void
   ) => {
-    const channel = `on-launchbox-import-progress-${requestId}`;
+    const channel = "on-classics-import-progress";
     const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
       cb(payload as Parameters<typeof cb>[0]);
     ipcRenderer.on(channel, listener);
@@ -562,6 +556,19 @@ contextBridge.exposeInMainWorld("electron", {
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   getClassicsImportStatus: (): Promise<boolean> =>
     ipcRenderer.invoke("getClassicsImportStatus"),
+  getActiveClassicsImport: (): Promise<{
+    requestId: string;
+    system: EmulatorSystem;
+    phase: "scanning" | "matching" | "done";
+    processed: number;
+    total: number;
+    percent: number;
+    currentFile: string | null;
+    status: "matched" | "unmatched" | null;
+    discovered: number;
+    matched: number;
+    sizeBytes: number;
+  } | null> => ipcRenderer.invoke("getActiveClassicsImport"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   getGameInstallerActionType: (shop: GameShop, objectId: string) =>

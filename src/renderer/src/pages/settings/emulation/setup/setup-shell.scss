@@ -430,8 +430,31 @@
   &__progress-meta {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 13px;
     color: #c0c1c7;
+  }
+
+  &__progress-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #fafafa;
+    font-weight: 600;
+  }
+
+  &__ring {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 3px dashed globals.$classics-washed;
+    animation: setup-spin 1s linear infinite;
+    flex-shrink: 0;
+  }
+
+  &__progress-check {
+    color: globals.$classics-washed;
+    flex-shrink: 0;
   }
 
   &__scan-file {
@@ -492,9 +515,9 @@
   }
 
   &__stat {
-    background: #121212;
+    background: #0d0d0d;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 16px;
     display: flex;
     align-items: center;
@@ -520,8 +543,9 @@
 
   &__stat-value {
     margin-left: auto;
-    font-size: 24px;
+    font-size: 21px;
     font-weight: 700;
+    letter-spacing: -0.21px;
     color: #fafafa;
   }
 
