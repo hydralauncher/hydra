@@ -514,7 +514,11 @@ export function GeneralSettingsSection({
               {transferGameSize && (
                 <>
                   {" "}
-                  (<span style={{ color: "#ffffff" }}>{transferGameSize}</span>)
+                  (
+                  <span style={{ color: "#ffffff" }}>
+                    {transferGameSize}
+                  </span>
+                  )
                 </>
               )}
             </h4>
