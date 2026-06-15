@@ -1,11 +1,3 @@
-/**
- * Pure CSO (compressed ISO, "CISO" v1) decode primitives.
- *
- * Kept as a dependency-free leaf module (no logger, no path aliases) so it can
- * be unit-tested without pulling in Electron/`@main` resolution, mirroring the
- * `./sku-normalize` leaf. The file I/O and logging orchestration lives in
- * `./cso-reader`, which composes these helpers.
- */
 import zlib from "node:zlib";
 
 export const CSO_MAGIC = "CISO";
