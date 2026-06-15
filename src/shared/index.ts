@@ -153,7 +153,6 @@ export const getDownloadersForUri = (uri: string) => {
   ) {
     downloaders.push(Downloader.Buzzheavier);
   }
-    return [Downloader.Mediafire];
   if (uri.startsWith("https://fuckingfast.co")) {
     downloaders.push(Downloader.FuckingFast);
   }
