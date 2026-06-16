@@ -12,6 +12,7 @@ interface Props {
   systemLabel: string;
   onRescan: () => void;
   disabled?: boolean;
+  refreshKey?: number;
 }
 
 const matchesSystem = (
@@ -31,6 +32,7 @@ export function RomsDetectedSection({
   systemLabel,
   onRescan,
   disabled,
+  refreshKey,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const [games, setGames] = useState<LibraryGame[]>([]);
@@ -55,7 +57,7 @@ export function RomsDetectedSection({
     return () => {
       cancelled = true;
     };
-  }, [system]);
+  }, [system, refreshKey]);
 
   return (
     <section className="emulator-detail__section">
