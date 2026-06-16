@@ -83,6 +83,7 @@ export function EmulatorDetail({
 
   const [busy, setBusy] = useState(false);
   const [cloudNonce, setCloudNonce] = useState(0);
+  const [romsNonce, setRomsNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
@@ -266,6 +267,7 @@ export function EmulatorDetail({
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
     void refresh();
+    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
@@ -661,6 +663,7 @@ export function EmulatorDetail({
             systemLabel={systemLabel}
             onRescan={handleRescan}
             disabled={busy || scan.active}
+            refreshKey={romsNonce}
           />
         </>
       )}
