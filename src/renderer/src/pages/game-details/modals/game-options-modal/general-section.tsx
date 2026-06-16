@@ -304,6 +304,9 @@ function fmt(b: number) {
 const isBatchExecutable = (executablePath?: string | null) =>
   !!executablePath && /\.bat$/i.test(executablePath);
 
+const supportsTrackingExecutables = (executablePath?: string | null) =>
+  !!executablePath && /\.(bat|exe)$/i.test(executablePath);
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -506,11 +509,13 @@ export function GeneralSettingsSection({
             </div>
           </div>
 
-          {isBatchExecutable(game.executablePath) && (
+          {supportsTrackingExecutables(game.executablePath) && (
             <div className="game-options-modal__tracking-executable">
-              <p className="game-options-modal__warning">
-                {t("bat_tracking_warning")}
-              </p>
+              {isBatchExecutable(game.executablePath) && (
+                <p className="game-options-modal__warning">
+                  {t("bat_tracking_warning")}
+                </p>
+              )}
 
               {(game.trackingExecutablePaths ?? []).map(
                 (trackingPath, index) => (

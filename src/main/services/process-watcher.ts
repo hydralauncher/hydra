@@ -19,6 +19,7 @@ import {
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
 } from "./linux-process-match";
+import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 
 export const gamesPlaytime = new Map<
   string,
@@ -249,7 +250,11 @@ export const watchProcesses = async () => {
     }
 
     const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
-    const matchPaths = trackingPaths.length ? trackingPaths : [executablePath];
+    const matchPaths = isWindowsBatchFile(executablePath)
+      ? trackingPaths.length
+        ? trackingPaths
+        : [executablePath]
+      : [executablePath, ...trackingPaths];
 
     let hasProcess = matchPaths.some((matchPath) => {
       const executable = matchPath
