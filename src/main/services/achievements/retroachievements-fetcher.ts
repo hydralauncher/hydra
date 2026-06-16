@@ -1,6 +1,10 @@
 import axios from "axios";
 import type { RetroachievementsGameListItem } from "@main/level";
-import { retroachievementsGameListsSublevel, levelKeys } from "@main/level";
+import {
+  retroachievementsGameListsSublevel,
+  retroachievementsGameProgressSublevel,
+  levelKeys,
+} from "@main/level";
 import { achievementsLogger } from "../logger";
 
 export interface RetroachievementAchievement {
@@ -39,6 +43,7 @@ export interface ResolveRetroachievementsGameIdParams {
 const RETROACHIEVEMENTS_BASE_URL = "https://retroachievements.org";
 const REQUEST_TIMEOUT_MS = 10_000;
 const GAME_LIST_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const GAME_PROGRESS_CACHE_TTL_MS = 1000 * 60 * 5;
 
 const normalizeText = (value: string): string =>
   value.toLowerCase().replace(/\s+/g, " ").trim();
@@ -110,7 +115,9 @@ const fetchRetroachievementsGameList = async (
   username: string
 ): Promise<RetroachievementsGameListItem[]> => {
   const cacheKey = levelKeys.retroachievementsGameList(systemId);
-  const cached = await retroachievementsGameListsSublevel.get(cacheKey);
+  const cached = await retroachievementsGameListsSublevel
+    .get(cacheKey)
+    .catch(() => null);
 
   if (cached && cached.updatedAt + GAME_LIST_CACHE_TTL_MS > Date.now()) {
     return cached.games;
@@ -149,27 +156,14 @@ export const resolveRetroachievementsGameId = async ({
   apiKey,
   username,
   cachedGameId,
-  cachedGameTitle,
-  cachedGamePlatform,
+  cachedGameTitle: _cachedGameTitle,
+  cachedGamePlatform: _cachedGamePlatform,
 }: ResolveRetroachievementsGameIdParams): Promise<number | null> => {
-  const normalizedTitle = normalizeTitle(title);
-  const normalizedPlatform = platform ? normalizePlatform(platform) : "";
-  const normalizedCachedTitle = cachedGameTitle
-    ? normalizeTitle(cachedGameTitle)
-    : "";
-  const normalizedCachedPlatform = cachedGamePlatform
-    ? normalizePlatform(cachedGamePlatform)
-    : "";
-
-  if (
-    cachedGameId &&
-    normalizedCachedTitle &&
-    normalizedCachedPlatform &&
-    normalizedTitle === normalizedCachedTitle &&
-    normalizedPlatform === normalizedCachedPlatform
-  ) {
+  if (cachedGameId) {
     return cachedGameId;
   }
+
+  const normalizedTitle = normalizeTitle(title);
 
   const systemId = getRetroachievementsSystemId(platform);
   if (!systemId) {
@@ -207,6 +201,24 @@ export const fetchRetroachievementsGame = async (
         `RetroAchievements API key not configured for game ${gameId}`
       );
       return null;
+    }
+
+    const progressCacheKey = levelKeys.retroachievementsGameProgressItem(
+      gameId,
+      username
+    );
+    const cachedProgress = await retroachievementsGameProgressSublevel
+      .get(progressCacheKey)
+      .catch(() => null);
+
+    if (
+      cachedProgress &&
+      cachedProgress.updatedAt + GAME_PROGRESS_CACHE_TTL_MS > Date.now()
+    ) {
+      achievementsLogger.debug(
+        `Using cached RetroAchievements progress for game ${gameId}`
+      );
+      return cachedProgress.data;
     }
 
     const params: Record<string, unknown> = {
@@ -255,7 +267,7 @@ export const fetchRetroachievementsGame = async (
         ];
       });
 
-    return {
+    const gameData: RetroachievementGameData = {
       id: data.ID,
       title: data.Title,
       achievements,
@@ -270,6 +282,17 @@ export const fetchRetroachievementsGame = async (
         ? `${RETROACHIEVEMENTS_BASE_URL}${data.ImageBoxArt}`
         : null,
     };
+
+    await retroachievementsGameProgressSublevel.put(progressCacheKey, {
+      updatedAt: Date.now(),
+      data: gameData,
+    });
+
+    achievementsLogger.debug(
+      `Fetched ${achievements.length} achievements for game ${gameId}`
+    );
+
+    return gameData;
   } catch (error) {
     achievementsLogger.error(
       `Failed to fetch retroachievements game ${gameId}:`,

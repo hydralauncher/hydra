@@ -52,9 +52,6 @@ export const mergeRetroachievements = async (
   }
 
   const gameData = await fetchRetroachievementsGame(gameId, apiKey, username);
-  achievementsLogger.debug(
-    `Fetched ${gameData?.achievements.length ?? 0} achievements for game ${gameId}`
-  );
   if (!gameData) return [];
 
   const unlockedBadgeMap = new Map<number, number | null>();

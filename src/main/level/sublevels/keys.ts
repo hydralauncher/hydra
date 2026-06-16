@@ -13,6 +13,9 @@ export const levelKeys = {
     `${shop}:${objectId}:${language}`,
   retroachievementsGameLists: "retroachievementsGameLists",
   retroachievementsGameList: (systemId: number) => `system:${systemId}`,
+  retroachievementsGameProgress: "retroachievementsGameProgress",
+  retroachievementsGameProgressItem: (gameId: number, username?: string) =>
+    `${gameId}:${username ?? ""}`,
   gameAchievements: "gameAchievements",
   downloads: "downloads",
   downloadLayoutState: "downloadLayoutState",
