@@ -248,23 +248,32 @@ export const watchProcesses = async () => {
       continue;
     }
 
-    const matchPath = game.trackingExecutablePath || executablePath;
+    const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
+    const matchPaths = trackingPaths.length ? trackingPaths : [executablePath];
 
-    const executable = matchPath
-      .slice(matchPath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
-      .toLowerCase();
+    let hasProcess = matchPaths.some((matchPath) => {
+      const executable = matchPath
+        .slice(matchPath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
+        .toLowerCase();
 
-    let hasProcess = processMap.get(executable)?.has(matchPath) ?? false;
+      if (processMap.get(executable)?.has(matchPath)) return true;
+
+      if (platform === "linux") {
+        return (
+          hasLinuxNativeOrAppImageMatch(matchPath, linuxProcesses) ||
+          hasLinuxCompatibilityProcessMatch(game, matchPath, linuxProcesses)
+        );
+      }
+
+      return false;
+    });
 
     if (!hasProcess && platform === "linux") {
-      hasProcess =
-        hasLinuxNativeOrAppImageMatch(matchPath, linuxProcesses) ||
-        hasLaunchedPidMatch(
-          launchedGamePids.get(gameKey),
-          executablePath,
-          pidToProcess
-        ) ||
-        hasLinuxCompatibilityProcessMatch(game, matchPath, linuxProcesses);
+      hasProcess = hasLaunchedPidMatch(
+        launchedGamePids.get(gameKey),
+        executablePath,
+        pidToProcess
+      );
     }
 
     if (hasProcess) {

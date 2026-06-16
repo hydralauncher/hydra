@@ -475,7 +475,10 @@ export function GameOptionsModal({
     updateGame();
   };
 
-  const handleChangeTrackingExecutableLocation = async () => {
+  const handleAddTrackingExecutable = async () => {
+    const current = game.trackingExecutablePaths ?? [];
+    if (current.length >= 2) return;
+
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: game.executablePath ?? undefined,
@@ -483,21 +486,22 @@ export function GameOptionsModal({
     });
 
     const path = filePaths?.[0];
-    if (!path) return;
+    if (!path || current.includes(path)) return;
 
-    await window.electron.updateTrackingExecutablePath(
+    await window.electron.updateTrackingExecutablePaths(
       game.shop,
       game.objectId,
-      path
+      [...current, path]
     );
     updateGame();
   };
 
-  const handleClearTrackingExecutablePath = async () => {
-    await window.electron.updateTrackingExecutablePath(
+  const handleRemoveTrackingExecutable = async (index: number) => {
+    const current = game.trackingExecutablePaths ?? [];
+    await window.electron.updateTrackingExecutablePaths(
       game.shop,
       game.objectId,
-      null
+      current.filter((_, itemIndex) => itemIndex !== index)
     );
     updateGame();
   };
@@ -870,12 +874,8 @@ export function GameOptionsModal({
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
-                onChangeTrackingExecutableLocation={
-                  handleChangeTrackingExecutableLocation
-                }
-                onClearTrackingExecutablePath={
-                  handleClearTrackingExecutablePath
-                }
+                onAddTrackingExecutable={handleAddTrackingExecutable}
+                onRemoveTrackingExecutable={handleRemoveTrackingExecutable}
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
                 onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}

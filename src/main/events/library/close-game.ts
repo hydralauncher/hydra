@@ -30,35 +30,45 @@ const closeGame = async (
   if (!game) return;
 
   const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
-  const targetPath = game.trackingExecutablePath || game.executablePath;
+  const targetPaths =
+    game.trackingExecutablePaths && game.trackingExecutablePaths.length
+      ? game.trackingExecutablePaths
+      : game.executablePath
+        ? [game.executablePath]
+        : [];
 
-  const gameProcess = processes.find((runningProcess) => {
-    if (process.platform === "linux") {
-      const matchesLaunchedPid =
-        runningProcess.pid === launchedPid &&
-        processReferencesExecutable(
-          {
-            cwd: runningProcess.cwd,
-            exe: runningProcess.exe,
-            appImagePath: runningProcess.environ?.APPIMAGE,
-          },
-          game.executablePath ?? ""
+  const gameProcesses = processes.filter((runningProcess) => {
+    const matchesTargetPath = targetPaths.some((targetPath) => {
+      if (process.platform === "linux") {
+        return (
+          runningProcess.name === targetPath.split("/").at(-1) ||
+          runningProcess.exe === targetPath ||
+          runningProcess.environ?.APPIMAGE === targetPath
         );
+      }
 
-      return (
-        runningProcess.name === targetPath?.split("/").at(-1) ||
-        runningProcess.exe === targetPath ||
-        runningProcess.environ?.APPIMAGE === targetPath ||
-        matchesLaunchedPid
-      );
-    }
+      return runningProcess.exe === targetPath;
+    });
 
-    return runningProcess.exe === targetPath;
+    if (matchesTargetPath) return true;
+
+    return (
+      process.platform === "linux" &&
+      runningProcess.pid === launchedPid &&
+      processReferencesExecutable(
+        {
+          cwd: runningProcess.cwd,
+          exe: runningProcess.exe,
+          appImagePath: runningProcess.environ?.APPIMAGE,
+        },
+        game.executablePath ?? ""
+      )
+    );
   });
 
   const linuxFallbackProcess =
     process.platform === "linux" &&
-    !gameProcess &&
+    !gameProcesses.length &&
     game.executablePath?.toLowerCase().endsWith(".exe")
       ? processes.find((runningProcess) => {
           const processCwd = runningProcess.cwd?.toLowerCase();
@@ -89,12 +99,16 @@ const closeGame = async (
         })
       : null;
 
-  const processToClose = gameProcess ?? linuxFallbackProcess;
+  const processesToClose = gameProcesses.length
+    ? gameProcesses
+    : linuxFallbackProcess
+      ? [linuxFallbackProcess]
+      : [];
 
-  if (processToClose) {
+  for (const processToClose of processesToClose) {
     try {
       process.kill(processToClose.pid);
-    } catch (err) {
+    } catch {
       sudo.exec(
         getKillCommand(processToClose.pid),
         { name: app.getName() },
