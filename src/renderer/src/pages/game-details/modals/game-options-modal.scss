@@ -545,13 +545,13 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #f87171;
+    background: globals.$error-color;
     flex-shrink: 0;
   }
 
   &__nospace-text {
     font-size: 11px;
-    color: #f87171;
+    color: globals.$error-color;
     white-space: nowrap;
   }
 
