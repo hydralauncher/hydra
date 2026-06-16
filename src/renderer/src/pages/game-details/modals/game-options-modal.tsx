@@ -827,12 +827,6 @@ export function GameOptionsModal({
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
-                onChangeTrackingExecutableLocation={
-                  handleChangeTrackingExecutableLocation
-                }
-                onClearTrackingExecutablePath={
-                  handleClearTrackingExecutablePath
-                }
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
                 onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
