@@ -2,7 +2,7 @@ import { shell } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { GameShop, type UserPreferences } from "@types";
+import { GameShop, type Game, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
@@ -37,10 +37,10 @@ const isWindowsExecutable = (executablePath: string) =>
 const ensureExecutablePermission = (executablePath: string) => {
   try {
     const currentMode = fs.statSync(executablePath).mode;
-    const hasAnyExecuteBit = (currentMode & 0o111) !== 0;
+    const hasOwnerExecuteBit = (currentMode & 0o100) !== 0;
 
-    if (!hasAnyExecuteBit) {
-      fs.chmodSync(executablePath, 0o755);
+    if (!hasOwnerExecuteBit) {
+      fs.chmodSync(executablePath, currentMode | 0o100);
     }
   } catch (error) {
     logger.warn("Failed to ensure executable permission", {
@@ -234,6 +234,53 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
+const launchWindowsBinaryOnLinux = async (
+  gameKey: string,
+  objectId: string,
+  parsedPath: string,
+  game: Game | undefined,
+  launchOptions: string | null | undefined,
+  useMangohud: boolean,
+  useGamemode: boolean
+): Promise<boolean> => {
+  const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
+  const winePrefixPath = Wine.getEffectivePrefixPath(
+    game?.winePrefixPath,
+    objectId
+  );
+
+  await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
+
+  try {
+    await Umu.launchExecutable(parsedPath, [], {
+      winePrefixPath,
+      protonPath,
+      gameId: objectId,
+      launchOptions,
+      useGamemode,
+      useMangohud,
+    });
+    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+    return true;
+  } catch (error) {
+    logger.error("Failed to launch game with umu-run, falling back", error);
+  }
+
+  const launchedWithWine = await launchWithWine(
+    parsedPath,
+    launchOptions,
+    useMangohud,
+    useGamemode
+  );
+
+  if (launchedWithWine) {
+    PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
@@ -294,43 +341,18 @@ export const launchGame = async (
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   if (process.platform === "linux") {
-    const isWindowsBinary = isWindowsExecutable(parsedPath);
-
-    if (isWindowsBinary) {
-      const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
-      const winePrefixPath = Wine.getEffectivePrefixPath(
-        game?.winePrefixPath,
-        objectId
-      );
-
-      await cleanupStaleCompatibilityProcesses(objectId, winePrefixPath);
-
-      try {
-        await Umu.launchExecutable(parsedPath, [], {
-          winePrefixPath,
-          protonPath,
-          gameId: options.objectId,
-          launchOptions,
-          useGamemode,
-          useMangohud,
-        });
-        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-        return null;
-      } catch (error) {
-        logger.error("Failed to launch game with umu-run, falling back", error);
-      }
-
-      const launchedWithWine = await launchWithWine(
+    if (isWindowsExecutable(parsedPath)) {
+      const launched = await launchWindowsBinaryOnLinux(
+        gameKey,
+        objectId,
         parsedPath,
+        game,
         launchOptions,
         useMangohud,
         useGamemode
       );
 
-      if (launchedWithWine) {
-        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-        return null;
-      }
+      if (launched) return null;
     }
 
     const pid = launchNatively(
