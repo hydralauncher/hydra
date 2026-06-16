@@ -565,9 +565,7 @@ export function GeneralSettingsSection({
                       <div className="drive-card__body">
                         <div className="drive-card__top">
                           <div className="drive-card__name-row">
-                            <span
-                              className={`drive-card__label ${isCurrentDrive ? "drive-card__label--current" : ""}`}
-                            >
+                            <span className="drive-card__label">
                               {drive.label || drive.root}
                             </span>
                             {isCurrentDrive && (
@@ -807,4 +805,3 @@ export function GeneralSettingsSection({
     </>
   );
 }
-// test

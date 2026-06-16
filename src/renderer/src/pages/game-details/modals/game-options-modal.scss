@@ -522,10 +522,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-
-    &--current {
-      color: globals.$white;
-    }
   }
 
   &__installed-tag {
