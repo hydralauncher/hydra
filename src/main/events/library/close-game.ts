@@ -6,6 +6,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import path from "node:path";
 import { NativeAddon } from "@main/services/native-addon";
+import { processReferencesExecutable } from "@main/services/linux-process-match";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -33,11 +34,22 @@ const closeGame = async (
 
   const gameProcess = processes.find((runningProcess) => {
     if (process.platform === "linux") {
+      const matchesLaunchedPid =
+        runningProcess.pid === launchedPid &&
+        processReferencesExecutable(
+          {
+            cwd: runningProcess.cwd,
+            exe: runningProcess.exe,
+            appImagePath: runningProcess.environ?.APPIMAGE,
+          },
+          game.executablePath ?? ""
+        );
+
       return (
         runningProcess.name === targetPath?.split("/").at(-1) ||
         runningProcess.exe === targetPath ||
         runningProcess.environ?.APPIMAGE === targetPath ||
-        runningProcess.pid === launchedPid
+        matchesLaunchedPid
       );
     }
 

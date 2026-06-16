@@ -21,6 +21,26 @@ export const hasLinuxNativeOrAppImageMatch = (
   );
 };
 
+interface ProcessLocation {
+  cwd?: string | null;
+  exe?: string | null;
+  appImagePath?: string | null;
+}
+
+export const processReferencesExecutable = (
+  matchedProcess: ProcessLocation,
+  executablePath: string
+) => {
+  const target = executablePath.toLowerCase();
+  const gameDirectory = path.dirname(executablePath).toLowerCase();
+
+  return (
+    (matchedProcess.cwd ?? "").toLowerCase() === gameDirectory ||
+    (matchedProcess.exe ?? "").toLowerCase() === target ||
+    (matchedProcess.appImagePath ?? "").toLowerCase() === target
+  );
+};
+
 export const hasLaunchedPidMatch = (
   launchedPid: number | undefined,
   executablePath: string,
@@ -31,12 +51,5 @@ export const hasLaunchedPidMatch = (
   const matchedProcess = pidToProcess.get(launchedPid);
   if (!matchedProcess) return false;
 
-  const target = executablePath.toLowerCase();
-  const gameDirectory = path.dirname(executablePath).toLowerCase();
-
-  return (
-    matchedProcess.cwd === gameDirectory ||
-    matchedProcess.exe === target ||
-    matchedProcess.appImagePath === target
-  );
+  return processReferencesExecutable(matchedProcess, executablePath);
 };
