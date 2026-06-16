@@ -389,6 +389,8 @@
 }
 
 .drive-selector {
+  --drive-accent: rgba(globals.$white, 1);
+
   display: flex;
   flex-direction: column;
   gap: globals.$spacing-unit;
@@ -483,7 +485,11 @@
 
   &__icon {
     flex-shrink: 0;
-    color: rgba(globals.$white, 0.5);
+    stroke: rgba(globals.$white, 0.5);
+
+    &--current {
+      stroke: globals.$white;
+    }
   }
 
   &__body {

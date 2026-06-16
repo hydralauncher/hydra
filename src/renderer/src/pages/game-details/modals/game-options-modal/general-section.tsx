@@ -515,7 +515,7 @@ export function GeneralSettingsSection({
                 <>
                   {" "}
                   (
-                  <span style={{ color: "#ffffff" }}>
+                  <span style={{ color: "var(--drive-accent)" }}>
                     {transferGameSize}
                   </span>
                   )
@@ -560,8 +560,7 @@ export function GeneralSettingsSection({
                     >
                       <HardDrive
                         size={18}
-                        className="drive-card__icon"
-                        color={isCurrentDrive ? "#ffffff" : undefined}
+                        className={`drive-card__icon ${isCurrentDrive ? "drive-card__icon--current" : ""}`}
                       />
                       <div className="drive-card__body">
                         <div className="drive-card__top">
