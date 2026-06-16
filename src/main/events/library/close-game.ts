@@ -7,6 +7,7 @@ import { GameShop } from "@types";
 import path from "node:path";
 import { NativeAddon } from "@main/services/native-addon";
 import { processReferencesExecutable } from "@main/services/linux-process-match";
+import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -30,12 +31,11 @@ const closeGame = async (
   if (!game) return;
 
   const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
+  const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
   const targetPaths =
-    game.trackingExecutablePaths && game.trackingExecutablePaths.length
-      ? game.trackingExecutablePaths
-      : game.executablePath
-        ? [game.executablePath]
-        : [];
+    game.executablePath && !isWindowsBatchFile(game.executablePath)
+      ? [game.executablePath, ...trackingPaths]
+      : trackingPaths;
 
   const gameProcesses = processes.filter((runningProcess) => {
     const matchesTargetPath = targetPaths.some((targetPath) => {
