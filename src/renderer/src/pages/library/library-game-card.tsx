@@ -1,14 +1,26 @@
 import { LibraryGame } from "@types";
 import { useGameCard } from "@renderer/hooks";
-import { memo, useEffect, useState } from "react";
+import { isGameCompleted } from "@renderer/helpers";
+import { ProgressBar } from "@renderer/components";
+import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   AlertFillIcon,
   TrophyIcon,
   ImageIcon,
+  CheckCircleFillIcon,
 } from "@primer/octicons-react";
+import { platformToSystem, SYSTEM_TO_BINARY } from "@renderer/helpers";
+import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  ps1: "PS",
+  ps2: "PS2",
+  ps3: "PS3",
+};
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -28,8 +40,16 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   onMouseLeave,
   onContextMenu,
 }: Readonly<LibraryGameCardProps>) {
+  const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
+
+  const isCompleted = useMemo(
+    () => isGameCompleted(game.achievementCount, game.unlockedAchievementCount),
+    [game.achievementCount, game.unlockedAchievementCount]
+  );
+
+  const isInstalled = Boolean(game.executablePath);
 
   const sources = [
     game.customIconUrl, // Level 0
@@ -73,6 +93,15 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const activeImageSource = resolveImageSource(sources[fallbackIndex]);
 
+  const classicsSystem =
+    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
+  const classicsPlatformLabel = classicsSystem
+    ? PLATFORM_LABELS[classicsSystem]
+    : null;
+  const classicsEmulatorIcon = classicsSystem
+    ? EMULATOR_ICONS[SYSTEM_TO_BINARY[classicsSystem]]
+    : undefined;
+
   const handleImageError = () => {
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
@@ -101,7 +130,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
-      <div className="library-game-card__overlay">
+      <div
+        className={`library-game-card__overlay${game.shop === "launchbox" ? " library-game-card__overlay--classics" : ""}`}
+      >
         <div className="library-game-card__top-section">
           <div className="library-game-card__playtime">
             {game.hasManuallyUpdatedPlaytime ? (
@@ -119,38 +150,76 @@ export const LibraryGameCard = memo(function LibraryGameCard({
               {formatPlayTime(game.playTimeInMilliseconds, true)}
             </span>
           </div>
+
+          {classicsPlatformLabel && (
+            <div className="library-game-card__classics-badges">
+              <span className="library-game-card__platform-badge">
+                {classicsPlatformLabel}
+              </span>
+              {classicsEmulatorIcon && (
+                <span className="library-game-card__emulator-badge">
+                  <img src={classicsEmulatorIcon} alt="" />
+                </span>
+              )}
+            </div>
+          )}
+
+          {isInstalled && (
+            <div
+              className="library-game-card__installed-badge"
+              title={t("installed_tooltip")}
+            >
+              <CheckCircleFillIcon
+                size={11}
+                className="library-game-card__installed-icon"
+              />
+              <span className="library-game-card__installed-text">
+                {t("installed")}
+              </span>
+            </div>
+          )}
         </div>
 
         {(game.achievementCount ?? 0) > 0 && (
           <div className="library-game-card__achievements">
             <div className="library-game-card__achievement-header">
               <div className="library-game-card__achievements-gap">
-                <TrophyIcon
-                  size={13}
-                  className="library-game-card__achievement-trophy"
-                />
+                {!isCompleted && (
+                  <TrophyIcon
+                    size={13}
+                    className="library-game-card__achievement-trophy"
+                  />
+                )}
                 <span className="library-game-card__achievement-count">
                   {game.unlockedAchievementCount ?? 0} /{" "}
                   {game.achievementCount ?? 0}
                 </span>
               </div>
-              <span className="library-game-card__achievement-percentage">
-                {Math.round(
-                  ((game.unlockedAchievementCount ?? 0) /
-                    (game.achievementCount ?? 1)) *
-                    100
+              <span
+                className={`library-game-card__achievement-percentage${isCompleted ? " library-game-card__achievement-percentage--completed" : ""}`}
+              >
+                {isCompleted ? (
+                  <TrophyIcon size={13} />
+                ) : (
+                  <>
+                    {Math.round(
+                      ((game.unlockedAchievementCount ?? 0) /
+                        (game.achievementCount ?? 1)) *
+                        100
+                    )}
+                    %
+                  </>
                 )}
-                %
               </span>
             </div>
-            <div className="library-game-card__achievement-progress">
-              <div
-                className="library-game-card__achievement-bar"
-                style={{
-                  width: `${((game.unlockedAchievementCount ?? 0) / (game.achievementCount ?? 1)) * 100}%`,
-                }}
-              />
-            </div>
+            <ProgressBar
+              now={game.unlockedAchievementCount ?? 0}
+              max={game.achievementCount ?? 1}
+              label={`${game.title} achievements`}
+              completed={isCompleted}
+              trackClassName="library-game-card__achievement-progress"
+              barClassName="library-game-card__achievement-bar"
+            />
           </div>
         )}
       </div>
@@ -158,6 +227,24 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       {imageError || !activeImageSource ? (
         <div className="library-game-card__cover-placeholder">
           <ImageIcon size={48} />
+        </div>
+      ) : game.shop === "launchbox" ? (
+        <div className="library-game-card__classics-cover">
+          <img
+            src={activeImageSource}
+            alt=""
+            aria-hidden="true"
+            className="library-game-card__classics-backdrop"
+            loading="lazy"
+            onError={handleImageError}
+          />
+          <img
+            src={activeImageSource}
+            alt={game.title}
+            className="library-game-card__classics-image"
+            loading="lazy"
+            onError={handleImageError}
+          />
         </div>
       ) : (
         <img

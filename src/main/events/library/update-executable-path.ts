@@ -3,6 +3,7 @@ import { parseExecutablePath } from "../helpers/parse-executable-path";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { gamesSublevel, levelKeys } from "@main/level";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { logger } from "@main/services";
 import type { GameShop } from "@types";
 
@@ -23,8 +24,7 @@ const updateExecutablePath = async (
 
   // Update immediately without size so UI responds fast
   await gamesSublevel.put(gameKey, {
-    ...game,
-    executablePath: parsedPath,
+    ...updateGameExecutablePath(game, parsedPath),
     installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
     automaticCloudSync:
       executablePath === null ? false : game.automaticCloudSync,

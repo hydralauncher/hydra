@@ -3,6 +3,7 @@ import { DOWNLOADS_PAGE_REGION_ID } from "../components/pages/downloads/navigati
 import { GAME_PAGE_REGION_ID } from "../components/pages/game/navigation";
 import { CATALOGUE_GRID_REGION_ID } from "../pages/catalogue/navigation";
 import { HOME_PAGE_REGION_ID } from "../pages/home/navigation";
+import { PROFILE_PAGE_REGION_ID } from "../pages/profile/navigation";
 import { SETTINGS_PAGE_REGION_ID } from "../pages/settings/navigation";
 import { LIBRARY_PAGE_REGION_ID } from "../components/pages/library/navigation";
 
@@ -22,6 +23,21 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
 } as const;
 
 export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
+export const BIG_PICTURE_SIDEBAR_PROFILE_ID = "big-picture-sidebar-profile";
+export const BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID =
+  "big-picture-sidebar-notifications";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_SEARCH_ID =
+  "big-picture-sidebar-library-search";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_LIST_REGION_ID =
+  "big-picture-sidebar-library-list";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_ALL_ID =
+  "big-picture-sidebar-library-filter-all";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_READY_TO_PLAY_ID =
+  "big-picture-sidebar-library-filter-ready-to-play";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_RECENTLY_PLAYED_ID =
+  "big-picture-sidebar-library-filter-recently-played";
+export const BIG_PICTURE_SIDEBAR_LIBRARY_FILTER_FAVORITES_ID =
+  "big-picture-sidebar-library-filter-favorites";
 
 export type BigPictureSidebarRouteKey =
   keyof typeof BIG_PICTURE_SIDEBAR_ITEM_IDS;
@@ -91,6 +107,10 @@ export function getBigPictureSidebarItemIdFromPathname(pathname: string) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.settings;
   }
 
+  if (normalizedPathname.startsWith("/profile")) {
+    return BIG_PICTURE_SIDEBAR_PROFILE_ID;
+  }
+
   if (normalizedPathname.startsWith("/library")) {
     return BIG_PICTURE_SIDEBAR_ITEM_IDS.library;
   }
@@ -121,6 +141,10 @@ export function getBigPictureContentEntryRegionIdFromPathname(
 
   if (normalizedPathname.startsWith("/settings")) {
     return SETTINGS_PAGE_REGION_ID;
+  }
+
+  if (normalizedPathname.startsWith("/profile")) {
+    return PROFILE_PAGE_REGION_ID;
   }
 
   if (getBigPictureGameRouteMatch(normalizedPathname)) {

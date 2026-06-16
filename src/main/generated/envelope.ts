@@ -50,6 +50,19 @@ export interface Notification {
   notificationCount: number;
 }
 /**
+ * @generated from protobuf message FriendPresence
+ */
+export interface FriendPresence {
+  /**
+   * @generated from protobuf field: string friend_id = 1
+   */
+  friendId: string;
+  /**
+   * @generated from protobuf field: bool is_online = 2
+   */
+  isOnline: boolean;
+}
+/**
  * @generated from protobuf message Envelope
  */
 export interface Envelope {
@@ -77,6 +90,13 @@ export interface Envelope {
          * @generated from protobuf field: Notification notification = 3
          */
         notification: Notification;
+      }
+    | {
+        oneofKind: "friendPresence";
+        /**
+         * @generated from protobuf field: FriendPresence friend_presence = 4
+         */
+        friendPresence: FriendPresence;
       }
     | {
         oneofKind: undefined;
@@ -329,6 +349,83 @@ class Notification$Type extends MessageType<Notification> {
  */
 export const Notification = new Notification$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class FriendPresence$Type extends MessageType<FriendPresence> {
+  constructor() {
+    super("FriendPresence", [
+      { no: 1, name: "friend_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+      { no: 2, name: "is_online", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+    ]);
+  }
+  create(value?: PartialMessage<FriendPresence>): FriendPresence {
+    const message = globalThis.Object.create(this.messagePrototype!);
+    message.friendId = "";
+    message.isOnline = false;
+    if (value !== undefined)
+      reflectionMergePartial<FriendPresence>(this, message, value);
+    return message;
+  }
+  internalBinaryRead(
+    reader: IBinaryReader,
+    length: number,
+    options: BinaryReadOptions,
+    target?: FriendPresence
+  ): FriendPresence {
+    let message = target ?? this.create(),
+      end = reader.pos + length;
+    while (reader.pos < end) {
+      let [fieldNo, wireType] = reader.tag();
+      switch (fieldNo) {
+        case /* string friend_id */ 1:
+          message.friendId = reader.string();
+          break;
+        case /* bool is_online */ 2:
+          message.isOnline = reader.bool();
+          break;
+        default:
+          let u = options.readUnknownField;
+          if (u === "throw")
+            throw new globalThis.Error(
+              `Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`
+            );
+          let d = reader.skip(wireType);
+          if (u !== false)
+            (u === true ? UnknownFieldHandler.onRead : u)(
+              this.typeName,
+              message,
+              fieldNo,
+              wireType,
+              d
+            );
+      }
+    }
+    return message;
+  }
+  internalBinaryWrite(
+    message: FriendPresence,
+    writer: IBinaryWriter,
+    options: BinaryWriteOptions
+  ): IBinaryWriter {
+    /* string friend_id = 1; */
+    if (message.friendId !== "")
+      writer.tag(1, WireType.LengthDelimited).string(message.friendId);
+    /* bool is_online = 2; */
+    if (message.isOnline !== false)
+      writer.tag(2, WireType.Varint).bool(message.isOnline);
+    let u = options.writeUnknownFields;
+    if (u !== false)
+      (u == true ? UnknownFieldHandler.onWrite : u)(
+        this.typeName,
+        message,
+        writer
+      );
+    return writer;
+  }
+}
+/**
+ * @generated MessageType for protobuf message FriendPresence
+ */
+export const FriendPresence = new FriendPresence$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class Envelope$Type extends MessageType<Envelope> {
   constructor() {
     super("Envelope", [
@@ -352,6 +449,13 @@ class Envelope$Type extends MessageType<Envelope> {
         kind: "message",
         oneof: "payload",
         T: () => Notification,
+      },
+      {
+        no: 4,
+        name: "friend_presence",
+        kind: "message",
+        oneof: "payload",
+        T: () => FriendPresence,
       },
     ]);
   }
@@ -406,6 +510,17 @@ class Envelope$Type extends MessageType<Envelope> {
             ),
           };
           break;
+        case /* FriendPresence friend_presence */ 4:
+          message.payload = {
+            oneofKind: "friendPresence",
+            friendPresence: FriendPresence.internalBinaryRead(
+              reader,
+              reader.uint32(),
+              options,
+              (message.payload as any).friendPresence
+            ),
+          };
+          break;
         default:
           let u = options.readUnknownField;
           if (u === "throw")
@@ -449,6 +564,13 @@ class Envelope$Type extends MessageType<Envelope> {
       Notification.internalBinaryWrite(
         message.payload.notification,
         writer.tag(3, WireType.LengthDelimited).fork(),
+        options
+      ).join();
+    /* FriendPresence friend_presence = 4; */
+    if (message.payload.oneofKind === "friendPresence")
+      FriendPresence.internalBinaryWrite(
+        message.payload.friendPresence,
+        writer.tag(4, WireType.LengthDelimited).fork(),
         options
       ).join();
     let u = options.writeUnknownFields;

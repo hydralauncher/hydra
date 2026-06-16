@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { AchievementNotificationInfo } from "@types";
 
 export * from "./constants";
+export * from "./controller-support";
 export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";

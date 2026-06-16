@@ -24,7 +24,7 @@
     "queued": "{{title}} (Rindā)",
     "game_has_no_executable": "Spēles palaišanas fails nav izvēlēts",
     "sign_in": "Pieteikties",
-    "friends": "Draugi",
+    "friends": "Friends",
     "need_help": "Nepieciešama palīdzība?",
     "favorites": "Izlase",
     "playable_button_title": "Rādīt tikai instalētās spēles.",
@@ -880,7 +880,7 @@
     "report_reason_sexual_content": "Seksuāls saturs",
     "report_reason_violence": "Vardarbība",
     "report_reason_spam": "Surogātpasts",
-    "report_reason_other_option": "Cits",
+    "report_reason_other": "Cits",
     "profile_reported": "Ziņojums par profilu nosūtīts",
     "your_friend_code": "Jūsu drauga kods:",
     "upload_banner": "Augšupielādēt reklāmkarogu",
@@ -1057,5 +1057,24 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

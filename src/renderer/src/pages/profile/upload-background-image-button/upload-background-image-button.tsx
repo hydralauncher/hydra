@@ -8,6 +8,7 @@ import { useToast, useUserDetails } from "@renderer/hooks";
 import { useTranslation } from "react-i18next";
 import { getProfileImageMetadata } from "../profile-image-metadata";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import "./upload-background-image-button.scss";
 
 export function UploadBackgroundImageButton() {
@@ -16,6 +17,7 @@ export function UploadBackgroundImageButton() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [showRemoveBannerModal, setShowRemoveBannerModal] = useState(false);
+  const { showHydraCloudModal } = useSubscription();
   const [bannerImageToCrop, setBannerImageToCrop] = useState<string | null>(
     null
   );
@@ -144,7 +146,24 @@ export function UploadBackgroundImageButton() {
     };
   }, [isMenuOpen]);
 
-  if (!isMe || !hasActiveSubscription) return null;
+  if (!isMe) return null;
+
+  // Non-subscribers always see the button, but clicking it presents the Hydra
+  // Cloud promo (highlighting profile customization) instead of the file picker.
+  if (!hasActiveSubscription) {
+    return (
+      <div className="upload-background-image-button__wrapper">
+        <Button
+          theme="outline"
+          className="upload-background-image-button"
+          onClick={() => showHydraCloudModal("customization")}
+        >
+          <UploadIcon />
+          {t("upload_banner")}
+        </Button>
+      </div>
+    );
+  }
 
   const cropModal = (
     <ProfileImageCropModal

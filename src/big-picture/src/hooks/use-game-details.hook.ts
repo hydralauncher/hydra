@@ -15,6 +15,8 @@ import {
   getSteamLanguage,
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
+import { NavigationAudioService } from "../services";
+import { useBigPictureRunningGame } from "./use-big-picture-running-games.hook";
 
 export function useGameDetails(objectId: string, shop: GameShop) {
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
@@ -23,7 +25,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   );
   const [stats, setStats] = useState<GameStats | null>(null);
   const [game, setGame] = useState<LibraryGame | null>(null);
-  const [isGameRunning, setIsGameRunning] = useState(false);
+  const runningGame = useBigPictureRunningGame(game?.id);
+  const isGameRunning = runningGame !== null;
+  const runningSessionDurationInMillis =
+    runningGame?.sessionDurationInMillis ?? null;
   const [howLongToBeat, setHowLongToBeat] = useState<
     HowLongToBeatCategory[] | null
   >(null);
@@ -108,30 +113,33 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     }
   }, [fetchGameDetails, updateGame, objectId, shop]);
 
-  useEffect(() => {
-    if (!IS_DESKTOP || !game?.id) return;
+  const openGame = useCallback(
+    async (discPath?: string, force?: boolean) => {
+      if (!game) return;
 
-    const gameId = game.id;
-    const unsubscribe = globalThis.window.electron.onGamesRunning(
-      (gamesRunning) => {
-        setIsGameRunning(gamesRunning.some((g) => g.id == gameId));
+      if (game.shop === "launchbox") {
+        NavigationAudioService.getInstance().play("launch");
+        await globalThis.window.electron.openClassicsGame(
+          game.shop,
+          game.objectId,
+          discPath,
+          force
+        );
+        return;
       }
-    );
 
-    return () => {
-      unsubscribe();
-    };
-  }, [game?.id]);
+      if (!game.executablePath) return;
 
-  const openGame = useCallback(async () => {
-    if (!game?.executablePath) return;
-    globalThis.window.electron.openGame(
-      game.shop,
-      game.objectId,
-      game.executablePath,
-      game.launchOptions
-    );
-  }, [game]);
+      NavigationAudioService.getInstance().play("launch");
+      globalThis.window.electron.openGame(
+        game.shop,
+        game.objectId,
+        game.executablePath,
+        game.launchOptions
+      );
+    },
+    [game]
+  );
 
   const closeGame = useCallback(() => {
     if (!game) return;
@@ -193,6 +201,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     stats,
     game,
     isGameRunning,
+    runningSessionDurationInMillis,
     isLoading,
     howLongToBeat,
     protonDBData,

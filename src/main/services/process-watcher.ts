@@ -1,4 +1,5 @@
 import { WindowManager } from "./window-manager";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
 import type { Game, GameRunning, UserPreferences } from "@types";
 import axios from "axios";
@@ -11,11 +12,31 @@ import { AchievementWatcherManager } from "./achievements/achievement-watcher-ma
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
+import { emulatorSessions } from "./emulators/emulator-session-tracker";
 
 export const gamesPlaytime = new Map<
   string,
   { lastTick: number; firstTick: number; lastSyncTick: number }
 >();
+
+export const getGamesRunning = () => {
+  const now = performance.now();
+  const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
+    return {
+      id: entry[0],
+      sessionDurationInMillis: now - entry[1].firstTick,
+    } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
+  });
+
+  for (const [gameKey, session] of emulatorSessions) {
+    gamesRunning.push({
+      id: gameKey,
+      sessionDurationInMillis: now - session.startedAt,
+    });
+  }
+
+  return gamesRunning;
+};
 
 interface ExecutableInfo {
   name: string;
@@ -125,8 +146,7 @@ const findGamePathByProcess = async (
 
           if (game) {
             const updatedGame: Game = {
-              ...game,
-              executablePath: path,
+              ...updateGameExecutablePath(game, path),
             };
 
             if (process.platform === "linux" && winePrefixMap.has(path)) {
@@ -252,16 +272,7 @@ export const watchProcesses = async () => {
 
   currentTick++;
 
-  if (WindowManager.mainWindow) {
-    const gamesRunning = Array.from(gamesPlaytime.entries()).map((entry) => {
-      return {
-        id: entry[0],
-        sessionDurationInMillis: performance.now() - entry[1].firstTick,
-      } as Pick<GameRunning, "id" | "sessionDurationInMillis">;
-    });
-
-    WindowManager.mainWindow.webContents.send("on-games-running", gamesRunning);
-  }
+  WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
 };
 
 function onOpenGame(game: Game) {

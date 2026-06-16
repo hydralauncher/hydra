@@ -24,7 +24,7 @@
     "queued": "{{title}} (Jonossa)",
     "game_has_no_executable": "Pelin käynnistystiedostoa ei ole valittu",
     "sign_in": "Kirjaudu sisään",
-    "friends": "Kaverit",
+    "friends": "Friends",
     "need_help": "Tarvitsetko apua?",
     "favorites": "Suosikit",
     "playable_button_title": "Näytä vain asennetut pelit.",
@@ -880,7 +880,7 @@
     "report_reason_sexual_content": "Seksuaalinen sisältö",
     "report_reason_violence": "Väkivalta",
     "report_reason_spam": "Roskaposti",
-    "report_reason_other_option": "Muu",
+    "report_reason_other": "Muu",
     "profile_reported": "Profiili-ilmoitus lähetetty",
     "your_friend_code": "Kaverikoodisi:",
     "upload_banner": "Lataa banneri",
@@ -1057,5 +1057,24 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

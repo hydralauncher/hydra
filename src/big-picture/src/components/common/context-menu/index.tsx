@@ -17,6 +17,7 @@ import { FocusRegionContext } from "../../context";
 import { FocusItem } from "../focus-item";
 import { NavigationLayer } from "../navigation-layer";
 import { VerticalFocusGroup } from "../vertical-focus-group";
+import { NavigationAudioService } from "../../../services";
 
 const CONTEXT_MENU_VIEWPORT_PADDING = 16;
 const SCROLL_LOCK_KEYS = new Set([
@@ -64,6 +65,7 @@ export function ContextMenu({
   const generatedId = useId();
   const { setFocus } = useNavigation();
   const floatingRef = useRef<HTMLDivElement | null>(null);
+  const wasVisibleRef = useRef(false);
   const [resolvedPosition, setResolvedPosition] = useState<{
     x: number;
     y: number;
@@ -113,6 +115,12 @@ export function ContextMenu({
   }, [anchorPosition.x, anchorPosition.y, visible]);
 
   useEffect(() => {
+    if (visible && !wasVisibleRef.current) {
+      NavigationAudioService.getInstance().play("select");
+    }
+
+    wasVisibleRef.current = visible;
+
     if (visible) return;
 
     setResolvedPosition(null);

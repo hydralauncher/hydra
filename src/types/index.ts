@@ -9,7 +9,8 @@ export * from "./download-contract";
 export type HydraCloudFeature =
   | "achievements"
   | "backup"
-  | "achievements-points";
+  | "achievements-points"
+  | "customization";
 
 export interface DiskUsage {
   free: number;
@@ -60,6 +61,8 @@ export interface ShopAssets {
 
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
+  platform?: string;
+  skus?: string[];
 };
 
 export type ShopDetailsWithAssets = ShopDetails & {
@@ -149,15 +152,23 @@ export interface UserFriend {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl?: string | null;
   currentGame:
     | (ShopAssets & {
         sessionDurationInSeconds: number;
       })
     | null;
+  isOnline?: boolean;
 }
 
 export interface UserFriends {
   totalFriends: number;
+  friends: UserFriend[];
+}
+
+export interface ProfileFriends {
+  totalFriends: number;
+  onlineFriends: number;
   friends: UserFriend[];
 }
 
@@ -168,6 +179,11 @@ export interface UserBlocks {
 
 export interface FriendRequestSync {
   friendRequestCount: number;
+}
+
+export interface FriendPresenceSync {
+  friendId: string;
+  isOnline: boolean;
 }
 
 export interface NotificationSync {
@@ -266,6 +282,27 @@ export interface GameStats {
   reviewCount: number;
 }
 
+export interface GameReviewAnswer {
+  id: string;
+  answerHtml: string;
+  createdAt: string;
+  updatedAt: string;
+  upvotes: number;
+  downvotes: number;
+  isBlocked: boolean;
+  hasUpvoted: boolean;
+  hasDownvoted: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+  };
+  translations: {
+    [key: string]: string;
+  };
+  detectedLanguage: string | null;
+}
+
 export interface GameReview {
   id: string;
   reviewHtml: string;
@@ -274,6 +311,8 @@ export interface GameReview {
   updatedAt: string;
   upvotes: number;
   downvotes: number;
+  answerCount: number;
+  answers: GameReviewAnswer[];
   isBlocked: boolean;
   hasUpvoted: boolean;
   hasDownvoted: boolean;
@@ -348,7 +387,8 @@ export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
   | "BADGE_RECEIVED"
-  | "REVIEW_UPVOTE";
+  | "REVIEW_UPVOTE"
+  | "REVIEW_ANSWER";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
@@ -450,6 +490,8 @@ export interface CatalogueSearchPayload {
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };
+  shops?: string[];
+  platforms?: string[];
 }
 
 export interface ProtonDBData {
@@ -475,6 +517,11 @@ export type CatalogueSearchResult = {
   protondbSupportBadges?: string[];
   deckCompatibility?: string | null;
   deckCompatibilities?: string[];
+  platform?: string;
+  alternateNames?: string[];
+  developers?: string[];
+  publishers?: string[];
+  skus?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -509,3 +556,4 @@ export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
 export * from "./level.types";
 export * from "./theme.types";
+export * from "./emulator.types";

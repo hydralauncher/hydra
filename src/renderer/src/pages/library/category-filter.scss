@@ -1,0 +1,39 @@
+.library-category-filter {
+  &__container {
+    display: flex;
+    gap: 2px;
+    align-items: stretch;
+    padding: 3px;
+    background-color: #0d0d0d;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease;
+
+    &:hover {
+      color: #fafafa;
+    }
+
+    &--active {
+      background-color: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #fafafa;
+    }
+  }
+}

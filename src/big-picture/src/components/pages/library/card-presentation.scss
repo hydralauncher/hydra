@@ -1,0 +1,67 @@
+.library-focus-grid__card--classics {
+  --library-classics-rainbow: conic-gradient(
+    from 0deg,
+    #fcdc33 5deg,
+    #4cbd47 70deg,
+    #13aceb 145deg,
+    #ee473b 220deg,
+    #ef833a 290deg,
+    #fcdc33 365deg
+  );
+
+  .library-classics-badges {
+    position: absolute;
+    top: calc(var(--spacing-unit) * 2);
+    right: calc(var(--spacing-unit) * 2);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .library-classics-platform-badge,
+  .library-classics-emulator-badge {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(var(--surface), var(--surface)) padding-box,
+      var(--library-classics-rainbow) border-box;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+  }
+
+  .library-classics-platform-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    max-width: 108px;
+    min-width: 0;
+    padding: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fafafa;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .library-classics-emulator-badge {
+    position: relative;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+
+    img {
+      position: absolute;
+      inset: 0;
+      width: 17px;
+      height: 17px;
+      margin: auto;
+      display: block;
+      object-fit: contain;
+      border-radius: 3px;
+    }
+  }
+}

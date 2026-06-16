@@ -7,16 +7,13 @@ import { useTranslation } from "react-i18next";
 import * as yup from "yup";
 import { userProfileContext } from "@renderer/context";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useToast } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
+import { AuthPage } from "@shared";
 import "./report-profile.scss";
 
-const reportReasons = [
-  "hate",
-  "sexual_content",
-  "violence",
-  "spam",
-  "other_option",
-];
+const reportReasons = ["hate", "sexual_content", "violence", "spam", "other"];
+
+const MAX_REPORT_DESCRIPTION_LENGTH = 255;
 
 interface FormValues {
   reason: string;
@@ -32,7 +29,16 @@ export function ReportProfile() {
 
   const schema = yup.object().shape({
     reason: yup.string().required(t("required_field")),
-    description: yup.string().required(t("required_field")),
+    description: yup
+      .string()
+      .required(t("required_field"))
+      .max(
+        MAX_REPORT_DESCRIPTION_LENGTH,
+        t("max_length_field", {
+          ns: "game_details",
+          length: MAX_REPORT_DESCRIPTION_LENGTH,
+        })
+      ),
   });
 
   const {
@@ -50,6 +56,7 @@ export function ReportProfile() {
   });
 
   const { showSuccessToast } = useToast();
+  const { userDetails } = useUserDetails();
 
   useEffect(() => {
     reset({
@@ -60,6 +67,11 @@ export function ReportProfile() {
 
   const onSubmit = useCallback(
     async (values: FormValues) => {
+      if (!userDetails) {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+        return;
+      }
+
       return window.electron.hydraApi
         .post(`/users/${userProfile!.id}/report`, {
           data: {
@@ -72,8 +84,17 @@ export function ReportProfile() {
           setShowReportProfileModal(false);
         });
     },
-    [userProfile, showSuccessToast, t]
+    [userProfile, showSuccessToast, t, userDetails]
   );
+
+  const handleReportClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setShowReportProfileModal(true);
+  };
 
   if (isMe) return null;
 
@@ -115,14 +136,16 @@ export function ReportProfile() {
             error={errors.description?.message}
           />
 
-          <Button className="report-profile__submit">{t("report")}</Button>
+          <Button type="submit" className="report-profile__submit">
+            {t("report")}
+          </Button>
         </form>
       </Modal>
 
       <button
         type="button"
         className="report-profile__button"
-        onClick={() => setShowReportProfileModal(true)}
+        onClick={handleReportClick}
         disabled={isSubmitting}
       >
         <ReportIcon size={13} />

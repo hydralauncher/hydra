@@ -1,0 +1,50 @@
+.catalogue-mode-toggle {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  padding: 3px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+
+  &__option {
+    flex: 1;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #a1a1aa;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      color: #fafafa;
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #fafafa;
+    }
+  }
+}

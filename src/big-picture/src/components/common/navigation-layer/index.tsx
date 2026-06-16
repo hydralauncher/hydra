@@ -7,6 +7,7 @@ interface NavigationLayerProps {
   rootRegionId?: string;
   initialFocusId?: string;
   initialFocusRegionId?: string;
+  restoreFocusOnUnmount?: boolean | (() => boolean);
   children: ReactNode;
 }
 
@@ -15,6 +16,7 @@ export function NavigationLayer({
   rootRegionId,
   initialFocusId,
   initialFocusRegionId,
+  restoreFocusOnUnmount,
   children,
 }: Readonly<NavigationLayerProps>) {
   const generatedId = useId();
@@ -27,6 +29,7 @@ export function NavigationLayer({
       id: resolvedLayerId,
       rootRegionId,
       isPersistent: Boolean(layerId),
+      restoreFocusOnUnmount,
     });
 
     navigation.focusInitialInLayer({
@@ -44,6 +47,7 @@ export function NavigationLayer({
     layerId,
     navigation,
     resolvedLayerId,
+    restoreFocusOnUnmount,
     rootRegionId,
   ]);
 

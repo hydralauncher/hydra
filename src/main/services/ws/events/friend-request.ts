@@ -4,7 +4,8 @@ import { publishNewFriendRequestNotification } from "@main/services/notification
 import { WindowManager } from "@main/services/window-manager";
 
 export const friendRequestEvent = async (payload: FriendRequest) => {
-  WindowManager.mainWindow?.webContents.send("on-sync-friend-requests", {
+  // Broadcast to every window (the friends window has its own renderer/store).
+  WindowManager.sendToAppWindows("on-sync-friend-requests", {
     friendRequestCount: payload.friendRequestCount,
   });
 

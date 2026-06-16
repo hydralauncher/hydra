@@ -14,6 +14,7 @@ type ProfileGame = {
   isPinned?: boolean;
   achievementCount: number;
   unlockedAchievementCount: number;
+  platform?: string | null;
 } & ShopAssets;
 
 const getLocalCollectionIds = (
@@ -42,7 +43,17 @@ const getLocalCollectionIds = (
 };
 
 export const mergeWithRemoteGames = async () => {
-  return HydraApi.get<ProfileGame[]>("/profile/games")
+  const fetchGames = Promise.all([
+    HydraApi.get<ProfileGame[]>("/profile/games"),
+    HydraApi.get<ProfileGame[]>("/profile/games", {
+      shop: "launchbox",
+    }).catch(() => [] as ProfileGame[]),
+  ]).then(([defaultGames, classicsGames]) => [
+    ...defaultGames,
+    ...classicsGames,
+  ]);
+
+  return fetchGames
     .then(async (response) => {
       for (const game of response) {
         const gameKey = levelKeys.game(game.shop, game.objectId);
@@ -93,6 +104,7 @@ export const mergeWithRemoteGames = async () => {
             collectionIds: mergedCollectionIds,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
+            platform: game.platform ?? localGame.platform,
           });
         } else {
           await gamesSublevel.put(gameKey, {
@@ -113,6 +125,7 @@ export const mergeWithRemoteGames = async () => {
             collectionIds: mergedCollectionIds,
             achievementCount: game.achievementCount,
             unlockedAchievementCount: game.unlockedAchievementCount,
+            platform: game.platform ?? null,
           });
         }
 

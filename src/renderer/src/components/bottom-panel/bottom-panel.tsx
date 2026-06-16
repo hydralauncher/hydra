@@ -12,7 +12,6 @@ import {
 import "./bottom-panel.scss";
 
 import { useNavigate } from "react-router-dom";
-import { VERSION_CODENAME } from "@renderer/constants";
 
 export function BottomPanel() {
   const { t } = useTranslation("bottom_panel");
@@ -166,8 +165,7 @@ export function BottomPanel() {
         className="bottom-panel__version-button"
       >
         <small>
-          {sessionHash ? `${sessionHash} -` : ""} v{version} &quot;
-          {VERSION_CODENAME}&quot;
+          {sessionHash ? `${sessionHash} -` : ""} v{version}
         </small>
       </button>
     </footer>

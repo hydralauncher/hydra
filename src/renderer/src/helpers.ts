@@ -1,10 +1,34 @@
-import type { GameShop } from "@types";
+import type { EmulatorBinary, EmulatorSystem, GameShop } from "@types";
 
 import Color from "color";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
+
+// Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
+import flagUS from "./assets/flags/us.png";
+import flagEU from "./assets/flags/eu.png";
+import flagJP from "./assets/flags/jp.png";
+import flagKR from "./assets/flags/kr.png";
+import flagAsia from "./assets/flags/asia.png";
+
+export const platformToSystem = (
+  platform?: string | null
+): EmulatorSystem | null => {
+  if (!platform) return null;
+  const p = platform.toLowerCase();
+  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
+  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
+  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  return null;
+};
+
+export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
+  ps1: "duckstation",
+  ps2: "pcsx2",
+  ps3: "rpcs3",
+};
 
 export const formatDownloadProgress = (
   progress?: number,
@@ -169,4 +193,105 @@ export const getAchievementSoundVolume = async (): Promise<number> => {
 
 export const getGameKey = (shop: GameShop, objectId: string): string => {
   return `${shop}:${objectId}`;
+};
+
+export const isGameCompleted = (
+  achievementCount?: number | null,
+  unlockedAchievementCount?: number | null
+): boolean => {
+  if (!achievementCount) return false;
+  return (unlockedAchievementCount ?? 0) >= achievementCount;
+};
+
+export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
+
+const SKU_REGION_MAP: Record<string, SkuRegion> = {
+  SCUS: "US",
+  SLUS: "US",
+  SCUD: "US",
+  SLUD: "US",
+  BCUS: "US",
+  BLUS: "US",
+  BCUD: "US",
+  NPUA: "US",
+  NPUB: "US",
+  SCES: "EU",
+  SLES: "EU",
+  SCED: "EU",
+  SLED: "EU",
+  BCES: "EU",
+  BLES: "EU",
+  BCED: "EU",
+  NPEA: "EU",
+  NPEB: "EU",
+  SCPS: "JP",
+  SLPS: "JP",
+  SLPM: "JP",
+  SIPS: "JP",
+  PAPX: "JP",
+  PCPX: "JP",
+  SRPM: "JP",
+  BCJS: "JP",
+  BLJS: "JP",
+  BLJM: "JP",
+  NPJA: "JP",
+  NPJB: "JP",
+  NPJD: "JP",
+  SCKA: "KR",
+  SLKA: "KR",
+  BCKS: "KR",
+  BLKS: "KR",
+  BCKD: "KR",
+  BCAS: "ASIA",
+  BLAS: "ASIA",
+  NPHA: "ASIA",
+  NPHB: "ASIA",
+};
+
+const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
+  US: flagUS,
+  EU: flagEU,
+  JP: flagJP,
+  KR: flagKR,
+  ASIA: flagAsia,
+};
+
+const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];
+
+export const getSkuRegion = (sku: string): SkuRegion | null => {
+  const prefix = sku.slice(0, 4).toUpperCase();
+  return SKU_REGION_MAP[prefix] ?? null;
+};
+
+export const getSkuRegionFlag = (region: SkuRegion): string =>
+  SKU_REGION_FLAGS[region];
+
+export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
+  const set = new Set<SkuRegion>();
+  for (const sku of skus) {
+    const region = getSkuRegion(sku);
+    if (region) set.add(region);
+  }
+  return SKU_REGION_ORDER.filter((r) => set.has(r));
+};
+
+const CLASSICS_LAUNCH_ERROR_CODES = [
+  "EMULATOR_NOT_CONFIGURED",
+  "PLATFORM_UNKNOWN",
+  "NO_DISC",
+  "EMULATOR_ALREADY_RUNNING",
+] as const;
+
+export const getClassicsLaunchErrorCode = (
+  error: unknown
+): (typeof CLASSICS_LAUNCH_ERROR_CODES)[number] | undefined => {
+  const direct = (error as { code?: string })?.code;
+  if (direct && CLASSICS_LAUNCH_ERROR_CODES.includes(direct as never)) {
+    return direct as (typeof CLASSICS_LAUNCH_ERROR_CODES)[number];
+  }
+
+  let message = "";
+  if (error instanceof Error) message = error.message;
+  else if (typeof error === "string") message = error;
+  return CLASSICS_LAUNCH_ERROR_CODES.find((code) => message.includes(code));
 };
