@@ -240,7 +240,7 @@
     "select_executable": "Explorar",
     "no_executable_selected": "Nenhum executável selecionado",
     "add_tracking_executable": "Adicionar executável",
-    "bat_tracking_warning": "O Hydra não consegue rastrear o tempo de jogo a partir de um arquivo .bat. Selecione abaixo o .exe a ser monitorado, caso contrário o tempo de jogo não será registrado para este jogo.",
+    "bat_tracking_warning": "Não conseguimos rastrear o tempo de jogo se um .bat for selecionado. Adicione o .exe do jogo para que possamos rastreá-lo",
     "game_executable": "Executável do jogo",
     "open_folder": "Abrir pasta",
     "open_download_location": "Ver arquivos baixados",
