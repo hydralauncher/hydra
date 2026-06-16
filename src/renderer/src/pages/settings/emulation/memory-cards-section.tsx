@@ -149,12 +149,6 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
 
-  const pageSlice = useMemo(
-    () =>
-      filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [filtered, safePage]
-  );
-
   const totalByCard = useMemo(() => {
     const map = new Map<string, number>();
     for (const save of filtered) {
@@ -162,6 +156,23 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
     }
     return map;
   }, [filtered]);
+
+  const ordered = useMemo(() => {
+    const cardOrder = new Map<string, number>();
+    Array.from(totalByCard.entries())
+      .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]))
+      .forEach(([cardFilePath], index) => cardOrder.set(cardFilePath, index));
+    return [...filtered].sort(
+      (a, b) =>
+        (cardOrder.get(a.cardFilePath) ?? 0) -
+        (cardOrder.get(b.cardFilePath) ?? 0)
+    );
+  }, [filtered, totalByCard]);
+
+  const pageSlice = useMemo(
+    () => ordered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [ordered, safePage]
+  );
 
   // Group by card file path (not label) so two cards sharing a basename in
   // different folders don't collapse into one group.
