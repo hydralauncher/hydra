@@ -517,8 +517,7 @@ export function GeneralSettingsSection({
                   (
                   <span style={{ color: "var(--drive-accent)" }}>
                     {transferGameSize}
-                  </span>
-                  )
+                  </span>)
                 </>
               )}
             </h4>
