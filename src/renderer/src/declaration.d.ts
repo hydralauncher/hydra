@@ -46,6 +46,7 @@ import type {
   EmulatorConfig,
   EmulatorConfigMap,
   EmulatorSystem,
+  DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardRestoreResult,
@@ -406,6 +407,7 @@ declare global {
       system: EmulatorSystem,
       folderId: string
     ) => Promise<EmulatorConfig>;
+    listEmulatorRoms: (system: EmulatorSystem) => Promise<DetectedRom[]>;
     toggleRomFolderSubfolders: (
       system: EmulatorSystem,
       folderId: string,

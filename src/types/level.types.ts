@@ -77,6 +77,7 @@ export interface Game {
   discs?: ClassicsDisc[];
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
+  romSizeBytes?: number | null;
 }
 
 export interface Download {

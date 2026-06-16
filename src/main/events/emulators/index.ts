@@ -12,6 +12,7 @@ import "./get-active-classics-import";
 import "./check-ps3-firmware";
 import "./rom-scan-progress";
 import "./emulator-rom-paths";
+import "./list-emulator-roms";
 import "./remove-emulator";
 import "./import-launchbox-roms";
 import "./check-emulator-executable";
