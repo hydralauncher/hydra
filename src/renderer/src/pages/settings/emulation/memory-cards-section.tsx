@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   FileDirectoryIcon,
@@ -11,7 +12,7 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 
-import { Button, ConfirmationModal } from "@renderer/components";
+import { Button, ConfirmationModal, TextField } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
@@ -70,6 +71,8 @@ const PICK_FILTERS = {
   ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
 };
 
+const PAGE_SIZE = 12;
+
 const formatBytes = (bytes: number): string => {
   if (bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -112,8 +115,8 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
     cardFilePath: string;
     cardLabel: string;
   } | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const didInitCollapse = useRef(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
 
   const loadSaves = useCallback(async () => {
     const list = await api.list();
@@ -124,6 +127,42 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
     loadSaves();
   }, [loadSaves]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [query]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return saves;
+    return saves.filter((save) => {
+      const title = (save.title ?? save.folderName).toLowerCase();
+      const sku = (save.sku ?? "").toLowerCase();
+      return (
+        title.includes(q) ||
+        sku.includes(q) ||
+        save.folderName.toLowerCase().includes(q) ||
+        save.cardLabel.toLowerCase().includes(q)
+      );
+    });
+  }, [saves, query]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+
+  const pageSlice = useMemo(
+    () =>
+      filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
+    [filtered, safePage]
+  );
+
+  const totalByCard = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const save of filtered) {
+      map.set(save.cardFilePath, (map.get(save.cardFilePath) ?? 0) + 1);
+    }
+    return map;
+  }, [filtered]);
+
   // Group by card file path (not label) so two cards sharing a basename in
   // different folders don't collapse into one group.
   const groups = useMemo(() => {
@@ -131,7 +170,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
       string,
       { cardLabel: string; records: MemoryCardSaveRecord[] }
     >();
-    for (const save of saves) {
+    for (const save of pageSlice) {
       const group = map.get(save.cardFilePath) ?? {
         cardLabel: save.cardLabel,
         records: [],
@@ -144,22 +183,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
       cardLabel: group.cardLabel,
       records: group.records,
     }));
-  }, [saves]);
-
-  useEffect(() => {
-    if (didInitCollapse.current || groups.length === 0) return;
-    didInitCollapse.current = true;
-    setCollapsed(new Set(groups.map((g) => g.cardFilePath)));
-  }, [groups]);
-
-  const toggleCard = useCallback((cardFilePath: string) => {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(cardFilePath)) next.delete(cardFilePath);
-      else next.add(cardFilePath);
-      return next;
-    });
-  }, []);
+  }, [pageSlice]);
 
   const handlePickFile = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -291,165 +315,200 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
             {t(isPs1 ? "no_memory_cards_ps1" : "no_memory_cards")}
           </p>
         ) : (
-          <div className="emulator-detail__memcards">
-            {groups.map(({ cardFilePath, cardLabel, records }) => {
-              const isCollapsed = collapsed.has(cardFilePath);
-              return (
-                <div
-                  key={cardFilePath}
-                  className="emulator-detail__memcard-group"
-                >
-                  <div className="emulator-detail__memcard-group-header">
+          <>
+            <TextField
+              theme="dark"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("memcard_search_placeholder")}
+            />
+
+            {filtered.length === 0 ? (
+              <p className="emulator-detail__empty">
+                {t("memcard_no_results")}
+              </p>
+            ) : (
+              <>
+                <div className="emulator-detail__memcards">
+                  {groups.map(({ cardFilePath, cardLabel, records }) => {
+                    const cardCount =
+                      totalByCard.get(cardFilePath) ?? records.length;
+                    return (
+                      <div
+                        key={cardFilePath}
+                        className="emulator-detail__memcard-group"
+                      >
+                        <div className="emulator-detail__memcard-group-header">
+                          <div className="emulator-detail__memcard-group-info">
+                            <span className="emulator-detail__memcard-group-title">
+                              {cardLabel}
+                            </span>
+                            <span className="emulator-detail__memcard-group-count">
+                              {t(
+                                cardCount === 1
+                                  ? "memcard_group_count_one"
+                                  : "memcard_group_count_other",
+                                { count: cardCount }
+                              )}
+                            </span>
+                          </div>
+                          {hasActiveSubscription && (
+                            <button
+                              type="button"
+                              className="emulator-detail__memcard-backup-all"
+                              onClick={() => handleBackupAll(cardFilePath)}
+                              disabled={backingUpCard === cardFilePath}
+                            >
+                              <UploadIcon size={13} />
+                              <span>
+                                {backingUpCard === cardFilePath
+                                  ? t("cloud_backing_up")
+                                  : t("cloud_backup_all")}
+                              </span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="emulator-detail__remove"
+                            onClick={() =>
+                              setForgetCardTarget({ cardFilePath, cardLabel })
+                            }
+                            aria-label={t("remove_memory_card")}
+                          >
+                            <TrashIcon size={16} />
+                          </button>
+                        </div>
+                        <div className="emulator-detail__memcard-grid">
+                          {records.map((save) => {
+                            const cover = save.libraryImageUrl ?? save.iconUrl;
+                            const exporting = exportingKey === saveKey(save);
+                            const title = save.title ?? save.folderName;
+                            const region = save.sku
+                              ? getSkuRegion(save.sku)
+                              : null;
+                            return (
+                              <div
+                                key={saveKey(save)}
+                                className="emulator-detail__memcard-card"
+                              >
+                                <div className="emulator-detail__memcard-cover">
+                                  {cover ? (
+                                    <img
+                                      src={cover}
+                                      alt={title}
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="emulator-detail__memcard-cover-placeholder">
+                                      <QuestionIcon size={20} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="emulator-detail__memcard-info">
+                                  <span
+                                    className="emulator-detail__memcard-title"
+                                    title={title}
+                                  >
+                                    {title}
+                                  </span>
+                                  <span className="emulator-detail__memcard-sub">
+                                    {region && (
+                                      <img
+                                        className="emulator-detail__memcard-flag"
+                                        src={getSkuRegionFlag(region)}
+                                        alt={region}
+                                        title={region}
+                                      />
+                                    )}
+                                    {save.sku ?? save.folderName}
+                                  </span>
+                                  <span className="emulator-detail__memcard-meta">
+                                    {`${formatBytes(save.sizeBytes)} · ${t(
+                                      countKey(isPs1, save.fileCount),
+                                      { count: save.fileCount }
+                                    )}`}
+                                  </span>
+                                </div>
+                                <DropdownMenu
+                                  align="end"
+                                  items={[
+                                    {
+                                      icon: <DownloadIcon size={16} />,
+                                      label: exporting
+                                        ? t("memcard_exporting")
+                                        : t(
+                                            isPs1
+                                              ? "memcard_export_mcs"
+                                              : "memcard_export"
+                                          ),
+                                      disabled: exporting,
+                                      onClick: () => handleExport(save),
+                                    },
+                                    {
+                                      icon: <UploadIcon size={16} />,
+                                      label:
+                                        backingUpKey === saveKey(save)
+                                          ? t("cloud_backing_up")
+                                          : t("cloud_backup"),
+                                      disabled: backingUpKey === saveKey(save),
+                                      show: hasActiveSubscription,
+                                      onClick: () => handleBackup(save),
+                                    },
+                                  ]}
+                                >
+                                  <button
+                                    type="button"
+                                    className="emulator-detail__memcard-menu"
+                                    aria-label={title}
+                                  >
+                                    <KebabHorizontalIcon
+                                      size={16}
+                                      className="emulator-detail__cloud-menu-icon"
+                                    />
+                                  </button>
+                                </DropdownMenu>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {pageCount > 1 && (
+                  <div className="emulator-detail__pagination">
                     <button
                       type="button"
-                      className="emulator-detail__memcard-collapse"
-                      onClick={() => toggleCard(cardFilePath)}
-                      aria-label={
-                        isCollapsed
-                          ? t("expand_memory_card")
-                          : t("collapse_memory_card")
-                      }
+                      className="emulator-detail__page-btn"
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={safePage === 0}
+                      aria-label={t("pagination_previous")}
                     >
-                      <span
-                        className={`emulator-detail__memcard-chevron${
-                          isCollapsed
-                            ? ""
-                            : " emulator-detail__memcard-chevron--expanded"
-                        }`}
-                      >
-                        <ChevronRightIcon size={16} />
-                      </span>
-                      <span className="emulator-detail__memcard-group-title">
-                        {cardLabel}
-                      </span>
-                      <span className="emulator-detail__memcard-group-count">
-                        {t(
-                          records.length === 1
-                            ? "memcard_group_count_one"
-                            : "memcard_group_count_other",
-                          { count: records.length }
-                        )}
-                      </span>
+                      <ChevronLeftIcon size={16} />
                     </button>
-                    {hasActiveSubscription && (
-                      <button
-                        type="button"
-                        className="emulator-detail__memcard-backup-all"
-                        onClick={() => handleBackupAll(cardFilePath)}
-                        disabled={backingUpCard === cardFilePath}
-                      >
-                        <UploadIcon size={13} />
-                        <span>
-                          {backingUpCard === cardFilePath
-                            ? t("cloud_backing_up")
-                            : t("cloud_backup_all")}
-                        </span>
-                      </button>
-                    )}
+                    <span className="emulator-detail__page-indicator">
+                      {t("pagination_page_of", {
+                        page: safePage + 1,
+                        total: pageCount,
+                      })}
+                    </span>
                     <button
                       type="button"
-                      className="emulator-detail__remove"
+                      className="emulator-detail__page-btn"
                       onClick={() =>
-                        setForgetCardTarget({ cardFilePath, cardLabel })
+                        setPage((p) => Math.min(pageCount - 1, p + 1))
                       }
-                      aria-label={t("remove_memory_card")}
+                      disabled={safePage >= pageCount - 1}
+                      aria-label={t("pagination_next")}
                     >
-                      <TrashIcon size={16} />
+                      <ChevronRightIcon size={16} />
                     </button>
                   </div>
-                  {!isCollapsed && (
-                    <div className="emulator-detail__memcard-grid">
-                      {records.map((save) => {
-                        const cover = save.libraryImageUrl ?? save.iconUrl;
-                        const exporting = exportingKey === saveKey(save);
-                        const title = save.title ?? save.folderName;
-                        const region = save.sku ? getSkuRegion(save.sku) : null;
-                        return (
-                          <div
-                            key={saveKey(save)}
-                            className="emulator-detail__memcard-card"
-                          >
-                            <div className="emulator-detail__memcard-cover">
-                              {cover ? (
-                                <img src={cover} alt={title} loading="lazy" />
-                              ) : (
-                                <div className="emulator-detail__memcard-cover-placeholder">
-                                  <QuestionIcon size={20} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="emulator-detail__memcard-info">
-                              <span
-                                className="emulator-detail__memcard-title"
-                                title={title}
-                              >
-                                {title}
-                              </span>
-                              <span className="emulator-detail__memcard-sub">
-                                {region && (
-                                  <img
-                                    className="emulator-detail__memcard-flag"
-                                    src={getSkuRegionFlag(region)}
-                                    alt={region}
-                                    title={region}
-                                  />
-                                )}
-                                {save.sku ?? save.folderName}
-                              </span>
-                              <span className="emulator-detail__memcard-meta">
-                                {`${formatBytes(save.sizeBytes)} · ${t(
-                                  countKey(isPs1, save.fileCount),
-                                  { count: save.fileCount }
-                                )}`}
-                              </span>
-                            </div>
-                            <DropdownMenu
-                              align="end"
-                              items={[
-                                {
-                                  icon: <DownloadIcon size={16} />,
-                                  label: exporting
-                                    ? t("memcard_exporting")
-                                    : t(
-                                        isPs1
-                                          ? "memcard_export_mcs"
-                                          : "memcard_export"
-                                      ),
-                                  disabled: exporting,
-                                  onClick: () => handleExport(save),
-                                },
-                                {
-                                  icon: <UploadIcon size={16} />,
-                                  label:
-                                    backingUpKey === saveKey(save)
-                                      ? t("cloud_backing_up")
-                                      : t("cloud_backup"),
-                                  disabled: backingUpKey === saveKey(save),
-                                  show: hasActiveSubscription,
-                                  onClick: () => handleBackup(save),
-                                },
-                              ]}
-                            >
-                              <button
-                                type="button"
-                                className="emulator-detail__memcard-menu"
-                                aria-label={title}
-                              >
-                                <KebabHorizontalIcon
-                                  size={16}
-                                  className="emulator-detail__cloud-menu-icon"
-                                />
-                              </button>
-                            </DropdownMenu>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </section>
 
