@@ -35,6 +35,14 @@ pub struct NativeProcessPayload {
     pub cwd: Option<String>,
 }
 
+#[napi(object)]
+pub struct NativeDisplayBounds {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
 #[napi]
 pub fn process_profile_image(
     image_path: String,
@@ -204,6 +212,537 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
     });
 
     processes
+}
+
+#[napi]
+pub fn set_primary_display_by_bounds(bounds: NativeDisplayBounds) -> napi::Result<bool> {
+    #[cfg(target_os = "windows")]
+    {
+        return display_config::set_primary_display_by_bounds(bounds)
+            .map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = bounds;
+        Ok(false)
+    }
+}
+
+#[napi]
+pub fn get_display_source_name_by_bounds(
+    bounds: NativeDisplayBounds,
+) -> napi::Result<Option<String>> {
+    #[cfg(target_os = "windows")]
+    {
+        return display_config::get_display_source_name_by_bounds(bounds)
+            .map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = bounds;
+        Ok(None)
+    }
+}
+
+#[napi]
+pub fn get_primary_display_source_name() -> napi::Result<Option<String>> {
+    #[cfg(target_os = "windows")]
+    {
+        return display_config::get_primary_display_source_name()
+            .map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(None)
+    }
+}
+
+#[napi]
+pub fn set_primary_display_by_source_name(source_name: String) -> napi::Result<bool> {
+    #[cfg(target_os = "windows")]
+    {
+        return display_config::set_primary_display_by_source_name(&source_name)
+            .map_err(Error::from_reason);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = source_name;
+        Ok(false)
+    }
+}
+
+#[cfg(target_os = "windows")]
+mod display_config {
+    use std::collections::HashMap;
+    use std::mem::size_of;
+
+    use super::NativeDisplayBounds;
+
+    const ERROR_SUCCESS: i32 = 0;
+    const DISPLAYCONFIG_PATH_ACTIVE: u32 = 0x00000001;
+    const DISPLAYCONFIG_PATH_MODE_IDX_INVALID: u32 = 0xffffffff;
+    const QDC_ALL_PATHS: u32 = 0x00000001;
+    const QDC_ONLY_ACTIVE_PATHS: u32 = 0x00000002;
+    const SDC_USE_SUPPLIED_DISPLAY_CONFIG: u32 = 0x00000020;
+    const SDC_APPLY: u32 = 0x00000080;
+    const SDC_SAVE_TO_DATABASE: u32 = 0x00000200;
+    const SDC_ALLOW_CHANGES: u32 = 0x00000400;
+    const DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME: u32 = 1;
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct Luid {
+        low_part: u32,
+        high_part: i32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigRational {
+        numerator: u32,
+        denominator: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfig2DRegion {
+        width: u32,
+        height: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct PointL {
+        x: i32,
+        y: i32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct RectL {
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigPathInfo {
+        source_info: DisplayConfigPathSourceInfo,
+        target_info: DisplayConfigPathTargetInfo,
+        flags: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigPathSourceInfo {
+        adapter_id: Luid,
+        id: u32,
+        mode_info_idx: u32,
+        status_flags: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigPathTargetInfo {
+        adapter_id: Luid,
+        id: u32,
+        mode_info_idx: u32,
+        output_technology: u32,
+        rotation: u32,
+        scaling: u32,
+        refresh_rate: DisplayConfigRational,
+        scan_line_ordering: u32,
+        target_available: i32,
+        status_flags: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigTargetMode {
+        target_video_signal_info: DisplayConfigVideoSignalInfo,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigVideoSignalInfo {
+        pixel_rate: u64,
+        h_sync_freq: DisplayConfigRational,
+        v_sync_freq: DisplayConfigRational,
+        active_size: DisplayConfig2DRegion,
+        total_size: DisplayConfig2DRegion,
+        video_standard: u32,
+        scan_line_ordering: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigSourceMode {
+        width: u32,
+        height: u32,
+        pixel_format: u32,
+        position: PointL,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigDesktopImageInfo {
+        path_source_size: PointL,
+        desktop_image_region: RectL,
+        desktop_image_clip: RectL,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    union DisplayConfigModeInfoData {
+        target_mode: DisplayConfigTargetMode,
+        source_mode: DisplayConfigSourceMode,
+        desktop_image_info: DisplayConfigDesktopImageInfo,
+    }
+
+    impl Default for DisplayConfigModeInfoData {
+        fn default() -> Self {
+            Self {
+                source_mode: DisplayConfigSourceMode::default(),
+            }
+        }
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigModeInfo {
+        info_type: u32,
+        id: u32,
+        adapter_id: Luid,
+        data: DisplayConfigModeInfoData,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct DisplayConfigDeviceInfoHeader {
+        r#type: u32,
+        size: u32,
+        adapter_id: Luid,
+        id: u32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct DisplayConfigSourceDeviceName {
+        header: DisplayConfigDeviceInfoHeader,
+        view_gdi_device_name: [u16; 32],
+    }
+
+    impl Default for DisplayConfigSourceDeviceName {
+        fn default() -> Self {
+            Self {
+                header: DisplayConfigDeviceInfoHeader::default(),
+                view_gdi_device_name: [0; 32],
+            }
+        }
+    }
+
+    #[derive(Clone)]
+    struct ActiveDisplay {
+        source_name: String,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    }
+
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn GetDisplayConfigBufferSizes(
+            flags: u32,
+            num_path_array_elements: *mut u32,
+            num_mode_info_array_elements: *mut u32,
+        ) -> i32;
+
+        fn QueryDisplayConfig(
+            flags: u32,
+            num_path_array_elements: *mut u32,
+            path_info_array: *mut DisplayConfigPathInfo,
+            num_mode_info_array_elements: *mut u32,
+            mode_info_array: *mut DisplayConfigModeInfo,
+            current_topology_id: *mut u32,
+        ) -> i32;
+
+        fn SetDisplayConfig(
+            num_path_array_elements: u32,
+            path_array: *const DisplayConfigPathInfo,
+            num_mode_info_array_elements: u32,
+            mode_info_array: *const DisplayConfigModeInfo,
+            flags: u32,
+        ) -> i32;
+
+        fn DisplayConfigGetDeviceInfo(
+            request_packet: *mut DisplayConfigDeviceInfoHeader,
+        ) -> i32;
+    }
+
+    pub fn set_primary_display_by_bounds(bounds: NativeDisplayBounds) -> Result<bool, String> {
+        let (active_paths, active_modes) = query_display_config(QDC_ONLY_ACTIVE_PATHS)?;
+        let active_displays = build_active_displays(&active_paths, &active_modes);
+
+        let Some(target_display) = find_target_display(&active_displays, &bounds) else {
+            return Ok(false);
+        };
+
+        if target_display.x == 0 && target_display.y == 0 {
+            return Ok(true);
+        }
+
+        let offset_x = -target_display.x;
+        let offset_y = -target_display.y;
+
+        let desired_positions = active_displays
+            .iter()
+            .map(|display| {
+                let position = if display.source_name == target_display.source_name {
+                    PointL { x: 0, y: 0 }
+                } else {
+                    PointL {
+                        x: display.x + offset_x,
+                        y: display.y + offset_y,
+                    }
+                };
+
+                (display.source_name.clone(), position)
+            })
+            .collect::<HashMap<_, _>>();
+
+        let mut right_edge = active_displays
+            .iter()
+            .filter_map(|display| {
+                desired_positions
+                    .get(&display.source_name)
+                    .map(|position| position.x + display.width)
+            })
+            .max()
+            .unwrap_or(0);
+
+        let (paths, mut modes) = query_display_config(QDC_ALL_PATHS)?;
+
+        for path in paths.iter() {
+            if path.target_info.target_available == 0 {
+                continue;
+            }
+
+            let mode_index = path.source_info.mode_info_idx;
+            if mode_index == DISPLAYCONFIG_PATH_MODE_IDX_INVALID {
+                continue;
+            }
+
+            let Some(mode) = modes.get_mut(mode_index as usize) else {
+                continue;
+            };
+
+            let source_name = get_source_name(path.source_info.adapter_id, path.source_info.id);
+            let mut source_mode = unsafe { mode.data.source_mode };
+
+            if let Some(position) = desired_positions.get(&source_name) {
+                source_mode.position = *position;
+            } else if path.target_info.scan_line_ordering != 0 {
+                source_mode.position = PointL {
+                    x: right_edge,
+                    y: 0,
+                };
+                right_edge += source_mode.width as i32;
+            } else {
+                continue;
+            }
+
+            mode.data.source_mode = source_mode;
+        }
+
+        let result = unsafe {
+            SetDisplayConfig(
+                paths.len() as u32,
+                paths.as_ptr(),
+                modes.len() as u32,
+                modes.as_ptr(),
+                SDC_APPLY
+                    | SDC_USE_SUPPLIED_DISPLAY_CONFIG
+                    | SDC_ALLOW_CHANGES
+                    | SDC_SAVE_TO_DATABASE,
+            )
+        };
+
+        if result == ERROR_SUCCESS {
+            Ok(true)
+        } else {
+            Err(format!("SetDisplayConfig failed with Win32 error {result}"))
+        }
+    }
+
+    pub fn get_display_source_name_by_bounds(
+        bounds: NativeDisplayBounds,
+    ) -> Result<Option<String>, String> {
+        let (active_paths, active_modes) = query_display_config(QDC_ONLY_ACTIVE_PATHS)?;
+        let active_displays = build_active_displays(&active_paths, &active_modes);
+
+        Ok(find_target_display(&active_displays, &bounds)
+            .map(|display| display.source_name.clone()))
+    }
+
+    pub fn get_primary_display_source_name() -> Result<Option<String>, String> {
+        let (active_paths, active_modes) = query_display_config(QDC_ONLY_ACTIVE_PATHS)?;
+        let active_displays = build_active_displays(&active_paths, &active_modes);
+
+        Ok(active_displays
+            .iter()
+            .find(|display| display.x == 0 && display.y == 0)
+            .map(|display| display.source_name.clone()))
+    }
+
+    pub fn set_primary_display_by_source_name(source_name: &str) -> Result<bool, String> {
+        let (active_paths, active_modes) = query_display_config(QDC_ONLY_ACTIVE_PATHS)?;
+        let active_displays = build_active_displays(&active_paths, &active_modes);
+
+        let Some(target_display) = active_displays
+            .iter()
+            .find(|display| display.source_name.eq_ignore_ascii_case(source_name))
+        else {
+            return Ok(false);
+        };
+
+        set_primary_display_by_bounds(NativeDisplayBounds {
+            x: target_display.x,
+            y: target_display.y,
+            width: target_display.width,
+            height: target_display.height,
+        })
+    }
+
+    fn query_display_config(
+        flags: u32,
+    ) -> Result<(Vec<DisplayConfigPathInfo>, Vec<DisplayConfigModeInfo>), String> {
+        let mut path_count = 0;
+        let mut mode_count = 0;
+
+        let result =
+            unsafe { GetDisplayConfigBufferSizes(flags, &mut path_count, &mut mode_count) };
+        if result != ERROR_SUCCESS {
+            return Err(format!(
+                "GetDisplayConfigBufferSizes failed with Win32 error {result}"
+            ));
+        }
+
+        let mut paths = vec![DisplayConfigPathInfo::default(); path_count as usize];
+        let mut modes = vec![DisplayConfigModeInfo::default(); mode_count as usize];
+
+        let result = unsafe {
+            QueryDisplayConfig(
+                flags,
+                &mut path_count,
+                paths.as_mut_ptr(),
+                &mut mode_count,
+                modes.as_mut_ptr(),
+                std::ptr::null_mut(),
+            )
+        };
+        if result != ERROR_SUCCESS {
+            return Err(format!("QueryDisplayConfig failed with Win32 error {result}"));
+        }
+
+        paths.truncate(path_count as usize);
+        modes.truncate(mode_count as usize);
+
+        Ok((paths, modes))
+    }
+
+    fn build_active_displays(
+        paths: &[DisplayConfigPathInfo],
+        modes: &[DisplayConfigModeInfo],
+    ) -> Vec<ActiveDisplay> {
+        paths
+            .iter()
+            .filter_map(|path| {
+                if (path.flags & DISPLAYCONFIG_PATH_ACTIVE) == 0 {
+                    return None;
+                }
+
+                let mode_index = path.source_info.mode_info_idx;
+                if mode_index == DISPLAYCONFIG_PATH_MODE_IDX_INVALID {
+                    return None;
+                }
+
+                let mode = modes.get(mode_index as usize)?;
+                let source_mode = unsafe { mode.data.source_mode };
+
+                Some(ActiveDisplay {
+                    source_name: get_source_name(
+                        path.source_info.adapter_id,
+                        path.source_info.id,
+                    ),
+                    x: source_mode.position.x,
+                    y: source_mode.position.y,
+                    width: source_mode.width as i32,
+                    height: source_mode.height as i32,
+                })
+            })
+            .collect()
+    }
+
+    fn find_target_display<'a>(
+        displays: &'a [ActiveDisplay],
+        bounds: &NativeDisplayBounds,
+    ) -> Option<&'a ActiveDisplay> {
+        displays.iter().max_by_key(|display| score_display(display, bounds))
+    }
+
+    fn score_display(display: &ActiveDisplay, bounds: &NativeDisplayBounds) -> i64 {
+        let mut score = 0_i64;
+
+        if display.x == bounds.x && display.y == bounds.y {
+            score += 1_000_000;
+        }
+
+        if display.width == bounds.width && display.height == bounds.height {
+            score += 500_000;
+        }
+
+        let display_center_x = display.x as i64 + display.width as i64 / 2;
+        let display_center_y = display.y as i64 + display.height as i64 / 2;
+        let bounds_center_x = bounds.x as i64 + bounds.width as i64 / 2;
+        let bounds_center_y = bounds.y as i64 + bounds.height as i64 / 2;
+        let dx = display_center_x - bounds_center_x;
+        let dy = display_center_y - bounds_center_y;
+        let distance_squared = dx * dx + dy * dy;
+
+        score - distance_squared
+    }
+
+    fn get_source_name(adapter_id: Luid, id: u32) -> String {
+        let mut source_name = DisplayConfigSourceDeviceName {
+            header: DisplayConfigDeviceInfoHeader {
+                r#type: DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+                size: size_of::<DisplayConfigSourceDeviceName>() as u32,
+                adapter_id,
+                id,
+            },
+            ..Default::default()
+        };
+
+        let result = unsafe { DisplayConfigGetDeviceInfo(&mut source_name.header) };
+        if result != ERROR_SUCCESS {
+            return format!("DISPLAY{id}");
+        }
+
+        let end = source_name
+            .view_gdi_device_name
+            .iter()
+            .position(|value| *value == 0)
+            .unwrap_or(source_name.view_gdi_device_name.len());
+
+        String::from_utf16_lossy(&source_name.view_gdi_device_name[..end])
+    }
 }
 
 fn detect_image_format(path: &Path) -> napi::Result<Option<ImageFormat>> {

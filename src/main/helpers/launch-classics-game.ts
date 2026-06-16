@@ -2,11 +2,12 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
-import { emulators, logger } from "@main/services";
+import { DisplayManager, emulators, logger } from "@main/services";
 import type {
   EmulatorBinary,
   EmulatorSystem,
   GameShop,
+  LaunchSource,
   UserPreferences,
 } from "@types";
 import { isGamemodeAvailable } from "./is-gamemode-available";
@@ -27,6 +28,7 @@ export interface LaunchClassicsGameOptions {
   objectId: string;
   discPath: string;
   system: EmulatorSystem;
+  launchSource?: LaunchSource;
 }
 
 const buildEmulatorArgs = (
@@ -46,7 +48,7 @@ const buildEmulatorArgs = (
 export const launchClassicsGame = async (
   options: LaunchClassicsGameOptions
 ): Promise<void> => {
-  const { shop, objectId, discPath, system } = options;
+  const { shop, objectId, discPath, system, launchSource } = options;
 
   const config = await emulators.getEmulatorConfig(system);
   if (!config.executablePath || !existsSync(config.executablePath)) {
@@ -89,6 +91,10 @@ export const launchClassicsGame = async (
 
   if (!executableTarget || !existsSync(executableTarget)) {
     throw new EmulatorNotConfiguredError(system);
+  }
+
+  if (launchSource === "big-picture") {
+    await DisplayManager.prepareBigPictureDisplayForLaunch();
   }
 
   const resolvedLaunchCommand = resolveLaunchCommand({

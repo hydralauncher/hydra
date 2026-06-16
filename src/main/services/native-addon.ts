@@ -8,6 +8,13 @@ import type { ProcessPayload } from "./download/types";
 
 import { logger } from "./logger";
 
+type NativeDisplayBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 type NativeProcessProfileImageResponse = {
   imagePath?: string;
   image_path?: string;
@@ -33,6 +40,12 @@ type HydraNativeModule = {
     preserveAnimation: boolean
   ) => Promise<NativeProcessFriendImageResponse>;
   listProcesses: () => ProcessPayload[];
+  setPrimaryDisplayByBounds?: (bounds: NativeDisplayBounds) => boolean;
+  getDisplaySourceNameByBounds?: (
+    bounds: NativeDisplayBounds
+  ) => string | null;
+  getPrimaryDisplaySourceName?: () => string | null;
+  setPrimaryDisplayBySourceName?: (sourceName: string) => boolean;
 };
 
 export type SystemProcessMap = {
@@ -302,5 +315,45 @@ export class NativeAddon {
         resolve({ processMap: {}, winePrefixMap: {}, linuxProcesses: [] });
       }
     });
+  }
+
+  public static setPrimaryDisplayByBounds(
+    bounds: NativeDisplayBounds
+  ): boolean {
+    try {
+      return this.load().setPrimaryDisplayByBounds?.(bounds) ?? false;
+    } catch (error) {
+      logger.error("Failed to set primary display via native addon", error);
+      return false;
+    }
+  }
+
+  public static getDisplaySourceNameByBounds(
+    bounds: NativeDisplayBounds
+  ): string | null {
+    try {
+      return this.load().getDisplaySourceNameByBounds?.(bounds) ?? null;
+    } catch (error) {
+      logger.error("Failed to get display source name via native addon", error);
+      return null;
+    }
+  }
+
+  public static getPrimaryDisplaySourceName(): string | null {
+    try {
+      return this.load().getPrimaryDisplaySourceName?.() ?? null;
+    } catch (error) {
+      logger.error("Failed to get primary display source name", error);
+      return null;
+    }
+  }
+
+  public static setPrimaryDisplayBySourceName(sourceName: string): boolean {
+    try {
+      return this.load().setPrimaryDisplayBySourceName?.(sourceName) ?? false;
+    } catch (error) {
+      logger.error("Failed to set primary display by source name", error);
+      return false;
+    }
   }
 }
