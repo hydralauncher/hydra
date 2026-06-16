@@ -349,7 +349,7 @@ export function GeneralSettingsSection({
   const progressPercent = Math.round(transferProgress * 100);
   const transferredBytes = gameSize * transferProgress;
   const transferGameSize = gameSize > 0 ? fmt(gameSize) : null;
-  const pathSep = window.electron.platform === "win32" ? "\\" : "/";
+  const pathSep = globalThis.electron.platform === "win32" ? "\\" : "/";
   const gameRoot = game.executablePath
     ? game.executablePath.split(pathSep)[0] + pathSep
     : null;
