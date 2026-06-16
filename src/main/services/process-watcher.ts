@@ -13,6 +13,7 @@ import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
 import { emulatorSessions } from "./emulators/emulator-session-tracker";
+import { LastOfUsPartOneSettings } from "./last-of-us-part-one-settings";
 
 export const gamesPlaytime = new Map<
   string,
@@ -448,6 +449,7 @@ const onCloseGame = (game: Game) => {
   const gamePlaytime = gamesPlaytime.get(gameKey)!;
   gamesPlaytime.delete(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
+  void LastOfUsPartOneSettings.restore(gameKey);
 
   const delta = now - gamePlaytime.lastTick;
 
@@ -540,6 +542,8 @@ export const clearGamesPlaytime = async () => {
 
     if (gameData) {
       await onCloseGame(gameData);
+    } else {
+      await LastOfUsPartOneSettings.restore(game);
     }
   }
 
