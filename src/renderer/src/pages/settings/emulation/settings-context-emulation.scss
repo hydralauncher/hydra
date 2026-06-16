@@ -6,10 +6,10 @@
   gap: 40px;
 
   &__description {
-      margin: 0 0 calc(globals.$spacing-unit * 2) 0;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
+    margin: 0 0 calc(globals.$spacing-unit * 2) 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
 
   &__loading {
     color: #8e919b;
