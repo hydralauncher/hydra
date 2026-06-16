@@ -104,7 +104,7 @@
     "steam-shortcut-editor": "https://github.com/hydralauncher/steam-shortcut-editor",
     "string-argv": "^0.3.2",
     "sudo-prompt": "^9.2.1",
-    "tar": "^7.5.15",
+    "tar": "^7.5.16",
     "tough-cookie": "^5.1.1",
     "user-agents": "^1.1.387",
     "uuid": "^14.0.0",
