@@ -1,5 +1,6 @@
 import { shell } from "electron";
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { GameShop, type UserPreferences } from "@types";
 import { db, gamesSublevel, levelKeys } from "@main/level";
@@ -11,12 +12,17 @@ import {
   PowerSaveBlockerManager,
   Wine,
   NativeAddon,
+  launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import {
+  buildWindowsBatchCommand,
+  isWindowsBatchFile,
+} from "./windows-batch-command";
 
 export interface LaunchGameOptions {
   shop: GameShop;
@@ -28,12 +34,28 @@ export interface LaunchGameOptions {
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
 
+const ensureExecutablePermission = (executablePath: string) => {
+  try {
+    const currentMode = fs.statSync(executablePath).mode;
+    const hasAnyExecuteBit = (currentMode & 0o111) !== 0;
+
+    if (!hasAnyExecuteBit) {
+      fs.chmodSync(executablePath, 0o755);
+    }
+  } catch (error) {
+    logger.warn("Failed to ensure executable permission", {
+      executablePath,
+      error,
+    });
+  }
+};
+
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false
-) => {
+): number | null => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
@@ -44,13 +66,41 @@ const launchNatively = (
     ],
   });
 
-  if (
+  if (process.platform === "linux") {
+    ensureExecutablePermission(executablePath);
+  } else if (
     resolvedLaunchCommand.command === executablePath &&
     resolvedLaunchCommand.args.length === 0 &&
     Object.keys(resolvedLaunchCommand.env).length === 0
   ) {
     shell.openPath(executablePath);
-    return;
+    return null;
+  }
+
+  if (
+    process.platform === "win32" &&
+    isWindowsBatchFile(resolvedLaunchCommand.command)
+  ) {
+    const processRef = spawn(
+      buildWindowsBatchCommand(
+        resolvedLaunchCommand.command,
+        resolvedLaunchCommand.args
+      ),
+      {
+        shell: true,
+        detached: true,
+        stdio: "ignore",
+        cwd: workingDirectory,
+        env: {
+          ...process.env,
+          ...resolvedLaunchCommand.env,
+        },
+      }
+    );
+
+    processRef.unref();
+
+    return processRef.pid ?? null;
   }
 
   const processRef = spawn(
@@ -69,6 +119,8 @@ const launchNatively = (
   );
 
   processRef.unref();
+
+  return processRef.pid ?? null;
 };
 
 const launchWithWine = async (
@@ -186,7 +238,9 @@ const cleanupStaleCompatibilityProcesses = async (
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
  */
-export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
+export const launchGame = async (
+  options: LaunchGameOptions
+): Promise<number | null> => {
   const { shop, objectId, executablePath, launchOptions } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
@@ -261,7 +315,7 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
           useMangohud,
         });
         PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-        return;
+        return null;
       } catch (error) {
         logger.error("Failed to launch game with umu-run, falling back", error);
       }
@@ -275,13 +329,21 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
 
       if (launchedWithWine) {
         PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-        return;
+        return null;
       }
     }
 
-    launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
-    return;
+    const pid = launchNatively(
+      parsedPath,
+      launchOptions,
+      useMangohud,
+      useGamemode
+    );
+
+    if (pid !== null) launchedGamePids.set(gameKey, pid);
+
+    return pid;
   }
 
-  launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
 };

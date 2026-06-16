@@ -251,6 +251,8 @@ interface GeneralSettingsSectionProps {
   onChangeExecutableLocation: () => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenGameExecutablePath: () => Promise<void>;
+  onChangeTrackingExecutableLocation?: () => Promise<void> | void;
+  onClearTrackingExecutablePath?: () => Promise<void> | void;
   onOpenSaveFolder: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => void;
@@ -299,6 +301,9 @@ function fmt(b: number) {
   return (b / 1e3).toFixed(0) + " KB";
 }
 
+const isBatchExecutable = (executablePath?: string | null) =>
+  !!executablePath && /\.bat$/i.test(executablePath);
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -313,6 +318,8 @@ export function GeneralSettingsSection({
   onChangeExecutableLocation,
   onClearExecutablePath,
   onOpenGameExecutablePath,
+  onChangeTrackingExecutableLocation = () => {},
+  onClearTrackingExecutablePath = () => {},
   onOpenSaveFolder,
   onCreateShortcut,
   onCreateSteamShortcut,
@@ -498,6 +505,42 @@ export function GeneralSettingsSection({
                 )}
             </div>
           </div>
+
+          {isBatchExecutable(game.executablePath) && (
+            <div className="game-options-modal__tracking-executable">
+              <p className="game-options-modal__warning">
+                {t("bat_tracking_warning")}
+              </p>
+
+              <TextField
+                value={game.trackingExecutablePath || ""}
+                readOnly
+                theme="dark"
+                disabled
+                placeholder={t("no_tracking_executable_selected")}
+                rightContent={
+                  <>
+                    <Button
+                      type="button"
+                      theme="outline"
+                      onClick={onChangeTrackingExecutableLocation}
+                    >
+                      <FileIcon />
+                      {t("select_executable")}
+                    </Button>
+                    {game.trackingExecutablePath && (
+                      <Button
+                        onClick={onClearTrackingExecutablePath}
+                        theme="outline"
+                      >
+                        {t("clear")}
+                      </Button>
+                    )}
+                  </>
+                }
+              />
+            </div>
+          )}
         </div>
       )}
 
