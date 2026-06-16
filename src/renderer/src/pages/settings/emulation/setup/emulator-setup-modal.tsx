@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button, Modal } from "@renderer/components";
-import { useToast } from "@renderer/hooks";
+import { useClassicsScan, useToast } from "@renderer/hooks";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 
 import { SetupFooter } from "./setup-footer";
@@ -35,6 +35,7 @@ export function EmulatorSetupModal({
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useToast();
+  const { scan, start, cancel } = useClassicsScan();
 
   const [config, setConfig] = useState<EmulatorConfig | null>(initialConfig);
   const [stepIndex, setStepIndex] = useState(0);
@@ -47,6 +48,7 @@ export function EmulatorSetupModal({
   const [showDownloadHelp, setShowDownloadHelp] = useState(false);
 
   const autoDetectRef = useRef(false);
+  const scanStartedRef = useRef(false);
 
   useEffect(() => {
     if (visible) {
@@ -59,6 +61,7 @@ export function EmulatorSetupModal({
       setYmlEntryCount(0);
       setShowDownloadHelp(false);
       autoDetectRef.current = false;
+      scanStartedRef.current = false;
     }
   }, [visible, initialConfig]);
 
@@ -237,6 +240,30 @@ export function EmulatorSetupModal({
     })();
   }, [visible, system, steps, stepIndex, folders.length, previewFolder]);
 
+  useEffect(() => {
+    if (!visible || !system) return;
+    if (currentStep !== "scanning") return;
+    if (scanStartedRef.current) return;
+    scanStartedRef.current = true;
+    void start(
+      system,
+      folders.map((f) => ({
+        path: f.path,
+        scanSubfolders: f.scanSubfolders,
+      }))
+    );
+  }, [visible, system, currentStep, folders, start]);
+
+  useEffect(() => {
+    if (currentStep !== "scanning") return;
+    if (scan.system !== system) return;
+    if (scan.phase !== "done" || !scan.result) return;
+    setGamesAdded(scan.result.matched);
+    setScanComplete(true);
+    void refreshConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scan.phase, scan.result, scan.system, currentStep]);
+
   const handleAddFolder = useCallback(async () => {
     if (!system) return;
     const result = await window.electron.showOpenDialog({
@@ -385,14 +412,17 @@ export function EmulatorSetupModal({
           )}
           {currentStep === "scanning" && (
             <SetupStepScanning
-              system={system}
               systemLabel={systemShort}
-              folders={folders}
-              onComplete={(added) => {
-                setGamesAdded(added.matched);
-                refreshConfig();
-                setScanComplete(true);
-              }}
+              phase={scan.phase}
+              processed={scan.processed}
+              total={scan.total}
+              percent={scan.percent}
+              currentFile={scan.currentFile}
+              status={scan.status}
+              discovered={scan.discovered}
+              matched={scan.matched}
+              sizeBytes={scan.sizeBytes}
+              unmatchedFiles={scan.result?.unmatchedFiles ?? []}
             />
           )}
           {currentStep === "done" && (
@@ -442,7 +472,13 @@ export function EmulatorSetupModal({
             continueHidden={continueHidden}
             endAction={
               currentStep === "scanning" && !scanComplete
-                ? { label: t("setup_cancel_scan"), onClick: handleScanCancel }
+                ? {
+                    label: t("setup_cancel_scan"),
+                    onClick: () => {
+                      cancel();
+                      handleScanCancel();
+                    },
+                  }
                 : null
             }
             onBack={goBack}
