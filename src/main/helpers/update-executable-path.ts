@@ -15,17 +15,15 @@ export function updateGameExecutablePath<TGame extends Game>(
   };
 }
 
-export function updateGameTrackingExecutablePath<TGame extends Game>(
+export function updateGameTrackingExecutablePaths<TGame extends Game>(
   game: TGame,
-  trackingExecutablePath: string | null
+  trackingExecutablePaths: string[]
 ): TGame {
-  if (game.trackingExecutablePath === trackingExecutablePath) {
-    return game;
-  }
-
   return {
     ...game,
-    trackingExecutablePath,
-    trackingExecutablePathUpdatedAt: trackingExecutablePath ? new Date() : null,
+    trackingExecutablePaths,
+    trackingExecutablePathsUpdatedAt: trackingExecutablePaths.length
+      ? new Date()
+      : null,
   };
 }

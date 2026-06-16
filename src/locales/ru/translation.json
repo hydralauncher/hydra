@@ -283,7 +283,7 @@
     "go_to_settings": "Перейти в настройки",
     "select_executable": "Выбрать",
     "no_executable_selected": "Файл не выбран",
-    "no_tracking_executable_selected": "Отслеживаемый исполняемый файл не выбран",
+    "add_tracking_executable": "Добавить исполняемый файл",
     "bat_tracking_warning": "Hydra не может отслеживать время игры для файла .bat. Выберите ниже файл .exe для отслеживания, иначе время игры для этой игры не будет записываться.",
     "game_executable": "Исполняемый файл игры",
     "open_folder": "Открыть папку",

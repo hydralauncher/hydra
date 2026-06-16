@@ -251,8 +251,8 @@ interface GeneralSettingsSectionProps {
   onChangeExecutableLocation: () => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenGameExecutablePath: () => Promise<void>;
-  onChangeTrackingExecutableLocation?: () => Promise<void> | void;
-  onClearTrackingExecutablePath?: () => Promise<void> | void;
+  onAddTrackingExecutable?: () => Promise<void> | void;
+  onRemoveTrackingExecutable?: (index: number) => Promise<void> | void;
   onOpenSaveFolder: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => void;
@@ -318,8 +318,8 @@ export function GeneralSettingsSection({
   onChangeExecutableLocation,
   onClearExecutablePath,
   onOpenGameExecutablePath,
-  onChangeTrackingExecutableLocation = () => {},
-  onClearTrackingExecutablePath = () => {},
+  onAddTrackingExecutable = () => {},
+  onRemoveTrackingExecutable = () => {},
   onOpenSaveFolder,
   onCreateShortcut,
   onCreateSteamShortcut,
@@ -512,33 +512,39 @@ export function GeneralSettingsSection({
                 {t("bat_tracking_warning")}
               </p>
 
-              <TextField
-                value={game.trackingExecutablePath || ""}
-                readOnly
-                theme="dark"
-                disabled
-                placeholder={t("no_tracking_executable_selected")}
-                rightContent={
-                  <>
-                    <Button
-                      type="button"
-                      theme="outline"
-                      onClick={onChangeTrackingExecutableLocation}
-                    >
-                      <FileIcon />
-                      {t("select_executable")}
-                    </Button>
-                    {game.trackingExecutablePath && (
+              {(game.trackingExecutablePaths ?? []).map(
+                (trackingPath, index) => (
+                  <TextField
+                    key={trackingPath}
+                    value={trackingPath}
+                    readOnly
+                    theme="dark"
+                    disabled
+                    rightContent={
                       <Button
-                        onClick={onClearTrackingExecutablePath}
+                        type="button"
                         theme="outline"
+                        onClick={() => onRemoveTrackingExecutable(index)}
                       >
                         {t("clear")}
                       </Button>
-                    )}
-                  </>
-                }
-              />
+                    }
+                  />
+                )
+              )}
+
+              {(game.trackingExecutablePaths?.length ?? 0) < 2 && (
+                <div className="game-options-modal__executable-field-buttons">
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={onAddTrackingExecutable}
+                  >
+                    <FileIcon />
+                    {t("add_tracking_executable")}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

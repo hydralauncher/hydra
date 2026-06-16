@@ -275,7 +275,7 @@
     "go_to_settings": "Ir a Ajustes",
     "select_executable": "Seleccionar",
     "no_executable_selected": "Sin ejecutable seleccionado",
-    "no_tracking_executable_selected": "Sin ejecutable de seguimiento seleccionado",
+    "add_tracking_executable": "Añadir ejecutable",
     "bat_tracking_warning": "Hydra no puede registrar el tiempo de juego desde un archivo .bat. Selecciona abajo el .exe que se debe monitorizar; de lo contrario, no se registrará el tiempo de juego de este juego.",
     "game_executable": "Ejecutable del juego",
     "open_folder": "Abrir carpeta",
