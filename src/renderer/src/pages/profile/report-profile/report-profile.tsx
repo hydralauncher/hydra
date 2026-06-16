@@ -7,7 +7,8 @@ import { useTranslation } from "react-i18next";
 import * as yup from "yup";
 import { userProfileContext } from "@renderer/context";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useToast } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
+import { AuthPage } from "@shared";
 import "./report-profile.scss";
 
 const reportReasons = ["hate", "sexual_content", "violence", "spam", "other"];
@@ -55,6 +56,7 @@ export function ReportProfile() {
   });
 
   const { showSuccessToast } = useToast();
+  const { userDetails } = useUserDetails();
 
   useEffect(() => {
     reset({
@@ -65,6 +67,11 @@ export function ReportProfile() {
 
   const onSubmit = useCallback(
     async (values: FormValues) => {
+      if (!userDetails) {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+        return;
+      }
+
       return window.electron.hydraApi
         .post(`/users/${userProfile!.id}/report`, {
           data: {
@@ -77,8 +84,17 @@ export function ReportProfile() {
           setShowReportProfileModal(false);
         });
     },
-    [userProfile, showSuccessToast, t]
+    [userProfile, showSuccessToast, t, userDetails]
   );
+
+  const handleReportClick = () => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setShowReportProfileModal(true);
+  };
 
   if (isMe) return null;
 
@@ -129,7 +145,7 @@ export function ReportProfile() {
       <button
         type="button"
         className="report-profile__button"
-        onClick={() => setShowReportProfileModal(true)}
+        onClick={handleReportClick}
         disabled={isSubmitting}
       >
         <ReportIcon size={13} />

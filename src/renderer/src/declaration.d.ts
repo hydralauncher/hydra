@@ -320,6 +320,57 @@ declare global {
       cb: (importing: boolean) => void
     ) => () => Electron.IpcRenderer;
     getClassicsImportStatus: () => Promise<boolean>;
+    getActiveClassicsImport: () => Promise<{
+      requestId: string;
+      system: EmulatorSystem;
+      phase: "scanning" | "matching" | "done";
+      processed: number;
+      total: number;
+      percent: number;
+      currentFile: string | null;
+      status: "matched" | "wrong_platform" | "unmatched" | null;
+      discovered: number;
+      matched: number;
+      sizeBytes: number;
+    } | null>;
+    onClassicsImportProgress: (
+      cb: (
+        payload:
+          | {
+              type: "progress";
+              requestId: string;
+              system: EmulatorSystem;
+              phase: "scanning" | "matching";
+              processed: number;
+              total: number;
+              percent: number;
+              currentFile: string | null;
+              status: "matched" | "wrong_platform" | "unmatched" | null;
+              discovered: number;
+              matched: number;
+              sizeBytes: number;
+            }
+          | {
+              type: "done" | "cancelled";
+              requestId: string;
+              system: EmulatorSystem;
+              fileCount: number;
+              sizeBytes: number;
+              matched: number;
+              unmatched: number;
+              unmatchedFiles: {
+                name: string;
+                reason: "wrong_platform" | "unmatched";
+              }[];
+            }
+          | {
+              type: "error";
+              requestId: string;
+              system: EmulatorSystem;
+              message: string;
+            }
+      ) => void
+    ) => () => Electron.IpcRenderer;
     resetGameAchievements: (shop: GameShop, objectId: string) => Promise<void>;
     changeGamePlayTime: (
       shop: GameShop,
@@ -413,47 +464,6 @@ declare global {
       language: string
     ) => Promise<{ requestId: string }>;
     cancelLaunchboxImport: (requestId: string) => Promise<void>;
-    onLaunchboxImportProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "scan_progress";
-              phase: "scanning";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | {
-              type: "match_progress";
-              phase: "matching";
-              processed: number;
-              total: number;
-              currentFile: string;
-              status: "matched" | "unmatched";
-              matched: number;
-              unmatched: number;
-              fileCount: number;
-              sizeBytes: number;
-            }
-          | {
-              type: "done";
-              fileCount: number;
-              sizeBytes: number;
-              matched: number;
-              unmatched: number;
-              unmatchedFiles: string[];
-            }
-          | {
-              type: "cancelled";
-              fileCount: number;
-              sizeBytes: number;
-              matched: number;
-              unmatched: number;
-            }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     scanPs2Memcards: (
       input: Ps2MemcardScanInput
     ) => Promise<{ requestId: string }>;
