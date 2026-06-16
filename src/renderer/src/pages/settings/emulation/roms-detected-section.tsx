@@ -4,6 +4,7 @@ import { SyncIcon } from "@primer/octicons-react";
 
 import { Button } from "@renderer/components";
 import { getRegionsFromSkus, getSkuRegionFlag } from "@renderer/helpers";
+import { formatBytes } from "@shared";
 import type { EmulatorSystem, LibraryGame } from "@types";
 
 interface Props {
@@ -12,17 +13,6 @@ interface Props {
   onRescan: () => void;
   disabled?: boolean;
 }
-
-const formatBytes = (bytes: number): string => {
-  if (bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1
-  );
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-};
 
 const matchesSystem = (
   platform: string | null | undefined,
