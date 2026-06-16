@@ -66,6 +66,9 @@ export interface Game {
   isPinned?: boolean;
   achievementCount?: number;
   unlockedAchievementCount?: number;
+  retroachievementsGameId?: number | null;
+  retroachievementsGameTitle?: string | null;
+  retroachievementsGamePlatform?: string | null;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;

@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements doda dosežke klasičnim igram.",
+    "retroachievements_api_key": "RetroAchievements API ključ",
+    "retroachievements_api_key_placeholder": "API ključ",
+    "retroachievements_username": "RetroAchievements uporabniško ime",
+    "retroachievements_username_placeholder": "Uporabniško ime",
     "downloads_path": "Pot prenosa",
     "change": "Posodobi",
     "notification_messages": {

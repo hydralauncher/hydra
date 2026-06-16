@@ -718,6 +718,12 @@
     "move_down": "Переместить вниз"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements добавляет достижения в классические игры.",
+    "retroachievements_api_key": "Ключ API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Ключ API",
+    "retroachievements_username": "Имя пользователя RetroAchievements",
+    "retroachievements_username_placeholder": "Имя пользователя",
     "current_username": "Имя пользователя:",
     "downloads_path": "Путь загрузок",
     "change": "Изменить",

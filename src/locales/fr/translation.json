@@ -723,6 +723,12 @@
     "extraction_failed_description": "Hydra n'a pas pu extraire cette archive. Vérifiez l'intégrité de l'archive ou l'espace disque, puis réessayez."
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements ajoute des succès aux jeux classiques.",
+    "retroachievements_api_key": "Clé API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Clé API",
+    "retroachievements_username": "Nom d'utilisateur RetroAchievements",
+    "retroachievements_username_placeholder": "Nom d'utilisateur",
     "downloads_path": "Chemin des téléchargements",
     "change": "Mettre à jour",
     "notifications": "Notifications",

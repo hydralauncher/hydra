@@ -5,6 +5,15 @@ import {
   type RetroachievementAchievement,
 } from "./retroachievements-fetcher";
 
+const parseRetroachievementsDate = (value: string): number | null => {
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const withTimezone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(normalized)
+    ? normalized
+    : `${normalized}Z`;
+  const ts = Date.parse(withTimezone);
+  return Number.isFinite(ts) ? ts : null;
+};
+
 const toUserAchievement = (
   achievement: RetroachievementAchievement,
   unlockedBadgeMap: Map<number, number | null>
@@ -51,8 +60,10 @@ export const mergeRetroachievements = async (
   const unlockedBadgeMap = new Map<number, number | null>();
   for (const ach of gameData.achievements) {
     if (ach.dateEarned) {
-      const ts = Date.parse(ach.dateEarned);
-      unlockedBadgeMap.set(ach.badgeId, Number.isFinite(ts) ? ts : null);
+      unlockedBadgeMap.set(
+        ach.badgeId,
+        parseRetroachievementsDate(ach.dateEarned)
+      );
     }
   }
 

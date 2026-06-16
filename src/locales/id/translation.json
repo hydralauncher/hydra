@@ -652,6 +652,12 @@
     "move_down": "Pindah ke bawah"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements menambahkan pencapaian ke game klasik.",
+    "retroachievements_api_key": "Kunci API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Kunci API",
+    "retroachievements_username": "Nama pengguna RetroAchievements",
+    "retroachievements_username_placeholder": "Nama pengguna",
     "current_username": "Nama pengguna:",
     "downloads_path": "Jalur unduhan",
     "change": "Ubah",

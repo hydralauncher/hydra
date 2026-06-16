@@ -566,6 +566,12 @@
     "files": "FILES"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements aggiunge obiettivi ai giochi classici.",
+    "retroachievements_api_key": "Chiave API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Chiave API",
+    "retroachievements_username": "Nome utente RetroAchievements",
+    "retroachievements_username_placeholder": "Nome utente",
     "downloads_path": "Percorso dei download",
     "change": "Aggiorna",
     "notifications": "Notifiche",

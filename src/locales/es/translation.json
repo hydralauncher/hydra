@@ -676,6 +676,12 @@
     "files": "FILES"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements añade logros a los juegos clásicos.",
+    "retroachievements_api_key": "Clave API de RetroAchievements",
+    "retroachievements_api_key_placeholder": "Clave API",
+    "retroachievements_username": "Nombre de usuario de RetroAchievements",
+    "retroachievements_username_placeholder": "Nombre de usuario",
     "current_username": "Nombre de usuario:",
     "downloads_path": "Ruta de descarga",
     "change": "Actualizar",

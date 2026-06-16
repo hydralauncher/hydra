@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements klassik o‘yinlarga yutuqlarni qo‘shadi.",
+    "retroachievements_api_key": "RetroAchievements API kaliti",
+    "retroachievements_api_key_placeholder": "API kaliti",
+    "retroachievements_username": "RetroAchievements foydalanuvchi nomi",
+    "retroachievements_username_placeholder": "Foydalanuvchi nomi",
     "downloads_path": "Yuklab olish yo'li",
     "change": "O'zgartirish",
     "notifications": "Bildirishnomalar",

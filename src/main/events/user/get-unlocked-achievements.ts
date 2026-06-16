@@ -9,6 +9,7 @@ import {
 } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { HydraApi } from "@main/services";
+import { achievementsLogger } from "@main/services/logger";
 import { mergeRetroachievements } from "@main/services/achievements/merge-retroachievements";
 import { resolveRetroachievementsGameId } from "@main/services/achievements/retroachievements-fetcher";
 
@@ -33,60 +34,85 @@ export const getUnlockedAchievements = async (
     const game = await gamesSublevel
       .get(levelKeys.game(shop, objectId))
       .catch(() => null);
-    const isPlaystationClassic =
-      !!game &&
-      typeof game.platform === "string" &&
-      /(playstation 2|ps2|playstation 1|ps1|psx)/i.test(game.platform);
+    let title = game?.title ?? "";
+    let platform = game?.platform ?? null;
 
-    if (isPlaystationClassic || shop === "launchbox") {
-      let title = game?.title ?? "";
-      let platform = game?.platform ?? undefined;
+    if (!title || !platform) {
+      try {
+        type LaunchboxShopDetails = {
+          objectId: string;
+          platform?: string | null;
+          data?: {
+            title?: string;
+          };
+        };
 
-      if (!title || !platform) {
-        try {
-          const [basic, details] = await Promise.all([
-            HydraApi.get<{ title?: string } | null>(
-              `/games/${shop}/${objectId}`,
-              null,
-              {
-                needsAuth: false,
-              }
-            ).catch(() => null),
-            HydraApi.post<any>(
-              `/games/shop-details`,
-              { shop, objectIds: [objectId] },
-              { needsAuth: false }
-            ).catch(() => []),
-          ]);
+        const [basic, details] = await Promise.all([
+          HydraApi.get<{ title?: string } | null>(
+            `/games/${shop}/${objectId}`,
+            null,
+            {
+              needsAuth: false,
+            }
+          ).catch(() => null),
+          HydraApi.post<LaunchboxShopDetails[]>(
+            `/games/shop-details`,
+            { shop, objectIds: [objectId] },
+            { needsAuth: false }
+          ).catch(() => []),
+        ]);
 
-          if (basic && basic.title) title = basic.title;
+        if (basic?.title) title = basic.title;
 
-          if (Array.isArray(details) && details.length > 0) {
-            const entry =
-              details.find((d: any) => d.objectId === objectId) ?? details[0];
-            if (entry?.platform) platform = entry.platform;
-            if (!title && entry?.data?.title) title = entry.data.title;
-          }
-        } catch (err) {
-          // ignore and continue to fallback
+        if (Array.isArray(details) && details.length > 0) {
+          const entry = details.find((item) => item.objectId === objectId);
+          if (entry?.platform) platform = entry.platform;
+          if (!title && entry?.data?.title) title = entry.data.title;
         }
-      }
-
-      if (title) {
-        const retroAchievementsGameId = await resolveRetroachievementsGameId(
-          title,
-          platform
+      } catch (error) {
+        achievementsLogger.warn(
+          `Failed to refresh LaunchBox metadata for ${objectId}`,
+          error
         );
+      }
+    }
 
-        if (retroAchievementsGameId && retroachievementsApiKey) {
-          const retroAchievements = await mergeRetroachievements(
-            retroAchievementsGameId,
-            retroachievementsApiKey,
-            retroachievementsUsername || undefined
-          );
-          if (retroAchievements.length > 0) {
-            return retroAchievements;
-          }
+    const isPlaystationClassic =
+      typeof platform === "string" &&
+      /(playstation 2|ps2|playstation 1|ps1|psx)/i.test(platform);
+
+    if (
+      isPlaystationClassic &&
+      retroachievementsApiKey &&
+      retroachievementsUsername
+    ) {
+      const retroAchievementsGameId = await resolveRetroachievementsGameId({
+        title,
+        platform,
+        apiKey: retroachievementsApiKey,
+        username: retroachievementsUsername,
+        cachedGameId: game?.retroachievementsGameId ?? null,
+        cachedGameTitle: game?.retroachievementsGameTitle ?? null,
+        cachedGamePlatform: game?.retroachievementsGamePlatform ?? null,
+      });
+
+      if (retroAchievementsGameId) {
+        if (game && game.retroachievementsGameId !== retroAchievementsGameId) {
+          await gamesSublevel.put(levelKeys.game(shop, objectId), {
+            ...game,
+            retroachievementsGameId: retroAchievementsGameId,
+            retroachievementsGameTitle: title,
+            retroachievementsGamePlatform: platform,
+          });
+        }
+
+        const retroAchievements = await mergeRetroachievements(
+          retroAchievementsGameId,
+          retroachievementsApiKey,
+          retroachievementsUsername
+        );
+        if (retroAchievements.length > 0) {
+          return retroAchievements;
         }
       }
     }

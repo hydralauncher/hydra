@@ -591,6 +591,12 @@
     "move_down": "下に移動"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievementsは、クラシックゲームに実績を追加します。",
+    "retroachievements_api_key": "RetroAchievements APIキー",
+    "retroachievements_api_key_placeholder": "APIキー",
+    "retroachievements_username": "RetroAchievements ユーザー名",
+    "retroachievements_username_placeholder": "ユーザー名",
     "downloads_path": "ダウンロードパス",
     "change": "更新",
     "notifications": "通知",

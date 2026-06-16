@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements legger til prestasjoner i klassiske spill.",
+    "retroachievements_api_key": "RetroAchievements API-nøkkel",
+    "retroachievements_api_key_placeholder": "API-nøkkel",
+    "retroachievements_username": "RetroAchievements-brukernavn",
+    "retroachievements_username_placeholder": "Brukernavn",
     "downloads_path": "Nedlastingssti",
     "change": "Oppdater",
     "notifications": "Notifikasjoner",

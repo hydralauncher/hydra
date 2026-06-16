@@ -1,4 +1,6 @@
 import axios from "axios";
+import type { RetroachievementsGameListItem } from "@main/level";
+import { retroachievementsGameListsSublevel, levelKeys } from "@main/level";
 import { achievementsLogger } from "../logger";
 
 export interface RetroachievementAchievement {
@@ -11,7 +13,6 @@ export interface RetroachievementAchievement {
   badgeUnlockedUrl: string;
   badgeLockedUrl: string;
   dateEarned?: string | null;
-  unlockPercentage?: number;
   unlocksHardcore?: number;
   unlocksTotal?: number;
 }
@@ -25,27 +26,45 @@ export interface RetroachievementGameData {
   achievements: RetroachievementAchievement[];
 }
 
+export interface ResolveRetroachievementsGameIdParams {
+  title: string;
+  platform?: string | null;
+  apiKey: string;
+  username: string;
+  cachedGameId?: number | null;
+  cachedGameTitle?: string | null;
+  cachedGamePlatform?: string | null;
+}
+
 const RETROACHIEVEMENTS_BASE_URL = "https://retroachievements.org";
 const REQUEST_TIMEOUT_MS = 10_000;
+const GAME_LIST_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
 const normalizeText = (value: string): string =>
   value.toLowerCase().replace(/\s+/g, " ").trim();
 
-interface RetroachievementsSearchResult {
-  id: number;
-  title: string;
-  system?: {
-    id?: number;
-    name?: string;
-    nameShort?: string;
-  };
-}
+const normalizeTitle = (value: string): string =>
+  normalizeText(
+    value.replace(/[([{][^)]}*[)]}]/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ")
+  );
 
-interface RetroachievementsSearchResponse {
-  results?: {
-    games?: RetroachievementsSearchResult[];
-  };
-}
+const normalizePlatform = (value: string): string => normalizeText(value);
+
+const getRetroachievementsSystemId = (
+  platform?: string | null
+): number | null => {
+  const normalizedPlatform = platform ? normalizePlatform(platform) : "";
+
+  if (/(playstation 1|ps1|psx)/i.test(normalizedPlatform)) {
+    return 12;
+  }
+
+  if (/(playstation 2|ps2)/i.test(normalizedPlatform)) {
+    return 21;
+  }
+
+  return null;
+};
 
 interface RetroachievementsGameUserProgressAchievement {
   ID: number;
@@ -80,57 +99,94 @@ interface RetroachievementsGameUserProgressResponse {
   UserCompletionHardcore?: string;
 }
 
-export const resolveRetroachievementsGameId = async (
-  title: string,
-  platform?: string | null
-): Promise<number | null> => {
-  const normalizedTitle = normalizeText(title);
-  const normalizedPlatform = platform ? normalizeText(platform) : "";
+interface RetroachievementsGameListCacheEntry {
+  updatedAt: number;
+  games: RetroachievementsGameListItem[];
+}
+
+const fetchRetroachievementsGameList = async (
+  systemId: number,
+  apiKey: string,
+  username: string
+): Promise<RetroachievementsGameListItem[]> => {
+  const cacheKey = levelKeys.retroachievementsGameList(systemId);
+  const cached = await retroachievementsGameListsSublevel.get(cacheKey);
+
+  if (cached && cached.updatedAt + GAME_LIST_CACHE_TTL_MS > Date.now()) {
+    return cached.games;
+  }
+
+  const response = await axios.get<RetroachievementsGameListItem[]>(
+    `${RETROACHIEVEMENTS_BASE_URL}/API/API_GetGameList.php`,
+    {
+      timeout: REQUEST_TIMEOUT_MS,
+      params: {
+        z: username,
+        y: apiKey,
+        i: systemId,
+        f: 1,
+      },
+      headers: {
+        Accept: "application/json",
+      },
+    }
+  );
+
+  const games = response.data ?? [];
+  const cacheEntry: RetroachievementsGameListCacheEntry = {
+    updatedAt: Date.now(),
+    games,
+  };
+
+  await retroachievementsGameListsSublevel.put(cacheKey, cacheEntry);
+
+  return games;
+};
+
+export const resolveRetroachievementsGameId = async ({
+  title,
+  platform,
+  apiKey,
+  username,
+  cachedGameId,
+  cachedGameTitle,
+  cachedGamePlatform,
+}: ResolveRetroachievementsGameIdParams): Promise<number | null> => {
+  const normalizedTitle = normalizeTitle(title);
+  const normalizedPlatform = platform ? normalizePlatform(platform) : "";
+  const normalizedCachedTitle = cachedGameTitle
+    ? normalizeTitle(cachedGameTitle)
+    : "";
+  const normalizedCachedPlatform = cachedGamePlatform
+    ? normalizePlatform(cachedGamePlatform)
+    : "";
+
+  if (
+    cachedGameId &&
+    normalizedCachedTitle &&
+    normalizedCachedPlatform &&
+    normalizedTitle === normalizedCachedTitle &&
+    normalizedPlatform === normalizedCachedPlatform
+  ) {
+    return cachedGameId;
+  }
+
+  const systemId = getRetroachievementsSystemId(platform);
+  if (!systemId) {
+    return null;
+  }
 
   try {
-    const response = await axios.get<RetroachievementsSearchResponse>(
-      `${RETROACHIEVEMENTS_BASE_URL}/internal-api/search`,
-      {
-        timeout: REQUEST_TIMEOUT_MS,
-        params: {
-          q: title,
-          scope: "games",
-        },
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          Accept: "application/json",
-        },
-      }
+    const games = await fetchRetroachievementsGameList(
+      systemId,
+      apiKey,
+      username
+    );
+    const exactMatch = games.find(
+      (game) => normalizeTitle(game.Title) === normalizedTitle
     );
 
-    const games = response.data.results?.games ?? [];
-    const exactMatch = games.find((game) => {
-      const normalizedGameTitle = normalizeText(game.title);
-      const normalizedSystemName = normalizeText(game.system?.name ?? "");
-      const normalizedSystemShort = normalizeText(game.system?.nameShort ?? "");
-
-      return (
-        normalizedGameTitle === normalizedTitle &&
-        (normalizedPlatform === normalizedSystemName ||
-          normalizedPlatform === normalizedSystemShort ||
-          normalizedPlatform.includes(normalizedSystemShort) ||
-          normalizedSystemShort.includes(normalizedPlatform))
-      );
-    });
-
-    if (exactMatch) {
-      return exactMatch.id;
-    }
-
-    const titleMatch = games.find(
-      (game) => normalizeText(game.title) === normalizedTitle
-    );
-    if (titleMatch) {
-      return titleMatch.id;
-    }
-
-    return games[0]?.id ?? null;
+    return exactMatch?.ID ?? null;
   } catch (error) {
     achievementsLogger.error(
       `Failed to resolve RetroAchievements game id for ${title}`,
@@ -193,10 +249,6 @@ export const fetchRetroachievementsGame = async (
             badgeUnlockedUrl: `${RETROACHIEVEMENTS_BASE_URL}/Badge/${achievement.BadgeName}.png`,
             badgeLockedUrl: `${RETROACHIEVEMENTS_BASE_URL}/Badge/${achievement.BadgeName}_lock.png`,
             dateEarned: achievement.DateEarned ?? null,
-            unlockPercentage:
-              achievement.NumAwardedHardcore && data.NumAchievements
-                ? achievement.NumAwardedHardcore / data.NumAchievements
-                : undefined,
             unlocksHardcore: achievement.NumAwardedHardcore,
             unlocksTotal: achievement.NumAwarded,
           },

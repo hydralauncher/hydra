@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements 为经典游戏添加成就系统。",
+    "retroachievements_api_key": "RetroAchievements API 密钥",
+    "retroachievements_api_key_placeholder": "API 密钥",
+    "retroachievements_username": "RetroAchievements 用户名",
+    "retroachievements_username_placeholder": "用户名",
     "downloads_path": "下载路径",
     "change": "更改",
     "notifications": "通知",

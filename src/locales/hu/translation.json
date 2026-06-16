@@ -591,6 +591,12 @@
     "move_down": "Le"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "A RetroAchievements teljesítményeket ad a klasszikus játékokhoz.",
+    "retroachievements_api_key": "RetroAchievements API-kulcs",
+    "retroachievements_api_key_placeholder": "API-kulcs",
+    "retroachievements_username": "RetroAchievements felhasználónév",
+    "retroachievements_username_placeholder": "Felhasználónév",
     "downloads_path": "Letöltési útvonalak",
     "change": "Frissítés",
     "notifications": "Értesítések",

@@ -716,6 +716,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements adds achievements to classic games.",
+    "retroachievements_api_key": "RetroAchievements API key",
+    "retroachievements_api_key_placeholder": "API key",
+    "retroachievements_username": "RetroAchievements username",
+    "retroachievements_username_placeholder": "Username",
     "current_username": "Username:",
     "downloads_path": "Downloads path",
     "change": "Update",
@@ -1051,7 +1057,6 @@
     "bios_note": "BIOS files are managed by {{name}}. Hydra cannot install BIOS for you. Set them up inside {{name}}.",
     "remove_rom_folder_title": "Remove ROM folder",
     "remove_rom_folder_description": "{{path}} will no longer be scanned. The folder and its files stay on your disk.",
-    "remove": "Remove",
     "cancel_remove": "Cancel",
     "stat_games": "GAMES",
     "stat_storage": "STORAGE",

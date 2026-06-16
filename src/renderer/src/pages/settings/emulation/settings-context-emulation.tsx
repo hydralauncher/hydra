@@ -177,13 +177,12 @@ export function SettingsContextEmulation() {
       </header>
 
       <section className="settings-context-panel__group">
-        <h3>RetroAchievements</h3>
+        <h3>{t("retroachievements_title")}</h3>
         <p className="settings-emulation__description">
-          RetroAchievements is a service that adds achievements to classic
-          games.
+          {t("retroachievements_description")}
         </p>
         <TextField
-          label="RetroAchievements API key"
+          label={t("retroachievements_api_key")}
           value={retroachievementsApiKey}
           type="password"
           onChange={(event) => {
@@ -193,10 +192,10 @@ export function SettingsContextEmulation() {
               retroachievementsApiKey: value || null,
             });
           }}
-          placeholder="API key"
+          placeholder={t("retroachievements_api_key_placeholder")}
         />
         <TextField
-          label="RetroAchievements username"
+          label={t("retroachievements_username")}
           value={retroachievementsUsername}
           onChange={(event) => {
             const value = event.target.value;
@@ -205,7 +204,7 @@ export function SettingsContextEmulation() {
               retroachievementsUsername: value || null,
             });
           }}
-          placeholder="Username"
+          placeholder={t("retroachievements_username_placeholder")}
         />
       </section>
 

@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements lisab klassikalistele mängudele saavutusi.",
+    "retroachievements_api_key": "RetroAchievements API võti",
+    "retroachievements_api_key_placeholder": "API võti",
+    "retroachievements_username": "RetroAchievements kasutajanimi",
+    "retroachievements_username_placeholder": "Kasutajanimi",
     "downloads_path": "Allalaadimiste tee",
     "change": "Uuenda",
     "notifications": "Teavitused",

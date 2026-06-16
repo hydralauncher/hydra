@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements přidává úspěchy do klasických her.",
+    "retroachievements_api_key": "API klíč RetroAchievements",
+    "retroachievements_api_key_placeholder": "API klíč",
+    "retroachievements_username": "Uživatelské jméno RetroAchievements",
+    "retroachievements_username_placeholder": "Uživatelské jméno",
     "downloads_path": "Umístění stahování",
     "change": "Aktualizovat",
     "notifications": "Upozornění",

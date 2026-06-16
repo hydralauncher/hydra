@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements добавя постижения към класически игри.",
+    "retroachievements_api_key": "API ключ за RetroAchievements",
+    "retroachievements_api_key_placeholder": "API ключ",
+    "retroachievements_username": "Потребителско име за RetroAchievements",
+    "retroachievements_username_placeholder": "Потребителско име",
     "downloads_path": "Път за изтегляния",
     "change": "Обнови",
     "notifications": "Известия",

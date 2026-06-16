@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements pievieno sasniegumus klasiskajām spēlēm.",
+    "retroachievements_api_key": "RetroAchievements API atslēga",
+    "retroachievements_api_key_placeholder": "API atslēga",
+    "retroachievements_username": "RetroAchievements lietotājvārds",
+    "retroachievements_username_placeholder": "Lietotājvārds",
     "downloads_path": "Lejupielāžu ceļš",
     "change": "Mainīt",
     "notifications": "Paziņojumi",
