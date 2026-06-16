@@ -418,14 +418,14 @@ export function GameDetailsContextProvider({
       window.electron.platform === "linux"
         ? [
             {
-              name: "Game executable",
+              name: t("game_executable"),
               extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
             },
             { name: t("all_files"), extensions: ["*"] },
           ]
         : [
             {
-              name: "Game executable",
+              name: t("game_executable"),
               extensions: ["exe", "lnk", "bat"],
             },
           ];
