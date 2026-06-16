@@ -1,0 +1,17 @@
+.classics-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    transform-origin: center;
+    animation: classics-spinner-rotate 0.9s steps(8) infinite;
+  }
+}
+
+@keyframes classics-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

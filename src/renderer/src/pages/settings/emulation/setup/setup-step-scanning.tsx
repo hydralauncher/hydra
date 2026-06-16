@@ -1,32 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   DatabaseIcon,
   FileDirectoryIcon,
-  SyncIcon,
+  CheckCircleFillIcon,
 } from "@primer/octicons-react";
 import { Gamepad2 } from "lucide-react";
 
-import type { EmulatorSystem } from "@types";
-
-import type { PendingFolder } from "./types";
-
-interface Props {
-  system: EmulatorSystem;
-  systemLabel: string;
-  folders: PendingFolder[];
-  onComplete: (added: {
-    fileCount: number;
-    sizeBytes: number;
-    matched: number;
-    unmatched: number;
-    unmatchedFiles: string[];
-  }) => void;
-}
+import { ClassicsSpinner } from "@renderer/components";
 
 type Phase = "scanning" | "matching" | "done";
+
+interface Props {
+  systemLabel: string;
+  phase: Phase;
+  processed: number;
+  total: number;
+  percent: number;
+  currentFile: string | null;
+  status: "matched" | "wrong_platform" | "unmatched" | null;
+  discovered: number;
+  matched: number;
+  sizeBytes: number;
+  unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
+}
 
 const formatBytes = (bytes: number): string => {
   if (bytes <= 0) return "0 B";
@@ -40,110 +39,37 @@ const formatBytes = (bytes: number): string => {
 };
 
 export function SetupStepScanning({
-  system,
   systemLabel,
-  folders,
-  onComplete,
+  phase,
+  processed,
+  total,
+  percent,
+  currentFile,
+  status,
+  discovered,
+  matched,
+  sizeBytes,
+  unmatchedFiles,
 }: Readonly<Props>) {
-  const { t, i18n } = useTranslation("settings");
+  const { t } = useTranslation("settings");
 
-  const [phase, setPhase] = useState<Phase>("scanning");
-  const [processed, setProcessed] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [currentFile, setCurrentFile] = useState<string | null>(null);
-  const [currentStatus, setCurrentStatus] = useState<
-    "matched" | "unmatched" | null
-  >(null);
-  const [matched, setMatched] = useState(0);
-  const [accFiles, setAccFiles] = useState(0);
-  const [accBytes, setAccBytes] = useState(0);
-  const [unmatchedFiles, setUnmatchedFiles] = useState<string[]>([]);
   const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 
-  const requestIdRef = useRef<string | null>(null);
-  const unsubRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const language = i18n.language.split("-")[0] || "en";
-
-    (async () => {
-      const { requestId } = await window.electron.importLaunchboxRoms(
-        system,
-        folders.map((f) => ({
-          path: f.path,
-          scanSubfolders: f.scanSubfolders,
-        })),
-        language
-      );
-      if (cancelled) {
-        window.electron.cancelLaunchboxImport(requestId);
-        return;
-      }
-      requestIdRef.current = requestId;
-
-      const unsub = window.electron.onLaunchboxImportProgress(
-        requestId,
-        (payload) => {
-          if (payload.type === "scan_progress") {
-            setPhase("scanning");
-            setProcessed(payload.processed);
-            setTotal(payload.total);
-            setCurrentFile(payload.currentFile);
-            setCurrentStatus(null);
-          } else if (payload.type === "match_progress") {
-            setPhase("matching");
-            setProcessed(payload.processed);
-            setTotal(payload.total);
-            setCurrentFile(payload.currentFile);
-            setCurrentStatus(payload.status);
-            setMatched(payload.matched);
-            setAccFiles(payload.fileCount);
-            setAccBytes(payload.sizeBytes);
-          } else if (payload.type === "done") {
-            unsub();
-            setPhase("done");
-            setUnmatchedFiles(payload.unmatchedFiles ?? []);
-            onComplete({
-              fileCount: payload.fileCount,
-              sizeBytes: payload.sizeBytes,
-              matched: payload.matched,
-              unmatched: payload.unmatched,
-              unmatchedFiles: payload.unmatchedFiles ?? [],
-            });
-          } else if (payload.type === "cancelled") {
-            unsub();
-          } else {
-            unsub();
-          }
-        }
-      );
-      unsubRef.current = unsub;
-    })();
-
-    return () => {
-      cancelled = true;
-      unsubRef.current?.();
-      if (requestIdRef.current) {
-        window.electron.cancelLaunchboxImport(requestIdRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const percent =
-    total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
-
-  const indeterminate = phase !== "done" && (total === 0 || processed >= total);
-
-  const phaseLabel =
-    phase === "done"
-      ? t("setup_scan_complete")
-      : phase === "scanning"
-        ? t("setup_scanning")
-        : t("setup_matching");
-
   const isDone = phase === "done";
+  const indeterminate = !isDone && total === 0;
+
+  const phaseLabel = isDone
+    ? t("setup_scan_complete")
+    : phase === "scanning"
+      ? t("setup_scanning")
+      : t("setup_matching");
+
+  const gamesValue = isDone || matched > 0 ? matched : discovered;
+
+  const reasonLabel = (reason: "wrong_platform" | "unmatched") =>
+    reason === "wrong_platform"
+      ? t("setup_match_wrong_platform")
+      : t("setup_match_unmatched");
 
   return (
     <>
@@ -153,8 +79,15 @@ export function SetupStepScanning({
       <p className="setup-modal__body-intro">{t("setup_scan_intro")}</p>
 
       <div className="setup-modal__progress-meta">
-        <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          {!isDone && <SyncIcon size={14} className="setup-modal__spin" />}
+        <span className="setup-modal__progress-status">
+          {isDone ? (
+            <CheckCircleFillIcon
+              size={14}
+              className="setup-modal__progress-check"
+            />
+          ) : (
+            <ClassicsSpinner size={14} />
+          )}
           <span>{phaseLabel}</span>
         </span>
         <span>
@@ -181,14 +114,14 @@ export function SetupStepScanning({
             className="setup-modal__scan-file-icon"
           />
           <span className="setup-modal__scan-file-name">{currentFile}</span>
-          {currentStatus && (
+          {status && (
             <span
-              className={`setup-modal__scan-file-status setup-modal__scan-file-status--${currentStatus}`}
+              className={`setup-modal__scan-file-status setup-modal__scan-file-status--${status}`}
             >
               {`→ ${
-                currentStatus === "matched"
+                status === "matched"
                   ? t("setup_match_matched")
-                  : t("setup_match_unmatched")
+                  : reasonLabel(status)
               }`}
             </span>
           )}
@@ -197,21 +130,19 @@ export function SetupStepScanning({
 
       <div className="setup-modal__stats">
         <div className="setup-modal__stat">
-          <span className="setup-modal__stat-icon">
-            <Gamepad2 size={16} />
-          </span>
-          <span className="setup-modal__stat-label">{t("stat_games")}</span>
-          <span className="setup-modal__stat-value">
-            {phase === "matching" || phase === "done" ? matched : accFiles}
-          </span>
+          <div className="setup-modal__stat-head">
+            <Gamepad2 size={16} className="setup-modal__stat-icon" />
+            <span className="setup-modal__stat-label">{t("stat_games")}</span>
+          </div>
+          <span className="setup-modal__stat-value">{gamesValue}</span>
         </div>
         <div className="setup-modal__stat">
-          <span className="setup-modal__stat-icon">
-            <DatabaseIcon size={16} />
-          </span>
-          <span className="setup-modal__stat-label">{t("stat_storage")}</span>
+          <div className="setup-modal__stat-head">
+            <DatabaseIcon size={16} className="setup-modal__stat-icon" />
+            <span className="setup-modal__stat-label">{t("stat_storage")}</span>
+          </div>
           <span className="setup-modal__stat-value">
-            {formatBytes(accBytes)}
+            {formatBytes(sizeBytes)}
           </span>
         </div>
       </div>
@@ -237,14 +168,21 @@ export function SetupStepScanning({
             <ul className="setup-modal__unmatched-list">
               {unmatchedFiles.map((file, index) => (
                 <li
-                  key={`${file}-${index}`}
+                  key={`${file.name}-${index}`}
                   className="setup-modal__unmatched-item"
                 >
                   <FileDirectoryIcon
                     size={14}
                     className="setup-modal__unmatched-icon"
                   />
-                  <span className="setup-modal__unmatched-name">{file}</span>
+                  <span className="setup-modal__unmatched-name">
+                    {file.name}
+                  </span>
+                  <span
+                    className={`setup-modal__unmatched-reason setup-modal__unmatched-reason--${file.reason}`}
+                  >
+                    {reasonLabel(file.reason)}
+                  </span>
                 </li>
               ))}
             </ul>

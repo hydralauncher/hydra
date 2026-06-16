@@ -4,6 +4,7 @@ import {
   HydraApi,
   WSClient,
   WindowManager,
+  emulators,
   gamesPlaytime,
 } from "@main/services";
 import {
@@ -34,6 +35,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
         gamesSublevel.clear(),
         downloadsSublevel.clear(),
         downloadLayoutStateSublevel.clear(),
+        emulators.resetEmulatorScanData(),
       ]);
     });
 
