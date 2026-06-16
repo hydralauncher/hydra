@@ -50,7 +50,7 @@ const normalizeText = (value: string): string =>
 
 const normalizeTitle = (value: string): string =>
   normalizeText(
-    value.replace(/[([{][^)]}*[)]}]/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ")
+    value.replace(/[([{][^)\]}]*[)\]}]/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ")
   );
 
 const normalizePlatform = (value: string): string => normalizeText(value);
