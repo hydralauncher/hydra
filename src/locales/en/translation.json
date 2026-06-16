@@ -294,6 +294,7 @@
     "select_executable": "Select",
     "no_executable_selected": "No executable selected",
     "no_tracking_executable_selected": "No tracking executable selected",
+    "game_executable": "Game executable",
     "bat_tracking_warning": "Hydra can't track playtime from a .bat file. Select the .exe to watch below, otherwise playtime won't be recorded for this game.",
     "open_folder": "Open folder",
     "open_save_folder": "Open save folder",
