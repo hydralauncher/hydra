@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import {
@@ -301,8 +308,9 @@ export function EmulatorDetail({
     { id: "library", label: t("tab_library") },
   ];
 
-  const statusBadge = isConfigured ? (
-    executableExists ? (
+  let statusBadge: ReactNode = null;
+  if (isConfigured) {
+    statusBadge = executableExists ? (
       <span className="emulator-detail__synced">
         <CheckCircleFillIcon size={14} />
         <span>{t("synced")}</span>
@@ -312,8 +320,8 @@ export function EmulatorDetail({
         <AlertIcon size={14} />
         <span>{t("executable_missing")}</span>
       </span>
-    )
-  ) : null;
+    );
+  }
 
   return (
     <div className="emulator-detail">
