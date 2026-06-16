@@ -201,15 +201,21 @@ export interface DetectionResult {
   detectedVersion: string | null;
 }
 
-export const detectEmulator = (binary: KnownBinary): DetectionResult | null => {
+export const detectEmulator = (
+  binary: KnownBinary,
+  options?: { resolveVersion?: boolean }
+): DetectionResult | null => {
   const names = isWindows ? binary.windowsNames : binary.linuxNames;
+  const resolveVersion = options?.resolveVersion ?? false;
+  const versionFor = (executablePath: string): string | null =>
+    resolveVersion ? getEmulatorVersion(executablePath, binary) : null;
 
   for (const name of names) {
     const onPath = lookupOnPath(name);
     if (onPath) {
       return {
         executablePath: onPath,
-        detectedVersion: getEmulatorVersion(onPath, binary),
+        detectedVersion: versionFor(onPath),
       };
     }
   }
@@ -219,7 +225,7 @@ export const detectEmulator = (binary: KnownBinary): DetectionResult | null => {
   if (found) {
     return {
       executablePath: found,
-      detectedVersion: getEmulatorVersion(found, binary),
+      detectedVersion: versionFor(found),
     };
   }
 
@@ -228,7 +234,7 @@ export const detectEmulator = (binary: KnownBinary): DetectionResult | null => {
     if (portable) {
       return {
         executablePath: portable,
-        detectedVersion: getEmulatorVersion(portable, binary),
+        detectedVersion: versionFor(portable),
       };
     }
   } else {
@@ -239,7 +245,7 @@ export const detectEmulator = (binary: KnownBinary): DetectionResult | null => {
     if (appImage) {
       return {
         executablePath: appImage,
-        detectedVersion: getEmulatorVersion(appImage, binary),
+        detectedVersion: versionFor(appImage),
       };
     }
   }

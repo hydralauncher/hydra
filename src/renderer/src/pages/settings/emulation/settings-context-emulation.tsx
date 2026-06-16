@@ -69,21 +69,6 @@ export function SettingsContextEmulation() {
       }
 
       setConfigs(initial);
-
-      const stale = SYSTEMS.filter(
-        (s) =>
-          initial[s].executablePath !== null &&
-          initial[s].detectedVersion === null
-      );
-      if (stale.length > 0) {
-        const refreshed = { ...initial };
-        for (const s of stale) {
-          const next = await window.electron.detectEmulator(s);
-          if (cancelled) return;
-          refreshed[s] = next;
-        }
-        setConfigs(refreshed);
-      }
     })();
 
     return () => {
