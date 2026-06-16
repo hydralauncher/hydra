@@ -479,7 +479,7 @@ export function GameOptionsModal({
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: game.executablePath ?? undefined,
-      filters: [{ name: t("select_executable"), extensions: ["exe", "lnk"] }],
+      filters: [{ name: t("game_executable"), extensions: ["exe"] }],
     });
 
     const path = filePaths?.[0];
