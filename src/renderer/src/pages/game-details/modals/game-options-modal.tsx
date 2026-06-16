@@ -475,6 +475,33 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const handleChangeTrackingExecutableLocation = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      defaultPath: game.executablePath ?? undefined,
+      filters: [{ name: t("select_executable"), extensions: ["exe", "lnk"] }],
+    });
+
+    const path = filePaths?.[0];
+    if (!path) return;
+
+    await window.electron.updateTrackingExecutablePath(
+      game.shop,
+      game.objectId,
+      path
+    );
+    updateGame();
+  };
+
+  const handleClearTrackingExecutablePath = async () => {
+    await window.electron.updateTrackingExecutablePath(
+      game.shop,
+      game.objectId,
+      null
+    );
+    updateGame();
+  };
+
   const handleChangeWinePrefixPath = async () => {
     const defaultPath =
       await window.electron.getDefaultWinePrefixSelectionPath();
@@ -800,6 +827,12 @@ export function GameOptionsModal({
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
+                onChangeTrackingExecutableLocation={
+                  handleChangeTrackingExecutableLocation
+                }
+                onClearTrackingExecutablePath={
+                  handleClearTrackingExecutablePath
+                }
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
                 onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}
@@ -843,6 +876,12 @@ export function GameOptionsModal({
                 onChangeExecutableLocation={handleChangeExecutableLocation}
                 onClearExecutablePath={handleClearExecutablePath}
                 onOpenGameExecutablePath={handleOpenGameExecutablePath}
+                onChangeTrackingExecutableLocation={
+                  handleChangeTrackingExecutableLocation
+                }
+                onClearTrackingExecutablePath={
+                  handleClearTrackingExecutablePath
+                }
                 onOpenSaveFolder={handleOpenSaveFolder}
                 onCreateShortcut={handleCreateShortcut}
                 onCreateSteamShortcut={() => setShowSteamShortcutModal(true)}

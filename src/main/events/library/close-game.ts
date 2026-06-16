@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { emulators, logger, Wine } from "@main/services";
+import { emulators, launchedGamePids, logger, Wine } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -28,12 +28,20 @@ const closeGame = async (
 
   if (!game) return;
 
+  const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
+  const targetPath = game.trackingExecutablePath || game.executablePath;
+
   const gameProcess = processes.find((runningProcess) => {
     if (process.platform === "linux") {
-      return runningProcess.name === game.executablePath?.split("/").at(-1);
+      return (
+        runningProcess.name === targetPath?.split("/").at(-1) ||
+        runningProcess.exe === targetPath ||
+        runningProcess.environ?.APPIMAGE === targetPath ||
+        runningProcess.pid === launchedPid
+      );
     }
 
-    return runningProcess.exe === game.executablePath;
+    return runningProcess.exe === targetPath;
   });
 
   const linuxFallbackProcess =

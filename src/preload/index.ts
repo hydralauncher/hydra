@@ -519,6 +519,17 @@ contextBridge.exposeInMainWorld("electron", {
     executablePath: string | null
   ) =>
     ipcRenderer.invoke("updateExecutablePath", shop, objectId, executablePath),
+  updateTrackingExecutablePath: (
+    shop: GameShop,
+    objectId: string,
+    trackingExecutablePath: string | null
+  ) =>
+    ipcRenderer.invoke(
+      "updateTrackingExecutablePath",
+      shop,
+      objectId,
+      trackingExecutablePath
+    ),
   addGameToFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>

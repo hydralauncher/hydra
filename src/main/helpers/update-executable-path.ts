@@ -14,3 +14,18 @@ export function updateGameExecutablePath<TGame extends Game>(
     executablePathUpdatedAt: executablePath ? new Date() : null,
   };
 }
+
+export function updateGameTrackingExecutablePath<TGame extends Game>(
+  game: TGame,
+  trackingExecutablePath: string | null
+): TGame {
+  if (game.trackingExecutablePath === trackingExecutablePath) {
+    return game;
+  }
+
+  return {
+    ...game,
+    trackingExecutablePath,
+    trackingExecutablePathUpdatedAt: trackingExecutablePath ? new Date() : null,
+  };
+}
