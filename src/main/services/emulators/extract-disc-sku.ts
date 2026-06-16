@@ -5,45 +5,24 @@ import type { EmulatorSystem } from "@types";
 import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
 import { readChdLeadingData } from "./chd-reader";
+import { readCsoLeadingData } from "./cso-reader";
 import { normalize } from "./sku-normalize";
-
-const BOOT_SKU_RE =
-  /BOOT2?\s*=\s*cdrom0?:\\?([A-Z]{4}[_\-.\s]?\d{3}[_\-.\s]?\d{2})/i;
-// ISO9660 directory entry holding the PS1/PS2 executable filename, e.g.
-// `SLUS_213.76;1`. Anchored on `;1` to avoid arbitrary 4-letter false positives.
-const ISO_FILENAME_SKU_RE = /([A-Z]{4})_(\d{3})\.(\d{2});1/;
-const CHUNK_SIZE = 1024 * 1024;
-const SCAN_LIMIT = 64 * 1024 * 1024;
-const TAIL_BYTES = 128;
-
-// `normalize` lives in the dependency-free `./sku-normalize` leaf; re-exported
-// here to preserve the existing `@main/services/emulators` barrel export.
-export { normalize };
+import {
+  BOOT_SKU_RE,
+  ISO_FILENAME_SKU_RE,
+  TAIL_BYTES,
+  scanBuffersForRawSku,
+} from "./sku-scan";
 
 const scanBuffersForSku = (chunks: Buffer[]): string | null => {
-  let tail = "";
-  let isoFallback: string | null = null;
-
-  for (const chunk of chunks) {
-    const text = tail + chunk.toString("latin1");
-
-    const match = BOOT_SKU_RE.exec(text);
-    if (match) return normalize(match[1]);
-
-    if (isoFallback === null) {
-      const fileMatch = ISO_FILENAME_SKU_RE.exec(text);
-      if (fileMatch) {
-        isoFallback = normalize(
-          `${fileMatch[1]}_${fileMatch[2]}.${fileMatch[3]}`
-        );
-      }
-    }
-
-    tail = text.slice(-TAIL_BYTES);
-  }
-
-  return isoFallback;
+  const raw = scanBuffersForRawSku(chunks);
+  return raw ? normalize(raw) : null;
 };
+
+const CHUNK_SIZE = 1024 * 1024;
+const SCAN_LIMIT = 64 * 1024 * 1024;
+
+export { normalize };
 
 const extractChdSku = async (filePath: string): Promise<string | null> => {
   const data = await readChdLeadingData(filePath);
@@ -60,9 +39,28 @@ const extractChdSku = async (filePath: string): Promise<string | null> => {
   return sku;
 };
 
+const extractCsoSku = async (filePath: string): Promise<string | null> => {
+  const data = await readCsoLeadingData(filePath);
+  if (!data) {
+    logger.log("[extract-sku] cso not decodable", { filePath });
+    return null;
+  }
+  const sku = scanBuffersForSku(data.chunks);
+  logger.log("[extract-sku] cso scan", {
+    filePath,
+    chunks: data.chunks.length,
+    sku,
+  });
+  return sku;
+};
+
 const extractPs12Sku = async (filePath: string): Promise<string | null> => {
-  if (filePath.toLowerCase().endsWith(".chd")) {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".chd")) {
     return extractChdSku(filePath);
+  }
+  if (lower.endsWith(".cso")) {
+    return extractCsoSku(filePath);
   }
 
   const target = await resolveSniffTarget(filePath);
