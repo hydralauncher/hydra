@@ -106,6 +106,35 @@
     overflow: hidden;
   }
 
+  &__friends-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__online-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: globals.$body-color;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+
+    &--online {
+      background-color: globals.$success-color;
+      color: #ffffff;
+    }
+  }
+
   &__game-icon {
     width: 20px;
     height: 20px;

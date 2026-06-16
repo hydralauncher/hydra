@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { t } from "i18next";
 import { registerEvent } from "../register-event";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { gamesSublevel } from "@main/level";
 import {
   GameExecutables,
@@ -29,9 +30,10 @@ interface ScanResult {
 }
 
 async function searchInDirectories(
-  executableNames: Set<string>
+  executableNames: Set<string>,
+  directories: string[]
 ): Promise<string | null> {
-  for (const scanDir of SCAN_DIRECTORIES) {
+  for (const scanDir of directories) {
     if (!fs.existsSync(scanDir)) continue;
 
     const foundPath = await findExecutableInFolder(scanDir, executableNames);
@@ -62,8 +64,15 @@ async function publishScanNotification(foundCount: number): Promise<void> {
 }
 
 const scanInstalledGames = async (
-  _event: Electron.IpcMainInvokeEvent
+  _event: Electron.IpcMainInvokeEvent,
+  additionalDirectories: string[] = [],
+  includeDefaultDirectories = true
 ): Promise<ScanResult> => {
+  const baseDirectories = includeDefaultDirectories ? SCAN_DIRECTORIES : [];
+  const scanDirectories = [
+    ...new Set([...baseDirectories, ...additionalDirectories]),
+  ];
+
   const games = await gamesSublevel
     .iterator()
     .all()
@@ -89,10 +98,13 @@ const scanInstalledGames = async (
       executableNames.map((name) => name.toLowerCase())
     );
 
-    const foundPath = await searchInDirectories(normalizedNames);
+    const foundPath = await searchInDirectories(
+      normalizedNames,
+      scanDirectories
+    );
 
     if (foundPath) {
-      await gamesSublevel.put(key, { ...game, executablePath: foundPath });
+      await gamesSublevel.put(key, updateGameExecutablePath(game, foundPath));
 
       logger.info(
         `[ScanInstalledGames] Found executable for ${game.objectId}: ${foundPath}`

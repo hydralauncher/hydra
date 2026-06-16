@@ -37,6 +37,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit);
     width: 100%;
     position: relative;
   }
@@ -45,13 +47,14 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
-    flex: 1;
+    flex-shrink: 0;
   }
 
   &__controls-right {
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
+    flex-wrap: wrap;
   }
 
   &__header-controls {
@@ -146,6 +149,20 @@
     align-items: center;
     justify-content: center;
     margin-bottom: calc(globals.$spacing-unit * 2);
+
+    &--spinning svg {
+      animation: library-classics-spin 1s linear infinite;
+    }
+  }
+
+  @keyframes library-classics-spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   &__collections {

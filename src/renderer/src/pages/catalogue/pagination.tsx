@@ -83,19 +83,18 @@ export function Pagination({
 
   if (totalPages <= 1) return null;
 
-  const visiblePages = 3;
-  const isLastThree = totalPages > 3 && page >= totalPages - 2;
+  const visiblePages = 5;
 
   let startPage = Math.max(1, page - 1);
   let endPage = startPage + visiblePages - 1;
 
-  if (isLastThree) {
-    startPage = Math.max(1, totalPages - 2);
-    endPage = totalPages;
-  } else if (endPage > totalPages) {
+  if (endPage > totalPages) {
     endPage = totalPages;
     startPage = Math.max(1, endPage - visiblePages + 1);
   }
+
+  const showLeadingJump = endPage >= totalPages && startPage > 1;
+  const showTrailingJump = endPage < totalPages;
 
   const onJumpChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
@@ -199,7 +198,7 @@ export function Pagination({
         />
       </Button>
 
-      {isLastThree && startPage > 1 && (
+      {showLeadingJump && (
         <>
           <Button
             theme="outline"
@@ -236,7 +235,7 @@ export function Pagination({
         </Button>
       ))}
 
-      {!isLastThree && page < totalPages - 1 && (
+      {showTrailingJump && (
         <>
           <JumpControl
             isOpen={isJumpOpen}

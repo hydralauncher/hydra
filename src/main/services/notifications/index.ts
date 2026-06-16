@@ -222,6 +222,7 @@ export const publishExtractionCompleteNotification = async (game: Game) => {
     title,
     body,
     {
+      pictureUrl: game.iconUrl,
       url: `/game/${game.shop}/${game.objectId}`,
     }
   );

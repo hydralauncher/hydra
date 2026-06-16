@@ -25,15 +25,19 @@ import { logger } from "../logger";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { TorBoxClient } from "./torbox";
 import { GameFilesManager } from "../game-files-manager";
-import { HydraDebridClient } from "./hydra-debrid";
 import { PremiumizeClient } from "./premiumize";
 import { AllDebridClient } from "./all-debrid";
-import { JsHttpDownloader } from "./js-http-downloader";
+import {
+  DEFAULT_DOWNLOAD_USER_AGENT,
+  JsHttpDownloader,
+} from "./js-http-downloader";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import {
   getDownloadLayoutStateRecord,
   getNextQueuedDownloadFromLayout,
+  setDownloadLayoutQueues,
 } from "../download-layout-state";
+import { shouldFinalizeDownload } from "./download-completion";
 
 interface AllDebridBatchEntry {
   url: string;
@@ -509,11 +513,15 @@ export class DownloadManager {
 
     this.sendProgressUpdate(progress, status, game);
 
-    const isComplete =
-      !status.isCheckingFiles &&
-      !status.isDownloadingMetadata &&
-      (progress === 1 || download.status === "complete");
-    if (isComplete) {
+    if (
+      shouldFinalizeDownload({
+        usingJsDownloader: this.usingJsDownloader,
+        isCheckingFiles: status.isCheckingFiles,
+        isDownloadingMetadata: status.isDownloadingMetadata,
+        progress,
+        downloadStatus: download.status,
+      })
+    ) {
       await this.handleDownloadCompletion(download, game, gameId);
     }
   }
@@ -590,6 +598,7 @@ export class DownloadManager {
     } else {
       const gameFilesManager = new GameFilesManager(game.shop, game.objectId);
       gameFilesManager.searchAndBindExecutable();
+      void gameFilesManager.autoLinkClassicsDiscs();
     }
 
     await this.processNextQueuedDownload();
@@ -721,13 +730,103 @@ export class DownloadManager {
     );
 
     if (nextItemOnQueue) {
-      this.resumeDownload(nextItemOnQueue);
+      const nextDownloadId = levelKeys.game(
+        nextItemOnQueue.shop,
+        nextItemOnQueue.objectId
+      );
+      const activeDownload: Download = {
+        ...nextItemOnQueue,
+        status: "active",
+        queued: false,
+        pinnedToHero: false,
+        extracting: false,
+        extractionProgress: 0,
+      };
+
+      await downloadsSublevel.put(nextDownloadId, activeDownload);
+      WindowManager.sendDownloadsUpdated();
+
+      try {
+        await this.resumeDownload(activeDownload);
+      } catch (error) {
+        await this.handleRuntimeDownloadError(nextDownloadId, error);
+      }
     } else {
       this.downloadingGameId = null;
       this.usingJsDownloader = false;
       this.jsDownloader = null;
       this.allDebridBatch = null;
     }
+  }
+
+  private static getErrorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string") return error;
+
+    try {
+      return JSON.stringify(error) ?? "Unknown error";
+    } catch {
+      return "Unknown error";
+    }
+  }
+
+  private static async handleRuntimeDownloadError(
+    downloadId: string,
+    error: unknown
+  ) {
+    if (this.downloadingGameId && this.downloadingGameId !== downloadId) {
+      const message = this.getErrorMessage(error);
+      logger.warn(
+        `[DownloadManager] Ignoring stale download error for ${downloadId}: ${message}`
+      );
+      return;
+    }
+
+    const message = this.getErrorMessage(error);
+    logger.error(
+      `[DownloadManager] Download failed for ${downloadId}: ${message}`,
+      error
+    );
+
+    this.downloadingGameId = null;
+    this.isPreparingDownload = false;
+    this.usingJsDownloader = false;
+    this.jsDownloader = null;
+    this.allDebridBatch = null;
+    WindowManager.mainWindow?.setProgressBar(-1);
+    WindowManager.sendToAppWindows("on-download-progress", null);
+
+    try {
+      const download = await downloadsSublevel.get(downloadId);
+      if (download) {
+        await downloadsSublevel.put(downloadId, {
+          ...download,
+          status: "error",
+          queued: false,
+          pinnedToHero: false,
+          extracting: false,
+        });
+
+        const downloads = await downloadsSublevel.values().all();
+        const layoutState = await getDownloadLayoutStateRecord();
+        await setDownloadLayoutQueues(
+          downloads,
+          layoutState.queueOrder.filter((id) => id !== downloadId),
+          [
+            downloadId,
+            ...layoutState.pausedOrder.filter((id) => id !== downloadId),
+          ]
+        );
+      }
+    } catch (persistError) {
+      logger.error(
+        `[DownloadManager] Failed to persist download error for ${downloadId}`,
+        persistError
+      );
+    }
+
+    WindowManager.sendDownloadsUpdated();
+    await this.processNextQueuedDownload();
   }
 
   public static async getSeedStatus() {
@@ -877,7 +976,7 @@ export class DownloadManager {
       case Downloader.TorBox:
         return this.getTorBoxDownloadOptions(download, resumingFilename);
       case Downloader.Hydra:
-        return this.getHydraDownloadOptions(download, resumingFilename);
+        throw new Error(DownloadError.NotCachedOnHydra);
       case Downloader.VikingFile:
         return this.getVikingFileDownloadOptions(download, resumingFilename);
       case Downloader.Rootz:
@@ -993,21 +1092,46 @@ export class DownloadManager {
       throw new Error("Invalid gofile URL");
     }
 
+    const { url, headers } = await this.resolveGofileDownload(id, password);
+
+    const filename = this.resolveFilename(resumingFilename, download.uri, url);
+    return this.buildDownloadOptions(
+      url,
+      download.downloadPath,
+      filename,
+      headers
+    );
+  }
+
+  private static async resolveGofileDownload(
+    id: string,
+    password?: string
+  ): Promise<{
+    url: string;
+    headers?: Record<string, string>;
+  }> {
+    const alternateCdnDownloadLink =
+      await GofileApi.getAlternateCdnDownloadLinkIfAvailable(id);
+
+    if (alternateCdnDownloadLink) {
+      logger.log(
+        `[DownloadManager] GoFile download ${id} will use alternate CDN`
+      );
+      return { url: alternateCdnDownloadLink };
+    }
+
+    logger.log(
+      `[DownloadManager] GoFile download ${id} will use official GoFile fallback`
+    );
+
     const downloadLink = await GofileApi.getDownloadLink(id, password);
     await GofileApi.checkDownloadUrl(downloadLink);
     const token = await GofileApi.authorize();
 
-    const filename = this.resolveFilename(
-      resumingFilename,
-      download.uri,
-      downloadLink
-    );
-    return this.buildDownloadOptions(
-      downloadLink,
-      download.downloadPath,
-      filename,
-      { Cookie: `accountToken=${token}` }
-    );
+    return {
+      url: downloadLink,
+      headers: { Cookie: `accountToken=${token}` },
+    };
   }
 
   private static async getPixelDrainDownloadOptions(
@@ -1148,24 +1272,6 @@ export class DownloadManager {
     );
   }
 
-  private static async getHydraDownloadOptions(
-    download: Download,
-    resumingFilename?: string
-  ) {
-    const downloadUrl = await HydraDebridClient.getDownloadUrl(download.uri);
-    if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
-    const filename = this.resolveFilename(
-      resumingFilename,
-      download.uri,
-      downloadUrl
-    );
-    return this.buildDownloadOptions(
-      downloadUrl,
-      download.downloadPath,
-      filename
-    );
-  }
-
   private static async getVikingFileDownloadOptions(
     download: Download,
     resumingFilename?: string
@@ -1213,19 +1319,24 @@ export class DownloadManager {
           throw new Error("Invalid gofile URL");
         }
 
-        const downloadLink = await GofileApi.getDownloadLink(id, password);
-        await GofileApi.checkDownloadUrl(downloadLink);
-        const token = await GofileApi.authorize();
-
-        return {
-          action: "start",
+        const { url, headers } = await this.resolveGofileDownload(id, password);
+        const payload = {
+          action: "start" as const,
           game_id: downloadId,
-          url: downloadLink,
+          url,
           save_path: download.downloadPath,
-          header: `Cookie: accountToken=${token}`,
           allow_multiple_connections: true,
           connections_limit: 8,
         };
+
+        if (headers?.Cookie) {
+          return {
+            ...payload,
+            header: `Cookie: ${headers.Cookie}`,
+          };
+        }
+
+        return payload;
       }
       case Downloader.PixelDrain: {
         const downloadUrl = await PixelDrainApi.unlock(download.uri);
@@ -1348,18 +1459,7 @@ export class DownloadManager {
         };
       }
       case Downloader.Hydra: {
-        const downloadUrl = await HydraDebridClient.getDownloadUrl(
-          download.uri
-        );
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnHydra);
-
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-          allow_multiple_connections: true,
-        };
+        throw new Error(DownloadError.NotCachedOnHydra);
       }
       case Downloader.VikingFile: {
         logger.log(
@@ -1395,6 +1495,63 @@ export class DownloadManager {
       if (!options) {
         throw new Error("Failed to validate download URL");
       }
+
+      await this.validateJsDownloadResponse(options);
+    }
+  }
+
+  private static async validateJsDownloadResponse(options: {
+    url: string;
+    headers?: Record<string, string>;
+  }) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const headers: Record<string, string> = { ...options.headers };
+    const hasUserAgentHeader = Object.keys(headers).some(
+      (key) => key.toLowerCase() === "user-agent"
+    );
+
+    if (!hasUserAgentHeader) {
+      headers["User-Agent"] = DEFAULT_DOWNLOAD_USER_AGENT;
+    }
+
+    try {
+      const response = await fetch(options.url, {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+      const contentType = response.headers.get("content-type") ?? "unknown";
+      const contentLength = response.headers.get("content-length") ?? "unknown";
+
+      logger.log(
+        `[DownloadManager] Preflight response status=${response.status} content-type=${contentType} content-length=${contentLength}`
+      );
+
+      await response.body?.cancel().catch(() => undefined);
+
+      if (response.status >= 400) {
+        throw new Error(
+          `The download link is not available (HTTP ${response.status}).`
+        );
+      }
+
+      if (
+        contentType.includes("text/html") ||
+        contentType.includes("application/xhtml")
+      ) {
+        throw new Error(
+          "The download link returned a web page instead of a file. It may have expired or be invalid."
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Download URL validation timed out");
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -1464,10 +1621,14 @@ export class DownloadManager {
 
           this.logResolvedUrl(options.url);
           this.jsDownloader.startDownload(options).catch((err) => {
-            logger.error("[DownloadManager] JS download error:", err);
-            this.usingJsDownloader = false;
-            this.jsDownloader = null;
-            this.allDebridBatch = null;
+            void this.handleRuntimeDownloadError(downloadId, err).catch(
+              (error) => {
+                logger.error(
+                  `[DownloadManager] Failed to handle download error for ${downloadId}`,
+                  error
+                );
+              }
+            );
           });
         }
       } catch (err) {

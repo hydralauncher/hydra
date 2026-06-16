@@ -79,6 +79,8 @@
     display: flex;
     gap: 64px;
     padding: 64px 0;
+    min-width: 0;
+    max-width: 100%;
 
     #game-screenshot-carousel-prev-button {
       &[data-focused="true"] {
@@ -96,7 +98,9 @@
   }
 
   &__main-column {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
 
     > .divider-container {
       padding-inline: 0;
@@ -151,17 +155,27 @@
     width: 100%;
   }
 
+  &__controller-support {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+
   &__stats-title,
   &__stats-row,
   &__metadata-row,
   &__protondb-title,
-  &__protondb-row {
+  &__protondb-row,
+  &__controller-support-title,
+  &__controller-support-row {
     background-color: var(--secondary);
     padding: 16px;
   }
 
   &__stats-title,
-  &__protondb-title {
+  &__protondb-title,
+  &__controller-support-title {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -174,6 +188,83 @@
       line-height: 1;
       letter-spacing: 0.01em;
     }
+  }
+
+  &__controller-support-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__controller-support-row--description {
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 0 12px 12px;
+  }
+
+  &__controller-support-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__controller-support-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  &__controller-support-icon {
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+    display: block;
+    flex-shrink: 0;
+
+    path {
+      fill: currentColor !important;
+    }
+  }
+
+  &__controller-support-icon--playstation {
+    width: 26px;
+    color: #0070cc;
+  }
+
+  &__controller-support-icon--xbox {
+    color: #107c10;
+  }
+
+  &__controller-support-label,
+  &__controller-support-value {
+    line-height: 1;
+  }
+
+  &__controller-support-label {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  &__controller-support-value {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  &__controller-support-description {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: center;
   }
 
   &__stats-row,
@@ -237,6 +328,20 @@
 
   &__metadata-value {
     font-size: 16px;
+  }
+
+  &__metadata-flags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  &__metadata-flag {
+    width: 28px;
+    height: 20px;
+    object-fit: contain;
+    image-rendering: pixelated;
   }
 
   &__protondb-value--text {
@@ -328,20 +433,31 @@
     );
     overflow: hidden;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     margin-bottom: 32px;
   }
 
   &__media-carousel-viewport {
     overflow: hidden;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   &__media-carousel-container {
     display: flex;
     gap: 16px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   &__media-carousel-slide {
     flex: 0 0 80%;
+    min-width: 0;
     max-width: 80%;
     box-sizing: border-box;
     padding: var(--media-carousel-ring-space);
@@ -349,6 +465,8 @@
 
   &__media-carousel-surface {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
@@ -374,6 +492,8 @@
 
   &__media-carousel-image {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     border-radius: 8px;
     object-fit: cover;
     aspect-ratio: 16 / 9;
@@ -386,6 +506,9 @@
     align-items: center;
     gap: 16px;
     margin-top: 8px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   &__media-carousel-arrow {
@@ -397,13 +520,19 @@
 
   &__media-carousel-dots {
     display: flex;
-    gap: 8px;
+    justify-content: center;
+    gap: var(--media-carousel-dot-gap, 8px);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   &__media-carousel-dot {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    flex: 0 0 auto;
+    width: var(--media-carousel-dot-size, 10px);
+    height: var(--media-carousel-dot-size, 10px);
     border-radius: 9999px;
     background-color: #555;
     transition: all 0.3s ease;
@@ -412,7 +541,7 @@
     padding: 0;
 
     &[data-active="true"] {
-      width: 24px;
+      width: var(--media-carousel-dot-active-width, 24px);
       background-color: #fff;
     }
   }
@@ -640,6 +769,9 @@
 
   &__detailed-description-region {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   &__detailed-description {
@@ -649,6 +781,10 @@
     gap: 24px;
     border-radius: 12px;
     outline: none;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 
     &:focus,
     &:focus-visible {
@@ -664,6 +800,8 @@
       font-size: 16px;
       margin-top: 12px;
       margin-bottom: 12px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     img,
@@ -675,6 +813,7 @@
       height: auto;
       display: block;
       object-fit: contain;
+      box-sizing: border-box;
       margin-left: auto;
       margin-right: auto;
     }
@@ -689,6 +828,31 @@
 
     a {
       color: var(--body-color);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    ul,
+    ol,
+    li {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    table {
+      display: block;
+      max-width: 100%;
+      overflow-x: auto;
+      box-sizing: border-box;
+    }
+
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      box-sizing: border-box;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .bb_tag {
@@ -700,10 +864,23 @@
   &__detailed-description-block {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   &__detailed-description-block-content {
     display: flow-root;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+
+    > * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
   }
 
   &__detailed-description-bottom-entry {

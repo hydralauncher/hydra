@@ -24,7 +24,7 @@
     "queued": "{{title}} (في قائمة الانتظار)",
     "game_has_no_executable": "اللعبة لا تحتوي على ملف تشغيل",
     "sign_in": "تسجيل الدخول",
-    "friends": "الأصدقاء",
+    "friends": "Friends",
     "need_help": "تحتاج مساعدة؟",
     "favorites": "المفضلة",
     "library": "Library",
@@ -873,7 +873,7 @@
     "report_reason_sexual_content": "محتوى جنسي",
     "report_reason_violence": "عنف",
     "report_reason_spam": "بريد عشوائي",
-    "report_reason_other_option": "أخرى",
+    "report_reason_other": "أخرى",
     "profile_reported": "تم الإبلاغ عن الملف الشخصي",
     "your_friend_code": "رمز الصديق الخاص بك:",
     "upload_banner": "رفع بانر",
@@ -1057,5 +1057,24 @@
     "failed_to_dismiss": "Failed to dismiss notification",
     "friend_request_accepted": "Friend request accepted",
     "friend_request_refused": "Friend request refused"
+  },
+  "friends_window": {
+    "title": "Friends",
+    "online": "Online",
+    "offline": "Offline",
+    "friend_code_copied": "Friend code copied",
+    "copy_friend_code": "Copy friend code",
+    "your_friend_code": "Your friend code:",
+    "add_friend": "Add friend",
+    "search_placeholder": "Search friends",
+    "friend_requests": "Friend requests",
+    "accept": "Accept",
+    "refuse": "Refuse",
+    "playing": "Playing {{game}}",
+    "remove_friend": "Remove friend",
+    "no_results": "No friends found",
+    "no_friends": "No friends online",
+    "try_again": "Something went wrong. Please try again.",
+    "copied": "Copied!"
   }
 }

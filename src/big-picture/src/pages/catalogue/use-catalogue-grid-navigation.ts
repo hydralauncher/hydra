@@ -1,13 +1,9 @@
 import type { FocusOverrides } from "../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import { useEffect, useState } from "react";
-import { useNavigationStore } from "../../stores";
 import {
-  CATALOGUE_FILTERS_REGION_ID,
   CATALOGUE_GRID_REGION_ID,
   CATALOGUE_HEADER_CONTROLS_REGION_ID,
-  CATALOGUE_PAGINATION_REGION_ID,
-  getCatalogueFilterRegionId,
 } from "./navigation";
 import {
   type CatalogueFocusPosition,
@@ -15,7 +11,6 @@ import {
   getCatalogueFocusPosition,
   getClosestPositionInDirection,
 } from "./navigation-geometry";
-import { FilterType } from "./use-catalogue-data";
 
 interface GridItemPosition extends CatalogueFocusPosition {
   top: number;
@@ -24,11 +19,6 @@ interface GridItemPosition extends CatalogueFocusPosition {
 }
 
 const ROW_TOLERANCE_PX = 24;
-const SIDEBAR_REGION_IDS = new Set(
-  Object.values(FilterType).map((filterKey) =>
-    getCatalogueFilterRegionId(filterKey)
-  )
-);
 
 function groupItemsIntoRows(items: GridItemPosition[]) {
   const sortedItems = [...items].sort((leftItem, rightItem) => {
@@ -73,25 +63,13 @@ function buildFocusOverridesForGridItem(
   itemIndex: number,
   rowIndex: number,
   rows: GridItemPosition[][],
-  headerPositions: CatalogueFocusPosition[],
-  sidebarPositions: CatalogueFocusPosition[],
-  paginationPositions: CatalogueFocusPosition[]
+  headerPositions: CatalogueFocusPosition[]
 ): FocusOverrides {
   const leftItem = row[itemIndex - 1];
   const rightItem = row[itemIndex + 1];
   const upItem = getClosestItemByCenterX(rows[rowIndex - 1], item.centerX);
   const downItem = getClosestItemByCenterX(rows[rowIndex + 1], item.centerX);
   const headerItem = getClosestPositionInDirection(item, headerPositions, "up");
-  const sidebarItem = getClosestPositionInDirection(
-    item,
-    sidebarPositions,
-    "right"
-  );
-  const paginationItem = getClosestPositionInDirection(
-    item,
-    paginationPositions,
-    "down"
-  );
 
   return {
     left: leftItem
@@ -108,14 +86,7 @@ function buildFocusOverridesForGridItem(
           type: "item",
           itemId: rightItem.id,
         }
-      : sidebarItem
-        ? {
-            type: "region",
-            regionId: sidebarItem.id,
-            entryDirection: "right",
-            preferRememberedFocus: true,
-          }
-        : { type: "block" },
+      : { type: "block" },
     up: upItem
       ? {
           type: "item",
@@ -132,20 +103,13 @@ function buildFocusOverridesForGridItem(
           type: "item",
           itemId: downItem.id,
         }
-      : paginationItem
-        ? {
-            type: "item",
-            itemId: paginationItem.id,
-          }
-        : { type: "block" },
+      : { type: "block" },
   };
 }
 
 function buildOverridesMapFromRows(
   rows: GridItemPosition[][],
-  headerPositions: CatalogueFocusPosition[],
-  sidebarPositions: CatalogueFocusPosition[],
-  paginationPositions: CatalogueFocusPosition[]
+  headerPositions: CatalogueFocusPosition[]
 ) {
   const nextOverridesByItemId: Record<string, FocusOverrides> = {};
 
@@ -157,9 +121,7 @@ function buildOverridesMapFromRows(
         itemIndex,
         rowIndex,
         rows,
-        headerPositions,
-        sidebarPositions,
-        paginationPositions
+        headerPositions
       );
     });
   });
@@ -168,7 +130,6 @@ function buildOverridesMapFromRows(
 }
 
 export function useCatalogueGridNavigation(itemIds: string[]) {
-  const navigationRegions = useNavigationStore((state) => state.regions);
   const [overridesByItemId, setOverridesByItemId] = useState<
     Record<string, FocusOverrides>
   >({});
@@ -200,37 +161,8 @@ export function useCatalogueGridNavigation(itemIds: string[]) {
       const headerPositions = getActivePositionsInRegion(
         CATALOGUE_HEADER_CONTROLS_REGION_ID
       );
-      const sidebarPositions = navigationRegions
-        .filter(
-          (region) =>
-            region.parentRegionId === CATALOGUE_FILTERS_REGION_ID &&
-            SIDEBAR_REGION_IDS.has(region.id)
-        )
-        .map((region) => {
-          const rect = region.getElement()?.getBoundingClientRect();
 
-          if (!rect || rect.width <= 0 || rect.height <= 0) return null;
-
-          return {
-            id: region.id,
-            rect,
-          };
-        })
-        .filter(
-          (position): position is CatalogueFocusPosition => position !== null
-        );
-      const paginationPositions = getActivePositionsInRegion(
-        CATALOGUE_PAGINATION_REGION_ID
-      );
-
-      setOverridesByItemId(
-        buildOverridesMapFromRows(
-          rows,
-          headerPositions,
-          sidebarPositions,
-          paginationPositions
-        )
-      );
+      setOverridesByItemId(buildOverridesMapFromRows(rows, headerPositions));
     };
 
     function scheduleCompute() {
@@ -241,21 +173,18 @@ export function useCatalogueGridNavigation(itemIds: string[]) {
     scheduleCompute();
     globalThis.addEventListener("resize", scheduleCompute);
 
-    [
-      CATALOGUE_GRID_REGION_ID,
-      CATALOGUE_HEADER_CONTROLS_REGION_ID,
-      CATALOGUE_FILTERS_REGION_ID,
-      CATALOGUE_PAGINATION_REGION_ID,
-    ].forEach((regionId) => {
-      const element = globalThis.document.querySelector(
-        `[data-focus-region-id="${regionId}"]`
-      );
+    [CATALOGUE_GRID_REGION_ID, CATALOGUE_HEADER_CONTROLS_REGION_ID].forEach(
+      (regionId) => {
+        const element = globalThis.document.querySelector(
+          `[data-focus-region-id="${regionId}"]`
+        );
 
-      if (!(element instanceof HTMLElement)) return;
+        if (!(element instanceof HTMLElement)) return;
 
-      resizeObserver.observe(element);
-      mutationObserver.observe(element, { childList: true, subtree: true });
-    });
+        resizeObserver.observe(element);
+        mutationObserver.observe(element, { childList: true, subtree: true });
+      }
+    );
 
     ids.forEach((id) => {
       const element = globalThis.document.getElementById(id);
@@ -271,7 +200,7 @@ export function useCatalogueGridNavigation(itemIds: string[]) {
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [itemIdsKey, navigationRegions]);
+  }, [itemIdsKey]);
 
   return overridesByItemId;
 }

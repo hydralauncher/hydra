@@ -37,9 +37,6 @@ const startGameDownload = async (
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
 
-  await prepareGameEntry({ gameKey, title, objectId, shop });
-  await DownloadManager.cancelDownload(gameKey);
-
   const download: Download = {
     shop,
     objectId,
@@ -63,6 +60,9 @@ const startGameDownload = async (
   };
 
   try {
+    await DownloadManager.validateDownloadUrl(download);
+    await prepareGameEntry({ gameKey, title, objectId, shop });
+    await DownloadManager.cancelDownload(gameKey);
     await downloadsSublevel.put(gameKey, download);
     await DownloadOrchestrator.startPreparedDownload(download);
 

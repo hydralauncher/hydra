@@ -1,6 +1,7 @@
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
@@ -16,9 +17,11 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import * as emulators from "./emulators";
 import { getPathType } from "./extraction-path";
 import { GameExecutables } from "./game-executables";
 import { logger } from "./logger";
+import { platformToSystem } from "@main/helpers";
 import { deleteArchiveFile } from "@main/events/library/delete-archive";
 import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
@@ -252,6 +255,73 @@ export class GameFilesManager {
     this.lastProgressUpdateValue = 0;
 
     await this.searchAndBindExecutable();
+    await this.autoLinkClassicsDiscs();
+  }
+
+  async autoLinkClassicsDiscs(): Promise<void> {
+    try {
+      const [download, game] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        gamesSublevel.get(this.gameKey),
+      ]);
+
+      if (!download || game?.shop !== "launchbox") return;
+      if (!download.folderName) return;
+
+      const system = platformToSystem(game.platform);
+      if (!system) return;
+
+      const gameFolderPath = path.join(
+        download.downloadPath,
+        download.folderName
+      );
+
+      if (!fs.existsSync(gameFolderPath)) return;
+
+      const { games: scanned } = await emulators.scanRomFolder(
+        gameFolderPath,
+        emulators.KNOWN_BINARIES[system],
+        true
+      );
+
+      if (scanned.length === 0) return;
+
+      const discs = [...(game.discs ?? [])];
+      let added = 0;
+
+      for (const entry of scanned) {
+        if (discs.some((disc) => disc.path === entry.primaryPath)) continue;
+
+        const sku = await emulators.extractDiscSku(entry.primaryPath, system);
+
+        discs.push({
+          path: entry.primaryPath,
+          label: `Disc ${discs.length + 1}`,
+          fileName: path.basename(entry.primaryPath),
+          sku,
+        });
+        added += 1;
+      }
+
+      if (added === 0) return;
+
+      await gamesSublevel.put(this.gameKey, {
+        ...game,
+        discs,
+        selectedDiscPath: game.selectedDiscPath ?? discs[0]?.path ?? null,
+      });
+
+      WindowManager.sendToAppWindows("on-library-batch-complete");
+
+      logger.info(
+        `[GameFilesManager] Auto-linked ${added} disc(s) for ${this.objectId}`
+      );
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error auto-linking classics discs: ${this.objectId}`,
+        err
+      );
+    }
   }
 
   async searchAndBindExecutable(): Promise<void> {
@@ -297,8 +367,7 @@ export class GameFilesManager {
         );
 
         await gamesSublevel.put(this.gameKey, {
-          ...game,
-          executablePath: foundExePath,
+          ...updateGameExecutablePath(game, foundExePath),
         });
 
         WindowManager.sendToAppWindows("on-library-batch-complete");

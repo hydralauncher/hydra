@@ -89,6 +89,13 @@
     text-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
   }
 
+  &__cover-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
   &__cover-placeholder {
     background:
       linear-gradient(

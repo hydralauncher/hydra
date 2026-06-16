@@ -1,0 +1,1092 @@
+.profile-page {
+  margin-top: calc(-1 * var(--big-picture-header-height));
+  width: 100%;
+  min-width: 0;
+  height: calc(100% + var(--big-picture-header-height));
+  min-height: calc(100% + var(--big-picture-header-height));
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--background);
+  color: var(--text);
+  padding-bottom: 96px;
+}
+
+.profile-page__hero {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: visible;
+  border: none;
+  background: var(--background);
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.profile-page__hero-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.profile-page__hero-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transition: opacity 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+  pointer-events: none;
+}
+
+.profile-page__hero-bg-layer--base {
+  opacity: 1;
+}
+
+.profile-page__hero-bg-layer--incoming {
+  z-index: 1;
+  opacity: 0;
+}
+
+.profile-page__hero-bg-layer--visible {
+  opacity: 1;
+}
+
+.profile-page__hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.profile-page__hero-bg--empty {
+  background:
+    radial-gradient(
+      circle at 28% 22%,
+      rgba(255, 255, 255, 0.12),
+      transparent 30%
+    ),
+    linear-gradient(135deg, var(--secondary), var(--background));
+}
+
+.profile-page__hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      var(--background) 0%,
+      transparent 25% 75%,
+      var(--background) 99.53%
+    ),
+    linear-gradient(transparent 0%, var(--background) 97%);
+}
+
+.profile-page__hero-content {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 12);
+  padding: 0 calc(var(--spacing-unit) * 16);
+  transform: translateY(50%);
+}
+
+.profile-page__identity {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(var(--spacing-unit) * 5);
+  min-width: 0;
+}
+
+.profile-page__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+  border-radius: calc(var(--spacing-unit) * 2);
+  object-fit: cover;
+  object-position: center;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--background) 80%, transparent);
+}
+
+.profile-page__avatar--fallback {
+  background: var(--secondary);
+  color: var(--text-secondary);
+}
+
+.profile-page__copy {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 1);
+  min-width: 0;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8);
+}
+
+.profile-page__name {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__username {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.profile-page__badge {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.profile-page__actions {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.profile-page__empty {
+  position: absolute;
+  left: calc(var(--spacing-unit) * 16);
+  bottom: calc(var(--spacing-unit) * 16);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  color: var(--text-secondary);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.profile-page__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+  padding-top: 128px;
+}
+
+.profile-page__stats-section {
+  padding: 0 64px;
+}
+
+.profile-page__stats-grid {
+  display: grid;
+  grid-template-columns: 1.9fr 2fr 2fr 2fr;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-page__stat-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-page__stat-card {
+  display: grid;
+  grid-template-rows: minmax(136px, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+  min-height: 192px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.profile-page__activity-item[data-focus-visible="true"],
+.profile-page__achievement-group[data-focus-visible="true"],
+.profile-page__friend-row[data-focus-visible="true"],
+.profile-page__friends-view-all[data-focus-visible="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.profile-page__stat-card--pair-left {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.profile-page__stat-card--pair-right {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.profile-page__stat-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  background: var(--secondary);
+}
+
+.profile-page__stat-main--hours {
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.profile-page__stat-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--text);
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.profile-page__stat-value svg,
+.profile-page__stat-hydra-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+
+.profile-page__stat-hydra-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  opacity: 0.6;
+}
+
+.profile-page__stat-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 12px;
+  background: var(--secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__weekly-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 240px);
+  min-width: 0;
+}
+
+.profile-page__weekly-bars-track {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(12px, 1fr));
+  align-items: stretch;
+  gap: 12px;
+  height: 69px;
+  min-width: 0;
+}
+
+.profile-page__weekly-bar {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--secondary-hover);
+  overflow: hidden;
+}
+
+.profile-page__weekly-bar:hover {
+  filter: brightness(1.18);
+}
+
+.profile-page__weekly-bar::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: var(--profile-weekly-bar-height);
+  border-radius: inherit;
+  background: var(--text);
+}
+
+.profile-page__weekly-bar:hover::after {
+  opacity: 1;
+}
+
+.profile-page__weekly-bar:nth-child(2),
+.profile-page__weekly-bar:nth-child(4),
+.profile-page__weekly-bar:nth-child(5) {
+  opacity: 0.5;
+}
+
+.profile-page__weekly-bar:nth-child(3),
+.profile-page__weekly-bar:nth-child(6) {
+  opacity: 0.72;
+}
+
+.profile-page__weekly-labels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(12px, 1fr));
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  text-align: center;
+}
+
+.profile-page__stat-card--favorite {
+  display: grid;
+  grid-template-columns: 192px minmax(0, 1fr);
+  grid-template-rows: none;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.profile-page__favorite-game-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 192px;
+  height: 192px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+  background: var(--secondary);
+  color: var(--text-secondary);
+}
+
+.profile-page__favorite-game-image-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px 0 0 12px;
+}
+
+.profile-page__favorite-game-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.profile-page__favorite-game-panel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.profile-page__favorite-game-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  background: var(--secondary);
+  text-align: center;
+}
+
+.profile-page__favorite-game-copy h2,
+.profile-page__favorite-game-copy p {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-page__favorite-game-copy h2 {
+  display: -webkit-box;
+  color: var(--text);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.profile-page__favorite-game-copy p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.profile-page__activity-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 5);
+  min-width: 0;
+  padding: 0 calc(var(--spacing-unit) * 16);
+}
+
+.profile-page__activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-width: 0;
+}
+
+.profile-page__activity-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.profile-page__activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  min-width: 0;
+}
+
+.profile-page__activity-item {
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  outline-offset: 3px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out,
+    outline-color 0.2s ease-in-out;
+}
+
+.profile-page__activity-item:hover,
+.profile-page__activity-item:focus-within,
+.profile-page__activity-item[data-focused="true"],
+.profile-page__activity-item[data-focus-visible="true"] {
+  border-color: var(--secondary-border);
+  background-color: var(--surface);
+}
+
+.profile-page__activity-media {
+  flex: 0 0 280px;
+  width: 280px;
+  aspect-ratio: 200 / 103;
+  overflow: hidden;
+  border-radius: var(--spacing-unit);
+  background-color: var(--surface);
+}
+
+.profile-page__activity-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-page__activity-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-unit);
+  min-width: 0;
+}
+
+.profile-page__activity-copy h3,
+.profile-page__activity-copy p,
+.profile-page__activity-playtime,
+.profile-page__activity-empty {
+  margin: 0;
+  font-size: 14px;
+  font-style: normal;
+  line-height: normal;
+}
+
+.profile-page__activity-copy h3,
+.profile-page__activity-copy p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__activity-copy h3 {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.profile-page__activity-copy p,
+.profile-page__activity-empty {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.profile-page__activity-playtime {
+  align-self: center;
+  margin-left: auto;
+  padding-right: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+  transition: padding 0.2s ease-in-out;
+}
+
+.profile-page__activity-item:hover .profile-page__activity-playtime,
+.profile-page__activity-item:focus-within .profile-page__activity-playtime,
+.profile-page__activity-item[data-focused="true"]
+  .profile-page__activity-playtime,
+.profile-page__activity-item[data-focus-visible="true"]
+  .profile-page__activity-playtime {
+  padding-right: calc(var(--spacing-unit) * 4);
+}
+
+.profile-page__activity-empty {
+  padding: 32px 0;
+}
+
+.profile-page__social-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(var(--spacing-unit) * 14);
+  padding: 0 calc(var(--spacing-unit) * 16);
+}
+
+.profile-page__achievements-section,
+.profile-page__friends-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 5);
+  min-width: 0;
+}
+
+.profile-page__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 4);
+  min-width: 0;
+}
+
+.profile-page__section-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.profile-page__section-header span {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.profile-page__achievement-groups {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 5);
+  min-width: 0;
+}
+
+.profile-page__achievement-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  appearance: none;
+  border: 0;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  outline-offset: 3px;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-page__achievement-group--locked-preview {
+  cursor: default;
+}
+
+.profile-page__achievements-lock-frame {
+  position: relative;
+  min-width: 0;
+}
+
+.profile-page__achievement-groups--locked {
+  filter: blur(1.25px);
+  opacity: 0.72;
+  pointer-events: none;
+  user-select: none;
+}
+
+.profile-page__achievements-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 5);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(0, 0, 0, 0.48) 0%,
+      rgba(0, 0, 0, 0.34) 42%,
+      rgba(0, 0, 0, 0.62) 100%
+    ),
+    rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  text-align: center;
+}
+
+.profile-page__achievements-lock-overlay svg {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.profile-page__achievements-lock-overlay p {
+  max-width: 420px;
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.profile-page__achievement-game-header,
+.profile-page__achievement-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  background: var(--secondary);
+}
+
+.profile-page__achievement-game-header {
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 4);
+  min-height: 48px;
+  padding: 0 calc(var(--spacing-unit) * 3);
+}
+
+.profile-page__achievement-game-copy {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+  min-width: 0;
+}
+
+.profile-page__achievement-game-copy img,
+.profile-page__achievement-game-copy svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  object-fit: cover;
+}
+
+.profile-page__locked-preview-game-icon,
+.profile-page__locked-preview-achievement-icon {
+  flex-shrink: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    var(--secondary-hover);
+}
+
+.profile-page__locked-preview-game-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.profile-page__locked-preview-game-icon img,
+.profile-page__locked-preview-achievement-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.profile-page__locked-preview-game-icon img,
+.profile-page__locked-preview-game-title {
+  filter: blur(3px);
+}
+
+.profile-page__locked-preview-game-icon img {
+  transform: scale(1.25);
+}
+
+.profile-page__locked-preview-achievement-icon img {
+  filter: blur(5px) saturate(0.9) brightness(0.9);
+  opacity: 0.78;
+  transform: scale(1.35);
+}
+
+.profile-page__locked-preview-achievement-copy h3,
+.profile-page__locked-preview-achievement-copy p {
+  filter: blur(3px);
+}
+
+.profile-page__achievement-game-copy span,
+.profile-page__achievement-game-meta,
+.profile-page__achievement-copy h3,
+.profile-page__achievement-copy p,
+.profile-page__achievement-meta {
+  margin: 0;
+  font-size: 14px;
+  font-style: normal;
+  line-height: normal;
+}
+
+.profile-page__achievement-game-copy span,
+.profile-page__achievement-copy h3 {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__achievement-game-meta {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.profile-page__achievement-game-meta strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.profile-page__achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-page__achievement-row {
+  gap: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 3);
+}
+
+.profile-page__achievement-row > img {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: var(--spacing-unit);
+  object-fit: cover;
+}
+
+.profile-page__locked-preview-achievement-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--spacing-unit);
+}
+
+.profile-page__achievement-placeholder-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: var(--spacing-unit);
+  background: var(--text-secondary);
+  opacity: 0.35;
+}
+
+.profile-page__achievement-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-unit);
+  min-width: 0;
+}
+
+.profile-page__achievement-copy p {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__achievement-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-unit);
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.profile-page__achievement-meta strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.profile-page__friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-page__friend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 4);
+  min-height: 76px;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 2);
+  appearance: none;
+  border: 0;
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: var(--secondary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  outline-offset: 3px;
+}
+
+.profile-page__friends-view-all {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 0 0 calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2);
+  background: var(--secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  outline: none;
+  transition:
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
+}
+
+.profile-page__friends-view-all:hover,
+.profile-page__friends-view-all:focus-visible {
+  background: var(--secondary-hover);
+  color: var(--text);
+}
+
+.profile-page__friend-profile {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 3);
+  min-width: 0;
+}
+
+.profile-page__friend-profile img,
+.profile-page__friend-profile svg {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: var(--spacing-unit);
+  color: var(--text-secondary);
+  object-fit: cover;
+}
+
+.profile-page__friend-profile span,
+.profile-page__friend-game-title span,
+.profile-page__friend-game > span {
+  margin: 0;
+  font-size: 14px;
+  font-style: normal;
+  line-height: normal;
+}
+
+.profile-page__friend-profile span,
+.profile-page__friend-game-title span {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page__friend-game {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-unit);
+  flex-shrink: 0;
+  max-width: 42%;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-align: right;
+}
+
+.profile-page__friend-game-title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-unit);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.profile-page__friend-game-title img {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.profile-page__friend-game > span {
+  color: var(--text-secondary);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.profile-page__library-carousel {
+  position: relative;
+  min-width: 0;
+}
+
+.profile-page__library-carousel .focus-carousel {
+  padding-bottom: 0;
+}
+
+.profile-page__library-carousel .focus-carousel__header-meta {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.profile-page__library-carousel .focus-carousel__viewport-wrapper {
+  overflow: hidden;
+}
+
+.profile-page__library-carousel .focus-carousel__viewport-wrapper::after {
+  display: none;
+}
+
+.profile-page__library-carousel
+  .focus-carousel__viewport-wrapper[data-fade-side="right"]
+  .focus-carousel__viewport {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    #000 0%,
+    #000 calc(100% - 240px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    #000 0%,
+    #000 calc(100% - 240px),
+    transparent 100%
+  );
+}
+
+.profile-page__library-carousel
+  .focus-carousel__viewport-wrapper[data-fade-side="left"]
+  .focus-carousel__viewport {
+  -webkit-mask-image: linear-gradient(
+    270deg,
+    #000 0%,
+    #000 calc(100% - 240px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    270deg,
+    #000 0%,
+    #000 calc(100% - 240px),
+    transparent 100%
+  );
+}
+
+@media (max-width: 1360px) {
+  .profile-page__stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .profile-page__social-section {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-page__stat-card--hours,
+  .profile-page__stat-pair,
+  .profile-page__stat-card--favorite {
+    grid-column: span 2;
+  }
+}

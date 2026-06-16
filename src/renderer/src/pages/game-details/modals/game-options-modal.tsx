@@ -20,6 +20,7 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RemoveGameFromLibraryModal } from "./remove-from-library-modal";
 import { ResetAchievementsModal } from "./reset-achievements-modal";
 import { ChangeGamePlaytimeModal } from "./change-game-playtime-modal";
@@ -126,7 +127,8 @@ export function GameOptionsModal({
     isGameDeleting,
     cancelDownload,
   } = useDownload();
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -609,6 +611,7 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const isLaunchbox = game.shop === "launchbox";
   const shouldShowWinePrefixConfiguration =
     window.electron.platform === "linux";
   const defaultHydraWinePrefixPath = defaultWinePrefixPath
@@ -624,11 +627,15 @@ export function GameOptionsModal({
         label: t("settings_category_general"),
         icon: <GearIcon size={16} />,
       },
-      {
-        id: "locations" as const,
-        label: t("settings_category_locations"),
-        icon: <FileDirectoryIcon size={16} />,
-      },
+      ...(isLaunchbox
+        ? []
+        : [
+            {
+              id: "locations" as const,
+              label: t("settings_category_locations"),
+              icon: <FileDirectoryIcon size={16} />,
+            },
+          ]),
       {
         id: "assets" as const,
         label: t("settings_category_assets"),
@@ -659,12 +666,31 @@ export function GameOptionsModal({
         icon: <AlertIcon size={16} />,
       },
     ],
-    [shouldShowWinePrefixConfiguration, t]
+    [isLaunchbox, shouldShowWinePrefixConfiguration, t]
   );
 
   useEffect(() => {
-    if (visible) setSelectedCategory(initialCategory ?? "general");
-  }, [initialCategory, visible]);
+    if (!visible) return;
+
+    const category = initialCategory ?? "general";
+    if (category === "hydra_cloud" && !hasActiveSubscription) {
+      setSelectedCategory("general");
+      showHydraCloudModal("backup");
+      return;
+    }
+
+    setSelectedCategory(category);
+  }, [hasActiveSubscription, initialCategory, showHydraCloudModal, visible]);
+
+  // Non-subscribers don't open the cloud-save panel; clicking the menu item
+  // presents the Hydra Cloud promo (highlighting cloud saving) instead.
+  const handleSelectCategory = (category: typeof selectedCategory) => {
+    if (category === "hydra_cloud" && !hasActiveSubscription) {
+      showHydraCloudModal("backup");
+      return;
+    }
+    setSelectedCategory(category);
+  };
   const shouldShowCreateStartMenuShortcut =
     window.electron.platform === "win32";
 
@@ -752,7 +778,7 @@ export function GameOptionsModal({
           <GameOptionsSidebar
             categories={categories}
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={handleSelectCategory}
           />
           <div className="game-options-modal__panel">
             {selectedCategory === "general" && (
@@ -793,8 +819,9 @@ export function GameOptionsModal({
                 onShowCancelConfirm={() => setShowCancelConfirm(true)}
                 onHideCancelConfirm={() => setShowCancelConfirm(false)}
                 onConfirmCancelTransfer={handleCancelTransfer}
-                showExecutableSection={false}
+                showExecutableSection={isLaunchbox}
                 showTransferSection={false}
+                showLaunchOptionsSection={!isLaunchbox}
               />
             )}
             {selectedCategory === "locations" && (

@@ -9,12 +9,12 @@ import type {
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
-  FriendRequestAction,
   UpdateProfileRequest,
   SeedingStatus,
   GameAchievement,
   Theme,
   FriendRequestSync,
+  FriendPresenceSync,
   NotificationSync,
   ShortcutLocation,
   CreateSteamShortcutOptions,
@@ -23,6 +23,15 @@ import type {
   ProtonVersion,
   TorrentFilesResponse,
   DownloadLayoutState,
+  EmulatorSystem,
+  Ps2MemcardScanInput,
+  Ps2MemcardScanProgress,
+  Ps2MemoryCardSaveRecord,
+  Ps2ExportResult,
+  EmulationCloudSave,
+  EmulationSavePlatform,
+  MemcardRestoreResult,
+  MemcardRestoreTarget,
 } from "@types";
 import type { AuthPage } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -112,8 +121,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-seeding-status", listener);
     return () => ipcRenderer.removeListener("on-seeding-status", listener);
   },
-  checkDebridAvailability: (magnets: string[]) =>
-    ipcRenderer.invoke("checkDebridAvailability", magnets),
   getTorrentFiles: (magnet: string) =>
     ipcRenderer.invoke("getTorrentFiles", magnet) as Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
@@ -142,6 +149,246 @@ contextBridge.exposeInMainWorld("electron", {
         `on-update-achievements-${objectId}-${shop}`,
         listener
       );
+  },
+
+  /* Emulators */
+  getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
+  detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
+  detectEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("detectEmulator", system),
+  previewEmulatorExecutable: (
+    system: EmulatorSystem,
+    executablePath?: string | null
+  ) => ipcRenderer.invoke("previewEmulatorExecutable", system, executablePath),
+  setEmulatorExecutablePath: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("setEmulatorExecutablePath", system, executablePath),
+  addRomFolder: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean,
+    language?: string
+  ) =>
+    ipcRenderer.invoke(
+      "addRomFolder",
+      system,
+      folderPath,
+      scanSubfolders,
+      language
+    ),
+  removeRomFolder: (system: EmulatorSystem, folderId: string) =>
+    ipcRenderer.invoke("removeRomFolder", system, folderId),
+  toggleRomFolderSubfolders: (
+    system: EmulatorSystem,
+    folderId: string,
+    scanSubfolders: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "toggleRomFolderSubfolders",
+      system,
+      folderId,
+      scanSubfolders
+    ),
+  rescanEmulator: (system: EmulatorSystem, language?: string) =>
+    ipcRenderer.invoke("rescanEmulator", system, language),
+  checkPs3Firmware: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  startRomScan: (
+    system: EmulatorSystem,
+    folderPath: string,
+    scanSubfolders: boolean
+  ) => ipcRenderer.invoke("startRomScan", system, folderPath, scanSubfolders),
+  cancelRomScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelRomScan", requestId),
+  getEmulatorRomPaths: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("getEmulatorRomPaths", system),
+  addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
+    ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
+  getRpcs3DefaultSources: () => ipcRenderer.invoke("getRpcs3DefaultSources"),
+  removeEmulator: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("removeEmulator", system),
+  checkEmulatorExecutable: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("checkEmulatorExecutable", system),
+  onRomScanProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "progress";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | { type: "done"; fileCount: number; sizeBytes: number }
+        | { type: "cancelled"; fileCount: number; sizeBytes: number }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-rom-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  importLaunchboxRoms: (
+    system: EmulatorSystem,
+    folders: { path: string; scanSubfolders: boolean }[],
+    language: string
+  ) => ipcRenderer.invoke("importLaunchboxRoms", system, folders, language),
+  cancelLaunchboxImport: (requestId: string) =>
+    ipcRenderer.invoke("cancelLaunchboxImport", requestId),
+  scanPs2Memcards: (input: Ps2MemcardScanInput) =>
+    ipcRenderer.invoke("scanPs2Memcards", input),
+  cancelPs2MemcardScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelPs2MemcardScan", requestId),
+  onPs2MemcardScanProgress: (
+    requestId: string,
+    cb: (payload: Ps2MemcardScanProgress) => void
+  ) => {
+    const channel = `on-ps2-memcard-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Ps2MemcardScanProgress);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  listPs2MemcardSaves: (): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listPs2MemcardSaves"),
+  forgetPs2MemcardSave: (cardFilePath: string, folderName: string) =>
+    ipcRenderer.invoke("forgetPs2MemcardSave", cardFilePath, folderName),
+  forgetPs2MemcardCard: (cardFilePath: string) =>
+    ipcRenderer.invoke("forgetPs2MemcardCard", cardFilePath),
+  exportPs2Save: (
+    cardFilePath: string,
+    folderName: string,
+    suggestedName: string
+  ): Promise<Ps2ExportResult> =>
+    ipcRenderer.invoke(
+      "exportPs2Save",
+      cardFilePath,
+      folderName,
+      suggestedName
+    ),
+  scanPs1Memcards: (input: Ps2MemcardScanInput) =>
+    ipcRenderer.invoke("scanPs1Memcards", input),
+  cancelPs1MemcardScan: (requestId: string) =>
+    ipcRenderer.invoke("cancelPs1MemcardScan", requestId),
+  onPs1MemcardScanProgress: (
+    requestId: string,
+    cb: (payload: Ps2MemcardScanProgress) => void
+  ) => {
+    const channel = `on-ps1-memcard-scan-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Ps2MemcardScanProgress);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  listPs1MemcardSaves: (): Promise<Ps2MemoryCardSaveRecord[]> =>
+    ipcRenderer.invoke("listPs1MemcardSaves"),
+  forgetPs1MemcardSave: (cardFilePath: string, identifier: string) =>
+    ipcRenderer.invoke("forgetPs1MemcardSave", cardFilePath, identifier),
+  forgetPs1MemcardCard: (cardFilePath: string) =>
+    ipcRenderer.invoke("forgetPs1MemcardCard", cardFilePath),
+  exportPs1Save: (
+    cardFilePath: string,
+    identifier: string,
+    suggestedName: string
+  ): Promise<Ps2ExportResult> =>
+    ipcRenderer.invoke(
+      "exportPs1Save",
+      cardFilePath,
+      identifier,
+      suggestedName
+    ),
+  uploadEmulationSave: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string,
+    folderName: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke(
+      "uploadEmulationSave",
+      platform,
+      cardFilePath,
+      folderName
+    ),
+  uploadEmulationSavesForCard: (
+    platform: EmulationSavePlatform,
+    cardFilePath: string
+  ): Promise<{ uploaded: number; total: number }> =>
+    ipcRenderer.invoke("uploadEmulationSavesForCard", platform, cardFilePath),
+  listEmulationSaves: (
+    platform: EmulationSavePlatform,
+    objectId?: string | null
+  ): Promise<EmulationCloudSave[]> =>
+    ipcRenderer.invoke("listEmulationSaves", platform, objectId),
+  getMemcardRestoreTargets: (
+    platform: EmulationSavePlatform
+  ): Promise<MemcardRestoreTarget[]> =>
+    ipcRenderer.invoke("getMemcardRestoreTargets", platform),
+  restoreEmulationSave: (
+    platform: EmulationSavePlatform,
+    saveId: string,
+    targetCardFilePath: string
+  ): Promise<MemcardRestoreResult> =>
+    ipcRenderer.invoke(
+      "restoreEmulationSave",
+      platform,
+      saveId,
+      targetCardFilePath
+    ),
+  deleteEmulationSave: (saveId: string): Promise<void> =>
+    ipcRenderer.invoke("deleteEmulationSave", saveId),
+  updateEmulationSaveLabel: (
+    saveId: string,
+    label: string
+  ): Promise<EmulationCloudSave> =>
+    ipcRenderer.invoke("updateEmulationSaveLabel", saveId, label),
+  onLaunchboxImportProgress: (
+    requestId: string,
+    cb: (
+      payload:
+        | {
+            type: "scan_progress";
+            phase: "scanning";
+            processed: number;
+            total: number;
+            currentFile: string | null;
+          }
+        | {
+            type: "match_progress";
+            phase: "matching";
+            processed: number;
+            total: number;
+            currentFile: string;
+            status: "matched" | "unmatched";
+            matched: number;
+            unmatched: number;
+            fileCount: number;
+            sizeBytes: number;
+          }
+        | {
+            type: "done";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+            unmatchedFiles: string[];
+          }
+        | {
+            type: "cancelled";
+            fileCount: number;
+            sizeBytes: number;
+            matched: number;
+            unmatched: number;
+          }
+        | { type: "error"; message: string }
+    ) => void
+  ) => {
+    const channel = `on-launchbox-import-progress-${requestId}`;
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as Parameters<typeof cb>[0]);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
 
   /* User preferences */
@@ -209,8 +456,12 @@ contextBridge.exposeInMainWorld("electron", {
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
-  addGameToLibrary: (shop: GameShop, objectId: string, title: string) =>
-    ipcRenderer.invoke("addGameToLibrary", shop, objectId, title),
+  addGameToLibrary: (
+    shop: GameShop,
+    objectId: string,
+    title: string,
+    platform?: string | null
+  ) => ipcRenderer.invoke("addGameToLibrary", shop, objectId, title, platform),
   addCustomGameToLibrary: (
     title: string,
     executablePath: string,
@@ -309,6 +560,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
   getLibrary: () => ipcRenderer.invoke("getLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
+  getClassicsImportStatus: (): Promise<boolean> =>
+    ipcRenderer.invoke("getClassicsImportStatus"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   getGameInstallerActionType: (shop: GameShop, objectId: string) =>
@@ -339,6 +592,25 @@ contextBridge.exposeInMainWorld("electron", {
       executablePath,
       launchOptions
     ),
+  openClassicsGame: (
+    shop: GameShop,
+    objectId: string,
+    discPath?: string,
+    force?: boolean
+  ) => ipcRenderer.invoke("openClassicsGame", shop, objectId, discPath, force),
+  updateClassicsDisc: (
+    shop: GameShop,
+    objectId: string,
+    patch: {
+      selectedDiscPath?: string | null;
+      dontAskDiscSelection?: boolean;
+      platform?: string | null;
+      addDisc?: { path: string; label: string; fileName: string };
+      removeDiscPath?: string;
+    }
+  ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
+  getEmulatorRomExtensions: (system: "ps1" | "ps2" | "ps3") =>
+    ipcRenderer.invoke("getEmulatorRomExtensions", system),
   closeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("closeGame", shop, objectId),
   removeGameFromLibrary: (shop: GameShop, objectId: string) =>
@@ -355,7 +627,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("changeGamePlayTime", shop, objectId, playtime),
   extractGameDownload: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("extractGameDownload", shop, objectId),
-  scanInstalledGames: () => ipcRenderer.invoke("scanInstalledGames"),
+  scanInstalledGames: (
+    additionalDirectories?: string[],
+    includeDefaultDirectories?: boolean
+  ) =>
+    ipcRenderer.invoke(
+      "scanInstalledGames",
+      additionalDirectories,
+      includeDefaultDirectories
+    ),
   getDefaultWinePrefixSelectionPath: () =>
     ipcRenderer.invoke("getDefaultWinePrefixSelectionPath"),
   createSteamShortcut: (
@@ -367,6 +647,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteSteamShortcut", shop, objectId),
   checkSteamShortcut: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("checkSteamShortcut", shop, objectId),
+  getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
       gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
@@ -387,6 +668,13 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-downloads-updated", listener);
     return () => ipcRenderer.removeListener("on-downloads-updated", listener);
+  },
+  onClassicsImportStatus: (cb: (importing: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, importing: boolean) =>
+      cb(importing);
+    ipcRenderer.on("on-classics-import-status", listener);
+    return () =>
+      ipcRenderer.removeListener("on-classics-import-status", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (
@@ -512,12 +800,17 @@ contextBridge.exposeInMainWorld("electron", {
   isPortableVersion: () => ipcRenderer.invoke("isPortableVersion"),
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: () => ipcRenderer.invoke("openCheckout"),
+  getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
+  getProcessedFriendImage: (
+    imageUrl: string | null,
+    options: { width: number; height: number; preserveAnimation?: boolean }
+  ) => ipcRenderer.invoke("getProcessedFriendImage", imageUrl, options),
   hydraApi: {
     get: (
       url: string,
@@ -689,8 +982,8 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-sync-notification-count", listener);
   },
-  updateFriendRequest: (userId: string, action: FriendRequestAction) =>
-    ipcRenderer.invoke("updateFriendRequest", userId, action),
+  syncFriendRequests: (friendRequestCount: number) =>
+    ipcRenderer.invoke("syncFriendRequests", friendRequestCount),
 
   /* User */
   getComparedUnlockedAchievements: (
@@ -737,6 +1030,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getLocalNotificationsCount"),
   markLocalNotificationRead: (id: string) =>
     ipcRenderer.invoke("markLocalNotificationRead", id),
+  markLocalNotificationUnread: (id: string) =>
+    ipcRenderer.invoke("markLocalNotificationUnread", id),
   markAllLocalNotificationsRead: () =>
     ipcRenderer.invoke("markAllLocalNotificationsRead"),
   deleteLocalNotification: (id: string) =>
@@ -862,6 +1157,45 @@ contextBridge.exposeInMainWorld("electron", {
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
+
+  /* Friends */
+  openFriendsWindow: () => ipcRenderer.invoke("openFriendsWindow"),
+  minimizeFriendsWindow: () => ipcRenderer.invoke("minimizeFriendsWindow"),
+  closeFriendsWindow: () => ipcRenderer.invoke("closeFriendsWindow"),
+  openFriendProfileInMainWindow: (userId: string) =>
+    ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
+  openAddFriendModalInMainWindow: () =>
+    ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+  onOpenAddFriendModal: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-open-add-friend-modal", listener);
+    return () =>
+      ipcRenderer.removeListener("on-open-add-friend-modal", listener);
+  },
+  onFriendsUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-friends-updated", listener);
+    return () => ipcRenderer.removeListener("on-friends-updated", listener);
+  },
+  onFriendPresence: (cb: (presence: FriendPresenceSync) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      presence: FriendPresenceSync
+    ) => cb(presence);
+    ipcRenderer.on("on-friend-presence", listener);
+    return () => ipcRenderer.removeListener("on-friend-presence", listener);
+  },
+  onProfileUpdated: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on("on-profile-updated", listener);
+    return () => ipcRenderer.removeListener("on-profile-updated", listener);
+  },
+  onNavigate: (cb: (path: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, path: string) =>
+      cb(path);
+    ipcRenderer.on("on-navigate", listener);
+    return () => ipcRenderer.removeListener("on-navigate", listener);
+  },
 
   /* Game Launcher Window */
   showGameLauncherWindow: () => ipcRenderer.invoke("showGameLauncherWindow"),

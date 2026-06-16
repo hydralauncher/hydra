@@ -7,6 +7,7 @@ import "./big-picture";
 import "./catalogue";
 import "./cloud-save";
 import "./download-sources";
+import "./friends";
 import "./hardware";
 import "./library";
 import "./leveldb";
@@ -18,6 +19,7 @@ import "./torrenting";
 import "./user";
 import "./user-preferences";
 import "./library/transfer-game-files";
+import "./emulators";
 
 import { isPortableVersion } from "@main/helpers";
 
@@ -26,3 +28,6 @@ ipcMain.handle("getVersion", () => appVersion);
 ipcMain.handle("isStaging", () => isStaging);
 ipcMain.handle("isPortableVersion", () => isPortableVersion());
 ipcMain.handle("getDefaultDownloadsPath", () => defaultDownloadsPath);
+ipcMain.handle("getCloudIframeUrl", () =>
+  new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
+);

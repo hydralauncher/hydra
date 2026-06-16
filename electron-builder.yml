@@ -17,7 +17,8 @@ files:
   - "!electron.vite.config.{js,ts,mjs,cjs}"
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
-  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.test.json}"
+  - "!scripts/register-ts-node.mjs"
 asarUnpack:
   - resources/**
   - node_modules/sharp/**

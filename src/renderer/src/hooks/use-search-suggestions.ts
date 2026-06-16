@@ -4,6 +4,8 @@ import { debounce } from "lodash-es";
 import { logger } from "@renderer/logger";
 import type { GameShop } from "@types";
 
+export type SuggestionShop = "steam" | "launchbox";
+
 export interface SearchSuggestion {
   title: string;
   objectId: string;
@@ -15,7 +17,8 @@ export interface SearchSuggestion {
 export function useSearchSuggestions(
   query: string,
   isOnLibraryPage: boolean,
-  enabled: boolean = true
+  enabled: boolean = true,
+  shop: SuggestionShop = "steam"
 ) {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,14 +84,18 @@ export function useSearchSuggestions(
   );
 
   const fetchCatalogueSuggestions = useCallback(
-    async (searchQuery: string, limit: number = 3) => {
+    async (
+      searchQuery: string,
+      limit: number = 3,
+      shopParam: SuggestionShop = "steam"
+    ) => {
       if (!searchQuery.trim() || searchQuery.length < 2) {
         setSuggestions([]);
         setIsLoading(false);
         return;
       }
 
-      const cacheKey = `${searchQuery.toLowerCase()}_${limit}`;
+      const cacheKey = `${searchQuery.toLowerCase()}_${limit}_${shopParam}`;
       const cachedResults = cacheRef.current.get(cacheKey);
 
       if (cachedResults) {
@@ -115,6 +122,7 @@ export function useSearchSuggestions(
           params: {
             query: searchQuery,
             limit,
+            shop: shopParam,
           },
           needsAuth: false,
         });
@@ -162,7 +170,7 @@ export function useSearchSuggestions(
       setSuggestions(librarySuggestions);
       setIsLoading(false);
     } else {
-      debouncedFetchCatalogue(query, 3);
+      debouncedFetchCatalogue(query, 3, shop);
     }
 
     return () => {
@@ -173,6 +181,7 @@ export function useSearchSuggestions(
     query,
     isOnLibraryPage,
     enabled,
+    shop,
     getLibrarySuggestions,
     debouncedFetchCatalogue,
   ]);

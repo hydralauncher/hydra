@@ -2,12 +2,13 @@ import "./styles.scss";
 
 import { AnimatePresence, motion } from "framer-motion";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../button";
 import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
 import { FocusRegionContext } from "../../context";
 import { IS_BROWSER } from "../../../constants";
+import type { FocusDirection, FocusOverrides } from "../../../services";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
   getAcceleratedGamepadRepeatInterval,
@@ -217,6 +218,133 @@ function findClosestLayoutKeyByPosition(
 
     return keyDistance < closestDistance ? key : closest;
   }, null);
+}
+
+function getCoveredIndexes(start: number, span = 1) {
+  return Array.from({ length: span }, (_, index) => start + index);
+}
+
+function setBoundaryNavigationOverride(
+  candidates: Record<
+    string,
+    Partial<Record<FocusDirection, { score: number; targetId: string }>>
+  >,
+  sourceId: string,
+  direction: FocusDirection,
+  targetId: string,
+  score: number
+) {
+  if (sourceId === targetId) return;
+
+  const currentCandidate = candidates[sourceId]?.[direction];
+
+  if (currentCandidate && currentCandidate.score <= score) {
+    return;
+  }
+
+  candidates[sourceId] = {
+    ...candidates[sourceId],
+    [direction]: { score, targetId },
+  };
+}
+
+function getVirtualKeyboardNavigationOverrides(
+  layout: VirtualKeyboardLayoutKey[]
+): Record<string, FocusOverrides> {
+  const entries = layout.map((key) => ({
+    key,
+    keyId: getKeyId(key),
+    position: getKeyPosition(key),
+    rows: getCoveredIndexes(key.row, key.rowSpan),
+    columns: getCoveredIndexes(key.column, key.columnSpan),
+  }));
+  const candidates: Record<
+    string,
+    Partial<Record<FocusDirection, { score: number; targetId: string }>>
+  > = {};
+  const rows = Array.from(new Set(entries.flatMap((entry) => entry.rows))).sort(
+    (a, b) => a - b
+  );
+  const columns = Array.from(
+    new Set(entries.flatMap((entry) => entry.columns))
+  ).sort((a, b) => a - b);
+
+  for (const row of rows) {
+    const rowEntries = entries
+      .filter((entry) => entry.rows.includes(row))
+      .sort((left, right) => {
+        if (left.key.column !== right.key.column) {
+          return left.key.column - right.key.column;
+        }
+
+        return left.position.centerColumn - right.position.centerColumn;
+      });
+    const firstEntry = rowEntries[0];
+    const lastEntry = rowEntries[rowEntries.length - 1];
+
+    if (firstEntry && lastEntry) {
+      setBoundaryNavigationOverride(
+        candidates,
+        firstEntry.keyId,
+        "left",
+        lastEntry.keyId,
+        Math.abs(row - firstEntry.position.centerRow)
+      );
+      setBoundaryNavigationOverride(
+        candidates,
+        lastEntry.keyId,
+        "right",
+        firstEntry.keyId,
+        Math.abs(row - lastEntry.position.centerRow)
+      );
+    }
+  }
+
+  for (const column of columns) {
+    const columnEntries = entries
+      .filter((entry) => entry.columns.includes(column))
+      .sort((top, bottom) => {
+        if (top.key.row !== bottom.key.row) {
+          return top.key.row - bottom.key.row;
+        }
+
+        return top.position.centerRow - bottom.position.centerRow;
+      });
+    const firstEntry = columnEntries[0];
+    const lastEntry = columnEntries[columnEntries.length - 1];
+
+    if (firstEntry && lastEntry) {
+      setBoundaryNavigationOverride(
+        candidates,
+        firstEntry.keyId,
+        "up",
+        lastEntry.keyId,
+        Math.abs(column - firstEntry.position.centerColumn)
+      );
+      setBoundaryNavigationOverride(
+        candidates,
+        lastEntry.keyId,
+        "down",
+        firstEntry.keyId,
+        Math.abs(column - lastEntry.position.centerColumn)
+      );
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(candidates).map(([keyId, overrides]) => [
+      keyId,
+      Object.fromEntries(
+        Object.entries(overrides).map(([direction, candidate]) => [
+          direction,
+          {
+            type: "item",
+            itemId: candidate.targetId,
+          },
+        ])
+      ) as FocusOverrides,
+    ])
+  );
 }
 
 function isTextualInput(element: HTMLInputElement) {
@@ -543,22 +671,35 @@ export function VirtualKeyboardProvider() {
     useGamepad();
   const suppressedTargetRef = useRef<EditableTarget | null>(null);
   const activeTargetRef = useRef<EditableTarget | null>(null);
+  const shouldRestoreNavigationFocusOnUnmountRef = useRef(true);
   const pulseFrameRef = useRef<number | null>(null);
+  const focusOutFrameRef = useRef<number | null>(null);
   const pendingLayerFocusPositionRef =
     useRef<VirtualKeyboardKeyPosition | null>(null);
   const dockRef = useRef<HTMLDivElement | null>(null);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
   const isOpen = Boolean(target);
+  const shouldRestoreNavigationFocusOnUnmount = useCallback(
+    () => shouldRestoreNavigationFocusOnUnmountRef.current,
+    []
+  );
 
   const closeKeyboard = useCallback(
     (restoreFocus = true) => {
       const currentTarget = target;
+      shouldRestoreNavigationFocusOnUnmountRef.current = restoreFocus;
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
 
       if (restoreFocus && currentTarget) {
         suppressedTargetRef.current = currentTarget;
       }
 
       if (!restoreFocus && currentTarget) {
+        suppressedTargetRef.current = currentTarget;
         currentTarget.blur();
         globalThis.window.dispatchEvent(
           new CustomEvent(VIRTUAL_KEYBOARD_DISMISS_EVENT, {
@@ -921,6 +1062,7 @@ export function VirtualKeyboardProvider() {
       const isNewTarget = activeTargetRef.current !== nextTarget;
 
       activeTargetRef.current = nextTarget;
+      shouldRestoreNavigationFocusOnUnmountRef.current = true;
       setVirtualKeyboardTarget(nextTarget);
 
       if (isNewTarget) {
@@ -935,22 +1077,89 @@ export function VirtualKeyboardProvider() {
     const handleFocusOut = (event: FocusEvent) => {
       if (suppressedTargetRef.current === event.target) {
         suppressedTargetRef.current = null;
+        return;
       }
+
+      const blurredTarget =
+        event.target instanceof HTMLElement ? event.target : null;
+
+      if (!blurredTarget || activeTargetRef.current !== blurredTarget) {
+        return;
+      }
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+      }
+
+      focusOutFrameRef.current = globalThis.requestAnimationFrame(() => {
+        focusOutFrameRef.current = null;
+
+        if (activeTargetRef.current !== blurredTarget) return;
+
+        const activeElement =
+          globalThis.document.activeElement instanceof Element
+            ? globalThis.document.activeElement
+            : null;
+
+        if (isEditableTarget(activeElement)) return;
+        if (activeElement && dockRef.current?.contains(activeElement)) return;
+
+        closeKeyboard(false);
+      });
     };
 
     globalThis.window.addEventListener("focusin", handleFocusIn);
     globalThis.window.addEventListener("focusout", handleFocusOut);
 
     return () => {
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
+
       globalThis.window.removeEventListener("focusin", handleFocusIn);
       globalThis.window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [setVirtualKeyboardTarget]);
+  }, [closeKeyboard, setVirtualKeyboardTarget]);
+
+  useEffect(() => {
+    if (!IS_BROWSER || !target) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const pointerTarget =
+        event.target instanceof Element ? event.target : null;
+
+      if (!pointerTarget) return;
+      if (target === pointerTarget || target.contains(pointerTarget)) return;
+      if (dockRef.current?.contains(pointerTarget)) return;
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
+        focusOutFrameRef.current = null;
+      }
+
+      closeKeyboard(false);
+    };
+
+    globalThis.window.addEventListener("pointerdown", handlePointerDown, true);
+
+    return () => {
+      globalThis.window.removeEventListener(
+        "pointerdown",
+        handlePointerDown,
+        true
+      );
+    };
+  }, [closeKeyboard, target]);
 
   useEffect(() => {
     return () => {
       if (pulseFrameRef.current !== null) {
         globalThis.cancelAnimationFrame(pulseFrameRef.current);
+      }
+
+      if (focusOutFrameRef.current !== null) {
+        globalThis.cancelAnimationFrame(focusOutFrameRef.current);
       }
 
       activeTargetRef.current = null;
@@ -1055,6 +1264,10 @@ export function VirtualKeyboardProvider() {
 
   const keyLayout =
     layer === "alphabetic" ? ALPHABETIC_KEY_LAYOUT : SYMBOLS_KEY_LAYOUT;
+  const navigationOverridesByKeyId = useMemo(
+    () => getVirtualKeyboardNavigationOverrides(keyLayout),
+    [keyLayout]
+  );
 
   useEffect(() => {
     const pendingPosition = pendingLayerFocusPositionRef.current;
@@ -1095,6 +1308,7 @@ export function VirtualKeyboardProvider() {
               layerId={VIRTUAL_KEYBOARD_LAYER_ID}
               rootRegionId={VIRTUAL_KEYBOARD_REGION_ID}
               initialFocusId={VIRTUAL_KEYBOARD_FIRST_KEY_ID}
+              restoreFocusOnUnmount={shouldRestoreNavigationFocusOnUnmount}
             >
               <motion.aside
                 ref={keyboardRef}
@@ -1134,6 +1348,9 @@ export function VirtualKeyboardProvider() {
                         variant="secondary"
                         className="virtual-keyboard__key"
                         focusId={keyId}
+                        focusNavigationOverrides={
+                          navigationOverridesByKeyId[keyId]
+                        }
                         style={keyStyle}
                         data-key-type={key.type}
                         data-active={

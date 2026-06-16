@@ -78,12 +78,10 @@ export class DownloadOrchestrator {
   }
 
   private static async activateDownload(download: Download) {
-    await DownloadManager.resumeDownload(download);
-
     const activeDownload: Download = {
       ...download,
       status: "active",
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       extractionProgress: 0,
@@ -91,6 +89,31 @@ export class DownloadOrchestrator {
     };
 
     await downloadsSublevel.put(getGameKey(download), activeDownload);
+
+    try {
+      await DownloadManager.resumeDownload(activeDownload);
+    } catch (error) {
+      const downloadId = getDownloadId(download);
+      await downloadsSublevel.put(getGameKey(download), {
+        ...activeDownload,
+        status: "error",
+        queued: false,
+      });
+
+      const downloads = await this.getAllDownloads();
+      const layoutState = await getNormalizedDownloadLayoutState(downloads);
+      await setDownloadLayoutQueues(
+        downloads,
+        layoutState.queueOrder.filter((id) => id !== downloadId),
+        [
+          downloadId,
+          ...layoutState.pausedOrder.filter((id) => id !== downloadId),
+        ]
+      );
+
+      WindowManager.sendDownloadsUpdated();
+      throw error;
+    }
 
     return activeDownload;
   }

@@ -2,7 +2,14 @@ import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import type { SteamMovie, SteamScreenshot } from "@types";
 import useEmblaCarousel from "embla-carousel-react";
 import type { FocusOverrideTarget } from "../../../../services";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { getItemFocusTarget } from "../../../../helpers";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import { FocusItem, HorizontalFocusGroup } from "../../../common";
@@ -187,6 +194,37 @@ export function ScreenshotCarousel({
     () => mediaItems.map((item) => item.focusId),
     [mediaItems]
   );
+  const dotsStyle = useMemo(() => {
+    if (mediaItems.length > 48) {
+      return {
+        "--media-carousel-dot-size": "4px",
+        "--media-carousel-dot-active-width": "10px",
+        "--media-carousel-dot-gap": "3px",
+      } as CSSProperties;
+    }
+
+    if (mediaItems.length > 32) {
+      return {
+        "--media-carousel-dot-size": "6px",
+        "--media-carousel-dot-active-width": "14px",
+        "--media-carousel-dot-gap": "4px",
+      } as CSSProperties;
+    }
+
+    if (mediaItems.length > 20) {
+      return {
+        "--media-carousel-dot-size": "8px",
+        "--media-carousel-dot-active-width": "18px",
+        "--media-carousel-dot-gap": "6px",
+      } as CSSProperties;
+    }
+
+    return {
+      "--media-carousel-dot-size": "10px",
+      "--media-carousel-dot-active-width": "24px",
+      "--media-carousel-dot-gap": "8px",
+    } as CSSProperties;
+  }, [mediaItems.length]);
 
   const scrollIntoView = useCallback(() => {
     carouselContainerRef.current?.scrollIntoView({
@@ -347,7 +385,7 @@ export function ScreenshotCarousel({
           <CaretLeftIcon size={24} color="#fff" />
         </button>
 
-        <div className="game-page__media-carousel-dots">
+        <div className="game-page__media-carousel-dots" style={dotsStyle}>
           {mediaItems.map((item, index) => (
             <button
               key={`dot-${item.id}`}

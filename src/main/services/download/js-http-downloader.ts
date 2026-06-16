@@ -27,7 +27,7 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15000;
 const STALL_TIMEOUT_MS = 8000;
 const STALL_CHECK_INTERVAL_MS = 2000;
-const DEFAULT_DOWNLOAD_USER_AGENT =
+export const DEFAULT_DOWNLOAD_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
 const RETRYABLE_ERROR_CODES = new Set([
@@ -43,6 +43,13 @@ const RETRYABLE_ERROR_CODES = new Set([
   "ESOCKETTIMEDOUT",
   "ERR_STREAM_PREMATURE_CLOSE",
 ]);
+
+class HttpDownloadStatusError extends Error {
+  constructor(public readonly statusCode: number) {
+    super(`The download link is not available (HTTP ${statusCode}).`);
+    this.name = "HttpDownloadStatusError";
+  }
+}
 
 export class JsHttpDownloader {
   private abortController: AbortController | null = null;
@@ -397,6 +404,10 @@ export class JsHttpDownloader {
       );
     }
 
+    if (response.status >= 400) {
+      throw new HttpDownloadStatusError(response.status);
+    }
+
     if (!response.ok && response.status !== 206) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -407,7 +418,7 @@ export class JsHttpDownloader {
       contentType.includes("application/xhtml")
     ) {
       throw new Error(
-        `Unexpected HTML response (content-type: ${contentType}). The download URL may have expired or is invalid.`
+        `The download link returned a web page instead of a file. It may have expired or be invalid.`
       );
     }
 

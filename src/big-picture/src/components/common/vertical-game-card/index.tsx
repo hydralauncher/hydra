@@ -11,6 +11,8 @@ import type {
 
 export interface VerticalGameCardProps {
   coverImageUrl?: string | null;
+  coverMedia?: ReactNode;
+  coverOverlay?: ReactNode;
   gameTitle: string;
   subtitle: string;
   progressLabel?: string;
@@ -32,6 +34,8 @@ function clampProgress(value: number) {
 
 export function VerticalGameCard({
   coverImageUrl,
+  coverMedia,
+  coverOverlay,
   gameTitle,
   subtitle,
   progressLabel,
@@ -79,8 +83,11 @@ export function VerticalGameCard({
       tabIndex={onClick != null ? 0 : undefined}
     >
       <div className="vertical-game-card__cover">
-        {coverImageUrl ? (
+        {coverMedia ? (
+          coverMedia
+        ) : coverImageUrl ? (
           <img
+            className="vertical-game-card__cover-image"
             src={coverImageUrl}
             alt={gameTitle}
             draggable={false}
@@ -92,6 +99,12 @@ export function VerticalGameCard({
             aria-hidden="true"
           />
         )}
+
+        {coverOverlay ? (
+          <div className="vertical-game-card__cover-overlay">
+            {coverOverlay}
+          </div>
+        ) : null}
       </div>
 
       <div className="vertical-game-card__body">

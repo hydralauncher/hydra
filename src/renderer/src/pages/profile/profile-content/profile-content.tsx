@@ -18,7 +18,9 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
+import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
+import { AuthPage } from "@shared";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -78,6 +80,7 @@ export function ProfileContent() {
     userStats,
     libraryGames,
     pinnedGames,
+    getUserStats,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
@@ -86,6 +89,13 @@ export function ProfileContent() {
   const { userDetails } = useUserDetails();
   const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
+  const [platform, setPlatform] = useState<ProfilePlatform>("all");
+
+  const shops = useMemo<string[]>(() => {
+    if (platform === "pc") return ["steam"];
+    if (platform === "classics") return ["launchbox"];
+    return ["steam", "launchbox"];
+  }, [platform]);
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
 
@@ -125,9 +135,15 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
-      getUserLibraryGames(sortBy, true);
+      getUserLibraryGames(sortBy, true, shops);
     }
-  }, [sortBy, getUserLibraryGames, userProfile]);
+  }, [sortBy, shops, getUserLibraryGames, userProfile]);
+
+  useEffect(() => {
+    if (userProfile) {
+      getUserStats(shops);
+    }
+  }, [shops, getUserStats, userProfile]);
 
   const handleLoadMore = useCallback(() => {
     if (
@@ -135,7 +151,7 @@ export function ProfileContent() {
       hasMoreLibraryGames &&
       !isLoadingLibraryGames
     ) {
-      loadMoreLibraryGames(sortBy);
+      loadMoreLibraryGames(sortBy, shops);
     }
   }, [
     activeTab,
@@ -143,6 +159,7 @@ export function ProfileContent() {
     isLoadingLibraryGames,
     loadMoreLibraryGames,
     sortBy,
+    shops,
   ]);
 
   // Clear reviews state and reset tab when switching users
@@ -151,29 +168,28 @@ export function ProfileContent() {
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
     setActiveTab("library");
+    setPlatform("all");
   }, [userProfile?.id]);
 
-  useEffect(() => {
-    if (userProfile?.id) {
-      fetchUserReviews();
-    }
-  }, [userProfile?.id]);
-
-  const fetchUserReviews = async () => {
+  const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
 
     setIsLoadingReviews(true);
     try {
       const response = await window.electron.hydraApi.get<UserReviewsResponse>(
         `/users/${userProfile.id}/reviews`,
-        { needsAuth: true }
+        { needsAuth: false }
       );
       setReviews(response.reviews);
       setReviewsTotalCount(response.totalCount);
     } finally {
       setIsLoadingReviews(false);
     }
-  };
+  }, [userProfile?.id]);
+
+  useEffect(() => {
+    fetchUserReviews();
+  }, [fetchUserReviews, userDetails?.id]);
 
   const handleDeleteReview = async (reviewId: string) => {
     try {
@@ -211,6 +227,11 @@ export function ProfileContent() {
   };
 
   const handleVoteReview = async (reviewId: string, isUpvote: boolean) => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
     if (votingReviews.has(reviewId)) return;
 
     setVotingReviews((prev) => new Set(prev).add(reviewId));
@@ -325,7 +346,7 @@ export function ProfileContent() {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
 
-  const content = useMemo(() => {
+  const content = (() => {
     if (!userProfile) return null;
 
     const shouldLockProfile =
@@ -358,6 +379,8 @@ export function ProfileContent() {
                 <LibraryTab
                   sortBy={sortBy}
                   onSortChange={setSortBy}
+                  platform={platform}
+                  onPlatformChange={setPlatform}
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
@@ -426,26 +449,7 @@ export function ProfileContent() {
         />
       </section>
     );
-  }, [
-    userProfile,
-    isMe,
-    usersAreFriends,
-    userStats,
-    numberFormatter,
-    t,
-    statsIndex,
-    libraryGames,
-    pinnedGames,
-
-    sortBy,
-    activeTab,
-    // ensure reviews UI updates correctly
-    reviews,
-    reviewsTotalCount,
-    isLoadingReviews,
-    votingReviews,
-    deleteModalVisible,
-  ]);
+  })();
 
   return (
     <div>

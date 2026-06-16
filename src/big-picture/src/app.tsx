@@ -27,11 +27,15 @@ import {
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
+import { initializeBigPictureRunningGamesStore } from "./stores";
 import type { FocusOverrides } from "./services";
+import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
 import "./styles/globals.scss";
 
 export default function App() {
+  ensureBigPictureI18nResources();
+
   const { pathname } = useLocation();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
@@ -49,7 +53,10 @@ export default function App() {
   useEffect(() => {
     if (!IS_DESKTOP) {
       document.documentElement.style.colorScheme = "dark";
+      return;
     }
+
+    initializeBigPictureRunningGamesStore();
   }, []);
 
   useEffect(() => {
@@ -90,6 +97,8 @@ export default function App() {
 
       <NavigationInputProvider>
         <div id="big-picture">
+          <BigPictureI18nBridge />
+
           <NavigationLayer
             layerId={BIG_PICTURE_APP_LAYER_ID}
             rootRegionId={BIG_PICTURE_SHELL_REGION_ID}

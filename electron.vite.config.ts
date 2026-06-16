@@ -45,11 +45,12 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
+          "@renderer": resolve("src/renderer/src"),
           "@locales": resolve("src/locales"),
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [react()],
+      plugins: [svgr(), react()],
     },
     renderer: {
       build: {

@@ -20,6 +20,7 @@ import {
   Modal,
   RouteAnchor,
   ScrollArea,
+  SidebarModal,
   SourceAnchor,
   Tooltip,
   Typography,
@@ -92,6 +93,7 @@ export default function ComponentLab() {
   const [checked, setChecked] = useState(true);
   const [blockChecked, setBlockChecked] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarModalOpen, setIsSidebarModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [steamAssets3357650, setSteamAssets3357650] =
     useState<ShopAssets | null>(null);
@@ -711,10 +713,16 @@ export default function ComponentLab() {
 
         <ShowcaseSection
           title="Overlays"
-          description="Modal base e ImageLightbox acionados por botões."
+          description="Modal base, SidebarModal e ImageLightbox acionados por botões."
         >
           <div className="catalogue-page__component-row">
             <Button onClick={() => setIsModalOpen(true)}>Open Modal</Button>
+            <Button
+              variant="secondary"
+              onClick={() => setIsSidebarModalOpen(true)}
+            >
+              Open Sidebar Modal
+            </Button>
             <Button variant="secondary" onClick={() => setIsLightboxOpen(true)}>
               Open Lightbox
             </Button>
@@ -733,6 +741,30 @@ export default function ComponentLab() {
       >
         <div>testing</div>
       </Modal>
+
+      <SidebarModal
+        title="Filters"
+        visible={isSidebarModalOpen}
+        onClose={() => setIsSidebarModalOpen(false)}
+        ariaLabel="Component Lab Sidebar Modal Example"
+        tabs={[
+          {
+            id: "genres",
+            label: "Genres",
+            content: <Typography variant="body">Genres</Typography>,
+          },
+          {
+            id: "publishers",
+            label: "Publishers",
+            content: <Typography variant="body">Publishers</Typography>,
+          },
+          {
+            id: "selected",
+            label: "Selected",
+            content: <Typography variant="body">Selected</Typography>,
+          },
+        ]}
+      />
 
       {isLightboxOpen && (
         <button
