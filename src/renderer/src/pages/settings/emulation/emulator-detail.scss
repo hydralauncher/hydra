@@ -763,6 +763,54 @@
     }
   }
 
+  &__cloud-locked {
+    position: relative;
+    width: 100%;
+  }
+
+  &__cloud-locked-preview {
+    filter: blur(6px);
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  &__cloud-locked-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  &__cloud-locked-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: #c0c1c7;
+  }
+
+  &__cloud-locked-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fafafa;
+    margin: 0;
+    max-width: 360px;
+  }
+
+  &__cloud-locked-hydra {
+    width: 16px;
+    height: 16px;
+  }
+
   &__restore-modal {
     display: flex;
     flex-direction: column;
