@@ -1312,7 +1312,11 @@ function DownloadGameOptions({
         </span>
       ),
     })) satisfies Array<TabsItem<string>>;
-  }, [availableDownloaderOptions, isOptionsInteractionLocked, selectedDownloader]);
+  }, [
+    availableDownloaderOptions,
+    isOptionsInteractionLocked,
+    selectedDownloader,
+  ]);
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
@@ -1424,12 +1428,15 @@ function DownloadGameOptions({
   const selectedUri = selectedDownloaderOption?.availableUri ?? null;
   const hasAvailableDownloader = availableDownloaderOptions.length > 0;
 
-  const handleDownloaderTabsValueChange = useCallback((nextValue: string) => {
-    if (isOptionsInteractionLocked) return;
+  const handleDownloaderTabsValueChange = useCallback(
+    (nextValue: string) => {
+      if (isOptionsInteractionLocked) return;
 
-    setHasDownloaderTabsInteracted(true);
-    setSelectedDownloader(nextValue);
-  }, [isOptionsInteractionLocked]);
+      setHasDownloaderTabsInteracted(true);
+      setSelectedDownloader(nextValue);
+    },
+    [isOptionsInteractionLocked]
+  );
 
   const selectDownloaderByIndex = useCallback(
     (nextIndex: number) => {

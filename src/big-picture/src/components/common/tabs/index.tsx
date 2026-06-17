@@ -214,7 +214,12 @@ function NonFocusableTabsButton<TValue extends string = string>({
   variant,
   indicatorLayoutId,
   onSelect,
-}: Readonly<Omit<TabsButtonProps<TValue>, "navigationOrder" | "selectOnFocus" | "ignoreInitialFocusSelection">>) {
+}: Readonly<
+  Omit<
+    TabsButtonProps<TValue>,
+    "navigationOrder" | "selectOnFocus" | "ignoreInitialFocusSelection"
+  >
+>) {
   return (
     <button
       id={resolvedId}
