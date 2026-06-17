@@ -42,7 +42,7 @@ import {
   useBigPictureToast,
   useUserPreferences,
 } from "../../../hooks";
-import { useNavigationStore } from "../../../stores";
+import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
 import {
   Button,
   Checkbox,
@@ -441,6 +441,10 @@ function DownloadGameModalSession({
   game,
 }: Readonly<DownloadGameModalProps>) {
   const userPreferences = useUserPreferences();
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
+  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
   const [selectedOption, setSelectedOption] = useState<GameRepack | null>(null);
   const [pendingSelectedOption, setPendingSelectedOption] =
     useState<GameRepack | null>(null);
@@ -492,7 +496,7 @@ function DownloadGameModalSession({
   };
 
   useNavigationScreenActions(
-    isntFirstStep ? { press: { b: handleOnBack } } : {}
+    isntFirstStep && !isVirtualKeyboardOpen ? { press: { b: handleOnBack } } : {}
   );
 
   useEffect(() => {
