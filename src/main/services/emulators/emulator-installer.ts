@@ -9,6 +9,7 @@ import type {
   EmulatorBinary,
   EmulatorInstallProgress,
   EmulatorInstallResult,
+  EmulatorSystem,
   ResolvedInstallOption,
 } from "@types";
 
@@ -109,14 +110,22 @@ const findRpcs3Executable = (root: string): string | null => {
   return null;
 };
 
-const autoConfigureRpcs3 = async (extractDir: string): Promise<void> => {
-  const exe = findRpcs3Executable(extractDir);
-  if (!exe || !isValidEmulatorExecutable(exe)) return;
+const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
+  duckstation: "ps1",
+  pcsx2: "ps2",
+  rpcs3: "ps3",
+};
 
-  const version = getEmulatorVersion(exe, KNOWN_BINARIES.ps3);
-  await updateEmulatorConfig("ps3", (current) => ({
+const autoConfigureEmulator = async (
+  system: EmulatorSystem,
+  executablePath: string
+): Promise<void> => {
+  if (!isValidEmulatorExecutable(executablePath)) return;
+
+  const version = getEmulatorVersion(executablePath, KNOWN_BINARIES[system]);
+  await updateEmulatorConfig(system, (current) => ({
     ...current,
-    executablePath: exe,
+    executablePath,
     detectedVersion: version,
     detectedAt: Date.now(),
   }));
@@ -178,6 +187,7 @@ export const downloadAndInstallEmulator = async (
     if (option.kind === "linux-appimage") {
       const { mode } = await fs.promises.stat(dest);
       await fs.promises.chmod(dest, mode | 0o100);
+      await autoConfigureEmulator(BINARY_TO_SYSTEM[binary], dest);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
       return { ok: true, path: dest };
@@ -187,7 +197,8 @@ export const downloadAndInstallEmulator = async (
     const extractDir = path.join(managedEmulatorsDir(), binary);
     await fs.promises.mkdir(extractDir, { recursive: true });
     await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
-    await autoConfigureRpcs3(extractDir);
+    const rpcs3Exe = findRpcs3Executable(extractDir);
+    if (rpcs3Exe) await autoConfigureEmulator("ps3", rpcs3Exe);
     await removeTempDownload();
     shell.showItemInFolder(extractDir);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
