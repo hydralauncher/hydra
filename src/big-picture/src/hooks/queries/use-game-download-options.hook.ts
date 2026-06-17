@@ -23,8 +23,9 @@ export function useGameDownloadOptions(
   const [localDownloadSources, setLocalDownloadSources] = useState<
     DownloadSource[]
   >([]);
-  const [isCheckingSources, setIsCheckingSources] =
-    useState(shouldLoadDownloadOptions);
+  const [isCheckingSources, setIsCheckingSources] = useState(
+    shouldLoadDownloadOptions
+  );
   const [isLoading, setIsLoading] = useState(shouldLoadDownloadOptions);
   const [emptyStateReason, setEmptyStateReason] =
     useState<DownloadOptionsEmptyStateReason | null>(null);
@@ -84,7 +85,10 @@ export function useGameDownloadOptions(
         return;
       }
 
-      if (Array.isArray(game.downloadSources) && game.downloadSources.length === 0) {
+      if (
+        Array.isArray(game.downloadSources) &&
+        game.downloadSources.length === 0
+      ) {
         if (!cancelled) {
           setDownloadOptions([]);
           setIsCheckingSources(false);

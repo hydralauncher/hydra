@@ -131,10 +131,7 @@ export function FocusItem({
       return;
     }
 
-    if (
-      !hasAppeared &&
-      hasReceivedFocusOnCurrentAppearanceRef.current
-    ) {
+    if (!hasAppeared && hasReceivedFocusOnCurrentAppearanceRef.current) {
       return;
     }
 

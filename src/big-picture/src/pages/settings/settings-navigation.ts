@@ -18,8 +18,7 @@ export const DOWNLOADS_SOURCES_ACTIONS_REGION_ID =
 export const DOWNLOADS_SOURCES_SYNC_BUTTON_ID = "downloads-sources-sync-button";
 export const DOWNLOADS_SOURCES_DELETE_ALL_BUTTON_ID =
   "downloads-sources-delete-all-button";
-export const DOWNLOADS_SOURCES_EMPTY_STATE_ID =
-  "downloads-sources-empty-state";
+export const DOWNLOADS_SOURCES_EMPTY_STATE_ID = "downloads-sources-empty-state";
 export const NOTIFICATIONS_LIBRARY_SECTION_REGION_ID =
   "notifications-library-section-region";
 export const NOTIFICATIONS_ACHIEVEMENTS_SECTION_REGION_ID =

@@ -486,7 +486,8 @@ export class NavigationService {
 
     const resolvedPendingInitialFocus =
       this.tryResolvePendingInitialFocus(layerId);
-    const resolvedPendingRequestedFocus = this.tryResolvePendingRequestedFocus();
+    const resolvedPendingRequestedFocus =
+      this.tryResolvePendingRequestedFocus();
 
     if (
       !resolvedPendingInitialFocus &&
@@ -573,7 +574,8 @@ export class NavigationService {
     const resolvedPendingInitialFocus = this.tryResolvePendingInitialFocus(
       registeredNode.layerId
     );
-    const resolvedPendingRequestedFocus = this.tryResolvePendingRequestedFocus();
+    const resolvedPendingRequestedFocus =
+      this.tryResolvePendingRequestedFocus();
 
     if (this.currentFocusId === nodeId && !this.isNodeActive(nodeId)) {
       this.currentFocusId =

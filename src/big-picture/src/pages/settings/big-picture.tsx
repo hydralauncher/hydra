@@ -3,11 +3,7 @@ import "./big-picture.scss";
 import type { BigPictureDiagnosticsPosition } from "@types";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  Checkbox,
-  DropdownSelect,
-  VerticalFocusGroup,
-} from "../../components";
+import { Checkbox, DropdownSelect, VerticalFocusGroup } from "../../components";
 import type { DropdownSelectOption } from "../../components/common/dropdown-select";
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";

@@ -277,7 +277,6 @@ export function SettingsContextGeneral({
             })
           }
         />
-
       </div>
 
       {window.electron.platform === "linux" && (
