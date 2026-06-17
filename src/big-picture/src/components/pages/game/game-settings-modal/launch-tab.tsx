@@ -1,8 +1,12 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { platformToSystem } from "@renderer/helpers";
-import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { FileIcon } from "@primer/octicons-react";
-import { FolderOpen, HardDrive, Monitor, Trash } from "lucide-react";
+import {
+  getSkuRegion,
+  getSkuRegionFlag,
+  type SkuRegion,
+} from "@renderer/helpers";
+import type { LibraryGame, ShortcutLocation } from "@types";
+import { Disc } from "@phosphor-icons/react";
+import { HardDrive, Monitor, Trash } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import {
   Button,
@@ -37,6 +41,14 @@ const GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID =
 const GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID =
   "game-launch-settings-dont-ask-disc";
 
+const REGION_LABELS: Record<SkuRegion, string> = {
+  US: "United States",
+  EU: "Europe",
+  JP: "Japan",
+  KR: "Korea",
+  ASIA: "Asia",
+};
+
 export interface GameLaunchSettingsProps {
   game: LibraryGame;
   launchOptions: string;
@@ -57,22 +69,8 @@ export interface GameLaunchSettingsProps {
   onSelectDisc: (path: string) => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
   onAddDiscFile: () => Promise<void>;
-  onAddDiscFolder: () => Promise<void>;
-  onOpenSelectedDiscLocation: () => Promise<void>;
   onRemoveSelectedDisc: () => Promise<void>;
-}
-
-function DiscOptionLabel({ disc }: Readonly<{ disc: ClassicsDisc }>) {
-  return (
-    <span className="game-launch-settings-tab__disc-option">
-      <span className="game-launch-settings-tab__disc-option-label">
-        {disc.label}
-      </span>
-      <span className="game-launch-settings-tab__disc-option-file">
-        {disc.fileName}
-      </span>
-    </span>
-  );
+  onRemoveAllDiscs: () => Promise<void>;
 }
 
 export function GameLaunchSettingsTab({
@@ -95,15 +93,15 @@ export function GameLaunchSettingsTab({
   onSelectDisc,
   onToggleDontAskDiscSelection,
   onAddDiscFile,
-  onAddDiscFolder,
-  onOpenSelectedDiscLocation,
   onRemoveSelectedDisc,
+  onRemoveAllDiscs,
 }: Readonly<GameLaunchSettingsProps>) {
   const { t } = useTranslation("game_details");
   const discs = game.discs ?? [];
   const selectedDisc =
-    discs.find((disc) => disc.path === game.selectedDiscPath) ?? discs[0] ?? null;
-  const system = platformToSystem(game.platform);
+    discs.find((disc) => disc.path === game.selectedDiscPath) ??
+    discs[0] ??
+    null;
   const showSaveFolderButton =
     game.shop !== "custom" && globalThis.window.electron.platform === "win32";
 
@@ -122,18 +120,26 @@ export function GameLaunchSettingsTab({
                   focusId={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
                   ariaLabel={t("discs_section_title")}
                   value={selectedDisc.path}
-                  options={discs.map((disc) => ({
-                    value: disc.path,
-                    label: <DiscOptionLabel disc={disc} />,
-                  }))}
+                  options={discs.map((disc) => {
+                    const region = disc.sku ? getSkuRegion(disc.sku) : null;
+
+                    return {
+                      value: disc.path,
+                      label: disc.label,
+                      description: disc.fileName,
+                      icon: region ? (
+                        <img
+                          src={getSkuRegionFlag(region)}
+                          alt={REGION_LABELS[region]}
+                          title={REGION_LABELS[region]}
+                        />
+                      ) : undefined,
+                    };
+                  })}
                   onValueChange={(value) => {
                     void onSelectDisc(value);
                   }}
                 />
-
-                <Typography className="game-launch-settings-tab__supporting-copy">
-                  {selectedDisc.fileName}
-                </Typography>
               </>
             ) : (
               <>
@@ -143,8 +149,8 @@ export function GameLaunchSettingsTab({
 
                 <Button
                   focusId={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
-                  variant="secondary"
-                  icon={<FileIcon size={16} />}
+                  variant="primary"
+                  icon={<Disc size={20} />}
                   onClick={() => {
                     void onAddDiscFile();
                   }}
@@ -154,58 +160,22 @@ export function GameLaunchSettingsTab({
               </>
             )}
 
-            <HorizontalFocusGroup className="game-launch-settings-tab__actions">
-              {discs.length > 0 ? null : (
-                <Button
-                  focusable={false}
-                  variant="secondary"
-                  icon={<FileIcon size={16} />}
-                  onClick={() => {
-                    void onAddDiscFile();
-                  }}
-                >
-                  {t("add_disc")}
-                </Button>
-              )}
-
-              {discs.length > 0 ? (
+            {discs.length > 0 ? (
+              <HorizontalFocusGroup
+                className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds"
+              >
                 <Button
                   focusId={GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID}
                   variant="secondary"
-                  icon={<FileIcon size={16} />}
+                  icon={<Disc size={20} />}
                   onClick={() => {
                     void onAddDiscFile();
                   }}
                 >
                   {t("add_disc")}
                 </Button>
-              ) : null}
 
-              {system === "ps3" ? (
-                <Button
-                  variant="secondary"
-                  icon={<FolderOpen size={16} />}
-                  onClick={() => {
-                    void onAddDiscFolder();
-                  }}
-                >
-                  {t("add_disc_folder")}
-                </Button>
-              ) : null}
-
-              {selectedDisc ? (
-                <Button
-                  variant="secondary"
-                  icon={<FolderOpen size={16} />}
-                  onClick={() => {
-                    void onOpenSelectedDiscLocation();
-                  }}
-                >
-                  {t("open_disc_location")}
-                </Button>
-              ) : null}
-
-              {selectedDisc ? (
+                {selectedDisc ? (
                 <Button
                   variant="danger"
                   icon={<Trash size={16} />}
@@ -215,18 +185,31 @@ export function GameLaunchSettingsTab({
                 >
                   {t("remove_selected_disc")}
                 </Button>
-              ) : null}
-            </HorizontalFocusGroup>
+                ) : null}
 
-            <Checkbox
-              block
-              focusId={GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID}
-              label={t("dont_ask_disc_again")}
-              checked={Boolean(game.dontAskDiscSelection)}
-              onChange={(checked) => {
-                void onToggleDontAskDiscSelection(checked);
-              }}
-            />
+                <Button
+                  variant="danger"
+                  icon={<Trash size={16} />}
+                  onClick={() => {
+                    void onRemoveAllDiscs();
+                  }}
+                >
+                  {t("remove_all_discs")}
+                </Button>
+              </HorizontalFocusGroup>
+            ) : null}
+
+            {discs.length > 0 ? (
+              <Checkbox
+                block
+                focusId={GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID}
+                label={t("dont_ask_disc_again")}
+                checked={Boolean(game.dontAskDiscSelection)}
+                onChange={(checked) => {
+                  void onToggleDontAskDiscSelection(checked);
+                }}
+              />
+            ) : null}
           </div>
         </SettingsSection>
       ) : (
@@ -375,7 +358,9 @@ export function GameLaunchSettingsTab({
               ns="game_details"
               defaults="Add game launch arguments, or use <code>%command%</code> to wrap the launch command."
               components={{
-                code: <code className="game-launch-settings-tab__inline-code" />,
+                code: (
+                  <code className="game-launch-settings-tab__inline-code" />
+                ),
               }}
             />
           ) : (
@@ -408,7 +393,6 @@ export function GameLaunchSettingsTab({
           </div>
         </div>
       </SettingsSection>
-
     </VerticalFocusGroup>
   );
 }
