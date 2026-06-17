@@ -14,17 +14,31 @@ export const isGamemodeAvailable = (): boolean => {
     return false;
   }
 
-  const libraryCheck = spawnSync("ldconfig", ["-p"], {
-    stdio: ["ignore", "pipe", "ignore"],
-    encoding: "utf8",
-    shell: false,
-  });
+  const ldconfigPaths = [
+    "/usr/sbin/ldconfig",
+    "/sbin/ldconfig",
+    "ldconfig",
+  ];
 
-  const hasGamemodeLibraries =
-    !libraryCheck.error &&
-    libraryCheck.status === 0 &&
-    libraryCheck.stdout.includes("libgamemode.so") &&
-    libraryCheck.stdout.includes("libgamemodeauto.so");
+  let hasGamemodeLibraries = false;
+
+  for (const ldconfigPath of ldconfigPaths) {
+    const libraryCheck = spawnSync(ldconfigPath, ["-p"], {
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      shell: false,
+    });
+
+    if (
+      !libraryCheck.error &&
+      libraryCheck.status === 0 &&
+      libraryCheck.stdout.includes("libgamemode.so") &&
+      libraryCheck.stdout.includes("libgamemodeauto.so")
+    ) {
+      hasGamemodeLibraries = true;
+      break;
+    }
+  }
 
   if (!hasGamemodeLibraries) {
     return false;
