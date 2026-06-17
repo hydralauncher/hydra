@@ -68,8 +68,10 @@ export function Modal({
   }, [onClose]);
 
   const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
-  const resolvedLayoutTransition =
-    layoutTransition ?? { duration: 0.4, ease: "easeInOut" };
+  const resolvedLayoutTransition = layoutTransition ?? {
+    duration: 0.4,
+    ease: "easeInOut",
+  };
 
   const handleBPress = useCallback(() => {
     if (!isTopMostModal()) return;
