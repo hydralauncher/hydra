@@ -8,6 +8,16 @@ export type DownloadOptionsEmptyStateReason =
   | "no-game-sources"
   | "no-download-options";
 
+function getKnownGameSourcesEmptyStateReason(
+  downloadSources: string[] | undefined
+): DownloadOptionsEmptyStateReason | null {
+  if (Array.isArray(downloadSources) && downloadSources.length === 0) {
+    return "no-game-sources";
+  }
+
+  return null;
+}
+
 export function useGameDownloadOptions(
   game: Pick<Game, "objectId" | "shop"> & {
     downloadSources?: string[];
@@ -16,6 +26,9 @@ export function useGameDownloadOptions(
 ) {
   const shouldLoadDownloadOptions =
     visible && IS_DESKTOP && game.shop !== "custom";
+  const knownGameSourcesEmptyStateReason = getKnownGameSourcesEmptyStateReason(
+    game.downloadSources
+  );
   const downloadSourcesDependencyKey = Array.isArray(game.downloadSources)
     ? game.downloadSources.join("|")
     : "__unknown__";
@@ -24,11 +37,15 @@ export function useGameDownloadOptions(
     DownloadSource[]
   >([]);
   const [isCheckingSources, setIsCheckingSources] = useState(
-    shouldLoadDownloadOptions
+    shouldLoadDownloadOptions && knownGameSourcesEmptyStateReason === null
   );
-  const [isLoading, setIsLoading] = useState(shouldLoadDownloadOptions);
+  const [isLoading, setIsLoading] = useState(
+    shouldLoadDownloadOptions && knownGameSourcesEmptyStateReason === null
+  );
   const [emptyStateReason, setEmptyStateReason] =
-    useState<DownloadOptionsEmptyStateReason | null>(null);
+    useState<DownloadOptionsEmptyStateReason | null>(
+      shouldLoadDownloadOptions ? knownGameSourcesEmptyStateReason : null
+    );
 
   useEffect(() => {
     if (!shouldLoadDownloadOptions) {
@@ -37,6 +54,15 @@ export function useGameDownloadOptions(
       setIsCheckingSources(false);
       setIsLoading(false);
       setEmptyStateReason(null);
+      return;
+    }
+
+    if (knownGameSourcesEmptyStateReason !== null) {
+      setDownloadOptions([]);
+      setLocalDownloadSources([]);
+      setIsCheckingSources(false);
+      setIsLoading(false);
+      setEmptyStateReason(knownGameSourcesEmptyStateReason);
       return;
     }
 
@@ -86,13 +112,12 @@ export function useGameDownloadOptions(
       }
 
       if (
-        Array.isArray(game.downloadSources) &&
-        game.downloadSources.length === 0
+        knownGameSourcesEmptyStateReason !== null
       ) {
         if (!cancelled) {
           setDownloadOptions([]);
           setIsCheckingSources(false);
-          setEmptyStateReason("no-game-sources");
+          setEmptyStateReason(knownGameSourcesEmptyStateReason);
           setIsLoading(false);
         }
 
@@ -146,6 +171,7 @@ export function useGameDownloadOptions(
     game.downloadSources,
     game.objectId,
     game.shop,
+    knownGameSourcesEmptyStateReason,
     shouldLoadDownloadOptions,
   ]);
 

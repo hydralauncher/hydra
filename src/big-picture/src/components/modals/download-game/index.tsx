@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -148,11 +149,15 @@ enum DownloadGameStep {
   Options,
 }
 
+type StepTransitionPhase = "idle" | "exiting" | "entering";
+
 type SourceCarouselEmblaApi = ReturnType<typeof useEmblaCarousel>[1];
 type ResolvedSourceCarouselEmblaApi = NonNullable<SourceCarouselEmblaApi>;
 
 const PARTIAL_VISIBLE_SOURCE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
+const DOWNLOAD_GAME_STEP_FADE_DURATION_SECONDS = 0.1;
+const DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS = 0.15;
 const DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID =
   "download-game-modal-source-carousel";
 const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
@@ -169,6 +174,12 @@ function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
     .replace(/^-+|-+$/g, "");
 
   return `download-game-source-${sourceId}-${normalizedSource || "source"}-${index}`;
+}
+
+function getSearchQueryPreview(query: string, maxCharacters = 16) {
+  if (query.length <= maxCharacters) return query;
+
+  return `${query.slice(0, maxCharacters).trimEnd()}...`;
 }
 
 function getSourceTrackPadding(viewportWidth: number, slideWidth: number) {
@@ -448,8 +459,14 @@ function DownloadGameModalSession({
   const [selectedOption, setSelectedOption] = useState<GameRepack | null>(null);
   const [pendingSelectedOption, setPendingSelectedOption] =
     useState<GameRepack | null>(null);
-  const [step, setStep] = useState<DownloadGameStep>(
+  const [activeStep, setActiveStep] = useState<DownloadGameStep>(
     DownloadGameStep.SourceList
+  );
+  const [pendingStep, setPendingStep] = useState<DownloadGameStep | null>(null);
+  const [transitionPhase, setTransitionPhase] =
+    useState<StepTransitionPhase>("idle");
+  const [stepFrameHeight, setStepFrameHeight] = useState<number | "auto">(
+    "auto"
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
@@ -465,6 +482,9 @@ function DownloadGameModalSession({
     setDeleteArchiveFilesAfterExtraction,
   ] = useState(false);
   const [isPreparingOptions, setIsPreparingOptions] = useState(false);
+  const stepFrameRef = useRef<HTMLDivElement | null>(null);
+  const activeStepRef = useRef<HTMLDivElement | null>(null);
+  const resetStepFrameHeightTimeoutRef = useRef<number | null>(null);
   const downloadPathTouchedRef = useRef(false);
   const automaticExtractionTouchedRef = useRef(false);
   const deleteArchiveTouchedRef = useRef(false);
@@ -477,8 +497,29 @@ function DownloadGameModalSession({
   } = useGameDownloadOptions(game, visible);
 
   const isntFirstStep = useMemo(() => {
-    return step !== DownloadGameStep.SourceList;
-  }, [step]);
+    return activeStep !== DownloadGameStep.SourceList;
+  }, [activeStep]);
+
+  const requestStepChange = useCallback(
+    (nextStep: DownloadGameStep) => {
+      if (nextStep === activeStep || transitionPhase !== "idle") return;
+
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+        resetStepFrameHeightTimeoutRef.current = null;
+      }
+
+      const currentHeight =
+        stepFrameRef.current?.getBoundingClientRect().height ??
+        activeStepRef.current?.getBoundingClientRect().height ??
+        0;
+
+      setStepFrameHeight(currentHeight > 0 ? currentHeight : "auto");
+      setPendingStep(nextStep);
+      setTransitionPhase("exiting");
+    },
+    [activeStep, transitionPhase]
+  );
 
   const handleNextStep = (option: GameRepack) => {
     if (isPreparingOptions) {
@@ -488,15 +529,17 @@ function DownloadGameModalSession({
 
     setPendingSelectedOption(null);
     setSelectedOption(option);
-    setStep(DownloadGameStep.Options);
+    requestStepChange(DownloadGameStep.Options);
   };
 
   const handleOnBack = () => {
-    if (isntFirstStep) setStep(DownloadGameStep.SourceList);
+    if (isntFirstStep) requestStepChange(DownloadGameStep.SourceList);
   };
 
   useNavigationScreenActions(
-    isntFirstStep && !isVirtualKeyboardOpen ? { press: { b: handleOnBack } } : {}
+    isntFirstStep && !isVirtualKeyboardOpen
+      ? { press: { b: handleOnBack } }
+      : {}
   );
 
   useEffect(() => {
@@ -510,6 +553,10 @@ function DownloadGameModalSession({
       setDeleteArchiveFilesAfterExtraction(false);
       setPendingSelectedOption(null);
       setIsPreparingOptions(false);
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+        resetStepFrameHeightTimeoutRef.current = null;
+      }
       return;
     }
 
@@ -575,12 +622,36 @@ function DownloadGameModalSession({
   }, [userPreferences, visible]);
 
   useEffect(() => {
+    return () => {
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!visible || isPreparingOptions || !pendingSelectedOption) return;
 
     setSelectedOption(pendingSelectedOption);
-    setStep(DownloadGameStep.Options);
+    requestStepChange(DownloadGameStep.Options);
     setPendingSelectedOption(null);
-  }, [isPreparingOptions, pendingSelectedOption, visible]);
+  }, [isPreparingOptions, pendingSelectedOption, requestStepChange, visible]);
+
+  useLayoutEffect(() => {
+    if (transitionPhase !== "entering") return;
+
+    const frame = requestAnimationFrame(() => {
+      const nextHeight = activeStepRef.current?.getBoundingClientRect().height;
+
+      if (nextHeight && nextHeight > 0) {
+        setStepFrameHeight(nextHeight);
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [activeStep, transitionPhase]);
 
   const handleSelectDownloadPath = useCallback((path: string) => {
     downloadPathTouchedRef.current = true;
@@ -601,7 +672,94 @@ function DownloadGameModalSession({
   );
 
   const stepTransitionKey =
-    step === DownloadGameStep.SourceList ? "source-list" : "options";
+    activeStep === DownloadGameStep.SourceList ? "source-list" : "options";
+  const activeStepContentKey =
+    activeStep === DownloadGameStep.SourceList
+      ? "source-list"
+      : `options-${selectedOption?.id ?? "none"}`;
+  const renderSourceListStep = useCallback(
+    () => (
+      <DownloadGameSourceList
+        onClose={onClose}
+        onSelectOption={handleNextStep}
+        downloadOptions={downloadOptions}
+        localDownloadSources={localDownloadSources}
+        isCheckingSources={isCheckingSources}
+        isLoading={isLoading}
+        emptyStateReason={emptyStateReason}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        selectedSources={selectedSources}
+        onToggleSource={(sourceId) => {
+          setSelectedSources((previousSources) =>
+            previousSources.includes(sourceId)
+              ? previousSources.filter(
+                  (previousSource) => previousSource !== sourceId
+                )
+              : [...previousSources, sourceId]
+          );
+        }}
+        selectedSortOption={selectedSortOption}
+        onSelectedSortOptionChange={setSelectedSortOption}
+      />
+    ),
+    [
+      downloadOptions,
+      emptyStateReason,
+      handleNextStep,
+      isCheckingSources,
+      isLoading,
+      localDownloadSources,
+      onClose,
+      searchTerm,
+      selectedSortOption,
+      selectedSources,
+    ]
+  );
+  const renderOptionsStep = useCallback(
+    (option: GameRepack) => (
+      <DownloadGameOptions
+        key={option.id}
+        game={game}
+        option={option}
+        visible={visible}
+        onClose={onClose}
+        downloadDirectorySuggestions={downloadDirectorySuggestions}
+        selectedDownloadPath={selectedDownloadPath}
+        automaticExtractionEnabled={automaticExtractionEnabled}
+        deleteArchiveFilesAfterExtraction={deleteArchiveFilesAfterExtraction}
+        onSelectDownloadPath={handleSelectDownloadPath}
+        onAutomaticExtractionChange={handleAutomaticExtractionChange}
+        onDeleteArchiveFilesAfterExtractionChange={
+          handleDeleteArchiveFilesAfterExtractionChange
+        }
+      />
+    ),
+    [
+      automaticExtractionEnabled,
+      deleteArchiveFilesAfterExtraction,
+      downloadDirectorySuggestions,
+      game,
+      handleAutomaticExtractionChange,
+      handleDeleteArchiveFilesAfterExtractionChange,
+      handleSelectDownloadPath,
+      onClose,
+      selectedDownloadPath,
+      visible,
+    ]
+  );
+  const renderStepContent = useCallback(
+    (targetStep: DownloadGameStep, optionOverride?: GameRepack | null) => {
+      if (targetStep === DownloadGameStep.SourceList) {
+        return renderSourceListStep();
+      }
+
+      const option = optionOverride ?? selectedOption;
+
+      return option ? renderOptionsStep(option) : null;
+    },
+    [renderOptionsStep, renderSourceListStep, selectedOption]
+  );
 
   return (
     <Modal
@@ -614,77 +772,57 @@ function DownloadGameModalSession({
       closeOnB={!isntFirstStep}
       onBack={isntFirstStep ? handleOnBack : undefined}
       animateLayout
+      layoutTransition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="download-game-modal__content">
         <motion.div
-          layout
+          ref={stepFrameRef}
           className="download-game-modal__step-frame"
+          initial={false}
+          animate={{ height: stepFrameHeight }}
           transition={{
-            layout: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+            height: {
+              duration: DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS,
+              ease: [0.22, 1, 0.36, 1],
+            },
           }}
         >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={stepTransitionKey}
-              layout
-              className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{
-                opacity: { duration: 0.18, ease: "easeOut" },
-                y: { duration: 0.18, ease: "easeOut" },
-                layout: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
-              }}
-            >
-              {step === DownloadGameStep.SourceList && (
-                <DownloadGameSourceList
-                  onClose={onClose}
-                  onSelectOption={handleNextStep}
-                  downloadOptions={downloadOptions}
-                  localDownloadSources={localDownloadSources}
-                  isCheckingSources={isCheckingSources}
-                  isLoading={isLoading}
-                  emptyStateReason={emptyStateReason}
-                  searchTerm={searchTerm}
-                  onSearchTermChange={setSearchTerm}
-                  selectedSources={selectedSources}
-                  onToggleSource={(sourceId) => {
-                    setSelectedSources((previousSources) =>
-                      previousSources.includes(sourceId)
-                        ? previousSources.filter(
-                            (previousSource) => previousSource !== sourceId
-                          )
-                        : [...previousSources, sourceId]
-                    );
-                  }}
-                  selectedSortOption={selectedSortOption}
-                  onSelectedSortOptionChange={setSelectedSortOption}
-                />
-              )}
+          <motion.div
+            key={activeStepContentKey}
+            ref={activeStepRef}
+            className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
+            initial={
+              transitionPhase === "entering" ? { opacity: 0 } : false
+            }
+            animate={{
+              opacity: transitionPhase === "exiting" ? 0 : 1,
+            }}
+            transition={{
+              opacity: {
+                duration: DOWNLOAD_GAME_STEP_FADE_DURATION_SECONDS,
+                ease: [0.22, 1, 0.36, 1],
+              },
+            }}
+            onAnimationComplete={() => {
+              if (transitionPhase === "exiting" && pendingStep !== null) {
+                setActiveStep(pendingStep);
+                setPendingStep(null);
+                setTransitionPhase("entering");
+                return;
+              }
 
-              {step === DownloadGameStep.Options && selectedOption && (
-                <DownloadGameOptions
-                  key={selectedOption.id}
-                  game={game}
-                  option={selectedOption}
-                  visible={visible}
-                  onClose={onClose}
-                  downloadDirectorySuggestions={downloadDirectorySuggestions}
-                  selectedDownloadPath={selectedDownloadPath}
-                  automaticExtractionEnabled={automaticExtractionEnabled}
-                  deleteArchiveFilesAfterExtraction={
-                    deleteArchiveFilesAfterExtraction
-                  }
-                  onSelectDownloadPath={handleSelectDownloadPath}
-                  onAutomaticExtractionChange={handleAutomaticExtractionChange}
-                  onDeleteArchiveFilesAfterExtractionChange={
-                    handleDeleteArchiveFilesAfterExtractionChange
-                  }
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+              if (transitionPhase === "entering") {
+                setTransitionPhase("idle");
+                resetStepFrameHeightTimeoutRef.current =
+                  globalThis.window.setTimeout(() => {
+                    setStepFrameHeight("auto");
+                    resetStepFrameHeightTimeoutRef.current = null;
+                  }, DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS * 1000);
+              }
+            }}
+          >
+            {renderStepContent(activeStep)}
+          </motion.div>
         </motion.div>
       </div>
     </Modal>
@@ -761,7 +899,15 @@ function DownloadGameSourceList({
     [filteredDownloadOptions, selectedSortOption]
   );
   const isSourceListLoading = isCheckingSources || isLoading;
-  const hasEmptyState = !isSourceListLoading && emptyStateReason !== null;
+  const hasStructuralEmptyState =
+    !isSourceListLoading && emptyStateReason !== null;
+  const trimmedSearchTerm = searchTerm.trim();
+  const searchQueryPreview = getSearchQueryPreview(trimmedSearchTerm);
+  const hasSearchEmptyState =
+    !isSourceListLoading &&
+    !hasStructuralEmptyState &&
+    sortedDownloadOptions.length === 0 &&
+    trimmedSearchTerm.length > 0;
   const sourceTrackStyle = useMemo(
     () =>
       ({
@@ -909,18 +1055,26 @@ function DownloadGameSourceList({
 
   const optionsTransitionKey = isSourceListLoading
     ? "loading"
-    : hasEmptyState
+    : hasStructuralEmptyState
       ? `empty-${emptyStateReason}`
+      : hasSearchEmptyState
+        ? "search-empty"
       : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
 
   const handleOpenSettings = useCallback(() => {
     onClose();
-    navigate("/settings?tab=downloads&section=sources");
+    navigate(
+      `${IS_DESKTOP ? "/big-picture" : ""}/settings?tab=downloads&section=sources`
+    );
   }, [navigate, onClose]);
+
+  const handleClearSearch = useCallback(() => {
+    onSearchTermChange("");
+  }, [onSearchTermChange]);
 
   return (
     <VerticalFocusGroup className="download-game-modal__source-list">
-      {!hasEmptyState && (
+      {!hasStructuralEmptyState && (
         <>
           <Input
             placeholder="Search options"
@@ -1004,7 +1158,7 @@ function DownloadGameSourceList({
                 />
               ))}
 
-            {hasEmptyState && (
+            {hasStructuralEmptyState && (
               <EmptyState
                 className="download-game-modal__source-list-empty-state"
                 icon={<MagnifyingGlassIcon size={32} weight="bold" />}
@@ -1024,8 +1178,27 @@ function DownloadGameSourceList({
               />
             )}
 
+            {hasSearchEmptyState && (
+              <EmptyState
+                className="download-game-modal__source-list-empty-state"
+                icon={<MagnifyingGlassIcon size={32} weight="bold" />}
+                title={t('No results for "{{query}}"', {
+                  query: searchQueryPreview,
+                })}
+                description={t(
+                  "Try another search or clear it to browse all available download options."
+                )}
+                actions={
+                  <Button onClick={handleClearSearch}>
+                    {t("Clear search")}
+                  </Button>
+                }
+              />
+            )}
+
             {!isSourceListLoading &&
-              !hasEmptyState &&
+              !hasStructuralEmptyState &&
+              !hasSearchEmptyState &&
               sortedDownloadOptions.map((option) => (
                 <DownloadSourceOption
                   key={option.id}
