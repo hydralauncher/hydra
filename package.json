@@ -50,6 +50,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@reduxjs/toolkit": "^2.2.3",
     "@sentry/react": "^10.33.0",
+    "@tanstack/react-virtual": "^3.14.3",
     "@tiptap/extension-bold": "^3.6.2",
     "@tiptap/extension-italic": "^3.6.2",
     "@tiptap/extension-link": "^3.6.2",
