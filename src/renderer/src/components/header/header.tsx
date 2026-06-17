@@ -426,13 +426,10 @@ export function Header() {
           {isOnLibraryPage && isLibraryScanSupported && (
             <button
               type="button"
-              className={cn(
-                "header__action-button",
-                "header__action-button--outlined",
-                {
-                  "header__action-button--scanning": isScanning,
-                }
-              )}
+              className={cn("header__action-button", {
+                "header__action-button--scanning":
+                  isScanning || isRemovingExecutables,
+              })}
               onClick={() => setShowScanModal(true)}
               data-tooltip-id={scanButtonTooltipId}
               data-tooltip-content={t("scan_games_tooltip")}
