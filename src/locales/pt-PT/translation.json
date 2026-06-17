@@ -544,6 +544,7 @@
   "settings": {
     "setup_official_website": "Site oficial",
     "setup_install_with_hydra": "Instalar a partir do GitHub",
+    "setup_recommended": "Recomendado",
     "setup_view_on_github": "Ver no GitHub",
     "setup_install_loading": "A carregar opções de transferência…",
     "setup_install_with_hydra_desc": "Transfere o instalador mais recente do {{name}} automaticamente.",

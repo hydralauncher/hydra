@@ -721,6 +721,7 @@
   "settings": {
     "setup_official_website": "Официальный сайт",
     "setup_install_with_hydra": "Установить с GitHub",
+    "setup_recommended": "Рекомендуется",
     "setup_view_on_github": "Посмотреть на GitHub",
     "setup_install_loading": "Загрузка вариантов загрузки…",
     "setup_install_with_hydra_desc": "Автоматически скачивает последнюю версию установщика {{name}}.",
