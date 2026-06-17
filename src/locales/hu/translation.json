@@ -786,7 +786,15 @@
     "downloads": "Letöltések",
     "create_shortcuts_on_download": "Asztali és Start menü parancsikonok létrehozása a letöltés befejezésekor",
     "default_proton_version": "Alapértelmezett Proton verzió",
-    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás"
+    "default_proton_version_description": "Válaszd ki azt a Proton verziót, amelyet az Auto mód használ, ha a játékhoz nincs egyedi felülírás",
+    "big_picture_launching_monitor": "Big Picture launching monitor",
+    "system_default_monitor": "System default monitor",
+    "primary_monitor": "Primary",
+    "missing_monitor": "Missing display",
+    "big_picture_output_device": "Big Picture output device",
+    "system_default_audio_device": "System default audio device",
+    "default_audio_device": "Default",
+    "missing_audio_device": "Missing audio device"
   },
   "notifications": {
     "download_complete": "Letöltés befejezve",

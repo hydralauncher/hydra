@@ -763,7 +763,15 @@
     "proton_version_auto": "Auto (global default or umu default)",
     "proton_source_umu_default": "umu default selection",
     "proton_source_steam": "Installed by Steam",
-    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d"
+    "proton_source_compatibility_tools": "Installed in Steam compatibilitytools.d",
+    "big_picture_launching_monitor": "Big Picture launching monitor",
+    "system_default_monitor": "System default monitor",
+    "primary_monitor": "Primary",
+    "missing_monitor": "Missing display",
+    "big_picture_output_device": "Big Picture output device",
+    "system_default_audio_device": "System default audio device",
+    "default_audio_device": "Default",
+    "missing_audio_device": "Missing audio device"
   },
   "notifications": {
     "download_complete": "下载完成",

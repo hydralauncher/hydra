@@ -144,6 +144,8 @@ export interface UserPreferences {
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;
   launchInBigPicture?: boolean;
+  bigPictureDisplayId?: string | null;
+  bigPictureAudioDeviceId?: string | null;
   disableNsfwAlert?: boolean;
   enableAutoInstall?: boolean;
   seedAfterDownloadComplete?: boolean;

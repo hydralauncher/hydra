@@ -15,5 +15,15 @@ sysinfo = "0.37.2"
 tokio = { version = "1.50.0", features = ["rt"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = [
+  "Win32_Foundation",
+  "Win32_Media_Audio",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Variant",
+  "Win32_UI_Shell_PropertiesSystem",
+] }
+
 [build-dependencies]
 napi-build = "2.3.1"
