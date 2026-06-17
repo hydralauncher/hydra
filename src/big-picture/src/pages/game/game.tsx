@@ -527,7 +527,11 @@ export default function Game() {
   );
   const selectedDisc = useMemo(() => {
     const discs = game?.discs ?? [];
-    return discs.find((disc) => disc.path === game?.selectedDiscPath) ?? discs[0] ?? null;
+    return (
+      discs.find((disc) => disc.path === game?.selectedDiscPath) ??
+      discs[0] ??
+      null
+    );
   }, [game?.discs, game?.selectedDiscPath]);
   const heroActionsLeftNavigationTarget = useMemo(
     () => ({
@@ -658,8 +662,9 @@ export default function Game() {
   ]);
 
   const getDownloadsPath = useCallback(async () => {
-    const userPreferences =
-      await globalThis.window.electron.getUserPreferences().catch(() => null);
+    const userPreferences = await globalThis.window.electron
+      .getUserPreferences()
+      .catch(() => null);
 
     return (
       userPreferences?.downloadsPath ??
@@ -698,9 +703,12 @@ export default function Game() {
 
     if (
       gameUsingPath &&
-      (gameUsingPath.objectId !== game.objectId || gameUsingPath.shop !== game.shop)
+      (gameUsingPath.objectId !== game.objectId ||
+        gameUsingPath.shop !== game.shop)
     ) {
-      showErrorToast(t("executable_path_in_use", { game: gameUsingPath.title }));
+      showErrorToast(
+        t("executable_path_in_use", { game: gameUsingPath.title })
+      );
       return;
     }
 
@@ -804,9 +812,13 @@ export default function Game() {
     async (discPath: string) => {
       if (!game) return;
 
-      await globalThis.window.electron.updateClassicsDisc(game.shop, game.objectId, {
-        selectedDiscPath: discPath,
-      });
+      await globalThis.window.electron.updateClassicsDisc(
+        game.shop,
+        game.objectId,
+        {
+          selectedDiscPath: discPath,
+        }
+      );
       await updateGame();
     },
     [game, updateGame]
@@ -816,9 +828,13 @@ export default function Game() {
     async (checked: boolean) => {
       if (!game) return;
 
-      await globalThis.window.electron.updateClassicsDisc(game.shop, game.objectId, {
-        dontAskDiscSelection: checked,
-      });
+      await globalThis.window.electron.updateClassicsDisc(
+        game.shop,
+        game.objectId,
+        {
+          dontAskDiscSelection: checked,
+        }
+      );
       await updateGame();
     },
     [game, updateGame]
@@ -830,14 +846,18 @@ export default function Game() {
 
       const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
       const nextIndex = (game.discs?.length ?? 0) + 1;
-      await globalThis.window.electron.updateClassicsDisc(game.shop, game.objectId, {
-        addDisc: {
-          path: fullPath,
-          label: `Disc ${nextIndex}`,
-          fileName,
-        },
-        selectedDiscPath: fullPath,
-      });
+      await globalThis.window.electron.updateClassicsDisc(
+        game.shop,
+        game.objectId,
+        {
+          addDisc: {
+            path: fullPath,
+            label: `Disc ${nextIndex}`,
+            fileName,
+          },
+          selectedDiscPath: fullPath,
+        }
+      );
       await updateGame();
     },
     [game, updateGame]
@@ -861,30 +881,37 @@ export default function Game() {
     await addDiscFromPath(result.filePaths[0]);
   }, [addDiscFromPath, game, t]);
 
-  const handleAddDiscFolder = useCallback(async () => {
-    if (!game) return;
-
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openDirectory"],
-    });
-    if (result.canceled || !result.filePaths[0]) return;
-    await addDiscFromPath(result.filePaths[0]);
-  }, [addDiscFromPath, game]);
-
-  const handleOpenSelectedDiscLocation = useCallback(async () => {
-    if (!selectedDisc) return;
-
-    await globalThis.window.electron.showItemInFolder(selectedDisc.path);
-  }, [selectedDisc]);
-
   const handleRemoveSelectedDisc = useCallback(async () => {
     if (!game || !selectedDisc) return;
 
-    await globalThis.window.electron.updateClassicsDisc(game.shop, game.objectId, {
-      removeDiscPath: selectedDisc.path,
-    });
+    await globalThis.window.electron.updateClassicsDisc(
+      game.shop,
+      game.objectId,
+      {
+        removeDiscPath: selectedDisc.path,
+      }
+    );
     await updateGame();
   }, [game, selectedDisc, updateGame]);
+
+  const handleRemoveAllDiscs = useCallback(async () => {
+    if (!game) return;
+
+    const discsToRemove = game.discs ?? [];
+    if (discsToRemove.length === 0) return;
+
+    for (const disc of discsToRemove) {
+      await globalThis.window.electron.updateClassicsDisc(
+        game.shop,
+        game.objectId,
+        {
+          removeDiscPath: disc.path,
+        }
+      );
+    }
+
+    await updateGame();
+  }, [game, updateGame]);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
@@ -1523,12 +1550,10 @@ export default function Game() {
               onCreateSteamShortcut: handleCreateSteamShortcut,
               onDeleteSteamShortcut: handleDeleteSteamShortcut,
               onSelectDisc: handleSelectDisc,
-              onToggleDontAskDiscSelection:
-                handleToggleDontAskDiscSelection,
+              onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
               onAddDiscFile: handleAddDiscFile,
-              onAddDiscFolder: handleAddDiscFolder,
-              onOpenSelectedDiscLocation: handleOpenSelectedDiscLocation,
               onRemoveSelectedDisc: handleRemoveSelectedDisc,
+              onRemoveAllDiscs: handleRemoveAllDiscs,
             }}
             onClose={() => setIsGameSettingsModalOpen(false)}
           />

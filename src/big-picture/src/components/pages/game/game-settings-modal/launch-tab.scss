@@ -14,11 +14,10 @@
 .game-launch-settings-tab__section-content {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing-unit) * 6);
+  gap: calc(var(--spacing-unit) * 4);
   width: 100%;
   min-width: 0;
 }
-
 
 .game-launch-settings-tab__exec-path-button {
   flex: 1;
@@ -67,6 +66,20 @@
   display: flex;
   flex-wrap: wrap;
   gap: calc(var(--spacing-unit) * 2);
+}
+
+.game-launch-settings-tab__actions--thirds {
+  width: 100%;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+.game-launch-settings-tab__actions--thirds > .button {
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .game-launch-settings-tab__actions--wrap {

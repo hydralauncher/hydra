@@ -87,14 +87,13 @@ export function Hero({
     () => sidebarEntryTarget ?? { type: "block" },
     [sidebarEntryTarget]
   );
-  const favoriteLeftTargetId =
-    shouldShowFavoriteButton
-      ? GAME_HERO_OPEN_SETTINGS_ID
-      : shouldShowCatalogActions && hasPrimaryAction
-        ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-        : hasPrimaryAction
-          ? GAME_HERO_PRIMARY_ACTION_ID
-          : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+  const favoriteLeftTargetId = shouldShowFavoriteButton
+    ? GAME_HERO_OPEN_SETTINGS_ID
+    : shouldShowCatalogActions && hasPrimaryAction
+      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
+      : hasPrimaryAction
+        ? GAME_HERO_PRIMARY_ACTION_ID
+        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
 
   const toggleFavoriteNavigationOverrides: FocusOverrides = {
     left: {
@@ -107,87 +106,155 @@ export function Hero({
 
   const { primaryActionButton, downloadOptionsButton, settingsButton } =
     useMemo(() => {
-    const primaryActionRightTarget = shouldShowCatalogActions
-      ? {
-          type: "item" as const,
-          itemId: GAME_HERO_DOWNLOAD_OPTIONS_ID,
-        }
-      : shouldShowFavoriteButton
+      const primaryActionRightTarget = shouldShowCatalogActions
         ? {
             type: "item" as const,
-            itemId: GAME_HERO_OPEN_SETTINGS_ID,
+            itemId: GAME_HERO_DOWNLOAD_OPTIONS_ID,
           }
-        : lastActionRightTarget;
-    const primaryActionNavigationOverrides: FocusOverrides = {
-      left: {
-        type: "item",
-        itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
-      },
-      right: primaryActionRightTarget,
-      down: heroDownNavigationTarget,
-    };
-    const downloadOptionsNavigationOverrides: FocusOverrides = {
-      left: {
-        type: "item",
-        itemId: GAME_HERO_PRIMARY_ACTION_ID,
-      },
-      right: shouldShowFavoriteButton
-        ? {
-            type: "item",
-            itemId: GAME_HERO_OPEN_SETTINGS_ID,
-          }
-        : lastActionRightTarget,
-      down: heroDownNavigationTarget,
-    };
-    const settingsLeftTargetId = shouldShowCatalogActions
-      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-      : hasPrimaryAction
-        ? GAME_HERO_PRIMARY_ACTION_ID
-        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
-    const settingsNavigationOverrides: FocusOverrides = {
-      left: {
-        type: "item",
-        itemId: settingsLeftTargetId,
-      },
-      right: shouldShowFavoriteButton
-        ? {
-            type: "item" as const,
-            itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
-          }
-        : lastActionRightTarget,
-      down: heroDownNavigationTarget,
-    };
-
-    if (isGameRunning) {
-      return {
-        primaryActionButton: (
-          <Button
-            focusId={GAME_HERO_PRIMARY_ACTION_ID}
-            focusNavigationOverrides={primaryActionNavigationOverrides}
-            variant="primary"
-            icon={<XCircleIcon size={24} />}
-            onClick={onClose}
-          >
-            Close Game
-          </Button>
-        ),
-        downloadOptionsButton: null,
-        settingsButton: shouldShowFavoriteButton ? (
-          <Button
-            focusId={GAME_HERO_OPEN_SETTINGS_ID}
-            focusNavigationOverrides={settingsNavigationOverrides}
-            variant="secondary"
-            aria-label={t("options")}
-            icon={<GearIcon size={24} />}
-            onClick={onOpenSettings}
-          >
-            {t("options")}
-          </Button>
-        ) : null,
+        : shouldShowFavoriteButton
+          ? {
+              type: "item" as const,
+              itemId: GAME_HERO_OPEN_SETTINGS_ID,
+            }
+          : lastActionRightTarget;
+      const primaryActionNavigationOverrides: FocusOverrides = {
+        left: {
+          type: "item",
+          itemId: BIG_PICTURE_SIDEBAR_ITEM_IDS.home,
+        },
+        right: primaryActionRightTarget,
+        down: heroDownNavigationTarget,
       };
-    }
+      const downloadOptionsNavigationOverrides: FocusOverrides = {
+        left: {
+          type: "item",
+          itemId: GAME_HERO_PRIMARY_ACTION_ID,
+        },
+        right: shouldShowFavoriteButton
+          ? {
+              type: "item",
+              itemId: GAME_HERO_OPEN_SETTINGS_ID,
+            }
+          : lastActionRightTarget,
+        down: heroDownNavigationTarget,
+      };
+      const settingsLeftTargetId = shouldShowCatalogActions
+        ? GAME_HERO_DOWNLOAD_OPTIONS_ID
+        : hasPrimaryAction
+          ? GAME_HERO_PRIMARY_ACTION_ID
+          : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+      const settingsNavigationOverrides: FocusOverrides = {
+        left: {
+          type: "item",
+          itemId: settingsLeftTargetId,
+        },
+        right: shouldShowFavoriteButton
+          ? {
+              type: "item" as const,
+              itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
+            }
+          : lastActionRightTarget,
+        down: heroDownNavigationTarget,
+      };
 
-    if (game?.executablePath || isPlayableClassicsGame) {
+      if (isGameRunning) {
+        return {
+          primaryActionButton: (
+            <Button
+              focusId={GAME_HERO_PRIMARY_ACTION_ID}
+              focusNavigationOverrides={primaryActionNavigationOverrides}
+              variant="primary"
+              icon={<XCircleIcon size={24} />}
+              onClick={onClose}
+            >
+              Close Game
+            </Button>
+          ),
+          downloadOptionsButton: null,
+          settingsButton: shouldShowFavoriteButton ? (
+            <Button
+              focusId={GAME_HERO_OPEN_SETTINGS_ID}
+              focusNavigationOverrides={settingsNavigationOverrides}
+              variant="secondary"
+              aria-label={t("options")}
+              icon={<GearIcon size={24} />}
+              onClick={onOpenSettings}
+            >
+              {t("options")}
+            </Button>
+          ) : null,
+        };
+      }
+
+      if (game?.executablePath || isPlayableClassicsGame) {
+        return {
+          primaryActionButton: (
+            <Button
+              focusId={GAME_HERO_PRIMARY_ACTION_ID}
+              focusNavigationOverrides={primaryActionNavigationOverrides}
+              variant="primary"
+              color={dominantColor ?? undefined}
+              iconPosition="right"
+              icon={<PlayIcon size={24} weight="fill" />}
+              onClick={onPlay}
+            >
+              Launch Game
+            </Button>
+          ),
+          downloadOptionsButton: null,
+          settingsButton: shouldShowFavoriteButton ? (
+            <Button
+              focusId={GAME_HERO_OPEN_SETTINGS_ID}
+              focusNavigationOverrides={settingsNavigationOverrides}
+              variant="secondary"
+              aria-label={t("options")}
+              icon={<GearIcon size={24} />}
+              onClick={onOpenSettings}
+            >
+              {t("options")}
+            </Button>
+          ) : null,
+        };
+      }
+
+      if (game) {
+        return {
+          primaryActionButton: (
+            <Button
+              focusId={GAME_HERO_PRIMARY_ACTION_ID}
+              focusNavigationOverrides={primaryActionNavigationOverrides}
+              variant="primary"
+              color={dominantColor ?? undefined}
+              icon={<DownloadSimpleIcon size={24} />}
+              onClick={onDownload}
+            >
+              Download Game
+            </Button>
+          ),
+          downloadOptionsButton: null,
+          settingsButton: (
+            <Button
+              focusId={GAME_HERO_OPEN_SETTINGS_ID}
+              focusNavigationOverrides={settingsNavigationOverrides}
+              variant="secondary"
+              aria-label={t("options")}
+              icon={<GearIcon size={24} />}
+              onClick={onOpenSettings}
+            >
+              {t("options")}
+            </Button>
+          ),
+        };
+      }
+
+      if (!canAddToLibrary) {
+        return {
+          primaryActionButton: null,
+          downloadOptionsButton: null,
+          settingsButton: null,
+        };
+      }
+
       return {
         primaryActionButton: (
           <Button
@@ -195,113 +262,45 @@ export function Hero({
             focusNavigationOverrides={primaryActionNavigationOverrides}
             variant="primary"
             color={dominantColor ?? undefined}
-            iconPosition="right"
-            icon={<PlayIcon size={24} weight="fill" />}
-            onClick={onPlay}
+            icon={<PlusCircleIcon size={24} />}
+            onClick={onAddToLibrary}
+            loading={isAddingToLibrary}
           >
-            Launch Game
+            Add to Library
           </Button>
         ),
-        downloadOptionsButton: null,
-        settingsButton: shouldShowFavoriteButton ? (
+        downloadOptionsButton: (
           <Button
-            focusId={GAME_HERO_OPEN_SETTINGS_ID}
-            focusNavigationOverrides={settingsNavigationOverrides}
+            focusId={GAME_HERO_DOWNLOAD_OPTIONS_ID}
+            focusNavigationOverrides={downloadOptionsNavigationOverrides}
             variant="secondary"
-            aria-label={t("options")}
-            icon={<GearIcon size={24} />}
-            onClick={onOpenSettings}
-          >
-            {t("options")}
-          </Button>
-        ) : null,
-      };
-    }
-
-    if (game) {
-      return {
-        primaryActionButton: (
-          <Button
-            focusId={GAME_HERO_PRIMARY_ACTION_ID}
-            focusNavigationOverrides={primaryActionNavigationOverrides}
-            variant="primary"
-            color={dominantColor ?? undefined}
             icon={<DownloadSimpleIcon size={24} />}
-            onClick={onDownload}
+            onClick={onOpenDownloadOptions}
           >
             Download Game
           </Button>
         ),
-        downloadOptionsButton: null,
-        settingsButton: (
-          <Button
-            focusId={GAME_HERO_OPEN_SETTINGS_ID}
-            focusNavigationOverrides={settingsNavigationOverrides}
-            variant="secondary"
-            aria-label={t("options")}
-            icon={<GearIcon size={24} />}
-            onClick={onOpenSettings}
-          >
-            {t("options")}
-          </Button>
-        ),
-      };
-    }
-
-    if (!canAddToLibrary) {
-      return {
-        primaryActionButton: null,
-        downloadOptionsButton: null,
         settingsButton: null,
       };
-    }
-
-    return {
-      primaryActionButton: (
-        <Button
-          focusId={GAME_HERO_PRIMARY_ACTION_ID}
-          focusNavigationOverrides={primaryActionNavigationOverrides}
-          variant="primary"
-          color={dominantColor ?? undefined}
-          icon={<PlusCircleIcon size={24} />}
-          onClick={onAddToLibrary}
-          loading={isAddingToLibrary}
-        >
-          Add to Library
-        </Button>
-      ),
-      downloadOptionsButton: (
-        <Button
-          focusId={GAME_HERO_DOWNLOAD_OPTIONS_ID}
-          focusNavigationOverrides={downloadOptionsNavigationOverrides}
-          variant="secondary"
-          icon={<DownloadSimpleIcon size={24} />}
-          onClick={onOpenDownloadOptions}
-        >
-          Download Game
-        </Button>
-      ),
-      settingsButton: null,
-    };
-  }, [
-    canAddToLibrary,
-    dominantColor,
-    game,
-    heroDownNavigationTarget,
-    isAddingToLibrary,
-    isGameRunning,
-    isPlayableClassicsGame,
-    onAddToLibrary,
-    onClose,
-    onDownload,
-    onOpenDownloadOptions,
-    onOpenSettings,
-    onPlay,
-    shouldShowCatalogActions,
-    shouldShowFavoriteButton,
-    lastActionRightTarget,
-    t,
-  ]);
+    }, [
+      canAddToLibrary,
+      dominantColor,
+      game,
+      heroDownNavigationTarget,
+      isAddingToLibrary,
+      isGameRunning,
+      isPlayableClassicsGame,
+      onAddToLibrary,
+      onClose,
+      onDownload,
+      onOpenDownloadOptions,
+      onOpenSettings,
+      onPlay,
+      shouldShowCatalogActions,
+      shouldShowFavoriteButton,
+      lastActionRightTarget,
+      t,
+    ]);
 
   return (
     <section className="game-page__hero-shell">
