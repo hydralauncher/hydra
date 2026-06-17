@@ -45,6 +45,7 @@ export interface ButtonProps
   /** When false, the control stays clickable but is omitted from gamepad / spatial focus order. */
   focusable?: boolean;
   focusNavigationOverrides?: FocusOverrides;
+  stealFocusOnAppear?: boolean;
 }
 
 function isExternalHref(href: string) {
@@ -70,6 +71,7 @@ export function Button({
   focusId,
   focusable = true,
   focusNavigationOverrides,
+  stealFocusOnAppear = false,
   "aria-label": ariaLabel,
   ...props
 }: Readonly<ButtonProps>) {
@@ -111,6 +113,7 @@ export function Button({
         focusable={focusable}
         navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
+        stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
         <button
@@ -175,6 +178,7 @@ export function Button({
         focusable={focusable}
         navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
+        stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
         <a
@@ -199,6 +203,7 @@ export function Button({
       focusable={focusable}
       navigationState={disabled ? "disabled" : "active"}
       navigationOverrides={focusNavigationOverrides}
+      stealFocusOnAppear={stealFocusOnAppear}
       asChild
     >
       <Link

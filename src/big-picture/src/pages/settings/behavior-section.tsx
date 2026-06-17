@@ -22,7 +22,6 @@ interface BehaviorForm {
   startMinimized: boolean;
   hideToTrayOnGameStart: boolean;
   launchToLibraryPage: boolean;
-  launchInBigPicture: boolean;
   enableAutoInstall: boolean;
 }
 
@@ -41,7 +40,6 @@ const DEFAULT_FORM: BehaviorForm = {
   startMinimized: false,
   hideToTrayOnGameStart: false,
   launchToLibraryPage: false,
-  launchInBigPicture: false,
   enableAutoInstall: false,
 };
 
@@ -81,7 +79,6 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences]);
@@ -164,15 +161,6 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
         disabled: false,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ launchToLibraryPage: checked }),
-      },
-      {
-        id: "launch-in-big-picture",
-        focusId: BEHAVIOR_ITEM_FOCUS_IDS.launchInBigPicture,
-        label: "Launch Hydra in Big Picture",
-        checked: form.launchInBigPicture,
-        disabled: false,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ launchInBigPicture: checked }),
       },
       ...(isLinux
         ? [

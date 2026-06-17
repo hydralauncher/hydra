@@ -317,6 +317,12 @@ export class WindowManager {
       return;
     }
 
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
     const targetDisplay = this.mainWindow?.isDestroyed()
       ? null
       : this.mainWindow
@@ -347,7 +353,11 @@ export class WindowManager {
       this.bigPicture.webContents.openDevTools();
     }
 
-    this.loadWindowURL(this.bigPicture, "big-picture");
+    const bigPictureInitialHash = userPreferences?.launchToLibraryPage
+      ? "big-picture/library"
+      : "big-picture";
+
+    this.loadWindowURL(this.bigPicture, bigPictureInitialHash);
 
     this.bigPicture.once("ready-to-show", () => {
       const main = this.mainWindow;
