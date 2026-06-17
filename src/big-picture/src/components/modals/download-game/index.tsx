@@ -231,10 +231,7 @@ function getSourceViewportSlideMetrics(
   const firstVisibleIndex = visibleIndexes[0];
   const visibleCount = Math.max(
     1,
-    Math.min(
-      visibleIndexes.length,
-      slideRects.length - firstVisibleIndex
-    )
+    Math.min(visibleIndexes.length, slideRects.length - firstVisibleIndex)
   );
 
   return {
@@ -305,8 +302,13 @@ function syncSourceThresholdFocusScroll(
 
   if (!viewportMetrics) return;
 
-  const { firstVisibleIndex, visibleCount, visibleIndexes, viewportRect, slideRects } =
-    viewportMetrics;
+  const {
+    firstVisibleIndex,
+    visibleCount,
+    visibleIndexes,
+    viewportRect,
+    slideRects,
+  } = viewportMetrics;
   const slideCount = slideRects.length;
   const rightTriggerPosition = Math.max(1, Math.ceil(visibleCount / 2));
   const leftTriggerPosition = Math.min(
@@ -399,10 +401,7 @@ function syncSourceThresholdFocusScroll(
 
   const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
 
-  if (
-    visiblePosition !== -1 &&
-    (isClippedOnLeft || isClippedOnRight)
-  ) {
+  if (visiblePosition !== -1 && (isClippedOnLeft || isClippedOnRight)) {
     nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
   }
 }
