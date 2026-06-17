@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Transition } from "framer-motion";
 import cn from "classnames";
 import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
@@ -27,6 +27,7 @@ export interface ModalProps {
   ariaLabel?: string;
   animateLayout?: boolean;
   initialFocusId?: string;
+  layoutTransition?: Transition;
 }
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
@@ -46,6 +47,7 @@ export function Modal({
   ariaLabel = title,
   animateLayout = false,
   initialFocusId,
+  layoutTransition,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
@@ -66,6 +68,8 @@ export function Modal({
   }, [onClose]);
 
   const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
+  const resolvedLayoutTransition =
+    layoutTransition ?? { duration: 0.4, ease: "easeInOut" };
 
   const handleBPress = useCallback(() => {
     if (!isTopMostModal()) return;
@@ -137,14 +141,12 @@ export function Modal({
               ref={modalContentRef}
               data-hydra-dialog
               className={cn("modal", className)}
-              layout={animateLayout || undefined}
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{
                 duration: 0.22,
                 ease: [0.22, 1, 0.36, 1],
-                layout: { duration: 0.4, ease: "easeInOut" },
               }}
             >
               <NavigationLayer
@@ -183,9 +185,17 @@ export function Modal({
                   </button>
                 </div>
 
-                <div className="modal__divider" />
+                <motion.div
+                  className="modal__body"
+                  layout={animateLayout || undefined}
+                  transition={{
+                    layout: resolvedLayoutTransition,
+                  }}
+                >
+                  <div className="modal__divider" />
 
-                <div className="modal__content">{children}</div>
+                  <div className="modal__content">{children}</div>
+                </motion.div>
               </NavigationLayer>
             </motion.aside>
           </Backdrop>
