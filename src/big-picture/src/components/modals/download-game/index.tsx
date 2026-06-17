@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   Downloader,
   getDownloadDirectoryTitle,
@@ -18,8 +20,15 @@ import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
 } from "../../skeletons";
-import type { DiskUsage, Game, GameRepack, LibraryGame } from "@types";
+import type {
+  DiskUsage,
+  DownloadSource,
+  Game,
+  GameRepack,
+  LibraryGame,
+} from "@types";
 import {
+  type DownloadOptionsEmptyStateReason,
   useGameDownloadOptions,
   useFeature,
   useNavigationScreenActions,
@@ -31,6 +40,7 @@ import {
   Button,
   Checkbox,
   DropdownSelect,
+  EmptyState,
   HorizontalFocusGroup,
   Input,
   Modal,
@@ -60,13 +70,24 @@ interface DownloadGameModalProps {
     iconUrl?: string | null;
     libraryImageUrl?: string | null;
     coverImageUrl?: string | null;
+    downloadSources?: string[];
   };
 }
 
 interface DownloadGameSourceListProps {
-  game: DownloadGameModalProps["game"];
-  visible: boolean;
+  onClose: () => void;
   onSelectOption: (option: GameRepack) => void;
+  downloadOptions: GameRepack[];
+  localDownloadSources: DownloadSource[];
+  isCheckingSources: boolean;
+  isLoading: boolean;
+  emptyStateReason: DownloadOptionsEmptyStateReason | null;
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  selectedSources: string[];
+  onToggleSource: (sourceId: string) => void;
+  selectedSortOption: DownloadOptionsSortBy;
+  onSelectedSortOptionChange: (value: DownloadOptionsSortBy) => void;
 }
 
 interface DownloadGameOptionsProps {
@@ -74,6 +95,13 @@ interface DownloadGameOptionsProps {
   option: GameRepack;
   visible: boolean;
   onClose: () => void;
+  downloadDirectorySuggestions: DownloadDirectorySuggestion[];
+  selectedDownloadPath: string;
+  automaticExtractionEnabled: boolean;
+  deleteArchiveFilesAfterExtraction: boolean;
+  onSelectDownloadPath: (path: string) => void;
+  onAutomaticExtractionChange: (checked: boolean) => void;
+  onDeleteArchiveFilesAfterExtractionChange: (checked: boolean) => void;
 }
 
 interface DownloadDirectorySuggestion {
@@ -124,6 +152,8 @@ const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
   "download-game-modal-automatic-extract";
 const DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID =
   "download-game-modal-delete-archive";
+const DOWNLOAD_GAME_EMPTY_STATE_SETTINGS_BUTTON_ID =
+  "download-game-modal-empty-state-settings";
 
 function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
   const normalizedSource = sourceName
@@ -231,16 +261,78 @@ export function DownloadGameModal({
   onClose,
   game,
 }: Readonly<DownloadGameModalProps>) {
+  const sessionVersionRef = useRef(0);
+  const previousVisibleRef = useRef(visible);
+  const previousGameKeyRef = useRef(`${game.shop}:${game.objectId}`);
+  const gameSessionKey = `${game.shop}:${game.objectId}`;
+  const opened = !previousVisibleRef.current && visible;
+  const gameChanged = previousGameKeyRef.current !== gameSessionKey;
+
+  if (visible && (opened || gameChanged)) {
+    sessionVersionRef.current += 1;
+  }
+
+  previousVisibleRef.current = visible;
+  previousGameKeyRef.current = gameSessionKey;
+
+  return (
+    <DownloadGameModalSession
+      key={`${gameSessionKey}:${sessionVersionRef.current}`}
+      visible={visible}
+      onClose={onClose}
+      game={game}
+    />
+  );
+}
+
+function DownloadGameModalSession({
+  visible,
+  onClose,
+  game,
+}: Readonly<DownloadGameModalProps>) {
+  const userPreferences = useUserPreferences();
   const [selectedOption, setSelectedOption] = useState<GameRepack | null>(null);
+  const [pendingSelectedOption, setPendingSelectedOption] =
+    useState<GameRepack | null>(null);
   const [step, setStep] = useState<DownloadGameStep>(
     DownloadGameStep.SourceList
   );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [selectedSortOption, setSelectedSortOption] =
+    useState<DownloadOptionsSortBy>("newest");
+  const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
+    useState<DownloadDirectorySuggestion[]>([]);
+  const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
+  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
+    useState(true);
+  const [
+    deleteArchiveFilesAfterExtraction,
+    setDeleteArchiveFilesAfterExtraction,
+  ] = useState(false);
+  const [isPreparingOptions, setIsPreparingOptions] = useState(false);
+  const downloadPathTouchedRef = useRef(false);
+  const automaticExtractionTouchedRef = useRef(false);
+  const deleteArchiveTouchedRef = useRef(false);
+  const {
+    downloadOptions,
+    localDownloadSources,
+    isCheckingSources,
+    isLoading,
+    emptyStateReason,
+  } = useGameDownloadOptions(game, visible);
 
   const isntFirstStep = useMemo(() => {
     return step !== DownloadGameStep.SourceList;
   }, [step]);
 
   const handleNextStep = (option: GameRepack) => {
+    if (isPreparingOptions) {
+      setPendingSelectedOption(option);
+      return;
+    }
+
+    setPendingSelectedOption(null);
     setSelectedOption(option);
     setStep(DownloadGameStep.Options);
   };
@@ -251,6 +343,107 @@ export function DownloadGameModal({
 
   useNavigationScreenActions(
     isntFirstStep ? { press: { b: handleOnBack } } : {}
+  );
+
+  useEffect(() => {
+    if (!visible || !IS_DESKTOP) {
+      downloadPathTouchedRef.current = false;
+      automaticExtractionTouchedRef.current = false;
+      deleteArchiveTouchedRef.current = false;
+      setDownloadDirectorySuggestions([]);
+      setSelectedDownloadPath("");
+      setAutomaticExtractionEnabled(true);
+      setDeleteArchiveFilesAfterExtraction(false);
+      setPendingSelectedOption(null);
+      setIsPreparingOptions(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const buildDownloadDirectorySuggestions = async () => {
+      setIsPreparingOptions(true);
+
+      const defaultDownloadsPath =
+        await globalThis.window.electron.getDefaultDownloadsPath();
+      const resolvedDirectories = resolveDownloadDirectories(
+        userPreferences,
+        defaultDownloadsPath
+      );
+
+      const suggestions = await Promise.all(
+        resolvedDirectories.allPaths.map(async (path) => {
+          let diskUsage: DiskUsage = { free: 0, total: 0 };
+
+          try {
+            diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
+          } catch {
+            diskUsage = { free: 0, total: 0 };
+          }
+
+          return {
+            title: getDownloadDirectoryTitle(path),
+            path,
+            freeBytes: diskUsage.free,
+            totalBytes: diskUsage.total,
+          };
+        })
+      );
+
+      if (cancelled) return;
+
+      if (!downloadPathTouchedRef.current) {
+        setSelectedDownloadPath(resolvedDirectories.defaultPath);
+      }
+
+      setDownloadDirectorySuggestions(suggestions);
+
+      if (!automaticExtractionTouchedRef.current) {
+        setAutomaticExtractionEnabled(
+          userPreferences?.extractFilesByDefault ?? true
+        );
+      }
+
+      if (!deleteArchiveTouchedRef.current) {
+        setDeleteArchiveFilesAfterExtraction(
+          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        );
+      }
+
+      setIsPreparingOptions(false);
+    };
+
+    void buildDownloadDirectorySuggestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userPreferences, visible]);
+
+  useEffect(() => {
+    if (!visible || isPreparingOptions || !pendingSelectedOption) return;
+
+    setSelectedOption(pendingSelectedOption);
+    setStep(DownloadGameStep.Options);
+    setPendingSelectedOption(null);
+  }, [isPreparingOptions, pendingSelectedOption, visible]);
+
+  const handleSelectDownloadPath = useCallback((path: string) => {
+    downloadPathTouchedRef.current = true;
+    setSelectedDownloadPath(path);
+  }, []);
+
+  const handleAutomaticExtractionChange = useCallback((checked: boolean) => {
+    automaticExtractionTouchedRef.current = true;
+    setAutomaticExtractionEnabled(checked);
+  }, []);
+
+  const handleDeleteArchiveFilesAfterExtractionChange = useCallback(
+    (checked: boolean) => {
+      deleteArchiveTouchedRef.current = true;
+      setDeleteArchiveFilesAfterExtraction(checked);
+    },
+    []
   );
 
   const stepTransitionKey =
@@ -265,55 +458,102 @@ export function DownloadGameModal({
       coverImage={game.libraryHeroImageUrl ?? undefined}
       className="download-game-modal"
       closeOnB={!isntFirstStep}
-      onBack={handleOnBack}
+      onBack={isntFirstStep ? handleOnBack : undefined}
       animateLayout
     >
       <div className="download-game-modal__content">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={stepTransitionKey}
-            className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{
-              opacity: { duration: 0.18, ease: "easeOut" },
-              y: { duration: 0.18, ease: "easeOut" },
-            }}
-          >
-            {step === DownloadGameStep.SourceList && (
-              <DownloadGameSourceList
-                game={game}
-                visible={visible}
-                onSelectOption={handleNextStep}
-              />
-            )}
+        <motion.div
+          layout
+          className="download-game-modal__step-frame"
+          transition={{
+            layout: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+          }}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={stepTransitionKey}
+              layout
+              className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{
+                opacity: { duration: 0.18, ease: "easeOut" },
+                y: { duration: 0.18, ease: "easeOut" },
+                layout: { duration: 0.15, ease: [0.22, 1, 0.36, 1] },
+              }}
+            >
+              {step === DownloadGameStep.SourceList && (
+                <DownloadGameSourceList
+                  onClose={onClose}
+                  onSelectOption={handleNextStep}
+                  downloadOptions={downloadOptions}
+                  localDownloadSources={localDownloadSources}
+                  isCheckingSources={isCheckingSources}
+                  isLoading={isLoading}
+                  emptyStateReason={emptyStateReason}
+                  searchTerm={searchTerm}
+                  onSearchTermChange={setSearchTerm}
+                  selectedSources={selectedSources}
+                  onToggleSource={(sourceId) => {
+                    setSelectedSources((previousSources) =>
+                      previousSources.includes(sourceId)
+                        ? previousSources.filter(
+                            (previousSource) => previousSource !== sourceId
+                          )
+                        : [...previousSources, sourceId]
+                    );
+                  }}
+                  selectedSortOption={selectedSortOption}
+                  onSelectedSortOptionChange={setSelectedSortOption}
+                />
+              )}
 
-            {step === DownloadGameStep.Options && selectedOption && (
-              <DownloadGameOptions
-                key={selectedOption.id}
-                game={game}
-                option={selectedOption}
-                visible={visible}
-                onClose={onClose}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+              {step === DownloadGameStep.Options && selectedOption && (
+                <DownloadGameOptions
+                  key={selectedOption.id}
+                  game={game}
+                  option={selectedOption}
+                  visible={visible}
+                  onClose={onClose}
+                  downloadDirectorySuggestions={downloadDirectorySuggestions}
+                  selectedDownloadPath={selectedDownloadPath}
+                  automaticExtractionEnabled={automaticExtractionEnabled}
+                  deleteArchiveFilesAfterExtraction={
+                    deleteArchiveFilesAfterExtraction
+                  }
+                  onSelectDownloadPath={handleSelectDownloadPath}
+                  onAutomaticExtractionChange={handleAutomaticExtractionChange}
+                  onDeleteArchiveFilesAfterExtractionChange={
+                    handleDeleteArchiveFilesAfterExtractionChange
+                  }
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       </div>
     </Modal>
   );
 }
 
 function DownloadGameSourceList({
-  game,
-  visible,
+  onClose,
   onSelectOption,
+  downloadOptions,
+  localDownloadSources,
+  isCheckingSources,
+  isLoading,
+  emptyStateReason,
+  searchTerm,
+  onSearchTermChange,
+  selectedSources,
+  onToggleSource,
+  selectedSortOption,
+  onSelectedSortOptionChange,
 }: Readonly<DownloadGameSourceListProps>) {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [selectedSortOption, setSelectedSortOption] =
-    useState<DownloadOptionsSortBy>("newest");
+  const { t } = useTranslation("big_picture");
+  const navigate = useNavigate();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const rememberedFocusId = useNavigationStore(
     (state) =>
@@ -328,9 +568,6 @@ function DownloadGameSourceList({
     dragFree: true,
   });
   const lastAlignedFocusIdRef = useRef<string | null>(null);
-
-  const { downloadOptions, localDownloadSources, isLoading } =
-    useGameDownloadOptions(game, visible);
 
   const localDownloadSourceNameById = useMemo(
     () =>
@@ -373,6 +610,8 @@ function DownloadGameSourceList({
     () => sortDownloadOptions(filteredDownloadOptions, selectedSortOption),
     [filteredDownloadOptions, selectedSortOption]
   );
+  const isSourceListLoading = isCheckingSources || isLoading;
+  const hasEmptyState = !isSourceListLoading && emptyStateReason !== null;
   const handleSourceFocused = useSourceThresholdFocusScroll(sourcesEmblaApi);
 
   useEffect(() => {
@@ -422,80 +661,81 @@ function DownloadGameSourceList({
     lastAlignedFocusIdRef.current = null;
   }, [sourceItems]);
 
-  const handleSourceClick = (sourceId: string) => {
-    setSelectedSources((previousSources) =>
-      previousSources.includes(sourceId)
-        ? previousSources.filter(
-            (previousSource) => previousSource !== sourceId
-          )
-        : [...previousSources, sourceId]
-    );
-  };
-
-  const optionsTransitionKey = isLoading
+  const optionsTransitionKey = isSourceListLoading
     ? "loading"
+    : hasEmptyState
+      ? `empty-${emptyStateReason}`
     : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+
+  const handleOpenSettings = useCallback(() => {
+    onClose();
+    navigate("/settings?tab=downloads&section=sources");
+  }, [navigate, onClose]);
 
   return (
     <VerticalFocusGroup className="download-game-modal__source-list">
-      <Input
-        placeholder="Search options"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        iconLeft={<MagnifyingGlassIcon size={24} />}
-      />
-
-      <HorizontalFocusGroup className="download-game-modal__source-list__toolbar">
-        <div className="download-game-modal__source-list__sources-carousel">
-          <div
-            className="download-game-modal__source-list__sources-viewport"
-            ref={sourcesViewportRef}
-          >
-            <HorizontalFocusGroup
-              className="download-game-modal__source-list__sources"
-              regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
-            >
-              {isLoading &&
-                Array.from({ length: 3 }, (_, index) => (
-                  <div
-                    key={`source-anchor-skeleton-${index}`}
-                    className="download-game-modal__source-list__source-slide"
-                  >
-                    <SourceAnchorSkeleton size="large" />
-                  </div>
-                ))}
-
-              {!isLoading &&
-                sourceItems.map(({ id, name, focusId }, index) => (
-                  <div
-                    key={focusId}
-                    className="download-game-modal__source-list__source-slide"
-                    onFocusCapture={() => handleSourceFocused(index)}
-                  >
-                    <SourceAnchor
-                      focusId={focusId}
-                      title={name}
-                      size="large"
-                      isSelected={selectedSources.includes(id)}
-                      onClick={() => handleSourceClick(id)}
-                    />
-                  </div>
-                ))}
-            </HorizontalFocusGroup>
-          </div>
-        </div>
-
-        <HorizontalFocusGroup className="download-game-modal__source-list__sort-options">
-          <DropdownSelect
-            value={selectedSortOption}
-            options={DOWNLOAD_SORT_OPTIONS}
-            onValueChange={setSelectedSortOption}
-            leadingIcon={<SortAscendingIcon size={22} />}
-            ariaLabel="Sort options"
-            className="download-game-modal__source-list__sort-options-select"
+      {!hasEmptyState && (
+        <>
+          <Input
+            placeholder="Search options"
+            value={searchTerm}
+            onChange={(e) => onSearchTermChange(e.target.value)}
+            iconLeft={<MagnifyingGlassIcon size={24} />}
           />
-        </HorizontalFocusGroup>
-      </HorizontalFocusGroup>
+
+          <HorizontalFocusGroup className="download-game-modal__source-list__toolbar">
+            <div className="download-game-modal__source-list__sources-carousel">
+              <div
+                className="download-game-modal__source-list__sources-viewport"
+                ref={sourcesViewportRef}
+              >
+                <HorizontalFocusGroup
+                  className="download-game-modal__source-list__sources"
+                  regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
+                >
+                  {isSourceListLoading &&
+                    Array.from({ length: 3 }, (_, index) => (
+                      <div
+                        key={`source-anchor-skeleton-${index}`}
+                        className="download-game-modal__source-list__source-slide"
+                      >
+                        <SourceAnchorSkeleton size="large" />
+                      </div>
+                    ))}
+
+                  {!isSourceListLoading &&
+                    sourceItems.map(({ id, name, focusId }, index) => (
+                      <div
+                        key={focusId}
+                        className="download-game-modal__source-list__source-slide"
+                        onFocusCapture={() => handleSourceFocused(index)}
+                      >
+                        <SourceAnchor
+                          focusId={focusId}
+                          title={name}
+                          size="large"
+                          isSelected={selectedSources.includes(id)}
+                          onClick={() => onToggleSource(id)}
+                        />
+                      </div>
+                    ))}
+                </HorizontalFocusGroup>
+              </div>
+            </div>
+
+            <HorizontalFocusGroup className="download-game-modal__source-list__sort-options">
+              <DropdownSelect
+                value={selectedSortOption}
+                options={DOWNLOAD_SORT_OPTIONS}
+                onValueChange={onSelectedSortOptionChange}
+                leadingIcon={<SortAscendingIcon size={22} />}
+                ariaLabel="Sort options"
+                className="download-game-modal__source-list__sort-options-select"
+              />
+            </HorizontalFocusGroup>
+          </HorizontalFocusGroup>
+        </>
+      )}
 
       <div className="download-game-modal__source-list__options">
         <AnimatePresence mode="wait" initial={false}>
@@ -510,14 +750,35 @@ function DownloadGameSourceList({
               y: { duration: 0.18, ease: "easeOut" },
             }}
           >
-            {isLoading &&
+            {isSourceListLoading &&
               Array.from({ length: 3 }, (_, index) => (
                 <DownloadSourceOptionSkeleton
                   key={`download-source-option-skeleton-${index}`}
                 />
               ))}
 
-            {!isLoading &&
+            {hasEmptyState && (
+              <EmptyState
+                className="download-game-modal__source-list-empty-state"
+                icon={<MagnifyingGlassIcon size={32} weight="bold" />}
+                title={t("No download options")}
+                description={t(
+                  "Open Settings to review your download sources and look for more options."
+                )}
+                actions={
+                  <Button
+                    focusId={DOWNLOAD_GAME_EMPTY_STATE_SETTINGS_BUTTON_ID}
+                    stealFocusOnAppear
+                    onClick={handleOpenSettings}
+                  >
+                    {t("Open Settings")}
+                  </Button>
+                }
+              />
+            )}
+
+            {!isSourceListLoading &&
+              !hasEmptyState &&
               sortedDownloadOptions.map((option) => (
                 <DownloadSourceOption
                   key={option.id}
@@ -547,20 +808,15 @@ function DownloadGameOptions({
   option,
   visible,
   onClose,
+  downloadDirectorySuggestions,
+  selectedDownloadPath,
+  automaticExtractionEnabled,
+  deleteArchiveFilesAfterExtraction,
+  onSelectDownloadPath,
+  onAutomaticExtractionChange,
+  onDeleteArchiveFilesAfterExtractionChange,
 }: Readonly<DownloadGameOptionsProps>) {
   const { showErrorToast } = useBigPictureToast();
-  const downloadPathTouchedRef = useRef(false);
-  const automaticExtractionTouchedRef = useRef(false);
-  const deleteArchiveTouchedRef = useRef(false);
-  const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
-  const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
-    useState<DownloadDirectorySuggestion[]>([]);
-  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
-    useState(true);
-  const [
-    deleteArchiveFilesAfterExtraction,
-    setDeleteArchiveFilesAfterExtraction,
-  ] = useState(false);
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -684,92 +940,11 @@ function DownloadGameOptions({
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
-      downloadPathTouchedRef.current = false;
-      automaticExtractionTouchedRef.current = false;
-      deleteArchiveTouchedRef.current = false;
-      setSelectedDownloadPath("");
-      setDownloadDirectorySuggestions([]);
       setSelectedDownloader(undefined);
-      setAutomaticExtractionEnabled(true);
-      setDeleteArchiveFilesAfterExtraction(false);
       setIsSubmitting(false);
       return;
     }
-
-    let cancelled = false;
-
-    const buildDownloadDirectorySuggestions = async () => {
-      const defaultDownloadsPath =
-        await globalThis.window.electron.getDefaultDownloadsPath();
-      const resolvedDirectories = resolveDownloadDirectories(
-        userPreferences,
-        defaultDownloadsPath
-      );
-
-      const suggestions = await Promise.all(
-        resolvedDirectories.allPaths.map(async (path) => {
-          let diskUsage: DiskUsage = { free: 0, total: 0 };
-
-          try {
-            diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
-          } catch {
-            diskUsage = { free: 0, total: 0 };
-          }
-
-          return {
-            title: getDownloadDirectoryTitle(path),
-            path,
-            freeBytes: diskUsage.free,
-            totalBytes: diskUsage.total,
-          };
-        })
-      );
-
-      if (cancelled) return;
-
-      if (!downloadPathTouchedRef.current) {
-        setSelectedDownloadPath(resolvedDirectories.defaultPath);
-      }
-
-      setDownloadDirectorySuggestions(suggestions);
-
-      if (!automaticExtractionTouchedRef.current) {
-        setAutomaticExtractionEnabled(
-          userPreferences?.extractFilesByDefault ?? true
-        );
-      }
-
-      if (!deleteArchiveTouchedRef.current) {
-        setDeleteArchiveFilesAfterExtraction(
-          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
-        );
-      }
-    };
-
-    void buildDownloadDirectorySuggestions();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userPreferences, visible]);
-
-  const handleSelectDownloadPath = useCallback((path: string) => {
-    downloadPathTouchedRef.current = true;
-    setSelectedDownloadPath(path);
-  }, []);
-
-  const handleAutomaticExtractionChange = useCallback((checked: boolean) => {
-    automaticExtractionTouchedRef.current = true;
-    setAutomaticExtractionEnabled(checked);
-  }, []);
-
-  const handleDeleteArchiveFilesAfterExtractionChange = useCallback(
-    (checked: boolean) => {
-      deleteArchiveTouchedRef.current = true;
-      setDeleteArchiveFilesAfterExtraction(checked);
-    },
-    []
-  );
+  }, [visible]);
 
   const resolvedDownloader = useMemo(() => {
     if (!selectedDownloader) return null;
@@ -943,7 +1118,7 @@ function DownloadGameOptions({
                 totalBytes={directory.totalBytes}
                 isSelected={selectedDownloadPath === directory.path}
                 showSelectedIndicator
-                onClick={() => handleSelectDownloadPath(directory.path)}
+                onClick={() => onSelectDownloadPath(directory.path)}
                 className="download-game-modal__directory-disk"
               />
             ))}
@@ -956,7 +1131,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID}
             label="Automatically extract downloaded files"
             checked={automaticExtractionEnabled}
-            onChange={handleAutomaticExtractionChange}
+            onChange={onAutomaticExtractionChange}
           />
 
           <Checkbox
@@ -964,7 +1139,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID}
             label="Always delete archive files after extraction"
             checked={deleteArchiveFilesAfterExtraction}
-            onChange={handleDeleteArchiveFilesAfterExtractionChange}
+            onChange={onDeleteArchiveFilesAfterExtractionChange}
           />
         </div>
 

@@ -18,6 +18,7 @@ export class NavigationAudioService {
   private static instance: NavigationAudioService;
 
   private readonly audioByCue = new Map<NavigationAudioCue, HTMLAudioElement>();
+  private enabled = true;
 
   public static getInstance() {
     if (!NavigationAudioService.instance) {
@@ -28,6 +29,10 @@ export class NavigationAudioService {
   }
 
   public play(cue: NavigationAudioCue) {
+    if (!this.enabled) {
+      return;
+    }
+
     const audio = this.getAudio(cue);
 
     if (!audio) return;
@@ -39,6 +44,24 @@ export class NavigationAudioService {
     }
 
     audio.play().catch(() => {});
+  }
+
+  public setEnabled(enabled: boolean) {
+    this.enabled = enabled;
+
+    if (enabled) {
+      return;
+    }
+
+    for (const audio of this.audioByCue.values()) {
+      audio.pause();
+
+      try {
+        audio.currentTime = 0;
+      } catch {
+        // Some browsers may reject seeking before metadata is ready.
+      }
+    }
   }
 
   private getAudio(cue: NavigationAudioCue) {

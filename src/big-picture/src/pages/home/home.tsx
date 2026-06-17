@@ -64,7 +64,9 @@ type HomeSectionId = (typeof HOME_SECTION_ORDER)[number];
 type DownloadModalGame = Pick<
   ShopAssets,
   "objectId" | "shop" | "title" | "libraryHeroImageUrl"
->;
+> & {
+  downloadSources?: string[];
+};
 
 const DEFAULT_MENU_POSITION = { x: 0, y: 0 };
 

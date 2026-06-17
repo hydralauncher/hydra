@@ -3,23 +3,39 @@ import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
 import { orderBy } from "lodash-es";
 
+export type DownloadOptionsEmptyStateReason =
+  | "no-configured-sources"
+  | "no-game-sources"
+  | "no-download-options";
+
 export function useGameDownloadOptions(
-  game: Pick<Game, "objectId" | "shop">,
+  game: Pick<Game, "objectId" | "shop"> & {
+    downloadSources?: string[];
+  },
   visible: boolean
 ) {
   const shouldLoadDownloadOptions =
     visible && IS_DESKTOP && game.shop !== "custom";
+  const downloadSourcesDependencyKey = Array.isArray(game.downloadSources)
+    ? game.downloadSources.join("|")
+    : "__unknown__";
   const [downloadOptions, setDownloadOptions] = useState<GameRepack[]>([]);
   const [localDownloadSources, setLocalDownloadSources] = useState<
     DownloadSource[]
   >([]);
+  const [isCheckingSources, setIsCheckingSources] =
+    useState(shouldLoadDownloadOptions);
   const [isLoading, setIsLoading] = useState(shouldLoadDownloadOptions);
+  const [emptyStateReason, setEmptyStateReason] =
+    useState<DownloadOptionsEmptyStateReason | null>(null);
 
   useEffect(() => {
     if (!shouldLoadDownloadOptions) {
       setDownloadOptions([]);
       setLocalDownloadSources([]);
+      setIsCheckingSources(false);
       setIsLoading(false);
+      setEmptyStateReason(null);
       return;
     }
 
@@ -27,16 +43,20 @@ export function useGameDownloadOptions(
 
     const fetchDownloadOptions = async () => {
       if (!cancelled) {
-        setIsLoading(true);
+        setDownloadOptions([]);
+        setLocalDownloadSources([]);
+        setIsCheckingSources(true);
+        setIsLoading(false);
+        setEmptyStateReason(null);
       }
 
-      let sources: DownloadSource[] = [];
+      let sortedSources: DownloadSource[] = [];
 
       try {
-        sources = (await globalThis.window.electron.leveldb.values(
+        const sources = (await globalThis.window.electron.leveldb.values(
           "downloadSources"
         )) as DownloadSource[];
-        const sortedSources = orderBy(sources, "createdAt", "desc");
+        sortedSources = orderBy(sources, "createdAt", "desc");
 
         if (!cancelled) {
           setLocalDownloadSources(sortedSources);
@@ -44,7 +64,40 @@ export function useGameDownloadOptions(
       } catch {
         if (!cancelled) {
           setLocalDownloadSources([]);
+          setIsCheckingSources(false);
+          setDownloadOptions([]);
+          setEmptyStateReason("no-configured-sources");
+          setIsLoading(false);
         }
+
+        return;
+      }
+
+      if (sortedSources.length === 0) {
+        if (!cancelled) {
+          setDownloadOptions([]);
+          setIsCheckingSources(false);
+          setEmptyStateReason("no-configured-sources");
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      if (Array.isArray(game.downloadSources) && game.downloadSources.length === 0) {
+        if (!cancelled) {
+          setDownloadOptions([]);
+          setIsCheckingSources(false);
+          setEmptyStateReason("no-game-sources");
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      if (!cancelled) {
+        setIsCheckingSources(false);
+        setIsLoading(true);
       }
 
       try {
@@ -56,18 +109,24 @@ export function useGameDownloadOptions(
           params: {
             take: 100,
             skip: 0,
-            downloadSourceIds: sources.map((source) => source.id),
+            downloadSourceIds: sortedSources.map((source) => source.id),
           },
           needsAuth: false,
         });
 
         if (!cancelled) {
           setDownloadOptions(options);
+          setEmptyStateReason(
+            options.length === 0 ? "no-download-options" : null
+          );
+          setIsCheckingSources(false);
           setIsLoading(false);
         }
       } catch {
         if (!cancelled) {
           setDownloadOptions([]);
+          setEmptyStateReason("no-download-options");
+          setIsCheckingSources(false);
           setIsLoading(false);
         }
       }
@@ -78,7 +137,19 @@ export function useGameDownloadOptions(
     return () => {
       cancelled = true;
     };
-  }, [game.objectId, game.shop, shouldLoadDownloadOptions]);
+  }, [
+    downloadSourcesDependencyKey,
+    game.downloadSources,
+    game.objectId,
+    game.shop,
+    shouldLoadDownloadOptions,
+  ]);
 
-  return { downloadOptions, localDownloadSources, isLoading };
+  return {
+    downloadOptions,
+    localDownloadSources,
+    isCheckingSources,
+    isLoading,
+    emptyStateReason,
+  };
 }

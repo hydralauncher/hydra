@@ -38,6 +38,7 @@ export interface DropdownSelectProps<TValue extends string = string> {
   label?: string;
   hideLabel?: boolean;
   leadingIcon?: ReactNode;
+  disabled?: boolean;
   value: TValue;
   options: Array<DropdownSelectOption<TValue>>;
   onValueChange: (value: TValue) => void;
@@ -56,6 +57,7 @@ export function DropdownSelect<TValue extends string = string>({
   label,
   hideLabel = false,
   leadingIcon,
+  disabled = false,
   value,
   options,
   onValueChange,
@@ -105,6 +107,12 @@ export function DropdownSelect<TValue extends string = string>({
     },
     [restoreTriggerFocus]
   );
+
+  useEffect(() => {
+    if (!disabled) return;
+
+    setIsOpen(false);
+  }, [disabled]);
 
   const handleOptionSelect = useCallback(
     (nextValue: TValue) => {
@@ -172,15 +180,17 @@ export function DropdownSelect<TValue extends string = string>({
   }, [closeMenu, floatingRef, isOpen]);
 
   const handleTriggerClick = useCallback(() => {
+    if (disabled) return;
+
     if (!isOpen) {
       setFocus(resolvedBaseId);
     }
 
     setIsOpen((currentOpen) => !currentOpen);
-  }, [isOpen, resolvedBaseId, setFocus]);
+  }, [disabled, isOpen, resolvedBaseId, setFocus]);
 
   useNavigationScreenActions(
-    isOpen
+    isOpen && !disabled
       ? {
           press: {
             b: () => closeMenu(true),
@@ -215,19 +225,16 @@ export function DropdownSelect<TValue extends string = string>({
       ) : null}
 
       <div ref={referenceRef} className="dropdown-select__trigger-anchor">
-        <FocusItem
-          id={resolvedBaseId}
-          asChild
-          navigationOverrides={focusNavigationOverrides}
-        >
+        {disabled ? (
           <button
             type="button"
             className="dropdown-select__trigger"
             aria-label={resolvedAriaLabel}
+            aria-disabled="true"
             aria-haspopup="listbox"
-            aria-expanded={isOpen}
-            data-open={isOpen || undefined}
-            onClick={handleTriggerClick}
+            aria-expanded="false"
+            data-disabled="true"
+            disabled
           >
             <span className="dropdown-select__trigger-main">
               {leadingIcon ? (
@@ -243,10 +250,40 @@ export function DropdownSelect<TValue extends string = string>({
               aria-hidden="true"
             />
           </button>
-        </FocusItem>
+        ) : (
+          <FocusItem
+            id={resolvedBaseId}
+            asChild
+            navigationOverrides={focusNavigationOverrides}
+          >
+            <button
+              type="button"
+              className="dropdown-select__trigger"
+              aria-label={resolvedAriaLabel}
+              aria-haspopup="listbox"
+              aria-expanded={isOpen}
+              data-open={isOpen || undefined}
+              onClick={handleTriggerClick}
+            >
+              <span className="dropdown-select__trigger-main">
+                {leadingIcon ? (
+                  <span className="dropdown-select__lead" aria-hidden="true">
+                    {leadingIcon}
+                  </span>
+                ) : null}
+                <span className="dropdown-select__value">{resolvedLabel}</span>
+              </span>
+              <CaretDownIcon
+                size={18}
+                className="dropdown-select__chevron"
+                aria-hidden="true"
+              />
+            </button>
+          </FocusItem>
+        )}
       </div>
 
-      {isOpen && portalTarget
+      {isOpen && !disabled && portalTarget
         ? createPortal(
             <FocusRegionContext.Provider value={null}>
               <NavigationLayer

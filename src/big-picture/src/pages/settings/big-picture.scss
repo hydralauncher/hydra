@@ -1,0 +1,16 @@
+.big-picture-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 8);
+  width: 100%;
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__select {
+    width: 100%;
+  }
+}
