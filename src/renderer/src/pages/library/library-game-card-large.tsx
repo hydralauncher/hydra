@@ -102,9 +102,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const [heroIndex, setHeroIndex] = useState(0);
 
-  const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
-    game.unlockedAchievementCount ?? 0
-  );
+  const unlockedAchievementsCount = game.unlockedAchievementCount ?? 0;
+
+  useEffect(() => {
+    setHeroIndex(0);
+  }, [game.objectId]);
 
   useEffect(() => {
     const currentUrl = heroSources[heroIndex];
@@ -119,20 +121,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       }
     };
   }, [heroIndex, heroSources]);
-
-  useEffect(() => {
-    setHeroIndex(0);
-
-    if (game.unlockedAchievementCount) return;
-
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-      });
-  }, [game]);
 
   const backgroundStyle = useMemo(() => {
     const url = heroSources[heroIndex];

@@ -1,4 +1,5 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
+import { VideoIcon } from "@primer/octicons-react";
 import {
   useAppDispatch,
   useAppSelector,
@@ -466,6 +467,14 @@ export function App() {
     <>
       {window.electron.platform === "win32" && (
         <div className="title-bar">
+          <button
+            type="button"
+            className="title-bar__big-picture"
+            onClick={() => globalThis.window.electron.openBigPictureWindow()}
+          >
+            <VideoIcon size={14} />
+            {t("big_picture", { ns: "sidebar" })}
+          </button>
           <h4>
             Hydra
             {hasActiveSubscription && (
