@@ -408,7 +408,8 @@ export function Header() {
             <button
               type="button"
               className={cn("header__action-button", {
-                "header__action-button--scanning": isScanning,
+                "header__action-button--scanning":
+                  isScanning || isRemovingExecutables,
               })}
               onClick={() => setShowScanModal(true)}
               data-tooltip-id={scanButtonTooltipId}
