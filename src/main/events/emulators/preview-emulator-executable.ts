@@ -28,7 +28,7 @@ const previewEmulatorExecutable = async (
     };
   }
 
-  const result = emulators.detectEmulator(binary);
+  const result = emulators.detectEmulator(binary, { resolveVersion: true });
   if (!result) return null;
 
   return {
