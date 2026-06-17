@@ -20,6 +20,12 @@ export const GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID =
 
 type AssetTab = "icon" | "logo" | "hero";
 
+const ASSET_FRAME_SIZES: Record<AssetTab, { width: number; height: number }> = {
+  icon: { width: 192, height: 192 },
+  logo: { width: 341.33, height: 192 },
+  hero: { width: 594.58, height: 192 },
+};
+
 export interface GameCustomizationSettingsProps {
   game: LibraryGame;
   gameTitle: string;
@@ -69,6 +75,7 @@ export function GameCustomizationSettingsTab({
     setSelectedAssetTab(value);
     setHasAssetTabsInteracted(true);
   }, []);
+  const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
 
   useEffect(() => {
     const selectedIndex = assetTabValues.indexOf(selectedAssetTab);
@@ -76,7 +83,11 @@ export function GameCustomizationSettingsTab({
     const removeLeftBumper = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
-        if (!isFocused || !isActiveGamepadEvent(event) || selectedIndex === -1) {
+        if (
+          !isFocused ||
+          !isActiveGamepadEvent(event) ||
+          selectedIndex === -1
+        ) {
           return;
         }
 
@@ -90,7 +101,11 @@ export function GameCustomizationSettingsTab({
     const removeRightBumper = onButtonPressed(
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
-        if (!isFocused || !isActiveGamepadEvent(event) || selectedIndex === -1) {
+        if (
+          !isFocused ||
+          !isActiveGamepadEvent(event) ||
+          selectedIndex === -1
+        ) {
           return;
         }
 
@@ -135,13 +150,13 @@ export function GameCustomizationSettingsTab({
       </SettingsSection>
 
       <SettingsSection
-        className="game-customization-settings-tab__section"
+        className="game-customization-settings-tab__section game-customization-settings-tab__section--assets"
         title={t("edit_game_modal_assets")}
         description={t(
           "Choose which artwork you want to customize for this game."
         )}
       >
-        <div className="game-customization-settings-tab__section-content">
+        <div className="game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets">
           <Tabs
             items={assetTabItems}
             value={selectedAssetTab}
@@ -154,9 +169,15 @@ export function GameCustomizationSettingsTab({
             className="game-customization-settings-tab__asset-tabs"
           />
 
-          {selectedAssetTab === "icon" ? <p>Icon</p> : null}
-          {selectedAssetTab === "logo" ? <p>Logo</p> : null}
-          {selectedAssetTab === "hero" ? <p>Hero</p> : null}
+          <div className="game-customization-settings-tab__asset-preview">
+            <div
+              className="game-customization-settings-tab__asset-preview-frame"
+              style={{
+                width: assetFrameSize.width,
+                height: assetFrameSize.height,
+              }}
+            />
+          </div>
         </div>
       </SettingsSection>
     </VerticalFocusGroup>

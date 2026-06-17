@@ -3,12 +3,27 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
   width: 100%;
+  min-height: 100%;
   min-width: 0;
+  height: 100%;
   padding: calc(var(--spacing-unit) * 6);
 }
 
 .game-customization-settings-tab__section {
   width: 100%;
+}
+
+.game-customization-settings-tab__section--assets {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.game-customization-settings-tab__section--assets .settings-section__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .game-customization-settings-tab__section-content {
@@ -17,4 +32,42 @@
   gap: calc(var(--spacing-unit) * 4);
   width: 100%;
   min-width: 0;
+}
+
+.game-customization-settings-tab__section-content--assets {
+  flex: 1;
+  min-height: 0;
+}
+
+.game-customization-settings-tab__asset-preview {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 220px;
+  padding: calc(var(--spacing-unit) * 6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: calc(var(--spacing-unit) * 3);
+  overflow: hidden;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%);
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+  background-size: 20px 20px;
+}
+
+.game-customization-settings-tab__asset-preview-frame {
+  flex: none;
+  box-sizing: content-box;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: transparent;
 }
