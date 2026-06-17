@@ -113,6 +113,9 @@
     "cancel": "Отмена"
   },
   "header": {
+    "minimize": "Свернуть",
+    "maximize": "Развернуть",
+    "close": "Закрыть",
     "search": "Поиск",
     "search_library": "Поиск в библиотеке",
     "recent_searches": "Недавние поиски",

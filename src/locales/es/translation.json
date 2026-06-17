@@ -113,6 +113,9 @@
     "edit_game_modal_assets": "Recursos"
   },
   "header": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Cerrar",
     "search": "Buscar juegos",
     "search_library": "Buscar en la librería",
     "recent_searches": "Búsquedas Recientes",

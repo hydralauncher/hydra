@@ -113,6 +113,9 @@
     "collapse_games": "Recolher jogos"
   },
   "header": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "close": "Fechar",
     "search": "Buscar jogos",
     "search_library": "Buscar na biblioteca",
     "recent_searches": "Buscas Recentes",
