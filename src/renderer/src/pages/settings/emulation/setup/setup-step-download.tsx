@@ -33,7 +33,7 @@ const ARTICLE_KEYS: Record<EmulatorBinary, string> = {
   rpcs3: "install-rpcs3",
 };
 
-const SEMVER_RE = /v?\d+\.\d+(\.\d+)?/;
+const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;
 
 const extractSemver = (value: string | null): string | undefined =>
   (value && SEMVER_RE.exec(value)?.[0]) || undefined;
