@@ -302,10 +302,10 @@ function fmt(b: number) {
 }
 
 const isBatchExecutable = (executablePath?: string | null) =>
-  !!executablePath && /\.bat$/i.test(executablePath);
+  !!executablePath && /\.(bat|cmd)$/i.test(executablePath);
 
 const supportsTrackingExecutables = (executablePath?: string | null) =>
-  !!executablePath && /\.(bat|exe)$/i.test(executablePath);
+  !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
 export function GeneralSettingsSection({
   game,

@@ -426,7 +426,7 @@ export function GameDetailsContextProvider({
         : [
             {
               name: t("game_executable"),
-              extensions: ["exe", "lnk", "bat"],
+              extensions: ["exe", "lnk", "bat", "cmd"],
             },
           ];
 
