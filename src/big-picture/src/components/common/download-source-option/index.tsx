@@ -11,6 +11,7 @@ interface DownloadSourceOptionProps {
     GameRepack,
     "title" | "fileSize" | "downloadSourceName" | "uploadDate"
   >;
+  stealFocusOnAppear?: boolean;
   onSelect: (
     option: Pick<
       GameRepack,
@@ -21,6 +22,7 @@ interface DownloadSourceOptionProps {
 
 export function DownloadSourceOption({
   option,
+  stealFocusOnAppear = false,
   onSelect,
 }: Readonly<DownloadSourceOptionProps>) {
   const formatedDate = useMemo(() => {
@@ -28,7 +30,7 @@ export function DownloadSourceOption({
   }, [option.uploadDate]);
 
   return (
-    <FocusItem asChild>
+    <FocusItem asChild stealFocusOnAppear={stealFocusOnAppear}>
       <button
         className="download-source-option"
         onClick={() => onSelect(option)}
