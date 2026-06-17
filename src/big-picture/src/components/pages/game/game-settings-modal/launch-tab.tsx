@@ -161,9 +161,7 @@ export function GameLaunchSettingsTab({
             )}
 
             {discs.length > 0 ? (
-              <HorizontalFocusGroup
-                className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds"
-              >
+              <HorizontalFocusGroup className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds">
                 <Button
                   focusId={GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID}
                   variant="secondary"
@@ -176,15 +174,15 @@ export function GameLaunchSettingsTab({
                 </Button>
 
                 {selectedDisc ? (
-                <Button
-                  variant="danger"
-                  icon={<Trash size={16} />}
-                  onClick={() => {
-                    void onRemoveSelectedDisc();
-                  }}
-                >
-                  {t("remove_selected_disc")}
-                </Button>
+                  <Button
+                    variant="danger"
+                    icon={<Trash size={16} />}
+                    onClick={() => {
+                      void onRemoveSelectedDisc();
+                    }}
+                  >
+                    {t("remove_selected_disc")}
+                  </Button>
                 ) : null}
 
                 <Button
