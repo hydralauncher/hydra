@@ -791,9 +791,7 @@ function DownloadGameModalSession({
             key={activeStepContentKey}
             ref={activeStepRef}
             className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
-            initial={
-              transitionPhase === "entering" ? { opacity: 0 } : false
-            }
+            initial={transitionPhase === "entering" ? { opacity: 0 } : false}
             animate={{
               opacity: transitionPhase === "exiting" ? 0 : 1,
             }}
@@ -1059,7 +1057,7 @@ function DownloadGameSourceList({
       ? `empty-${emptyStateReason}`
       : hasSearchEmptyState
         ? "search-empty"
-      : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+        : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
 
   const handleOpenSettings = useCallback(() => {
     onClose();

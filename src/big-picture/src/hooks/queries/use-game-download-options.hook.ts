@@ -111,9 +111,7 @@ export function useGameDownloadOptions(
         return;
       }
 
-      if (
-        knownGameSourcesEmptyStateReason !== null
-      ) {
+      if (knownGameSourcesEmptyStateReason !== null) {
         if (!cancelled) {
           setDownloadOptions([]);
           setIsCheckingSources(false);
