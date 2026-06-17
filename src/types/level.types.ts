@@ -123,6 +123,14 @@ export type AchievementCustomNotificationPosition =
   | "bottom-center"
   | "bottom-right";
 
+export type BigPictureDiagnosticsPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
+
 export interface DownloadDirectoryPreference {
   path: string;
   createdAt: string;
@@ -167,6 +175,10 @@ export interface UserPreferences {
   hideToTrayOnGameStart?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
+  bigPictureSoundsEnabled?: boolean;
+  bigPictureVirtualKeyboardEnabled?: boolean;
+  bigPictureDiagnosticsEnabled?: boolean;
+  bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
   maxDownloadSpeedBytesPerSecond?: number | null;
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;

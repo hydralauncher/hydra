@@ -6,7 +6,7 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop, ShopAssets } from "@types";
+import type { GameShop } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import {
   getItemFocusTarget,
   resolveImageSource,
 } from "../../helpers";
+import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
   VerticalFocusGroup,
@@ -374,7 +375,7 @@ export default function Game() {
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
-  const gameToastSource = useMemo<ShopAssets>(
+  const gameToastSource = useMemo<LibraryToastSource>(
     () => ({
       objectId: objectId ?? "",
       shop: shop ?? "steam",
@@ -392,7 +393,7 @@ export default function Game() {
         shopDetails?.assets?.logoPosition ?? game?.logoPosition ?? null,
       coverImageUrl:
         shopDetails?.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
-      downloadSources: shopDetails?.assets?.downloadSources ?? [],
+      downloadSources: shopDetails?.assets?.downloadSources,
     }),
     [game, objectId, resolvedGameTitle, shop, shopDetails?.assets]
   );
@@ -1453,6 +1454,8 @@ export default function Game() {
             shop: shop!,
             title: shopDetails.assets?.title ?? game?.title ?? "Download Game",
             iconUrl: shopDetails.assets?.iconUrl ?? game?.iconUrl ?? null,
+            downloadSources:
+              shopDetails.assets?.downloadSources ?? game?.downloadSources,
             libraryHeroImageUrl:
               shopDetails.assets?.libraryHeroImageUrl ??
               game?.libraryHeroImageUrl ??

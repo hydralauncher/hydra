@@ -319,6 +319,12 @@ export class WindowManager {
       return;
     }
 
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
     await BigPictureSessionManager.apply();
     const targetDisplay = await DisplayManager.getBigPictureDisplay();
     const targetBounds = targetDisplay.bounds;
@@ -345,7 +351,11 @@ export class WindowManager {
       this.bigPicture.webContents.openDevTools();
     }
 
-    this.loadWindowURL(this.bigPicture, "big-picture");
+    const bigPictureInitialHash = userPreferences?.launchToLibraryPage
+      ? "big-picture/library"
+      : "big-picture";
+
+    this.loadWindowURL(this.bigPicture, bigPictureInitialHash);
 
     this.bigPicture.once("ready-to-show", () => {
       const main = this.mainWindow;

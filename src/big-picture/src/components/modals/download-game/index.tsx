@@ -1,5 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   Downloader,
   getDownloadDirectoryTitle,
@@ -18,19 +28,27 @@ import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
 } from "../../skeletons";
-import type { DiskUsage, Game, GameRepack, LibraryGame } from "@types";
+import type {
+  DiskUsage,
+  DownloadSource,
+  Game,
+  GameRepack,
+  LibraryGame,
+} from "@types";
 import {
+  type DownloadOptionsEmptyStateReason,
   useGameDownloadOptions,
   useFeature,
   useNavigationScreenActions,
   useBigPictureToast,
   useUserPreferences,
 } from "../../../hooks";
-import { useNavigationStore } from "../../../stores";
+import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
 import {
   Button,
   Checkbox,
   DropdownSelect,
+  EmptyState,
   HorizontalFocusGroup,
   Input,
   Modal,
@@ -60,13 +78,24 @@ interface DownloadGameModalProps {
     iconUrl?: string | null;
     libraryImageUrl?: string | null;
     coverImageUrl?: string | null;
+    downloadSources?: string[];
   };
 }
 
 interface DownloadGameSourceListProps {
-  game: DownloadGameModalProps["game"];
-  visible: boolean;
+  onClose: () => void;
   onSelectOption: (option: GameRepack) => void;
+  downloadOptions: GameRepack[];
+  localDownloadSources: DownloadSource[];
+  isCheckingSources: boolean;
+  isLoading: boolean;
+  emptyStateReason: DownloadOptionsEmptyStateReason | null;
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
+  selectedSources: string[];
+  onToggleSource: (sourceId: string) => void;
+  selectedSortOption: DownloadOptionsSortBy;
+  onSelectedSortOptionChange: (value: DownloadOptionsSortBy) => void;
 }
 
 interface DownloadGameOptionsProps {
@@ -74,6 +103,13 @@ interface DownloadGameOptionsProps {
   option: GameRepack;
   visible: boolean;
   onClose: () => void;
+  downloadDirectorySuggestions: DownloadDirectorySuggestion[];
+  selectedDownloadPath: string;
+  automaticExtractionEnabled: boolean;
+  deleteArchiveFilesAfterExtraction: boolean;
+  onSelectDownloadPath: (path: string) => void;
+  onAutomaticExtractionChange: (checked: boolean) => void;
+  onDeleteArchiveFilesAfterExtractionChange: (checked: boolean) => void;
 }
 
 interface DownloadDirectorySuggestion {
@@ -113,17 +149,23 @@ enum DownloadGameStep {
   Options,
 }
 
+type StepTransitionPhase = "idle" | "exiting" | "entering";
+
 type SourceCarouselEmblaApi = ReturnType<typeof useEmblaCarousel>[1];
 type ResolvedSourceCarouselEmblaApi = NonNullable<SourceCarouselEmblaApi>;
 
-const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
+const PARTIAL_VISIBLE_SOURCE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
+const DOWNLOAD_GAME_STEP_FADE_DURATION_SECONDS = 0.1;
+const DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS = 0.15;
 const DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID =
   "download-game-modal-source-carousel";
 const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
   "download-game-modal-automatic-extract";
 const DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID =
   "download-game-modal-delete-archive";
+const DOWNLOAD_GAME_EMPTY_STATE_SETTINGS_BUTTON_ID =
+  "download-game-modal-empty-state-settings";
 
 function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
   const normalizedSource = sourceName
@@ -134,15 +176,46 @@ function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
   return `download-game-source-${sourceId}-${normalizedSource || "source"}-${index}`;
 }
 
+function getSearchQueryPreview(query: string, maxCharacters = 16) {
+  if (query.length <= maxCharacters) return query;
+
+  return `${query.slice(0, maxCharacters).trimEnd()}...`;
+}
+
+function getSourceTrackPadding(viewportWidth: number, slideWidth: number) {
+  if (viewportWidth <= 0 || slideWidth <= 0) return 0;
+
+  return Math.max(0, viewportWidth / 2 - slideWidth / 2);
+}
+
+function getSourceSlideStep(slideRects: DOMRect[]) {
+  if (slideRects.length <= 1) return slideRects[0]?.width ?? 0;
+
+  const step = slideRects[1].left - slideRects[0].left;
+
+  if (step <= SLIDE_MEASUREMENT_EPSILON_PX) {
+    return slideRects[0]?.width ?? 0;
+  }
+
+  return step;
+}
+
 function getSourceViewportSlideMetrics(
-  emblaApi: ResolvedSourceCarouselEmblaApi
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement
 ) {
-  const viewportRect = emblaApi.rootNode().getBoundingClientRect();
-  const slideRects = emblaApi
-    .slideNodes()
-    .map((slideNode) => slideNode.getBoundingClientRect());
+  const slideNodes = emblaApi.slideNodes();
+  const viewportRect = viewportElement.getBoundingClientRect();
+  const slideRects = slideNodes.map((slideNode) =>
+    slideNode.getBoundingClientRect()
+  );
 
   if (slideRects.length === 0) return null;
+
+  const slideWidth = slideRects[0]?.width ?? 0;
+  const slideStep = getSourceSlideStep(slideRects);
+
+  if (slideWidth <= 0 || slideStep <= 0) return null;
 
   const visibleIndexes = slideRects.reduce<number[]>(
     (indexes, slideRect, index) => {
@@ -154,7 +227,7 @@ function getSourceViewportSlideMetrics(
 
       if (
         visibleWidth + SLIDE_MEASUREMENT_EPSILON_PX >=
-        slideRect.width * PARTIAL_VISIBLE_SLIDE_RATIO
+        slideRect.width * PARTIAL_VISIBLE_SOURCE_RATIO
       ) {
         indexes.push(index);
       }
@@ -166,64 +239,182 @@ function getSourceViewportSlideMetrics(
 
   if (visibleIndexes.length === 0) return null;
 
+  const firstVisibleIndex = visibleIndexes[0];
+  const visibleCount = Math.max(
+    1,
+    Math.min(visibleIndexes.length, slideRects.length - firstVisibleIndex)
+  );
+
   return {
-    firstVisibleIndex: visibleIndexes[0],
-    visibleCount: visibleIndexes.length,
+    firstVisibleIndex,
+    visibleCount,
     visibleIndexes,
+    viewportRect,
+    slideRects,
   };
+}
+
+function getSourceTargetStartIndex(
+  focusedIndex: number,
+  visibleCount: number,
+  slideCount: number
+) {
+  const selectedPosition = Math.floor(visibleCount / 2) + 1;
+  const maxStartIndex = Math.max(0, slideCount - visibleCount);
+
+  return Math.max(
+    0,
+    Math.min(focusedIndex - (selectedPosition - 1), maxStartIndex)
+  );
+}
+
+function nudgeClippedFocusedSource(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  focusedIndex: number
+) {
+  const focusedSlideNode = emblaApi.slideNodes()[focusedIndex];
+
+  if (!focusedSlideNode) return;
+
+  const viewportRect = viewportElement.getBoundingClientRect();
+  const focusedSlideRect = focusedSlideNode.getBoundingClientRect();
+  const rightOverflow =
+    focusedSlideRect.right - viewportRect.right + SLIDE_MEASUREMENT_EPSILON_PX;
+  const leftOverflow =
+    viewportRect.left - focusedSlideRect.left + SLIDE_MEASUREMENT_EPSILON_PX;
+  let deltaX = 0;
+
+  if (rightOverflow > SLIDE_MEASUREMENT_EPSILON_PX) {
+    deltaX = -rightOverflow;
+  } else if (leftOverflow > SLIDE_MEASUREMENT_EPSILON_PX) {
+    deltaX = leftOverflow;
+  }
+
+  if (Math.abs(deltaX) <= SLIDE_MEASUREMENT_EPSILON_PX) return;
+
+  const internalEngine = emblaApi.internalEngine();
+  const signedDistance = internalEngine.axis.direction(deltaX);
+
+  internalEngine.scrollTo.distance(signedDistance, false);
 }
 
 function syncSourceThresholdFocusScroll(
   emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
   previousFocusedIndex: number | null,
-  nextFocusedIndex: number
+  nextFocusedIndex: number,
+  restoreFocus = false
 ) {
+  const viewportMetrics = getSourceViewportSlideMetrics(
+    emblaApi,
+    viewportElement
+  );
+
+  if (!viewportMetrics) return;
+
+  const {
+    firstVisibleIndex,
+    visibleCount,
+    visibleIndexes,
+    viewportRect,
+    slideRects,
+  } = viewportMetrics;
+  const slideCount = slideRects.length;
+  const rightTriggerPosition = Math.max(1, Math.ceil(visibleCount / 2));
+  const leftTriggerPosition = Math.min(
+    visibleCount,
+    Math.floor(visibleCount / 2) + 1
+  );
+  const visiblePositionOneBased = nextFocusedIndex - firstVisibleIndex + 1;
+  const isOutOfBounds =
+    visiblePositionOneBased < 1 || visiblePositionOneBased > visibleCount;
+  const focusedSlideRect = slideRects[nextFocusedIndex];
+  const isClippedOnLeft =
+    focusedSlideRect &&
+    focusedSlideRect.left + SLIDE_MEASUREMENT_EPSILON_PX < viewportRect.left;
+  const isClippedOnRight =
+    focusedSlideRect &&
+    focusedSlideRect.right - SLIDE_MEASUREMENT_EPSILON_PX > viewportRect.right;
+  const targetStartIndex = getSourceTargetStartIndex(
+    nextFocusedIndex,
+    visibleCount,
+    slideCount
+  );
+  const isWithinInitialWindow =
+    firstVisibleIndex === 0 && nextFocusedIndex <= rightTriggerPosition;
+
+  if (restoreFocus) {
+    if (nextFocusedIndex <= rightTriggerPosition) {
+      if (firstVisibleIndex !== 0) {
+        emblaApi.scrollTo(0, true);
+      }
+    } else if (firstVisibleIndex !== targetStartIndex) {
+      emblaApi.scrollTo(targetStartIndex, true);
+    }
+
+    globalThis.requestAnimationFrame(() => {
+      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    });
+
+    return;
+  }
+
   const didNotChange =
     previousFocusedIndex == null || previousFocusedIndex === nextFocusedIndex;
 
   if (didNotChange) return;
 
-  const viewportMetrics = getSourceViewportSlideMetrics(emblaApi);
+  if (isWithinInitialWindow) {
+    if (isClippedOnLeft || isClippedOnRight) {
+      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    }
 
-  if (!viewportMetrics) return;
+    return;
+  }
 
-  const { visibleIndexes } = viewportMetrics;
-  const visibleCount = visibleIndexes.length;
-  const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
-  const isOutOfBounds = visiblePosition === -1;
+  if (isOutOfBounds) {
+    if (firstVisibleIndex !== targetStartIndex) {
+      emblaApi.scrollTo(targetStartIndex, true);
+      globalThis.requestAnimationFrame(() => {
+        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+      });
+      return;
+    }
 
-  if (isOutOfBounds) return;
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    return;
+  }
 
-  const selectedPosition = Math.floor(visibleCount / 2) + 1;
   const isMovingRight = nextFocusedIndex > previousFocusedIndex;
   const shouldScroll = isMovingRight
-    ? visiblePosition + 1 > selectedPosition && emblaApi.canScrollNext()
-    : visiblePosition + 1 < selectedPosition && emblaApi.canScrollPrev();
+    ? visiblePositionOneBased > rightTriggerPosition
+    : visiblePositionOneBased < leftTriggerPosition;
 
-  if (!shouldScroll) return;
+  if (shouldScroll) {
+    const didScroll = isMovingRight
+      ? emblaApi.canScrollNext()
+      : emblaApi.canScrollPrev();
 
-  if (isMovingRight) emblaApi.scrollNext();
-  else emblaApi.scrollPrev();
-}
+    if (didScroll) {
+      if (isMovingRight) {
+        emblaApi.scrollNext();
+      } else {
+        emblaApi.scrollPrev();
+      }
 
-function useSourceThresholdFocusScroll(emblaApi: SourceCarouselEmblaApi) {
-  const lastFocusedIndexRef = useRef<number | null>(null);
+      globalThis.requestAnimationFrame(() => {
+        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+      });
+      return;
+    }
+  }
 
-  return useCallback(
-    (nextFocusedIndex: number) => {
-      const previousFocusedIndex = lastFocusedIndexRef.current;
-      lastFocusedIndexRef.current = nextFocusedIndex;
+  const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
 
-      if (!emblaApi) return;
-
-      syncSourceThresholdFocusScroll(
-        emblaApi,
-        previousFocusedIndex,
-        nextFocusedIndex
-      );
-    },
-    [emblaApi]
-  );
+  if (visiblePosition !== -1 && (isClippedOnLeft || isClippedOnRight)) {
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+  }
 }
 
 export function DownloadGameModal({
@@ -231,30 +422,344 @@ export function DownloadGameModal({
   onClose,
   game,
 }: Readonly<DownloadGameModalProps>) {
+  const sessionVersionRef = useRef(0);
+  const previousVisibleRef = useRef(visible);
+  const previousGameKeyRef = useRef(`${game.shop}:${game.objectId}`);
+  const gameSessionKey = `${game.shop}:${game.objectId}`;
+  const opened = !previousVisibleRef.current && visible;
+  const gameChanged = previousGameKeyRef.current !== gameSessionKey;
+
+  if (visible && (opened || gameChanged)) {
+    sessionVersionRef.current += 1;
+  }
+
+  previousVisibleRef.current = visible;
+  previousGameKeyRef.current = gameSessionKey;
+
+  return (
+    <DownloadGameModalSession
+      key={`${gameSessionKey}:${sessionVersionRef.current}`}
+      visible={visible}
+      onClose={onClose}
+      game={game}
+    />
+  );
+}
+
+function DownloadGameModalSession({
+  visible,
+  onClose,
+  game,
+}: Readonly<DownloadGameModalProps>) {
+  const userPreferences = useUserPreferences();
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
+  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
   const [selectedOption, setSelectedOption] = useState<GameRepack | null>(null);
-  const [step, setStep] = useState<DownloadGameStep>(
+  const [pendingSelectedOption, setPendingSelectedOption] =
+    useState<GameRepack | null>(null);
+  const [activeStep, setActiveStep] = useState<DownloadGameStep>(
     DownloadGameStep.SourceList
   );
+  const [pendingStep, setPendingStep] = useState<DownloadGameStep | null>(null);
+  const [transitionPhase, setTransitionPhase] =
+    useState<StepTransitionPhase>("idle");
+  const [stepFrameHeight, setStepFrameHeight] = useState<number | "auto">(
+    "auto"
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [selectedSortOption, setSelectedSortOption] =
+    useState<DownloadOptionsSortBy>("newest");
+  const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
+    useState<DownloadDirectorySuggestion[]>([]);
+  const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
+  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
+    useState(true);
+  const [
+    deleteArchiveFilesAfterExtraction,
+    setDeleteArchiveFilesAfterExtraction,
+  ] = useState(false);
+  const [isPreparingOptions, setIsPreparingOptions] = useState(false);
+  const stepFrameRef = useRef<HTMLDivElement | null>(null);
+  const activeStepRef = useRef<HTMLDivElement | null>(null);
+  const resetStepFrameHeightTimeoutRef = useRef<number | null>(null);
+  const downloadPathTouchedRef = useRef(false);
+  const automaticExtractionTouchedRef = useRef(false);
+  const deleteArchiveTouchedRef = useRef(false);
+  const {
+    downloadOptions,
+    localDownloadSources,
+    isCheckingSources,
+    isLoading,
+    emptyStateReason,
+  } = useGameDownloadOptions(game, visible);
 
   const isntFirstStep = useMemo(() => {
-    return step !== DownloadGameStep.SourceList;
-  }, [step]);
+    return activeStep !== DownloadGameStep.SourceList;
+  }, [activeStep]);
+
+  const requestStepChange = useCallback(
+    (nextStep: DownloadGameStep) => {
+      if (nextStep === activeStep || transitionPhase !== "idle") return;
+
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+        resetStepFrameHeightTimeoutRef.current = null;
+      }
+
+      const currentHeight =
+        stepFrameRef.current?.getBoundingClientRect().height ??
+        activeStepRef.current?.getBoundingClientRect().height ??
+        0;
+
+      setStepFrameHeight(currentHeight > 0 ? currentHeight : "auto");
+      setPendingStep(nextStep);
+      setTransitionPhase("exiting");
+    },
+    [activeStep, transitionPhase]
+  );
 
   const handleNextStep = (option: GameRepack) => {
+    if (isPreparingOptions) {
+      setPendingSelectedOption(option);
+      return;
+    }
+
+    setPendingSelectedOption(null);
     setSelectedOption(option);
-    setStep(DownloadGameStep.Options);
+    requestStepChange(DownloadGameStep.Options);
   };
 
   const handleOnBack = () => {
-    if (isntFirstStep) setStep(DownloadGameStep.SourceList);
+    if (isntFirstStep) requestStepChange(DownloadGameStep.SourceList);
   };
 
   useNavigationScreenActions(
-    isntFirstStep ? { press: { b: handleOnBack } } : {}
+    isntFirstStep && !isVirtualKeyboardOpen
+      ? { press: { b: handleOnBack } }
+      : {}
+  );
+
+  useEffect(() => {
+    if (!visible || !IS_DESKTOP) {
+      downloadPathTouchedRef.current = false;
+      automaticExtractionTouchedRef.current = false;
+      deleteArchiveTouchedRef.current = false;
+      setDownloadDirectorySuggestions([]);
+      setSelectedDownloadPath("");
+      setAutomaticExtractionEnabled(true);
+      setDeleteArchiveFilesAfterExtraction(false);
+      setPendingSelectedOption(null);
+      setIsPreparingOptions(false);
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+        resetStepFrameHeightTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const buildDownloadDirectorySuggestions = async () => {
+      setIsPreparingOptions(true);
+
+      const defaultDownloadsPath =
+        await globalThis.window.electron.getDefaultDownloadsPath();
+      const resolvedDirectories = resolveDownloadDirectories(
+        userPreferences,
+        defaultDownloadsPath
+      );
+
+      const suggestions = await Promise.all(
+        resolvedDirectories.allPaths.map(async (path) => {
+          let diskUsage: DiskUsage = { free: 0, total: 0 };
+
+          try {
+            diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
+          } catch {
+            diskUsage = { free: 0, total: 0 };
+          }
+
+          return {
+            title: getDownloadDirectoryTitle(path),
+            path,
+            freeBytes: diskUsage.free,
+            totalBytes: diskUsage.total,
+          };
+        })
+      );
+
+      if (cancelled) return;
+
+      if (!downloadPathTouchedRef.current) {
+        setSelectedDownloadPath(resolvedDirectories.defaultPath);
+      }
+
+      setDownloadDirectorySuggestions(suggestions);
+
+      if (!automaticExtractionTouchedRef.current) {
+        setAutomaticExtractionEnabled(
+          userPreferences?.extractFilesByDefault ?? true
+        );
+      }
+
+      if (!deleteArchiveTouchedRef.current) {
+        setDeleteArchiveFilesAfterExtraction(
+          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        );
+      }
+
+      setIsPreparingOptions(false);
+    };
+
+    void buildDownloadDirectorySuggestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userPreferences, visible]);
+
+  useEffect(() => {
+    return () => {
+      if (resetStepFrameHeightTimeoutRef.current !== null) {
+        globalThis.window.clearTimeout(resetStepFrameHeightTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible || isPreparingOptions || !pendingSelectedOption) return;
+
+    setSelectedOption(pendingSelectedOption);
+    requestStepChange(DownloadGameStep.Options);
+    setPendingSelectedOption(null);
+  }, [isPreparingOptions, pendingSelectedOption, requestStepChange, visible]);
+
+  useLayoutEffect(() => {
+    if (transitionPhase !== "entering") return;
+
+    const frame = requestAnimationFrame(() => {
+      const nextHeight = activeStepRef.current?.getBoundingClientRect().height;
+
+      if (nextHeight && nextHeight > 0) {
+        setStepFrameHeight(nextHeight);
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [activeStep, transitionPhase]);
+
+  const handleSelectDownloadPath = useCallback((path: string) => {
+    downloadPathTouchedRef.current = true;
+    setSelectedDownloadPath(path);
+  }, []);
+
+  const handleAutomaticExtractionChange = useCallback((checked: boolean) => {
+    automaticExtractionTouchedRef.current = true;
+    setAutomaticExtractionEnabled(checked);
+  }, []);
+
+  const handleDeleteArchiveFilesAfterExtractionChange = useCallback(
+    (checked: boolean) => {
+      deleteArchiveTouchedRef.current = true;
+      setDeleteArchiveFilesAfterExtraction(checked);
+    },
+    []
   );
 
   const stepTransitionKey =
-    step === DownloadGameStep.SourceList ? "source-list" : "options";
+    activeStep === DownloadGameStep.SourceList ? "source-list" : "options";
+  const activeStepContentKey =
+    activeStep === DownloadGameStep.SourceList
+      ? "source-list"
+      : `options-${selectedOption?.id ?? "none"}`;
+  const renderSourceListStep = useCallback(
+    () => (
+      <DownloadGameSourceList
+        onClose={onClose}
+        onSelectOption={handleNextStep}
+        downloadOptions={downloadOptions}
+        localDownloadSources={localDownloadSources}
+        isCheckingSources={isCheckingSources}
+        isLoading={isLoading}
+        emptyStateReason={emptyStateReason}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        selectedSources={selectedSources}
+        onToggleSource={(sourceId) => {
+          setSelectedSources((previousSources) =>
+            previousSources.includes(sourceId)
+              ? previousSources.filter(
+                  (previousSource) => previousSource !== sourceId
+                )
+              : [...previousSources, sourceId]
+          );
+        }}
+        selectedSortOption={selectedSortOption}
+        onSelectedSortOptionChange={setSelectedSortOption}
+      />
+    ),
+    [
+      downloadOptions,
+      emptyStateReason,
+      handleNextStep,
+      isCheckingSources,
+      isLoading,
+      localDownloadSources,
+      onClose,
+      searchTerm,
+      selectedSortOption,
+      selectedSources,
+    ]
+  );
+  const renderOptionsStep = useCallback(
+    (option: GameRepack) => (
+      <DownloadGameOptions
+        key={option.id}
+        game={game}
+        option={option}
+        visible={visible}
+        onClose={onClose}
+        downloadDirectorySuggestions={downloadDirectorySuggestions}
+        selectedDownloadPath={selectedDownloadPath}
+        automaticExtractionEnabled={automaticExtractionEnabled}
+        deleteArchiveFilesAfterExtraction={deleteArchiveFilesAfterExtraction}
+        onSelectDownloadPath={handleSelectDownloadPath}
+        onAutomaticExtractionChange={handleAutomaticExtractionChange}
+        onDeleteArchiveFilesAfterExtractionChange={
+          handleDeleteArchiveFilesAfterExtractionChange
+        }
+      />
+    ),
+    [
+      automaticExtractionEnabled,
+      deleteArchiveFilesAfterExtraction,
+      downloadDirectorySuggestions,
+      game,
+      handleAutomaticExtractionChange,
+      handleDeleteArchiveFilesAfterExtractionChange,
+      handleSelectDownloadPath,
+      onClose,
+      selectedDownloadPath,
+      visible,
+    ]
+  );
+  const renderStepContent = useCallback(
+    (targetStep: DownloadGameStep, optionOverride?: GameRepack | null) => {
+      if (targetStep === DownloadGameStep.SourceList) {
+        return renderSourceListStep();
+      }
+
+      const option = optionOverride ?? selectedOption;
+
+      return option ? renderOptionsStep(option) : null;
+    },
+    [renderOptionsStep, renderSourceListStep, selectedOption]
+  );
 
   return (
     <Modal
@@ -265,72 +770,90 @@ export function DownloadGameModal({
       coverImage={game.libraryHeroImageUrl ?? undefined}
       className="download-game-modal"
       closeOnB={!isntFirstStep}
-      onBack={handleOnBack}
+      onBack={isntFirstStep ? handleOnBack : undefined}
       animateLayout
+      layoutTransition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="download-game-modal__content">
-        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          ref={stepFrameRef}
+          className="download-game-modal__step-frame"
+          initial={false}
+          animate={{ height: stepFrameHeight }}
+          transition={{
+            height: {
+              duration: DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS,
+              ease: [0.22, 1, 0.36, 1],
+            },
+          }}
+        >
           <motion.div
-            key={stepTransitionKey}
+            key={activeStepContentKey}
+            ref={activeStepRef}
             className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
+            initial={transitionPhase === "entering" ? { opacity: 0 } : false}
+            animate={{
+              opacity: transitionPhase === "exiting" ? 0 : 1,
+            }}
             transition={{
-              opacity: { duration: 0.18, ease: "easeOut" },
-              y: { duration: 0.18, ease: "easeOut" },
+              opacity: {
+                duration: DOWNLOAD_GAME_STEP_FADE_DURATION_SECONDS,
+                ease: [0.22, 1, 0.36, 1],
+              },
+            }}
+            onAnimationComplete={() => {
+              if (transitionPhase === "exiting" && pendingStep !== null) {
+                setActiveStep(pendingStep);
+                setPendingStep(null);
+                setTransitionPhase("entering");
+                return;
+              }
+
+              if (transitionPhase === "entering") {
+                setTransitionPhase("idle");
+                resetStepFrameHeightTimeoutRef.current =
+                  globalThis.window.setTimeout(() => {
+                    setStepFrameHeight("auto");
+                    resetStepFrameHeightTimeoutRef.current = null;
+                  }, DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS * 1000);
+              }
             }}
           >
-            {step === DownloadGameStep.SourceList && (
-              <DownloadGameSourceList
-                game={game}
-                visible={visible}
-                onSelectOption={handleNextStep}
-              />
-            )}
-
-            {step === DownloadGameStep.Options && selectedOption && (
-              <DownloadGameOptions
-                key={selectedOption.id}
-                game={game}
-                option={selectedOption}
-                visible={visible}
-                onClose={onClose}
-              />
-            )}
+            {renderStepContent(activeStep)}
           </motion.div>
-        </AnimatePresence>
+        </motion.div>
       </div>
     </Modal>
   );
 }
 
 function DownloadGameSourceList({
-  game,
-  visible,
+  onClose,
   onSelectOption,
+  downloadOptions,
+  localDownloadSources,
+  isCheckingSources,
+  isLoading,
+  emptyStateReason,
+  searchTerm,
+  onSearchTermChange,
+  selectedSources,
+  onToggleSource,
+  selectedSortOption,
+  onSelectedSortOptionChange,
 }: Readonly<DownloadGameSourceListProps>) {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [selectedSortOption, setSelectedSortOption] =
-    useState<DownloadOptionsSortBy>("newest");
+  const { t } = useTranslation("big_picture");
+  const navigate = useNavigate();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
-  const rememberedFocusId = useNavigationStore(
-    (state) =>
-      state.debugSnapshot.lastFocusedByRegionId[
-        DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID
-      ] ?? null
-  );
   const [sourcesViewportRef, sourcesEmblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
-    duration: 12,
-    dragFree: true,
+    duration: 10,
   });
+  const sourcesViewportElementRef = useRef<HTMLDivElement | null>(null);
   const lastAlignedFocusIdRef = useRef<string | null>(null);
-
-  const { downloadOptions, localDownloadSources, isLoading } =
-    useGameDownloadOptions(game, visible);
+  const previousFocusedSourceIndexRef = useRef<number | null>(null);
+  const [sourceTrackPaddingEndPx, setSourceTrackPaddingEndPx] = useState(0);
 
   const localDownloadSourceNameById = useMemo(
     () =>
@@ -373,129 +896,245 @@ function DownloadGameSourceList({
     () => sortDownloadOptions(filteredDownloadOptions, selectedSortOption),
     [filteredDownloadOptions, selectedSortOption]
   );
-  const handleSourceFocused = useSourceThresholdFocusScroll(sourcesEmblaApi);
+  const isSourceListLoading = isCheckingSources || isLoading;
+  const hasStructuralEmptyState =
+    !isSourceListLoading && emptyStateReason !== null;
+  const trimmedSearchTerm = searchTerm.trim();
+  const searchQueryPreview = getSearchQueryPreview(trimmedSearchTerm);
+  const hasSearchEmptyState =
+    !isSourceListLoading &&
+    !hasStructuralEmptyState &&
+    sortedDownloadOptions.length === 0 &&
+    trimmedSearchTerm.length > 0;
+  const sourceTrackStyle = useMemo(
+    () =>
+      ({
+        "--download-game-modal-source-track-padding-end": `${sourceTrackPaddingEndPx}px`,
+      }) as CSSProperties,
+    [sourceTrackPaddingEndPx]
+  );
+  const setCombinedSourcesViewportRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      sourcesViewportElementRef.current = node;
+      sourcesViewportRef(node);
+    },
+    [sourcesViewportRef]
+  );
+  const measureSourceTrackPaddingEnd = useCallback(() => {
+    if (
+      !sourcesEmblaApi ||
+      !sourcesViewportElementRef.current ||
+      isSourceListLoading
+    ) {
+      setSourceTrackPaddingEndPx(0);
+      return;
+    }
+
+    const slideNodes = sourcesEmblaApi.slideNodes();
+    const lastSlideNode = slideNodes[slideNodes.length - 1];
+
+    if (!lastSlideNode) {
+      setSourceTrackPaddingEndPx(0);
+      return;
+    }
+
+    const viewportWidth =
+      sourcesViewportElementRef.current.getBoundingClientRect().width;
+    const lastSlideWidth = lastSlideNode.getBoundingClientRect().width;
+    const endPadding = getSourceTrackPadding(viewportWidth, lastSlideWidth);
+
+    setSourceTrackPaddingEndPx((currentEnd) =>
+      Math.abs(currentEnd - endPadding) <= SLIDE_MEASUREMENT_EPSILON_PX
+        ? currentEnd
+        : endPadding
+    );
+  }, [isSourceListLoading, sourcesEmblaApi]);
+  const alignFocusedSource = useCallback(
+    (focusedIndex: number, focusId: string, restoreFocus = false) => {
+      if (
+        !sourcesEmblaApi ||
+        !sourcesViewportElementRef.current ||
+        isSourceListLoading
+      ) {
+        return;
+      }
+
+      syncSourceThresholdFocusScroll(
+        sourcesEmblaApi,
+        sourcesViewportElementRef.current,
+        restoreFocus ? null : previousFocusedSourceIndexRef.current,
+        focusedIndex,
+        restoreFocus
+      );
+
+      previousFocusedSourceIndexRef.current = focusedIndex;
+      lastAlignedFocusIdRef.current = focusId;
+    },
+    [isSourceListLoading, sourcesEmblaApi]
+  );
+  const handleSourceFocused = useCallback(
+    (focusedIndex: number) => {
+      const focusedSource = sourceItems[focusedIndex];
+
+      if (!focusedSource) return;
+
+      alignFocusedSource(focusedIndex, focusedSource.focusId);
+    },
+    [alignFocusedSource, sourceItems]
+  );
 
   useEffect(() => {
-    const getFocusedIndex = (focusId: string | null) => {
-      if (!focusId) return -1;
+    const viewportElement = sourcesViewportElementRef.current;
 
-      return sourceItems.findIndex(
-        (sourceItem) => sourceItem.focusId === focusId
-      );
+    if (!viewportElement) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      measureSourceTrackPaddingEnd();
+    });
+
+    resizeObserver.observe(viewportElement);
+
+    return () => {
+      resizeObserver.disconnect();
     };
+  }, [measureSourceTrackPaddingEnd]);
 
-    const currentFocusedIndex = getFocusedIndex(currentFocusId);
-    const targetFocusId = currentFocusedIndex === -1 ? rememberedFocusId : null;
-    const focusedIndex = getFocusedIndex(targetFocusId);
-
-    if (!sourcesEmblaApi || focusedIndex === -1 || !targetFocusId) return;
-    if (lastAlignedFocusIdRef.current === targetFocusId) return;
-
+  useEffect(() => {
     const animationFrameId = globalThis.requestAnimationFrame(() => {
-      const viewportMetrics = getSourceViewportSlideMetrics(sourcesEmblaApi);
-
-      if (!viewportMetrics) return;
-
-      const selectedPosition = Math.floor(viewportMetrics.visibleCount / 2) + 1;
-      const maxStartIndex = Math.max(
-        0,
-        sourceItems.length - viewportMetrics.visibleCount
-      );
-      const targetStartIndex = Math.max(
-        0,
-        Math.min(focusedIndex - (selectedPosition - 1), maxStartIndex)
-      );
-
-      lastAlignedFocusIdRef.current = targetFocusId;
-
-      if (viewportMetrics.firstVisibleIndex !== targetStartIndex) {
-        sourcesEmblaApi.scrollTo(targetStartIndex, true);
-      }
+      measureSourceTrackPaddingEnd();
     });
 
     return () => {
       globalThis.cancelAnimationFrame(animationFrameId);
     };
-  }, [currentFocusId, rememberedFocusId, sourceItems, sourcesEmblaApi]);
+  }, [measureSourceTrackPaddingEnd, sourceItems]);
+
+  useEffect(() => {
+    if (!sourcesEmblaApi || isSourceListLoading) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      sourcesEmblaApi.reInit();
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [isSourceListLoading, sourceTrackPaddingEndPx, sourcesEmblaApi]);
+
+  useEffect(() => {
+    if (!currentFocusId || isSourceListLoading) return;
+
+    const focusedIndex = sourceItems.findIndex(
+      (sourceItem) => sourceItem.focusId === currentFocusId
+    );
+
+    if (focusedIndex === -1) return;
+    if (lastAlignedFocusIdRef.current === currentFocusId) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      alignFocusedSource(focusedIndex, currentFocusId, true);
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [
+    alignFocusedSource,
+    currentFocusId,
+    isSourceListLoading,
+    sourceItems,
+    sourcesEmblaApi,
+  ]);
 
   useEffect(() => {
     lastAlignedFocusIdRef.current = null;
+    previousFocusedSourceIndexRef.current = null;
   }, [sourceItems]);
 
-  const handleSourceClick = (sourceId: string) => {
-    setSelectedSources((previousSources) =>
-      previousSources.includes(sourceId)
-        ? previousSources.filter(
-            (previousSource) => previousSource !== sourceId
-          )
-        : [...previousSources, sourceId]
-    );
-  };
-
-  const optionsTransitionKey = isLoading
+  const optionsTransitionKey = isSourceListLoading
     ? "loading"
-    : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+    : hasStructuralEmptyState
+      ? `empty-${emptyStateReason}`
+      : hasSearchEmptyState
+        ? "search-empty"
+        : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+
+  const handleOpenSettings = useCallback(() => {
+    onClose();
+    navigate(
+      `${IS_DESKTOP ? "/big-picture" : ""}/settings?tab=downloads&section=sources`
+    );
+  }, [navigate, onClose]);
+
+  const handleClearSearch = useCallback(() => {
+    onSearchTermChange("");
+  }, [onSearchTermChange]);
 
   return (
     <VerticalFocusGroup className="download-game-modal__source-list">
-      <Input
-        placeholder="Search options"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        iconLeft={<MagnifyingGlassIcon size={24} />}
-      />
-
-      <HorizontalFocusGroup className="download-game-modal__source-list__toolbar">
-        <div className="download-game-modal__source-list__sources-carousel">
-          <div
-            className="download-game-modal__source-list__sources-viewport"
-            ref={sourcesViewportRef}
-          >
-            <HorizontalFocusGroup
-              className="download-game-modal__source-list__sources"
-              regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
-            >
-              {isLoading &&
-                Array.from({ length: 3 }, (_, index) => (
-                  <div
-                    key={`source-anchor-skeleton-${index}`}
-                    className="download-game-modal__source-list__source-slide"
-                  >
-                    <SourceAnchorSkeleton size="large" />
-                  </div>
-                ))}
-
-              {!isLoading &&
-                sourceItems.map(({ id, name, focusId }, index) => (
-                  <div
-                    key={focusId}
-                    className="download-game-modal__source-list__source-slide"
-                    onFocusCapture={() => handleSourceFocused(index)}
-                  >
-                    <SourceAnchor
-                      focusId={focusId}
-                      title={name}
-                      size="large"
-                      isSelected={selectedSources.includes(id)}
-                      onClick={() => handleSourceClick(id)}
-                    />
-                  </div>
-                ))}
-            </HorizontalFocusGroup>
-          </div>
-        </div>
-
-        <HorizontalFocusGroup className="download-game-modal__source-list__sort-options">
-          <DropdownSelect
-            value={selectedSortOption}
-            options={DOWNLOAD_SORT_OPTIONS}
-            onValueChange={setSelectedSortOption}
-            leadingIcon={<SortAscendingIcon size={22} />}
-            ariaLabel="Sort options"
-            className="download-game-modal__source-list__sort-options-select"
+      {!hasStructuralEmptyState && (
+        <>
+          <Input
+            placeholder="Search options"
+            value={searchTerm}
+            onChange={(e) => onSearchTermChange(e.target.value)}
+            iconLeft={<MagnifyingGlassIcon size={24} />}
           />
-        </HorizontalFocusGroup>
-      </HorizontalFocusGroup>
+
+          <HorizontalFocusGroup className="download-game-modal__source-list__toolbar">
+            <div className="download-game-modal__source-list__sources-carousel">
+              <div
+                className="download-game-modal__source-list__sources-viewport"
+                ref={setCombinedSourcesViewportRef}
+              >
+                <HorizontalFocusGroup
+                  className="download-game-modal__source-list__sources"
+                  regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
+                  style={sourceTrackStyle}
+                >
+                  {isSourceListLoading &&
+                    Array.from({ length: 3 }, (_, index) => (
+                      <div
+                        key={`source-anchor-skeleton-${index}`}
+                        className="download-game-modal__source-list__source-slide"
+                      >
+                        <SourceAnchorSkeleton size="large" />
+                      </div>
+                    ))}
+
+                  {!isSourceListLoading &&
+                    sourceItems.map(({ id, name, focusId }, index) => (
+                      <div
+                        key={focusId}
+                        className="download-game-modal__source-list__source-slide"
+                        onFocusCapture={() => handleSourceFocused(index)}
+                      >
+                        <SourceAnchor
+                          focusId={focusId}
+                          title={name}
+                          size="large"
+                          isSelected={selectedSources.includes(id)}
+                          onClick={() => onToggleSource(id)}
+                        />
+                      </div>
+                    ))}
+                </HorizontalFocusGroup>
+              </div>
+            </div>
+
+            <HorizontalFocusGroup className="download-game-modal__source-list__sort-options">
+              <DropdownSelect
+                value={selectedSortOption}
+                options={DOWNLOAD_SORT_OPTIONS}
+                onValueChange={onSelectedSortOptionChange}
+                leadingIcon={<SortAscendingIcon size={22} />}
+                ariaLabel="Sort options"
+                className="download-game-modal__source-list__sort-options-select"
+              />
+            </HorizontalFocusGroup>
+          </HorizontalFocusGroup>
+        </>
+      )}
 
       <div className="download-game-modal__source-list__options">
         <AnimatePresence mode="wait" initial={false}>
@@ -510,14 +1149,54 @@ function DownloadGameSourceList({
               y: { duration: 0.18, ease: "easeOut" },
             }}
           >
-            {isLoading &&
+            {isSourceListLoading &&
               Array.from({ length: 3 }, (_, index) => (
                 <DownloadSourceOptionSkeleton
                   key={`download-source-option-skeleton-${index}`}
                 />
               ))}
 
-            {!isLoading &&
+            {hasStructuralEmptyState && (
+              <EmptyState
+                className="download-game-modal__source-list-empty-state"
+                icon={<MagnifyingGlassIcon size={32} weight="bold" />}
+                title={t("No download options")}
+                description={t(
+                  "Open Settings to review your download sources and look for more options."
+                )}
+                actions={
+                  <Button
+                    focusId={DOWNLOAD_GAME_EMPTY_STATE_SETTINGS_BUTTON_ID}
+                    stealFocusOnAppear
+                    onClick={handleOpenSettings}
+                  >
+                    {t("Open Settings")}
+                  </Button>
+                }
+              />
+            )}
+
+            {hasSearchEmptyState && (
+              <EmptyState
+                className="download-game-modal__source-list-empty-state"
+                icon={<MagnifyingGlassIcon size={32} weight="bold" />}
+                title={t('No results for "{{query}}"', {
+                  query: searchQueryPreview,
+                })}
+                description={t(
+                  "Try another search or clear it to browse all available download options."
+                )}
+                actions={
+                  <Button onClick={handleClearSearch}>
+                    {t("Clear search")}
+                  </Button>
+                }
+              />
+            )}
+
+            {!isSourceListLoading &&
+              !hasStructuralEmptyState &&
+              !hasSearchEmptyState &&
               sortedDownloadOptions.map((option) => (
                 <DownloadSourceOption
                   key={option.id}
@@ -547,20 +1226,15 @@ function DownloadGameOptions({
   option,
   visible,
   onClose,
+  downloadDirectorySuggestions,
+  selectedDownloadPath,
+  automaticExtractionEnabled,
+  deleteArchiveFilesAfterExtraction,
+  onSelectDownloadPath,
+  onAutomaticExtractionChange,
+  onDeleteArchiveFilesAfterExtractionChange,
 }: Readonly<DownloadGameOptionsProps>) {
   const { showErrorToast } = useBigPictureToast();
-  const downloadPathTouchedRef = useRef(false);
-  const automaticExtractionTouchedRef = useRef(false);
-  const deleteArchiveTouchedRef = useRef(false);
-  const [selectedDownloadPath, setSelectedDownloadPath] = useState("");
-  const [downloadDirectorySuggestions, setDownloadDirectorySuggestions] =
-    useState<DownloadDirectorySuggestion[]>([]);
-  const [automaticExtractionEnabled, setAutomaticExtractionEnabled] =
-    useState(true);
-  const [
-    deleteArchiveFilesAfterExtraction,
-    setDeleteArchiveFilesAfterExtraction,
-  ] = useState(false);
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -684,92 +1358,11 @@ function DownloadGameOptions({
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
-      downloadPathTouchedRef.current = false;
-      automaticExtractionTouchedRef.current = false;
-      deleteArchiveTouchedRef.current = false;
-      setSelectedDownloadPath("");
-      setDownloadDirectorySuggestions([]);
       setSelectedDownloader(undefined);
-      setAutomaticExtractionEnabled(true);
-      setDeleteArchiveFilesAfterExtraction(false);
       setIsSubmitting(false);
       return;
     }
-
-    let cancelled = false;
-
-    const buildDownloadDirectorySuggestions = async () => {
-      const defaultDownloadsPath =
-        await globalThis.window.electron.getDefaultDownloadsPath();
-      const resolvedDirectories = resolveDownloadDirectories(
-        userPreferences,
-        defaultDownloadsPath
-      );
-
-      const suggestions = await Promise.all(
-        resolvedDirectories.allPaths.map(async (path) => {
-          let diskUsage: DiskUsage = { free: 0, total: 0 };
-
-          try {
-            diskUsage = await globalThis.window.electron.getDiskFreeSpace(path);
-          } catch {
-            diskUsage = { free: 0, total: 0 };
-          }
-
-          return {
-            title: getDownloadDirectoryTitle(path),
-            path,
-            freeBytes: diskUsage.free,
-            totalBytes: diskUsage.total,
-          };
-        })
-      );
-
-      if (cancelled) return;
-
-      if (!downloadPathTouchedRef.current) {
-        setSelectedDownloadPath(resolvedDirectories.defaultPath);
-      }
-
-      setDownloadDirectorySuggestions(suggestions);
-
-      if (!automaticExtractionTouchedRef.current) {
-        setAutomaticExtractionEnabled(
-          userPreferences?.extractFilesByDefault ?? true
-        );
-      }
-
-      if (!deleteArchiveTouchedRef.current) {
-        setDeleteArchiveFilesAfterExtraction(
-          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
-        );
-      }
-    };
-
-    void buildDownloadDirectorySuggestions();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userPreferences, visible]);
-
-  const handleSelectDownloadPath = useCallback((path: string) => {
-    downloadPathTouchedRef.current = true;
-    setSelectedDownloadPath(path);
-  }, []);
-
-  const handleAutomaticExtractionChange = useCallback((checked: boolean) => {
-    automaticExtractionTouchedRef.current = true;
-    setAutomaticExtractionEnabled(checked);
-  }, []);
-
-  const handleDeleteArchiveFilesAfterExtractionChange = useCallback(
-    (checked: boolean) => {
-      deleteArchiveTouchedRef.current = true;
-      setDeleteArchiveFilesAfterExtraction(checked);
-    },
-    []
-  );
+  }, [visible]);
 
   const resolvedDownloader = useMemo(() => {
     if (!selectedDownloader) return null;
@@ -943,7 +1536,7 @@ function DownloadGameOptions({
                 totalBytes={directory.totalBytes}
                 isSelected={selectedDownloadPath === directory.path}
                 showSelectedIndicator
-                onClick={() => handleSelectDownloadPath(directory.path)}
+                onClick={() => onSelectDownloadPath(directory.path)}
                 className="download-game-modal__directory-disk"
               />
             ))}
@@ -956,7 +1549,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID}
             label="Automatically extract downloaded files"
             checked={automaticExtractionEnabled}
-            onChange={handleAutomaticExtractionChange}
+            onChange={onAutomaticExtractionChange}
           />
 
           <Checkbox
@@ -964,7 +1557,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID}
             label="Always delete archive files after extraction"
             checked={deleteArchiveFilesAfterExtraction}
-            onChange={handleDeleteArchiveFilesAfterExtractionChange}
+            onChange={onDeleteArchiveFilesAfterExtractionChange}
           />
         </div>
 
