@@ -20,8 +20,8 @@ import {
 
 const BIOS_EXTENSIONS = new Set([".bin", ".rom"]);
 const SECTION_RE = /^\s*\[([^\]]+)\]\s*$/;
-const DUCKSTATION_DIR_RE = /^\s*SearchDirectory\s*=\s*(.+)$/i;
-const PCSX2_DIR_RE = /^\s*Bios\s*=\s*(.+)$/i;
+const DUCKSTATION_DIR_RE = /^\s*SearchDirectory\s*=(.+)$/i;
+const PCSX2_DIR_RE = /^\s*Bios\s*=(.+)$/i;
 
 const PS1_BIOS_MIN_BYTES = 256 * 1024;
 const PS2_BIOS_MIN_BYTES = 3 * 1024 * 1024;
