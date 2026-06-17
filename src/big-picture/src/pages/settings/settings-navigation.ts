@@ -84,6 +84,8 @@ export const BEHAVIOR_ITEM_FOCUS_IDS = {
   startMinimized: "behavior-start-minimized",
   launchToLibraryPage: "behavior-launch-to-library-page",
   launchInBigPicture: "behavior-launch-in-big-picture",
+  bigPictureDisplay: "behavior-big-picture-display",
+  bigPictureAudioDevice: "behavior-big-picture-audio-device",
   enableAutoInstall: "behavior-enable-auto-install",
 } as const;
 

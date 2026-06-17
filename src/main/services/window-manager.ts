@@ -25,6 +25,8 @@ import { t } from "i18next";
 import { orderBy, slice } from "lodash-es";
 import path from "node:path";
 import UserAgent from "user-agents";
+import { BigPictureSessionManager } from "./big-picture-session-manager";
+import { DisplayManager } from "./display-manager";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
@@ -317,13 +319,9 @@ export class WindowManager {
       return;
     }
 
-    const targetDisplay = this.mainWindow?.isDestroyed()
-      ? null
-      : this.mainWindow
-        ? screen.getDisplayMatching(this.mainWindow.getBounds())
-        : screen.getPrimaryDisplay();
-    const targetBounds =
-      targetDisplay?.bounds ?? screen.getPrimaryDisplay().bounds;
+    await BigPictureSessionManager.apply();
+    const targetDisplay = await DisplayManager.getBigPictureDisplay();
+    const targetBounds = targetDisplay.bounds;
 
     this.bigPicture = new BrowserWindow({
       x: targetBounds.x,
@@ -372,6 +370,10 @@ export class WindowManager {
         main.show();
         main.focus();
       }
+
+      BigPictureSessionManager.restore().catch((error) => {
+        logger.warn("Failed to restore Big Picture session settings", error);
+      });
     });
   }
 
@@ -761,18 +763,29 @@ export class WindowManager {
   private static readonly GAME_LAUNCHER_WINDOW_WIDTH = 550;
   private static readonly GAME_LAUNCHER_WINDOW_HEIGHT = 320;
 
-  public static async createGameLauncherWindow(shop: string, objectId: string) {
+  public static async createGameLauncherWindow(
+    shop: string,
+    objectId: string,
+    targetDisplay?: Electron.Display
+  ) {
     if (this.gameLauncherWindow) {
       this.gameLauncherWindow.close();
       this.gameLauncherWindow = null;
     }
 
-    const display = screen.getPrimaryDisplay();
-    const { width: displayWidth, height: displayHeight } = display.bounds;
+    const display = targetDisplay ?? screen.getPrimaryDisplay();
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.bounds;
 
-    const x = Math.round((displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2);
+    const x = Math.round(
+      displayX + (displayWidth - this.GAME_LAUNCHER_WINDOW_WIDTH) / 2
+    );
     const y = Math.round(
-      (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
+      displayY + (displayHeight - this.GAME_LAUNCHER_WINDOW_HEIGHT) / 2
     );
 
     this.gameLauncherWindow = new BrowserWindow({

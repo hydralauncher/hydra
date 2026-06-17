@@ -280,6 +280,7 @@ dependencies = [
  "sysinfo",
  "tokio",
  "uuid",
+ "windows",
 ]
 
 [[package]]
