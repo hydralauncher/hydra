@@ -8,6 +8,7 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { GameShop } from "@types";
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -304,11 +305,13 @@ export default function Game() {
     discPath?: string;
   } | null>(null);
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
+  const [gameTitle, setGameTitle] = useState("");
   const [launchOptions, setLaunchOptions] = useState("");
   const [loadingSaveFolder, setLoadingSaveFolder] = useState(false);
   const [saveFolderPath, setSaveFolderPath] = useState<string | null>(null);
   const [steamShortcutExists, setSteamShortcutExists] = useState(false);
   const [creatingSteamShortcut, setCreatingSteamShortcut] = useState(false);
+  const [updatingGameTitle, setUpdatingGameTitle] = useState(false);
   const [hasNavigableComments, setHasNavigableComments] = useState(false);
   const [activeMediaItemId, setActiveMediaItemId] = useState<string | null>(
     null
@@ -569,6 +572,11 @@ export default function Game() {
   }, [game?.id, isGameSettingsModalOpen]);
 
   useEffect(() => {
+    if (!isGameSettingsModalOpen) return;
+    setGameTitle(game?.title ?? "");
+  }, [game?.id, game?.title, isGameSettingsModalOpen]);
+
+  useEffect(() => {
     if (
       !isGameSettingsModalOpen ||
       !game ||
@@ -628,6 +636,61 @@ export default function Game() {
     },
     [game, showErrorToast, t, updateGame]
   );
+
+  const handleChangeGameTitle = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setGameTitle(event.target.value);
+    },
+    []
+  );
+
+  const handleBlurGameTitle = useCallback(async () => {
+    if (!game || updatingGameTitle) return;
+
+    const trimmed = gameTitle.trim();
+
+    if (!trimmed) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(t("edit_game_modal_fill_required"));
+      return;
+    }
+
+    if (trimmed === (game.title ?? "").trim()) {
+      setGameTitle(game.title ?? "");
+      return;
+    }
+
+    setUpdatingGameTitle(true);
+
+    try {
+      if (game.shop === "custom") {
+        await globalThis.window.electron.updateCustomGame({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmed,
+          iconUrl: game.iconUrl || undefined,
+          logoImageUrl: game.logoImageUrl || undefined,
+          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+        });
+      } else {
+        await globalThis.window.electron.updateGameCustomAssets({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: trimmed,
+        });
+      }
+
+      await updateGame();
+      setGameTitle(trimmed);
+    } catch (error) {
+      setGameTitle(game.title ?? "");
+      showErrorToast(
+        error instanceof Error ? error.message : t("edit_game_modal_failed")
+      );
+    } finally {
+      setUpdatingGameTitle(false);
+    }
+  }, [game, gameTitle, showErrorToast, t, updateGame, updatingGameTitle]);
 
   useEffect(() => {
     if (launchOptionsDebounceRef.current !== null) {
@@ -1554,6 +1617,13 @@ export default function Game() {
               onAddDiscFile: handleAddDiscFile,
               onRemoveSelectedDisc: handleRemoveSelectedDisc,
               onRemoveAllDiscs: handleRemoveAllDiscs,
+            }}
+            customizationSettings={{
+              game,
+              gameTitle,
+              updatingGameTitle,
+              onChangeGameTitle: handleChangeGameTitle,
+              onBlurGameTitle: handleBlurGameTitle,
             }}
             onClose={() => setIsGameSettingsModalOpen(false)}
           />

@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SidebarModal, type SidebarModalTab } from "../../../common";
 import {
+  GameCustomizationSettingsTab,
+  type GameCustomizationSettingsProps,
+  GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID,
+} from "./customization-tab";
+import {
   GameLaunchSettingsTab,
   type GameLaunchSettingsProps,
   GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
@@ -20,13 +25,14 @@ interface GameSettingsModalProps {
   visible: boolean;
   game: LibraryGame;
   launchSettings: GameLaunchSettingsProps;
+  customizationSettings: GameCustomizationSettingsProps;
   onClose: () => void;
 }
 
 export function GameSettingsModal({
   visible,
-  game: _game,
   launchSettings,
+  customizationSettings,
   onClose,
 }: Readonly<GameSettingsModalProps>) {
   const { t } = useTranslation(["game_details", "header"]);
@@ -51,7 +57,7 @@ export function GameSettingsModal({
       {
         id: "customization",
         label: "Customization",
-        content: <p>Customization</p>,
+        content: <GameCustomizationSettingsTab {...customizationSettings} />,
       },
       {
         id: "hydra_cloud",
@@ -78,7 +84,7 @@ export function GameSettingsModal({
         content: <p>Danger Zone</p>,
       },
     ],
-    [launchSettings, shouldShowCompatibilityTab, t]
+    [customizationSettings, launchSettings, shouldShowCompatibilityTab, t]
   );
 
   return (
@@ -90,7 +96,9 @@ export function GameSettingsModal({
       contentEntryFocusId={
         activeTabId === "launch"
           ? GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID
-          : undefined
+          : activeTabId === "customization"
+            ? GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
+            : undefined
       }
       tabs={tabs}
       activeTabId={activeTabId}

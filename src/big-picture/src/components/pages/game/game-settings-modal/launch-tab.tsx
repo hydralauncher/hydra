@@ -6,7 +6,7 @@ import {
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { Disc } from "@phosphor-icons/react";
-import { HardDrive, Monitor, Trash } from "lucide-react";
+import { FolderOpen, HardDrive, Monitor, Trash } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import {
   Button,
