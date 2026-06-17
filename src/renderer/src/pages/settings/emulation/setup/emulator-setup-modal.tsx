@@ -133,10 +133,13 @@ export function EmulatorSetupModal({
     return all[system];
   }, [system]);
 
-  const redetectEmulator = useCallback(async () => {
+  const handleDownloadReady = useCallback(async () => {
+    setShowDownloadHelp(false);
     if (!system) return;
     setDetecting(true);
     try {
+      const refreshed = await refreshConfig();
+      if (refreshed?.executablePath) return;
       const preview = await window.electron.previewEmulatorExecutable(system);
       if (!preview) return;
       setConfig((curr) =>
@@ -151,12 +154,7 @@ export function EmulatorSetupModal({
     } finally {
       setDetecting(false);
     }
-  }, [system]);
-
-  const handleDownloadReady = useCallback(() => {
-    setShowDownloadHelp(false);
-    void redetectEmulator();
-  }, [redetectEmulator]);
+  }, [system, refreshConfig]);
 
   const handleBrowseExecutable = useCallback(async () => {
     if (!system) return;
