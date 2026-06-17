@@ -23,9 +23,13 @@ const SECTION_RE = /^\s*\[(.+?)\]\s*$/;
 const DUCKSTATION_DIR_RE = /^\s*SearchDirectory\s*=\s*(.+?)\s*$/i;
 const PCSX2_DIR_RE = /^\s*Bios\s*=\s*(.+?)\s*$/i;
 
+const PS1_BIOS_MIN_BYTES = 256 * 1024;
+const PS2_BIOS_MIN_BYTES = 3 * 1024 * 1024;
+const BIOS_MAX_BYTES = 16 * 1024 * 1024;
+
 const SIZE_LIMITS: Record<"ps1" | "ps2", { min: number; max: number }> = {
-  ps1: { min: 256 * 1024, max: 16 * 1024 * 1024 },
-  ps2: { min: 3 * 1024 * 1024, max: 16 * 1024 * 1024 },
+  ps1: { min: PS1_BIOS_MIN_BYTES, max: BIOS_MAX_BYTES },
+  ps2: { min: PS2_BIOS_MIN_BYTES, max: BIOS_MAX_BYTES },
 };
 
 const readIniBiosDir = async (

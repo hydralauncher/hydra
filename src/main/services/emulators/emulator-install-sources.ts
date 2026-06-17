@@ -212,6 +212,8 @@ interface GithubRelease {
 }
 
 const GITHUB_API = "https://api.github.com";
+const GITHUB_API_TIMEOUT_MS = 15_000;
+const GITHUB_RELEASES_PAGE_SIZE = 20;
 
 const fetchRelease = async (
   repo: string,
@@ -222,7 +224,7 @@ const fetchRelease = async (
       Accept: "application/vnd.github+json",
       "User-Agent": "HydraLauncher",
     },
-    timeout: 15_000,
+    timeout: GITHUB_API_TIMEOUT_MS,
   };
 
   try {
@@ -243,7 +245,7 @@ const fetchRelease = async (
     }
 
     const { data } = await axios.get<GithubRelease[]>(
-      `${GITHUB_API}/repos/${repo}/releases?per_page=20`,
+      `${GITHUB_API}/repos/${repo}/releases?per_page=${GITHUB_RELEASES_PAGE_SIZE}`,
       config
     );
     return data.find((release) => release.prerelease && !release.draft) ?? null;

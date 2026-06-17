@@ -138,13 +138,16 @@ export const downloadAndInstallEmulator = async (
   }
 
   const fileName = option.fileName ?? path.basename(option.downloadUrl);
+  const isAppImage = option.kind === "linux-appimage";
+  const dest = isAppImage
+    ? path.join(managedEmulatorsDir(), fileName)
+    : path.join(SystemPath.getPath("temp"), fileName);
+
+  const removeTempDownload = async () => {
+    if (!isAppImage) await fs.promises.unlink(dest).catch(() => {});
+  };
 
   try {
-    const isAppImage = option.kind === "linux-appimage";
-    const dest = isAppImage
-      ? path.join(managedEmulatorsDir(), fileName)
-      : path.join(SystemPath.getPath("temp"), fileName);
-
     sendProgress({ binary, optionId, phase: "downloading", loaded: 0 });
     await downloadToFile(option.downloadUrl, dest, (loaded, total) => {
       sendProgress({
@@ -166,6 +169,7 @@ export const downloadAndInstallEmulator = async (
         path: dest,
         reason: ok ? undefined : "launch_failed",
       });
+      await removeTempDownload();
       return ok
         ? { ok: true, path: dest }
         : { ok: false, reason: "launch_failed" };
@@ -179,17 +183,18 @@ export const downloadAndInstallEmulator = async (
       return { ok: true, path: dest };
     }
 
-    // windows-archive (RPCS3 .7z)
     sendProgress({ binary, optionId, phase: "extracting" });
     const extractDir = path.join(managedEmulatorsDir(), binary);
     await fs.promises.mkdir(extractDir, { recursive: true });
     await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
     await autoConfigureRpcs3(extractDir);
+    await removeTempDownload();
     shell.showItemInFolder(extractDir);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
     return { ok: true, path: extractDir };
   } catch (error) {
     logger.error("Failed to install emulator", error);
+    await removeTempDownload();
     sendProgress({
       binary,
       optionId,
