@@ -23,6 +23,8 @@ import { KNOWN_BINARIES } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
 
+const PROGRESS_EMIT_BYTES = 512 * 1024;
+
 const managedEmulatorsDir = (): string =>
   path.join(SystemPath.getPath("userData"), "emulators");
 
@@ -49,18 +51,28 @@ const downloadToFile = async (
   const response = await axios.get(url, {
     responseType: "stream",
     headers: { "User-Agent": "HydraLauncher" },
-    onDownloadProgress: (event) => {
-      onProgress(event.loaded, event.total ?? null);
-    },
   });
+
+  const lengthHeader = Number(response.headers["content-length"]);
+  const total = Number.isFinite(lengthHeader) ? lengthHeader : null;
+  let received = 0;
+  let lastEmit = 0;
 
   const writer = fs.createWriteStream(dest);
 
   await new Promise<void>((resolve, reject) => {
-    response.data.pipe(writer);
+    response.data.on("data", (chunk: Buffer) => {
+      received += chunk.length;
+      const done = total !== null && received >= total;
+      if (received - lastEmit >= PROGRESS_EMIT_BYTES || done) {
+        lastEmit = received;
+        onProgress(received, total);
+      }
+    });
     response.data.on("error", reject);
     writer.on("error", reject);
     writer.on("close", resolve);
+    response.data.pipe(writer);
   });
 };
 
