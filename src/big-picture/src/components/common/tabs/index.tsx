@@ -31,9 +31,11 @@ export interface TabsProps<TValue extends string = string> {
   value?: TValue;
   defaultValue?: TValue;
   onValueChange?: (value: TValue) => void;
+  itemsFocusable?: boolean;
   manageFocusRegion?: boolean;
   selectOnFocus?: boolean;
   ignoreInitialFocusSelection?: boolean;
+  animateSegmentedIndicator?: boolean;
   variant?: "default" | "segmented" | "settings";
   beforeTabs?: ReactNode;
   afterTabs?: ReactNode;
@@ -112,6 +114,7 @@ function FocusableTabsButton<TValue extends string = string>({
       navigationOverrides={item.navigationOverrides}
     >
       <button
+        id={resolvedId}
         type="button"
         role="tab"
         aria-selected={isSelected}
@@ -204,14 +207,72 @@ function SettingsTabsButton<TValue extends string = string>({
   );
 }
 
+function NonFocusableTabsButton<TValue extends string = string>({
+  item,
+  resolvedId,
+  isSelected,
+  variant,
+  indicatorLayoutId,
+  onSelect,
+}: Readonly<Omit<TabsButtonProps<TValue>, "navigationOrder" | "selectOnFocus" | "ignoreInitialFocusSelection">>) {
+  return (
+    <button
+      id={resolvedId}
+      type="button"
+      role="tab"
+      tabIndex={-1}
+      aria-selected={isSelected}
+      disabled={item.disabled}
+      className={cn("tabs__tab", {
+        "tabs__tab--segmented": variant === "segmented",
+        "tabs__tab--settings": variant === "settings",
+        "tabs__tab--active": isSelected,
+        "tabs__tab--disabled": item.disabled,
+      })}
+      onMouseDown={(event) => {
+        event.preventDefault();
+      }}
+      onClick={() => onSelect(item.value)}
+    >
+      <span
+        className={cn("tabs__tab-label", {
+          "tabs__tab-label--segmented": variant === "segmented",
+          "tabs__tab-label--settings": variant === "settings",
+        })}
+      >
+        {variant === "settings" ? (
+          <span className="tabs__tab-label-text">{item.label}</span>
+        ) : (
+          item.label
+        )}
+      </span>
+
+      {isSelected && variant === "default" && (
+        <motion.span
+          className="tabs__indicator"
+          layoutId={indicatorLayoutId}
+          transition={{
+            type: "spring",
+            stiffness: 420,
+            damping: 34,
+            mass: 0.8,
+          }}
+        />
+      )}
+    </button>
+  );
+}
+
 export function Tabs<TValue extends string = string>({
   items,
   value,
   defaultValue,
   onValueChange,
+  itemsFocusable = true,
   manageFocusRegion = true,
   selectOnFocus = true,
   ignoreInitialFocusSelection = false,
+  animateSegmentedIndicator = true,
   variant = "default",
   beforeTabs,
   afterTabs,
@@ -379,22 +440,34 @@ export function Tabs<TValue extends string = string>({
                   "tabs__tablist--segmented": variant === "segmented",
                 })}
               >
-                {variant === "segmented" && segmentedIndicatorStyle && (
-                  <motion.span
-                    className="tabs__segmented-indicator"
-                    initial={false}
-                    animate={{
-                      x: segmentedIndicatorStyle.x,
-                      width: segmentedIndicatorStyle.width,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 420,
-                      damping: 34,
-                      mass: 0.8,
-                    }}
-                  />
-                )}
+                {variant === "segmented" &&
+                  segmentedIndicatorStyle &&
+                  (animateSegmentedIndicator ? (
+                    <motion.span
+                      className="tabs__segmented-indicator"
+                      initial={false}
+                      animate={{
+                        x: segmentedIndicatorStyle.x,
+                        width: segmentedIndicatorStyle.width,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 34,
+                        mass: 0.8,
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="tabs__segmented-indicator"
+                      style={
+                        {
+                          transform: `translateX(${segmentedIndicatorStyle.x}px)`,
+                          width: segmentedIndicatorStyle.width,
+                        } as CSSProperties
+                      }
+                    />
+                  ))}
 
                 {beforeTabs && (
                   <div className="tabs__before-tabs">{beforeTabs}</div>
@@ -402,6 +475,20 @@ export function Tabs<TValue extends string = string>({
 
                 {resolvedItems.map((item, index) => {
                   const isSelected = selectedItem?.value === item.value;
+
+                  if (!itemsFocusable) {
+                    return (
+                      <NonFocusableTabsButton
+                        key={item.value}
+                        item={item}
+                        resolvedId={item.resolvedId}
+                        isSelected={isSelected}
+                        variant={variant}
+                        indicatorLayoutId={indicatorLayoutId}
+                        onSelect={handleSelect}
+                      />
+                    );
+                  }
 
                   return (
                     <FocusableTabsButton
@@ -425,7 +512,7 @@ export function Tabs<TValue extends string = string>({
               </div>
             );
 
-            if (!manageFocusRegion) {
+            if (!manageFocusRegion || !itemsFocusable) {
               return (
                 <div className={tabsListClassName} style={tabsListStyle}>
                   {tabList}

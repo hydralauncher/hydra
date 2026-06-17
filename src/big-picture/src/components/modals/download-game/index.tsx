@@ -39,16 +39,20 @@ import {
   type DownloadOptionsEmptyStateReason,
   useGameDownloadOptions,
   useFeature,
+  useGamepad,
   useNavigationScreenActions,
   useBigPictureToast,
   useUserPreferences,
 } from "../../../hooks";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
+import { NavigationAudioService } from "../../../services";
+import { GamepadButtonType } from "../../../types";
 import {
   Button,
   Checkbox,
   DropdownSelect,
   EmptyState,
+  GridFocusGroup,
   HorizontalFocusGroup,
   Input,
   Modal,
@@ -1093,7 +1097,7 @@ function DownloadGameSourceList({
                   style={sourceTrackStyle}
                 >
                   {isSourceListLoading &&
-                    Array.from({ length: 3 }, (_, index) => (
+                    Array.from({ length: 5 }, (_, index) => (
                       <div
                         key={`source-anchor-skeleton-${index}`}
                         className="download-game-modal__source-list__source-slide"
@@ -1150,7 +1154,7 @@ function DownloadGameSourceList({
             }}
           >
             {isSourceListLoading &&
-              Array.from({ length: 3 }, (_, index) => (
+              Array.from({ length: 5 }, (_, index) => (
                 <DownloadSourceOptionSkeleton
                   key={`download-source-option-skeleton-${index}`}
                 />
@@ -1197,7 +1201,7 @@ function DownloadGameSourceList({
             {!isSourceListLoading &&
               !hasStructuralEmptyState &&
               !hasSearchEmptyState &&
-              sortedDownloadOptions.map((option) => (
+              sortedDownloadOptions.map((option, index) => (
                 <DownloadSourceOption
                   key={option.id}
                   option={
@@ -1211,6 +1215,7 @@ function DownloadGameSourceList({
                         }
                       : option
                   }
+                  stealFocusOnAppear={index === 0}
                   onSelect={() => onSelectOption(option)}
                 />
               ))}
@@ -1235,11 +1240,19 @@ function DownloadGameOptions({
   onDeleteArchiveFilesAfterExtractionChange,
 }: Readonly<DownloadGameOptionsProps>) {
   const { showErrorToast } = useBigPictureToast();
+  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
+  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
+  const [hasDownloaderTabsInteracted, setHasDownloaderTabsInteracted] =
+    useState(false);
   const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { features } = useFeature();
   const userPreferences = useUserPreferences();
+  const isOptionsInteractionLocked = isSubmitting;
 
   const availableDownloaderOptions = useMemo(() => {
     return getDownloaderAvailabilityOptions(
@@ -1252,6 +1265,7 @@ function DownloadGameOptions({
   const downloaderItems = useMemo(() => {
     return availableDownloaderOptions.map((downloaderOption) => ({
       value: String(downloaderOption.downloader),
+      disabled: isOptionsInteractionLocked,
       label: (
         <span className="download-game-modal__downloader-option-label">
           <span className="download-game-modal__downloader-option-slot download-game-modal__downloader-option-slot--left">
@@ -1268,19 +1282,37 @@ function DownloadGameOptions({
             {DOWNLOADER_NAME[downloaderOption.downloader]}
           </span>
           <span className="download-game-modal__downloader-option-slot download-game-modal__downloader-option-slot--right">
-            {selectedDownloader === String(downloaderOption.downloader) && (
-              <CheckCircle
-                size={16}
-                weight="fill"
-                aria-hidden="true"
-                className="download-game-modal__downloader-option-checkmark"
-              />
-            )}
+            <span className="download-game-modal__downloader-option-checkmark-wrap">
+              <AnimatePresence initial={false}>
+                {selectedDownloader === String(downloaderOption.downloader) && (
+                  <motion.span
+                    key="selected-checkmark"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 34,
+                      mass: 0.8,
+                    }}
+                    className="download-game-modal__downloader-option-checkmark-wrap"
+                  >
+                    <CheckCircle
+                      size={16}
+                      weight="fill"
+                      aria-hidden="true"
+                      className="download-game-modal__downloader-option-checkmark"
+                    />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </span>
           </span>
         </span>
       ),
     })) satisfies Array<TabsItem<string>>;
-  }, [availableDownloaderOptions, selectedDownloader]);
+  }, [availableDownloaderOptions, isOptionsInteractionLocked, selectedDownloader]);
 
   const getDefaultDownloader = useCallback(
     (availableDownloaders: Downloader[]) => {
@@ -1359,6 +1391,7 @@ function DownloadGameOptions({
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
       setSelectedDownloader(undefined);
+      setHasDownloaderTabsInteracted(false);
       setIsSubmitting(false);
       return;
     }
@@ -1369,6 +1402,14 @@ function DownloadGameOptions({
 
     return Number(selectedDownloader) as Downloader;
   }, [selectedDownloader]);
+  const selectedDownloaderIndex = useMemo(
+    () =>
+      availableDownloaderOptions.findIndex(
+        (downloaderOption) =>
+          String(downloaderOption.downloader) === selectedDownloader
+      ),
+    [availableDownloaderOptions, selectedDownloader]
+  );
 
   const selectedDownloaderOption = useMemo(() => {
     if (resolvedDownloader == null) return null;
@@ -1382,6 +1423,87 @@ function DownloadGameOptions({
 
   const selectedUri = selectedDownloaderOption?.availableUri ?? null;
   const hasAvailableDownloader = availableDownloaderOptions.length > 0;
+
+  const handleDownloaderTabsValueChange = useCallback((nextValue: string) => {
+    if (isOptionsInteractionLocked) return;
+
+    setHasDownloaderTabsInteracted(true);
+    setSelectedDownloader(nextValue);
+  }, [isOptionsInteractionLocked]);
+
+  const selectDownloaderByIndex = useCallback(
+    (nextIndex: number) => {
+      if (isOptionsInteractionLocked) return false;
+
+      const nextOption = availableDownloaderOptions[nextIndex];
+
+      if (!nextOption) return false;
+
+      const nextValue = String(nextOption.downloader);
+
+      if (nextValue === selectedDownloader) return false;
+
+      setHasDownloaderTabsInteracted(true);
+      setSelectedDownloader(nextValue);
+      return true;
+    },
+    [availableDownloaderOptions, isOptionsInteractionLocked, selectedDownloader]
+  );
+
+  useEffect(() => {
+    const removeLeftBumper = onButtonPressed(
+      GamepadButtonType.LEFT_BUMPER,
+      (event) => {
+        if (
+          !visible ||
+          isOptionsInteractionLocked ||
+          isVirtualKeyboardOpen ||
+          !isActiveGamepadEvent(event) ||
+          selectedDownloaderIndex <= 0
+        ) {
+          return;
+        }
+
+        if (selectDownloaderByIndex(selectedDownloaderIndex - 1)) {
+          NavigationAudioService.getInstance().play("scroll");
+        }
+      }
+    );
+
+    const removeRightBumper = onButtonPressed(
+      GamepadButtonType.RIGHT_BUMPER,
+      (event) => {
+        if (
+          !visible ||
+          isOptionsInteractionLocked ||
+          isVirtualKeyboardOpen ||
+          !isActiveGamepadEvent(event) ||
+          selectedDownloaderIndex < 0 ||
+          selectedDownloaderIndex >= availableDownloaderOptions.length - 1
+        ) {
+          return;
+        }
+
+        if (selectDownloaderByIndex(selectedDownloaderIndex + 1)) {
+          NavigationAudioService.getInstance().play("scroll");
+        }
+      }
+    );
+
+    return () => {
+      removeLeftBumper();
+      removeRightBumper();
+    };
+  }, [
+    availableDownloaderOptions.length,
+    isActiveGamepadEvent,
+    isOptionsInteractionLocked,
+    isVirtualKeyboardOpen,
+    onButtonPressed,
+    selectDownloaderByIndex,
+    selectedDownloaderIndex,
+    visible,
+  ]);
 
   const isSubmitDisabled =
     isSubmitting ||
@@ -1494,7 +1616,9 @@ function DownloadGameOptions({
               items={downloaderItems}
               value={selectedDownloader}
               defaultValue={downloaderItems[0]?.value}
-              onValueChange={setSelectedDownloader}
+              onValueChange={handleDownloaderTabsValueChange}
+              itemsFocusable={false}
+              animateSegmentedIndicator={hasDownloaderTabsInteracted}
               variant="segmented"
               ariaLabel="Download methods"
               className="download-game-modal__downloader-tabs"
@@ -1517,7 +1641,7 @@ function DownloadGameOptions({
             </p>
           </div>
 
-          <HorizontalFocusGroup
+          <GridFocusGroup
             className="download-game-modal__directory-disks"
             style={{
               display: "grid",
@@ -1527,20 +1651,38 @@ function DownloadGameOptions({
               gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
             }}
           >
-            {downloadDirectorySuggestions.map((directory) => (
-              <UserDiskItem
-                key={directory.path}
-                title={directory.title}
-                path={directory.path}
-                freeBytes={directory.freeBytes}
-                totalBytes={directory.totalBytes}
-                isSelected={selectedDownloadPath === directory.path}
-                showSelectedIndicator
-                onClick={() => onSelectDownloadPath(directory.path)}
-                className="download-game-modal__directory-disk"
-              />
-            ))}
-          </HorizontalFocusGroup>
+            {downloadDirectorySuggestions.map((directory, index) => {
+              const shouldSpanFullWidth =
+                downloadDirectorySuggestions.length % 2 === 1 &&
+                index === downloadDirectorySuggestions.length - 1;
+
+              return (
+                <UserDiskItem
+                  key={directory.path}
+                  title={directory.title}
+                  path={directory.path}
+                  freeBytes={directory.freeBytes}
+                  totalBytes={directory.totalBytes}
+                  isSelected={selectedDownloadPath === directory.path}
+                  showSelectedIndicator
+                  stealFocusOnAppear={index === 0}
+                  onClick={
+                    isOptionsInteractionLocked
+                      ? undefined
+                      : () => onSelectDownloadPath(directory.path)
+                  }
+                  focusNavigationState={
+                    isOptionsInteractionLocked ? "disabled" : undefined
+                  }
+                  className={
+                    shouldSpanFullWidth
+                      ? "download-game-modal__directory-disk download-game-modal__directory-disk--full-width"
+                      : "download-game-modal__directory-disk"
+                  }
+                />
+              );
+            })}
+          </GridFocusGroup>
         </div>
 
         <div className="download-game-modal__download-options">
@@ -1549,6 +1691,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID}
             label="Automatically extract downloaded files"
             checked={automaticExtractionEnabled}
+            disabled={isOptionsInteractionLocked}
             onChange={onAutomaticExtractionChange}
           />
 
@@ -1557,6 +1700,7 @@ function DownloadGameOptions({
             focusId={DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID}
             label="Always delete archive files after extraction"
             checked={deleteArchiveFilesAfterExtraction}
+            disabled={isOptionsInteractionLocked}
             onChange={onDeleteArchiveFilesAfterExtractionChange}
           />
         </div>
