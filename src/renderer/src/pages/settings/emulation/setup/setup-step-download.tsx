@@ -137,6 +137,32 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
     return t("setup_download_desc", { name });
   };
 
+  const renderProgressBar = (optionId: string) => {
+    const current = progress[optionId];
+    if (!current) return null;
+    if (current.phase === "done" || current.phase === "error") return null;
+
+    const hasTotal = Boolean(current.total && current.total > 0);
+    const indeterminate = current.phase !== "downloading" || !hasTotal;
+    const percent = hasTotal
+      ? Math.min(
+          100,
+          Math.floor(((current.loaded ?? 0) / current.total!) * 100)
+        )
+      : 0;
+
+    return (
+      <div className="setup-modal__progress-bar" style={{ marginTop: 10 }}>
+        <div
+          className={`setup-modal__progress-fill ${
+            indeterminate ? "setup-modal__progress-fill--indeterminate" : ""
+          }`}
+          style={indeterminate ? undefined : { width: `${percent}%` }}
+        />
+      </div>
+    );
+  };
+
   const visitLabel = (option: ResolvedInstallOption): string => {
     const semver =
       extractSemver(option.version) ?? extractSemver(option.fileName);
@@ -219,6 +245,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                   <span className="setup-modal__download-card-desc">
                     {installStatusText(option.id)}
                   </span>
+                  {renderProgressBar(option.id)}
                 </div>
               </button>
               {option.htmlUrl && (
