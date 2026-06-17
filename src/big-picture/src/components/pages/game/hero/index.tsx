@@ -1,5 +1,6 @@
 import {
   DownloadSimpleIcon,
+  GearIcon,
   HeartIcon,
   PlayIcon,
   PlusCircleIcon,
@@ -8,6 +9,7 @@ import {
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
 import { motion } from "framer-motion";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FocusOverrides,
   FocusOverrideTarget,
@@ -23,6 +25,7 @@ import {
 import {
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_HERO_DOWNLOAD_OPTIONS_ID,
+  GAME_HERO_OPEN_SETTINGS_ID,
   GAME_HERO_PRIMARY_ACTION_ID,
   GAME_HERO_TOGGLE_FAVORITE_ID,
 } from "../navigation";
@@ -37,6 +40,7 @@ export interface HeroProps {
   onDownload: () => void;
   onAddToLibrary: () => void;
   onOpenDownloadOptions: () => void;
+  onOpenSettings: () => void;
   onClose: () => void;
   isAddingToLibrary: boolean;
   canAddToLibrary: boolean;
@@ -54,12 +58,14 @@ export function Hero({
   onDownload,
   onAddToLibrary,
   onOpenDownloadOptions,
+  onOpenSettings,
   onClose,
   isAddingToLibrary,
   canAddToLibrary,
   downNavigationTarget,
   sidebarEntryTarget,
 }: Readonly<HeroProps>) {
+  const { t } = useTranslation("game_details");
   const dominantColor = useDominantColor(
     game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
   );
@@ -82,11 +88,13 @@ export function Hero({
     [sidebarEntryTarget]
   );
   const favoriteLeftTargetId =
-    shouldShowCatalogActions && hasPrimaryAction
-      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-      : hasPrimaryAction
-        ? GAME_HERO_PRIMARY_ACTION_ID
-        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+    shouldShowFavoriteButton
+      ? GAME_HERO_OPEN_SETTINGS_ID
+      : shouldShowCatalogActions && hasPrimaryAction
+        ? GAME_HERO_DOWNLOAD_OPTIONS_ID
+        : hasPrimaryAction
+          ? GAME_HERO_PRIMARY_ACTION_ID
+          : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
 
   const toggleFavoriteNavigationOverrides: FocusOverrides = {
     left: {
@@ -97,7 +105,8 @@ export function Hero({
     down: heroDownNavigationTarget,
   };
 
-  const { primaryActionButton, downloadOptionsButton } = useMemo(() => {
+  const { primaryActionButton, downloadOptionsButton, settingsButton } =
+    useMemo(() => {
     const primaryActionRightTarget = shouldShowCatalogActions
       ? {
           type: "item" as const,
@@ -106,7 +115,7 @@ export function Hero({
       : shouldShowFavoriteButton
         ? {
             type: "item" as const,
-            itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
+            itemId: GAME_HERO_OPEN_SETTINGS_ID,
           }
         : lastActionRightTarget;
     const primaryActionNavigationOverrides: FocusOverrides = {
@@ -125,6 +134,24 @@ export function Hero({
       right: shouldShowFavoriteButton
         ? {
             type: "item",
+            itemId: GAME_HERO_OPEN_SETTINGS_ID,
+          }
+        : lastActionRightTarget,
+      down: heroDownNavigationTarget,
+    };
+    const settingsLeftTargetId = shouldShowCatalogActions
+      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
+      : hasPrimaryAction
+        ? GAME_HERO_PRIMARY_ACTION_ID
+        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+    const settingsNavigationOverrides: FocusOverrides = {
+      left: {
+        type: "item",
+        itemId: settingsLeftTargetId,
+      },
+      right: shouldShowFavoriteButton
+        ? {
+            type: "item" as const,
             itemId: GAME_HERO_TOGGLE_FAVORITE_ID,
           }
         : lastActionRightTarget,
@@ -145,6 +172,18 @@ export function Hero({
           </Button>
         ),
         downloadOptionsButton: null,
+        settingsButton: shouldShowFavoriteButton ? (
+          <Button
+            focusId={GAME_HERO_OPEN_SETTINGS_ID}
+            focusNavigationOverrides={settingsNavigationOverrides}
+            variant="secondary"
+            aria-label={t("options")}
+            icon={<GearIcon size={24} />}
+            onClick={onOpenSettings}
+          >
+            {t("options")}
+          </Button>
+        ) : null,
       };
     }
 
@@ -164,6 +203,18 @@ export function Hero({
           </Button>
         ),
         downloadOptionsButton: null,
+        settingsButton: shouldShowFavoriteButton ? (
+          <Button
+            focusId={GAME_HERO_OPEN_SETTINGS_ID}
+            focusNavigationOverrides={settingsNavigationOverrides}
+            variant="secondary"
+            aria-label={t("options")}
+            icon={<GearIcon size={24} />}
+            onClick={onOpenSettings}
+          >
+            {t("options")}
+          </Button>
+        ) : null,
       };
     }
 
@@ -182,6 +233,18 @@ export function Hero({
           </Button>
         ),
         downloadOptionsButton: null,
+        settingsButton: (
+          <Button
+            focusId={GAME_HERO_OPEN_SETTINGS_ID}
+            focusNavigationOverrides={settingsNavigationOverrides}
+            variant="secondary"
+            aria-label={t("options")}
+            icon={<GearIcon size={24} />}
+            onClick={onOpenSettings}
+          >
+            {t("options")}
+          </Button>
+        ),
       };
     }
 
@@ -189,6 +252,7 @@ export function Hero({
       return {
         primaryActionButton: null,
         downloadOptionsButton: null,
+        settingsButton: null,
       };
     }
 
@@ -217,6 +281,7 @@ export function Hero({
           Download Game
         </Button>
       ),
+      settingsButton: null,
     };
   }, [
     canAddToLibrary,
@@ -230,10 +295,12 @@ export function Hero({
     onClose,
     onDownload,
     onOpenDownloadOptions,
+    onOpenSettings,
     onPlay,
     shouldShowCatalogActions,
     shouldShowFavoriteButton,
     lastActionRightTarget,
+    t,
   ]);
 
   return (
@@ -278,11 +345,13 @@ export function Hero({
           {primaryActionButton}
           {downloadOptionsButton}
 
-          {primaryActionButton && shouldShowFavoriteButton && (
+          {primaryActionButton && settingsButton && (
             <div className="game-page__hero-action-divider">
               <Divider orientation="vertical" color="var(--text-secondary)" />
             </div>
           )}
+
+          {settingsButton}
 
           {shouldShowFavoriteButton && (
             <Button
