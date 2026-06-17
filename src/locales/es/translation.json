@@ -1371,6 +1371,8 @@
     "review_upvote_description": "Tu reseña recibió {{count}} nuevos votos",
     "review_answer_title": "Nueva respuesta a tu reseña de {{gameTitle}}",
     "review_answer_description": "{{displayName}} respondió a tu reseña",
+    "review_answer_upvote_title": "¡Tu respuesta a {{gameTitle}} recibió votos!",
+    "review_answer_upvote_description": "Tu respuesta recibió {{count}} nuevos votos",
     "marked_all_as_read": "Todas las notificaciones marcadas como leídas",
     "failed_to_mark_as_read": "Error al marcar las notificaciones como leídas",
     "cleared_all": "Todas las notificaciones eliminadas",
