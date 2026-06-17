@@ -103,11 +103,7 @@ export class HydraApi {
     if (WindowManager.mainWindow) {
       WindowManager.mainWindow.webContents.send("on-signin");
       await clearGamesRemoteIds();
-      void uploadGamesBatch().finally(() => {
-        void import("../events/emulators/reimport-classics-games")
-          .then(({ reimportClassicsGames }) => reimportClassicsGames())
-          .catch(() => {});
-      });
+      void uploadGamesBatch();
 
       WSClient.close();
       WSClient.connect();

@@ -12,6 +12,7 @@ export interface ScannedGame {
   primaryPath: string;
   name: string;
   sizeBytes: number;
+  wrongPlatform: boolean;
 }
 
 export interface ScanResult {
@@ -24,6 +25,7 @@ export interface ScanProgress {
   processed: number;
   total: number;
   currentFile: string | null;
+  kept: number;
 }
 
 export interface ScanOptions {
@@ -149,30 +151,33 @@ const computeDirSize = async (root: string): Promise<number> => {
   return total;
 };
 
-const shouldCountForSystem = async (
+type GameClassification = "ok" | "wrong-platform" | "skip";
+
+const classifyForSystem = async (
   candidate: Candidate,
   system: EmulatorSystem
-): Promise<boolean> => {
-  if (candidate.isMarkerDir) return true;
+): Promise<GameClassification> => {
+  if (candidate.isMarkerDir) return "ok";
   const ext = extOf(candidate.name);
 
   if (system === "ps3") {
-    if (PS3_INTERNAL_FILES.has(candidate.name.toLowerCase())) return false;
+    if (PS3_INTERNAL_FILES.has(candidate.name.toLowerCase())) return "skip";
     if (ext === ".iso") {
       const target = await resolveSniffTarget(candidate.fullPath);
-      if (!target) return true;
+      if (!target) return "ok";
       const detected = await sniffDiscImage(target);
-      return detected === "ps3" || detected === "unknown";
+      if (detected === "ps3" || detected === "unknown") return "ok";
+      return "wrong-platform";
     }
-    return ext === ".pkg" || ext === ".elf" || ext === ".self";
+    return ext === ".pkg" || ext === ".elf" || ext === ".self" ? "ok" : "skip";
   }
 
-  if (!SNIFFABLE_EXTS.has(ext)) return true;
+  if (!SNIFFABLE_EXTS.has(ext)) return "ok";
   const target = await resolveSniffTarget(candidate.fullPath);
-  if (!target) return true;
+  if (!target) return "ok";
   const detected = await sniffDiscImage(target);
-  if (detected === "unknown") return true;
-  return detected === system;
+  if (detected === "unknown") return "ok";
+  return detected === system ? "ok" : "wrong-platform";
 };
 
 interface GameGroup {
@@ -357,19 +362,23 @@ export const scanRomFolder = async (
   let processed = 0;
   const scannedGames: ScannedGame[] = [];
 
-  options?.onProgress?.({ processed: 0, total, currentFile: null });
+  options?.onProgress?.({ processed: 0, total, currentFile: null, kept: 0 });
 
   for (const game of games) {
     if (options?.signal?.cancelled) break;
 
-    if (await shouldCountForSystem(game.primary, binary.system)) {
+    const classification = await classifyForSystem(game.primary, binary.system);
+    if (classification !== "skip") {
       const sized = await sizeGame(game);
-      fileCount += sized.countedFiles;
-      sizeBytes += sized.sizeBytes;
+      if (classification === "ok") {
+        fileCount += sized.countedFiles;
+        sizeBytes += sized.sizeBytes;
+      }
       scannedGames.push({
         primaryPath: game.primary.fullPath,
         name: game.primary.name,
         sizeBytes: sized.sizeBytes,
+        wrongPlatform: classification === "wrong-platform",
       });
     }
 
@@ -378,8 +387,18 @@ export const scanRomFolder = async (
       processed,
       total,
       currentFile: game.primary.name,
+      kept: scannedGames.length,
     });
   }
 
   return { fileCount, sizeBytes, games: scannedGames };
+};
+
+export const countRomGroups = async (
+  rootPath: string,
+  binary: KnownBinary,
+  scanSubfolders: boolean
+): Promise<number> => {
+  const raw = await collectCandidates(rootPath, binary, scanSubfolders);
+  return dedupGames(binary, raw).length;
 };

@@ -26,6 +26,7 @@ import {
 import { addSeconds } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { AuthPage } from "@shared";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
@@ -52,6 +53,7 @@ export function ProfileHero() {
     sendFriendRequest,
     undoFriendship,
     blockUser,
+    userDetails,
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
@@ -79,6 +81,12 @@ export function ProfileHero() {
   const handleFriendAction = useCallback(
     async (userId: string, action: FriendAction) => {
       if (!userProfile) return;
+
+      if (!userDetails) {
+        window.electron.openAuthWindow(AuthPage.SignIn);
+        return;
+      }
+
       setIsPerformingAction(true);
 
       try {
@@ -119,6 +127,7 @@ export function ProfileHero() {
       navigate,
       showSuccessToast,
       userProfile,
+      userDetails,
     ]
   );
 

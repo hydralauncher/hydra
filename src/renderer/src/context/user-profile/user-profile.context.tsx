@@ -3,7 +3,7 @@ import { useAppSelector, useToast } from "@renderer/hooks";
 import type { Badge, UserProfile, UserStats, UserGame } from "@types";
 import { average } from "color.js";
 
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -67,6 +67,7 @@ export function UserProfileContextProvider({
   userId,
 }: Readonly<UserProfileContextProviderProps>) {
   const { userDetails } = useAppSelector((state) => state.userDetails);
+  const authUserId = userDetails?.id;
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
@@ -81,6 +82,7 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
+  const previousUserIdRef = useRef(userId);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -109,7 +111,9 @@ export function UserProfileContextProvider({
       shops.forEach((shop) => params.append("shop", shop));
 
       window.electron.hydraApi
-        .get<UserStats>(`/users/${userId}/stats?${params.toString()}`)
+        .get<UserStats>(`/users/${userId}/stats?${params.toString()}`, {
+          needsAuth: false,
+        })
         .then((stats) => {
           setUserStats(stats);
         });
@@ -139,7 +143,7 @@ export function UserProfileContextProvider({
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
           pinnedGames: UserGame[];
-        }>(url);
+        }>(url, { needsAuth: false });
 
         if (response) {
           setLibraryGames(response.library);
@@ -186,7 +190,7 @@ export function UserProfileContextProvider({
         const response = await window.electron.hydraApi.get<{
           library: UserGame[];
           pinnedGames: UserGame[];
-        }>(url);
+        }>(url, { needsAuth: false });
 
         if (response && response.library.length > 0) {
           setLibraryGames((prev) => {
@@ -222,7 +226,9 @@ export function UserProfileContextProvider({
     profileParams.append("shop", "launchbox");
 
     return window.electron.hydraApi
-      .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`)
+      .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
+        needsAuth: false,
+      })
       .then((userProfile) => {
         setUserProfile(userProfile);
 
@@ -250,16 +256,19 @@ export function UserProfileContextProvider({
   }, [i18n]);
 
   useEffect(() => {
-    setUserProfile(null);
-    setLibraryGames([]);
-    setPinnedGames([]);
-    setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
-    setLibraryPage(0);
-    setHasMoreLibraryGames(true);
+    if (previousUserIdRef.current !== userId) {
+      previousUserIdRef.current = userId;
+      setUserProfile(null);
+      setLibraryGames([]);
+      setPinnedGames([]);
+      setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
+      setLibraryPage(0);
+      setHasMoreLibraryGames(true);
+    }
 
     getUserProfile();
     getBadges();
-  }, [getUserProfile, getBadges]);
+  }, [getUserProfile, getBadges, authUserId, userId]);
 
   return (
     <Provider
