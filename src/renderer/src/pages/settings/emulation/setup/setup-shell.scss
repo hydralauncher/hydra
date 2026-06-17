@@ -127,6 +127,36 @@
     flex-shrink: 0;
   }
 
+  &__website-link {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -4px 0 4px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
+  &__recommended-pill {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(63, 185, 80, 0.16);
+    color: #3fb950;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
   &__download-grid {
     display: grid;
     grid-template-columns: 1fr;

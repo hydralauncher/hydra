@@ -719,6 +719,7 @@
   "settings": {
     "setup_official_website": "Official website",
     "setup_install_with_hydra": "Install from GitHub",
+    "setup_recommended": "Recommended",
     "setup_view_on_github": "View on GitHub",
     "setup_install_loading": "Loading download options…",
     "setup_install_with_hydra_desc": "Download the latest {{name}} installer automatically",

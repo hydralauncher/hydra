@@ -165,34 +165,17 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
         {t("setup_download_intro", { name })}
       </p>
 
-      <div className="setup-modal__download-grid">
-        <button
-          type="button"
-          className="setup-modal__download-card"
-          onClick={() => openUrl(OFFICIAL_WEBSITES[binary])}
-        >
-          <div className="setup-modal__download-card-badge">
-            <GlobeIcon size={20} />
-          </div>
-          <div className="setup-modal__download-card-main">
-            <span className="setup-modal__download-card-title">
-              {t("setup_official_website")}
-            </span>
-            <span className="setup-modal__download-card-desc">
-              {t("setup_download_desc", { name })}
-            </span>
-          </div>
-          <span className="setup-modal__download-card-footer">
-            <span className="setup-modal__download-card-url">
-              {OFFICIAL_WEBSITES[binary]}
-            </span>
-            <LinkExternalIcon
-              size={14}
-              className="setup-modal__download-card-ext"
-            />
-          </span>
-        </button>
+      <button
+        type="button"
+        className="setup-modal__website-link"
+        onClick={() => openUrl(OFFICIAL_WEBSITES[binary])}
+      >
+        <GlobeIcon size={14} />
+        <span>{t("setup_official_website")}</span>
+        <LinkExternalIcon size={12} />
+      </button>
 
+      <div className="setup-modal__download-grid">
         {options === null && (
           <div className="setup-modal__download-card setup-modal__download-card--loading">
             <div className="setup-modal__download-card-badge">
@@ -227,6 +210,11 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                   <span className="setup-modal__download-card-title">
                     {t("setup_install_with_hydra")}
                     {label ? ` · ${label}` : ""}
+                    {option.channel !== "prerelease" && (
+                      <span className="setup-modal__recommended-pill">
+                        {t("setup_recommended")}
+                      </span>
+                    )}
                   </span>
                   <span className="setup-modal__download-card-desc">
                     {installStatusText(option.id)}
