@@ -150,8 +150,8 @@
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 999px;
-    background: rgba(63, 185, 80, 0.16);
-    color: #3fb950;
+    background: rgba(255, 255, 255, 0.1);
+    color: #c0c1c7;
     font-size: 11px;
     font-weight: 600;
     vertical-align: middle;
@@ -162,6 +162,18 @@
     grid-template-columns: 1fr;
     gap: 12px;
     flex: 1;
+  }
+
+  &__download-divider {
+    width: 100%;
+    height: 1px;
+    border: 0;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__download-card--guide {
+    margin-top: 4px;
   }
 
   &__download-card {
@@ -226,20 +238,21 @@
   &__download-card-visit {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     align-self: stretch;
     padding: 16px 18px;
     background: transparent;
     border: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
-    color: #a1a1aa;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
     cursor: pointer;
     flex-shrink: 0;
 
-    &:hover {
+    .setup-modal__download-card-url,
+    .setup-modal__download-card-ext {
+      transition: color 0.15s ease;
+    }
+
+    &:hover .setup-modal__download-card-url,
+    &:hover .setup-modal__download-card-ext {
       color: #fafafa;
     }
   }

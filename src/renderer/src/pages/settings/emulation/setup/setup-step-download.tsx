@@ -228,8 +228,13 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
                   onClick={() => option.htmlUrl && openUrl(option.htmlUrl)}
                   title={t("setup_view_on_github")}
                 >
-                  <LinkExternalIcon size={14} />
-                  <span>{visitLabel(option)}</span>
+                  <span className="setup-modal__download-card-url">
+                    {visitLabel(option)}
+                  </span>
+                  <LinkExternalIcon
+                    size={14}
+                    className="setup-modal__download-card-ext"
+                  />
                 </button>
               )}
             </div>
@@ -266,9 +271,11 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
           </button>
         ))}
 
+        <hr className="setup-modal__download-divider" />
+
         <button
           type="button"
-          className="setup-modal__download-card"
+          className="setup-modal__download-card setup-modal__download-card--guide"
           data-open-article={ARTICLE_KEYS[binary]}
         >
           <div className="setup-modal__download-card-badge">
