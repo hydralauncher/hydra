@@ -961,6 +961,8 @@
     "roms_detected_title": "ROMs Detected",
     "roms_detected_description": "Your local {{system}} catalogue, kept in sync with LaunchBox.",
     "no_roms_detected": "No ROMs detected yet. Add a ROM folder and rescan.",
+    "roms_search_placeholder": "Search games",
+    "roms_no_results": "No games match your search.",
     "rom_folders_section_title": "ROM folders",
     "rom_folders_section_description": "Hydra only scans folders you add here. Your ROMs stay on your machine.",
     "library_section_title": "Library",
