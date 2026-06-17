@@ -33,6 +33,11 @@ const ARTICLE_KEYS: Record<EmulatorBinary, string> = {
   rpcs3: "install-rpcs3",
 };
 
+const SEMVER_RE = /v?\d+\.\d+(\.\d+)?/;
+
+const extractSemver = (value: string | null): string | undefined =>
+  (value && SEMVER_RE.exec(value)?.[0]) || undefined;
+
 export function SetupStepDownload({ binary }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const name = KNOWN_BINARY_LABELS[binary];
@@ -134,8 +139,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
 
   const visitLabel = (option: ResolvedInstallOption): string => {
     const semver =
-      option.version?.match(/v?\d+\.\d+(\.\d+)?/)?.[0] ??
-      option.fileName?.match(/v?\d+\.\d+(\.\d+)?/)?.[0];
+      extractSemver(option.version) ?? extractSemver(option.fileName);
     if (semver) return semver.startsWith("v") ? semver : `v${semver}`;
     if (!option.version) return "GitHub";
     return option.version.length > 14

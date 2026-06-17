@@ -172,7 +172,8 @@ export const downloadAndInstallEmulator = async (
     }
 
     if (option.kind === "linux-appimage") {
-      await fs.promises.chmod(dest, 0o755);
+      const { mode } = await fs.promises.stat(dest);
+      await fs.promises.chmod(dest, mode | 0o100);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
       return { ok: true, path: dest };

@@ -36,117 +36,122 @@ interface LinkSource {
 
 type EmulatorSourceEntry = GithubAssetSource | LinkSource;
 
-const githubEntries = (
-  binary: EmulatorBinary,
+const duckstationEntries = (
   os: InstallOs,
   arch: InstallArch
 ): EmulatorSourceEntry[] => {
-  const isWindows = os === "win32";
-
-  if (binary === "duckstation") {
-    if (isWindows) {
-      return [
-        {
-          type: "github",
-          id: "duckstation-install",
-          binary,
-          repo: "stenzek/duckstation",
-          channel: "rolling",
-          channelLabel: null,
-          assetPattern:
-            arch === "arm64"
-              ? /^duckstation-windows-arm64-installer\.exe$/i
-              : /^duckstation-windows-x64-installer\.exe$/i,
-          kind: "windows-installer",
-        },
-      ];
-    }
+  if (os === "win32") {
+    const assetPattern =
+      arch === "arm64"
+        ? /^duckstation-windows-arm64-installer\.exe$/i
+        : /^duckstation-windows-x64-installer\.exe$/i;
     return [
       {
         type: "github",
         id: "duckstation-install",
-        binary,
+        binary: "duckstation",
         repo: "stenzek/duckstation",
         channel: "rolling",
         channelLabel: null,
-        assetPattern:
-          arch === "arm64"
-            ? /^DuckStation-arm64\.AppImage$/i
-            : /^DuckStation-x64\.AppImage$/i,
-        kind: "linux-appimage",
+        assetPattern,
+        kind: "windows-installer",
+      },
+    ];
+  }
+
+  const assetPattern =
+    arch === "arm64"
+      ? /^DuckStation-arm64\.AppImage$/i
+      : /^DuckStation-x64\.AppImage$/i;
+  return [
+    {
+      type: "github",
+      id: "duckstation-install",
+      binary: "duckstation",
+      repo: "stenzek/duckstation",
+      channel: "rolling",
+      channelLabel: null,
+      assetPattern,
+      kind: "linux-appimage",
+    },
+    {
+      type: "link",
+      id: "duckstation-aur",
+      binary: "duckstation",
+      linkKind: "aur",
+      url: "https://aur.archlinux.org/packages/duckstation-git",
+    },
+  ];
+};
+
+const pcsx2AssetPattern = (os: InstallOs, arch: InstallArch): RegExp => {
+  if (os !== "win32") return /linux-appimage-x64-Qt\.AppImage$/i;
+  if (arch === "arm64") return /windows-arm64-installer\.exe$/i;
+  return /windows-x64-installer\.exe$/i;
+};
+
+const pcsx2Entries = (
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
+  const isWindows = os === "win32";
+  const assetPattern = pcsx2AssetPattern(os, arch);
+  const kind: Exclude<EmulatorInstallKind, "link"> = isWindows
+    ? "windows-installer"
+    : "linux-appimage";
+
+  const entries: EmulatorSourceEntry[] = [
+    {
+      type: "github",
+      id: "pcsx2-release",
+      binary: "pcsx2",
+      repo: "PCSX2/pcsx2",
+      channel: "release",
+      channelLabel: "release",
+      assetPattern,
+      kind,
+    },
+    {
+      type: "github",
+      id: "pcsx2-prerelease",
+      binary: "pcsx2",
+      repo: "PCSX2/pcsx2",
+      channel: "prerelease",
+      channelLabel: "prerelease",
+      assetPattern,
+      kind,
+    },
+  ];
+
+  if (!isWindows) {
+    entries.push(
+      {
+        type: "link",
+        id: "pcsx2-aur",
+        binary: "pcsx2",
+        linkKind: "aur",
+        url: "https://aur.archlinux.org/packages/pcsx2",
       },
       {
         type: "link",
-        id: "duckstation-aur",
-        binary,
-        linkKind: "aur",
-        url: "https://aur.archlinux.org/packages/duckstation-git",
-      },
-    ];
+        id: "pcsx2-flatpak",
+        binary: "pcsx2",
+        linkKind: "flatpak",
+        url: "https://flathub.org/en/apps/net.pcsx2.PCSX2",
+      }
+    );
   }
 
-  if (binary === "pcsx2") {
-    const assetPattern = isWindows
-      ? arch === "arm64"
-        ? /windows-arm64-installer\.exe$/i
-        : /windows-x64-installer\.exe$/i
-      : /linux-appimage-x64-Qt\.AppImage$/i;
-    const kind: Exclude<EmulatorInstallKind, "link"> = isWindows
-      ? "windows-installer"
-      : "linux-appimage";
+  return entries;
+};
 
-    const entries: EmulatorSourceEntry[] = [
-      {
-        type: "github",
-        id: "pcsx2-release",
-        binary,
-        repo: "PCSX2/pcsx2",
-        channel: "release",
-        channelLabel: "release",
-        assetPattern,
-        kind,
-      },
-      {
-        type: "github",
-        id: "pcsx2-prerelease",
-        binary,
-        repo: "PCSX2/pcsx2",
-        channel: "prerelease",
-        channelLabel: "prerelease",
-        assetPattern,
-        kind,
-      },
-    ];
-
-    if (!isWindows) {
-      entries.push(
-        {
-          type: "link",
-          id: "pcsx2-aur",
-          binary,
-          linkKind: "aur",
-          url: "https://aur.archlinux.org/packages/pcsx2",
-        },
-        {
-          type: "link",
-          id: "pcsx2-flatpak",
-          binary,
-          linkKind: "flatpak",
-          url: "https://flathub.org/en/apps/net.pcsx2.PCSX2",
-        }
-      );
-    }
-
-    return entries;
-  }
-
-  // rpcs3
-  if (isWindows) {
+const rpcs3Entries = (os: InstallOs): EmulatorSourceEntry[] => {
+  if (os === "win32") {
     return [
       {
         type: "github",
         id: "rpcs3-install",
-        binary,
+        binary: "rpcs3",
         repo: "RPCS3/rpcs3-binaries-win",
         channel: "latest",
         channelLabel: null,
@@ -159,7 +164,7 @@ const githubEntries = (
     {
       type: "github",
       id: "rpcs3-install",
-      binary,
+      binary: "rpcs3",
       repo: "RPCS3/rpcs3-binaries-linux",
       channel: "latest",
       channelLabel: null,
@@ -169,18 +174,28 @@ const githubEntries = (
     {
       type: "link",
       id: "rpcs3-aur",
-      binary,
+      binary: "rpcs3",
       linkKind: "aur",
       url: "https://aur.archlinux.org/packages/rpcs3-git",
     },
     {
       type: "link",
       id: "rpcs3-flatpak",
-      binary,
+      binary: "rpcs3",
       linkKind: "flatpak",
       url: "https://flathub.org/en/apps/net.rpcs3.RPCS3",
     },
   ];
+};
+
+const githubEntries = (
+  binary: EmulatorBinary,
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
+  if (binary === "duckstation") return duckstationEntries(os, arch);
+  if (binary === "pcsx2") return pcsx2Entries(os, arch);
+  return rpcs3Entries(os);
 };
 
 interface GithubAsset {
