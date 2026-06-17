@@ -1,16 +1,10 @@
 import "./behavior-section.scss";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  Checkbox,
-  DropdownSelect,
-  type DropdownSelectOption,
-  VerticalFocusGroup,
-} from "../../components";
+import { Checkbox, VerticalFocusGroup } from "../../components";
 import type { FocusOverrides } from "../../services";
 import { useUserPreferences } from "../../hooks";
-import type { HydraAudioDevice, HydraDisplay } from "@types";
 import {
   BEHAVIOR_ITEM_FOCUS_IDS,
   BEHAVIOR_SECTION_REGION_ID,
@@ -28,9 +22,6 @@ interface BehaviorForm {
   startMinimized: boolean;
   hideToTrayOnGameStart: boolean;
   launchToLibraryPage: boolean;
-  launchInBigPicture: boolean;
-  bigPictureDisplayId: string;
-  bigPictureAudioDeviceId: string;
   enableAutoInstall: boolean;
 }
 
@@ -49,21 +40,13 @@ const DEFAULT_FORM: BehaviorForm = {
   startMinimized: false,
   hideToTrayOnGameStart: false,
   launchToLibraryPage: false,
-  launchInBigPicture: false,
-  bigPictureDisplayId: "default",
-  bigPictureAudioDeviceId: "default",
   enableAutoInstall: false,
 };
-
-const DEFAULT_BIG_PICTURE_DISPLAY_ID = "default";
-const DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID = "default";
 
 export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
   const userPreferences = useUserPreferences();
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
   const [form, setForm] = useState<BehaviorForm>(DEFAULT_FORM);
-  const [displays, setDisplays] = useState<HydraDisplay[]>([]);
-  const [audioDevices, setAudioDevices] = useState<HydraAudioDevice[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,32 +64,6 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
         setShowRunAtStartup(true);
       });
 
-    globalThis.window.electron
-      .getDisplays()
-      .then((nextDisplays) => {
-        if (!isMounted) return;
-
-        setDisplays(nextDisplays);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-
-        setDisplays([]);
-      });
-
-    globalThis.window.electron
-      .getAudioDevices()
-      .then((nextAudioDevices) => {
-        if (!isMounted) return;
-
-        setAudioDevices(nextAudioDevices);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-
-        setAudioDevices([]);
-      });
-
     return () => {
       isMounted = false;
     };
@@ -122,52 +79,24 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureDisplayId:
-        userPreferences.bigPictureDisplayId ?? DEFAULT_BIG_PICTURE_DISPLAY_ID,
-      bigPictureAudioDeviceId:
-        userPreferences.bigPictureAudioDeviceId ??
-        DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences]);
 
   const isLinux = globalThis.window.electron.platform === "linux";
 
-  const updateUserPreferences = useCallback(
-    async (
-      values: Partial<BehaviorForm>,
-      autoLaunchOptions?: { enabled: boolean; minimized: boolean }
-    ) => {
-      setForm((prev) => ({ ...prev, ...values }));
+  const updateUserPreferences = async (
+    values: Partial<BehaviorForm>,
+    autoLaunchOptions?: { enabled: boolean; minimized: boolean }
+  ) => {
+    const nextForm = { ...form, ...values };
+    setForm(nextForm);
 
-      await globalThis.window.electron.updateUserPreferences(values);
+    await globalThis.window.electron.updateUserPreferences(values);
 
-      if (autoLaunchOptions) {
-        globalThis.window.electron.autoLaunch(autoLaunchOptions);
-      }
-    },
-    []
-  );
-
-  const updateBigPictureDisplay = async (displayId: string) => {
-    setForm((prev) => ({ ...prev, bigPictureDisplayId: displayId }));
-
-    await globalThis.window.electron.updateUserPreferences({
-      bigPictureDisplayId:
-        displayId === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : displayId,
-    });
-  };
-
-  const updateBigPictureAudioDevice = async (audioDeviceId: string) => {
-    setForm((prev) => ({ ...prev, bigPictureAudioDeviceId: audioDeviceId }));
-
-    await globalThis.window.electron.updateUserPreferences({
-      bigPictureAudioDeviceId:
-        audioDeviceId === DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID
-          ? null
-          : audioDeviceId,
-    });
+    if (autoLaunchOptions) {
+      globalThis.window.electron.autoLaunch(autoLaunchOptions);
+    }
   };
 
   const items = useMemo<BehaviorItem[]>(() => {
@@ -238,16 +167,6 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
           await updateUserPreferences({ launchToLibraryPage: checked });
         },
       },
-      {
-        id: "launch-in-big-picture",
-        focusId: BEHAVIOR_ITEM_FOCUS_IDS.launchInBigPicture,
-        label: "Launch Hydra in Big Picture",
-        checked: form.launchInBigPicture,
-        disabled: false,
-        onChange: async (checked: boolean) => {
-          await updateUserPreferences({ launchInBigPicture: checked });
-        },
-      },
       ...(isLinux
         ? [
             {
@@ -265,61 +184,7 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
     ];
 
     return baseItems;
-  }, [form, isLinux, showRunAtStartup, updateUserPreferences]);
-
-  const displayOptions = useMemo<Array<DropdownSelectOption<string>>>(() => {
-    const selectedDisplayMissing =
-      form.bigPictureDisplayId !== DEFAULT_BIG_PICTURE_DISPLAY_ID &&
-      displays.every((display) => display.id !== form.bigPictureDisplayId);
-
-    return [
-      {
-        value: DEFAULT_BIG_PICTURE_DISPLAY_ID,
-        label: "System default monitor",
-      },
-      ...displays.map((display) => ({
-        value: display.id,
-        label: display.isPrimary ? `${display.label} (Primary)` : display.label,
-      })),
-      ...(selectedDisplayMissing
-        ? [
-            {
-              value: form.bigPictureDisplayId,
-              label: `Missing display (${form.bigPictureDisplayId})`,
-            },
-          ]
-        : []),
-    ];
-  }, [displays, form.bigPictureDisplayId]);
-
-  const audioDeviceOptions = useMemo<
-    Array<DropdownSelectOption<string>>
-  >(() => {
-    const selectedAudioDeviceMissing =
-      form.bigPictureAudioDeviceId !== DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID &&
-      audioDevices.every(
-        (device) => device.id !== form.bigPictureAudioDeviceId
-      );
-
-    return [
-      {
-        value: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
-        label: "System default audio device",
-      },
-      ...audioDevices.map((device) => ({
-        value: device.id,
-        label: device.isDefault ? `${device.label} (Default)` : device.label,
-      })),
-      ...(selectedAudioDeviceMissing
-        ? [
-            {
-              value: form.bigPictureAudioDeviceId,
-              label: `Missing audio device (${form.bigPictureAudioDeviceId})`,
-            },
-          ]
-        : []),
-    ];
-  }, [audioDevices, form.bigPictureAudioDeviceId]);
+  }, [form, isLinux, showRunAtStartup]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -349,48 +214,13 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
                   itemId: nextItem.focusId,
                 }
               : {
-                  type: "item",
-                  itemId: BEHAVIOR_ITEM_FOCUS_IDS.bigPictureDisplay,
+                  type: "block",
                 },
           } satisfies FocusOverrides,
         ];
       })
     );
   }, [items]);
-
-  const displayNavigationOverrides = useMemo<FocusOverrides>(() => {
-    const focusableItems = items.filter((item) => !item.disabled);
-    const previousItem = focusableItems[focusableItems.length - 1];
-
-    return {
-      up: previousItem
-        ? {
-            type: "item",
-            itemId: previousItem.focusId,
-          }
-        : {
-            type: "item",
-            itemId: LANGUAGE_SECTION_BUTTON_ID,
-          },
-      down: {
-        type: "item",
-        itemId: BEHAVIOR_ITEM_FOCUS_IDS.bigPictureAudioDevice,
-      },
-    };
-  }, [items]);
-
-  const audioDeviceNavigationOverrides = useMemo<FocusOverrides>(
-    () => ({
-      up: {
-        type: "item",
-        itemId: BEHAVIOR_ITEM_FOCUS_IDS.bigPictureDisplay,
-      },
-      down: {
-        type: "block",
-      },
-    }),
-    []
-  );
 
   return (
     <SettingsSection
@@ -413,28 +243,6 @@ export function BehaviorSection({ className }: Readonly<BehaviorSectionProps>) {
               onChange={item.onChange}
             />
           ))}
-
-          <DropdownSelect
-            label="Big Picture launching monitor"
-            value={form.bigPictureDisplayId}
-            options={displayOptions}
-            focusId={BEHAVIOR_ITEM_FOCUS_IDS.bigPictureDisplay}
-            focusNavigationOverrides={displayNavigationOverrides}
-            onValueChange={async (displayId) => {
-              await updateBigPictureDisplay(displayId);
-            }}
-          />
-
-          <DropdownSelect
-            label="Big Picture output device"
-            value={form.bigPictureAudioDeviceId}
-            options={audioDeviceOptions}
-            focusId={BEHAVIOR_ITEM_FOCUS_IDS.bigPictureAudioDevice}
-            focusNavigationOverrides={audioDeviceNavigationOverrides}
-            onValueChange={async (audioDeviceId) => {
-              await updateBigPictureAudioDevice(audioDeviceId);
-            }}
-          />
         </div>
       </VerticalFocusGroup>
     </SettingsSection>

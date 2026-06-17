@@ -96,6 +96,29 @@
     justify-content: flex-start;
   }
 
+  &__empty-state-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__empty-state-preview {
+    min-height: 24rem;
+    padding: calc(var(--spacing-unit) * 3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--secondary-border);
+    border-radius: calc(var(--spacing-unit) * 3);
+    background:
+      radial-gradient(
+        circle at top,
+        color-mix(in srgb, var(--primary) 5%, transparent) 0%,
+        transparent 52%
+      ),
+      color-mix(in srgb, var(--surface) 70%, var(--background));
+  }
+
   &__input-row {
     align-items: flex-start;
 

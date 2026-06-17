@@ -1,4 +1,6 @@
+import type { BigPictureDiagnosticsPosition } from "@types";
 import { useGamepad } from "../../../hooks/use-gamepad.hook";
+import { useUserPreferences } from "../../../hooks";
 import { useNavigationSnapshot } from "../../../stores/navigation.store";
 import { useGamepadStore } from "../../../stores";
 import {
@@ -7,7 +9,13 @@ import {
   GamepadButtonType,
   GamepadInputStatus,
 } from "../../../types";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 interface LocalInputDebug {
   label: string;
@@ -85,6 +93,34 @@ function getStickDirection(x: number, y: number) {
   }
 
   return y > 0 ? GamepadAxisDirection.DOWN : GamepadAxisDirection.UP;
+}
+
+function getDiagnosticsLauncherStyle(
+  position: BigPictureDiagnosticsPosition
+): CSSProperties {
+  const edgeOffset = "calc(var(--spacing-unit) * 6)";
+  const isTop = position.startsWith("top");
+  const isCenter = position.endsWith("center");
+  const isRight = position.endsWith("right");
+
+  return {
+    position: "fixed",
+    zIndex: 1000,
+    display: "flex",
+    flexDirection: isTop ? "column-reverse" : "column",
+    alignItems: isCenter ? "center" : isRight ? "flex-end" : "flex-start",
+    gap: "calc(var(--spacing-unit) * 3)",
+    fontSize: 12,
+    ...(isTop ? { top: edgeOffset } : { bottom: edgeOffset }),
+    ...(isCenter
+      ? {
+          left: "50%",
+          transform: "translateX(-50%)",
+        }
+      : isRight
+        ? { right: edgeOffset }
+        : { left: edgeOffset }),
+  };
 }
 
 function getFocusedElementDataset(currentFocusId: string | null) {
@@ -1306,22 +1342,28 @@ function NavigationDiagnosticsPanel() {
 
 export function NavigationDiagnostics() {
   const [isOpen, setIsOpen] = useState(false);
+  const userPreferences = useUserPreferences();
+  const isDiagnosticsEnabled =
+    userPreferences?.bigPictureDiagnosticsEnabled === true;
+  const diagnosticsPosition =
+    userPreferences?.bigPictureDiagnosticsPosition ?? "bottom-center";
+  const launcherStyle = useMemo(
+    () => getDiagnosticsLauncherStyle(diagnosticsPosition),
+    [diagnosticsPosition]
+  );
+
+  useEffect(() => {
+    if (!isDiagnosticsEnabled) {
+      setIsOpen(false);
+    }
+  }, [isDiagnosticsEnabled]);
+
+  if (!isDiagnosticsEnabled) {
+    return null;
+  }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        left: "50%",
-        bottom: "calc(var(--spacing-unit) * 6)",
-        transform: "translateX(-50%)",
-        zIndex: 1000,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "calc(var(--spacing-unit) * 3)",
-        fontSize: 12,
-      }}
-    >
+    <div style={launcherStyle}>
       {isOpen && <NavigationDiagnosticsPanel />}
 
       <button

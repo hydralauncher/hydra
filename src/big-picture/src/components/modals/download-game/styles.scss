@@ -14,17 +14,22 @@
   }
 
   &__content {
-    flex: 1;
-    min-height: 0;
     width: 100%;
     max-height: 900px;
     display: flex;
     flex-direction: column;
   }
 
+  &__step-frame {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   &__step {
-    flex: 1;
-    min-height: 0;
+    position: relative;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -52,9 +57,11 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: calc(var(--spacing-unit) * 2) !important;
+    gap: calc(var(--spacing-unit) * 1.5) !important;
+    padding-inline-start: var(--download-game-modal-source-ring-space);
     padding-inline-end: calc(
-      var(--download-game-modal-source-ring-space) + 1px
+      var(--download-game-modal-source-track-padding-end, 0px) +
+        var(--download-game-modal-source-ring-space) + 1px
     );
   }
 
@@ -101,8 +108,14 @@
   &__source-list__options-transition {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing-unit) * 2);
+    gap: 8px;
     will-change: opacity, transform;
+  }
+
+  &__source-list-empty-state {
+    min-height: 100%;
+    padding-top: calc(var(--spacing-unit) * 2);
+    padding-bottom: calc(var(--spacing-unit) * 5);
   }
 
   &__source-list__sort-options {

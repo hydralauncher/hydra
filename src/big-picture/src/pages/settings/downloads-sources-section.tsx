@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import {
   Button,
   DownloadSourceCard,
+  FocusItem,
   HorizontalFocusGroup,
   VerticalFocusGroup,
 } from "../../components";
@@ -26,6 +27,7 @@ import type { FocusOverrides } from "../../services";
 import {
   DOWNLOADS_SOURCES_ACTIONS_REGION_ID,
   DOWNLOADS_SOURCES_DELETE_ALL_BUTTON_ID,
+  DOWNLOADS_SOURCES_EMPTY_STATE_ID,
   DOWNLOADS_SOURCES_SECTION_REGION_ID,
   DOWNLOADS_SOURCES_SYNC_BUTTON_ID,
   getLastDownloadsBehaviorItemFocusId,
@@ -428,9 +430,25 @@ export function DownloadsSourcesSection({
               })}
             </div>
           ) : (
-            <p className="downloads-sources-section__empty">
-              No sources available.
-            </p>
+            <FocusItem
+              id={DOWNLOADS_SOURCES_EMPTY_STATE_ID}
+              asChild
+              navigationOverrides={{
+                up: {
+                  type: "item",
+                  itemId: lastBehaviorFocusId,
+                },
+                down: {
+                  type: "block",
+                },
+              }}
+            >
+              <div className="downloads-sources-section__empty-state">
+                <p className="downloads-sources-section__empty">
+                  No sources available.
+                </p>
+              </div>
+            </FocusItem>
           )}
         </VerticalFocusGroup>
       </SettingsSection>

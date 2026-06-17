@@ -9,11 +9,7 @@ import {
   SelectField,
   TextField,
 } from "@renderer/components";
-import type {
-  DownloadDirectoryPreference,
-  HydraAudioDevice,
-  HydraDisplay,
-} from "@types";
+import type { DownloadDirectoryPreference } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import languageResources from "@locales";
@@ -43,9 +39,6 @@ interface DownloadDirectoryReplacementState {
   selectedReplacementPath: string;
 }
 
-const DEFAULT_BIG_PICTURE_DISPLAY_ID = "default";
-const DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID = "default";
-
 export function SettingsContextGeneral({
   appearance,
 }: Readonly<SettingsContextGeneralProps>) {
@@ -57,8 +50,6 @@ export function SettingsContextGeneral({
   );
 
   const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>([]);
-  const [displays, setDisplays] = useState<HydraDisplay[]>([]);
-  const [audioDevices, setAudioDevices] = useState<HydraAudioDevice[]>([]);
   const [defaultDownloadsPath, setDefaultDownloadsPath] = useState("");
   const [showRunAtStartup, setShowRunAtStartup] = useState(false);
   const [downloadDirectoryReplacement, setDownloadDirectoryReplacement] =
@@ -72,9 +63,6 @@ export function SettingsContextGeneral({
     startMinimized: false,
     hideToTrayOnGameStart: false,
     launchToLibraryPage: false,
-    launchInBigPicture: false,
-    bigPictureDisplayId: DEFAULT_BIG_PICTURE_DISPLAY_ID,
-    bigPictureAudioDeviceId: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
     enableAutoInstall: false,
   });
 
@@ -86,16 +74,6 @@ export function SettingsContextGeneral({
     window.electron.isPortableVersion().then((isPortableVersion) => {
       setShowRunAtStartup(!isPortableVersion);
     });
-
-    globalThis.electron
-      .getDisplays()
-      .then(setDisplays)
-      .catch(() => setDisplays([]));
-
-    globalThis.electron
-      .getAudioDevices()
-      .then(setAudioDevices)
-      .catch(() => setAudioDevices([]));
 
     setLanguageOptions(
       orderBy(
@@ -130,12 +108,6 @@ export function SettingsContextGeneral({
       startMinimized: userPreferences.startMinimized ?? false,
       hideToTrayOnGameStart: userPreferences.hideToTrayOnGameStart ?? false,
       launchToLibraryPage: userPreferences.launchToLibraryPage ?? false,
-      launchInBigPicture: userPreferences.launchInBigPicture ?? false,
-      bigPictureDisplayId:
-        userPreferences.bigPictureDisplayId ?? DEFAULT_BIG_PICTURE_DISPLAY_ID,
-      bigPictureAudioDeviceId:
-        userPreferences.bigPictureAudioDeviceId ??
-        DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
       enableAutoInstall: userPreferences.enableAutoInstall ?? false,
     });
   }, [userPreferences, defaultDownloadsPath]);
@@ -151,80 +123,6 @@ export function SettingsContextGeneral({
     const value = event.target.value;
     handleChange({ language: value });
     changeLanguage(value);
-  };
-
-  const displayOptions = [
-    {
-      key: DEFAULT_BIG_PICTURE_DISPLAY_ID,
-      value: DEFAULT_BIG_PICTURE_DISPLAY_ID,
-      label: t("system_default_monitor"),
-    },
-    ...displays.map((display) => ({
-      key: display.id,
-      value: display.id,
-      label: display.isPrimary
-        ? `${display.label} (${t("primary_monitor")})`
-        : display.label,
-    })),
-    ...(form.bigPictureDisplayId !== DEFAULT_BIG_PICTURE_DISPLAY_ID &&
-    displays.every((display) => display.id !== form.bigPictureDisplayId)
-      ? [
-          {
-            key: form.bigPictureDisplayId,
-            value: form.bigPictureDisplayId,
-            label: `${t("missing_monitor")} (${form.bigPictureDisplayId})`,
-          },
-        ]
-      : []),
-  ];
-
-  const handleBigPictureDisplayChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const value = event.target.value;
-
-    setForm((prev) => ({ ...prev, bigPictureDisplayId: value }));
-    updateUserPreferences({
-      bigPictureDisplayId:
-        value === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : value,
-    });
-  };
-
-  const audioDeviceOptions = [
-    {
-      key: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
-      value: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
-      label: t("system_default_audio_device"),
-    },
-    ...audioDevices.map((device) => ({
-      key: device.id,
-      value: device.id,
-      label: device.isDefault
-        ? `${device.label} (${t("default_audio_device")})`
-        : device.label,
-    })),
-    ...(form.bigPictureAudioDeviceId !== DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID &&
-    audioDevices.every((device) => device.id !== form.bigPictureAudioDeviceId)
-      ? [
-          {
-            key: form.bigPictureAudioDeviceId,
-            value: form.bigPictureAudioDeviceId,
-            label: `${t("missing_audio_device")} (${form.bigPictureAudioDeviceId})`,
-          },
-        ]
-      : []),
-  ];
-
-  const handleBigPictureAudioDeviceChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const value = event.target.value;
-
-    setForm((prev) => ({ ...prev, bigPictureAudioDeviceId: value }));
-    updateUserPreferences({
-      bigPictureAudioDeviceId:
-        value === DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID ? null : value,
-    });
   };
 
   const handleChooseDownloadsPath = async () => {
@@ -378,30 +276,6 @@ export function SettingsContextGeneral({
               launchToLibraryPage: !form.launchToLibraryPage,
             })
           }
-        />
-
-        <CheckboxField
-          label={t("launch_hydra_in_big_picture")}
-          checked={form.launchInBigPicture}
-          onChange={() =>
-            handleChange({
-              launchInBigPicture: !form.launchInBigPicture,
-            })
-          }
-        />
-
-        <SelectField
-          label={t("big_picture_launching_monitor")}
-          value={form.bigPictureDisplayId}
-          onChange={handleBigPictureDisplayChange}
-          options={displayOptions}
-        />
-
-        <SelectField
-          label={t("big_picture_output_device")}
-          value={form.bigPictureAudioDeviceId}
-          onChange={handleBigPictureAudioDeviceChange}
-          options={audioDeviceOptions}
         />
       </div>
 

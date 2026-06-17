@@ -88,6 +88,22 @@
     );
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent);
   }
+
+  &:disabled,
+  &[data-disabled="true"] {
+    cursor: not-allowed;
+    color: var(--text-secondary);
+    border-color: color-mix(in srgb, var(--secondary-border) 75%, transparent);
+    background-color: color-mix(in srgb, var(--surface) 80%, var(--background));
+    box-shadow: none;
+    opacity: 0.72;
+  }
+
+  &:disabled:hover,
+  &[data-disabled="true"]:hover {
+    border-color: color-mix(in srgb, var(--secondary-border) 75%, transparent);
+    background-color: color-mix(in srgb, var(--surface) 80%, var(--background));
+  }
 }
 
 .dropdown-select__trigger-main {

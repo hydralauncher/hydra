@@ -35,4 +35,16 @@
     font-size: 14px;
     line-height: 1.4;
   }
+
+  &__empty-state {
+    padding: calc(var(--spacing-unit) * 3);
+    border-radius: calc(var(--spacing-unit) * 2);
+    background: color-mix(in srgb, var(--secondary) 80%, black 20%);
+    outline: 0 solid transparent;
+    outline-offset: 0;
+
+    &[data-focus-visible="true"] {
+      outline: 1px solid var(--primary);
+    }
+  }
 }
