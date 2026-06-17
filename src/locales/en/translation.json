@@ -1460,6 +1460,8 @@
     "review_upvote_description": "Your review received {{count}} new upvotes",
     "review_answer_title": "New reply to your review for {{gameTitle}}",
     "review_answer_description": "{{displayName}} replied to your review",
+    "review_answer_upvote_title": "Your reply to {{gameTitle}} got upvotes!",
+    "review_answer_upvote_description": "Your reply received {{count}} new upvotes",
     "marked_all_as_read": "All notifications marked as read",
     "failed_to_mark_as_read": "Failed to mark notifications as read",
     "cleared_all": "All notifications cleared",
