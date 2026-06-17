@@ -1,54 +1,146 @@
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BookIcon,
-  DownloadIcon,
+  GlobeIcon,
   LinkExternalIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 
-import type { EmulatorBinary } from "@types";
+import type {
+  EmulatorBinary,
+  EmulatorInstallProgress,
+  ResolvedInstallOption,
+} from "@types";
 
 import { EMULATOR_ICONS } from "../emulator-icons";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
+import { ArchIcon, FlatpakIcon, GitHubIcon } from "./brand-icons";
 
 interface Props {
   binary: EmulatorBinary;
 }
 
-interface EmulatorSources {
-  download: string;
-  guideWindows: string;
-  guideLinux: string;
-}
+const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
+  duckstation: "https://www.duckstation.org/",
+  pcsx2: "https://pcsx2.net/",
+  rpcs3: "https://rpcs3.net/",
+};
 
-const SOURCES: Record<EmulatorBinary, EmulatorSources> = {
-  duckstation: {
-    download: "https://duckstation.org/",
-    guideWindows: "https://github.com/stenzek/duckstation#windows",
-    guideLinux: "https://github.com/stenzek/duckstation#linux",
-  },
-  pcsx2: {
-    download: "https://pcsx2.net/",
-    guideWindows: "https://pcsx2.net/docs/setup/running/?os=windows",
-    guideLinux: "https://pcsx2.net/docs/setup/running/?os=linux",
-  },
-  rpcs3: {
-    download: "https://rpcs3.net/",
-    guideWindows: "https://rpcs3.net/quickstart",
-    guideLinux: "https://rpcs3.net/quickstart",
-  },
+const ARTICLE_KEYS: Record<EmulatorBinary, string> = {
+  duckstation: "install-duckstation",
+  pcsx2: "install-pcsx2",
+  rpcs3: "install-rpcs3",
 };
 
 export function SetupStepDownload({ binary }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const name = KNOWN_BINARY_LABELS[binary];
   const icon = EMULATOR_ICONS[binary];
-  const sources = SOURCES[binary];
 
-  const isWindows = window.electron.platform === "win32";
-  const guideUrl = isWindows ? sources.guideWindows : sources.guideLinux;
+  const [options, setOptions] = useState<ResolvedInstallOption[] | null>(null);
+  const [progress, setProgress] = useState<
+    Record<string, EmulatorInstallProgress>
+  >({});
+  const [installingId, setInstallingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setOptions(null);
+    window.electron
+      .getEmulatorInstallOptions(binary)
+      .then((result) => {
+        if (!cancelled) setOptions(result);
+      })
+      .catch(() => {
+        if (!cancelled) setOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [binary]);
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onEmulatorInstallProgress((payload) => {
+      if (payload.binary !== binary) return;
+      setProgress((prev) => ({ ...prev, [payload.optionId]: payload }));
+    });
+    return unsubscribe;
+  }, [binary]);
 
   const openUrl = (url: string) => {
     window.electron.openExternal(url);
+  };
+
+  const handleInstall = async (optionId: string) => {
+    if (installingId) return;
+    setInstallingId(optionId);
+    try {
+      await window.electron.installEmulator(binary, optionId);
+    } finally {
+      setInstallingId(null);
+    }
+  };
+
+  const installable = useMemo(
+    () => (options ?? []).filter((option) => option.kind !== "link"),
+    [options]
+  );
+  const externalLinks = useMemo(
+    () => (options ?? []).filter((option) => option.kind === "link"),
+    [options]
+  );
+
+  const channelLabel = (option: ResolvedInstallOption): string | null => {
+    if (option.channel === "release") return t("setup_install_channel_stable");
+    if (option.channel === "prerelease")
+      return t("setup_install_channel_prerelease");
+    return null;
+  };
+
+  const installStatusText = (optionId: string): string => {
+    const current = progress[optionId];
+    if (!current) return t("setup_install_with_hydra_desc", { name });
+    if (current.phase === "downloading") {
+      const percent =
+        current.total && current.total > 0
+          ? Math.floor(((current.loaded ?? 0) / current.total) * 100)
+          : 0;
+      return t("setup_install_downloading", { percent });
+    }
+    if (current.phase === "extracting") return t("setup_install_extracting");
+    if (current.phase === "running") return t("setup_install_running");
+    if (current.phase === "done") return t("setup_install_done");
+    if (current.phase === "error") return t("setup_install_failed");
+    return t("setup_install_with_hydra_desc", { name });
+  };
+
+  const externalLinkLabel = (option: ResolvedInstallOption): string => {
+    if (option.linkKind === "aur") return t("setup_install_aur_note");
+    if (option.linkKind === "flatpak") return "Flatpak";
+    return t("setup_install_open_releases");
+  };
+
+  const externalLinkIcon = (option: ResolvedInstallOption) => {
+    if (option.linkKind === "aur") return <ArchIcon size={20} />;
+    if (option.linkKind === "flatpak") return <FlatpakIcon size={20} />;
+    return <GitHubIcon size={20} />;
+  };
+
+  const externalLinkDesc = (option: ResolvedInstallOption): string => {
+    if (option.linkKind === "aur") return t("setup_install_aur_desc", { name });
+    return t("setup_download_desc", { name });
+  };
+
+  const visitLabel = (option: ResolvedInstallOption): string => {
+    const semver =
+      option.version?.match(/v?\d+\.\d+(\.\d+)?/)?.[0] ??
+      option.fileName?.match(/v?\d+\.\d+(\.\d+)?/)?.[0];
+    if (semver) return semver.startsWith("v") ? semver : `v${semver}`;
+    if (!option.version) return "GitHub";
+    return option.version.length > 14
+      ? `${option.version.slice(0, 13)}…`
+      : option.version;
   };
 
   return (
@@ -73,14 +165,14 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
         <button
           type="button"
           className="setup-modal__download-card"
-          onClick={() => openUrl(sources.download)}
+          onClick={() => openUrl(OFFICIAL_WEBSITES[binary])}
         >
           <div className="setup-modal__download-card-badge">
-            <DownloadIcon size={20} />
+            <GlobeIcon size={20} />
           </div>
           <div className="setup-modal__download-card-main">
             <span className="setup-modal__download-card-title">
-              {t("setup_download_link")}
+              {t("setup_official_website")}
             </span>
             <span className="setup-modal__download-card-desc">
               {t("setup_download_desc", { name })}
@@ -88,7 +180,7 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
           </div>
           <span className="setup-modal__download-card-footer">
             <span className="setup-modal__download-card-url">
-              {sources.download}
+              {OFFICIAL_WEBSITES[binary]}
             </span>
             <LinkExternalIcon
               size={14}
@@ -97,34 +189,108 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
           </span>
         </button>
 
+        {options === null && (
+          <div className="setup-modal__download-card setup-modal__download-card--loading">
+            <div className="setup-modal__download-card-badge">
+              <SyncIcon size={20} className="setup-modal__spin" />
+            </div>
+            <div className="setup-modal__download-card-main">
+              <span className="setup-modal__download-card-title">
+                {t("setup_install_loading")}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {installable.map((option) => {
+          const label = channelLabel(option);
+          const isInstalling = installingId === option.id;
+          return (
+            <div
+              key={option.id}
+              className="setup-modal__download-card setup-modal__download-card--split"
+            >
+              <button
+                type="button"
+                className="setup-modal__download-card-action"
+                onClick={() => handleInstall(option.id)}
+                disabled={Boolean(installingId) && !isInstalling}
+              >
+                <div className="setup-modal__download-card-badge">
+                  <GitHubIcon size={20} />
+                </div>
+                <div className="setup-modal__download-card-main">
+                  <span className="setup-modal__download-card-title">
+                    {t("setup_install_with_hydra")}
+                    {label ? ` · ${label}` : ""}
+                  </span>
+                  <span className="setup-modal__download-card-desc">
+                    {installStatusText(option.id)}
+                  </span>
+                </div>
+              </button>
+              {option.htmlUrl && (
+                <button
+                  type="button"
+                  className="setup-modal__download-card-visit"
+                  onClick={() => option.htmlUrl && openUrl(option.htmlUrl)}
+                  title={t("setup_view_on_github")}
+                >
+                  <LinkExternalIcon size={14} />
+                  <span>{visitLabel(option)}</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        {externalLinks.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className="setup-modal__download-card"
+            onClick={() => option.linkUrl && openUrl(option.linkUrl)}
+          >
+            <div className="setup-modal__download-card-badge">
+              {externalLinkIcon(option)}
+            </div>
+            <div className="setup-modal__download-card-main">
+              <span className="setup-modal__download-card-title">
+                {externalLinkLabel(option)}
+              </span>
+              <span className="setup-modal__download-card-desc">
+                {externalLinkDesc(option)}
+              </span>
+            </div>
+            <span className="setup-modal__download-card-footer">
+              <span className="setup-modal__download-card-url">
+                {option.linkUrl}
+              </span>
+              <LinkExternalIcon
+                size={14}
+                className="setup-modal__download-card-ext"
+              />
+            </span>
+          </button>
+        ))}
+
         <button
           type="button"
           className="setup-modal__download-card"
-          onClick={() => openUrl(guideUrl)}
+          data-open-article={ARTICLE_KEYS[binary]}
         >
           <div className="setup-modal__download-card-badge">
             <BookIcon size={20} />
           </div>
           <div className="setup-modal__download-card-main">
             <span className="setup-modal__download-card-title">
-              {t("setup_install_guide_link")}
+              {t("setup_install_guide_workwonders")}
             </span>
             <span className="setup-modal__download-card-desc">
               {t("setup_install_guide_desc", { name })}
             </span>
           </div>
-          <span className="setup-modal__download-card-footer">
-            <span className="setup-modal__download-card-url">{guideUrl}</span>
-            <LinkExternalIcon
-              size={14}
-              className="setup-modal__download-card-ext"
-            />
-          </span>
         </button>
-      </div>
-
-      <div className="setup-modal__hint" style={{ marginTop: "auto" }}>
-        <span>{t("setup_download_official_note")}</span>
       </div>
     </>
   );

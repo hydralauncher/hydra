@@ -1093,7 +1093,6 @@
     "setup_download_desc": "Obtenez la dernière version officielle de {{name}} auprès des développeurs.",
     "setup_install_guide_link": "Guide d'installation",
     "setup_install_guide_desc": "Suivez le guide de configuration officiel de {{name}} pour votre système.",
-    "setup_download_official_note": "Téléchargez toujours les émulateurs depuis leurs sites officiels. Hydra ne distribue jamais d'émulateurs, de ROMs ou de fichiers BIOS.",
     "setup_download_ready": "Je suis prêt",
     "setup_step_firmware": "Installer le firmware {{system}}",
     "setup_firmware_intro_1": "L'émulation PS3 nécessite le firmware officiel de Sony.",

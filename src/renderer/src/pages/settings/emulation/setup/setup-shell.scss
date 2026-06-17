@@ -3,7 +3,8 @@
 .setup-modal {
   display: flex;
   flex-direction: column;
-  width: 560px;
+  width: 100%;
+  max-width: 560px;
   min-height: 480px;
 
   &__header {
@@ -128,8 +129,7 @@
 
   &__download-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     flex: 1;
   }
@@ -138,10 +138,11 @@
     background: #121212;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px 20px;
     min-width: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 16px;
     text-align: left;
     cursor: pointer;
@@ -154,6 +155,62 @@
     &:hover {
       border-color: rgba(255, 255, 255, 0.18);
       background: #161616;
+    }
+
+    &--loading {
+      cursor: default;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.06);
+        background: #121212;
+      }
+    }
+
+    &--split {
+      padding: 0;
+      gap: 0;
+      cursor: default;
+    }
+  }
+
+  &__download-card-action {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__download-card-visit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    align-self: stretch;
+    padding: 16px 18px;
+    background: transparent;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &:hover {
+      color: #fafafa;
     }
   }
 
@@ -192,8 +249,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+    max-width: 45%;
   }
 
   &__download-card-url {

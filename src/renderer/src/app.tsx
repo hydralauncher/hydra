@@ -207,12 +207,22 @@ export function App() {
           seeding: 1442,
           "peers-and-seeds": 1449,
           "steam-achievements": 1412,
+          "install-duckstation": 0,
+          "install-pcsx2": 0,
+          "install-rpcs3": 0,
+          "bios-ps1": 0,
+          "bios-ps2": 0,
         },
         en: {
           "cannot-write-directory": 4122,
           seeding: 4116,
           "peers-and-seeds": 4119,
           "steam-achievements": 4140,
+          "install-duckstation": 0,
+          "install-pcsx2": 0,
+          "install-rpcs3": 0,
+          "bios-ps1": 0,
+          "bios-ps2": 0,
         },
       };
 
