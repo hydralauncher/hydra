@@ -108,7 +108,7 @@ export function ScanGamesModal({
       clickOutsideToClose={!isScanning && !isRemovingExecutables}
     >
       <div className="scan-games-modal">
-        {!scanResult && !isScanning && (
+        {!scanResult && !isScanning && !isRemovingExecutables && (
           <>
             {isWindows && (
               <div className="scan-games-modal__mode-toggle">
@@ -284,12 +284,10 @@ export function ScanGamesModal({
                 ? t("scan_games_hide")
                 : t("scan_games_cancel")}
           </Button>
-          {!scanResult && (
+          {!scanResult && !isRemovingExecutables && !isScanning && (
             <Button
               onClick={handleStartScan}
-              disabled={
-                isScanning || isRemovingExecutables || requiresFolderSelection
-              }
+              disabled={requiresFolderSelection}
             >
               {t("scan_games_start")}
             </Button>
