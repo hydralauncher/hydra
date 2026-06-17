@@ -967,6 +967,8 @@
     "roms_detected_title": "Обнаруженные ROM",
     "roms_detected_description": "Ваш локальный каталог {{system}}, синхронизированный с LaunchBox.",
     "no_roms_detected": "ROM пока не обнаружены. Добавьте папку с ROM и выполните повторное сканирование.",
+    "roms_search_placeholder": "Поиск игр",
+    "roms_no_results": "Нет игр по вашему запросу.",
     "rom_folders_section_title": "Папки ROM",
     "rom_folders_section_description": "Hydra сканирует только те папки, которые вы добавите здесь. Ваши ROM остаются на вашем компьютере.",
     "library_section_title": "Библиотека",

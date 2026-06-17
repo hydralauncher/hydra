@@ -563,6 +563,8 @@
     "roms_detected_title": "ROMs Detetadas",
     "roms_detected_description": "O seu catálogo local de {{system}}, mantido em sincronia com o LaunchBox.",
     "no_roms_detected": "Ainda não foram detetadas ROMs. Adicione uma pasta de ROM e refaça a verificação.",
+    "roms_search_placeholder": "Procurar jogos",
+    "roms_no_results": "Nenhum jogo corresponde à sua procura.",
     "memcard_search_placeholder": "Procurar saves",
     "memcard_no_results": "Nenhum save corresponde à sua procura.",
     "pagination_previous": "Página anterior",
