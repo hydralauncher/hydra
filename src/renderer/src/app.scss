@@ -40,6 +40,19 @@ body {
   margin: 0;
 }
 
+body.window-rounded {
+  background-color: transparent;
+
+  #root {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &.window-maximized #root {
+    border-radius: 0;
+  }
+}
+
 button {
   padding: 0;
   background-color: transparent;
@@ -133,5 +146,38 @@ progress[value] {
     background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
     background-clip: text;
     color: transparent;
+  }
+
+  &__window-controls {
+    display: flex;
+    align-self: stretch;
+    margin-left: auto;
+    margin-right: calc(globals.$spacing-unit * -2);
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #dadbe1;
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
   }
 }

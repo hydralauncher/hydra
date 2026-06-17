@@ -113,6 +113,9 @@
     "cancel": "Cancel"
   },
   "header": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close",
     "search": "Search games",
     "search_library": "Search library",
     "recent_searches": "Recent Searches",
