@@ -73,7 +73,9 @@ function getSettingsTabFromSearch(search: string): SettingsTabId | null {
     : null;
 }
 
-function getSettingsSectionFromSearch(search: string): SettingsSectionId | null {
+function getSettingsSectionFromSearch(
+  search: string
+): SettingsSectionId | null {
   const section = new URLSearchParams(search).get("section");
 
   return section === "sources" ? "sources" : null;

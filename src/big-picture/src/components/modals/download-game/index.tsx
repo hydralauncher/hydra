@@ -1,5 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
@@ -144,7 +151,7 @@ enum DownloadGameStep {
 type SourceCarouselEmblaApi = ReturnType<typeof useEmblaCarousel>[1];
 type ResolvedSourceCarouselEmblaApi = NonNullable<SourceCarouselEmblaApi>;
 
-const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
+const PARTIAL_VISIBLE_SOURCE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
 const DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID =
   "download-game-modal-source-carousel";
@@ -164,15 +171,40 @@ function getSourceFocusId(sourceId: string, sourceName: string, index: number) {
   return `download-game-source-${sourceId}-${normalizedSource || "source"}-${index}`;
 }
 
+function getSourceTrackPadding(viewportWidth: number, slideWidth: number) {
+  if (viewportWidth <= 0 || slideWidth <= 0) return 0;
+
+  return Math.max(0, viewportWidth / 2 - slideWidth / 2);
+}
+
+function getSourceSlideStep(slideRects: DOMRect[]) {
+  if (slideRects.length <= 1) return slideRects[0]?.width ?? 0;
+
+  const step = slideRects[1].left - slideRects[0].left;
+
+  if (step <= SLIDE_MEASUREMENT_EPSILON_PX) {
+    return slideRects[0]?.width ?? 0;
+  }
+
+  return step;
+}
+
 function getSourceViewportSlideMetrics(
-  emblaApi: ResolvedSourceCarouselEmblaApi
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement
 ) {
-  const viewportRect = emblaApi.rootNode().getBoundingClientRect();
-  const slideRects = emblaApi
-    .slideNodes()
-    .map((slideNode) => slideNode.getBoundingClientRect());
+  const slideNodes = emblaApi.slideNodes();
+  const viewportRect = viewportElement.getBoundingClientRect();
+  const slideRects = slideNodes.map((slideNode) =>
+    slideNode.getBoundingClientRect()
+  );
 
   if (slideRects.length === 0) return null;
+
+  const slideWidth = slideRects[0]?.width ?? 0;
+  const slideStep = getSourceSlideStep(slideRects);
+
+  if (slideWidth <= 0 || slideStep <= 0) return null;
 
   const visibleIndexes = slideRects.reduce<number[]>(
     (indexes, slideRect, index) => {
@@ -184,7 +216,7 @@ function getSourceViewportSlideMetrics(
 
       if (
         visibleWidth + SLIDE_MEASUREMENT_EPSILON_PX >=
-        slideRect.width * PARTIAL_VISIBLE_SLIDE_RATIO
+        slideRect.width * PARTIAL_VISIBLE_SOURCE_RATIO
       ) {
         indexes.push(index);
       }
@@ -196,64 +228,183 @@ function getSourceViewportSlideMetrics(
 
   if (visibleIndexes.length === 0) return null;
 
+  const firstVisibleIndex = visibleIndexes[0];
+  const visibleCount = Math.max(
+    1,
+    Math.min(
+      visibleIndexes.length,
+      slideRects.length - firstVisibleIndex
+    )
+  );
+
   return {
-    firstVisibleIndex: visibleIndexes[0],
-    visibleCount: visibleIndexes.length,
+    firstVisibleIndex,
+    visibleCount,
     visibleIndexes,
+    viewportRect,
+    slideRects,
   };
+}
+
+function getSourceTargetStartIndex(
+  focusedIndex: number,
+  visibleCount: number,
+  slideCount: number
+) {
+  const selectedPosition = Math.floor(visibleCount / 2) + 1;
+  const maxStartIndex = Math.max(0, slideCount - visibleCount);
+
+  return Math.max(
+    0,
+    Math.min(focusedIndex - (selectedPosition - 1), maxStartIndex)
+  );
+}
+
+function nudgeClippedFocusedSource(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  focusedIndex: number
+) {
+  const focusedSlideNode = emblaApi.slideNodes()[focusedIndex];
+
+  if (!focusedSlideNode) return;
+
+  const viewportRect = viewportElement.getBoundingClientRect();
+  const focusedSlideRect = focusedSlideNode.getBoundingClientRect();
+  const rightOverflow =
+    focusedSlideRect.right - viewportRect.right + SLIDE_MEASUREMENT_EPSILON_PX;
+  const leftOverflow =
+    viewportRect.left - focusedSlideRect.left + SLIDE_MEASUREMENT_EPSILON_PX;
+  let deltaX = 0;
+
+  if (rightOverflow > SLIDE_MEASUREMENT_EPSILON_PX) {
+    deltaX = -rightOverflow;
+  } else if (leftOverflow > SLIDE_MEASUREMENT_EPSILON_PX) {
+    deltaX = leftOverflow;
+  }
+
+  if (Math.abs(deltaX) <= SLIDE_MEASUREMENT_EPSILON_PX) return;
+
+  const internalEngine = emblaApi.internalEngine();
+  const signedDistance = internalEngine.axis.direction(deltaX);
+
+  internalEngine.scrollTo.distance(signedDistance, false);
 }
 
 function syncSourceThresholdFocusScroll(
   emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
   previousFocusedIndex: number | null,
-  nextFocusedIndex: number
+  nextFocusedIndex: number,
+  restoreFocus = false
 ) {
+  const viewportMetrics = getSourceViewportSlideMetrics(
+    emblaApi,
+    viewportElement
+  );
+
+  if (!viewportMetrics) return;
+
+  const { firstVisibleIndex, visibleCount, visibleIndexes, viewportRect, slideRects } =
+    viewportMetrics;
+  const slideCount = slideRects.length;
+  const rightTriggerPosition = Math.max(1, Math.ceil(visibleCount / 2));
+  const leftTriggerPosition = Math.min(
+    visibleCount,
+    Math.floor(visibleCount / 2) + 1
+  );
+  const visiblePositionOneBased = nextFocusedIndex - firstVisibleIndex + 1;
+  const isOutOfBounds =
+    visiblePositionOneBased < 1 || visiblePositionOneBased > visibleCount;
+  const focusedSlideRect = slideRects[nextFocusedIndex];
+  const isClippedOnLeft =
+    focusedSlideRect &&
+    focusedSlideRect.left + SLIDE_MEASUREMENT_EPSILON_PX < viewportRect.left;
+  const isClippedOnRight =
+    focusedSlideRect &&
+    focusedSlideRect.right - SLIDE_MEASUREMENT_EPSILON_PX > viewportRect.right;
+  const targetStartIndex = getSourceTargetStartIndex(
+    nextFocusedIndex,
+    visibleCount,
+    slideCount
+  );
+  const isWithinInitialWindow =
+    firstVisibleIndex === 0 && nextFocusedIndex <= rightTriggerPosition;
+
+  if (restoreFocus) {
+    if (nextFocusedIndex <= rightTriggerPosition) {
+      if (firstVisibleIndex !== 0) {
+        emblaApi.scrollTo(0, true);
+      }
+    } else if (firstVisibleIndex !== targetStartIndex) {
+      emblaApi.scrollTo(targetStartIndex, true);
+    }
+
+    globalThis.requestAnimationFrame(() => {
+      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    });
+
+    return;
+  }
+
   const didNotChange =
     previousFocusedIndex == null || previousFocusedIndex === nextFocusedIndex;
 
   if (didNotChange) return;
 
-  const viewportMetrics = getSourceViewportSlideMetrics(emblaApi);
+  if (isWithinInitialWindow) {
+    if (isClippedOnLeft || isClippedOnRight) {
+      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    }
 
-  if (!viewportMetrics) return;
+    return;
+  }
 
-  const { visibleIndexes } = viewportMetrics;
-  const visibleCount = visibleIndexes.length;
-  const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
-  const isOutOfBounds = visiblePosition === -1;
+  if (isOutOfBounds) {
+    if (firstVisibleIndex !== targetStartIndex) {
+      emblaApi.scrollTo(targetStartIndex, true);
+      globalThis.requestAnimationFrame(() => {
+        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+      });
+      return;
+    }
 
-  if (isOutOfBounds) return;
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    return;
+  }
 
-  const selectedPosition = Math.floor(visibleCount / 2) + 1;
   const isMovingRight = nextFocusedIndex > previousFocusedIndex;
   const shouldScroll = isMovingRight
-    ? visiblePosition + 1 > selectedPosition && emblaApi.canScrollNext()
-    : visiblePosition + 1 < selectedPosition && emblaApi.canScrollPrev();
+    ? visiblePositionOneBased > rightTriggerPosition
+    : visiblePositionOneBased < leftTriggerPosition;
 
-  if (!shouldScroll) return;
+  if (shouldScroll) {
+    const didScroll = isMovingRight
+      ? emblaApi.canScrollNext()
+      : emblaApi.canScrollPrev();
 
-  if (isMovingRight) emblaApi.scrollNext();
-  else emblaApi.scrollPrev();
-}
+    if (didScroll) {
+      if (isMovingRight) {
+        emblaApi.scrollNext();
+      } else {
+        emblaApi.scrollPrev();
+      }
 
-function useSourceThresholdFocusScroll(emblaApi: SourceCarouselEmblaApi) {
-  const lastFocusedIndexRef = useRef<number | null>(null);
+      globalThis.requestAnimationFrame(() => {
+        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+      });
+      return;
+    }
+  }
 
-  return useCallback(
-    (nextFocusedIndex: number) => {
-      const previousFocusedIndex = lastFocusedIndexRef.current;
-      lastFocusedIndexRef.current = nextFocusedIndex;
+  const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
 
-      if (!emblaApi) return;
-
-      syncSourceThresholdFocusScroll(
-        emblaApi,
-        previousFocusedIndex,
-        nextFocusedIndex
-      );
-    },
-    [emblaApi]
-  );
+  if (
+    visiblePosition !== -1 &&
+    (isClippedOnLeft || isClippedOnRight)
+  ) {
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+  }
 }
 
 export function DownloadGameModal({
@@ -555,19 +706,15 @@ function DownloadGameSourceList({
   const { t } = useTranslation("big_picture");
   const navigate = useNavigate();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
-  const rememberedFocusId = useNavigationStore(
-    (state) =>
-      state.debugSnapshot.lastFocusedByRegionId[
-        DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID
-      ] ?? null
-  );
   const [sourcesViewportRef, sourcesEmblaApi] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
-    duration: 12,
-    dragFree: true,
+    duration: 10,
   });
+  const sourcesViewportElementRef = useRef<HTMLDivElement | null>(null);
   const lastAlignedFocusIdRef = useRef<string | null>(null);
+  const previousFocusedSourceIndexRef = useRef<number | null>(null);
+  const [sourceTrackPaddingEndPx, setSourceTrackPaddingEndPx] = useState(0);
 
   const localDownloadSourceNameById = useMemo(
     () =>
@@ -612,60 +759,156 @@ function DownloadGameSourceList({
   );
   const isSourceListLoading = isCheckingSources || isLoading;
   const hasEmptyState = !isSourceListLoading && emptyStateReason !== null;
-  const handleSourceFocused = useSourceThresholdFocusScroll(sourcesEmblaApi);
+  const sourceTrackStyle = useMemo(
+    () =>
+      ({
+        "--download-game-modal-source-track-padding-end": `${sourceTrackPaddingEndPx}px`,
+      }) as CSSProperties,
+    [sourceTrackPaddingEndPx]
+  );
+  const setCombinedSourcesViewportRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      sourcesViewportElementRef.current = node;
+      sourcesViewportRef(node);
+    },
+    [sourcesViewportRef]
+  );
+  const measureSourceTrackPaddingEnd = useCallback(() => {
+    if (
+      !sourcesEmblaApi ||
+      !sourcesViewportElementRef.current ||
+      isSourceListLoading
+    ) {
+      setSourceTrackPaddingEndPx(0);
+      return;
+    }
+
+    const slideNodes = sourcesEmblaApi.slideNodes();
+    const lastSlideNode = slideNodes[slideNodes.length - 1];
+
+    if (!lastSlideNode) {
+      setSourceTrackPaddingEndPx(0);
+      return;
+    }
+
+    const viewportWidth =
+      sourcesViewportElementRef.current.getBoundingClientRect().width;
+    const lastSlideWidth = lastSlideNode.getBoundingClientRect().width;
+    const endPadding = getSourceTrackPadding(viewportWidth, lastSlideWidth);
+
+    setSourceTrackPaddingEndPx((currentEnd) =>
+      Math.abs(currentEnd - endPadding) <= SLIDE_MEASUREMENT_EPSILON_PX
+        ? currentEnd
+        : endPadding
+    );
+  }, [isSourceListLoading, sourcesEmblaApi]);
+  const alignFocusedSource = useCallback(
+    (focusedIndex: number, focusId: string, restoreFocus = false) => {
+      if (
+        !sourcesEmblaApi ||
+        !sourcesViewportElementRef.current ||
+        isSourceListLoading
+      ) {
+        return;
+      }
+
+      syncSourceThresholdFocusScroll(
+        sourcesEmblaApi,
+        sourcesViewportElementRef.current,
+        restoreFocus ? null : previousFocusedSourceIndexRef.current,
+        focusedIndex,
+        restoreFocus
+      );
+
+      previousFocusedSourceIndexRef.current = focusedIndex;
+      lastAlignedFocusIdRef.current = focusId;
+    },
+    [isSourceListLoading, sourcesEmblaApi]
+  );
+  const handleSourceFocused = useCallback(
+    (focusedIndex: number) => {
+      const focusedSource = sourceItems[focusedIndex];
+
+      if (!focusedSource) return;
+
+      alignFocusedSource(focusedIndex, focusedSource.focusId);
+    },
+    [alignFocusedSource, sourceItems]
+  );
 
   useEffect(() => {
-    const getFocusedIndex = (focusId: string | null) => {
-      if (!focusId) return -1;
+    const viewportElement = sourcesViewportElementRef.current;
 
-      return sourceItems.findIndex(
-        (sourceItem) => sourceItem.focusId === focusId
-      );
+    if (!viewportElement) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      measureSourceTrackPaddingEnd();
+    });
+
+    resizeObserver.observe(viewportElement);
+
+    return () => {
+      resizeObserver.disconnect();
     };
+  }, [measureSourceTrackPaddingEnd]);
 
-    const currentFocusedIndex = getFocusedIndex(currentFocusId);
-    const targetFocusId = currentFocusedIndex === -1 ? rememberedFocusId : null;
-    const focusedIndex = getFocusedIndex(targetFocusId);
-
-    if (!sourcesEmblaApi || focusedIndex === -1 || !targetFocusId) return;
-    if (lastAlignedFocusIdRef.current === targetFocusId) return;
-
+  useEffect(() => {
     const animationFrameId = globalThis.requestAnimationFrame(() => {
-      const viewportMetrics = getSourceViewportSlideMetrics(sourcesEmblaApi);
-
-      if (!viewportMetrics) return;
-
-      const selectedPosition = Math.floor(viewportMetrics.visibleCount / 2) + 1;
-      const maxStartIndex = Math.max(
-        0,
-        sourceItems.length - viewportMetrics.visibleCount
-      );
-      const targetStartIndex = Math.max(
-        0,
-        Math.min(focusedIndex - (selectedPosition - 1), maxStartIndex)
-      );
-
-      lastAlignedFocusIdRef.current = targetFocusId;
-
-      if (viewportMetrics.firstVisibleIndex !== targetStartIndex) {
-        sourcesEmblaApi.scrollTo(targetStartIndex, true);
-      }
+      measureSourceTrackPaddingEnd();
     });
 
     return () => {
       globalThis.cancelAnimationFrame(animationFrameId);
     };
-  }, [currentFocusId, rememberedFocusId, sourceItems, sourcesEmblaApi]);
+  }, [measureSourceTrackPaddingEnd, sourceItems]);
+
+  useEffect(() => {
+    if (!sourcesEmblaApi || isSourceListLoading) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      sourcesEmblaApi.reInit();
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [isSourceListLoading, sourceTrackPaddingEndPx, sourcesEmblaApi]);
+
+  useEffect(() => {
+    if (!currentFocusId || isSourceListLoading) return;
+
+    const focusedIndex = sourceItems.findIndex(
+      (sourceItem) => sourceItem.focusId === currentFocusId
+    );
+
+    if (focusedIndex === -1) return;
+    if (lastAlignedFocusIdRef.current === currentFocusId) return;
+
+    const animationFrameId = globalThis.requestAnimationFrame(() => {
+      alignFocusedSource(focusedIndex, currentFocusId, true);
+    });
+
+    return () => {
+      globalThis.cancelAnimationFrame(animationFrameId);
+    };
+  }, [
+    alignFocusedSource,
+    currentFocusId,
+    isSourceListLoading,
+    sourceItems,
+    sourcesEmblaApi,
+  ]);
 
   useEffect(() => {
     lastAlignedFocusIdRef.current = null;
+    previousFocusedSourceIndexRef.current = null;
   }, [sourceItems]);
 
   const optionsTransitionKey = isSourceListLoading
     ? "loading"
     : hasEmptyState
       ? `empty-${emptyStateReason}`
-    : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+      : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
 
   const handleOpenSettings = useCallback(() => {
     onClose();
@@ -687,11 +930,12 @@ function DownloadGameSourceList({
             <div className="download-game-modal__source-list__sources-carousel">
               <div
                 className="download-game-modal__source-list__sources-viewport"
-                ref={sourcesViewportRef}
+                ref={setCombinedSourcesViewportRef}
               >
                 <HorizontalFocusGroup
                   className="download-game-modal__source-list__sources"
                   regionId={DOWNLOAD_GAME_SOURCE_CAROUSEL_REGION_ID}
+                  style={sourceTrackStyle}
                 >
                   {isSourceListLoading &&
                     Array.from({ length: 3 }, (_, index) => (

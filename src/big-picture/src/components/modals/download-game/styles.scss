@@ -55,9 +55,11 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: calc(var(--spacing-unit) * 2) !important;
+    gap: calc(var(--spacing-unit) * 1.5) !important;
+    padding-inline-start: var(--download-game-modal-source-ring-space);
     padding-inline-end: calc(
-      var(--download-game-modal-source-ring-space) + 1px
+      var(--download-game-modal-source-track-padding-end, 0px) +
+        var(--download-game-modal-source-ring-space) + 1px
     );
   }
 
