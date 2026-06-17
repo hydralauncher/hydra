@@ -133,6 +133,31 @@ export function EmulatorSetupModal({
     return all[system];
   }, [system]);
 
+  const redetectEmulator = useCallback(async () => {
+    if (!system) return;
+    setDetecting(true);
+    try {
+      const preview = await window.electron.previewEmulatorExecutable(system);
+      if (!preview) return;
+      setConfig((curr) =>
+        curr
+          ? {
+              ...curr,
+              executablePath: preview.executablePath,
+              detectedVersion: preview.detectedVersion,
+            }
+          : curr
+      );
+    } finally {
+      setDetecting(false);
+    }
+  }, [system]);
+
+  const handleDownloadReady = useCallback(() => {
+    setShowDownloadHelp(false);
+    void redetectEmulator();
+  }, [redetectEmulator]);
+
   const handleBrowseExecutable = useCallback(async () => {
     if (!system) return;
     const isMac = window.electron.platform === "darwin";
@@ -459,10 +484,7 @@ export function EmulatorSetupModal({
             </div>
             <div className="setup-modal__dots" />
             <div className="setup-modal__footer-side setup-modal__footer-side--end">
-              <Button
-                theme="primary"
-                onClick={() => setShowDownloadHelp(false)}
-              >
+              <Button theme="primary" onClick={handleDownloadReady}>
                 {t("setup_download_ready")}
               </Button>
             </div>
