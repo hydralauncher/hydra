@@ -9,6 +9,7 @@ import { SetupFooter } from "./setup-footer";
 import { SetupStepDownload } from "./setup-step-download";
 import { SetupStepFindEmulator } from "./setup-step-find-emulator";
 import { SetupStepFirmware } from "./setup-step-firmware";
+import { SetupStepBios } from "./setup-step-bios";
 import { SetupStepRomFolder } from "./setup-step-rom-folder";
 import { SetupStepScanning } from "./setup-step-scanning";
 import { SetupStepDone } from "./setup-step-done";
@@ -41,6 +42,7 @@ export function EmulatorSetupModal({
   const [stepIndex, setStepIndex] = useState(0);
   const [folders, setFolders] = useState<PendingFolder[]>([]);
   const [firmwareOk, setFirmwareOk] = useState(false);
+  const [biosOk, setBiosOk] = useState(false);
   const [gamesAdded, setGamesAdded] = useState(0);
   const [scanComplete, setScanComplete] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -56,6 +58,7 @@ export function EmulatorSetupModal({
       setStepIndex(0);
       setFolders([]);
       setFirmwareOk(false);
+      setBiosOk(false);
       setGamesAdded(0);
       setScanComplete(false);
       setYmlEntryCount(0);
@@ -338,10 +341,11 @@ export function EmulatorSetupModal({
   const continueDisabled = useMemo(() => {
     if (currentStep === "find_emulator") return config?.executablePath === null;
     if (currentStep === "firmware") return !firmwareOk;
+    if (currentStep === "bios") return !biosOk;
     if (currentStep === "rom_folder") return folders.length === 0;
     if (currentStep === "scanning") return !scanComplete;
     return true;
-  }, [currentStep, config, firmwareOk, folders, scanComplete]);
+  }, [currentStep, config, firmwareOk, biosOk, folders, scanComplete]);
 
   const continueHidden = currentStep === "done";
 
@@ -352,7 +356,7 @@ export function EmulatorSetupModal({
   };
 
   const handleSkip = () => {
-    if (currentStep === "firmware") {
+    if (currentStep === "firmware" || currentStep === "bios") {
       goNext();
     } else if (currentStep === "rom_folder") {
       refreshConfig();
@@ -396,6 +400,14 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onFirmwareStatusChange={setFirmwareOk}
+            />
+          )}
+          {currentStep === "bios" && config && (
+            <SetupStepBios
+              system={system}
+              config={config}
+              systemLabel={systemShort}
+              onBiosStatusChange={setBiosOk}
             />
           )}
           {currentStep === "rom_folder" && (
@@ -466,7 +478,9 @@ export function EmulatorSetupModal({
             }
             showCancel={currentStep === "find_emulator"}
             showSkip={
-              currentStep === "firmware" || currentStep === "rom_folder"
+              currentStep === "firmware" ||
+              currentStep === "bios" ||
+              currentStep === "rom_folder"
             }
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}

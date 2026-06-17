@@ -138,3 +138,52 @@ export interface MemcardRestoreTarget {
   cardFilePath: string;
   cardLabel: string;
 }
+
+/* ── Emulator install helper (Setup Wizard) ───────────────────────────────── */
+
+export type EmulatorInstallKind =
+  | "windows-installer"
+  | "linux-appimage"
+  | "windows-archive"
+  | "link";
+
+export type EmulatorInstallChannel = "release" | "prerelease";
+
+export type EmulatorInstallLinkKind = "aur" | "flatpak" | "release_page";
+
+/** A single, IPC-serializable install option offered for an emulator. */
+export interface ResolvedInstallOption {
+  id: string;
+  binary: EmulatorBinary;
+  kind: EmulatorInstallKind;
+  channel: EmulatorInstallChannel | null;
+  downloadUrl: string | null;
+  fileName: string | null;
+  version: string | null;
+  htmlUrl: string | null;
+  linkUrl: string | null;
+  linkKind: EmulatorInstallLinkKind | null;
+}
+
+export type EmulatorInstallPhase =
+  | "downloading"
+  | "extracting"
+  | "running"
+  | "done"
+  | "error";
+
+export interface EmulatorInstallProgress {
+  binary: EmulatorBinary;
+  optionId: string;
+  phase: EmulatorInstallPhase;
+  loaded?: number;
+  total?: number;
+  reason?: string;
+  path?: string;
+}
+
+export interface EmulatorInstallResult {
+  ok: boolean;
+  path?: string;
+  reason?: string;
+}
