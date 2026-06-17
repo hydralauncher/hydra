@@ -665,7 +665,11 @@
   }
 
   &__cloud-grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(max(200px, calc((100% - 3 * 16px) / 4)), 1fr)
+    );
     align-items: stretch;
     gap: 16px;
     width: 100%;
@@ -673,7 +677,6 @@
 
   &__cloud-card {
     box-sizing: border-box;
-    flex: 1 1 0;
     min-width: 0;
     height: 153px;
     background: #0d0d0d;
