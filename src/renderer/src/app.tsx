@@ -1,5 +1,10 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
-import { DashIcon, ScreenFullIcon, XIcon } from "@primer/octicons-react";
+import {
+  DashIcon,
+  ScreenFullIcon,
+  ScreenNormalIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import {
   useAppDispatch,
   useAppSelector,
@@ -463,12 +468,20 @@ export function App() {
     dispatch(closeToast());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (!window.electron.isWayland) return;
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
-    document.body.classList.add("window-rounded");
+  useEffect(() => {
+    if (window.electron.platform !== "linux") return;
+
+    if (window.electron.isWayland) {
+      document.body.classList.add("window-rounded");
+    }
+
+    let cancelled = false;
 
     const applyMaximizeState = (isMaximized: boolean) => {
+      if (cancelled) return;
+      setIsWindowMaximized(isMaximized);
       document.body.classList.toggle("window-maximized", isMaximized);
     };
 
@@ -477,6 +490,7 @@ export function App() {
       window.electron.onWindowMaximizeChange(applyMaximizeState);
 
     return () => {
+      cancelled = true;
       unsubscribe();
       document.body.classList.remove("window-rounded");
       document.body.classList.remove("window-maximized");
@@ -510,10 +524,18 @@ export function App() {
                 type="button"
                 className="title-bar__window-control"
                 onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={t("header:maximize")}
-                aria-label={t("header:maximize")}
+                title={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
+                aria-label={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
               >
-                <ScreenFullIcon size={16} />
+                {isWindowMaximized ? (
+                  <ScreenNormalIcon size={16} />
+                ) : (
+                  <ScreenFullIcon size={16} />
+                )}
               </button>
               <button
                 type="button"

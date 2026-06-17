@@ -115,6 +115,7 @@
   "header": {
     "minimize": "Minimize",
     "maximize": "Maximize",
+    "restore": "Restore",
     "close": "Close",
     "search": "Search games",
     "search_library": "Search library",
