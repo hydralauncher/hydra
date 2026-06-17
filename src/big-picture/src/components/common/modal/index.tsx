@@ -6,6 +6,7 @@ import { Backdrop } from "../backdrop";
 import { IS_BROWSER } from "../../../constants";
 import { FocusRegionContext } from "../../context";
 import { useNavigationScreenActions } from "../../../hooks";
+import { useVirtualKeyboardStore } from "../../../stores";
 
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
@@ -47,6 +48,10 @@ export function Modal({
   initialFocusId,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const virtualKeyboardTarget = useVirtualKeyboardStore(
+    (state) => state.target
+  );
+  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
     const openModals = document.querySelectorAll("[role=dialog]");
@@ -60,7 +65,7 @@ export function Modal({
     onClose();
   }, [onClose]);
 
-  const shouldCloseOnB = visible && closeOnB;
+  const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
 
   const handleBPress = useCallback(() => {
     if (!isTopMostModal()) return;
@@ -74,10 +79,13 @@ export function Modal({
   useEffect(() => {
     if (!visible || !closeOnEscape) return;
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isTopMostModal()) {
-        handleCloseClick();
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (event.defaultPrevented) return;
+      if (useVirtualKeyboardStore.getState().target !== null) return;
+      if (!isTopMostModal()) return;
+
+      handleCloseClick();
     };
 
     globalThis.window.addEventListener("keydown", onKeyDown);
