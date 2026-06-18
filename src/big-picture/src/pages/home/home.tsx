@@ -44,6 +44,7 @@ import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
+  LibraryGameSettingsModal,
   useLibraryFavorite,
   useLibraryLaunchGame,
 } from "../../components/pages/library";
@@ -100,6 +101,8 @@ export default function Home() {
 
   const [downloadModalGame, setDownloadModalGame] =
     useState<DownloadModalGame | null>(null);
+  const [settingsModalGame, setSettingsModalGame] =
+    useState<LibraryGame | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingHomeAction | null>(
     null
   );
@@ -111,12 +114,34 @@ export default function Home() {
     restoreFocusId: null,
   });
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
 
   const handleCloseDownloadModal = useCallback(() => {
     const restoreFocusId = downloadModalRestoreFocusIdRef.current;
 
     downloadModalRestoreFocusIdRef.current = null;
     setDownloadModalGame(null);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [setFocus]);
+
+  const handleOpenGameSettingsFromMenu = useCallback(
+    (game: LibraryGame) => {
+      settingsModalRestoreFocusIdRef.current = menuState.restoreFocusId;
+      setSettingsModalGame(game);
+    },
+    [menuState.restoreFocusId]
+  );
+
+  const handleCloseGameSettingsModal = useCallback(() => {
+    const restoreFocusId = settingsModalRestoreFocusIdRef.current;
+
+    settingsModalRestoreFocusIdRef.current = null;
+    setSettingsModalGame(null);
 
     if (!restoreFocusId) return;
 
@@ -366,6 +391,7 @@ export default function Home() {
           onLaunchOrDownload: handleLaunchFromMenu,
           onToggleFavorite: toggleFavorite,
           onViewAchievements: handleCatalogViewAchievementsFromMenu,
+          onOptions: handleOpenGameSettingsFromMenu,
           onUninstall: handleRequestRemoveFilesFromMenu,
           onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
         },
@@ -392,6 +418,7 @@ export default function Home() {
     handleCatalogShareFromMenu,
     handleCatalogViewAchievementsFromMenu,
     handleLaunchFromMenu,
+    handleOpenGameSettingsFromMenu,
     handleRequestRemoveFilesFromMenu,
     handleRequestRemoveFromLibraryFromMenu,
     libraryGameForOpenMenu,
@@ -711,6 +738,14 @@ export default function Home() {
             loading={isSubmittingAction}
             onClose={handleClosePendingAction}
             onConfirm={handleConfirmPendingAction}
+          />
+        ) : null}
+
+        {settingsModalGame ? (
+          <LibraryGameSettingsModal
+            visible
+            game={settingsModalGame}
+            onClose={handleCloseGameSettingsModal}
           />
         ) : null}
       </section>

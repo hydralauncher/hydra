@@ -82,7 +82,7 @@ export function buildLibraryGameContextMenuItems(
   if (onOptions) {
     nextItems.push({
       id: "options",
-      label: "Options",
+      label: "Game Options",
       icon: <GearIcon size={18} />,
       onSelect: () => onOptions(game),
     });

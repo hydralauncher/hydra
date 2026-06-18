@@ -77,9 +77,11 @@ import {
 import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
 import {
   LibraryGameContextMenu,
+  LibraryGameSettingsModal,
   useLibraryLaunchGame,
 } from "../../components/pages/library";
-import { DownloadGameModal } from "../../components/modals";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
+import { logger } from "@renderer/logger";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -887,6 +889,17 @@ function Sidebar() {
       position: SIDEBAR_MENU_DEFAULT_POSITION,
       restoreFocusId: null,
     });
+  const [favoriteLoadingGameId, setFavoriteLoadingGameId] =
+    useState<string | null>(null);
+
+  interface SidebarPendingAction {
+    type: "remove-files" | "remove-from-library";
+    game: LibraryGame;
+    restoreFocusId: string | null;
+  }
+
+  const [pendingAction, setPendingAction] =
+    useState<SidebarPendingAction | null>(null);
 
   const sidebarHasNavigationFocus = useMemo(
     () =>
@@ -958,13 +971,19 @@ function Sidebar() {
     async (game: LibraryGame) => {
       if (!IS_DESKTOP) return;
 
-      const toggle = game.favorite
-        ? globalThis.window.electron.removeGameFromFavorites
-        : globalThis.window.electron.addGameToFavorites;
+      setFavoriteLoadingGameId(game.id);
 
-      await toggle(game.shop, game.objectId);
-      await updateLibrary();
-      globalThis.window.dispatchEvent(new Event("library-update"));
+      try {
+        const toggle = game.favorite
+          ? globalThis.window.electron.removeGameFromFavorites
+          : globalThis.window.electron.addGameToFavorites;
+
+        await toggle(game.shop, game.objectId);
+        await updateLibrary();
+        globalThis.window.dispatchEvent(new Event("library-update"));
+      } finally {
+        setFavoriteLoadingGameId(null);
+      }
     },
     [updateLibrary]
   );
@@ -989,30 +1008,77 @@ function Sidebar() {
     }, [])
   );
 
-  const handleUninstall = useCallback(
-    async (game: LibraryGame) => {
-      if (!IS_DESKTOP) return;
-      await globalThis.window.electron.deleteGameFolder(
-        game.shop,
-        game.objectId
-      );
-      await updateLibrary();
+  const [settingsModalGame, setSettingsModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleOpenGameSettings = useCallback((game: LibraryGame) => {
+    setSettingsModalGame(game);
+  }, []);
+
+  const handleCloseGameSettingsModal = useCallback(() => {
+    setSettingsModalGame(null);
+  }, []);
+
+  const handleRequestRemoveFiles = useCallback(
+    (game: LibraryGame) => {
+      setPendingAction({
+        type: "remove-files",
+        game,
+        restoreFocusId: contextMenuState.restoreFocusId,
+      });
     },
-    [updateLibrary]
+    [contextMenuState.restoreFocusId]
   );
 
-  const handleRemoveFromLibrary = useCallback(
-    async (game: LibraryGame) => {
-      if (!IS_DESKTOP) return;
-      await globalThis.window.electron.removeGameFromLibrary(
-        game.shop,
-        game.objectId
-      );
-      await updateLibrary();
-      showSuccessToast(`${game.title} removed from library`);
+  const handleRequestRemoveFromLibrary = useCallback(
+    (game: LibraryGame) => {
+      setPendingAction({
+        type: "remove-from-library",
+        game,
+        restoreFocusId: contextMenuState.restoreFocusId,
+      });
     },
-    [updateLibrary, showSuccessToast]
+    [contextMenuState.restoreFocusId]
   );
+
+  const handleClosePendingAction = useCallback(() => {
+
+    setPendingAction(null);
+  }, []);
+
+  const handleConfirmPendingAction = useCallback(async () => {
+    const currentAction = pendingAction;
+
+    if (!currentAction || !IS_DESKTOP) return;
+
+    try {
+      const { game } = currentAction;
+
+      if (currentAction.type === "remove-files") {
+        await globalThis.window.electron.deleteGameFolder(
+          game.shop,
+          game.objectId
+        );
+      } else {
+        await globalThis.window.electron.removeGameFromLibrary(
+          game.shop,
+          game.objectId
+        );
+      }
+
+      await updateLibrary();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+
+      if (currentAction.type === "remove-from-library") {
+        showSuccessToast(`${game.title} removed from library`);
+      }
+
+      setPendingAction(null);
+    } catch (error) {
+      logger.error("Failed to execute library action", error);
+      setPendingAction(null);
+    }
+  }, [pendingAction, updateLibrary, showSuccessToast]);
 
   return (
     <>
@@ -1046,12 +1112,16 @@ function Sidebar() {
         visible={contextMenuState.visible}
         position={contextMenuState.position}
         restoreFocusId={contextMenuState.restoreFocusId}
+        isFavoriteLoading={
+          favoriteLoadingGameId === contextMenuState.game?.id
+        }
         onClose={handleCloseContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={handleToggleFavorite}
         onViewAchievements={handleViewAchievements}
-        onUninstall={handleUninstall}
-        onRemoveFromLibrary={handleRemoveFromLibrary}
+        onOptions={handleOpenGameSettings}
+        onUninstall={handleRequestRemoveFiles}
+        onRemoveFromLibrary={handleRequestRemoveFromLibrary}
       />
 
       {downloadModalGame ? (
@@ -1060,6 +1130,34 @@ function Sidebar() {
           visible
           onClose={handleCloseDownloadModal}
           game={downloadModalGame}
+        />
+      ) : null}
+
+      {settingsModalGame ? (
+        <LibraryGameSettingsModal
+          visible
+          game={settingsModalGame}
+          onClose={handleCloseGameSettingsModal}
+        />
+      ) : null}
+
+      {pendingAction ? (
+        <ConfirmationModal
+          visible
+          title={
+            pendingAction.type === "remove-files"
+              ? "Remove downloaded files?"
+              : "Remove from library?"
+          }
+          description={
+            pendingAction.type === "remove-files"
+              ? `Remove downloaded files for ${pendingAction.game.title}?`
+              : `Remove ${pendingAction.game.title} from library?`
+          }
+          confirmLabel="Remove"
+          danger
+          onClose={handleClosePendingAction}
+          onConfirm={handleConfirmPendingAction}
         />
       ) : null}
 
