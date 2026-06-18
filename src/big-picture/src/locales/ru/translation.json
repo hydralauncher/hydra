@@ -694,7 +694,16 @@
     "no_backups": "Вы еще не создали резервных копий для этой игры",
     "settings_not_available_for_custom_games": "Эта категория недоступна для пользовательских игр.",
     "backups": "Резервные копии",
-    "cloud_saves_list_description": "Управляйте облачными сохранениями"
+    "cloud_saves_list_description": "Управляйте облачными сохранениями",
+    "restore_backup": "Восстановить копию",
+    "backup_from": "Резервная копия от {{date}}",
+    "cloud_save": "Облачное сохранение",
+    "backup_info_unknown_device": "Неизвестное устройство",
+    "freeze_backup": "Закрепить копию",
+    "unfreeze_backup": "Открепить копию",
+    "delete_backup": "Удалить копию",
+    "cloud_backup_options": "Параметры копии",
+    "cloud_delete_backup_description": "Удалить {{name}} из ваших облачных резервных копий?"
   },
   "format": {
     "playtime_hours_one": "{{count}} час",
