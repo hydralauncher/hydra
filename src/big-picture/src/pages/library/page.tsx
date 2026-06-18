@@ -497,9 +497,7 @@ export default function LibraryPage() {
                 }
                 animate={{ opacity: 1, y: 0 }}
                 exit={
-                  shouldAnimateContentChange
-                    ? { opacity: 0, y: -6 }
-                    : undefined
+                  shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
                 }
                 transition={
                   shouldAnimateContentChange
