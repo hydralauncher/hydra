@@ -7,7 +7,9 @@ import {
   setActiveClassicsImport,
   updateActiveClassicsImport,
 } from "./classics-import-state";
+import { isWithin, normalizePath } from "./rom-path-utils";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
+import { platformToSystem } from "@main/helpers";
 import {
   fetchShopDetailsForSkus,
   normalizeSku,
@@ -731,6 +733,44 @@ const persistFolderRollups = async (
   }
 };
 
+// After a scan, any previously-imported game for this system whose disc files
+// no longer exist within the scanned folders is stale (file removed from disk).
+// Mark it deleted so it stops showing up in the library tab. Scoped to the
+// folders actually scanned this run, and keyed on disk presence rather than
+// match success so a transient SKU-sniff miss never wipes a valid game.
+const reconcileDeletedGames = async (
+  system: EmulatorSystem,
+  folders: FolderInput[],
+  collected: ScannedGameInfo[]
+) => {
+  const scannedPaths = new Set(
+    collected.map((game) => normalizePath(game.primaryPath))
+  );
+
+  const entries = await gamesSublevel.iterator().all();
+  for (const [key, game] of entries) {
+    if (game.isDeleted) continue;
+    if (game.shop !== "launchbox") continue;
+    if (platformToSystem(game.platform) !== system) continue;
+
+    const discs = game.discs ?? [];
+    const inScannedFolders = discs.some((disc) =>
+      folders.some((folder) => isWithin(disc.path, folder.path))
+    );
+    if (!inScannedFolders) continue;
+
+    const stillOnDisk = discs.some((disc) =>
+      scannedPaths.has(normalizePath(disc.path))
+    );
+    if (stillOnDisk) continue;
+
+    game.isDeleted = true;
+    await gamesSublevel.put(key, game).catch((err) => {
+      logger.error("Could not mark stale launchbox game as deleted", err);
+    });
+  }
+};
+
 export async function runLaunchboxImport(
   system: EmulatorSystem,
   folders: FolderInput[],
@@ -852,6 +892,7 @@ export async function runLaunchboxImport(
     signal
   );
   await persistFolderRollups(system, folderRollup, folderInputBy);
+  await reconcileDeletedGames(system, folders, collected);
   await syncProfileBatch(Array.from(matchedEntries.keys()));
 
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
