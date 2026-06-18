@@ -465,6 +465,9 @@ function DownloadGameModalSession({
     DownloadGameStep.SourceList
   );
   const [pendingStep, setPendingStep] = useState<DownloadGameStep | null>(null);
+  const [pendingStepHeight, setPendingStepHeight] = useState<number | null>(
+    null
+  );
   const [transitionPhase, setTransitionPhase] =
     useState<StepTransitionPhase>("idle");
   const [stepFrameHeight, setStepFrameHeight] = useState<number | "auto">(
@@ -486,6 +489,7 @@ function DownloadGameModalSession({
   const [isPreparingOptions, setIsPreparingOptions] = useState(false);
   const stepFrameRef = useRef<HTMLDivElement | null>(null);
   const activeStepRef = useRef<HTMLDivElement | null>(null);
+  const pendingStepMeasureRef = useRef<HTMLDivElement | null>(null);
   const resetStepFrameHeightTimeoutRef = useRef<number | null>(null);
   const downloadPathTouchedRef = useRef(false);
   const automaticExtractionTouchedRef = useRef(false);
@@ -517,6 +521,7 @@ function DownloadGameModalSession({
         0;
 
       setStepFrameHeight(currentHeight > 0 ? currentHeight : "auto");
+      setPendingStepHeight(null);
       setPendingStep(nextStep);
       setTransitionPhase("exiting");
     },
@@ -640,20 +645,21 @@ function DownloadGameModalSession({
   }, [isPreparingOptions, pendingSelectedOption, requestStepChange, visible]);
 
   useLayoutEffect(() => {
-    if (transitionPhase !== "entering") return;
+    if (pendingStep === null) return;
 
     const frame = requestAnimationFrame(() => {
-      const nextHeight = activeStepRef.current?.getBoundingClientRect().height;
+      const nextHeight =
+        pendingStepMeasureRef.current?.getBoundingClientRect().height ?? 0;
 
-      if (nextHeight && nextHeight > 0) {
-        setStepFrameHeight(nextHeight);
+      if (nextHeight > 0) {
+        setPendingStepHeight(nextHeight);
       }
     });
 
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [activeStep, transitionPhase]);
+  }, [pendingStep]);
 
   const handleSelectDownloadPath = useCallback((path: string) => {
     downloadPathTouchedRef.current = true;
@@ -681,6 +687,8 @@ function DownloadGameModalSession({
       : `options-${selectedOption?.id ?? "none"}`;
   const isOptionsScrollEnabled =
     activeStep === DownloadGameStep.Options && transitionPhase === "idle";
+  const pendingStepTransitionKey =
+    pendingStep === DownloadGameStep.SourceList ? "source-list" : "options";
   const renderSourceListStep = useCallback(
     () => (
       <DownloadGameSourceList
@@ -808,8 +816,18 @@ function DownloadGameModalSession({
             }}
             onAnimationComplete={() => {
               if (transitionPhase === "exiting" && pendingStep !== null) {
+                const measuredPendingHeight =
+                  pendingStepHeight ??
+                  pendingStepMeasureRef.current?.getBoundingClientRect()
+                    .height ??
+                  0;
+
                 setActiveStep(pendingStep);
                 setPendingStep(null);
+                setPendingStepHeight(null);
+                if (measuredPendingHeight > 0) {
+                  setStepFrameHeight(measuredPendingHeight);
+                }
                 setTransitionPhase("entering");
                 return;
               }
@@ -826,6 +844,16 @@ function DownloadGameModalSession({
           >
             {renderStepContent(activeStep)}
           </motion.div>
+
+          {pendingStep !== null ? (
+            <div
+              ref={pendingStepMeasureRef}
+              className={`download-game-modal__step-measure download-game-modal__step download-game-modal__step--${pendingStepTransitionKey}`}
+              aria-hidden="true"
+            >
+              {renderStepContent(pendingStep)}
+            </div>
+          ) : null}
         </motion.div>
       </div>
     </Modal>
