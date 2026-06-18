@@ -694,7 +694,16 @@
     "no_backups": "No has creado ninguna copia de seguridad para este juego todavía",
     "settings_not_available_for_custom_games": "Esta categoría no está disponible para juegos personalizados.",
     "backups": "Copias de seguridad",
-    "cloud_saves_list_description": "Administra tus partidas en la nube"
+    "cloud_saves_list_description": "Administra tus partidas en la nube",
+    "restore_backup": "Restaurar copia",
+    "backup_from": "Copia de {{date}}",
+    "cloud_save": "Guardado en la nube",
+    "backup_info_unknown_device": "Dispositivo desconocido",
+    "freeze_backup": "Fijar copia",
+    "unfreeze_backup": "Desfijar copia",
+    "delete_backup": "Eliminar copia",
+    "cloud_backup_options": "Opciones de la copia",
+    "cloud_delete_backup_description": "¿Eliminar {{name}} de tus copias en la nube?"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

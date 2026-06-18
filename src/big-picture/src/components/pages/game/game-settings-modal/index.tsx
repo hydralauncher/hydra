@@ -2,6 +2,8 @@ import type { LibraryGame } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SidebarModal, type SidebarModalTab } from "../../../common";
+
+import "./styles.scss";
 import {
   GameCustomizationSettingsTab,
   type GameCustomizationSettingsProps,
@@ -112,6 +114,7 @@ export function GameSettingsModal({
       visible={visible}
       onClose={onClose}
       title={settingsLabel}
+      className="game-settings-modal"
       ariaLabel={settingsLabel}
       contentEntryFocusId={
         activeTabId === "launch"
