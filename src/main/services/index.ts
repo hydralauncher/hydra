@@ -6,6 +6,7 @@ export * from "./download";
 export * from "./download-layout-state";
 export * from "./download-orchestrator";
 export * from "./process-watcher";
+export * from "./launched-game-pids";
 export * from "./main-loop";
 export * from "./hydra-api";
 export * from "./ludusavi";
