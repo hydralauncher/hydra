@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertIcon,
@@ -16,13 +16,17 @@ import {
   XIcon,
 } from "@primer/octicons-react";
 
-import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
-import { useToast } from "@renderer/hooks";
+import {
+  Button,
+  CheckboxField,
+  ClassicsScanIndicator,
+  ConfirmationModal,
+} from "@renderer/components";
+import { useClassicsScan, useToast } from "@renderer/hooks";
 import type { EmulatorConfig, RomFolder } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
-import { EmulatorScanModal, type ScanFolderInput } from "./emulator-scan-modal";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { formatRelativeShort } from "./relative-time";
@@ -82,15 +86,13 @@ export function EmulatorDetail({
   const formatLastScan = (ts: number | null): string =>
     ts !== null ? formatRelativeShort(ts, i18n.language) : "—";
   const { showSuccessToast, showErrorToast } = useToast();
+  const { scan, start } = useClassicsScan();
 
   const [busy, setBusy] = useState(false);
   const [cloudNonce, setCloudNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
-  const [scanFolders, setScanFolders] = useState<ScanFolderInput[] | null>(
-    null
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -208,8 +210,10 @@ export function EmulatorDetail({
       return;
     }
 
-    setScanFolders([{ path: folderPath, scanSubfolders: true }]);
-  }, [config.romFolders, showErrorToast, t]);
+    await start(config.system, [{ path: folderPath, scanSubfolders: true }], {
+      openModal: true,
+    });
+  }, [config.romFolders, config.system, start, showErrorToast, t]);
 
   const handleToggleSubfolders = useCallback(
     async (folder: RomFolder) => {
@@ -248,37 +252,37 @@ export function EmulatorDetail({
       showErrorToast(t("no_rom_folder"));
       return;
     }
-    setScanFolders(
+    void start(
+      config.system,
       config.romFolders.map((f) => ({
         path: f.path,
         scanSubfolders: f.scanSubfolders,
-      }))
+      })),
+      { openModal: true }
     );
-  }, [config.romFolders, showErrorToast, t]);
+  }, [config.romFolders, config.system, start, showErrorToast, t]);
 
-  const handleScanComplete = useCallback(
-    async (stats: {
-      fileCount: number;
-      sizeBytes: number;
-      matched: number;
-      unmatched: number;
-    }) => {
-      setScanFolders(null);
-      await refresh();
-      showSuccessToast(
-        t("scan_complete_toast", {
-          matched: stats.matched,
-          unmatched: stats.unmatched,
-        })
-      );
-    },
-    [refresh, showSuccessToast, t]
-  );
-
-  const handleScanCancel = useCallback(async () => {
-    setScanFolders(null);
-    await refresh();
-  }, [refresh]);
+  const lastScanNonceRef = useRef(scan.completedNonce);
+  useEffect(() => {
+    if (scan.completedNonce === lastScanNonceRef.current) return;
+    lastScanNonceRef.current = scan.completedNonce;
+    if (scan.completedSystem !== config.system) return;
+    void refresh();
+    showSuccessToast(
+      t("scan_complete_toast", {
+        matched: scan.result?.matched ?? 0,
+        unmatched: scan.result?.unmatched ?? 0,
+      })
+    );
+  }, [
+    scan.completedNonce,
+    scan.completedSystem,
+    scan.result,
+    config.system,
+    refresh,
+    showSuccessToast,
+    t,
+  ]);
 
   const storageLabel = useMemo(
     () => formatBytes(config.totalSizeBytes),
@@ -428,7 +432,11 @@ export function EmulatorDetail({
             <h3>{t("rom_folders_section_title")}</h3>
             <p>{t("rom_folders_section_description")}</p>
           </div>
-          <Button theme="outline" onClick={handleAddFolder} disabled={busy}>
+          <Button
+            theme="outline"
+            onClick={handleAddFolder}
+            disabled={busy || scan.active}
+          >
             <PlusIcon size={14} />
             <span>{t("add_folder")}</span>
           </Button>
@@ -497,11 +505,17 @@ export function EmulatorDetail({
             <h3>{t("library_section_title")}</h3>
             <p>{t("library_section_description", { system: systemLabel })}</p>
           </div>
-          <Button theme="outline" onClick={handleRescan} disabled={busy}>
+          <Button
+            theme="outline"
+            onClick={handleRescan}
+            disabled={busy || scan.active}
+          >
             <SyncIcon size={13} />
             <span>{t("rescan")}</span>
           </Button>
         </header>
+
+        <ClassicsScanIndicator variant="section" />
 
         <div className="emulator-detail__stats">
           <div className="emulator-detail__stat">
@@ -586,15 +600,6 @@ export function EmulatorDetail({
         onConfirm={handleConfirmRemoveEmulator}
         onClose={() => setRemoveOpen(false)}
         buttonsIsDisabled={busy}
-      />
-
-      <EmulatorScanModal
-        visible={scanFolders !== null}
-        system={config.system}
-        systemLabel={systemLabel}
-        folders={scanFolders ?? []}
-        onComplete={handleScanComplete}
-        onCancel={handleScanCancel}
       />
     </div>
   );
