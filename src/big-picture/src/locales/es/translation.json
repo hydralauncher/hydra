@@ -684,7 +684,17 @@
     "Completed": "Completado",
     "Earned": "Obtenido",
     "Never": "Nunca",
-    "Don&apos;t see your language on the list?": "¿No ves tu idioma en la lista?"
+    "Don&apos;t see your language on the list?": "¿No ves tu idioma en la lista?",
+    "No backups": "Sin copias de seguridad",
+    "cloud_saves_section_title": "Partidas en la nube",
+    "cloud_saves_section_description": "Guarda tu progreso en la nube y sigue jugando en cualquier dispositivo",
+    "cloud_saves_section_description_memory": "Guarda el progreso de tus memory cards en la nube y sigue jugando en cualquier dispositivo",
+    "enable_automatic_cloud_sync": "Habilitar sincronización con la nube",
+    "create_backup": "Nueva copia de seguridad",
+    "no_backups": "No has creado ninguna copia de seguridad para este juego todavía",
+    "settings_not_available_for_custom_games": "Esta categoría no está disponible para juegos personalizados.",
+    "backups": "Copias de seguridad",
+    "cloud_saves_list_description": "Administra tus partidas en la nube"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

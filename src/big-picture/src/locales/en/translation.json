@@ -684,7 +684,17 @@
     "You have no blocked users.": "You have no blocked users.",
     "You haven't played": "You haven't played",
     "Your Library": "Your Library",
-    "Your review": "Your review"
+    "Your review": "Your review",
+    "No backups": "No backups",
+    "cloud_saves_section_title": "Cloud saves",
+    "cloud_saves_section_description": "Save your progress in the cloud and continue playing on any device",
+    "cloud_saves_section_description_memory": "Save your memory card progress in the cloud and continue playing on any device",
+    "enable_automatic_cloud_sync": "Enable automatic cloud sync",
+    "create_backup": "New backup",
+    "no_backups": "You haven't created any backups for this game yet",
+    "settings_not_available_for_custom_games": "Settings are not available for custom games",
+    "backups": "Backups",
+    "cloud_saves_list_description": "Manage your cloud saves"
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",

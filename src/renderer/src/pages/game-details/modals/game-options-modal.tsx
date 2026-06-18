@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
 import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";

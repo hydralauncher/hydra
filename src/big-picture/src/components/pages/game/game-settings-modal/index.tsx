@@ -12,6 +12,11 @@ import {
   type GameLaunchSettingsProps,
   GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./launch-tab";
+import {
+  GameCloudSettingsTab,
+  type GameCloudSettingsProps,
+  GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
+} from "./cloud-tab";
 
 type GameSettingsTabId =
   | "launch"
@@ -26,6 +31,7 @@ interface GameSettingsModalProps {
   game: LibraryGame;
   launchSettings: GameLaunchSettingsProps;
   customizationSettings: GameCustomizationSettingsProps;
+  cloudSettings: GameCloudSettingsProps;
   onClose: () => void;
 }
 
@@ -33,6 +39,7 @@ export function GameSettingsModal({
   visible,
   launchSettings,
   customizationSettings,
+  cloudSettings,
   onClose,
 }: Readonly<GameSettingsModalProps>) {
   const { t } = useTranslation(["game_details", "header"]);
@@ -55,6 +62,10 @@ export function GameSettingsModal({
     () => <GameCustomizationSettingsTab {...customizationSettings} />,
     [customizationSettings]
   );
+  const cloudContent = useMemo(
+    () => <GameCloudSettingsTab {...cloudSettings} />,
+    [cloudSettings]
+  );
 
   const tabs = useMemo<SidebarModalTab[]>(
     () => [
@@ -71,7 +82,7 @@ export function GameSettingsModal({
       {
         id: "hydra_cloud",
         label: t("settings_category_hydra_cloud"),
-        content: <p>Hydra Cloud</p>,
+        content: cloudContent,
       },
       ...(shouldShowCompatibilityTab
         ? [
@@ -107,7 +118,9 @@ export function GameSettingsModal({
           ? GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID
           : activeTabId === "customization"
             ? GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
-            : undefined
+            : activeTabId === "hydra_cloud"
+              ? GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID
+              : undefined
       }
       tabs={tabs}
       activeTabId={activeTabId}

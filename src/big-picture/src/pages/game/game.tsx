@@ -385,6 +385,9 @@ export default function Game() {
     updateGame,
     refreshGameDetails,
   } = useGameDetails(objectId!, shop!);
+  const [automaticCloudSync, setAutomaticCloudSync] = useState(
+    () => game?.automaticCloudSync ?? false
+  );
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     preferredAssets.title || game?.title || "Download Game";
@@ -1738,6 +1741,34 @@ export default function Game() {
     updatingGameTitle,
   ]);
 
+  const handleToggleAutomaticCloudSync = useCallback(
+    async (checked: boolean) => {
+      if (!game) return;
+      setAutomaticCloudSync(checked);
+      try {
+        await window.electron.toggleAutomaticCloudSync(
+          game.shop,
+          game.objectId,
+          checked
+        );
+        void updateGame();
+      } catch {
+        setAutomaticCloudSync(!checked);
+      }
+    },
+    [game, updateGame]
+  );
+
+  const cloudSettings = useMemo(() => {
+    if (!game) return null;
+
+    return {
+      game,
+      automaticCloudSync,
+      onToggleAutomaticCloudSync: handleToggleAutomaticCloudSync,
+    };
+  }, [game, automaticCloudSync, handleToggleAutomaticCloudSync]);
+
   useEffect(() => {
     const descriptionContainer = descriptionContainerRef.current;
     const pageElement = pageRef.current;
@@ -1817,12 +1848,13 @@ export default function Game() {
           downNavigationTarget={contentBelowHeroTarget}
           sidebarEntryTarget={sidebarEntryTarget}
         />
-        {game && launchSettings && customizationSettings && (
+        {game && launchSettings && customizationSettings && cloudSettings && (
           <GameSettingsModal
             visible={isGameSettingsModalOpen}
             game={game}
             launchSettings={launchSettings}
             customizationSettings={customizationSettings}
+            cloudSettings={cloudSettings}
             onClose={() => setIsGameSettingsModalOpen(false)}
           />
         )}
