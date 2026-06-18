@@ -1247,7 +1247,7 @@ function DownloadGameSourceList({
                   }
                   stealFocusOnAppear={index === 0}
                   focusNavigationOverrides={
-                    firstSourceFocusId
+                    index === 0 && firstSourceFocusId
                       ? {
                           up: {
                             type: "item",
