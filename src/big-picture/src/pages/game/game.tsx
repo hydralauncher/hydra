@@ -388,6 +388,10 @@ export default function Game() {
   const [automaticCloudSync, setAutomaticCloudSync] = useState(
     () => game?.automaticCloudSync ?? false
   );
+
+  useEffect(() => {
+    setAutomaticCloudSync(game?.automaticCloudSync ?? false);
+  }, [game?.automaticCloudSync]);
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     preferredAssets.title || game?.title || "Download Game";

@@ -48,19 +48,24 @@ export interface GameCustomizationSettingsProps {
 
 function getAssetPreviewState(game: LibraryGame): AssetPreviewState {
   const preferredAssets = resolvePreferredGameAssets(game, null);
+  const isCustom = game.shop === "custom";
 
   return {
     icon: {
       src: preferredAssets.iconSrc,
-      hasCustom: Boolean(game.customIconUrl),
+      hasCustom: isCustom ? Boolean(game.iconUrl) : Boolean(game.customIconUrl),
     },
     logo: {
       src: preferredAssets.logoSrc,
-      hasCustom: Boolean(game.customLogoImageUrl),
+      hasCustom: isCustom
+        ? Boolean(game.logoImageUrl)
+        : Boolean(game.customLogoImageUrl),
     },
     hero: {
       src: preferredAssets.heroSrc,
-      hasCustom: Boolean(game.customHeroImageUrl),
+      hasCustom: isCustom
+        ? Boolean(game.libraryHeroImageUrl)
+        : Boolean(game.customHeroImageUrl),
     },
   };
 }
@@ -69,10 +74,12 @@ function getFallbackPreviewState(
   game: LibraryGame,
   assetType: AssetTab
 ): AssetPreviewState[AssetTab] {
+  const isCustom = game.shop === "custom";
+
   if (assetType === "icon") {
     const nextGame = {
       ...game,
-      customIconUrl: null,
+      [isCustom ? "iconUrl" : "customIconUrl"]: null,
     };
 
     return {
@@ -84,7 +91,7 @@ function getFallbackPreviewState(
   if (assetType === "logo") {
     const nextGame = {
       ...game,
-      customLogoImageUrl: null,
+      [isCustom ? "logoImageUrl" : "customLogoImageUrl"]: null,
     };
 
     return {
@@ -95,7 +102,7 @@ function getFallbackPreviewState(
 
   const nextGame = {
     ...game,
-    customHeroImageUrl: null,
+    [isCustom ? "libraryHeroImageUrl" : "customHeroImageUrl"]: null,
   };
 
   return {
