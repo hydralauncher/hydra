@@ -256,6 +256,7 @@ export interface UserProfile {
     backupsPerGameLimit: number;
   };
   badges: string[];
+  badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
 }
 

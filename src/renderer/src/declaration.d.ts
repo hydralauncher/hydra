@@ -46,6 +46,7 @@ import type {
   EmulatorConfig,
   EmulatorConfigMap,
   EmulatorSystem,
+  EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
   EmulatorInstallResult,
@@ -213,6 +214,11 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string | null
+    ) => Promise<void>;
+    updateTrackingExecutablePaths: (
+      shop: GameShop,
+      objectId: string,
+      trackingExecutablePaths: string[]
     ) => Promise<void>;
     addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
     removeGameFromFavorites: (
@@ -527,6 +533,10 @@ declare global {
       platform: EmulationSavePlatform,
       cardFilePath: string
     ) => Promise<{ uploaded: number; total: number }>;
+    onEmulationBackupProgress: (
+      cb: (payload: EmulationBackupProgress) => void
+    ) => () => Electron.IpcRenderer;
+    getActiveEmulationBackups: () => Promise<EmulationBackupProgress[]>;
     listEmulationSaves: (
       platform: EmulationSavePlatform,
       objectId?: string | null
