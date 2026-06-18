@@ -98,6 +98,10 @@ const launchNatively = (
       }
     );
 
+    processRef.on("error", (error) => {
+      logger.error("Failed to launch game", error);
+    });
+
     processRef.unref();
 
     return processRef.pid ?? null;
@@ -117,6 +121,10 @@ const launchNatively = (
       },
     }
   );
+
+  processRef.on("error", (error) => {
+    logger.error("Failed to launch game", error);
+  });
 
   processRef.unref();
 
