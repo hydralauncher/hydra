@@ -279,7 +279,7 @@ export function HeroPanelActions() {
           className="hero-panel-actions__action"
         >
           <ToolsIcon />
-          {t("repair", "Réparer")}
+          {t("repair", "Repair")}
         </Button>
       );
     }

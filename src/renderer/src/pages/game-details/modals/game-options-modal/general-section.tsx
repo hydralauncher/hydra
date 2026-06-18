@@ -238,10 +238,11 @@ export function GeneralSettingsSection({
             <TextField
               value={
                 game.download?.downloadPath
-                  ? `${game.download.downloadPath}\\${game.download.folderName || ""}`.replace(
-                      /\\$/,
-                      ""
-                    )
+                  ? (() => {
+                      const sep = game.download.downloadPath.includes("/") ? "/" : "\\";
+                      const fullPath = `${game.download.downloadPath}${sep}${game.download.folderName || ""}`;
+                      return sep === "/" ? fullPath.replace(/\/$/, "") : fullPath.replace(/\\$/, "");
+                    })()
                   : customDownloadPath || ""
               }
               readOnly

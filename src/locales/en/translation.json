@@ -597,6 +597,7 @@
     "delete_shortcut_error": "Failed to delete Steam shortcut",
     "delete_steam_shortcut": "Delete Steam shortcut",
     "verify_integrity": "Verify Integrity",
+    "repair": "Repair",
     "verify_integrity_success": "Verification started successfully. Check the downloads bar.",
     "verify_integrity_error": "Error during verification.",
     "no_download_path": "Please select a download folder.",

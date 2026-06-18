@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { DownloadManager } from "@main/services/download/download-manager";
-import { Downloader } from "@shared";
+import { Downloader, getDownloadersForUri } from "@shared";
 import fs from "node:fs";
 
 import { logger } from "@main/services";
@@ -36,6 +36,12 @@ const verifyGameIntegrity = async (
       );
 
       const isTorrent = uri.startsWith("magnet:") || uri.endsWith(".torrent");
+      const possibleDownloaders = getDownloadersForUri(uri);
+      const downloader = isTorrent
+        ? Downloader.Torrent
+        : possibleDownloaders.length > 0
+          ? possibleDownloaders[0]
+          : Downloader.RealDebrid;
 
       const newDownload: Download = {
         shop,
@@ -44,7 +50,7 @@ const verifyGameIntegrity = async (
         downloadPath,
         folderName: null,
         progress: 0,
-        downloader: isTorrent ? Downloader.Torrent : Downloader.RealDebrid,
+        downloader,
         bytesDownloaded: 0,
         fileSize: null,
         shouldSeed: false,
