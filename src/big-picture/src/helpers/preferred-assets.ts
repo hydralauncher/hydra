@@ -16,6 +16,7 @@ type PreferredGameSource = Partial<
     | "libraryImageUrl"
     | "coverImageUrl"
     | "logoPosition"
+    | "downloadSources"
   >
 >;
 
@@ -29,7 +30,7 @@ export interface PreferredGameAssets {
   libraryImageUrl: string | null;
   coverImageUrl: string | null;
   logoPosition: string | null;
-  downloadSources: string[];
+  downloadSources?: string[];
 }
 
 export interface ResolvedPreferredGameAssets extends PreferredGameAssets {
@@ -54,6 +55,21 @@ function getFirstResolvedSource(
   return "";
 }
 
+function getPreferredDownloadSources(
+  game: PreferredGameSource | null | undefined,
+  assets: ShopAssets | null | undefined
+) {
+  if (assets && "downloadSources" in assets) {
+    return assets.downloadSources;
+  }
+
+  if (game && "downloadSources" in game) {
+    return game.downloadSources;
+  }
+
+  return undefined;
+}
+
 export function getPreferredGameAssets(
   game: PreferredGameSource | null | undefined,
   assets: ShopAssets | null | undefined
@@ -76,7 +92,7 @@ export function getPreferredGameAssets(
     libraryImageUrl: assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
     coverImageUrl: assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
     logoPosition: assets?.logoPosition ?? game?.logoPosition ?? null,
-    downloadSources: assets?.downloadSources ?? [],
+    downloadSources: getPreferredDownloadSources(game, assets),
   };
 }
 

@@ -26,6 +26,7 @@ import {
   LibraryFilters,
   LibraryFocusList,
   LibraryGameContextMenu,
+  LibraryGameSettingsModal,
   LibraryHero,
   VerticalFocusGroup,
   LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
@@ -44,6 +45,8 @@ import {
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
+  LIBRARY_HERO_LAUNCH_BUTTON_ID,
+  LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
   LIBRARY_PAGE_REGION_ID,
 } from "../../components/pages/library/navigation";
 import { logger } from "@renderer/logger";
@@ -110,6 +113,7 @@ function getInitialLibraryStoredValue<TValue extends string>(
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
@@ -188,17 +192,35 @@ export default function LibraryPage() {
 
   const [downloadModalGame, setDownloadModalGame] =
     useState<LibraryGame | null>(null);
+  const [settingsModalGame, setSettingsModalGame] =
+    useState<LibraryGame | null>(null);
+  const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
 
-  const openDownloadModalFromContextMenu = useCallback(
-    (game: LibraryGame) => {
-      const restoreFocusId = contextMenuState.restoreFocusId;
+  const openDownloadModal = useCallback(
+    (game: LibraryGame, restoreFocusId: string | null) => {
       downloadModalRestoreFocusIdRef.current = restoreFocusId;
 
       globalThis.window.requestAnimationFrame(() => {
         setDownloadModalGame(game);
       });
     },
-    [contextMenuState.restoreFocusId]
+    []
+  );
+
+  const openDownloadModalFromContextMenu = useCallback(
+    (game: LibraryGame) => {
+      openDownloadModal(game, contextMenuState.restoreFocusId);
+    },
+    [contextMenuState.restoreFocusId, openDownloadModal]
+  );
+
+  const handleHeroPrimaryAction = useLibraryLaunchGame(
+    useCallback(
+      (game: LibraryGame) => {
+        openDownloadModal(game, LIBRARY_HERO_LAUNCH_BUTTON_ID);
+      },
+      [openDownloadModal]
+    )
   );
 
   const handleCloseDownloadModal = useCallback(() => {
@@ -206,6 +228,27 @@ export default function LibraryPage() {
 
     downloadModalRestoreFocusIdRef.current = null;
     setDownloadModalGame(null);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [setFocus]);
+
+  const handleOpenHeroSettings = useCallback((game: LibraryGame) => {
+    settingsModalRestoreFocusIdRef.current =
+      LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID;
+    setSettingsModalGame(game);
+    setIsGameSettingsModalOpen(true);
+  }, []);
+
+  const handleCloseGameSettingsModal = useCallback(() => {
+    const restoreFocusId = settingsModalRestoreFocusIdRef.current;
+
+    settingsModalRestoreFocusIdRef.current = null;
+    setIsGameSettingsModalOpen(false);
+    setSettingsModalGame(null);
 
     if (!restoreFocusId) return;
 
@@ -413,6 +456,8 @@ export default function LibraryPage() {
       <section className="library-page">
         <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
           <LibraryHero
+            onPrimaryAction={handleHeroPrimaryAction}
+            onOpenSettings={handleOpenHeroSettings}
             favoriteLoadingGameId={favoriteLoadingGameId}
             lastPlayedGames={lastPlayedGames}
             onToggleFavorite={toggleFavorite}
@@ -526,6 +571,14 @@ export default function LibraryPage() {
           visible
           onClose={handleCloseDownloadModal}
           game={downloadModalGame}
+        />
+      ) : null}
+
+      {settingsModalGame ? (
+        <LibraryGameSettingsModal
+          visible={isGameSettingsModalOpen}
+          game={settingsModalGame}
+          onClose={handleCloseGameSettingsModal}
         />
       ) : null}
     </>

@@ -679,6 +679,8 @@ function DownloadGameModalSession({
     activeStep === DownloadGameStep.SourceList
       ? "source-list"
       : `options-${selectedOption?.id ?? "none"}`;
+  const isOptionsScrollEnabled =
+    activeStep === DownloadGameStep.Options && transitionPhase === "idle";
   const renderSourceListStep = useCallback(
     () => (
       <DownloadGameSourceList
@@ -793,6 +795,7 @@ function DownloadGameModalSession({
             key={activeStepContentKey}
             ref={activeStepRef}
             className={`download-game-modal__step download-game-modal__step--${stepTransitionKey}`}
+            data-scroll-enabled={isOptionsScrollEnabled || undefined}
             initial={transitionPhase === "entering" ? { opacity: 0 } : false}
             animate={{
               opacity: transitionPhase === "exiting" ? 0 : 1,
@@ -812,9 +815,9 @@ function DownloadGameModalSession({
               }
 
               if (transitionPhase === "entering") {
-                setTransitionPhase("idle");
                 resetStepFrameHeightTimeoutRef.current =
                   globalThis.window.setTimeout(() => {
+                    setTransitionPhase("idle");
                     setStepFrameHeight("auto");
                     resetStepFrameHeightTimeoutRef.current = null;
                   }, DOWNLOAD_GAME_STEP_HEIGHT_DURATION_SECONDS * 1000);
