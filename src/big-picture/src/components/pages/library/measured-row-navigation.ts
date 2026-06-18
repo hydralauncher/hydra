@@ -2,6 +2,11 @@ import type { LibraryGame } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import type { FocusOverrides } from "../../../services";
 import { LIBRARY_FILTERS_TOOLBAR_REGION_ID } from "./navigation";
+import {
+  ROW_TOLERANCE_PX,
+  groupItemsIntoRows,
+  getClosestItemByCenterX,
+} from "../../../helpers/row-navigation-utils";
 
 interface ItemPosition {
   id: string;
@@ -14,45 +19,6 @@ interface UseMeasuredRowNavigationParams {
   games: LibraryGame[];
   getItemId: (gameId: string) => string;
   regionId: string;
-}
-
-const ROW_TOLERANCE_PX = 24;
-
-function groupItemsIntoRows(items: ItemPosition[]) {
-  const sortedItems = [...items].sort((a, b) => {
-    if (Math.abs(a.top - b.top) > ROW_TOLERANCE_PX) {
-      return a.top - b.top;
-    }
-
-    return a.left - b.left;
-  });
-
-  return sortedItems.reduce<ItemPosition[][]>((rows, item) => {
-    const lastRow = rows.at(-1);
-
-    if (!lastRow || Math.abs(lastRow[0].top - item.top) > ROW_TOLERANCE_PX) {
-      rows.push([item]);
-      return rows;
-    }
-
-    lastRow.push(item);
-    lastRow.sort((leftItem, rightItem) => leftItem.left - rightItem.left);
-    return rows;
-  }, []);
-}
-
-function getClosestItemByCenterX(
-  items: ItemPosition[] | undefined,
-  centerX: number
-) {
-  if (!items?.length) return null;
-
-  return [...items].sort((leftItem, rightItem) => {
-    return (
-      Math.abs(leftItem.centerX - centerX) -
-      Math.abs(rightItem.centerX - centerX)
-    );
-  })[0];
 }
 
 function buildFocusOverridesForItem(
