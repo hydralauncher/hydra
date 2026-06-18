@@ -93,6 +93,10 @@
     "cancel": "Cancelar"
   },
   "header": {
+    "minimize": "Minimizar",
+    "maximize": "Maximizar",
+    "restore": "Restaurar",
+    "close": "Fechar",
     "search": "Procurar jogos",
     "search_library": "Procurar na biblioteca",
     "recent_searches": "Pesquisas Recentes",
