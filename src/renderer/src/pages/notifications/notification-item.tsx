@@ -161,6 +161,19 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "REVIEW_ANSWER_UPVOTE":
+        return {
+          title: t("review_answer_upvote_title", {
+            gameTitle: notification.variables.gameTitle,
+          }),
+          description: t("review_answer_upvote_description", {
+            count: Number.parseInt(
+              notification.variables.upvoteCount || "1",
+              10
+            ),
+          }),
+          showActions: false,
+        };
       default:
         return {
           title: t("notification"),
@@ -174,13 +187,14 @@ export function NotificationItem({
   const isBadge = notification.type === "BADGE_RECEIVED";
   const isReviewUpvote = notification.type === "REVIEW_UPVOTE";
   const isReviewAnswer = notification.type === "REVIEW_ANSWER";
-  const isReview = isReviewUpvote || isReviewAnswer;
+  const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
+  const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
 
   const getIcon = () => {
     if (notification.pictureUrl) {
       return <img src={notification.pictureUrl} alt="" />;
     }
-    if (isReviewUpvote) {
+    if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
     }
     if (isReviewAnswer) {

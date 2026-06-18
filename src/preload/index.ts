@@ -24,6 +24,8 @@ import type {
   TorrentFilesResponse,
   DownloadLayoutState,
   EmulatorSystem,
+  EmulatorBinary,
+  EmulatorInstallProgress,
   Ps2MemcardScanInput,
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
@@ -179,6 +181,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
+  listEmulatorRoms: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("listEmulatorRoms", system),
   toggleRomFolderSubfolders: (
     system: EmulatorSystem,
     folderId: string,
@@ -194,6 +198,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  checkEmulatorBios: (system: EmulatorSystem, executablePath: string | null) =>
+    ipcRenderer.invoke("checkEmulatorBios", system, executablePath),
+  getEmulatorInstallOptions: (binary: EmulatorBinary) =>
+    ipcRenderer.invoke("getEmulatorInstallOptions", binary),
+  installEmulator: (binary: EmulatorBinary, optionId: string) =>
+    ipcRenderer.invoke("installEmulator", binary, optionId),
+  onEmulatorInstallProgress: (
+    cb: (payload: EmulatorInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: EmulatorInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-emulator-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
   startRomScan: (
     system: EmulatorSystem,
     folderPath: string,
@@ -926,6 +945,10 @@ contextBridge.exposeInMainWorld("electron", {
   checkHomebrewFolderExists: () =>
     ipcRenderer.invoke("checkHomebrewFolderExists"),
   platform: process.platform,
+  isWayland:
+    process.platform === "linux" &&
+    (process.env.XDG_SESSION_TYPE === "wayland" ||
+      Boolean(process.env.WAYLAND_DISPLAY)),
 
   /* Auto update */
   onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
@@ -1175,6 +1198,23 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+
+  /* Main Window Controls */
+  minimizeMainWindow: () => ipcRenderer.invoke("minimizeMainWindow"),
+  toggleMaximizeMainWindow: () =>
+    ipcRenderer.invoke("toggleMaximizeMainWindow"),
+  closeMainWindow: () => ipcRenderer.invoke("closeMainWindow"),
+  isMainWindowMaximized: () =>
+    ipcRenderer.invoke("isMainWindowMaximized") as Promise<boolean>,
+  onWindowMaximizeChange: (cb: (isMaximized: boolean) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      isMaximized: boolean
+    ) => cb(isMaximized);
+    ipcRenderer.on("on-window-maximize-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-window-maximize-change", listener);
+  },
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),
