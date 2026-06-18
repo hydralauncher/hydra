@@ -51,6 +51,27 @@ export interface HeroProps {
   sidebarEntryTarget?: FocusOverrideTarget;
 }
 
+function getFavoriteLeftTargetId(
+  shouldShowFavoriteButton: boolean,
+  shouldShowCatalogActions: boolean,
+  hasPrimaryAction: boolean
+): string {
+  if (shouldShowFavoriteButton) return GAME_HERO_OPEN_SETTINGS_ID;
+  if (shouldShowCatalogActions && hasPrimaryAction)
+    return GAME_HERO_DOWNLOAD_OPTIONS_ID;
+  if (hasPrimaryAction) return GAME_HERO_PRIMARY_ACTION_ID;
+  return BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+}
+
+function getSettingsLeftTargetId(
+  shouldShowCatalogActions: boolean,
+  hasPrimaryAction: boolean
+): string {
+  if (shouldShowCatalogActions) return GAME_HERO_DOWNLOAD_OPTIONS_ID;
+  if (hasPrimaryAction) return GAME_HERO_PRIMARY_ACTION_ID;
+  return BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+}
+
 export function Hero({
   shopDetails,
   game,
@@ -95,13 +116,11 @@ export function Hero({
     () => sidebarEntryTarget ?? { type: "block" },
     [sidebarEntryTarget]
   );
-  const favoriteLeftTargetId = shouldShowFavoriteButton
-    ? GAME_HERO_OPEN_SETTINGS_ID
-    : shouldShowCatalogActions && hasPrimaryAction
-      ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-      : hasPrimaryAction
-        ? GAME_HERO_PRIMARY_ACTION_ID
-        : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+  const favoriteLeftTargetId = getFavoriteLeftTargetId(
+    shouldShowFavoriteButton,
+    shouldShowCatalogActions,
+    hasPrimaryAction
+  );
 
   const toggleFavoriteNavigationOverrides: FocusOverrides = {
     left: {
@@ -146,11 +165,10 @@ export function Hero({
           : lastActionRightTarget,
         down: heroDownNavigationTarget,
       };
-      const settingsLeftTargetId = shouldShowCatalogActions
-        ? GAME_HERO_DOWNLOAD_OPTIONS_ID
-        : hasPrimaryAction
-          ? GAME_HERO_PRIMARY_ACTION_ID
-          : BIG_PICTURE_SIDEBAR_ITEM_IDS.home;
+      const settingsLeftTargetId = getSettingsLeftTargetId(
+        shouldShowCatalogActions,
+        hasPrimaryAction
+      );
       const settingsNavigationOverrides: FocusOverrides = {
         left: {
           type: "item",

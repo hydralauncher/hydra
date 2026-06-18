@@ -8,6 +8,39 @@ import { useBigPictureToast } from "../../../../hooks/use-big-picture-toast.hook
 
 import "./danger-zone-tab.scss";
 
+function getConfirmationConfig(
+  pendingAction: DangerAction,
+  game: LibraryGame,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  handleRemoveFromLibrary: () => Promise<void>,
+  handleResetAchievements: () => Promise<void>,
+  handleRemoveFiles: () => Promise<void>
+) {
+  switch (pendingAction) {
+    case "remove-from-library":
+      return {
+        title: t("remove_from_library"),
+        description: t("remove_from_library_description", { game: game.title }),
+        confirmLabel: t("remove_from_library"),
+        onConfirm: handleRemoveFromLibrary,
+      };
+    case "reset-achievements":
+      return {
+        title: t("reset_achievements"),
+        description: t("reset_achievements_description", { game: game.title }),
+        confirmLabel: t("reset_achievements"),
+        onConfirm: handleResetAchievements,
+      };
+    case "remove-files":
+      return {
+        title: t("remove_game_files"),
+        description: t("remove_game_files_description", { game: game.title }),
+        confirmLabel: t("remove_game_files"),
+        onConfirm: handleRemoveFiles,
+      };
+  }
+}
+
 export const GAME_DANGER_ZONE_PRIMARY_CONTROL_ID =
   "game-danger-zone-primary-control";
 
@@ -82,32 +115,14 @@ export function GameDangerZoneSettingsTab({
   }, [game, showSuccessToast, showErrorToast]);
 
   const confirmationConfig = pendingAction
-    ? {
-        title:
-          pendingAction === "remove-from-library"
-            ? t("remove_from_library")
-            : pendingAction === "reset-achievements"
-              ? t("reset_achievements")
-              : t("remove_game_files"),
-        description:
-          pendingAction === "remove-from-library"
-            ? t("remove_from_library_description", { game: game.title })
-            : pendingAction === "reset-achievements"
-              ? t("reset_achievements_description", { game: game.title })
-              : t("remove_game_files_description", { game: game.title }),
-        confirmLabel:
-          pendingAction === "remove-from-library"
-            ? t("remove_from_library")
-            : pendingAction === "reset-achievements"
-              ? t("reset_achievements")
-              : t("remove_game_files"),
-        onConfirm:
-          pendingAction === "remove-from-library"
-            ? handleRemoveFromLibrary
-            : pendingAction === "reset-achievements"
-              ? handleResetAchievements
-              : handleRemoveFiles,
-      }
+    ? getConfirmationConfig(
+        pendingAction,
+        game,
+        t,
+        handleRemoveFromLibrary,
+        handleResetAchievements,
+        handleRemoveFiles
+      )
     : null;
 
   return (

@@ -1,4 +1,4 @@
-import { Cloud } from "@phosphor-icons/react";
+import { CloudIcon } from "@phosphor-icons/react";
 import type { GameArtifact, LibraryGame, LudusaviBackup } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -142,8 +142,8 @@ export function GameCloudSettingsTab({
   }, [game.objectId, game.shop]);
 
   useEffect(() => {
-    void loadArtifacts();
-    void loadBackupPreview();
+    loadArtifacts().catch(() => {});
+    loadBackupPreview().catch(() => {});
   }, [loadArtifacts, loadBackupPreview]);
 
   useEffect(() => {
@@ -153,8 +153,8 @@ export function GameCloudSettingsTab({
       () => {
         showSuccessToast("Cloud backup complete");
         setCreatingBackup(false);
-        void loadArtifacts();
-        void loadBackupPreview();
+        loadArtifacts().catch(() => {});
+        loadBackupPreview().catch(() => {});
       }
     );
 
@@ -170,8 +170,8 @@ export function GameCloudSettingsTab({
           }
           setRestoringArtifactId(null);
           setBackupDownloadProgress(null);
-          void loadArtifacts();
-          void loadBackupPreview();
+          loadArtifacts().catch(() => {});
+          loadBackupPreview().catch(() => {});
         }
       );
 
@@ -301,14 +301,14 @@ export function GameCloudSettingsTab({
             focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
             variant="primary"
             className="game-cloud-settings-tab__new-backup-button"
-            onClick={() => void handleCreateBackup()}
+            onClick={() => { handleCreateBackup().catch(() => {}); }}
             loading={creatingBackup}
             disabled={
               disableActions ||
               !backupPreview?.overall?.totalGames ||
               hasReachedLimit
             }
-            icon={<Cloud size={20} />}
+            icon={<CloudIcon size={20} />}
           >
             {t("create_backup")}
           </Button>

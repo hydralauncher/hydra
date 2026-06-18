@@ -869,7 +869,7 @@ export default function Game() {
     if (nextValue === currentValue) return;
 
     launchOptionsDebounceRef.current = globalThis.window.setTimeout(() => {
-      void persistLaunchOptions(nextValue);
+      persistLaunchOptions(nextValue).catch(() => {});
     }, 500);
 
     return () => {
@@ -1031,7 +1031,7 @@ export default function Game() {
   }, []);
 
   const handleBlurLaunchOptions = useCallback(() => {
-    void persistLaunchOptions(launchOptions);
+    persistLaunchOptions(launchOptions).catch(() => {});
   }, [launchOptions, persistLaunchOptions]);
 
   const handleSelectDisc = useCallback(
@@ -1755,7 +1755,7 @@ export default function Game() {
           game.objectId,
           checked
         );
-        void updateGame();
+        updateGame().catch(() => {});
       } catch {
         setAutomaticCloudSync(!checked);
       }

@@ -207,6 +207,18 @@ export function GameCompatibilitySettingsTab({
   const gamemodeDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudDisabled = !mangohudAvailable || globalAutoRunMangohud;
 
+  const gamemodeSecondaryText = !gamemodeAvailable
+    ? t("gamemode_not_available_tooltip")
+    : globalAutoRunGamemode
+      ? t("gamemode_disabled_due_to_global_setting_tooltip")
+      : undefined;
+
+  const mangohudSecondaryText = !mangohudAvailable
+    ? t("mangohud_not_available_tooltip")
+    : globalAutoRunMangohud
+      ? t("mangohud_disabled_due_to_global_setting_tooltip")
+      : undefined;
+
   return (
     <VerticalFocusGroup className="game-compatibility-settings-tab">
       <SettingsSection
@@ -231,7 +243,7 @@ export function GameCompatibilitySettingsTab({
               focusId={GAME_COMPATIBILITY_SETTINGS_WINE_SELECT_ID}
               variant="secondary"
               icon={<FolderOpen size={16} />}
-              onClick={() => void handleSelectWinePrefix()}
+              onClick={() => { handleSelectWinePrefix().catch(() => {}); }}
               focusNavigationOverrides={{
                 left: {
                   type: "item",
@@ -247,7 +259,7 @@ export function GameCompatibilitySettingsTab({
                 focusId={GAME_COMPATIBILITY_SETTINGS_WINE_CLEAR_ID}
                 variant="danger"
                 icon={<Trash size={16} />}
-                onClick={() => void handleClearWinePrefix()}
+                onClick={() => { handleClearWinePrefix().catch(() => {}); }}
                 focusNavigationOverrides={{
                   left: {
                     type: "item",
@@ -284,7 +296,7 @@ export function GameCompatibilitySettingsTab({
               }
               checked={selectedProtonPath === option.value}
               block
-              onChange={() => void handleChangeProtonVersion(option.value)}
+              onChange={() => { handleChangeProtonVersion(option.value).catch(() => {}); }}
             />
           ))}
         </div>
@@ -298,33 +310,21 @@ export function GameCompatibilitySettingsTab({
         <Checkbox
           id={GAME_COMPATIBILITY_SETTINGS_GAMEMODE_ID}
           label="GameMode"
-          secondaryText={
-            !gamemodeAvailable
-              ? t("gamemode_not_available_tooltip")
-              : globalAutoRunGamemode
-                ? t("gamemode_disabled_due_to_global_setting_tooltip")
-                : undefined
-          }
+          secondaryText={gamemodeSecondaryText}
           checked={autoRunGamemode || globalAutoRunGamemode}
           disabled={gamemodeDisabled}
           block
-          onChange={(checked) => void handleToggleGamemode(checked)}
+          onChange={(checked) => { handleToggleGamemode(checked).catch(() => {}); }}
         />
 
         <Checkbox
           id={GAME_COMPATIBILITY_SETTINGS_MANGOHUD_ID}
           label="MangoHud"
-          secondaryText={
-            !mangohudAvailable
-              ? t("mangohud_not_available_tooltip")
-              : globalAutoRunMangohud
-                ? t("mangohud_disabled_due_to_global_setting_tooltip")
-                : undefined
-          }
+          secondaryText={mangohudSecondaryText}
           checked={autoRunMangohud || globalAutoRunMangohud}
           disabled={mangohudDisabled}
           block
-          onChange={(checked) => void handleToggleMangohud(checked)}
+          onChange={(checked) => { handleToggleMangohud(checked).catch(() => {}); }}
         />
       </SettingsSection>
     </VerticalFocusGroup>

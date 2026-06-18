@@ -103,7 +103,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   );
 
   useEffect(() => {
-    void refreshGameDetails({ showLoadingState: true });
+    refreshGameDetails({ showLoadingState: true }).catch(() => {});
 
     if (IS_DESKTOP && shop !== "custom") {
       globalThis.window.electron.hydraApi
@@ -141,7 +141,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
 
     const unsubscribeLibraryBatch =
       globalThis.window.electron.onLibraryBatchComplete(() => {
-        void refreshGameDetails();
+        refreshGameDetails().catch(() => {});
       });
 
     return () => {
