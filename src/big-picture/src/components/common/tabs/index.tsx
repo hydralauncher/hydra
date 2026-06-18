@@ -15,8 +15,10 @@ import {
 } from "react";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
-import type { FocusOverrides } from "../../../services";
+import { useGamepad } from "../../../hooks";
+import { NavigationAudioService, type FocusOverrides } from "../../../services";
 import { useNavigationIsFocused } from "../../../stores";
+import { GamepadButtonType } from "../../../types";
 
 export interface TabsItem<TValue extends string = string> {
   id?: string;
@@ -321,6 +323,86 @@ export function Tabs<TValue extends string = string>({
     },
     [onValueChange]
   );
+
+  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+
+  useEffect(() => {
+    if (variant !== "segmented") return;
+
+    const findNextEnabledIndex = (
+      fromIndex: number,
+      direction: 1 | -1
+    ): number => {
+      let i = fromIndex + direction;
+
+      while (i >= 0 && i < resolvedItems.length && resolvedItems[i]?.disabled) {
+        i += direction;
+      }
+
+      return i >= 0 && i < resolvedItems.length ? i : -1;
+    };
+
+    const removeLeftBumper = onButtonPressed(
+      GamepadButtonType.LEFT_BUMPER,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        const currentIndex = resolvedItems.findIndex(
+          (item) => item.value === selectedValue
+        );
+
+        if (currentIndex <= 0) return;
+
+        const nextIndex = findNextEnabledIndex(currentIndex, -1);
+
+        if (nextIndex === -1) return;
+
+        const nextItem = resolvedItems[nextIndex];
+
+        if (!nextItem || nextItem.value === selectedValue) return;
+
+        handleSelect(nextItem.value);
+        NavigationAudioService.getInstance().play("scroll");
+      }
+    );
+
+    const removeRightBumper = onButtonPressed(
+      GamepadButtonType.RIGHT_BUMPER,
+      (event) => {
+        if (!isActiveGamepadEvent(event)) return;
+
+        const currentIndex = resolvedItems.findIndex(
+          (item) => item.value === selectedValue
+        );
+
+        if (currentIndex < 0 || currentIndex >= resolvedItems.length - 1)
+          return;
+
+        const nextIndex = findNextEnabledIndex(currentIndex, 1);
+
+        if (nextIndex === -1) return;
+
+        const nextItem = resolvedItems[nextIndex];
+
+        if (!nextItem || nextItem.value === selectedValue) return;
+
+        handleSelect(nextItem.value);
+        NavigationAudioService.getInstance().play("scroll");
+      }
+    );
+
+    return () => {
+      removeLeftBumper();
+      removeRightBumper();
+    };
+  }, [
+    handleSelect,
+    isActiveGamepadEvent,
+    onButtonPressed,
+    resolvedItems,
+    selectedValue,
+    variant,
+  ]);
 
   const updateSegmentedIndicator = useCallback(() => {
     if (variant !== "segmented" || !selectedItem) {

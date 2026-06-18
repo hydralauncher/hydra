@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
 import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
@@ -590,6 +590,35 @@ export function GameOptionsModal({
     }
   };
 
+  const handleResetGameTitle = useCallback(async () => {
+    if (!game || updatingGameTitle || game.shop === "custom") return;
+
+    setUpdatingGameTitle(true);
+
+    try {
+      const assets = await window.electron.getGameAssets(
+        game.objectId,
+        game.shop,
+        { forceFresh: true }
+      );
+
+      if (assets?.title) {
+        await window.electron.updateGameCustomAssets({
+          shop: game.shop,
+          objectId: game.objectId,
+          title: assets.title,
+        });
+
+        await Promise.all([updateGame(), updateLibrary()]);
+        setGameTitle(assets.title);
+      }
+    } catch {
+      showErrorToast(t("edit_game_modal_failed"));
+    } finally {
+      setUpdatingGameTitle(false);
+    }
+  }, [game, updatingGameTitle, showErrorToast, t, updateGame, updateLibrary]);
+
   const handleChangeProtonVersion = (value: string) => {
     setSelectedProtonPath(value);
     if (value !== (game.protonPath ?? "")) applyProtonPathChange(value);
@@ -806,6 +835,7 @@ export function GameOptionsModal({
                 onDeleteSteamShortcut={handleDeleteSteamShortcut}
                 onChangeGameTitle={handleChangeGameTitle}
                 onBlurGameTitle={handleBlurGameTitle}
+                onResetGameTitle={handleResetGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
                 isTransferring={isTransferring}
@@ -849,6 +879,7 @@ export function GameOptionsModal({
                 onDeleteSteamShortcut={handleDeleteSteamShortcut}
                 onChangeGameTitle={handleChangeGameTitle}
                 onBlurGameTitle={handleBlurGameTitle}
+                onResetGameTitle={handleResetGameTitle}
                 onChangeLaunchOptions={handleChangeLaunchOptions}
                 onClearLaunchOptions={handleClearLaunchOptions}
                 isTransferring={isTransferring}

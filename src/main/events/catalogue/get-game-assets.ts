@@ -5,7 +5,11 @@ import { gamesShopAssetsSublevel, levelKeys } from "@main/level";
 
 const LOCAL_CACHE_EXPIRATION = 1000 * 60 * 60 * 8; // 8 hours
 
-export const getGameAssets = async (objectId: string, shop: GameShop) => {
+export const getGameAssets = async (
+  objectId: string,
+  shop: GameShop,
+  options?: { forceFresh?: boolean }
+) => {
   if (shop === "custom") {
     return null;
   }
@@ -15,6 +19,7 @@ export const getGameAssets = async (objectId: string, shop: GameShop) => {
   );
 
   if (
+    !options?.forceFresh &&
     cachedAssets &&
     cachedAssets.updatedAt + LOCAL_CACHE_EXPIRATION > Date.now()
   ) {
@@ -30,9 +35,10 @@ export const getGameAssets = async (objectId: string, shop: GameShop) => {
   ).then(async (assets) => {
     if (!assets) return null;
 
-    // Preserve existing title if it differs from the incoming title (indicating it was customized)
     const shouldPreserveTitle =
-      cachedAssets?.title && cachedAssets.title !== assets.title;
+      !options?.forceFresh &&
+      cachedAssets?.title &&
+      cachedAssets.title !== assets.title;
 
     await gamesShopAssetsSublevel.put(levelKeys.game(shop, objectId), {
       ...assets,
@@ -47,9 +53,10 @@ export const getGameAssets = async (objectId: string, shop: GameShop) => {
 const getGameAssetsEvent = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
-  shop: GameShop
+  shop: GameShop,
+  options?: { forceFresh?: boolean }
 ) => {
-  return getGameAssets(objectId, shop);
+  return getGameAssets(objectId, shop, options);
 };
 
 registerEvent("getGameAssets", getGameAssetsEvent);

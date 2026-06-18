@@ -636,12 +636,60 @@ export default function Game() {
     []
   );
 
+  const saveGameTitle = useCallback(
+    async (title: string) => {
+      if (!game) return;
+
+      if (game.shop === "custom") {
+        await globalThis.window.electron.updateCustomGame({
+          shop: game.shop,
+          objectId: game.objectId,
+          title,
+          iconUrl: game.iconUrl || undefined,
+          logoImageUrl: game.logoImageUrl || undefined,
+          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
+        });
+      } else {
+        await globalThis.window.electron.updateGameCustomAssets({
+          shop: game.shop,
+          objectId: game.objectId,
+          title,
+        });
+      }
+
+      await updateGame();
+      setGameTitle(title);
+    },
+    [game, updateGame]
+  );
+
   const handleBlurGameTitle = useCallback(async () => {
     if (!game || updatingGameTitle) return;
 
     const trimmed = gameTitle.trim();
 
     if (!trimmed) {
+      if (game.shop !== "custom") {
+        setUpdatingGameTitle(true);
+
+        try {
+          const assets = await globalThis.window.electron.getGameAssets(
+            game.objectId,
+            game.shop,
+            { forceFresh: true }
+          );
+
+          if (assets?.title) {
+            await saveGameTitle(assets.title);
+            return;
+          }
+        } catch {
+          // Fall through to revert
+        } finally {
+          setUpdatingGameTitle(false);
+        }
+      }
+
       setGameTitle(game.title ?? "");
       showErrorToast(t("edit_game_modal_fill_required"));
       return;
@@ -655,25 +703,7 @@ export default function Game() {
     setUpdatingGameTitle(true);
 
     try {
-      if (game.shop === "custom") {
-        await globalThis.window.electron.updateCustomGame({
-          shop: game.shop,
-          objectId: game.objectId,
-          title: trimmed,
-          iconUrl: game.iconUrl || undefined,
-          logoImageUrl: game.logoImageUrl || undefined,
-          libraryHeroImageUrl: game.libraryHeroImageUrl || undefined,
-        });
-      } else {
-        await globalThis.window.electron.updateGameCustomAssets({
-          shop: game.shop,
-          objectId: game.objectId,
-          title: trimmed,
-        });
-      }
-
-      await updateGame();
-      setGameTitle(trimmed);
+      await saveGameTitle(trimmed);
     } catch (error) {
       setGameTitle(game.title ?? "");
       showErrorToast(
@@ -682,7 +712,15 @@ export default function Game() {
     } finally {
       setUpdatingGameTitle(false);
     }
-  }, [game, gameTitle, showErrorToast, t, updateGame, updatingGameTitle]);
+  }, [
+    game,
+    gameTitle,
+    saveGameTitle,
+    showErrorToast,
+    t,
+    updateGame,
+    updatingGameTitle,
+  ]);
 
   const handleSelectCustomizationAsset = useCallback(
     async (assetType: "icon" | "logo" | "hero") => {

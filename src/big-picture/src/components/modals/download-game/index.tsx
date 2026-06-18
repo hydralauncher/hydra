@@ -39,14 +39,12 @@ import {
   type DownloadOptionsEmptyStateReason,
   useGameDownloadOptions,
   useFeature,
-  useGamepad,
   useNavigationScreenActions,
   useBigPictureToast,
   useUserPreferences,
 } from "../../../hooks";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
-import { NavigationAudioService } from "../../../services";
-import { GamepadButtonType } from "../../../types";
+
 import {
   Button,
   Checkbox,
@@ -1240,11 +1238,6 @@ function DownloadGameOptions({
   onDeleteArchiveFilesAfterExtractionChange,
 }: Readonly<DownloadGameOptionsProps>) {
   const { showErrorToast } = useBigPictureToast();
-  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
-  const virtualKeyboardTarget = useVirtualKeyboardStore(
-    (state) => state.target
-  );
-  const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasDownloaderTabsInteracted, setHasDownloaderTabsInteracted] =
     useState(false);
@@ -1406,15 +1399,6 @@ function DownloadGameOptions({
 
     return Number(selectedDownloader) as Downloader;
   }, [selectedDownloader]);
-  const selectedDownloaderIndex = useMemo(
-    () =>
-      availableDownloaderOptions.findIndex(
-        (downloaderOption) =>
-          String(downloaderOption.downloader) === selectedDownloader
-      ),
-    [availableDownloaderOptions, selectedDownloader]
-  );
-
   const selectedDownloaderOption = useMemo(() => {
     if (resolvedDownloader == null) return null;
 
@@ -1437,80 +1421,6 @@ function DownloadGameOptions({
     },
     [isOptionsInteractionLocked]
   );
-
-  const selectDownloaderByIndex = useCallback(
-    (nextIndex: number) => {
-      if (isOptionsInteractionLocked) return false;
-
-      const nextOption = availableDownloaderOptions[nextIndex];
-
-      if (!nextOption) return false;
-
-      const nextValue = String(nextOption.downloader);
-
-      if (nextValue === selectedDownloader) return false;
-
-      setHasDownloaderTabsInteracted(true);
-      setSelectedDownloader(nextValue);
-      return true;
-    },
-    [availableDownloaderOptions, isOptionsInteractionLocked, selectedDownloader]
-  );
-
-  useEffect(() => {
-    const removeLeftBumper = onButtonPressed(
-      GamepadButtonType.LEFT_BUMPER,
-      (event) => {
-        if (
-          !visible ||
-          isOptionsInteractionLocked ||
-          isVirtualKeyboardOpen ||
-          !isActiveGamepadEvent(event) ||
-          selectedDownloaderIndex <= 0
-        ) {
-          return;
-        }
-
-        if (selectDownloaderByIndex(selectedDownloaderIndex - 1)) {
-          NavigationAudioService.getInstance().play("scroll");
-        }
-      }
-    );
-
-    const removeRightBumper = onButtonPressed(
-      GamepadButtonType.RIGHT_BUMPER,
-      (event) => {
-        if (
-          !visible ||
-          isOptionsInteractionLocked ||
-          isVirtualKeyboardOpen ||
-          !isActiveGamepadEvent(event) ||
-          selectedDownloaderIndex < 0 ||
-          selectedDownloaderIndex >= availableDownloaderOptions.length - 1
-        ) {
-          return;
-        }
-
-        if (selectDownloaderByIndex(selectedDownloaderIndex + 1)) {
-          NavigationAudioService.getInstance().play("scroll");
-        }
-      }
-    );
-
-    return () => {
-      removeLeftBumper();
-      removeRightBumper();
-    };
-  }, [
-    availableDownloaderOptions.length,
-    isActiveGamepadEvent,
-    isOptionsInteractionLocked,
-    isVirtualKeyboardOpen,
-    onButtonPressed,
-    selectDownloaderByIndex,
-    selectedDownloaderIndex,
-    visible,
-  ]);
 
   const isSubmitDisabled =
     isSubmitting ||
