@@ -12,7 +12,6 @@ import axios from "axios";
 import createDesktopShortcut from "create-desktop-shortcuts";
 import { app } from "electron";
 import fs from "node:fs";
-import { spawn } from "node:child_process";
 import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
@@ -270,9 +269,7 @@ export class GameFilesManager {
         this.objectId
       );
 
-      if (!executableNames || executableNames.length === 0) {
-        return;
-      }
+
 
       if (!download.folderName) {
         return;
