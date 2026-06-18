@@ -121,6 +121,20 @@ const openClassicsGame = async (
       wrapped.system = system;
       throw wrapped;
     }
+
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "BIOS_NOT_CONFIGURED"
+    ) {
+      const wrapped: Error & { code?: string; system?: string } = new Error(
+        `BIOS_NOT_CONFIGURED: BIOS not configured for ${system}`
+      );
+      wrapped.code = "BIOS_NOT_CONFIGURED";
+      wrapped.system = system;
+      throw wrapped;
+    }
     logger.error("Failed to launch classics game", error);
     throw error;
   }
