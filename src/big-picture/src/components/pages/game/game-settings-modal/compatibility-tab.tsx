@@ -66,8 +66,8 @@ export function GameCompatibilitySettingsTab({
 }: Readonly<GameCompatibilitySettingsProps>) {
   const { t } = useTranslation("game_details");
   const userPreferences = useUserPreferences();
-  const electron =
-    globalThis.window.electron as unknown as ElectronCompatibilityBridge;
+  const electron = globalThis.window
+    .electron as unknown as ElectronCompatibilityBridge;
 
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
@@ -159,7 +159,11 @@ export function GameCompatibilitySettingsTab({
     });
 
     if (filePaths?.length) {
-      await electron.selectGameWinePrefix(game.shop, game.objectId, filePaths[0]);
+      await electron.selectGameWinePrefix(
+        game.shop,
+        game.objectId,
+        filePaths[0]
+      );
       setWinePrefixPath(filePaths[0]);
     }
   }, [electron, game.shop, game.objectId, winePrefixPath]);
@@ -172,7 +176,11 @@ export function GameCompatibilitySettingsTab({
   const handleChangeProtonVersion = useCallback(
     async (value: string) => {
       setSelectedProtonPath(value);
-      await electron.selectGameProtonPath(game.shop, game.objectId, value || null);
+      await electron.selectGameProtonPath(
+        game.shop,
+        game.objectId,
+        value || null
+      );
     },
     [electron, game.shop, game.objectId]
   );
