@@ -142,6 +142,15 @@ progress[value] {
   z-index: 4;
   border-bottom: 1px solid globals.$border-color;
 
+  &--windows {
+    padding-right: calc(
+      100vw - env(titlebar-area-width, calc(100vw - 140px)) - env(
+          titlebar-area-x,
+          0px
+        )
+    );
+  }
+
   &__cloud-text {
     background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
     background-clip: text;
