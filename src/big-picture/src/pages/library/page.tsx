@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { FolderOpen } from "@phosphor-icons/react";
 import { IS_DESKTOP } from "../../constants";
 import {
   buildLibraryToastOptions,
@@ -41,6 +42,7 @@ import {
   useLibraryFavorite,
   useLibraryLaunchGame,
   useLibraryPageData,
+  EmptyState,
 } from "../../components";
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
@@ -454,7 +456,10 @@ export default function LibraryPage() {
   return (
     <>
       <section className="library-page">
-        <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
+        <VerticalFocusGroup
+          regionId={LIBRARY_PAGE_REGION_ID}
+          style={{ flex: 1 }}
+        >
           <LibraryHero
             onPrimaryAction={handleHeroPrimaryAction}
             onOpenSettings={handleOpenHeroSettings}
@@ -481,11 +486,16 @@ export default function LibraryPage() {
           />
 
           {filteredLibrary.length === 0 ? (
-            <div className="library-page__empty-collection">
-              <p className="library-page__empty-collection-text">
-                No games found in this collection
-              </p>
-            </div>
+            <EmptyState
+              className="library-page__empty-state"
+              icon={<FolderOpen size={28} weight="bold" />}
+              title={search ? "No results found" : "Empty collection"}
+              description={
+                search
+                  ? "Try adjusting your search terms or filters."
+                  : "Add games to this collection to see them here."
+              }
+            />
           ) : (
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
