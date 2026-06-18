@@ -71,6 +71,8 @@ const PICK_FILTERS = {
   ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
 };
 
+const PERCENT = 100;
+
 const formatBytes = (bytes: number): string => {
   if (bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -338,14 +340,14 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                 isBackingUp && backupProgress?.cardFilePath === cardFilePath
                   ? backupProgress
                   : null;
-              const progressTotal = progress?.total || records.length;
+              const progressTotal = progress?.total ?? records.length;
               const progressDone = progress?.processed ?? 0;
               const progressLabel = progress?.currentLabel ?? null;
               const progressPercent =
                 progressTotal > 0
                   ? Math.min(
-                      100,
-                      Math.round((progressDone / progressTotal) * 100)
+                      PERCENT,
+                      Math.round((progressDone / progressTotal) * PERCENT)
                     )
                   : 0;
               return (
