@@ -160,6 +160,7 @@
   &__download-grid {
     display: grid;
     grid-template-columns: 1fr;
+    align-content: start;
     gap: 12px;
     flex: 1;
   }
