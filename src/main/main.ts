@@ -22,6 +22,7 @@ import {
   DownloadSourcesChecker,
   DownloadOrchestrator,
   WSClient,
+  Wine,
   WindowManager,
   logger,
 } from "@main/services";
@@ -60,6 +61,8 @@ export const loadState = async () => {
       valueEncoding: "json",
     }
   );
+
+  Wine.syncUserPreferences(userPreferences);
 
   await import("./events");
 
