@@ -2000,7 +2000,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame && (
+                {!isLaunchboxGame && (howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
                     howLongToBeat={howLongToBeat ?? []}
                     focusId={GAME_SIDEBAR_HLTB_ID}
@@ -2030,7 +2030,7 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                {!isLaunchboxGame && (
+                {!isLaunchboxGame && (game?.achievementCount ?? 0) > 0 && (
                   <AchievementsBox
                     achievements={achievements ?? []}
                     focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}

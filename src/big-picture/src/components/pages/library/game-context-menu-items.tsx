@@ -156,7 +156,8 @@ export function buildCatalogGameContextMenuItems(
   }
 
   const hasAchievements =
-    ((_catalogGame as { achievementCount?: number | null }).achievementCount ?? 0) > 0;
+    ((_catalogGame as { achievementCount?: number | null }).achievementCount ??
+      0) > 0;
 
   if (hasAchievements) {
     nextItems.push({
