@@ -30,6 +30,7 @@ import type {
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
   Ps2ExportResult,
+  EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardRestoreResult,
@@ -335,6 +336,17 @@ contextBridge.exposeInMainWorld("electron", {
     cardFilePath: string
   ): Promise<{ uploaded: number; total: number }> =>
     ipcRenderer.invoke("uploadEmulationSavesForCard", platform, cardFilePath),
+  onEmulationBackupProgress: (
+    cb: (payload: EmulationBackupProgress) => void
+  ) => {
+    const channel = "on-emulation-backup-progress";
+    const listener = (_event: Electron.IpcRendererEvent, payload: unknown) =>
+      cb(payload as EmulationBackupProgress);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
+  getActiveEmulationBackups: (): Promise<EmulationBackupProgress[]> =>
+    ipcRenderer.invoke("getActiveEmulationBackups"),
   listEmulationSaves: (
     platform: EmulationSavePlatform,
     objectId?: string | null

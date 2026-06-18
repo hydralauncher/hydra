@@ -1,15 +1,22 @@
 import { registerEvent } from "../register-event";
-import { emulators, logger } from "@main/services";
+import { WindowManager, emulators, logger } from "@main/services";
 import {
   levelKeys,
   ps1MemoryCardSavesSublevel,
   ps2MemoryCardSavesSublevel,
 } from "@main/level";
 import type {
+  EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemoryCardSaveRecord,
 } from "@types";
+
+const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
+
+const activeBackups = new Map<string, EmulationBackupProgress>();
+const backupKey = (platform: EmulationSavePlatform, cardFilePath: string) =>
+  `${platform}:${cardFilePath}`;
 
 const sanitize = (name: string): string =>
   name.replace(/[^A-Za-z0-9._-]/g, "_") || "save";
@@ -98,20 +105,50 @@ const uploadEmulationSavesForCard = async (
     (r) => r.cardFilePath === cardFilePath
   );
 
+  const total = records.length;
   let uploaded = 0;
+  let failed = 0;
+
+  const key = backupKey(platform, cardFilePath);
+  const emit = (currentLabel: string | null) => {
+    const payload = {
+      platform,
+      cardFilePath,
+      processed: uploaded + failed,
+      uploaded,
+      failed,
+      total,
+      currentLabel,
+    } satisfies EmulationBackupProgress;
+
+    if (payload.processed >= total) activeBackups.delete(key);
+    else activeBackups.set(key, payload);
+
+    WindowManager.sendToAppWindows(BACKUP_PROGRESS_CHANNEL, payload);
+  };
+
   for (const record of records) {
+    emit(record.title ?? record.folderName);
     try {
       await uploadOne(platform, cardFilePath, record.folderName);
       uploaded += 1;
     } catch (err) {
+      failed += 1;
       logger.error("Failed to back up emulation save", {
         folderName: record.folderName,
         err,
       });
     }
   }
-  return { uploaded, total: records.length };
+  emit(null);
+
+  return { uploaded, total };
 };
+
+const getActiveEmulationBackups = async (): Promise<
+  EmulationBackupProgress[]
+> => Array.from(activeBackups.values());
 
 registerEvent("uploadEmulationSave", uploadEmulationSave);
 registerEvent("uploadEmulationSavesForCard", uploadEmulationSavesForCard);
+registerEvent("getActiveEmulationBackups", getActiveEmulationBackups);
