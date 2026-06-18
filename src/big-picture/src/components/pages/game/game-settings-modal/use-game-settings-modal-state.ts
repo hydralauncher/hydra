@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
 import { useBigPictureToast } from "../../../../hooks";
+import {
+  applyClassicsDiscUpdate,
+  buildAddedDiscPayload,
+  executeSteamShortcutAction as runSharedSteamShortcutAction,
+  type ClassicsDiscUpdatePayload,
+} from "../shared-actions";
 import type { GameCloudSettingsProps } from "./cloud-tab";
 import type { GameCustomizationSettingsProps } from "./customization-tab";
 import type { GameLaunchSettingsProps } from "./launch-tab";
@@ -480,21 +486,22 @@ export function useGameSettingsModalState({
       errorMessage: string,
       nextSteamShortcutExists: boolean
     ) => {
-      try {
-        setCreatingSteamShortcut(true);
-        await action();
-        showSuccessToast(successMessage, {
-          message: t("you_might_need_to_restart_steam"),
-        });
-        setSteamShortcutExists(nextSteamShortcutExists);
-        await updateGame();
-      } catch {
-        showErrorToast(errorMessage);
-      } finally {
-        setCreatingSteamShortcut(false);
-      }
+      if (!game) return;
+
+      await runSharedSteamShortcutAction({
+        action,
+        setLoading: setCreatingSteamShortcut,
+        setExists: setSteamShortcutExists,
+        nextExists: nextSteamShortcutExists,
+        updateGame,
+        showSuccessToast,
+        showErrorToast,
+        successMessage,
+        errorMessage,
+        restartMessage: t("you_might_need_to_restart_steam"),
+      });
     },
-    [showErrorToast, showSuccessToast, t, updateGame]
+    [game, showErrorToast, showSuccessToast, t, updateGame]
   );
 
   const handleCreateSteamShortcut = useCallback(async () => {
@@ -537,22 +544,12 @@ export function useGameSettingsModalState({
 
   const updateClassicsDisc = useCallback(
     async (
-      payload: Parameters<
-        typeof globalThis.window.electron.updateClassicsDisc
-      >[2],
+      payload: ClassicsDiscUpdatePayload,
       options?: { skipRefresh?: boolean }
     ) => {
       if (!game) return;
 
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        payload
-      );
-
-      if (!options?.skipRefresh) {
-        await updateGame();
-      }
+      await applyClassicsDiscUpdate(game, payload, updateGame, options);
     },
     [game, updateGame]
   );
@@ -579,16 +576,9 @@ export function useGameSettingsModalState({
     async (fullPath: string) => {
       if (!game) return;
 
-      const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-      const nextIndex = (game.discs?.length ?? 0) + 1;
-      await updateClassicsDisc({
-        addDisc: {
-          path: fullPath,
-          label: `Disc ${nextIndex}`,
-          fileName,
-        },
-        selectedDiscPath: fullPath,
-      });
+      await updateClassicsDisc(
+        buildAddedDiscPayload(fullPath, game.discs?.length ?? 0)
+      );
     },
     [game, updateClassicsDisc]
   );

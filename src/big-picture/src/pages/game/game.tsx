@@ -39,6 +39,11 @@ import {
   SupportedLanguages,
 } from "../../components/pages/game";
 import {
+  applyClassicsDiscUpdate,
+  buildAddedDiscPayload,
+  executeSteamShortcutAction,
+} from "../../components/pages/game/shared-actions";
+import {
   useBigPictureToast,
   useGameDetails,
   useHeaderTitle,
@@ -123,6 +128,39 @@ function isUnsafeDescriptionUrl(url: string) {
   return /^(javascript|data):/i.test(url.trim());
 }
 
+function sanitizeDescriptionAttribute(element: Element, attribute: Attr) {
+  const name = attribute.name.toLowerCase();
+  const value = attribute.value.trim();
+
+  if (name.startsWith("on") || name === "style") {
+    element.removeAttribute(attribute.name);
+    return;
+  }
+
+  if (name !== "href" && name !== "src") {
+    return;
+  }
+
+  if (!value || isUnsafeDescriptionUrl(value)) {
+    element.removeAttribute(attribute.name);
+    return;
+  }
+
+  element.setAttribute(attribute.name, normalizeDescriptionUrl(value));
+}
+
+function normalizeDescriptionMediaElement(
+  mediaElement: HTMLImageElement | HTMLVideoElement
+) {
+  mediaElement.removeAttribute("width");
+  mediaElement.removeAttribute("height");
+  mediaElement.removeAttribute("style");
+  mediaElement.style.maxWidth = "100%";
+  mediaElement.style.width = "100%";
+  mediaElement.style.height = "auto";
+  mediaElement.style.boxSizing = "border-box";
+}
+
 function preprocessSteamDescriptionDocument(html: string) {
   if (!html) {
     return null;
@@ -144,50 +182,23 @@ function preprocessSteamDescriptionDocument(html: string) {
 
   for (const element of document.querySelectorAll("*")) {
     for (const attribute of Array.from(element.attributes)) {
-      const name = attribute.name.toLowerCase();
-      const value = attribute.value.trim();
-
-      if (name.startsWith("on") || name === "style") {
-        element.removeAttribute(attribute.name);
-        continue;
-      }
-
-      if (name === "href" || name === "src") {
-        if (!value || isUnsafeDescriptionUrl(value)) {
-          element.removeAttribute(attribute.name);
-          continue;
-        }
-
-        element.setAttribute(attribute.name, normalizeDescriptionUrl(value));
-      }
+      sanitizeDescriptionAttribute(element, attribute);
     }
   }
 
   const images = Array.from(document.querySelectorAll("img"));
   images.forEach((image) => {
     image.loading = "lazy";
-    image.removeAttribute("width");
-    image.removeAttribute("height");
-    image.removeAttribute("style");
-    image.style.maxWidth = "100%";
-    image.style.width = "100%";
-    image.style.height = "auto";
-    image.style.boxSizing = "border-box";
+    normalizeDescriptionMediaElement(image);
   });
 
   const videos = Array.from(document.querySelectorAll("video"));
   videos.forEach((video) => {
-    video.removeAttribute("width");
-    video.removeAttribute("height");
-    video.removeAttribute("style");
     video.muted = true;
     video.playsInline = true;
     video.setAttribute("muted", "");
     video.setAttribute("playsinline", "");
-    video.style.maxWidth = "100%";
-    video.style.width = "100%";
-    video.style.height = "auto";
-    video.style.boxSizing = "border-box";
+    normalizeDescriptionMediaElement(video);
   });
 
   return document;
@@ -568,7 +579,7 @@ export default function Game() {
     if (!isGameSettingsModalOpen) return;
     persistedLaunchOptionsRef.current = game?.launchOptions ?? "";
     setLaunchOptions(game?.launchOptions ?? "");
-  }, [game?.id, isGameSettingsModalOpen]);
+  }, [game?.id, game?.launchOptions, isGameSettingsModalOpen]);
 
   useEffect(() => {
     if (!isGameSettingsModalOpen) return;
@@ -719,18 +730,10 @@ export default function Game() {
     } finally {
       setUpdatingGameTitle(false);
     }
-  }, [
-    game,
-    gameTitle,
-    saveGameTitle,
-    showErrorToast,
-    t,
-    updateGame,
-    updatingGameTitle,
-  ]);
+  }, [game, gameTitle, saveGameTitle, showErrorToast, t, updatingGameTitle]);
 
   const handleSelectCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => {
+    async (assetType: "icon" | "logo" | "hero") => { // NOSONAR
       if (!game) return;
 
       const { filePaths } = await globalThis.window.electron.showOpenDialog({
@@ -806,7 +809,7 @@ export default function Game() {
   );
 
   const handleClearCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => {
+    async (assetType: "icon" | "logo" | "hero") => { // NOSONAR
       if (!game) return;
 
       try {
@@ -984,47 +987,60 @@ export default function Game() {
     [game, showErrorToast, showSuccessToast, t]
   );
 
+  const runSteamShortcutAction = useCallback(
+    async (
+      action: () => Promise<void>,
+      successMessage: string,
+      errorMessage: string,
+      nextSteamShortcutExists: boolean
+    ) => {
+      if (!game) return;
+
+      await executeSteamShortcutAction({
+        action,
+        setLoading: setCreatingSteamShortcut,
+        setExists: setSteamShortcutExists,
+        nextExists: nextSteamShortcutExists,
+        updateGame,
+        showSuccessToast,
+        showErrorToast,
+        successMessage,
+        errorMessage,
+        restartMessage: t("you_might_need_to_restart_steam"),
+      });
+    },
+    [game, showErrorToast, showSuccessToast, t, updateGame]
+  );
+
   const handleCreateSteamShortcut = useCallback(async () => {
     if (!game || game.shop === "custom") return;
 
-    try {
-      setCreatingSteamShortcut(true);
-      await globalThis.window.electron.createSteamShortcut(
-        game.shop,
-        game.objectId
-      );
-      showSuccessToast(t("create_shortcut_success"), {
-        message: t("you_might_need_to_restart_steam"),
-      });
-      setSteamShortcutExists(true);
-      await updateGame();
-    } catch {
-      showErrorToast(t("create_shortcut_error"));
-    } finally {
-      setCreatingSteamShortcut(false);
-    }
-  }, [game, showErrorToast, showSuccessToast, t, updateGame]);
+    await runSteamShortcutAction(
+      () =>
+        globalThis.window.electron.createSteamShortcut(
+          game.shop,
+          game.objectId
+        ),
+      t("create_shortcut_success"),
+      t("create_shortcut_error"),
+      true
+    );
+  }, [game, runSteamShortcutAction, t]);
 
   const handleDeleteSteamShortcut = useCallback(async () => {
     if (!game || game.shop === "custom") return;
 
-    try {
-      setCreatingSteamShortcut(true);
-      await globalThis.window.electron.deleteSteamShortcut(
-        game.shop,
-        game.objectId
-      );
-      showSuccessToast(t("delete_shortcut_success"), {
-        message: t("you_might_need_to_restart_steam"),
-      });
-      setSteamShortcutExists(false);
-      await updateGame();
-    } catch {
-      showErrorToast(t("delete_shortcut_error"));
-    } finally {
-      setCreatingSteamShortcut(false);
-    }
-  }, [game, showErrorToast, showSuccessToast, t, updateGame]);
+    await runSteamShortcutAction(
+      () =>
+        globalThis.window.electron.deleteSteamShortcut(
+          game.shop,
+          game.objectId
+        ),
+      t("delete_shortcut_success"),
+      t("delete_shortcut_error"),
+      false
+    );
+  }, [game, runSteamShortcutAction, t]);
 
   const handleClearLaunchOptions = useCallback(() => {
     setLaunchOptions("");
@@ -1034,59 +1050,47 @@ export default function Game() {
     persistLaunchOptions(launchOptions).catch(() => {});
   }, [launchOptions, persistLaunchOptions]);
 
-  const handleSelectDisc = useCallback(
-    async (discPath: string) => {
+  const updateClassicsDisc = useCallback(
+    async (
+      payload: Parameters<
+        typeof globalThis.window.electron.updateClassicsDisc
+      >[2],
+      options?: { skipRefresh?: boolean }
+    ) => {
       if (!game) return;
 
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        {
-          selectedDiscPath: discPath,
-        }
-      );
-      await updateGame();
+      await applyClassicsDiscUpdate(game, payload, updateGame, options);
     },
     [game, updateGame]
   );
 
+  const handleSelectDisc = useCallback(
+    async (discPath: string) => {
+      await updateClassicsDisc({
+        selectedDiscPath: discPath,
+      });
+    },
+    [updateClassicsDisc]
+  );
+
   const handleToggleDontAskDiscSelection = useCallback(
     async (checked: boolean) => {
-      if (!game) return;
-
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        {
-          dontAskDiscSelection: checked,
-        }
-      );
-      await updateGame();
+      await updateClassicsDisc({
+        dontAskDiscSelection: checked,
+      });
     },
-    [game, updateGame]
+    [updateClassicsDisc]
   );
 
   const addDiscFromPath = useCallback(
     async (fullPath: string) => {
       if (!game) return;
 
-      const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-      const nextIndex = (game.discs?.length ?? 0) + 1;
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        {
-          addDisc: {
-            path: fullPath,
-            label: `Disc ${nextIndex}`,
-            fileName,
-          },
-          selectedDiscPath: fullPath,
-        }
+      await updateClassicsDisc(
+        buildAddedDiscPayload(fullPath, game.discs?.length ?? 0)
       );
-      await updateGame();
     },
-    [game, updateGame]
+    [game, updateClassicsDisc]
   );
 
   const handleAddDiscFile = useCallback(async () => {
@@ -1110,15 +1114,10 @@ export default function Game() {
   const handleRemoveSelectedDisc = useCallback(async () => {
     if (!game || !selectedDisc) return;
 
-    await globalThis.window.electron.updateClassicsDisc(
-      game.shop,
-      game.objectId,
-      {
-        removeDiscPath: selectedDisc.path,
-      }
-    );
-    await updateGame();
-  }, [game, selectedDisc, updateGame]);
+    await updateClassicsDisc({
+      removeDiscPath: selectedDisc.path,
+    });
+  }, [game, selectedDisc, updateClassicsDisc]);
 
   const handleRemoveAllDiscs = useCallback(async () => {
     if (!game) return;
@@ -1127,17 +1126,16 @@ export default function Game() {
     if (discsToRemove.length === 0) return;
 
     for (const disc of discsToRemove) {
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
+      await updateClassicsDisc(
         {
           removeDiscPath: disc.path,
-        }
+        },
+        { skipRefresh: true }
       );
     }
 
     await updateGame();
-  }, [game, updateGame]);
+  }, [game, updateClassicsDisc, updateGame]);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
@@ -1906,7 +1904,7 @@ export default function Game() {
                     >
                       {descriptionBlocks.map((block, index) => (
                         <div
-                          key={`description-block-${index}`}
+                          key={`description-block-${index}`} // NOSONAR
                           className="game-page__detailed-description-block"
                         >
                           <div
