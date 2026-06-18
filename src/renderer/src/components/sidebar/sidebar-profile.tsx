@@ -6,8 +6,7 @@ import {
   PersonIcon,
   SignOutIcon,
 } from "@primer/octicons-react";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
-import { useToast } from "@renderer/hooks";
+import { useAppSelector, useToast, useUserDetails } from "@renderer/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
@@ -114,10 +113,11 @@ export function SidebarProfile() {
       return;
     }
     try {
-      const response = await window.electron.hydraApi.get<ProfileFriends>(
-        "/profile/friends",
-        { params: { take: 5, skip: 0 } }
-      );
+      const response =
+        await globalThis.window.electron.hydraApi.get<ProfileFriends>(
+          "/profile/friends",
+          { params: { take: 5, skip: 0 } }
+        );
       setOnlineFriendsCount(response.onlineFriends);
     } catch {
       // ignore transient errors
@@ -127,21 +127,23 @@ export function SidebarProfile() {
   useEffect(() => {
     updateOnlineFriendsCount();
 
-    const unsubscribeFriends = window.electron.onFriendsUpdated(() => {
-      updateOnlineFriendsCount();
-    });
+    const unsubscribeFriends = globalThis.window.electron.onFriendsUpdated(
+      () => {
+        updateOnlineFriendsCount();
+      }
+    );
 
     let interval: ReturnType<typeof setInterval> | null = null;
     const unsubscribePresence =
-      typeof window.electron.onFriendPresence === "function"
-        ? window.electron.onFriendPresence(() => {
+      typeof globalThis.window.electron.onFriendPresence === "function"
+        ? globalThis.window.electron.onFriendPresence(() => {
             updateOnlineFriendsCount();
           })
         : () => {
             if (interval) clearInterval(interval);
           };
 
-    if (typeof window.electron.onFriendPresence !== "function") {
+    if (typeof globalThis.window.electron.onFriendPresence !== "function") {
       interval = setInterval(updateOnlineFriendsCount, 30_000);
     }
 
@@ -152,9 +154,11 @@ export function SidebarProfile() {
   }, [updateOnlineFriendsCount]);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onSyncFriendRequests((result) => {
-      dispatch(setFriendRequestCount(result.friendRequestCount));
-    });
+    const unsubscribe = globalThis.window.electron.onSyncFriendRequests(
+      (result) => {
+        dispatch(setFriendRequestCount(result.friendRequestCount));
+      }
+    );
     return () => unsubscribe();
   }, [dispatch]);
 
@@ -193,8 +197,9 @@ export function SidebarProfile() {
   };
 
   const handleViewProfile = () => {
+    if (!userDetails) return;
     closeDropdown();
-    navigate(`/profile/${userDetails!.id}`);
+    navigate(`/profile/${userDetails.id}`);
   };
 
   const handleNotificationsClick = () => {

@@ -48,23 +48,19 @@ import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
 const GAP = 16;
+const LARGE_CARD_ESTIMATED_HEIGHT = 300;
+const FALLBACK_ITEM_WIDTH = 150;
+
+const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
+const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
+  grid: [12, 8, 6, 5, 4, 2],
+  compact: [14, 12, 9, 7, 5, 3],
+};
 
 const getColumnsCount = (width: number, mode: ViewMode): number => {
   if (mode === "large") return width >= 900 ? 2 : 1;
-  if (mode === "grid") {
-    if (width >= 3000) return 12;
-    if (width >= 2600) return 8;
-    if (width >= 2000) return 6;
-    if (width >= 1300) return 5;
-    if (width >= 900) return 4;
-    return 2;
-  }
-  if (width >= 3000) return 14;
-  if (width >= 2600) return 12;
-  if (width >= 2000) return 9;
-  if (width >= 1300) return 7;
-  if (width >= 900) return 5;
-  return 3;
+  const idx = COLUMN_BREAKPOINTS.findIndex((bp) => width >= bp);
+  return COLUMNS[mode][idx === -1 ? COLUMN_BREAKPOINTS.length : idx];
 };
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
@@ -617,11 +613,11 @@ export default function Library() {
   }, [filteredLibrary, columnsCount]);
 
   const estimatedRowHeight = useMemo(() => {
-    if (viewMode === "large") return 300 + GAP;
+    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + GAP;
     const itemWidth =
       containerWidth > 0
         ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
-        : 150;
+        : FALLBACK_ITEM_WIDTH;
     return Math.round((itemWidth * 4) / 3) + GAP;
   }, [viewMode, containerWidth, columnsCount]);
 
@@ -631,6 +627,10 @@ export default function Library() {
     estimateSize: () => estimatedRowHeight,
     overscan: 3,
   });
+
+  useEffect(() => {
+    gamesScrollRef.current?.scrollTo({ top: 0 });
+  }, [effectiveCategory, selectedPlatform]);
 
   const hasGames = library.length > 0;
   const hasNoFilteredGames = filteredLibrary.length === 0;
