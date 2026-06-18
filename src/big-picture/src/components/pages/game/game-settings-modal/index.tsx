@@ -28,6 +28,10 @@ import {
   GameDangerZoneSettingsTab,
   GAME_DANGER_ZONE_PRIMARY_CONTROL_ID,
 } from "./danger-zone-tab";
+import {
+  GameCompatibilitySettingsTab,
+  GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID,
+} from "./compatibility-tab";
 
 type GameSettingsTabId =
   | "launch"
@@ -57,8 +61,9 @@ export function GameSettingsModal({
   const { t } = useTranslation(["game_details", "header"]);
   const [activeTabId, setActiveTabId] = useState<GameSettingsTabId>("launch");
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const isDev = import.meta.env.DEV;
   const shouldShowCompatibilityTab =
-    globalThis.window.electron.platform === "linux";
+    globalThis.window.electron.platform === "linux" || isDev;
   const settingsLabel = t("settings", { ns: "header" });
 
   useEffect(() => {
@@ -86,6 +91,10 @@ export function GameSettingsModal({
   const dangerContent = useMemo(
     () => <GameDangerZoneSettingsTab game={game} onClose={onClose} />,
     [game, onClose]
+  );
+  const compatibilityContent = useMemo(
+    () => <GameCompatibilitySettingsTab game={game} />,
+    [game]
   );
 
   const shouldShowCloudTab = userDetails !== null && hasActiveSubscription;
@@ -122,7 +131,7 @@ export function GameSettingsModal({
             {
               id: "compatibility",
               label: t("settings_category_compatibility"),
-              content: <p>Compatibility</p>,
+              content: compatibilityContent,
             } satisfies SidebarModalTab,
           ]
         : []),
@@ -139,6 +148,7 @@ export function GameSettingsModal({
     ],
     [
       cloudContent,
+      compatibilityContent,
       customizationContent,
       dangerContent,
       downloadContent,
@@ -167,7 +177,9 @@ export function GameSettingsModal({
                 ? GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID
                 : activeTabId === "danger_zone"
                   ? GAME_DANGER_ZONE_PRIMARY_CONTROL_ID
-                  : undefined
+                  : activeTabId === "compatibility"
+                    ? GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID
+                    : undefined
       }
       tabs={tabs}
       activeTabId={activeTabId}
