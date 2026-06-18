@@ -423,12 +423,14 @@ export function GameDetailsContextProvider({
             },
             { name: t("all_files"), extensions: ["*"] },
           ]
-        : [
-            {
-              name: t("game_executable"),
-              extensions: ["exe", "lnk", "bat", "cmd"],
-            },
-          ];
+        : window.electron.platform === "darwin"
+          ? [{ name: t("game_executable"), extensions: ["app"] }]
+          : [
+              {
+                name: t("game_executable"),
+                extensions: ["exe", "lnk", "bat", "cmd"],
+              },
+            ];
 
     return window.electron
       .showOpenDialog({
