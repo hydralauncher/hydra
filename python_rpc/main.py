@@ -1,7 +1,6 @@
 import hmac
 import json
 import logging
-import os
 import re
 import sys
 import tempfile
@@ -541,8 +540,10 @@ def action(data: Optional[dict] = None):
                     if handle and handle.is_valid():
                         handle.pause()
                         handle.unset_flags(lt.torrent_flags.auto_managed)
-                downloader.force_recheck()
-                logger.info("force_recheck: force_recheck() called successfully for %s", game_id)
+                        handle.force_recheck()
+                        logger.info("force_recheck: force_recheck() called successfully for %s", game_id)
+                    else:
+                        logger.warning("force_recheck: handle not valid for %s", game_id)
             else:
                 logger.warning("force_recheck: failed to get or create downloader")
         else:
