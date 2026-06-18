@@ -166,7 +166,6 @@ export function useGameDownloadOptions(
     };
   }, [
     downloadSourcesDependencyKey,
-    game.downloadSources,
     game.objectId,
     game.shop,
     knownGameSourcesEmptyStateReason,
