@@ -15,6 +15,10 @@ import {
 import { Button, ConfirmationModal, TextField } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import {
+  resolveCardBackupProgress,
+  useEmulationBackupProgress,
+} from "@renderer/hooks/use-emulation-backup-progress";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import type {
   EmulationSavePlatform,
@@ -110,7 +114,8 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
+  const { backingUpCard, backupProgress, setBackingUpCard, setBackupProgress } =
+    useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -268,6 +273,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const handleBackupAll = useCallback(
     async (cardFilePath: string) => {
       setBackingUpCard(cardFilePath);
+      setBackupProgress(null);
       try {
         const res = await window.electron.uploadEmulationSavesForCard(
           platform,
@@ -284,9 +290,18 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
         showErrorToast(t("cloud_backup_failed"));
       } finally {
         setBackingUpCard(null);
+        setBackupProgress(null);
       }
     },
-    [platform, showSuccessToast, showErrorToast, t, onUploaded]
+    [
+      platform,
+      showSuccessToast,
+      showErrorToast,
+      t,
+      onUploaded,
+      setBackingUpCard,
+      setBackupProgress,
+    ]
   );
 
   const handleForgetCard = useCallback(async () => {
@@ -361,6 +376,18 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                     cardPage * PAGE_SIZE,
                     cardPage * PAGE_SIZE + PAGE_SIZE
                   );
+                  const {
+                    isBackingUp,
+                    total: progressTotal,
+                    done: progressDone,
+                    label: progressLabel,
+                    percent: progressPercent,
+                  } = resolveCardBackupProgress(
+                    backingUpCard,
+                    backupProgress,
+                    cardFilePath,
+                    records.length
+                  );
                   return (
                     <div
                       key={cardFilePath}
@@ -403,12 +430,18 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                             type="button"
                             className="emulator-detail__memcard-backup-all"
                             onClick={() => handleBackupAll(cardFilePath)}
-                            disabled={backingUpCard === cardFilePath}
+                            disabled={isBackingUp}
                           >
                             <UploadIcon size={13} />
                             <span>
-                              {backingUpCard === cardFilePath
-                                ? t("cloud_backing_up")
+                              {isBackingUp
+                                ? `${t("cloud_backing_up")} ${t(
+                                    "setup_scan_count",
+                                    {
+                                      processed: progressDone,
+                                      total: progressTotal,
+                                    }
+                                  )}`
                                 : t("cloud_backup_all")}
                             </span>
                           </button>
@@ -424,6 +457,24 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                           <TrashIcon size={16} />
                         </button>
                       </div>
+                      {isBackingUp && (
+                        <div className="emulator-detail__memcard-backup-progress">
+                          <div className="emulator-detail__memcard-backup-progress-track">
+                            <div
+                              className="emulator-detail__memcard-backup-progress-fill"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                          {progressLabel && (
+                            <span
+                              className="emulator-detail__memcard-backup-progress-label"
+                              title={progressLabel}
+                            >
+                              {progressLabel}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {isExpanded && (
                         <>
                           <div className="emulator-detail__memcard-grid">

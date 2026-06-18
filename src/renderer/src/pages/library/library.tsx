@@ -6,7 +6,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useLibrary,
   useAppDispatch,
@@ -47,6 +47,21 @@ import {
 import "./library.scss";
 
 const FAVORITES_COLLECTION_ID = "__favorites__";
+const GAP = 16;
+const LARGE_CARD_ESTIMATED_HEIGHT = 300;
+const FALLBACK_ITEM_WIDTH = 150;
+
+const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
+const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
+  grid: [12, 8, 6, 5, 4, 2],
+  compact: [14, 12, 9, 7, 5, 3],
+};
+
+const getColumnsCount = (width: number, mode: ViewMode): number => {
+  if (mode === "large") return width >= 900 ? 2 : 1;
+  const idx = COLUMN_BREAKPOINTS.findIndex((bp) => width >= bp);
+  return COLUMNS[mode][idx === -1 ? COLUMN_BREAKPOINTS.length : idx];
+};
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
@@ -124,6 +139,20 @@ export default function Library() {
 
   const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
   const classicsOnboardingTriggeredRef = useRef(false);
+
+  const gamesScrollRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [isGamesScrolled, setIsGamesScrolled] = useState(false);
+
+  useEffect(() => {
+    const el = gamesScrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) =>
+      setContainerWidth(entry.contentRect.width)
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (
@@ -570,6 +599,39 @@ export default function Library() {
     ];
   }, [collections, favoritesCount, t]);
 
+  const columnsCount = useMemo(
+    () => getColumnsCount(containerWidth, viewMode),
+    [containerWidth, viewMode]
+  );
+
+  const rows = useMemo(() => {
+    const result: LibraryGame[][] = [];
+    for (let i = 0; i < filteredLibrary.length; i += columnsCount) {
+      result.push(filteredLibrary.slice(i, i + columnsCount));
+    }
+    return result;
+  }, [filteredLibrary, columnsCount]);
+
+  const estimatedRowHeight = useMemo(() => {
+    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + GAP;
+    const itemWidth =
+      containerWidth > 0
+        ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
+        : FALLBACK_ITEM_WIDTH;
+    return Math.round((itemWidth * 4) / 3) + GAP;
+  }, [viewMode, containerWidth, columnsCount]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => gamesScrollRef.current,
+    estimateSize: () => estimatedRowHeight,
+    overscan: 3,
+  });
+
+  useEffect(() => {
+    gamesScrollRef.current?.scrollTo({ top: 0 });
+  }, [effectiveCategory, selectedPlatform]);
+
   const hasGames = library.length > 0;
   const hasNoFilteredGames = filteredLibrary.length === 0;
   const isFavoritesCollectionSelected =
@@ -699,56 +761,62 @@ export default function Library() {
         </div>
       )}
 
-      {hasGames &&
-        !shouldShowFavoritesEmptyState &&
-        !shouldShowCollectionEmptyState &&
-        !shouldShowClassicsImporting && (
-          <AnimatePresence mode="wait">
-            {viewMode === "large" && (
-              <motion.div
-                key={`${sortBy}-large`}
-                className="library__games-list library__games-list--large"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-              >
-                {filteredLibrary.map((game) => (
-                  <LibraryGameCardLarge
-                    key={`${game.shop}-${game.objectId}`}
-                    game={game}
-                    onContextMenu={handleOpenContextMenu}
-                  />
-                ))}
-              </motion.div>
-            )}
-
-            {viewMode !== "large" && (
-              <motion.ul
-                key={`${sortBy}-${viewMode}`}
-                className={`library__games-grid library__games-grid--${viewMode}`}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-              >
-                {filteredLibrary.map((game) => (
-                  <li
-                    key={`${game.shop}-${game.objectId}`}
-                    style={{ listStyle: "none" }}
-                  >
-                    <LibraryGameCard
-                      game={game}
-                      onMouseEnter={handleOnMouseEnterGameCard}
-                      onMouseLeave={handleOnMouseLeaveGameCard}
-                      onContextMenu={handleOpenContextMenu}
-                    />
-                  </li>
-                ))}
-              </motion.ul>
-            )}
-          </AnimatePresence>
-        )}
+      <div
+        className="library__games-scroll"
+        ref={gamesScrollRef}
+        onScroll={(e) =>
+          setIsGamesScrolled((e.currentTarget as HTMLElement).scrollTop > 0)
+        }
+      >
+        <div
+          className={`library__scroll-shadow${isGamesScrolled ? " library__scroll-shadow--visible" : ""}`}
+        />
+        {hasGames &&
+          !shouldShowFavoritesEmptyState &&
+          !shouldShowCollectionEmptyState &&
+          !shouldShowClassicsImporting && (
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: GAP,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    display: "grid",
+                    gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
+                    gap: `${GAP}px`,
+                  }}
+                >
+                  {rows[virtualRow.index].map((game) =>
+                    viewMode === "large" ? (
+                      <LibraryGameCardLarge
+                        key={`${game.shop}-${game.objectId}`}
+                        game={game}
+                        onContextMenu={handleOpenContextMenu}
+                      />
+                    ) : (
+                      <LibraryGameCard
+                        key={`${game.shop}-${game.objectId}`}
+                        game={game}
+                        onMouseEnter={handleOnMouseEnterGameCard}
+                        onMouseLeave={handleOnMouseLeaveGameCard}
+                        onContextMenu={handleOpenContextMenu}
+                      />
+                    )
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+      </div>
 
       {gameContextMenu.game && (
         <GameContextMenu
