@@ -14,6 +14,7 @@ interface Props {
   systemLabel: string;
   config: EmulatorConfig;
   onBiosStatusChange: (installed: boolean) => void;
+  onSkip: () => void;
 }
 
 export function SetupStepBios({
@@ -21,6 +22,7 @@ export function SetupStepBios({
   systemLabel,
   config,
   onBiosStatusChange,
+  onSkip,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
@@ -75,28 +77,24 @@ export function SetupStepBios({
         </div>
       </div>
 
-      <div className="setup-modal__hint">
+      <div className="setup-modal__hint" style={{ justifyContent: "flex-end" }}>
         <button
           type="button"
-          className="setup-modal__link-button"
-          data-open-article={system === "ps1" ? "bios-ps1" : "bios-ps2"}
+          className="setup-modal__ghost-button"
+          onClick={onSkip}
         >
-          {t("setup_bios_guide")}
+          {t("setup_skip_later")}
         </button>
       </div>
 
       <div
-        className={`setup-modal__alert ${
-          installed
-            ? "setup-modal__alert--success"
-            : "setup-modal__alert--neutral"
-        }`}
+        className="setup-modal__alert setup-modal__alert--neutral"
         style={{ marginTop: "auto" }}
       >
         <div
           className={`setup-modal__row-icon ${
             installed
-              ? "setup-modal__row-icon--success"
+              ? "setup-modal__row-icon--found"
               : "setup-modal__row-icon--neutral"
           }`}
           style={{ width: 36, height: 36 }}
@@ -117,10 +115,12 @@ export function SetupStepBios({
               : t("setup_bios_recheck_note")}
           </span>
         </div>
-        <Button theme="primary" onClick={probe} disabled={checking}>
-          <SyncIcon size={14} />
-          <span>{t("setup_bios_check_again")}</span>
-        </Button>
+        {!installed && (
+          <Button theme="primary" onClick={probe} disabled={checking}>
+            <SyncIcon size={14} />
+            <span>{t("setup_bios_check_again")}</span>
+          </Button>
+        )}
       </div>
     </>
   );

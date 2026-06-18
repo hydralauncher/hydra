@@ -423,6 +423,7 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onFirmwareStatusChange={setFirmwareOk}
+              onSkip={handleSkip}
             />
           )}
           {currentStep === "bios" && config && (
@@ -431,6 +432,7 @@ export function EmulatorSetupModal({
               config={config}
               systemLabel={systemShort}
               onBiosStatusChange={setBiosOk}
+              onSkip={handleSkip}
             />
           )}
           {currentStep === "rom_folder" && (
@@ -497,11 +499,7 @@ export function EmulatorSetupModal({
               currentStep !== "done"
             }
             showCancel={currentStep === "find_emulator"}
-            showSkip={
-              currentStep === "firmware" ||
-              currentStep === "bios" ||
-              currentStep === "rom_folder"
-            }
+            showSkip={currentStep === "rom_folder"}
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}
             endAction={

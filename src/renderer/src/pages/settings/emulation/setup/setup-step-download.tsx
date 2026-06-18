@@ -16,6 +16,7 @@ import type {
 import { EMULATOR_ICONS } from "../emulator-icons";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";
 import { ArchIcon, FlatpakIcon, GitHubIcon } from "./brand-icons";
+import { firmwarePageUrl } from "./ps-firmware-url";
 
 interface Props {
   binary: EmulatorBinary;
@@ -39,7 +40,7 @@ const extractSemver = (value: string | null): string | undefined =>
   (value && SEMVER_RE.exec(value)?.[0]) || undefined;
 
 export function SetupStepDownload({ binary }: Readonly<Props>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const name = KNOWN_BINARY_LABELS[binary];
   const icon = EMULATOR_ICONS[binary];
 
@@ -317,6 +318,35 @@ export function SetupStepDownload({ binary }: Readonly<Props>) {
             </span>
           </div>
         </button>
+
+        {binary === "rpcs3" && (
+          <button
+            type="button"
+            className="setup-modal__download-card"
+            onClick={() => openUrl(firmwarePageUrl(i18n.language))}
+          >
+            <div className="setup-modal__download-card-badge">
+              <GlobeIcon size={20} />
+            </div>
+            <div className="setup-modal__download-card-main">
+              <span className="setup-modal__download-card-title">
+                {t("setup_download_firmware_title")}
+              </span>
+              <span className="setup-modal__download-card-desc">
+                {t("setup_download_firmware_desc")}
+              </span>
+            </div>
+            <span className="setup-modal__download-card-footer">
+              <span className="setup-modal__download-card-url">
+                {firmwarePageUrl(i18n.language)}
+              </span>
+              <LinkExternalIcon
+                size={14}
+                className="setup-modal__download-card-ext"
+              />
+            </span>
+          </button>
+        )}
       </div>
     </>
   );

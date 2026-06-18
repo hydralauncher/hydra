@@ -321,11 +321,6 @@
     justify-content: center;
     flex-shrink: 0;
 
-    &--success {
-      background: rgba(52, 211, 153, 0.14);
-      color: #34d399;
-    }
-
     &--warn {
       background: rgba(245, 158, 11, 0.18);
       color: #f59e0b;
@@ -467,11 +462,6 @@
     &--warn {
       background: rgba(245, 158, 11, 0.06);
       border: 1px solid rgba(245, 158, 11, 0.22);
-    }
-
-    &--success {
-      background: rgba(52, 211, 153, 0.08);
-      border: 1px solid rgba(52, 211, 153, 0.22);
     }
 
     &--neutral {
