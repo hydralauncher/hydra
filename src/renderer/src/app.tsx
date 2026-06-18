@@ -15,12 +15,16 @@ import { WorkWonders } from "workwonders-sdk";
 import {
   clearExtraction,
   closeToast,
+  failClassicsScan,
+  finishClassicsScan,
+  hydrateClassicsScan,
   setExtractionProgress,
   setGameRunning,
   setProfileBackground,
   setUserDetails,
   setUserPreferences,
   toggleDraggingDisabled,
+  updateClassicsScanProgress,
 } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -28,6 +32,7 @@ import { useSubscription } from "./hooks/use-subscription";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
+import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
@@ -305,6 +310,41 @@ export function App() {
   }, [dispatch, library]);
 
   useEffect(() => {
+    window.electron.getActiveClassicsImport().then((snapshot) => {
+      if (snapshot) dispatch(hydrateClassicsScan(snapshot));
+    });
+
+    const unsubscribe = window.electron.onClassicsImportProgress((payload) => {
+      if (payload.type === "error") {
+        dispatch(failClassicsScan(payload.message));
+        return;
+      }
+
+      if (payload.type === "progress") {
+        dispatch(updateClassicsScanProgress(payload));
+        return;
+      }
+
+      dispatch(
+        finishClassicsScan({
+          cancelled: payload.type === "cancelled",
+          system: payload.system,
+          result: {
+            fileCount: payload.fileCount,
+            sizeBytes: payload.sizeBytes,
+            matched: payload.matched,
+            unmatched: payload.unmatched,
+            unmatchedFiles: payload.unmatchedFiles,
+          },
+        })
+      );
+      updateLibrary();
+    });
+
+    return () => unsubscribe();
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
     const listeners = [
       window.electron.onSignIn(onSignIn),
       window.electron.onLibraryBatchComplete(() => {
@@ -460,6 +500,8 @@ export function App() {
         visible={showAddFriendModal}
         onClose={() => setShowAddFriendModal(false)}
       />
+
+      <ClassicsScanModal />
 
       <main>
         <Sidebar />

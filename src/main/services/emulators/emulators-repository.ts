@@ -56,3 +56,22 @@ export const recomputeTotals = (config: EmulatorConfig): EmulatorConfig => {
   }, null);
   return { ...config, totalFiles, totalSizeBytes, lastScanAt };
 };
+
+export const resetEmulatorScanData = async (): Promise<void> => {
+  for (const system of SYSTEMS) {
+    const existing = await emulatorsSublevel.get(system);
+    if (!existing) continue;
+    await emulatorsSublevel.put(system, {
+      ...existing,
+      romFolders: existing.romFolders.map((folder) => ({
+        ...folder,
+        fileCount: 0,
+        sizeBytes: 0,
+        lastScanAt: null,
+      })),
+      totalFiles: 0,
+      totalSizeBytes: 0,
+      lastScanAt: null,
+    });
+  }
+};
