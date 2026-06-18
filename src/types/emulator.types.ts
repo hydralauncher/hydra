@@ -25,6 +25,15 @@ export interface EmulatorConfig {
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
 
+export interface DetectedRom {
+  objectId: string;
+  title: string;
+  libraryImageUrl: string | null;
+  iconUrl: string | null;
+  sizeBytes: number | null;
+  skus: string[];
+}
+
 export interface ClassicsDisc {
   path: string;
   label: string;

@@ -907,6 +907,7 @@
     "collapse_debrid_section": "Réduire la section {{provider}}",
     "run_games_with_gamemode": "Lancer les jeux avec GameMode par défaut",
     "run_games_with_mangohud": "Lancer les jeux avec MangoHud par défaut",
+    "default_wine_prefix": "Emplacement par défaut du préfixe Wine",
     "default_proton_version": "Version de Proton par défaut",
     "default_proton_version_description": "Sélectionnez la version de Proton utilisée par le mode Auto lorsqu’un jeu n’a pas de configuration personnalisée",
     "proton_version_auto": "Auto (valeur globale par défaut ou valeur par défaut umu)",

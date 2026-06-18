@@ -179,6 +179,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
+  listEmulatorRoms: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("listEmulatorRoms", system),
   toggleRomFolderSubfolders: (
     system: EmulatorSystem,
     folderId: string,
