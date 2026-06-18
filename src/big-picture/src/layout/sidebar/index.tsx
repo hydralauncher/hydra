@@ -889,8 +889,9 @@ function Sidebar() {
       position: SIDEBAR_MENU_DEFAULT_POSITION,
       restoreFocusId: null,
     });
-  const [favoriteLoadingGameId, setFavoriteLoadingGameId] =
-    useState<string | null>(null);
+  const [favoriteLoadingGameId, setFavoriteLoadingGameId] = useState<
+    string | null
+  >(null);
 
   interface SidebarPendingAction {
     type: "remove-files" | "remove-from-library";
@@ -1042,7 +1043,6 @@ function Sidebar() {
   );
 
   const handleClosePendingAction = useCallback(() => {
-
     setPendingAction(null);
   }, []);
 
@@ -1112,9 +1112,7 @@ function Sidebar() {
         visible={contextMenuState.visible}
         position={contextMenuState.position}
         restoreFocusId={contextMenuState.restoreFocusId}
-        isFavoriteLoading={
-          favoriteLoadingGameId === contextMenuState.game?.id
-        }
+        isFavoriteLoading={favoriteLoadingGameId === contextMenuState.game?.id}
         onClose={handleCloseContextMenu}
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={handleToggleFavorite}

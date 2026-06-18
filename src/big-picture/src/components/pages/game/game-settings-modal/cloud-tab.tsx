@@ -159,13 +159,21 @@ export function GameCloudSettingsTab({
     );
 
     const removeDownloadCompleteListener =
-      window.electron.onBackupDownloadComplete(game.objectId, game.shop, () => {
-        showSuccessToast("Cloud save restored");
-        setRestoringArtifactId(null);
-        setBackupDownloadProgress(null);
-        void loadArtifacts();
-        void loadBackupPreview();
-      });
+      window.electron.onBackupDownloadComplete(
+        game.objectId,
+        game.shop,
+        (success) => {
+          if (success) {
+            showSuccessToast("Cloud save restored");
+          } else {
+            showErrorToast("Failed to restore cloud save");
+          }
+          setRestoringArtifactId(null);
+          setBackupDownloadProgress(null);
+          void loadArtifacts();
+          void loadBackupPreview();
+        }
+      );
 
     const removeBackupDownloadProgressListener = (
       window.electron as any

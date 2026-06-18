@@ -247,8 +247,7 @@ export default function LibraryPage() {
 
   const handleOpenGameSettingsFromContextMenu = useCallback(
     (game: LibraryGame) => {
-      settingsModalRestoreFocusIdRef.current =
-        contextMenuState.restoreFocusId;
+      settingsModalRestoreFocusIdRef.current = contextMenuState.restoreFocusId;
       setSettingsModalGame(game);
       setIsGameSettingsModalOpen(true);
     },

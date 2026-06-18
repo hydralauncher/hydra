@@ -4,6 +4,7 @@ import {
   useFocusLayerId,
   useFocusRegionId,
 } from "../../context";
+import { useIsMeasurement } from "../../context/measurement.context";
 import {
   getFocusItemActionsMeta,
   resolveFocusItemActions,
@@ -69,6 +70,7 @@ export function FocusItem({
   const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const isMeasurement = useIsMeasurement();
 
   const resolvedActions = useMemo(
     () => resolveFocusItemActions(actions),
@@ -85,6 +87,8 @@ export function FocusItem({
   }
 
   useEffect(() => {
+    if (isMeasurement) return;
+
     return navigation.registerNavigationNode({
       id: resolvedId,
       regionId,

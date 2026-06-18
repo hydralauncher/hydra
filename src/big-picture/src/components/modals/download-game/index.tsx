@@ -28,6 +28,7 @@ import {
   DownloadSourceOptionSkeleton,
   SourceAnchorSkeleton,
 } from "../../skeletons";
+import { MeasurementContext } from "../../context/measurement.context";
 import type {
   DiskUsage,
   DownloadSource,
@@ -846,13 +847,15 @@ function DownloadGameModalSession({
           </motion.div>
 
           {pendingStep !== null ? (
-            <div
-              ref={pendingStepMeasureRef}
-              className={`download-game-modal__step-measure download-game-modal__step download-game-modal__step--${pendingStepTransitionKey}`}
-              aria-hidden="true"
-            >
-              {renderStepContent(pendingStep)}
-            </div>
+            <MeasurementContext.Provider value={true}>
+              <div
+                ref={pendingStepMeasureRef}
+                className={`download-game-modal__step-measure download-game-modal__step download-game-modal__step--${pendingStepTransitionKey}`}
+                aria-hidden="true"
+              >
+                {renderStepContent(pendingStep)}
+              </div>
+            </MeasurementContext.Provider>
           ) : null}
         </motion.div>
       </div>
