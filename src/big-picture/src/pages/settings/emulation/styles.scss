@@ -975,8 +975,11 @@
 
   &__cloud-grid {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: stretch;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 44px;
     width: 100%;
   }
 

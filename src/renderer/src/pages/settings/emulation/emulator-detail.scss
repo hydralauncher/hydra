@@ -741,19 +741,20 @@
   }
 
   &__cloud-grid {
-    display: grid;
-    grid-template-columns: repeat(
-      auto-fill,
-      minmax(max(200px, calc((100% - 3 * 16px) / 4)), 1fr)
-    );
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: stretch;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 44px;
     width: 100%;
   }
 
   &__cloud-card {
     box-sizing: border-box;
-    min-width: 0;
+    flex: 0 1 calc((100% - 3 * 16px) / 4);
+    max-width: calc((100% - 3 * 16px) / 4);
+    min-width: 200px;
     height: 153px;
     background: #0d0d0d;
     border: 1px solid rgba(255, 255, 255, 0.08);
