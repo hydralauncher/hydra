@@ -12,10 +12,7 @@ import {
   VerticalFocusGroup,
 } from "../../../common";
 import { resolvePreferredGameAssets } from "../../../../helpers";
-import { useGamepad } from "../../../../hooks";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
-import { useNavigationIsFocused } from "../../../../stores";
-import { GamepadButtonType } from "../../../../types";
 
 import "./customization-tab.scss";
 
@@ -123,13 +120,6 @@ export function GameCustomizationSettingsTab({
     () => getAssetPreviewState(game)
   );
   const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
-  const isPrimaryControlFocused = useNavigationIsFocused(
-    GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
-  );
-  const isAssetPreviewFocused = useNavigationIsFocused(
-    GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID
-  );
-  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const assetTabItems = useMemo(
     () =>
       [
@@ -147,10 +137,6 @@ export function GameCustomizationSettingsTab({
         },
       ] satisfies Array<TabsItem<AssetTab>>,
     [t]
-  );
-  const assetTabValues = useMemo(
-    () => assetTabItems.map((item) => item.value),
-    [assetTabItems]
   );
 
   const handleAssetTabChange = useCallback((value: AssetTab) => {
@@ -197,58 +183,6 @@ export function GameCustomizationSettingsTab({
     setAssetPreviewState(getAssetPreviewState(game));
     setPendingAssetTab(null);
   }, [game]);
-
-  useEffect(() => {
-    const selectedIndex = assetTabValues.indexOf(selectedAssetTab);
-
-    const removeLeftBumper = onButtonPressed(
-      GamepadButtonType.LEFT_BUMPER,
-      (event) => {
-        if (
-          (!isPrimaryControlFocused && !isAssetPreviewFocused) ||
-          !isActiveGamepadEvent(event) ||
-          selectedIndex === -1
-        ) {
-          return;
-        }
-
-        const nextIndex =
-          (selectedIndex - 1 + assetTabValues.length) % assetTabValues.length;
-
-        handleAssetTabChange(assetTabValues[nextIndex] ?? "icon");
-      }
-    );
-
-    const removeRightBumper = onButtonPressed(
-      GamepadButtonType.RIGHT_BUMPER,
-      (event) => {
-        if (
-          (!isPrimaryControlFocused && !isAssetPreviewFocused) ||
-          !isActiveGamepadEvent(event) ||
-          selectedIndex === -1
-        ) {
-          return;
-        }
-
-        const nextIndex = (selectedIndex + 1) % assetTabValues.length;
-
-        handleAssetTabChange(assetTabValues[nextIndex] ?? "icon");
-      }
-    );
-
-    return () => {
-      removeLeftBumper();
-      removeRightBumper();
-    };
-  }, [
-    assetTabValues,
-    handleAssetTabChange,
-    isAssetPreviewFocused,
-    isActiveGamepadEvent,
-    isPrimaryControlFocused,
-    onButtonPressed,
-    selectedAssetTab,
-  ]);
 
   return (
     <VerticalFocusGroup className="game-customization-settings-tab">
