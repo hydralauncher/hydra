@@ -9,18 +9,22 @@ import {
 import { Button } from "@renderer/components";
 import type { EmulatorConfig } from "@types";
 
+import { firmwarePageUrl } from "./ps-firmware-url";
+
 interface Props {
   config: EmulatorConfig;
   systemLabel: string;
   onFirmwareStatusChange: (installed: boolean) => void;
+  onSkip: () => void;
 }
 
 export function SetupStepFirmware({
   config,
   systemLabel,
   onFirmwareStatusChange,
+  onSkip,
 }: Readonly<Props>) {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -71,18 +75,33 @@ export function SetupStepFirmware({
         </div>
       </div>
 
+      <div className="setup-modal__hint">
+        <button
+          type="button"
+          className="setup-modal__link-button"
+          onClick={() =>
+            window.electron.openExternal(firmwarePageUrl(i18n.language))
+          }
+        >
+          {t("setup_firmware_guide")}
+        </button>
+        <button
+          type="button"
+          className="setup-modal__ghost-button"
+          onClick={onSkip}
+        >
+          {t("setup_skip_later")}
+        </button>
+      </div>
+
       <div
-        className={`setup-modal__alert ${
-          installed
-            ? "setup-modal__alert--success"
-            : "setup-modal__alert--neutral"
-        }`}
+        className="setup-modal__alert setup-modal__alert--neutral"
         style={{ marginTop: "auto" }}
       >
         <div
           className={`setup-modal__row-icon ${
             installed
-              ? "setup-modal__row-icon--success"
+              ? "setup-modal__row-icon--found"
               : "setup-modal__row-icon--neutral"
           }`}
           style={{ width: 36, height: 36 }}
@@ -105,10 +124,12 @@ export function SetupStepFirmware({
               : t("setup_firmware_recheck_note")}
           </span>
         </div>
-        <Button theme="primary" onClick={probe} disabled={checking}>
-          <SyncIcon size={14} />
-          <span>{t("setup_firmware_check_again")}</span>
-        </Button>
+        {!installed && (
+          <Button theme="primary" onClick={probe} disabled={checking}>
+            <SyncIcon size={14} />
+            <span>{t("setup_firmware_check_again")}</span>
+          </Button>
+        )}
       </div>
     </>
   );
