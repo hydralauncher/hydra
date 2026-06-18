@@ -23,6 +23,8 @@ interface UseGameSettingsModalStateResult {
   cloudSettings: GameCloudSettingsProps | null;
 }
 
+type CustomAssetType = "icon" | "logo" | "hero";
+
 export function useGameSettingsModalState({
   game,
   visible,
@@ -136,6 +138,87 @@ export function useGameSettingsModalState({
     []
   );
 
+  const getEffectiveGameTitle = useCallback(() => {
+    return gameTitle.trim() || game?.title || "";
+  }, [game?.title, gameTitle]);
+
+  const buildCustomGameAssetPayload = useCallback(
+    (assetType: CustomAssetType, assetValue: string | undefined) => {
+      if (!game) return null;
+
+      return {
+        shop: game.shop,
+        objectId: game.objectId,
+        title: getEffectiveGameTitle(),
+        iconUrl: assetType === "icon" ? assetValue : game.iconUrl || undefined,
+        logoImageUrl:
+          assetType === "logo" ? assetValue : game.logoImageUrl || undefined,
+        libraryHeroImageUrl:
+          assetType === "hero"
+            ? assetValue
+            : game.libraryHeroImageUrl || undefined,
+      };
+    },
+    [game, getEffectiveGameTitle]
+  );
+
+  const buildGameCustomAssetsPayload = useCallback(
+    (assetType: CustomAssetType, assetValue: string | null) => {
+      if (!game) return null;
+
+      return {
+        shop: game.shop,
+        objectId: game.objectId,
+        title: getEffectiveGameTitle(),
+        customIconUrl:
+          assetType === "icon" ? assetValue : game.customIconUrl || undefined,
+        customLogoImageUrl:
+          assetType === "logo"
+            ? assetValue
+            : game.customLogoImageUrl || undefined,
+        customHeroImageUrl:
+          assetType === "hero"
+            ? assetValue
+            : game.customHeroImageUrl || undefined,
+        customOriginalIconPath: assetType === "icon" ? null : undefined,
+        customOriginalLogoPath: assetType === "logo" ? null : undefined,
+        customOriginalHeroPath: assetType === "hero" ? null : undefined,
+      };
+    },
+    [game, getEffectiveGameTitle]
+  );
+
+  const updateCustomizationAsset = useCallback(
+    async (
+      assetType: CustomAssetType,
+      assetValue: string | null | undefined
+    ) => {
+      if (!game) return;
+
+      if (game.shop === "custom") {
+        const payload = buildCustomGameAssetPayload(
+          assetType,
+          assetValue ?? undefined
+        );
+
+        if (!payload) return;
+
+        await globalThis.window.electron.updateCustomGame(payload);
+        return;
+      }
+
+      const payload = buildGameCustomAssetsPayload(
+        assetType,
+        assetValue ?? null
+      );
+
+      if (!payload) return;
+
+      await globalThis.window.electron.updateGameCustomAssets(payload);
+    },
+    [buildCustomGameAssetPayload, buildGameCustomAssetsPayload, game]
+  );
+
   const saveGameTitle = useCallback(
     async (title: string) => {
       if (!game) return;
@@ -215,7 +298,7 @@ export function useGameSettingsModalState({
   }, [game, gameTitle, saveGameTitle, showErrorToast, t, updatingGameTitle]);
 
   const handleSelectCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => {
+    async (assetType: CustomAssetType) => {
       if (!game) return;
 
       const { filePaths } = await globalThis.window.electron.showOpenDialog({
@@ -238,46 +321,7 @@ export function useGameSettingsModalState({
             sourcePath,
             assetType
           );
-
-        if (game.shop === "custom") {
-          await globalThis.window.electron.updateCustomGame({
-            shop: game.shop,
-            objectId: game.objectId,
-            title: gameTitle.trim() || game.title || "",
-            iconUrl:
-              assetType === "icon" ? copiedAssetUrl : game.iconUrl || undefined,
-            logoImageUrl:
-              assetType === "logo"
-                ? copiedAssetUrl
-                : game.logoImageUrl || undefined,
-            libraryHeroImageUrl:
-              assetType === "hero"
-                ? copiedAssetUrl
-                : game.libraryHeroImageUrl || undefined,
-          });
-        } else {
-          await globalThis.window.electron.updateGameCustomAssets({
-            shop: game.shop,
-            objectId: game.objectId,
-            title: gameTitle.trim() || game.title || "",
-            customIconUrl:
-              assetType === "icon"
-                ? copiedAssetUrl
-                : game.customIconUrl || null,
-            customLogoImageUrl:
-              assetType === "logo"
-                ? copiedAssetUrl
-                : game.customLogoImageUrl || null,
-            customHeroImageUrl:
-              assetType === "hero"
-                ? copiedAssetUrl
-                : game.customHeroImageUrl || null,
-            customOriginalIconPath: assetType === "icon" ? null : undefined,
-            customOriginalLogoPath: assetType === "logo" ? null : undefined,
-            customOriginalHeroPath: assetType === "hero" ? null : undefined,
-          });
-        }
-
+        await updateCustomizationAsset(assetType, copiedAssetUrl);
         await refreshGameDetails();
       } catch (error) {
         showErrorToast(
@@ -285,49 +329,18 @@ export function useGameSettingsModalState({
         );
       }
     },
-    [game, gameTitle, refreshGameDetails, showErrorToast, t]
+    [game, refreshGameDetails, showErrorToast, t, updateCustomizationAsset]
   );
 
   const handleClearCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => {
+    async (assetType: CustomAssetType) => {
       if (!game) return;
 
       try {
-        if (game.shop === "custom") {
-          await globalThis.window.electron.updateCustomGame({
-            shop: game.shop,
-            objectId: game.objectId,
-            title: gameTitle.trim() || game.title || "",
-            iconUrl:
-              assetType === "icon" ? undefined : game.iconUrl || undefined,
-            logoImageUrl:
-              assetType === "logo" ? undefined : game.logoImageUrl || undefined,
-            libraryHeroImageUrl:
-              assetType === "hero"
-                ? undefined
-                : game.libraryHeroImageUrl || undefined,
-          });
-        } else {
-          await globalThis.window.electron.updateGameCustomAssets({
-            shop: game.shop,
-            objectId: game.objectId,
-            title: gameTitle.trim() || game.title || "",
-            customIconUrl:
-              assetType === "icon" ? null : game.customIconUrl || undefined,
-            customLogoImageUrl:
-              assetType === "logo"
-                ? null
-                : game.customLogoImageUrl || undefined,
-            customHeroImageUrl:
-              assetType === "hero"
-                ? null
-                : game.customHeroImageUrl || undefined,
-            customOriginalIconPath: assetType === "icon" ? null : undefined,
-            customOriginalLogoPath: assetType === "logo" ? null : undefined,
-            customOriginalHeroPath: assetType === "hero" ? null : undefined,
-          });
-        }
-
+        await updateCustomizationAsset(
+          assetType,
+          game.shop === "custom" ? undefined : null
+        );
         await refreshGameDetails();
       } catch (error) {
         showErrorToast(
@@ -335,7 +348,7 @@ export function useGameSettingsModalState({
         );
       }
     },
-    [game, gameTitle, refreshGameDetails, showErrorToast, t]
+    [game, refreshGameDetails, showErrorToast, t, updateCustomizationAsset]
   );
 
   useEffect(() => {
@@ -460,47 +473,59 @@ export function useGameSettingsModalState({
     [game, showErrorToast, showSuccessToast, t]
   );
 
+  const executeSteamShortcutAction = useCallback(
+    async (
+      action: () => Promise<void>,
+      successMessage: string,
+      errorMessage: string,
+      nextSteamShortcutExists: boolean
+    ) => {
+      try {
+        setCreatingSteamShortcut(true);
+        await action();
+        showSuccessToast(successMessage, {
+          message: t("you_might_need_to_restart_steam"),
+        });
+        setSteamShortcutExists(nextSteamShortcutExists);
+        await updateGame();
+      } catch {
+        showErrorToast(errorMessage);
+      } finally {
+        setCreatingSteamShortcut(false);
+      }
+    },
+    [showErrorToast, showSuccessToast, t, updateGame]
+  );
+
   const handleCreateSteamShortcut = useCallback(async () => {
     if (!game || game.shop === "custom") return;
 
-    try {
-      setCreatingSteamShortcut(true);
-      await globalThis.window.electron.createSteamShortcut(
-        game.shop,
-        game.objectId
-      );
-      showSuccessToast(t("create_shortcut_success"), {
-        message: t("you_might_need_to_restart_steam"),
-      });
-      setSteamShortcutExists(true);
-      await updateGame();
-    } catch {
-      showErrorToast(t("create_shortcut_error"));
-    } finally {
-      setCreatingSteamShortcut(false);
-    }
-  }, [game, showErrorToast, showSuccessToast, t, updateGame]);
+    await executeSteamShortcutAction(
+      () =>
+        globalThis.window.electron.createSteamShortcut(
+          game.shop,
+          game.objectId
+        ),
+      t("create_shortcut_success"),
+      t("create_shortcut_error"),
+      true
+    );
+  }, [executeSteamShortcutAction, game, t]);
 
   const handleDeleteSteamShortcut = useCallback(async () => {
     if (!game || game.shop === "custom") return;
 
-    try {
-      setCreatingSteamShortcut(true);
-      await globalThis.window.electron.deleteSteamShortcut(
-        game.shop,
-        game.objectId
-      );
-      showSuccessToast(t("delete_shortcut_success"), {
-        message: t("you_might_need_to_restart_steam"),
-      });
-      setSteamShortcutExists(false);
-      await updateGame();
-    } catch {
-      showErrorToast(t("delete_shortcut_error"));
-    } finally {
-      setCreatingSteamShortcut(false);
-    }
-  }, [game, showErrorToast, showSuccessToast, t, updateGame]);
+    await executeSteamShortcutAction(
+      () =>
+        globalThis.window.electron.deleteSteamShortcut(
+          game.shop,
+          game.objectId
+        ),
+      t("delete_shortcut_success"),
+      t("delete_shortcut_error"),
+      false
+    );
+  }, [executeSteamShortcutAction, game, t]);
 
   const handleClearLaunchOptions = useCallback(() => {
     setLaunchOptions("");
@@ -510,36 +535,44 @@ export function useGameSettingsModalState({
     persistLaunchOptions(launchOptions).catch(() => {});
   }, [launchOptions, persistLaunchOptions]);
 
-  const handleSelectDisc = useCallback(
-    async (discPath: string) => {
+  const updateClassicsDisc = useCallback(
+    async (
+      payload: Parameters<
+        typeof globalThis.window.electron.updateClassicsDisc
+      >[2],
+      options?: { skipRefresh?: boolean }
+    ) => {
       if (!game) return;
 
       await globalThis.window.electron.updateClassicsDisc(
         game.shop,
         game.objectId,
-        {
-          selectedDiscPath: discPath,
-        }
+        payload
       );
-      await updateGame();
+
+      if (!options?.skipRefresh) {
+        await updateGame();
+      }
     },
     [game, updateGame]
   );
 
+  const handleSelectDisc = useCallback(
+    async (discPath: string) => {
+      await updateClassicsDisc({
+        selectedDiscPath: discPath,
+      });
+    },
+    [updateClassicsDisc]
+  );
+
   const handleToggleDontAskDiscSelection = useCallback(
     async (checked: boolean) => {
-      if (!game) return;
-
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        {
-          dontAskDiscSelection: checked,
-        }
-      );
-      await updateGame();
+      await updateClassicsDisc({
+        dontAskDiscSelection: checked,
+      });
     },
-    [game, updateGame]
+    [updateClassicsDisc]
   );
 
   const addDiscFromPath = useCallback(
@@ -548,21 +581,16 @@ export function useGameSettingsModalState({
 
       const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
       const nextIndex = (game.discs?.length ?? 0) + 1;
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
-        {
-          addDisc: {
-            path: fullPath,
-            label: `Disc ${nextIndex}`,
-            fileName,
-          },
-          selectedDiscPath: fullPath,
-        }
-      );
-      await updateGame();
+      await updateClassicsDisc({
+        addDisc: {
+          path: fullPath,
+          label: `Disc ${nextIndex}`,
+          fileName,
+        },
+        selectedDiscPath: fullPath,
+      });
     },
-    [game, updateGame]
+    [game, updateClassicsDisc]
   );
 
   const handleAddDiscFile = useCallback(async () => {
@@ -586,15 +614,10 @@ export function useGameSettingsModalState({
   const handleRemoveSelectedDisc = useCallback(async () => {
     if (!game || !selectedDisc) return;
 
-    await globalThis.window.electron.updateClassicsDisc(
-      game.shop,
-      game.objectId,
-      {
-        removeDiscPath: selectedDisc.path,
-      }
-    );
-    await updateGame();
-  }, [game, selectedDisc, updateGame]);
+    await updateClassicsDisc({
+      removeDiscPath: selectedDisc.path,
+    });
+  }, [game, selectedDisc, updateClassicsDisc]);
 
   const handleRemoveAllDiscs = useCallback(async () => {
     if (!game) return;
@@ -603,24 +626,23 @@ export function useGameSettingsModalState({
     if (discsToRemove.length === 0) return;
 
     for (const disc of discsToRemove) {
-      await globalThis.window.electron.updateClassicsDisc(
-        game.shop,
-        game.objectId,
+      await updateClassicsDisc(
         {
           removeDiscPath: disc.path,
-        }
+        },
+        { skipRefresh: true }
       );
     }
 
     await updateGame();
-  }, [game, updateGame]);
+  }, [game, updateClassicsDisc, updateGame]);
 
   const handleToggleAutomaticCloudSync = useCallback(
     async (checked: boolean) => {
       if (!game) return;
       setAutomaticCloudSync(checked);
       try {
-        await window.electron.toggleAutomaticCloudSync(
+        await globalThis.window.electron.toggleAutomaticCloudSync(
           game.shop,
           game.objectId,
           checked
