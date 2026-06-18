@@ -733,7 +733,9 @@ export function MemoryCardsSection({
                           type="button"
                           className="emulator-detail__memcard-backup-all"
                           onClick={() => {
-                            void handleBackupAll(cardFilePath, records.length);
+                            handleBackupAll(cardFilePath, records.length).catch(
+                              () => {}
+                            );
                           }}
                           disabled={isBackingUp}
                         >
