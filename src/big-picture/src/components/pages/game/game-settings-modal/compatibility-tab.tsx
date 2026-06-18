@@ -48,11 +48,26 @@ interface ProtonOption {
   description: string;
 }
 
+type ElectronCompatibilityBridge = Pick<
+  Electron,
+  | "getInstalledProtonVersions"
+  | "isGamemodeAvailable"
+  | "isMangohudAvailable"
+  | "getDefaultWinePrefixSelectionPath"
+  | "showOpenDialog"
+  | "selectGameWinePrefix"
+  | "selectGameProtonPath"
+  | "toggleGameGamemode"
+  | "toggleGameMangohud"
+>;
+
 export function GameCompatibilitySettingsTab({
   game,
 }: Readonly<GameCompatibilitySettingsProps>) {
   const { t } = useTranslation("game_details");
   const userPreferences = useUserPreferences();
+  const electron =
+    globalThis.window.electron as unknown as ElectronCompatibilityBridge;
 
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
@@ -78,18 +93,12 @@ export function GameCompatibilitySettingsTab({
   }, [game]);
 
   useEffect(() => {
-    const electron = globalThis.window.electron as Record<string, unknown>;
-
     const loadAvailability = async () => {
       const [protonVersionsResult, gamemodeResult, mangohudResult] =
         await Promise.all([
-          (
-            electron.getInstalledProtonVersions as () => Promise<
-              ProtonVersion[]
-            >
-          )(),
-          (electron.isGamemodeAvailable as () => Promise<boolean>)(),
-          (electron.isMangohudAvailable as () => Promise<boolean>)(),
+          electron.getInstalledProtonVersions(),
+          electron.isGamemodeAvailable(),
+          electron.isMangohudAvailable(),
         ]);
 
       setProtonVersions(protonVersionsResult);
@@ -98,7 +107,7 @@ export function GameCompatibilitySettingsTab({
     };
 
     void loadAvailability();
-  }, []);
+  }, [electron]);
 
   const getProtonSourceDescription = useCallback(
     (version: ProtonVersion | null) => {
@@ -142,60 +151,46 @@ export function GameCompatibilitySettingsTab({
   }, [protonVersions, t, getProtonSourceDescription]);
 
   const handleSelectWinePrefix = useCallback(async () => {
-    const defaultPath = await (
-      globalThis.window.electron as Record<string, unknown>
-    ).getDefaultWinePrefixSelectionPath();
+    const defaultPath = await electron.getDefaultWinePrefixSelectionPath();
 
-    const { filePaths } = await (
-      globalThis.window.electron as Record<string, unknown>
-    ).showOpenDialog({
+    const { filePaths } = await electron.showOpenDialog({
       properties: ["openDirectory"],
       defaultPath: winePrefixPath ?? defaultPath ?? "",
     });
 
     if (filePaths?.length) {
-      await (
-        globalThis.window.electron as Record<string, unknown>
-      ).selectGameWinePrefix(game.shop, game.objectId, filePaths[0]);
+      await electron.selectGameWinePrefix(game.shop, game.objectId, filePaths[0]);
       setWinePrefixPath(filePaths[0]);
     }
-  }, [game.shop, game.objectId, winePrefixPath]);
+  }, [electron, game.shop, game.objectId, winePrefixPath]);
 
   const handleClearWinePrefix = useCallback(async () => {
-    await (
-      globalThis.window.electron as Record<string, unknown>
-    ).selectGameWinePrefix(game.shop, game.objectId, null);
+    await electron.selectGameWinePrefix(game.shop, game.objectId, null);
     setWinePrefixPath(null);
-  }, [game.shop, game.objectId]);
+  }, [electron, game.shop, game.objectId]);
 
   const handleChangeProtonVersion = useCallback(
     async (value: string) => {
       setSelectedProtonPath(value);
-      await (
-        globalThis.window.electron as Record<string, unknown>
-      ).selectGameProtonPath(game.shop, game.objectId, value || null);
+      await electron.selectGameProtonPath(game.shop, game.objectId, value || null);
     },
-    [game.shop, game.objectId]
+    [electron, game.shop, game.objectId]
   );
 
   const handleToggleGamemode = useCallback(
     async (checked: boolean) => {
       setAutoRunGamemode(checked);
-      await (
-        globalThis.window.electron as Record<string, unknown>
-      ).toggleGameGamemode(game.shop, game.objectId, checked);
+      await electron.toggleGameGamemode(game.shop, game.objectId, checked);
     },
-    [game.shop, game.objectId]
+    [electron, game.shop, game.objectId]
   );
 
   const handleToggleMangohud = useCallback(
     async (checked: boolean) => {
       setAutoRunMangohud(checked);
-      await (
-        globalThis.window.electron as Record<string, unknown>
-      ).toggleGameMangohud(game.shop, game.objectId, checked);
+      await electron.toggleGameMangohud(game.shop, game.objectId, checked);
     },
-    [game.shop, game.objectId]
+    [electron, game.shop, game.objectId]
   );
 
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode ?? false;
