@@ -518,7 +518,18 @@ export function App() {
     <>
       {(window.electron.platform === "win32" ||
         window.electron.platform === "linux") && (
-        <div className="title-bar">
+        <div
+          className={`title-bar${
+            window.electron.platform === "win32" ? " title-bar--windows" : ""
+          }`}
+        >
+          <h4>
+            Hydra
+            {hasActiveSubscription && (
+              <span className="title-bar__cloud-text"> Cloud</span>
+            )}
+          </h4>
+
           <button
             type="button"
             className="title-bar__big-picture"
@@ -527,12 +538,6 @@ export function App() {
             <VideoIcon size={14} />
             {t("big_picture", { ns: "sidebar" })}
           </button>
-          <h4>
-            Hydra
-            {hasActiveSubscription && (
-              <span className="title-bar__cloud-text"> Cloud</span>
-            )}
-          </h4>
 
           {window.electron.platform === "linux" && (
             <div className="title-bar__window-controls">
