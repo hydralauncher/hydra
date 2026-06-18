@@ -789,10 +789,8 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     cb: (success: boolean) => void
   ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      success: boolean
-    ) => cb(success);
+    const listener = (_event: Electron.IpcRendererEvent, success: boolean) =>
+      cb(success);
     ipcRenderer.on(`on-backup-download-complete-${objectId}-${shop}`, listener);
     return () =>
       ipcRenderer.removeListener(
