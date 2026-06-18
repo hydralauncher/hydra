@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IS_DESKTOP } from "../constants";
 import type {
   GameShop,
@@ -12,6 +12,7 @@ import type {
 import {
   buildFavoriteToastOptions,
   buildGameToastVisualOptions,
+  getPreferredGameAssets,
   getSteamLanguage,
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
@@ -78,9 +79,12 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     setIsLoading(false);
   }, [objectId, shop]);
 
+  const refreshGameDetails = useCallback(async () => {
+    await Promise.all([updateGame(), fetchGameDetails()]);
+  }, [fetchGameDetails, updateGame]);
+
   useEffect(() => {
-    fetchGameDetails();
-    updateGame();
+    void refreshGameDetails();
 
     if (IS_DESKTOP && shop !== "custom") {
       globalThis.window.electron.hydraApi
@@ -111,7 +115,20 @@ export function useGameDetails(objectId: string, shop: GameShop) {
       setProtonDBData(null);
       setAchievements([]);
     }
-  }, [fetchGameDetails, updateGame, objectId, shop]);
+  }, [objectId, refreshGameDetails, shop]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    const unsubscribeLibraryBatch =
+      globalThis.window.electron.onLibraryBatchComplete(() => {
+        void refreshGameDetails();
+      });
+
+    return () => {
+      unsubscribeLibraryBatch();
+    };
+  }, [refreshGameDetails]);
 
   const openGame = useCallback(
     async (discPath?: string, force?: boolean) => {
@@ -149,17 +166,14 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const toggleFavorite = useCallback(async () => {
     if (!game) return;
 
+    const preferredAssets = getPreferredGameAssets(game, shopDetails?.assets);
+
     const toastSource = {
-      title: shopDetails?.assets?.title ?? game.title,
-      iconUrl: shopDetails?.assets?.iconUrl ?? game.iconUrl ?? null,
-      coverImageUrl:
-        shopDetails?.assets?.coverImageUrl ?? game.coverImageUrl ?? null,
-      libraryImageUrl:
-        shopDetails?.assets?.libraryImageUrl ?? game.libraryImageUrl ?? null,
-      libraryHeroImageUrl:
-        shopDetails?.assets?.libraryHeroImageUrl ??
-        game.libraryHeroImageUrl ??
-        null,
+      title: preferredAssets.title,
+      iconUrl: preferredAssets.iconUrl,
+      coverImageUrl: preferredAssets.coverImageUrl,
+      libraryImageUrl: preferredAssets.libraryImageUrl,
+      libraryHeroImageUrl: preferredAssets.libraryHeroImageUrl,
     };
 
     try {
@@ -172,7 +186,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
         await globalThis.window.electron.addGameToFavorites(shop, objectId);
       }
 
-      await updateGame();
+      await refreshGameDetails();
       globalThis.window.dispatchEvent(new Event("library-update"));
       const { title, ...toastOptions } = await buildFavoriteToastOptions(
         toastSource,
@@ -193,11 +207,20 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     shopDetails?.assets,
     showErrorToast,
     showSuccessToast,
-    updateGame,
+    refreshGameDetails,
   ]);
 
+  const mergedShopDetails = useMemo(() => {
+    if (!shopDetails) return null;
+
+    return {
+      ...shopDetails,
+      assets: getPreferredGameAssets(game, shopDetails.assets),
+    };
+  }, [game, shopDetails]);
+
   return {
-    shopDetails,
+    shopDetails: mergedShopDetails,
     stats,
     game,
     isGameRunning,
@@ -210,5 +233,6 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     closeGame,
     toggleFavorite,
     updateGame,
+    refreshGameDetails,
   };
 }

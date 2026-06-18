@@ -14,7 +14,10 @@ import {
   Divider,
   HorizontalFocusGroup,
 } from "../../../common";
-import { formatRelativeDate } from "../../../../helpers";
+import {
+  formatRelativeDate,
+  getPreferredGameAssets,
+} from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { type FocusOverrides } from "../../../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
@@ -60,11 +63,15 @@ export function LibraryHero({
     }, [])
   );
   const getHeroScrollAnchor = useCallback(() => heroRef.current, []);
+  const preferredAssets = useMemo(
+    () => getPreferredGameAssets(featuredGame, null),
+    [featuredGame]
+  );
   const dominantColor = useDominantColor(
-    featuredGame?.libraryHeroImageUrl ?? null
+    preferredAssets.libraryHeroImageUrl
   );
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    featuredGame?.libraryHeroImageUrl
+    preferredAssets.libraryHeroImageUrl
   );
 
   useEffect(() => {
@@ -149,9 +156,9 @@ export function LibraryHero({
       <div className="hero__content">
         <div className="hero__content__left">
           <div className="hero__logo">
-            {featuredGame?.logoImageUrl ? (
+            {preferredAssets.logoImageUrl ? (
               <img
-                src={featuredGame.logoImageUrl}
+                src={preferredAssets.logoImageUrl}
                 alt={featuredGame.title}
                 className="hero__logo__image"
               />

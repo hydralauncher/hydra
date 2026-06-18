@@ -14,6 +14,7 @@ import {
   FocusOverrides,
   FocusOverrideTarget,
 } from "src/big-picture/src/services/navigation.service";
+import { getPreferredGameAssets } from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
@@ -66,8 +67,12 @@ export function Hero({
   sidebarEntryTarget,
 }: Readonly<HeroProps>) {
   const { t } = useTranslation("game_details");
+  const preferredAssets = useMemo(
+    () => getPreferredGameAssets(game, shopDetails.assets),
+    [game, shopDetails.assets]
+  );
   const dominantColor = useDominantColor(
-    game?.libraryHeroImageUrl ?? shopDetails.assets?.libraryHeroImageUrl ?? null
+    preferredAssets.libraryHeroImageUrl
   );
   const heroDownNavigationTarget = useMemo<FocusOverrideTarget>(
     () => downNavigationTarget ?? { type: "block" },
@@ -319,14 +324,14 @@ export function Hero({
         }}
         className="game-page__hero"
         style={{
-          backgroundImage: `url(${shopDetails.assets?.libraryHeroImageUrl})`,
+          backgroundImage: `url(${preferredAssets.libraryHeroImageUrl ?? ""})`,
         }}
       />
 
       <div className="game-page__hero-overlay">
         <img
-          src={shopDetails.assets?.logoImageUrl || ""}
-          alt={shopDetails.assets?.title || ""}
+          src={preferredAssets.logoImageUrl || ""}
+          alt={preferredAssets.title}
           className="game-page__hero-logo"
         />
 
