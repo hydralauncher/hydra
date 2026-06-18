@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { LibraryGame } from "@types";
 import { logger } from "@renderer/logger";
+import type { BigPictureToastOptions } from "../../../stores";
 import { IS_DESKTOP } from "../../../constants";
 
 export interface PendingAction {
@@ -13,11 +14,14 @@ interface UseLibraryPendingActionOptions {
   getRestoreFocusId: () => string | null;
   onDataRefresh: () => Promise<void>;
   setFocus?: (id: string) => void;
-  showSuccessToast?: (title: string, options?: Record<string, unknown>) => void;
+  showSuccessToast?: (
+    title: string,
+    options?: BigPictureToastOptions
+  ) => void;
   buildToastOptions?: (
     game: LibraryGame,
-    action: string
-  ) => Promise<{ title: string } & Record<string, unknown>>;
+    action: "removed"
+  ) => Promise<{ title: string } & BigPictureToastOptions>;
   fallbackFocusId?: string;
   restoreFocusOnClose?: boolean;
   restoreFocusOnConfirm?: boolean;
