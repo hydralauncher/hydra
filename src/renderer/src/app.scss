@@ -176,11 +176,6 @@ progress[value] {
       color: #dadbe1;
     }
 
-    &:focus-visible {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: #dadbe1;
-    }
-
     &--close:hover {
       background-color: globals.$error-color;
       color: #ffffff;
