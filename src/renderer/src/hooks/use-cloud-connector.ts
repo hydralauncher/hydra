@@ -3,6 +3,8 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 const SLOT_X_RATIO = 59.5 / 411;
 const SLOT_Y_RATIO = 129 / 221;
 const BRANCH_GAP = 40;
+const ROW_TOLERANCE = 8;
+const COLUMN_TOLERANCE = 8;
 
 export interface CloudConnector {
   width: number;
@@ -56,16 +58,22 @@ export function useCloudConnector(dependency: unknown) {
 
     type CardGeom = (typeof cardGeoms)[number];
 
-    const rowsByTop = new Map<number, CardGeom[]>();
-    for (const geom of cardGeoms) {
-      const key = Math.round(geom.top);
-      const row = rowsByTop.get(key);
-      if (row) row.push(geom);
-      else rowsByTop.set(key, [geom]);
-    }
-    const firstRow = Array.from(rowsByTop.entries()).sort(
-      (a, b) => a[0] - b[0]
-    )[0][1];
+    const clusterBy = (
+      pick: (card: CardGeom) => number,
+      tolerance: number
+    ): CardGeom[][] => {
+      const sorted = [...cardGeoms].sort((a, b) => pick(a) - pick(b));
+      const groups: CardGeom[][] = [];
+      for (const card of sorted) {
+        const last = groups.at(-1);
+        if (last && pick(card) - pick(last[0]) <= tolerance) last.push(card);
+        else groups.push([card]);
+      }
+      return groups;
+    };
+
+    const rows = clusterBy((card) => card.top, ROW_TOLERANCE);
+    const firstRow = rows[0];
 
     const segments: string[] = [];
 
@@ -80,18 +88,12 @@ export function useCloudConnector(dependency: unknown) {
       ...firstRow.map((geom) => `M ${geom.x} ${busY} L ${geom.x} ${geom.top}`)
     );
 
-    const columns = new Map<number, CardGeom[]>();
-    for (const geom of cardGeoms) {
-      const key = Math.round(geom.x);
-      const column = columns.get(key);
-      if (column) column.push(geom);
-      else columns.set(key, [geom]);
-    }
-    for (const column of columns.values()) {
-      column.sort((a, b) => a.top - b.top);
-      for (let i = 1; i < column.length; i += 1) {
-        const upper = column[i - 1];
-        const lower = column[i];
+    const columns = clusterBy((card) => card.x, COLUMN_TOLERANCE);
+    for (const column of columns) {
+      const ordered = [...column].sort((a, b) => a.top - b.top);
+      for (let i = 1; i < ordered.length; i += 1) {
+        const upper = ordered[i - 1];
+        const lower = ordered[i];
         segments.push(`M ${lower.x} ${upper.bottom} L ${lower.x} ${lower.top}`);
       }
     }
