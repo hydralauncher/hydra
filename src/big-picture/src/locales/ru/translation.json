@@ -684,7 +684,17 @@
     "Completed": "Завершено",
     "Earned": "Получено",
     "Never": "Никогда",
-    "Don&apos;t see your language on the list?": "Не видите своего языка в списке?"
+    "Don&apos;t see your language on the list?": "Не видите своего языка в списке?",
+    "No backups": "Нет резервных копий",
+    "cloud_saves_section_title": "Облачные сохранения",
+    "cloud_saves_section_description": "Сохраняйте прогресс в облаке и продолжайте играть на любом устройстве",
+    "cloud_saves_section_description_memory": "Сохраняйте прогресс ваших карт памяти в облаке и продолжайте играть на любом устройстве",
+    "enable_automatic_cloud_sync": "Включить автоматическую синхронизацию в облаке",
+    "create_backup": "Создать новую резервную копию",
+    "no_backups": "Вы еще не создали резервных копий для этой игры",
+    "settings_not_available_for_custom_games": "Эта категория недоступна для пользовательских игр.",
+    "backups": "Резервные копии",
+    "cloud_saves_list_description": "Управляйте облачными сохранениями"
   },
   "format": {
     "playtime_hours_one": "{{count}} час",

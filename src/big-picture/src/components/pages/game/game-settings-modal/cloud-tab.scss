@@ -1,0 +1,55 @@
+.game-cloud-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-cloud-settings-tab__section {
+  width: 100%;
+}
+
+.game-cloud-settings-tab__section-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__new-backup-button {
+  width: 100%;
+}
+
+.game-cloud-settings-tab__saves-header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit));
+  width: 100%;
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    opacity: 0.8;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-space-grotesk), sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0;
+    opacity: 0.5;
+    max-width: 72ch;
+  }
+}
