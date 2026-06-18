@@ -35,6 +35,15 @@
     flex-direction: column;
   }
 
+  &__step-measure {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
+  }
+
   &__step--source-list {
     overflow: hidden;
   }
