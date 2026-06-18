@@ -250,11 +250,13 @@ export const watchProcesses = async () => {
     }
 
     const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
-    const matchPaths = isWindowsBatchFile(executablePath)
-      ? trackingPaths.length
-        ? trackingPaths
-        : [executablePath]
-      : [executablePath, ...trackingPaths];
+
+    let matchPaths: string[];
+    if (isWindowsBatchFile(executablePath)) {
+      matchPaths = trackingPaths.length ? trackingPaths : [executablePath];
+    } else {
+      matchPaths = [executablePath, ...trackingPaths];
+    }
 
     let hasProcess = matchPaths.some((matchPath) => {
       const executable = matchPath

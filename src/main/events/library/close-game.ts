@@ -102,11 +102,10 @@ const closeGame = async (
         })
       : null;
 
+  const fallbackProcesses = linuxFallbackProcess ? [linuxFallbackProcess] : [];
   const processesToClose = gameProcesses.length
     ? gameProcesses
-    : linuxFallbackProcess
-      ? [linuxFallbackProcess]
-      : [];
+    : fallbackProcesses;
 
   for (const processToClose of processesToClose) {
     try {
