@@ -75,7 +75,10 @@ import {
   normalizeBigPicturePathname,
 } from "../navigation";
 import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
-import { LibraryGameContextMenu, useLibraryLaunchGame } from "../../components/pages/library";
+import {
+  LibraryGameContextMenu,
+  useLibraryLaunchGame,
+} from "../../components/pages/library";
 import { DownloadGameModal } from "../../components/modals";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
@@ -981,12 +984,9 @@ function Sidebar() {
   }, []);
 
   const handleLaunchOrDownload = useLibraryLaunchGame(
-    useCallback(
-      (game: LibraryGame) => {
-        setDownloadModalGame(game);
-      },
-      []
-    )
+    useCallback((game: LibraryGame) => {
+      setDownloadModalGame(game);
+    }, [])
   );
 
   const handleUninstall = useCallback(
