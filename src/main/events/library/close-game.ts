@@ -40,10 +40,13 @@ const closeGame = async (
   const gameProcesses = processes.filter((runningProcess) => {
     const matchesTargetPath = targetPaths.some((targetPath) => {
       if (process.platform === "linux") {
-        return (
-          runningProcess.name === targetPath.split("/").at(-1) ||
-          runningProcess.exe === targetPath ||
-          runningProcess.environ?.APPIMAGE === targetPath
+        return processReferencesExecutable(
+          {
+            cwd: runningProcess.cwd,
+            exe: runningProcess.exe,
+            appImagePath: runningProcess.environ?.APPIMAGE,
+          },
+          targetPath
         );
       }
 
