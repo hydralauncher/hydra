@@ -721,6 +721,7 @@
     "hide_to_tray_on_game_start": "Ocultar o Hydra na bandeja ao iniciar um jogo",
     "downloads": "Transferências",
     "create_shortcuts_on_download": "Criar atalhos no Ambiente de Trabalho e no Menu Iniciar quando o jogo terminar de transferir",
+    "default_wine_prefix": "Localização predefinida do prefixo Wine",
     "default_proton_version": "Versão predefinida do Proton",
     "default_proton_version_description": "Seleciona a versão do Proton usada pelo modo Automático quando um jogo não tem uma substituição personalizada",
     "proton_version_auto": "Automático (predefinição global ou predefinição do umu)",
