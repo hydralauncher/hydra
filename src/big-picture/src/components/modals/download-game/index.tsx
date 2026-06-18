@@ -912,6 +912,7 @@ function DownloadGameSourceList({
       })),
     [downloadSources]
   );
+  const firstSourceFocusId = sourceItems[0]?.focusId;
 
   const filteredDownloadOptions = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -1245,6 +1246,16 @@ function DownloadGameSourceList({
                       : option
                   }
                   stealFocusOnAppear={index === 0}
+                  focusNavigationOverrides={
+                    firstSourceFocusId
+                      ? {
+                          up: {
+                            type: "item",
+                            itemId: firstSourceFocusId,
+                          },
+                        }
+                      : undefined
+                  }
                   onSelect={() => onSelectOption(option)}
                 />
               ))}

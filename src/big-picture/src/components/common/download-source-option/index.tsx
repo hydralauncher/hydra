@@ -2,6 +2,7 @@ import { GameRepack } from "@types";
 import { formatDate } from "../../../hooks";
 import { useMemo } from "react";
 import { CalendarDotsIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import type { FocusOverrides } from "../../../services";
 
 import "./styles.scss";
 import { FocusItem } from "../focus-item";
@@ -12,6 +13,7 @@ interface DownloadSourceOptionProps {
     "title" | "fileSize" | "downloadSourceName" | "uploadDate"
   >;
   stealFocusOnAppear?: boolean;
+  focusNavigationOverrides?: FocusOverrides;
   onSelect: (
     option: Pick<
       GameRepack,
@@ -23,6 +25,7 @@ interface DownloadSourceOptionProps {
 export function DownloadSourceOption({
   option,
   stealFocusOnAppear = false,
+  focusNavigationOverrides,
   onSelect,
 }: Readonly<DownloadSourceOptionProps>) {
   const formatedDate = useMemo(() => {
@@ -30,7 +33,11 @@ export function DownloadSourceOption({
   }, [option.uploadDate]);
 
   return (
-    <FocusItem asChild stealFocusOnAppear={stealFocusOnAppear}>
+    <FocusItem
+      asChild
+      stealFocusOnAppear={stealFocusOnAppear}
+      navigationOverrides={focusNavigationOverrides}
+    >
       <button
         className="download-source-option"
         onClick={() => onSelect(option)}
