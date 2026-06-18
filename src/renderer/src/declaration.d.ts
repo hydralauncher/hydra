@@ -46,6 +46,7 @@ import type {
   EmulatorConfig,
   EmulatorConfigMap,
   EmulatorSystem,
+  EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardRestoreResult,
@@ -506,6 +507,10 @@ declare global {
       platform: EmulationSavePlatform,
       cardFilePath: string
     ) => Promise<{ uploaded: number; total: number }>;
+    onEmulationBackupProgress: (
+      cb: (payload: EmulationBackupProgress) => void
+    ) => () => Electron.IpcRenderer;
+    getActiveEmulationBackups: () => Promise<EmulationBackupProgress[]>;
     listEmulationSaves: (
       platform: EmulationSavePlatform,
       objectId?: string | null
