@@ -41,7 +41,6 @@ interface Props {
 const SLOT_X_RATIO = 59.5 / 411;
 const SLOT_Y_RATIO = 129 / 221;
 const BRANCH_GAP = 40;
-const MIN_BRANCH_GAP = 8;
 
 interface Connector {
   width: number;
@@ -132,6 +131,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     });
 
     type CardGeom = (typeof cardGeoms)[number];
+
     const rowsByTop = new Map<number, CardGeom[]>();
     for (const geom of cardGeoms) {
       const key = Math.round(geom.top);
@@ -139,39 +139,38 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
       if (row) row.push(geom);
       else rowsByTop.set(key, [geom]);
     }
-    const rows = Array.from(rowsByTop.values()).sort(
-      (a, b) => a[0].top - b[0].top
-    );
+    const firstRow = Array.from(rowsByTop.entries()).sort(
+      (a, b) => a[0] - b[0]
+    )[0][1];
 
     const segments: string[] = [];
-    const busYs: number[] = [];
-    let prevRowBottom: number | null = null;
 
-    rows.forEach((row, index) => {
-      const rowTop = Math.min(...row.map((c) => c.top));
-      const gapAbove =
-        prevRowBottom === null ? BRANCH_GAP : rowTop - prevRowBottom;
-      const branch =
-        index === 0
-          ? BRANCH_GAP
-          : Math.max(MIN_BRANCH_GAP, Math.min(BRANCH_GAP, gapAbove / 2));
-      const busY = rowTop - branch;
-      busYs.push(busY);
+    const rowTop = Math.min(...firstRow.map((c) => c.top));
+    const busY = rowTop - BRANCH_GAP;
+    const xs = firstRow.map((c) => c.x).sort((a, b) => a - b);
+    const left = Math.min(slotX, xs[0]);
+    const right = Math.max(slotX, xs[xs.length - 1]);
+    segments.push(`M ${slotX} ${slotY} L ${slotX} ${busY}`);
+    segments.push(`M ${left} ${busY} L ${right} ${busY}`);
+    for (const geom of firstRow) {
+      segments.push(`M ${geom.x} ${busY} L ${geom.x} ${geom.top}`);
+    }
 
-      const xs = row.map((c) => c.x).sort((a, b) => a - b);
-      const left = Math.min(slotX, xs[0]);
-      const right = Math.max(slotX, xs[xs.length - 1]);
-      segments.push(`M ${left} ${busY} L ${right} ${busY}`);
-      for (const geom of row) {
-        segments.push(`M ${geom.x} ${busY} L ${geom.x} ${geom.top}`);
+    const columns = new Map<number, CardGeom[]>();
+    for (const geom of cardGeoms) {
+      const key = Math.round(geom.x);
+      const column = columns.get(key);
+      if (column) column.push(geom);
+      else columns.set(key, [geom]);
+    }
+    for (const column of columns.values()) {
+      column.sort((a, b) => a.top - b.top);
+      for (let i = 1; i < column.length; i += 1) {
+        const upper = column[i - 1];
+        const lower = column[i];
+        segments.push(`M ${lower.x} ${upper.bottom} L ${lower.x} ${lower.top}`);
       }
-
-      prevRowBottom = Math.max(...row.map((c) => c.bottom));
-    });
-
-    segments.unshift(
-      `M ${slotX} ${slotY} L ${slotX} ${busYs[busYs.length - 1]}`
-    );
+    }
 
     setConnector({
       width: stageRect.width,
