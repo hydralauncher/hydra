@@ -375,11 +375,8 @@ export function MemoryCardsSection({
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const {
-    backupProgressByCard,
-    markCardBackupStarted,
-    markCardBackupFinished,
-  } = useEmulationBackupProgress(platform);
+  const { backupProgressByCard, backupCard } =
+    useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -498,32 +495,18 @@ export function MemoryCardsSection({
 
   const handleBackupAll = useCallback(
     async (cardFilePath: string, recordCount: number) => {
-      markCardBackupStarted(cardFilePath, recordCount);
-      try {
-        const result =
-          await globalThis.window.electron.uploadEmulationSavesForCard(
-            platform,
-            cardFilePath
-          );
+      const result = await backupCard(cardFilePath, recordCount);
+      if (result) {
         showSuccessToast("Cloud backup complete", {
           ...SETTINGS_TOAST_OPTIONS,
           message: `${result.uploaded}/${result.total} saves uploaded.`,
         });
         onUploaded?.();
-      } catch {
+      } else {
         showErrorToast("Cloud backup failed", SETTINGS_TOAST_OPTIONS);
-      } finally {
-        markCardBackupFinished(cardFilePath);
       }
     },
-    [
-      onUploaded,
-      platform,
-      showErrorToast,
-      showSuccessToast,
-      markCardBackupStarted,
-      markCardBackupFinished,
-    ]
+    [onUploaded, backupCard, showErrorToast, showSuccessToast]
   );
 
   const handleForgetCard = useCallback(async () => {

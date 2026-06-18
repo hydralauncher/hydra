@@ -13,13 +13,7 @@ import type {
   EmulatorConfig,
   MemcardRestoreTarget,
 } from "@types";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -45,6 +39,8 @@ import {
 } from "../settings-navigation";
 import { SETTINGS_TOAST_OPTIONS, basename } from "./shared";
 
+import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
+
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
 
@@ -66,16 +62,6 @@ interface RenameModalProps {
   onClose: () => void;
   onRenamed: () => void;
 }
-
-interface Connector {
-  width: number;
-  height: number;
-  path: string;
-}
-
-const SLOT_X_RATIO = 59.5 / 411;
-const SLOT_Y_RATIO = 129 / 221;
-const BRANCH_GAP = 40;
 
 const RESTORE_MODAL_REGION_ID = "emulation-cloud-restore-modal-region";
 const RESTORE_MODAL_ACTIONS_REGION_ID = "emulation-cloud-restore-modal-actions";
@@ -385,14 +371,7 @@ export function CloudSavesSection({
     position: { x: number; y: number };
   } | null>(null);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const consoleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [connector, setConnector] = useState<Connector>({
-    width: 0,
-    height: 0,
-    path: "",
-  });
+  const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
   const loadSaves = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -421,100 +400,6 @@ export function CloudSavesSection({
     showSuccessToast("Cloud save removed", SETTINGS_TOAST_OPTIONS);
     await loadSaves();
   }, [deleteTarget, loadSaves, showSuccessToast]);
-
-  const drawConnector = useCallback(() => {
-    const stage = stageRef.current;
-    const consoleElement = consoleRef.current;
-    const grid = gridRef.current;
-
-    if (!stage || !consoleElement || !grid) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const consoleRect = consoleElement.getBoundingClientRect();
-    const cards = Array.from(
-      grid.querySelectorAll<HTMLElement>(".emulator-detail__cloud-card")
-    );
-
-    if (cards.length === 0) {
-      setConnector({
-        width: stageRect.width,
-        height: stageRect.height,
-        path: "",
-      });
-      return;
-    }
-
-    const slotX =
-      consoleRect.left - stageRect.left + SLOT_X_RATIO * consoleRect.width;
-    const slotY =
-      consoleRect.top - stageRect.top + SLOT_Y_RATIO * consoleRect.height;
-
-    const cardGeoms = cards.map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        x: rect.left - stageRect.left + rect.width / 2,
-        top: rect.top - stageRect.top,
-        bottom: rect.bottom - stageRect.top,
-      };
-    });
-
-    type CardGeom = (typeof cardGeoms)[number];
-
-    const rowsByTop = new Map<number, CardGeom[]>();
-    for (const geom of cardGeoms) {
-      const key = Math.round(geom.top);
-      const row = rowsByTop.get(key);
-      if (row) row.push(geom);
-      else rowsByTop.set(key, [geom]);
-    }
-    const firstRow = Array.from(rowsByTop.entries()).sort(
-      (a, b) => a[0] - b[0]
-    )[0][1];
-
-    const segments: string[] = [];
-
-    const rowTop = Math.min(...firstRow.map((c) => c.top));
-    const busY = rowTop - BRANCH_GAP;
-    const xs = firstRow.map((c) => c.x).sort((a, b) => a - b);
-    const left = Math.min(slotX, xs[0]);
-    const right = Math.max(slotX, xs[xs.length - 1]);
-    segments.push(`M ${slotX} ${slotY} L ${slotX} ${busY}`);
-    segments.push(`M ${left} ${busY} L ${right} ${busY}`);
-    for (const geom of firstRow) {
-      segments.push(`M ${geom.x} ${busY} L ${geom.x} ${geom.top}`);
-    }
-
-    const columns = new Map<number, CardGeom[]>();
-    for (const geom of cardGeoms) {
-      const key = Math.round(geom.x);
-      const column = columns.get(key);
-      if (column) column.push(geom);
-      else columns.set(key, [geom]);
-    }
-    for (const column of columns.values()) {
-      column.sort((a, b) => a.top - b.top);
-      for (let i = 1; i < column.length; i += 1) {
-        const upper = column[i - 1];
-        const lower = column[i];
-        segments.push(`M ${lower.x} ${upper.bottom} L ${lower.x} ${lower.top}`);
-      }
-    }
-
-    setConnector({
-      width: stageRect.width,
-      height: stageRect.height,
-      path: segments.join(" "),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    drawConnector();
-
-    const observer = new ResizeObserver(drawConnector);
-    if (stageRef.current) observer.observe(stageRef.current);
-
-    return () => observer.disconnect();
-  }, [drawConnector, saves]);
 
   if (!hasActiveSubscription || saves.length === 0) {
     return null;
