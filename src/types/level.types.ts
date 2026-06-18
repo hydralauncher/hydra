@@ -132,6 +132,7 @@ export interface DownloadDirectoryPreference {
 
 export interface UserPreferences {
   downloadsPath?: string | null;
+  defaultWinePrefixPath?: string | null;
   downloadDirectories?: DownloadDirectoryPreference[];
   optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
