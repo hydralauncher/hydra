@@ -144,8 +144,8 @@ export default function Home() {
   const {
     pendingAction,
     isSubmittingAction,
-    requestRemoveFiles: requestRemoveFilesFromMenu,
-    requestRemoveFromLibrary: requestRemoveFromLibraryFromMenu,
+    requestRemoveFiles: handleRequestRemoveFilesFromMenu,
+    requestRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
     closePendingAction,
     confirmPendingAction,
   } = useLibraryPendingAction({
