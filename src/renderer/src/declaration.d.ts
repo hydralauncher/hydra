@@ -50,6 +50,7 @@ import type {
   EmulatorInstallProgress,
   EmulatorInstallResult,
   ResolvedInstallOption,
+  DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
   MemcardRestoreResult,
@@ -410,6 +411,7 @@ declare global {
       system: EmulatorSystem,
       folderId: string
     ) => Promise<EmulatorConfig>;
+    listEmulatorRoms: (system: EmulatorSystem) => Promise<DetectedRom[]>;
     toggleRomFolderSubfolders: (
       system: EmulatorSystem,
       folderId: string,
@@ -725,6 +727,7 @@ declare global {
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
+    isWayland: boolean;
 
     /* Auto update */
     onAutoUpdaterEvent: (
@@ -851,6 +854,13 @@ declare global {
     closeGameLauncherWindow: () => Promise<void>;
     openMainWindow: () => Promise<void>;
     isMainWindowOpen: () => Promise<boolean>;
+
+    /* Main Window Controls */
+    minimizeMainWindow: () => Promise<void>;
+    toggleMaximizeMainWindow: () => Promise<void>;
+    closeMainWindow: () => Promise<void>;
+    isMainWindowMaximized: () => Promise<boolean>;
+    onWindowMaximizeChange: (cb: (isMaximized: boolean) => void) => () => void;
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;

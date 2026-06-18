@@ -77,6 +77,7 @@ export interface Game {
   discs?: ClassicsDisc[];
   selectedDiscPath?: string | null;
   dontAskDiscSelection?: boolean;
+  romSizeBytes?: number | null;
 }
 
 export interface Download {
@@ -131,6 +132,7 @@ export interface DownloadDirectoryPreference {
 
 export interface UserPreferences {
   downloadsPath?: string | null;
+  defaultWinePrefixPath?: string | null;
   downloadDirectories?: DownloadDirectoryPreference[];
   optionalDownloadsPaths?: string[];
   ggDealsApiKey?: string | null;
