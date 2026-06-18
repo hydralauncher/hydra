@@ -7,17 +7,17 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
-import { motion } from "framer-motion";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FocusOverrides,
   FocusOverrideTarget,
 } from "src/big-picture/src/services/navigation.service";
-import { getPreferredGameAssets } from "../../../../helpers";
+import { resolvePreferredGameAssets } from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
+  AnimatedHeroImage,
   Button,
   Divider,
   HorizontalFocusGroup,
@@ -30,6 +30,8 @@ import {
   GAME_HERO_PRIMARY_ACTION_ID,
   GAME_HERO_TOGGLE_FAVORITE_ID,
 } from "../navigation";
+import { useHeroBackgroundLayers } from "../../library/hero/use-hero-background-layers";
+import cn from "classnames";
 
 export interface HeroProps {
   shopDetails: ShopDetailsWithAssets;
@@ -68,11 +70,12 @@ export function Hero({
 }: Readonly<HeroProps>) {
   const { t } = useTranslation("game_details");
   const preferredAssets = useMemo(
-    () => getPreferredGameAssets(game, shopDetails.assets),
+    () => resolvePreferredGameAssets(game, shopDetails.assets),
     [game, shopDetails.assets]
   );
-  const dominantColor = useDominantColor(
-    preferredAssets.libraryHeroImageUrl
+  const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
+  const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
+    preferredAssets.heroSrc || null
   );
   const heroDownNavigationTarget = useMemo<FocusOverrideTarget>(
     () => downNavigationTarget ?? { type: "block" },
@@ -309,28 +312,31 @@ export function Hero({
 
   return (
     <section className="game-page__hero-shell">
-      <motion.div
-        initial={{ scale: 1, x: 0, y: 0 }}
-        animate={{
-          scale: 1.1,
-          x: -10,
-          y: -10,
-        }}
-        transition={{
-          duration: 20,
-          ease: "easeInOut",
-          repeat: Infinity,
-          repeatType: "mirror",
-        }}
-        className="game-page__hero"
-        style={{
-          backgroundImage: `url(${preferredAssets.libraryHeroImageUrl ?? ""})`,
-        }}
-      />
+      {backgroundLayers.map((layer) => {
+        const layerHandlers = getLayerEventHandlers(layer);
+
+        return (
+          <div
+            key={layer.key}
+            className={cn(
+              `game-page__hero-bg-layer game-page__hero-bg-layer--${layer.role}`,
+              layer.isVisible && "game-page__hero-bg-layer--visible"
+            )}
+            onTransitionEnd={layerHandlers.onTransitionEnd}
+          >
+            <AnimatedHeroImage
+              className="game-page__hero"
+              imageUrl={layer.imageUrl}
+              onLoad={layerHandlers.onLoad}
+              onError={layerHandlers.onError}
+            />
+          </div>
+        );
+      })}
 
       <div className="game-page__hero-overlay">
         <img
-          src={preferredAssets.logoImageUrl || ""}
+          src={preferredAssets.logoSrc}
           alt={preferredAssets.title}
           className="game-page__hero-logo"
         />

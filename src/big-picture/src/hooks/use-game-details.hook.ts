@@ -12,7 +12,7 @@ import type {
 import {
   buildFavoriteToastOptions,
   buildGameToastVisualOptions,
-  getPreferredGameAssets,
+  resolvePreferredGameAssets,
   getSteamLanguage,
 } from "../helpers";
 import { useBigPictureToast } from "./use-big-picture-toast.hook";
@@ -36,6 +36,7 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const [protonDBData, setProtonDBData] = useState<ProtonDBData | null>(null);
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const updateGame = useCallback(async () => {
     if (!IS_DESKTOP) return;
@@ -46,45 +47,63 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     setGame(result);
   }, [objectId, shop]);
 
-  const fetchGameDetails = useCallback(async () => {
-    if (!IS_DESKTOP) return;
+  const fetchGameDetails = useCallback(
+    async ({
+      showLoadingState = false,
+    }: { showLoadingState?: boolean } = {}) => {
+      if (!IS_DESKTOP) return;
 
-    setIsLoading(true);
+      if (showLoadingState) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
 
-    const [userPreferences, statsResult, assets] = await Promise.all([
-      globalThis.window.electron
-        .getUserPreferences()
-        .catch(() => ({ language: "en" })),
-      shop === "custom"
-        ? Promise.resolve(null)
-        : globalThis.window.electron.getGameStats(objectId, shop),
-      globalThis.window.electron.getGameAssets(objectId, shop),
-    ]);
+      try {
+        const [userPreferences, statsResult, assets] = await Promise.all([
+          globalThis.window.electron
+            .getUserPreferences()
+            .catch(() => ({ language: "en" })),
+          shop === "custom"
+            ? Promise.resolve(null)
+            : globalThis.window.electron.getGameStats(objectId, shop),
+          globalThis.window.electron.getGameAssets(objectId, shop),
+        ]);
 
-    const shopDetailsResult =
-      shop === "custom"
-        ? null
-        : await globalThis.window.electron.getGameShopDetails(
-            objectId,
-            shop,
-            getSteamLanguage(userPreferences?.language ?? "en")
-          );
+        const shopDetailsResult =
+          shop === "custom"
+            ? null
+            : await globalThis.window.electron.getGameShopDetails(
+                objectId,
+                shop,
+                getSteamLanguage(userPreferences?.language ?? "en")
+              );
 
-    if (shopDetailsResult) {
-      shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
-    }
+        if (shopDetailsResult) {
+          shopDetailsResult.assets = assets ?? shopDetailsResult.assets;
+        }
 
-    setShopDetails(shopDetailsResult);
-    setStats(statsResult);
-    setIsLoading(false);
-  }, [objectId, shop]);
+        setShopDetails(shopDetailsResult);
+        setStats(statsResult);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [objectId, shop]
+  );
 
-  const refreshGameDetails = useCallback(async () => {
-    await Promise.all([updateGame(), fetchGameDetails()]);
-  }, [fetchGameDetails, updateGame]);
+  const refreshGameDetails = useCallback(
+    async ({
+      showLoadingState = false,
+    }: { showLoadingState?: boolean } = {}) => {
+      await Promise.all([updateGame(), fetchGameDetails({ showLoadingState })]);
+    },
+    [fetchGameDetails, updateGame]
+  );
 
   useEffect(() => {
-    void refreshGameDetails();
+    void refreshGameDetails({ showLoadingState: true });
 
     if (IS_DESKTOP && shop !== "custom") {
       globalThis.window.electron.hydraApi
@@ -166,7 +185,10 @@ export function useGameDetails(objectId: string, shop: GameShop) {
   const toggleFavorite = useCallback(async () => {
     if (!game) return;
 
-    const preferredAssets = getPreferredGameAssets(game, shopDetails?.assets);
+    const preferredAssets = resolvePreferredGameAssets(
+      game,
+      shopDetails?.assets
+    );
 
     const toastSource = {
       title: preferredAssets.title,
@@ -210,22 +232,20 @@ export function useGameDetails(objectId: string, shop: GameShop) {
     refreshGameDetails,
   ]);
 
-  const mergedShopDetails = useMemo(() => {
-    if (!shopDetails) return null;
-
-    return {
-      ...shopDetails,
-      assets: getPreferredGameAssets(game, shopDetails.assets),
-    };
-  }, [game, shopDetails]);
+  const preferredAssets = useMemo(
+    () => resolvePreferredGameAssets(game, shopDetails?.assets),
+    [game, shopDetails?.assets]
+  );
 
   return {
-    shopDetails: mergedShopDetails,
+    shopDetails,
+    preferredAssets,
     stats,
     game,
     isGameRunning,
     runningSessionDurationInMillis,
     isLoading,
+    isRefreshing,
     howLongToBeat,
     protonDBData,
     achievements,

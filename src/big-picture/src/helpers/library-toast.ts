@@ -1,7 +1,6 @@
 import type { BigPictureToastOptions } from "../stores";
 import { getDominantColorFromImage } from "./color";
-import { getPreferredGameAssets } from "./preferred-assets";
-import { resolveImageSource } from "./image";
+import { resolvePreferredGameAssets } from "./preferred-assets";
 
 type LibraryToastMutation = "added" | "removed";
 type FavoriteToastMutation = "added" | "removed";
@@ -20,20 +19,6 @@ export interface LibraryToastSource {
 }
 
 const dominantColorCache = new Map<string, string | null>();
-
-function getFirstResolvedImageSource(
-  ...sources: Array<string | null | undefined>
-): string | undefined {
-  for (const source of sources) {
-    const resolvedSource = resolveImageSource(source);
-
-    if (resolvedSource) {
-      return resolvedSource;
-    }
-  }
-
-  return undefined;
-}
 
 async function getCachedDominantColor(
   imageUrl: string | undefined
@@ -85,18 +70,15 @@ export async function buildGameToastVisualOptions(
   game: LibraryToastSource,
   options: { color?: string | null } = {}
 ): Promise<Pick<BigPictureToastOptions, "imageUrl" | "color">> {
-  const preferredAssets = getPreferredGameAssets(game, null);
-  const imageUrl = getFirstResolvedImageSource(
-    preferredAssets.coverImageUrl,
-    preferredAssets.libraryImageUrl,
-    preferredAssets.iconUrl
-  );
-  const colorSource = getFirstResolvedImageSource(
-    preferredAssets.libraryHeroImageUrl,
-    preferredAssets.libraryImageUrl,
-    preferredAssets.coverImageUrl,
-    preferredAssets.iconUrl
-  );
+  const preferredAssets = resolvePreferredGameAssets(game, null);
+  const imageUrl =
+    preferredAssets.coverSrc || preferredAssets.iconSrc || undefined;
+  const colorSource =
+    preferredAssets.heroSrc ||
+    preferredAssets.landscapeSrc ||
+    preferredAssets.coverSrc ||
+    preferredAssets.iconSrc ||
+    undefined;
   const color = options.color ?? (await getCachedDominantColor(colorSource));
 
   return {

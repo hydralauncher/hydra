@@ -6,7 +6,7 @@ import {
   PlayIcon,
   TrophyIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import cn from "classnames";
 import {
   Button,
@@ -16,7 +16,7 @@ import {
 } from "../../../common";
 import {
   formatRelativeDate,
-  getPreferredGameAssets,
+  resolvePreferredGameAssets,
 } from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { type FocusOverrides } from "../../../../services";
@@ -64,14 +64,12 @@ export function LibraryHero({
   );
   const getHeroScrollAnchor = useCallback(() => heroRef.current, []);
   const preferredAssets = useMemo(
-    () => getPreferredGameAssets(featuredGame, null),
+    () => resolvePreferredGameAssets(featuredGame, null),
     [featuredGame]
   );
-  const dominantColor = useDominantColor(
-    preferredAssets.libraryHeroImageUrl
-  );
+  const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    preferredAssets.libraryHeroImageUrl
+    preferredAssets.heroSrc || null
   );
 
   useEffect(() => {
@@ -156,9 +154,9 @@ export function LibraryHero({
       <div className="hero__content">
         <div className="hero__content__left">
           <div className="hero__logo">
-            {preferredAssets.logoImageUrl ? (
+            {preferredAssets.logoSrc ? (
               <img
-                src={preferredAssets.logoImageUrl}
+                src={preferredAssets.logoSrc}
                 alt={featuredGame.title}
                 className="hero__logo__image"
               />

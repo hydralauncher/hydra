@@ -1,9 +1,12 @@
 import type { LibraryGame, ShopAssets } from "@types";
+import { resolveImageSource } from "./image";
 
 type PreferredGameSource = Partial<
   Pick<
     LibraryGame,
     | "title"
+    | "objectId"
+    | "shop"
     | "customIconUrl"
     | "customLogoImageUrl"
     | "customHeroImageUrl"
@@ -17,6 +20,8 @@ type PreferredGameSource = Partial<
 >;
 
 export interface PreferredGameAssets {
+  objectId: string;
+  shop: ShopAssets["shop"];
   title: string;
   iconUrl: string | null;
   logoImageUrl: string | null;
@@ -27,11 +32,35 @@ export interface PreferredGameAssets {
   downloadSources: string[];
 }
 
+export interface ResolvedPreferredGameAssets extends PreferredGameAssets {
+  iconSrc: string;
+  logoSrc: string;
+  heroSrc: string;
+  coverSrc: string;
+  landscapeSrc: string;
+}
+
+function getFirstResolvedSource(
+  ...sources: Array<string | null | undefined>
+): string {
+  for (const source of sources) {
+    const resolvedSource = resolveImageSource(source);
+
+    if (resolvedSource) {
+      return resolvedSource;
+    }
+  }
+
+  return "";
+}
+
 export function getPreferredGameAssets(
   game: PreferredGameSource | null | undefined,
   assets: ShopAssets | null | undefined
 ): PreferredGameAssets {
   return {
+    objectId: assets?.objectId ?? game?.objectId ?? "",
+    shop: assets?.shop ?? game?.shop ?? "steam",
     title: assets?.title ?? game?.title ?? "",
     iconUrl: game?.customIconUrl ?? assets?.iconUrl ?? game?.iconUrl ?? null,
     logoImageUrl:
@@ -48,5 +77,53 @@ export function getPreferredGameAssets(
     coverImageUrl: assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
     logoPosition: assets?.logoPosition ?? game?.logoPosition ?? null,
     downloadSources: assets?.downloadSources ?? [],
+  };
+}
+
+export function resolvePreferredGameAssets(
+  game: PreferredGameSource | null | undefined,
+  assets: ShopAssets | null | undefined
+): ResolvedPreferredGameAssets {
+  const preferredAssets = getPreferredGameAssets(game, assets);
+  const iconSrc = resolveImageSource(preferredAssets.iconUrl);
+  const logoSrc = resolveImageSource(preferredAssets.logoImageUrl);
+  const heroSrc = getFirstResolvedSource(
+    game?.customHeroImageUrl,
+    game?.customIconUrl,
+    assets?.libraryHeroImageUrl,
+    game?.libraryHeroImageUrl,
+    assets?.libraryImageUrl,
+    game?.libraryImageUrl,
+    assets?.iconUrl,
+    game?.iconUrl
+  );
+  const coverSrc = getFirstResolvedSource(
+    game?.customHeroImageUrl,
+    game?.customIconUrl,
+    assets?.coverImageUrl,
+    game?.coverImageUrl,
+    assets?.libraryImageUrl,
+    game?.libraryImageUrl,
+    assets?.iconUrl,
+    game?.iconUrl
+  );
+  const landscapeSrc = getFirstResolvedSource(
+    game?.customHeroImageUrl,
+    game?.customIconUrl,
+    assets?.libraryImageUrl,
+    game?.libraryImageUrl,
+    assets?.coverImageUrl,
+    game?.coverImageUrl,
+    assets?.iconUrl,
+    game?.iconUrl
+  );
+
+  return {
+    ...preferredAssets,
+    iconSrc,
+    logoSrc,
+    heroSrc,
+    coverSrc,
+    landscapeSrc,
   };
 }
