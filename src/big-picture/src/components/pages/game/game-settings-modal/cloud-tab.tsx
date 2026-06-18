@@ -136,10 +136,9 @@ export function GameCloudSettingsTab({
     setLoadingPreview(true);
 
     try {
-      const preview = await (globalThis.window.electron as any).getGameBackupPreview(
-        game.objectId,
-        game.shop
-      );
+      const preview = await (
+        globalThis.window.electron as any
+      ).getGameBackupPreview(game.objectId, game.shop);
       setBackupPreview(preview);
     } catch {
       setBackupPreview(null);
@@ -154,16 +153,17 @@ export function GameCloudSettingsTab({
   }, [loadArtifacts, loadBackupPreview]);
 
   useEffect(() => {
-    const removeUploadCompleteListener = globalThis.window.electron.onUploadComplete(
-      game.objectId,
-      game.shop,
-      () => {
-        showSuccessToast("Cloud backup complete");
-        setCreatingBackup(false);
-        loadArtifacts().catch(() => {});
-        loadBackupPreview().catch(() => {});
-      }
-    );
+    const removeUploadCompleteListener =
+      globalThis.window.electron.onUploadComplete(
+        game.objectId,
+        game.shop,
+        () => {
+          showSuccessToast("Cloud backup complete");
+          setCreatingBackup(false);
+          loadArtifacts().catch(() => {});
+          loadBackupPreview().catch(() => {});
+        }
+      );
 
     const removeDownloadCompleteListener =
       globalThis.window.electron.onBackupDownloadComplete(
