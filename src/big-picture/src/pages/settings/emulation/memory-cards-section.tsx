@@ -9,7 +9,6 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 import type {
-  EmulationBackupProgress,
   EmulationSavePlatform,
   EmulatorConfig,
   EmulatorSystem,
@@ -37,6 +36,10 @@ import {
   useUserDetails,
 } from "../../../hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
+import {
+  resolveCardBackupProgress,
+  useEmulationBackupProgress,
+} from "@renderer/hooks/use-emulation-backup-progress";
 import {
   EMULATION_DETAIL_MEMORY_CARDS_DETECT_BUTTON_ID,
   EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID,
@@ -116,8 +119,6 @@ const PICK_FILTERS = {
   },
   ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
 } as const;
-
-const PERCENT = 100;
 
 const saveKey = (save: MemoryCardSaveRecord) =>
   `${save.cardFilePath}::${save.folderName}`;
@@ -374,9 +375,8 @@ export function MemoryCardsSection({
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
-  const [backupProgress, setBackupProgress] =
-    useState<EmulationBackupProgress | null>(null);
+  const { backingUpCard, backupProgress, setBackingUpCard, setBackupProgress } =
+    useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -396,42 +396,6 @@ export function MemoryCardsSection({
   useEffect(() => {
     void loadSaves();
   }, [loadSaves]);
-
-  useEffect(() => {
-    let active = true;
-    const seenDone = new Set<string>();
-
-    void globalThis.window.electron.getActiveEmulationBackups().then((list) => {
-      if (!active) return;
-      const match = list.find((b) => b.platform === platform);
-      if (!match || seenDone.has(match.cardFilePath)) return;
-      setBackingUpCard(match.cardFilePath);
-      setBackupProgress(match);
-    });
-
-    const unsubscribe = globalThis.window.electron.onEmulationBackupProgress(
-      (payload) => {
-        if (payload.platform !== platform) return;
-        if (payload.processed >= payload.total) {
-          seenDone.add(payload.cardFilePath);
-          setBackingUpCard((prev) =>
-            prev === payload.cardFilePath ? null : prev
-          );
-          setBackupProgress((prev) =>
-            prev?.cardFilePath === payload.cardFilePath ? null : prev
-          );
-          return;
-        }
-        setBackingUpCard(payload.cardFilePath);
-        setBackupProgress(payload);
-      }
-    );
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [platform]);
 
   const groups = useMemo(() => {
     const map = new Map<
@@ -551,7 +515,14 @@ export function MemoryCardsSection({
         setBackupProgress(null);
       }
     },
-    [onUploaded, platform, showErrorToast, showSuccessToast]
+    [
+      onUploaded,
+      platform,
+      showErrorToast,
+      showSuccessToast,
+      setBackingUpCard,
+      setBackupProgress,
+    ]
   );
 
   const handleForgetCard = useCallback(async () => {
@@ -634,21 +605,18 @@ export function MemoryCardsSection({
               const firstRecordMenuId = firstRecord
                 ? getEmulationMemcardMenuFocusId(saveKey(firstRecord))
                 : null;
-              const isBackingUp = backingUpCard === cardFilePath;
-              const progress =
-                isBackingUp && backupProgress?.cardFilePath === cardFilePath
-                  ? backupProgress
-                  : null;
-              const progressTotal = progress?.total ?? records.length;
-              const progressDone = progress?.processed ?? 0;
-              const progressLabel = progress?.currentLabel ?? null;
-              const progressPercent =
-                progressTotal > 0
-                  ? Math.min(
-                      PERCENT,
-                      Math.round((progressDone / progressTotal) * PERCENT)
-                    )
-                  : 0;
+              const {
+                isBackingUp,
+                total: progressTotal,
+                done: progressDone,
+                label: progressLabel,
+                percent: progressPercent,
+              } = resolveCardBackupProgress(
+                backingUpCard,
+                backupProgress,
+                cardFilePath,
+                records.length
+              );
               return (
                 <div
                   key={cardFilePath}
