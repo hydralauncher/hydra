@@ -94,7 +94,7 @@ export function GameDetailsContextProvider({
     useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
-  const { i18n } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const location = useLocation();
 
   const dispatch = useAppDispatch();
@@ -414,16 +414,29 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
+    const filters =
+      window.electron.platform === "linux"
+        ? [
+            {
+              name: t("game_executable"),
+              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+            },
+            { name: t("all_files"), extensions: ["*"] },
+          ]
+        : window.electron.platform === "darwin"
+          ? [{ name: t("game_executable"), extensions: ["app"] }]
+          : [
+              {
+                name: t("game_executable"),
+                extensions: ["exe", "lnk", "bat", "cmd"],
+              },
+            ];
+
     return window.electron
       .showOpenDialog({
         properties: ["openFile"],
         defaultPath: downloadsPath,
-        filters: [
-          {
-            name: "Game executable",
-            extensions: ["exe", "lnk"],
-          },
-        ],
+        filters,
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {
