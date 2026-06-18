@@ -11,10 +11,7 @@ import {
   type TabsItem,
   VerticalFocusGroup,
 } from "../../../common";
-import {
-  getGameHorizontalImageSource,
-  resolveImageSource,
-} from "../../../../helpers";
+import { resolvePreferredGameAssets } from "../../../../helpers";
 import { useGamepad } from "../../../../hooks";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { useNavigationIsFocused } from "../../../../stores";
@@ -28,6 +25,13 @@ const GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID =
   "game-customization-settings-asset-preview";
 
 type AssetTab = "icon" | "logo" | "hero";
+type AssetPreviewState = Record<
+  AssetTab,
+  {
+    src: string;
+    hasCustom: boolean;
+  }
+>;
 
 const ASSET_FRAME_SIZES: Record<AssetTab, { width: number; height: number }> = {
   icon: { width: 192, height: 192 },
@@ -45,6 +49,64 @@ export interface GameCustomizationSettingsProps {
   onClearAsset: (assetType: AssetTab) => Promise<void>;
 }
 
+function getAssetPreviewState(game: LibraryGame): AssetPreviewState {
+  const preferredAssets = resolvePreferredGameAssets(game, null);
+
+  return {
+    icon: {
+      src: preferredAssets.iconSrc,
+      hasCustom: Boolean(game.customIconUrl),
+    },
+    logo: {
+      src: preferredAssets.logoSrc,
+      hasCustom: Boolean(game.customLogoImageUrl),
+    },
+    hero: {
+      src: preferredAssets.heroSrc,
+      hasCustom: Boolean(game.customHeroImageUrl),
+    },
+  };
+}
+
+function getFallbackPreviewState(
+  game: LibraryGame,
+  assetType: AssetTab
+): AssetPreviewState[AssetTab] {
+  if (assetType === "icon") {
+    const nextGame = {
+      ...game,
+      customIconUrl: null,
+    };
+
+    return {
+      src: resolvePreferredGameAssets(nextGame, null).iconSrc,
+      hasCustom: false,
+    };
+  }
+
+  if (assetType === "logo") {
+    const nextGame = {
+      ...game,
+      customLogoImageUrl: null,
+    };
+
+    return {
+      src: resolvePreferredGameAssets(nextGame, null).logoSrc,
+      hasCustom: false,
+    };
+  }
+
+  const nextGame = {
+    ...game,
+    customHeroImageUrl: null,
+  };
+
+  return {
+    src: resolvePreferredGameAssets(nextGame, null).heroSrc,
+    hasCustom: false,
+  };
+}
+
 export function GameCustomizationSettingsTab({
   game,
   gameTitle,
@@ -57,6 +119,10 @@ export function GameCustomizationSettingsTab({
   const { t } = useTranslation("big_picture");
   const [selectedAssetTab, setSelectedAssetTab] = useState<AssetTab>("icon");
   const [hasAssetTabsInteracted, setHasAssetTabsInteracted] = useState(false);
+  const [assetPreviewState, setAssetPreviewState] = useState<AssetPreviewState>(
+    () => getAssetPreviewState(game)
+  );
+  const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
   const isPrimaryControlFocused = useNavigationIsFocused(
     GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
   );
@@ -92,61 +158,45 @@ export function GameCustomizationSettingsTab({
     setHasAssetTabsInteracted(true);
   }, []);
   const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
-  const hasCustomAsset = useMemo(() => {
-    switch (selectedAssetTab) {
-      case "icon":
-        return Boolean(game.customIconUrl);
-      case "logo":
-        return Boolean(game.customLogoImageUrl);
-      case "hero":
-        return Boolean(game.customHeroImageUrl);
-      default:
-        return false;
-    }
-  }, [
-    game.customHeroImageUrl,
-    game.customIconUrl,
-    game.customLogoImageUrl,
-    selectedAssetTab,
-  ]);
-  const assetImageSource = useMemo(() => {
-    switch (selectedAssetTab) {
-      case "icon":
-        if (game.customIconUrl) {
-          return resolveImageSource(game.customIconUrl);
-        }
-        return resolveImageSource(game.iconUrl);
-      case "logo":
-        if (game.customLogoImageUrl) {
-          return resolveImageSource(game.customLogoImageUrl);
-        }
-        return resolveImageSource(game.logoImageUrl);
-      case "hero":
-        if (game.customHeroImageUrl) {
-          return resolveImageSource(game.customHeroImageUrl);
-        }
-        return getGameHorizontalImageSource(game);
-      default:
-        return "";
-    }
-  }, [
-    game.customIconUrl,
-    game.customHeroImageUrl,
-    game.customLogoImageUrl,
-    game.iconUrl,
-    game.libraryHeroImageUrl,
-    game.libraryImageUrl,
-    game.logoImageUrl,
-    selectedAssetTab,
-  ]);
+  const hasCustomAsset = assetPreviewState[selectedAssetTab].hasCustom;
+  const assetImageSource = assetPreviewState[selectedAssetTab].src;
   const handleAssetPreviewAction = useCallback(() => {
+    if (pendingAssetTab) return;
+
     if (hasCustomAsset) {
-      void onClearAsset(selectedAssetTab);
+      setPendingAssetTab(selectedAssetTab);
+      setAssetPreviewState((currentState) => ({
+        ...currentState,
+        [selectedAssetTab]: getFallbackPreviewState(game, selectedAssetTab),
+      }));
+
+      void onClearAsset(selectedAssetTab).finally(() => {
+        setPendingAssetTab((currentTab) =>
+          currentTab === selectedAssetTab ? null : currentTab
+        );
+      });
       return;
     }
 
-    void onSelectAsset(selectedAssetTab);
-  }, [hasCustomAsset, onClearAsset, onSelectAsset, selectedAssetTab]);
+    setPendingAssetTab(selectedAssetTab);
+    void onSelectAsset(selectedAssetTab).finally(() => {
+      setPendingAssetTab((currentTab) =>
+        currentTab === selectedAssetTab ? null : currentTab
+      );
+    });
+  }, [
+    game,
+    hasCustomAsset,
+    onClearAsset,
+    onSelectAsset,
+    pendingAssetTab,
+    selectedAssetTab,
+  ]);
+
+  useEffect(() => {
+    setAssetPreviewState(getAssetPreviewState(game));
+    setPendingAssetTab(null);
+  }, [game]);
 
   useEffect(() => {
     const selectedIndex = assetTabValues.indexOf(selectedAssetTab);

@@ -82,10 +82,7 @@
     border-color 0.2s ease-in-out,
     box-shadow 0.2s ease-in-out;
 
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.65);
-  }
-
+  &:hover,
   &:focus-visible,
   &[data-focus-visible="true"] {
     outline: none;

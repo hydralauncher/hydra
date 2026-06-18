@@ -47,17 +47,26 @@ export function GameSettingsModal({
     }
   }, [visible]);
 
+  const launchContent = useMemo(
+    () => <GameLaunchSettingsTab {...launchSettings} />,
+    [launchSettings]
+  );
+  const customizationContent = useMemo(
+    () => <GameCustomizationSettingsTab {...customizationSettings} />,
+    [customizationSettings]
+  );
+
   const tabs = useMemo<SidebarModalTab[]>(
     () => [
       {
         id: "launch",
         label: "Launch",
-        content: <GameLaunchSettingsTab {...launchSettings} />,
+        content: launchContent,
       },
       {
         id: "customization",
         label: "Customization",
-        content: <GameCustomizationSettingsTab {...customizationSettings} />,
+        content: customizationContent,
       },
       {
         id: "hydra_cloud",
@@ -84,7 +93,7 @@ export function GameSettingsModal({
         content: <p>Danger Zone</p>,
       },
     ],
-    [customizationSettings, launchSettings, shouldShowCompatibilityTab, t]
+    [customizationContent, launchContent, shouldShowCompatibilityTab, t]
   );
 
   return (

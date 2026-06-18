@@ -3,7 +3,13 @@ import {
   PlayIcon,
   PlusCircleIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { TrendingGame } from "@types";
 import { DownloadGameModal } from "../../../components/modals";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +23,7 @@ import { useLibraryLaunchGame } from "../../../components/pages/library/use-libr
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import {
   buildLibraryToastOptions,
-  getPreferredGameAssets,
+  resolvePreferredGameAssets,
   getBigPictureGameDetailsPath,
   getItemFocusTarget,
 } from "../../../helpers";
@@ -62,15 +68,13 @@ export function HomePageHero({
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
   const [shouldShowLogoFallback, setShouldShowLogoFallback] = useState(false);
   const preferredAssets = useMemo(
-    () => getPreferredGameAssets(gameState.libraryGame, featuredGame),
+    () => resolvePreferredGameAssets(gameState.libraryGame, featuredGame),
     [featuredGame, gameState.libraryGame]
   );
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    preferredAssets.libraryHeroImageUrl
+    preferredAssets.heroSrc || null
   );
-  const dominantColor = useDominantColor(
-    preferredAssets.libraryHeroImageUrl
-  );
+  const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
   const isInLibrary = gameState.isInLibrary;
   const secondActionFocusId = isInLibrary
     ? HOME_HERO_DOWNLOAD_ID
@@ -82,7 +86,7 @@ export function HomePageHero({
 
   useEffect(() => {
     setShouldShowLogoFallback(false);
-  }, [preferredAssets.logoImageUrl]);
+  }, [preferredAssets.logoSrc]);
 
   const openGamePage = () => {
     if (!featuredGame) return;
@@ -240,9 +244,9 @@ export function HomePageHero({
       <div className="home-page-hero__content">
         <div className="home-page-hero__main">
           <div className="home-page-hero__logo">
-            {preferredAssets.logoImageUrl && !shouldShowLogoFallback ? (
+            {preferredAssets.logoSrc && !shouldShowLogoFallback ? (
               <img
-                src={preferredAssets.logoImageUrl}
+                src={preferredAssets.logoSrc}
                 alt={featuredGame.title}
                 className="home-page-hero__logo-image"
                 onError={() => setShouldShowLogoFallback(true)}

@@ -12,12 +12,7 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  buildLibraryToastOptions,
-  getPreferredGameAssets,
-  getItemFocusTarget,
-  resolveImageSource,
-} from "../../helpers";
+import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
 import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
@@ -383,6 +378,7 @@ export default function Game() {
     howLongToBeat,
     protonDBData,
     achievements,
+    preferredAssets,
     openGame,
     closeGame,
     toggleFavorite,
@@ -391,25 +387,24 @@ export default function Game() {
   } = useGameDetails(objectId!, shop!);
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
-    shopDetails?.assets?.title ?? game?.title ?? "Download Game";
-  const preferredGameAssets = useMemo(
-    () => getPreferredGameAssets(game, shopDetails?.assets),
-    [game, shopDetails?.assets]
-  );
+    preferredAssets.title || game?.title || "Download Game";
   const gameToastSource = useMemo<LibraryToastSource>(
     () => ({
       objectId: objectId ?? "",
       shop: shop ?? "steam",
-      title: preferredGameAssets.title || resolvedGameTitle,
-      iconUrl: preferredGameAssets.iconUrl,
-      libraryHeroImageUrl: preferredGameAssets.libraryHeroImageUrl,
-      libraryImageUrl: preferredGameAssets.libraryImageUrl,
-      logoImageUrl: preferredGameAssets.logoImageUrl,
-      logoPosition: preferredGameAssets.logoPosition,
-      coverImageUrl: preferredGameAssets.coverImageUrl,
-      downloadSources: preferredGameAssets.downloadSources,
+      title: resolvedGameTitle,
+      iconUrl: preferredAssets.iconUrl,
+      customIconUrl: null,
+      libraryHeroImageUrl: preferredAssets.libraryHeroImageUrl,
+      customHeroImageUrl: null,
+      libraryImageUrl: preferredAssets.libraryImageUrl,
+      logoImageUrl: preferredAssets.logoImageUrl,
+      customLogoImageUrl: null,
+      logoPosition: preferredAssets.logoPosition,
+      coverImageUrl: preferredAssets.coverImageUrl,
+      downloadSources: preferredAssets.downloadSources,
     }),
-    [objectId, preferredGameAssets, resolvedGameTitle, shop]
+    [objectId, preferredAssets, resolvedGameTitle, shop]
   );
   const shouldShowProtonSection =
     Boolean(protonDBData) &&
@@ -560,9 +555,7 @@ export default function Game() {
     hasMedia,
     heroActionsLeftNavigationTarget,
   ]);
-  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
-
-  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
+  useHeaderTitle(resolvedGameTitle);
 
   useEffect(() => {
     if (!isGameSettingsModalOpen) return;
@@ -712,10 +705,11 @@ export default function Game() {
       }
 
       try {
-        const copiedAssetUrl = await globalThis.window.electron.copyCustomGameAsset(
-          sourcePath,
-          assetType
-        );
+        const copiedAssetUrl =
+          await globalThis.window.electron.copyCustomGameAsset(
+            sourcePath,
+            assetType
+          );
 
         if (game.shop === "custom") {
           await globalThis.window.electron.updateCustomGame({
@@ -723,9 +717,7 @@ export default function Game() {
             objectId: game.objectId,
             title: gameTitle.trim() || game.title || "",
             iconUrl:
-              assetType === "icon"
-                ? copiedAssetUrl
-                : game.iconUrl || undefined,
+              assetType === "icon" ? copiedAssetUrl : game.iconUrl || undefined,
             logoImageUrl:
               assetType === "logo"
                 ? copiedAssetUrl
@@ -752,12 +744,9 @@ export default function Game() {
               assetType === "hero"
                 ? copiedAssetUrl
                 : game.customHeroImageUrl || null,
-            customOriginalIconPath:
-              assetType === "icon" ? null : undefined,
-            customOriginalLogoPath:
-              assetType === "logo" ? null : undefined,
-            customOriginalHeroPath:
-              assetType === "hero" ? null : undefined,
+            customOriginalIconPath: assetType === "icon" ? null : undefined,
+            customOriginalLogoPath: assetType === "logo" ? null : undefined,
+            customOriginalHeroPath: assetType === "hero" ? null : undefined,
           });
         }
 
@@ -784,9 +773,7 @@ export default function Game() {
             iconUrl:
               assetType === "icon" ? undefined : game.iconUrl || undefined,
             logoImageUrl:
-              assetType === "logo"
-                ? undefined
-                : game.logoImageUrl || undefined,
+              assetType === "logo" ? undefined : game.logoImageUrl || undefined,
             libraryHeroImageUrl:
               assetType === "hero"
                 ? undefined
@@ -804,13 +791,12 @@ export default function Game() {
                 ? null
                 : game.customLogoImageUrl || undefined,
             customHeroImageUrl:
-              assetType === "hero" ? null : game.customHeroImageUrl || undefined,
-            customOriginalIconPath:
-              assetType === "icon" ? null : undefined,
-            customOriginalLogoPath:
-              assetType === "logo" ? null : undefined,
-            customOriginalHeroPath:
-              assetType === "hero" ? null : undefined,
+              assetType === "hero"
+                ? null
+                : game.customHeroImageUrl || undefined,
+            customOriginalIconPath: assetType === "icon" ? null : undefined,
+            customOriginalLogoPath: assetType === "logo" ? null : undefined,
+            customOriginalHeroPath: assetType === "hero" ? null : undefined,
           });
         }
 
@@ -1643,6 +1629,77 @@ export default function Game() {
     []
   );
 
+  const launchSettings = useMemo(() => {
+    if (!game) return null;
+
+    return {
+      game,
+      launchOptions,
+      loadingSaveFolder,
+      saveFolderPath,
+      creatingSteamShortcut,
+      steamShortcutExists,
+      shouldShowCreateStartMenuShortcut:
+        globalThis.window.electron.platform === "win32",
+      onChangeExecutableLocation: handleChangeExecutableLocation,
+      onClearExecutablePath: handleClearExecutablePath,
+      onOpenSaveFolder: handleOpenSaveFolder,
+      onChangeLaunchOptions: setLaunchOptions,
+      onBlurLaunchOptions: handleBlurLaunchOptions,
+      onClearLaunchOptions: handleClearLaunchOptions,
+      onCreateShortcut: handleCreateShortcut,
+      onCreateSteamShortcut: handleCreateSteamShortcut,
+      onDeleteSteamShortcut: handleDeleteSteamShortcut,
+      onSelectDisc: handleSelectDisc,
+      onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
+      onAddDiscFile: handleAddDiscFile,
+      onRemoveSelectedDisc: handleRemoveSelectedDisc,
+      onRemoveAllDiscs: handleRemoveAllDiscs,
+    };
+  }, [
+    creatingSteamShortcut,
+    game,
+    handleAddDiscFile,
+    handleBlurLaunchOptions,
+    handleChangeExecutableLocation,
+    handleClearExecutablePath,
+    handleClearLaunchOptions,
+    handleCreateShortcut,
+    handleCreateSteamShortcut,
+    handleDeleteSteamShortcut,
+    handleOpenSaveFolder,
+    handleRemoveAllDiscs,
+    handleRemoveSelectedDisc,
+    handleSelectDisc,
+    handleToggleDontAskDiscSelection,
+    launchOptions,
+    loadingSaveFolder,
+    saveFolderPath,
+    steamShortcutExists,
+  ]);
+
+  const customizationSettings = useMemo(() => {
+    if (!game) return null;
+
+    return {
+      game,
+      gameTitle,
+      updatingGameTitle,
+      onChangeGameTitle: handleChangeGameTitle,
+      onBlurGameTitle: handleBlurGameTitle,
+      onSelectAsset: handleSelectCustomizationAsset,
+      onClearAsset: handleClearCustomizationAsset,
+    };
+  }, [
+    game,
+    gameTitle,
+    handleBlurGameTitle,
+    handleChangeGameTitle,
+    handleClearCustomizationAsset,
+    handleSelectCustomizationAsset,
+    updatingGameTitle,
+  ]);
+
   useEffect(() => {
     const descriptionContainer = descriptionContainerRef.current;
     const pageElement = pageRef.current;
@@ -1722,43 +1779,12 @@ export default function Game() {
           downNavigationTarget={contentBelowHeroTarget}
           sidebarEntryTarget={sidebarEntryTarget}
         />
-        {game && (
+        {game && launchSettings && customizationSettings && (
           <GameSettingsModal
             visible={isGameSettingsModalOpen}
             game={game}
-            launchSettings={{
-              game,
-              launchOptions,
-              loadingSaveFolder,
-              saveFolderPath,
-              creatingSteamShortcut,
-              steamShortcutExists,
-              shouldShowCreateStartMenuShortcut:
-                globalThis.window.electron.platform === "win32",
-              onChangeExecutableLocation: handleChangeExecutableLocation,
-              onClearExecutablePath: handleClearExecutablePath,
-              onOpenSaveFolder: handleOpenSaveFolder,
-              onChangeLaunchOptions: setLaunchOptions,
-              onBlurLaunchOptions: handleBlurLaunchOptions,
-              onClearLaunchOptions: handleClearLaunchOptions,
-              onCreateShortcut: handleCreateShortcut,
-              onCreateSteamShortcut: handleCreateSteamShortcut,
-              onDeleteSteamShortcut: handleDeleteSteamShortcut,
-              onSelectDisc: handleSelectDisc,
-              onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
-              onAddDiscFile: handleAddDiscFile,
-              onRemoveSelectedDisc: handleRemoveSelectedDisc,
-              onRemoveAllDiscs: handleRemoveAllDiscs,
-            }}
-            customizationSettings={{
-              game,
-              gameTitle,
-              updatingGameTitle,
-              onChangeGameTitle: handleChangeGameTitle,
-              onBlurGameTitle: handleBlurGameTitle,
-              onSelectAsset: handleSelectCustomizationAsset,
-              onClearAsset: handleClearCustomizationAsset,
-            }}
+            launchSettings={launchSettings}
+            customizationSettings={customizationSettings}
             onClose={() => setIsGameSettingsModalOpen(false)}
           />
         )}
@@ -2059,13 +2085,14 @@ export default function Game() {
           game={{
             objectId: objectId!,
             shop: shop!,
-            title: preferredGameAssets.title || game?.title || "Download Game",
-            iconUrl: preferredGameAssets.iconUrl,
+            title: resolvedGameTitle,
+            iconUrl: preferredAssets.iconUrl,
             downloadSources:
-              preferredGameAssets.downloadSources ?? game?.downloadSources,
-            libraryHeroImageUrl: preferredGameAssets.libraryHeroImageUrl,
-            libraryImageUrl: preferredGameAssets.libraryImageUrl,
-            coverImageUrl: preferredGameAssets.coverImageUrl,
+              preferredAssets.downloadSources ?? game?.downloadSources,
+            libraryHeroImageUrl: preferredAssets.heroSrc || null,
+            libraryImageUrl: preferredAssets.libraryImageUrl,
+            coverImageUrl:
+              preferredAssets.coverSrc || preferredAssets.iconSrc || null,
           }}
         />
 
@@ -2073,12 +2100,9 @@ export default function Game() {
           <DiscSelectionModal
             visible={isDiscSelectionModalOpen}
             coverImage={
-              resolveImageSource(game?.customHeroImageUrl) ||
-              resolveImageSource(shopDetails.assets?.libraryHeroImageUrl) ||
-              resolveImageSource(shopDetails.assets?.libraryImageUrl) ||
-              resolveImageSource(game?.libraryImageUrl) ||
-              resolveImageSource(shopDetails.assets?.iconUrl) ||
-              resolveImageSource(game?.iconUrl) ||
+              preferredAssets.heroSrc ||
+              preferredAssets.landscapeSrc ||
+              preferredAssets.iconSrc ||
               undefined
             }
             discs={game.discs ?? []}
