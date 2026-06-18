@@ -41,6 +41,7 @@ import {
 } from "../../hooks";
 import {
   getGameHorizontalImageSource,
+  getPreferredGameAssets,
   getItemFocusTarget,
 } from "../../helpers";
 import {
@@ -615,7 +616,7 @@ function SidebarLibrary({
                         label={game.title}
                         subtitle={status}
                         href={desktopPath}
-                        icon={game.iconUrl}
+                        icon={getPreferredGameAssets(game, null).iconUrl}
                         isFavorite={game.favorite}
                         active={active}
                         focusId={focusId}

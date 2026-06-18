@@ -17,6 +17,7 @@ import { useLibraryLaunchGame } from "../../../components/pages/library/use-libr
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import {
   buildLibraryToastOptions,
+  getPreferredGameAssets,
   getBigPictureGameDetailsPath,
   getItemFocusTarget,
 } from "../../../helpers";
@@ -60,11 +61,15 @@ export function HomePageHero({
   );
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
   const [shouldShowLogoFallback, setShouldShowLogoFallback] = useState(false);
+  const preferredAssets = useMemo(
+    () => getPreferredGameAssets(gameState.libraryGame, featuredGame),
+    [featuredGame, gameState.libraryGame]
+  );
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    featuredGame?.libraryHeroImageUrl
+    preferredAssets.libraryHeroImageUrl
   );
   const dominantColor = useDominantColor(
-    featuredGame?.libraryHeroImageUrl ?? null
+    preferredAssets.libraryHeroImageUrl
   );
   const isInLibrary = gameState.isInLibrary;
   const secondActionFocusId = isInLibrary
@@ -77,7 +82,7 @@ export function HomePageHero({
 
   useEffect(() => {
     setShouldShowLogoFallback(false);
-  }, [featuredGame?.logoImageUrl]);
+  }, [preferredAssets.logoImageUrl]);
 
   const openGamePage = () => {
     if (!featuredGame) return;
@@ -235,9 +240,9 @@ export function HomePageHero({
       <div className="home-page-hero__content">
         <div className="home-page-hero__main">
           <div className="home-page-hero__logo">
-            {featuredGame.logoImageUrl && !shouldShowLogoFallback ? (
+            {preferredAssets.logoImageUrl && !shouldShowLogoFallback ? (
               <img
-                src={featuredGame.logoImageUrl}
+                src={preferredAssets.logoImageUrl}
                 alt={featuredGame.title}
                 className="home-page-hero__logo-image"
                 onError={() => setShouldShowLogoFallback(true)}

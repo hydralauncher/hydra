@@ -2,7 +2,7 @@ import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import fs from "node:fs";
-import { logger } from "@main/services";
+import { WindowManager, logger } from "@main/services";
 
 interface UpdateCustomGameParams {
   shop: GameShop;
@@ -91,6 +91,8 @@ const updateCustomGame = async (
       }
     }
   }
+
+  WindowManager.sendToAppWindows("on-library-batch-complete");
 
   return updatedGame;
 };

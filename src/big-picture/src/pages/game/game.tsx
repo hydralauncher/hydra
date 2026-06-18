@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   buildLibraryToastOptions,
+  getPreferredGameAssets,
   getItemFocusTarget,
   resolveImageSource,
 } from "../../helpers";
@@ -386,31 +387,29 @@ export default function Game() {
     closeGame,
     toggleFavorite,
     updateGame,
+    refreshGameDetails,
   } = useGameDetails(objectId!, shop!);
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
     shopDetails?.assets?.title ?? game?.title ?? "Download Game";
+  const preferredGameAssets = useMemo(
+    () => getPreferredGameAssets(game, shopDetails?.assets),
+    [game, shopDetails?.assets]
+  );
   const gameToastSource = useMemo<LibraryToastSource>(
     () => ({
       objectId: objectId ?? "",
       shop: shop ?? "steam",
-      title: resolvedGameTitle,
-      iconUrl: shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? null,
-      libraryHeroImageUrl:
-        shopDetails?.assets?.libraryHeroImageUrl ??
-        game?.libraryHeroImageUrl ??
-        null,
-      libraryImageUrl:
-        shopDetails?.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
-      logoImageUrl:
-        shopDetails?.assets?.logoImageUrl ?? game?.logoImageUrl ?? null,
-      logoPosition:
-        shopDetails?.assets?.logoPosition ?? game?.logoPosition ?? null,
-      coverImageUrl:
-        shopDetails?.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
-      downloadSources: shopDetails?.assets?.downloadSources,
+      title: preferredGameAssets.title || resolvedGameTitle,
+      iconUrl: preferredGameAssets.iconUrl,
+      libraryHeroImageUrl: preferredGameAssets.libraryHeroImageUrl,
+      libraryImageUrl: preferredGameAssets.libraryImageUrl,
+      logoImageUrl: preferredGameAssets.logoImageUrl,
+      logoPosition: preferredGameAssets.logoPosition,
+      coverImageUrl: preferredGameAssets.coverImageUrl,
+      downloadSources: preferredGameAssets.downloadSources,
     }),
-    [game, objectId, resolvedGameTitle, shop, shopDetails?.assets]
+    [objectId, preferredGameAssets, resolvedGameTitle, shop]
   );
   const shouldShowProtonSection =
     Boolean(protonDBData) &&
@@ -691,6 +690,139 @@ export default function Game() {
       setUpdatingGameTitle(false);
     }
   }, [game, gameTitle, showErrorToast, t, updateGame, updatingGameTitle]);
+
+  const handleSelectCustomizationAsset = useCallback(
+    async (assetType: "icon" | "logo" | "hero") => {
+      if (!game) return;
+
+      const { filePaths } = await globalThis.window.electron.showOpenDialog({
+        properties: ["openFile"],
+        filters: [
+          {
+            name: "Image files",
+            extensions: ["jpg", "jpeg", "png", "gif", "webp"],
+          },
+        ],
+      });
+
+      const sourcePath = filePaths?.[0];
+
+      if (!sourcePath) {
+        return;
+      }
+
+      try {
+        const copiedAssetUrl = await globalThis.window.electron.copyCustomGameAsset(
+          sourcePath,
+          assetType
+        );
+
+        if (game.shop === "custom") {
+          await globalThis.window.electron.updateCustomGame({
+            shop: game.shop,
+            objectId: game.objectId,
+            title: gameTitle.trim() || game.title || "",
+            iconUrl:
+              assetType === "icon"
+                ? copiedAssetUrl
+                : game.iconUrl || undefined,
+            logoImageUrl:
+              assetType === "logo"
+                ? copiedAssetUrl
+                : game.logoImageUrl || undefined,
+            libraryHeroImageUrl:
+              assetType === "hero"
+                ? copiedAssetUrl
+                : game.libraryHeroImageUrl || undefined,
+          });
+        } else {
+          await globalThis.window.electron.updateGameCustomAssets({
+            shop: game.shop,
+            objectId: game.objectId,
+            title: gameTitle.trim() || game.title || "",
+            customIconUrl:
+              assetType === "icon"
+                ? copiedAssetUrl
+                : game.customIconUrl || null,
+            customLogoImageUrl:
+              assetType === "logo"
+                ? copiedAssetUrl
+                : game.customLogoImageUrl || null,
+            customHeroImageUrl:
+              assetType === "hero"
+                ? copiedAssetUrl
+                : game.customHeroImageUrl || null,
+            customOriginalIconPath:
+              assetType === "icon" ? null : undefined,
+            customOriginalLogoPath:
+              assetType === "logo" ? null : undefined,
+            customOriginalHeroPath:
+              assetType === "hero" ? null : undefined,
+          });
+        }
+
+        await refreshGameDetails();
+      } catch (error) {
+        showErrorToast(
+          error instanceof Error ? error.message : t("edit_game_modal_failed")
+        );
+      }
+    },
+    [game, gameTitle, refreshGameDetails, showErrorToast, t]
+  );
+
+  const handleClearCustomizationAsset = useCallback(
+    async (assetType: "icon" | "logo" | "hero") => {
+      if (!game) return;
+
+      try {
+        if (game.shop === "custom") {
+          await globalThis.window.electron.updateCustomGame({
+            shop: game.shop,
+            objectId: game.objectId,
+            title: gameTitle.trim() || game.title || "",
+            iconUrl:
+              assetType === "icon" ? undefined : game.iconUrl || undefined,
+            logoImageUrl:
+              assetType === "logo"
+                ? undefined
+                : game.logoImageUrl || undefined,
+            libraryHeroImageUrl:
+              assetType === "hero"
+                ? undefined
+                : game.libraryHeroImageUrl || undefined,
+          });
+        } else {
+          await globalThis.window.electron.updateGameCustomAssets({
+            shop: game.shop,
+            objectId: game.objectId,
+            title: gameTitle.trim() || game.title || "",
+            customIconUrl:
+              assetType === "icon" ? null : game.customIconUrl || undefined,
+            customLogoImageUrl:
+              assetType === "logo"
+                ? null
+                : game.customLogoImageUrl || undefined,
+            customHeroImageUrl:
+              assetType === "hero" ? null : game.customHeroImageUrl || undefined,
+            customOriginalIconPath:
+              assetType === "icon" ? null : undefined,
+            customOriginalLogoPath:
+              assetType === "logo" ? null : undefined,
+            customOriginalHeroPath:
+              assetType === "hero" ? null : undefined,
+          });
+        }
+
+        await refreshGameDetails();
+      } catch (error) {
+        showErrorToast(
+          error instanceof Error ? error.message : t("edit_game_modal_failed")
+        );
+      }
+    },
+    [game, gameTitle, refreshGameDetails, showErrorToast, t]
+  );
 
   useEffect(() => {
     if (launchOptionsDebounceRef.current !== null) {
@@ -1624,6 +1756,8 @@ export default function Game() {
               updatingGameTitle,
               onChangeGameTitle: handleChangeGameTitle,
               onBlurGameTitle: handleBlurGameTitle,
+              onSelectAsset: handleSelectCustomizationAsset,
+              onClearAsset: handleClearCustomizationAsset,
             }}
             onClose={() => setIsGameSettingsModalOpen(false)}
           />
@@ -1925,20 +2059,13 @@ export default function Game() {
           game={{
             objectId: objectId!,
             shop: shop!,
-            title: shopDetails.assets?.title ?? game?.title ?? "Download Game",
-            iconUrl: shopDetails.assets?.iconUrl ?? game?.iconUrl ?? null,
+            title: preferredGameAssets.title || game?.title || "Download Game",
+            iconUrl: preferredGameAssets.iconUrl,
             downloadSources:
-              shopDetails.assets?.downloadSources ?? game?.downloadSources,
-            libraryHeroImageUrl:
-              shopDetails.assets?.libraryHeroImageUrl ??
-              game?.libraryHeroImageUrl ??
-              null,
-            libraryImageUrl:
-              shopDetails.assets?.libraryImageUrl ??
-              game?.libraryImageUrl ??
-              null,
-            coverImageUrl:
-              shopDetails.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
+              preferredGameAssets.downloadSources ?? game?.downloadSources,
+            libraryHeroImageUrl: preferredGameAssets.libraryHeroImageUrl,
+            libraryImageUrl: preferredGameAssets.libraryImageUrl,
+            coverImageUrl: preferredGameAssets.coverImageUrl,
           }}
         />
 
@@ -1948,10 +2075,9 @@ export default function Game() {
             coverImage={
               resolveImageSource(game?.customHeroImageUrl) ||
               resolveImageSource(shopDetails.assets?.libraryHeroImageUrl) ||
-              resolveImageSource(game?.libraryHeroImageUrl) ||
               resolveImageSource(shopDetails.assets?.libraryImageUrl) ||
               resolveImageSource(game?.libraryImageUrl) ||
-              resolveImageSource(game?.customIconUrl) ||
+              resolveImageSource(shopDetails.assets?.iconUrl) ||
               resolveImageSource(game?.iconUrl) ||
               undefined
             }

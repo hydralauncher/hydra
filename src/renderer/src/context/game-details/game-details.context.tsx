@@ -112,67 +112,7 @@ export function GameDetailsContextProvider({
       .then((result) => setGame(result));
   }, [shop, objectId]);
 
-  const isGameDownloading =
-    lastPacket?.gameId === game?.id && game?.download?.status === "active";
-
-  useEffect(() => {
-    updateGame();
-  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
-
-  // Listen for transfer events
-  useEffect(() => {
-    const onTransferProgress = (
-      _: unknown,
-      shop: string,
-      objectId: string,
-      progress: number
-    ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(progress >= 0 && progress < 1);
-        setTransferProgress(progress);
-      }
-    };
-
-    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-        updateGame();
-      }
-    };
-
-    const onTransferCancelled = (
-      _: unknown,
-      shop: string,
-      objectId: string
-    ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-      }
-    };
-
-    const onTransferError = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-      }
-    };
-
-    window.electron.on("on-game-transfer-progress", onTransferProgress);
-    window.electron.on("on-game-transfer-complete", onTransferComplete);
-    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
-    window.electron.on("on-game-transfer-error", onTransferError);
-
-    return () => {
-      window.electron.off("on-game-transfer-progress", onTransferProgress);
-      window.electron.off("on-game-transfer-complete", onTransferComplete);
-      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
-      window.electron.off("on-game-transfer-error", onTransferError);
-    };
-  }, [game]);
-
-  useEffect(() => {
+  const fetchGameDetails = useCallback(async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -235,14 +175,80 @@ export function GameDetailsContextProvider({
         .catch(() => void 0);
     }
   }, [
-    updateGame,
-    dispatch,
+    i18n.language,
     objectId,
     shop,
-    i18n.language,
     userDetails,
-    userPreferences,
+    userPreferences?.disableNsfwAlert,
   ]);
+
+  const refreshGameDetails = useCallback(async () => {
+    await Promise.all([updateGame(), fetchGameDetails()]);
+  }, [fetchGameDetails, updateGame]);
+
+  const isGameDownloading =
+    lastPacket?.gameId === game?.id && game?.download?.status === "active";
+
+  useEffect(() => {
+    updateGame();
+  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
+
+  // Listen for transfer events
+  useEffect(() => {
+    const onTransferProgress = (
+      _: unknown,
+      shop: string,
+      objectId: string,
+      progress: number
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(progress >= 0 && progress < 1);
+        setTransferProgress(progress);
+      }
+    };
+
+    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+        updateGame();
+      }
+    };
+
+    const onTransferCancelled = (
+      _: unknown,
+      shop: string,
+      objectId: string
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    const onTransferError = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    window.electron.on("on-game-transfer-progress", onTransferProgress);
+    window.electron.on("on-game-transfer-complete", onTransferComplete);
+    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
+    window.electron.on("on-game-transfer-error", onTransferError);
+
+    return () => {
+      window.electron.off("on-game-transfer-progress", onTransferProgress);
+      window.electron.off("on-game-transfer-complete", onTransferComplete);
+      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
+      window.electron.off("on-game-transfer-error", onTransferError);
+    };
+  }, [game]);
+
+  useEffect(() => {
+    void fetchGameDetails();
+  }, [fetchGameDetails]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -293,13 +299,13 @@ export function GameDetailsContextProvider({
 
   useEffect(() => {
     const unsubscribe = window.electron.onLibraryBatchComplete(() => {
-      updateGame();
+      void refreshGameDetails();
     });
 
     return () => {
       unsubscribe();
     };
-  }, [updateGame]);
+  }, [refreshGameDetails]);
 
   useEffect(() => {
     const handler = (ev: Event) => {
