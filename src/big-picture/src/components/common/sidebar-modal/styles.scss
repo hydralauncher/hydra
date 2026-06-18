@@ -46,11 +46,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      var(--background) 100%
-    );
+    background: linear-gradient(180deg, transparent 0%, var(--background) 100%);
   }
 }
 

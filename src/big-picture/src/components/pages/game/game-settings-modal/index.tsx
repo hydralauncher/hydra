@@ -2,6 +2,7 @@ import type { LibraryGame } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SidebarModal, type SidebarModalTab } from "../../../common";
+import { resolvePreferredGameAssets } from "../../../../helpers";
 import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 
 import "./styles.scss";
@@ -61,6 +62,10 @@ export function GameSettingsModal({
   const { t } = useTranslation(["game_details", "header"]);
   const [activeTabId, setActiveTabId] = useState<GameSettingsTabId>("launch");
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const preferredAssets = useMemo(
+    () => resolvePreferredGameAssets(game, null),
+    [game]
+  );
   const isDev = import.meta.env.DEV;
   const shouldShowCompatibilityTab =
     globalThis.window.electron.platform === "linux" || isDev;
@@ -164,7 +169,7 @@ export function GameSettingsModal({
       visible={visible}
       onClose={onClose}
       title={settingsLabel}
-      coverImage={game.libraryHeroImageUrl ?? undefined}
+      coverImage={preferredAssets.heroSrc || undefined}
       className="game-settings-modal"
       ariaLabel={settingsLabel}
       contentEntryFocusId={

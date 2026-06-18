@@ -4,6 +4,7 @@ export * from "./list/focus-list";
 export * from "./game-card";
 export * from "./game-context-menu";
 export * from "./game-context-menu-items";
+export * from "./game-settings-modal";
 export * from "./filters/filters";
 export * from "./library-data";
 export * from "./use-library-favorite";

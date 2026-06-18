@@ -40,8 +40,17 @@
   }
 
   &__step--options {
-    overflow: auto;
+    overflow: hidden;
     padding: calc(var(--spacing-unit) * 6);
+
+    &[data-scroll-enabled="true"] {
+      overflow: auto;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
   }
 
   &__source-list {
