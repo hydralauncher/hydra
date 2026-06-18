@@ -44,8 +44,7 @@ const GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID =
   "game-launch-settings-exec-path-select";
 const GAME_LAUNCH_SETTINGS_EXEC_PATH_CLEAR_ID =
   "game-launch-settings-exec-path-clear";
-const GAME_LAUNCH_SETTINGS_SAVE_FOLDER_ID =
-  "game-launch-settings-save-folder";
+const GAME_LAUNCH_SETTINGS_SAVE_FOLDER_ID = "game-launch-settings-save-folder";
 
 const REGION_LABELS: Record<SkuRegion, string> = {
   US: "United States",
@@ -222,7 +221,7 @@ export function GameLaunchSettingsTab({
           title={t("executable_section_title")}
           description={t("executable_section_description")}
         >
-            <div className="game-launch-settings-tab__section-content">
+          <div className="game-launch-settings-tab__section-content">
             <HorizontalFocusGroup
               className="game-launch-settings-tab__exec-path-group"
               asChild
@@ -417,42 +416,40 @@ export function GameLaunchSettingsTab({
           )
         }
       >
-          <div className="game-launch-settings-tab__section-content">
-            <HorizontalFocusGroup
-              className="game-launch-settings-tab__launch-options-row"
-              asChild
-            >
-              <div>
-                <Input
-                  focusId={GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID}
-                  className="game-launch-settings-tab__launch-options-input"
-                  value={launchOptions}
-                  placeholder={t("launch_options_placeholder")}
-                  onChange={(event) =>
-                    onChangeLaunchOptions(event.target.value)
-                  }
-                  onBlur={onBlurLaunchOptions}
-                />
+        <div className="game-launch-settings-tab__section-content">
+          <HorizontalFocusGroup
+            className="game-launch-settings-tab__launch-options-row"
+            asChild
+          >
+            <div>
+              <Input
+                focusId={GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID}
+                className="game-launch-settings-tab__launch-options-input"
+                value={launchOptions}
+                placeholder={t("launch_options_placeholder")}
+                onChange={(event) => onChangeLaunchOptions(event.target.value)}
+                onBlur={onBlurLaunchOptions}
+              />
 
-                <Button
-                  focusId={GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID}
-                  variant="danger"
-                  icon={<Trash size={16} />}
-                  disabled={launchOptions.trim().length === 0}
-                  onClick={() => {
-                    void onClearLaunchOptions();
-                  }}
-                  focusNavigationOverrides={{
-                    left: {
-                      type: "item",
-                      itemId: GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
-                    },
-                  }}
-                >
-                  Clear Args
-                </Button>
-              </div>
-            </HorizontalFocusGroup>
+              <Button
+                focusId={GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID}
+                variant="danger"
+                icon={<Trash size={16} />}
+                disabled={launchOptions.trim().length === 0}
+                onClick={() => {
+                  void onClearLaunchOptions();
+                }}
+                focusNavigationOverrides={{
+                  left: {
+                    type: "item",
+                    itemId: GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
+                  },
+                }}
+              >
+                Clear Args
+              </Button>
+            </div>
+          </HorizontalFocusGroup>
         </div>
       </SettingsSection>
     </VerticalFocusGroup>

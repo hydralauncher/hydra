@@ -129,9 +129,10 @@ export function GameCloudSettingsTab({
     setLoadingPreview(true);
 
     try {
-      const preview = await (
-        window.electron as any
-      ).getGameBackupPreview(game.objectId, game.shop);
+      const preview = await (window.electron as any).getGameBackupPreview(
+        game.objectId,
+        game.shop
+      );
       setBackupPreview(preview);
     } catch {
       setBackupPreview(null);
@@ -183,7 +184,13 @@ export function GameCloudSettingsTab({
       removeDownloadCompleteListener();
       removeBackupDownloadProgressListener();
     };
-  }, [game.objectId, game.shop, loadArtifacts, loadBackupPreview, showSuccessToast]);
+  }, [
+    game.objectId,
+    game.shop,
+    loadArtifacts,
+    loadBackupPreview,
+    showSuccessToast,
+  ]);
 
   const handleCreateBackup = useCallback(async () => {
     if (creatingBackup) return;
