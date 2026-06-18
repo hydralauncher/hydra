@@ -88,8 +88,7 @@ export function GameSettingsModal({
     [game, onClose]
   );
 
-  const shouldShowCloudTab =
-    userDetails !== null && hasActiveSubscription;
+  const shouldShowCloudTab = userDetails !== null && hasActiveSubscription;
 
   useEffect(() => {
     if (!shouldShowCloudTab && activeTabId === "hydra_cloud") {
@@ -138,7 +137,16 @@ export function GameSettingsModal({
         content: dangerContent,
       },
     ],
-    [cloudContent, customizationContent, dangerContent, downloadContent, launchContent, shouldShowCloudTab, shouldShowCompatibilityTab, t]
+    [
+      cloudContent,
+      customizationContent,
+      dangerContent,
+      downloadContent,
+      launchContent,
+      shouldShowCloudTab,
+      shouldShowCompatibilityTab,
+      t,
+    ]
   );
 
   return (
