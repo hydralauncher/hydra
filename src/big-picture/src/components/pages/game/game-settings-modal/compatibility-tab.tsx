@@ -83,7 +83,11 @@ export function GameCompatibilitySettingsTab({
     const loadAvailability = async () => {
       const [protonVersionsResult, gamemodeResult, mangohudResult] =
         await Promise.all([
-          (electron.getInstalledProtonVersions as () => Promise<ProtonVersion[]>)(),
+          (
+            electron.getInstalledProtonVersions as () => Promise<
+              ProtonVersion[]
+            >
+          )(),
           (electron.isGamemodeAvailable as () => Promise<boolean>)(),
           (electron.isMangohudAvailable as () => Promise<boolean>)(),
         ]);
@@ -150,32 +154,26 @@ export function GameCompatibilitySettingsTab({
     });
 
     if (filePaths?.length) {
-      await (globalThis.window.electron as Record<string, unknown>).selectGameWinePrefix(
-        game.shop,
-        game.objectId,
-        filePaths[0]
-      );
+      await (
+        globalThis.window.electron as Record<string, unknown>
+      ).selectGameWinePrefix(game.shop, game.objectId, filePaths[0]);
       setWinePrefixPath(filePaths[0]);
     }
   }, [game.shop, game.objectId, winePrefixPath]);
 
   const handleClearWinePrefix = useCallback(async () => {
-    await (globalThis.window.electron as Record<string, unknown>).selectGameWinePrefix(
-      game.shop,
-      game.objectId,
-      null
-    );
+    await (
+      globalThis.window.electron as Record<string, unknown>
+    ).selectGameWinePrefix(game.shop, game.objectId, null);
     setWinePrefixPath(null);
   }, [game.shop, game.objectId]);
 
   const handleChangeProtonVersion = useCallback(
     async (value: string) => {
       setSelectedProtonPath(value);
-      await (globalThis.window.electron as Record<string, unknown>).selectGameProtonPath(
-        game.shop,
-        game.objectId,
-        value || null
-      );
+      await (
+        globalThis.window.electron as Record<string, unknown>
+      ).selectGameProtonPath(game.shop, game.objectId, value || null);
     },
     [game.shop, game.objectId]
   );
@@ -183,11 +181,9 @@ export function GameCompatibilitySettingsTab({
   const handleToggleGamemode = useCallback(
     async (checked: boolean) => {
       setAutoRunGamemode(checked);
-      await (globalThis.window.electron as Record<string, unknown>).toggleGameGamemode(
-        game.shop,
-        game.objectId,
-        checked
-      );
+      await (
+        globalThis.window.electron as Record<string, unknown>
+      ).toggleGameGamemode(game.shop, game.objectId, checked);
     },
     [game.shop, game.objectId]
   );
@@ -195,11 +191,9 @@ export function GameCompatibilitySettingsTab({
   const handleToggleMangohud = useCallback(
     async (checked: boolean) => {
       setAutoRunMangohud(checked);
-      await (globalThis.window.electron as Record<string, unknown>).toggleGameMangohud(
-        game.shop,
-        game.objectId,
-        checked
-      );
+      await (
+        globalThis.window.electron as Record<string, unknown>
+      ).toggleGameMangohud(game.shop, game.objectId, checked);
     },
     [game.shop, game.objectId]
   );

@@ -164,6 +164,7 @@ export function GameSettingsModal({
       visible={visible}
       onClose={onClose}
       title={settingsLabel}
+      coverImage={game.libraryHeroImageUrl ?? undefined}
       className="game-settings-modal"
       ariaLabel={settingsLabel}
       contentEntryFocusId={

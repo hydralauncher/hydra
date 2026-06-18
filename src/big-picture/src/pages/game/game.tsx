@@ -2158,7 +2158,7 @@ export default function Game() {
             title: resolvedGameTitle,
             iconUrl: preferredAssets.iconUrl,
             downloadSources:
-              preferredAssets.downloadSources ?? game?.downloadSources,
+              preferredAssets.downloadSources || game?.downloadSources,
             libraryHeroImageUrl: preferredAssets.heroSrc || null,
             libraryImageUrl: preferredAssets.libraryImageUrl,
             coverImageUrl:
