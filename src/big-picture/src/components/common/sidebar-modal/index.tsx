@@ -44,6 +44,7 @@ export interface SidebarModalProps {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   closeOnB?: boolean;
+  coverImage?: string;
 }
 
 function normalizeIdSegment(value: string) {
@@ -70,6 +71,7 @@ export function SidebarModal({
   contentEntryFocusId,
   className,
   ariaLabel,
+  coverImage,
   closeOnBackdrop = true,
   closeOnEscape = true,
   closeOnB = true,
@@ -297,7 +299,16 @@ export function SidebarModal({
                 initialFocusId={activeTabFocusId}
               >
                 <aside className="sidebar-modal__sidebar">
-                  <div className="sidebar-modal__title">{title}</div>
+                  <div className="sidebar-modal__header">
+                    {coverImage && (
+                      <div className="sidebar-modal__header-cover-image">
+                        <img src={coverImage} alt={String(title)} />
+                      </div>
+                    )}
+
+                    <div className="sidebar-modal__title">{title}</div>
+                  </div>
+
                   <div className="sidebar-modal__divider" />
 
                   <VerticalFocusGroup
