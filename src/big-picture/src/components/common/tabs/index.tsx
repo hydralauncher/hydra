@@ -54,7 +54,6 @@ interface TabsButtonProps<TValue extends string = string> {
   navigationOrder: number;
   isSelected: boolean;
   variant: "default" | "segmented" | "settings";
-  indicatorLayoutId: string;
   selectOnFocus: boolean;
   ignoreInitialFocusSelection: boolean;
   onSelect: (value: TValue) => void;
@@ -66,7 +65,6 @@ function FocusableTabsButton<TValue extends string = string>({
   navigationOrder,
   isSelected,
   variant,
-  indicatorLayoutId,
   selectOnFocus,
   ignoreInitialFocusSelection,
   onSelect,
@@ -141,19 +139,6 @@ function FocusableTabsButton<TValue extends string = string>({
             item.label
           )}
         </span>
-
-        {isSelected && variant === "default" && (
-          <motion.span
-            className="tabs__indicator"
-            layoutId={indicatorLayoutId}
-            transition={{
-              type: "spring",
-              stiffness: 420,
-              damping: 34,
-              mass: 0.8,
-            }}
-          />
-        )}
       </button>
     </FocusItem>
   );
@@ -214,7 +199,6 @@ function NonFocusableTabsButton<TValue extends string = string>({
   resolvedId,
   isSelected,
   variant,
-  indicatorLayoutId,
   onSelect,
 }: Readonly<
   Omit<
@@ -253,19 +237,6 @@ function NonFocusableTabsButton<TValue extends string = string>({
           item.label
         )}
       </span>
-
-      {isSelected && variant === "default" && (
-        <motion.span
-          className="tabs__indicator"
-          layoutId={indicatorLayoutId}
-          transition={{
-            type: "spring",
-            stiffness: 420,
-            damping: 34,
-            mass: 0.8,
-          }}
-        />
-      )}
     </button>
   );
 }
@@ -294,7 +265,7 @@ export function Tabs<TValue extends string = string>({
   const [internalValue, setInternalValue] = useState<TValue | undefined>(
     defaultValue ?? items[0]?.value
   );
-  const [segmentedIndicatorStyle, setSegmentedIndicatorStyle] = useState<{
+  const [indicatorStyle, setIndicatorStyle] = useState<{
     x: number;
     width: number;
   } | null>(null);
@@ -326,13 +297,8 @@ export function Tabs<TValue extends string = string>({
 
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
 
-  useEffect(() => {
-    if (variant !== "segmented") return;
-
-    const findNextEnabledIndex = (
-      fromIndex: number,
-      direction: 1 | -1
-    ): number => {
+  const findNextEnabledIndex = useCallback(
+    (fromIndex: number, direction: 1 | -1): number => {
       let i = fromIndex + direction;
 
       while (i >= 0 && i < resolvedItems.length && resolvedItems[i]?.disabled) {
@@ -340,7 +306,12 @@ export function Tabs<TValue extends string = string>({
       }
 
       return i >= 0 && i < resolvedItems.length ? i : -1;
-    };
+    },
+    [resolvedItems]
+  );
+
+  useEffect(() => {
+    if (variant === "settings") return;
 
     const removeLeftBumper = onButtonPressed(
       GamepadButtonType.LEFT_BUMPER,
@@ -396,6 +367,7 @@ export function Tabs<TValue extends string = string>({
       removeRightBumper();
     };
   }, [
+    findNextEnabledIndex,
     handleSelect,
     isActiveGamepadEvent,
     onButtonPressed,
@@ -404,9 +376,9 @@ export function Tabs<TValue extends string = string>({
     variant,
   ]);
 
-  const updateSegmentedIndicator = useCallback(() => {
-    if (variant !== "segmented" || !selectedItem) {
-      setSegmentedIndicatorStyle(null);
+  const updateIndicator = useCallback(() => {
+    if (!selectedItem || variant === "settings") {
+      setIndicatorStyle(null);
       return;
     }
 
@@ -420,18 +392,18 @@ export function Tabs<TValue extends string = string>({
       return;
     }
 
-    setSegmentedIndicatorStyle({
+    setIndicatorStyle({
       x: activeTab.offsetLeft,
       width: activeTab.offsetWidth,
     });
   }, [selectedItem, variant]);
 
   useLayoutEffect(() => {
-    updateSegmentedIndicator();
-  }, [updateSegmentedIndicator]);
+    updateIndicator();
+  }, [updateIndicator]);
 
   useEffect(() => {
-    if (variant !== "segmented") return;
+    if (variant === "settings") return;
 
     const tabList = tabListRef.current;
 
@@ -441,7 +413,7 @@ export function Tabs<TValue extends string = string>({
       ? document.getElementById(selectedItem.resolvedId)
       : null;
     const resizeObserver = new ResizeObserver(() => {
-      updateSegmentedIndicator();
+      updateIndicator();
     });
 
     resizeObserver.observe(tabList);
@@ -453,7 +425,7 @@ export function Tabs<TValue extends string = string>({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [selectedItem, updateSegmentedIndicator, variant]);
+  }, [selectedItem, updateIndicator, variant]);
 
   if (items.length === 0) {
     return null;
@@ -525,17 +497,18 @@ export function Tabs<TValue extends string = string>({
                 aria-label={ariaLabel}
                 className={cn("tabs__tablist", {
                   "tabs__tablist--segmented": variant === "segmented",
+                  "tabs__tablist--default": variant === "default",
                 })}
               >
                 {variant === "segmented" &&
-                  segmentedIndicatorStyle &&
+                  indicatorStyle &&
                   (animateSegmentedIndicator ? (
                     <motion.span
                       className="tabs__segmented-indicator"
                       initial={false}
                       animate={{
-                        x: segmentedIndicatorStyle.x,
-                        width: segmentedIndicatorStyle.width,
+                        x: indicatorStyle.x,
+                        width: indicatorStyle.width,
                       }}
                       transition={{
                         type: "spring",
@@ -549,12 +522,29 @@ export function Tabs<TValue extends string = string>({
                       className="tabs__segmented-indicator"
                       style={
                         {
-                          transform: `translateX(${segmentedIndicatorStyle.x}px)`,
-                          width: segmentedIndicatorStyle.width,
+                          transform: `translateX(${indicatorStyle.x}px)`,
+                          width: indicatorStyle.width,
                         } as CSSProperties
                       }
                     />
                   ))}
+
+                {variant === "default" && indicatorStyle && (
+                  <motion.span
+                    className="tabs__indicator"
+                    initial={false}
+                    animate={{
+                      x: indicatorStyle.x,
+                      width: indicatorStyle.width,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 420,
+                      damping: 34,
+                      mass: 0.8,
+                    }}
+                  />
+                )}
 
                 {beforeTabs && (
                   <div className="tabs__before-tabs">{beforeTabs}</div>
@@ -571,7 +561,6 @@ export function Tabs<TValue extends string = string>({
                         resolvedId={item.resolvedId}
                         isSelected={isSelected}
                         variant={variant}
-                        indicatorLayoutId={indicatorLayoutId}
                         onSelect={handleSelect}
                       />
                     );
@@ -585,7 +574,6 @@ export function Tabs<TValue extends string = string>({
                       navigationOrder={index}
                       isSelected={isSelected}
                       variant={variant}
-                      indicatorLayoutId={indicatorLayoutId}
                       selectOnFocus={selectOnFocus}
                       ignoreInitialFocusSelection={ignoreInitialFocusSelection}
                       onSelect={handleSelect}
@@ -599,7 +587,7 @@ export function Tabs<TValue extends string = string>({
               </div>
             );
 
-            if (!manageFocusRegion || !itemsFocusable) {
+            if (!manageFocusRegion) {
               return (
                 <div className={tabsListClassName} style={tabsListStyle}>
                   {tabList}

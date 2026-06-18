@@ -404,6 +404,7 @@ export function SidebarNotificationsDropdown({
       const target = event.target as HTMLElement | null;
       if (
         target?.closest(".sidebar-notifications-dropdown") ||
+        target?.closest(".context-menu") ||
         target === anchorRef.current ||
         anchorRef.current?.contains(target)
       ) {

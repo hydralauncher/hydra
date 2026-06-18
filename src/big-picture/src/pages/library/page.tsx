@@ -480,51 +480,61 @@ export default function LibraryPage() {
             firstContentItemId={firstContentItemId}
           />
 
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={contentTransitionKey}
-              layout={shouldAnimateContentChange}
-              className="library-page__content-transition"
-              initial={
-                shouldAnimateContentChange ? { opacity: 0, y: 10 } : false
-              }
-              animate={{ opacity: 1, y: 0 }}
-              exit={
-                shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
-              }
-              transition={
-                shouldAnimateContentChange
-                  ? {
-                      opacity: { duration: 0.18, ease: "easeOut" },
-                      y: { duration: 0.18, ease: "easeOut" },
-                      layout: { duration: 0.22, ease: "easeOut" },
+          {filteredLibrary.length === 0 ? (
+            <div className="library-page__empty-collection">
+              <p className="library-page__empty-collection-text">
+                No games found in this collection
+              </p>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={contentTransitionKey}
+                layout={shouldAnimateContentChange}
+                className="library-page__content-transition"
+                initial={
+                  shouldAnimateContentChange ? { opacity: 0, y: 10 } : false
+                }
+                animate={{ opacity: 1, y: 0 }}
+                exit={
+                  shouldAnimateContentChange
+                    ? { opacity: 0, y: -6 }
+                    : undefined
+                }
+                transition={
+                  shouldAnimateContentChange
+                    ? {
+                        opacity: { duration: 0.18, ease: "easeOut" },
+                        y: { duration: 0.18, ease: "easeOut" },
+                        layout: { duration: 0.22, ease: "easeOut" },
+                      }
+                    : undefined
+                }
+              >
+                {viewMode === "list" ? (
+                  <LibraryFocusList
+                    games={filteredLibrary}
+                    contextMenuGameId={
+                      contextMenuState.visible
+                        ? (contextMenuState.game?.id ?? null)
+                        : null
                     }
-                  : undefined
-              }
-            >
-              {viewMode === "list" ? (
-                <LibraryFocusList
-                  games={filteredLibrary}
-                  contextMenuGameId={
-                    contextMenuState.visible
-                      ? (contextMenuState.game?.id ?? null)
-                      : null
-                  }
-                  onOpenContextMenu={handleOpenGameContextMenu}
-                />
-              ) : (
-                <LibraryFocusGrid
-                  games={filteredLibrary}
-                  contextMenuGameId={
-                    contextMenuState.visible
-                      ? (contextMenuState.game?.id ?? null)
-                      : null
-                  }
-                  onOpenContextMenu={handleOpenGameContextMenu}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+                    onOpenContextMenu={handleOpenGameContextMenu}
+                  />
+                ) : (
+                  <LibraryFocusGrid
+                    games={filteredLibrary}
+                    contextMenuGameId={
+                      contextMenuState.visible
+                        ? (contextMenuState.game?.id ?? null)
+                        : null
+                    }
+                    onOpenContextMenu={handleOpenGameContextMenu}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          )}
         </VerticalFocusGroup>
       </section>
 

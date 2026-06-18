@@ -60,7 +60,7 @@ export function buildLibraryGameContextMenuItems(
     },
   ];
 
-  if (onViewAchievements) {
+  if ((game.achievementCount ?? 0) > 0 && onViewAchievements) {
     nextItems.push({
       id: "view-achievements",
       label: "View Achievements",
@@ -155,20 +155,24 @@ export function buildCatalogGameContextMenuItems(
     });
   }
 
-  nextItems.push(
-    {
+  const hasAchievements =
+    ((_catalogGame as { achievementCount?: number | null }).achievementCount ?? 0) > 0;
+
+  if (hasAchievements) {
+    nextItems.push({
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon aria-hidden size={18} />,
       onSelect: onViewAchievements,
-    },
-    {
-      id: "share",
-      label: "Share",
-      icon: <ExportIcon aria-hidden size={18} />,
-      onSelect: onShare,
-    }
-  );
+    });
+  }
+
+  nextItems.push({
+    id: "share",
+    label: "Share",
+    icon: <ExportIcon aria-hidden size={18} />,
+    onSelect: onShare,
+  });
 
   return nextItems;
 }

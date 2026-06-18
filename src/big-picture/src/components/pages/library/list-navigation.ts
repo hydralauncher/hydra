@@ -3,7 +3,7 @@ import type { FocusOverrides } from "../../../services";
 import { useEffect, useMemo, useState } from "react";
 import {
   getLibraryFocusListItemId,
-  LIBRARY_FILTERS_TABS_REGION_ID,
+  LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_FOCUS_LIST_REGION_ID,
 } from "./navigation";
 
@@ -96,7 +96,7 @@ function buildFocusOverridesForListItem(
       : {
           up: {
             type: "region",
-            regionId: LIBRARY_FILTERS_TABS_REGION_ID,
+            regionId: LIBRARY_FILTERS_TOOLBAR_REGION_ID,
             entryDirection: "down",
           },
         }),

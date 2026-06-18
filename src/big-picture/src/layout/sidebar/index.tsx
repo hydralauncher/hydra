@@ -38,11 +38,13 @@ import {
   useNavigationActions,
   useSearch,
   useUserDetails,
+  useBigPictureToast,
 } from "../../hooks";
 import {
   getGameHorizontalImageSource,
   getPreferredGameAssets,
   getItemFocusTarget,
+  getBigPictureGameAchievementsPath,
 } from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
@@ -73,6 +75,7 @@ import {
   normalizeBigPicturePathname,
 } from "../navigation";
 import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
+import { LibraryGameContextMenu } from "../../components/pages/library";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -419,11 +422,17 @@ type SidebarRunningGamesById = Record<
 interface SidebarLibraryProps {
   library: LibraryGame[];
   runningGamesById: SidebarRunningGamesById;
+  onOpenContextMenu?: (
+    game: LibraryGame,
+    position: { x: number; y: number },
+    restoreFocusId: string
+  ) => void;
 }
 
 function SidebarLibrary({
   library,
   runningGamesById,
+  onOpenContextMenu,
 }: Readonly<SidebarLibraryProps>) {
   const { pathname } = useLocation();
   const lastDownloadPacket = useBigPictureDownloadsStore(
@@ -609,6 +618,20 @@ function SidebarLibrary({
                     extractionProgressByGameId
                   );
 
+                  const openContextMenuFromRect = (
+                    rect: DOMRect,
+                    restoreFocusId: string = focusId
+                  ) => {
+                    onOpenContextMenu?.(
+                      game,
+                      {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2,
+                      },
+                      restoreFocusId
+                    );
+                  };
+
                   return (
                     <li key={game.id} className="library-list__item">
                       <RouteAnchor
@@ -624,6 +647,35 @@ function SidebarLibrary({
                         focusNavigationOverrides={getGameNavigationOverrides(
                           index
                         )}
+                        focusActions={{
+                          primary: null,
+                          press: {
+                            y: onOpenContextMenu
+                              ? () => {
+                                  const element =
+                                    globalThis.document.getElementById(focusId);
+                                  const rect =
+                                    element?.getBoundingClientRect() ?? null;
+
+                                  if (rect) {
+                                    openContextMenuFromRect(rect);
+                                  }
+                                }
+                              : undefined,
+                          },
+                        }}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onOpenContextMenu?.(
+                            game,
+                            {
+                              x: event.clientX,
+                              y: event.clientY,
+                            },
+                            focusId
+                          );
+                        }}
                       />
                     </li>
                   );
@@ -802,17 +854,36 @@ const SidebarContainer = forwardRef<
   );
 });
 
+interface SidebarGameContextMenuState {
+  game: LibraryGame | null;
+  visible: boolean;
+  position: { x: number; y: number };
+  restoreFocusId: string | null;
+}
+
+const SIDEBAR_MENU_DEFAULT_POSITION = { x: 0, y: 0 };
+
 function Sidebar() {
   const { pathname } = useLocation();
-  const { library } = useLibrary();
+  const navigate = useNavigate();
+  const { library, updateLibrary } = useLibrary();
   const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
+  const { showSuccessToast } = useBigPictureToast();
   const { currentFocusId, nodes, regions } = useNavigationSnapshot();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
+  const [contextMenuState, setContextMenuState] =
+    useState<SidebarGameContextMenuState>({
+      game: null,
+      visible: false,
+      position: SIDEBAR_MENU_DEFAULT_POSITION,
+      restoreFocusId: null,
+    });
+
   const sidebarHasNavigationFocus = useMemo(
     () =>
       isFocusedNodeWithinRegion(
@@ -826,7 +897,8 @@ function Sidebar() {
   const sidebarForcedOpen =
     notificationsOpen ||
     restoringNotificationsFocus ||
-    sidebarHasNavigationFocus;
+    sidebarHasNavigationFocus ||
+    contextMenuState.visible;
   const sidebarExpanded =
     sidebarHovered || sidebarFocusWithin || sidebarForcedOpen;
 
@@ -841,6 +913,10 @@ function Sidebar() {
     }
 
     setNotificationsOpen(false);
+    setContextMenuState((currentState) => ({
+      ...currentState,
+      visible: false,
+    }));
 
     const contentRegionId =
       getBigPictureContentEntryRegionIdFromPathname(pathname) ??
@@ -850,6 +926,84 @@ function Sidebar() {
       preferRememberedFocus: true,
     });
   };
+
+  const handleOpenContextMenu = useCallback(
+    (
+      game: LibraryGame,
+      position: { x: number; y: number },
+      restoreFocusId: string
+    ) => {
+      setContextMenuState({
+        game,
+        visible: true,
+        position,
+        restoreFocusId,
+      });
+    },
+    []
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuState((currentState) => ({
+      ...currentState,
+      visible: false,
+    }));
+  }, []);
+
+  const handleToggleFavorite = useCallback(
+    async (game: LibraryGame) => {
+      if (!IS_DESKTOP) return;
+
+      const toggle = game.favorite
+        ? globalThis.window.electron.removeGameFromFavorites
+        : globalThis.window.electron.addGameToFavorites;
+
+      await toggle(game.shop, game.objectId);
+      await updateLibrary();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+    },
+    [updateLibrary]
+  );
+
+  const handleViewAchievements = useCallback(
+    (game: LibraryGame) => {
+      navigate(getBigPictureGameAchievementsPath(game));
+    },
+    [navigate]
+  );
+
+  const handleLaunchOrDownload = useCallback(
+    (game: LibraryGame) => {
+      const basePath = IS_DESKTOP ? "/big-picture" : "";
+      navigate(`${basePath}/game/${game.shop}/${game.objectId}`);
+    },
+    [navigate]
+  );
+
+  const handleUninstall = useCallback(
+    async (game: LibraryGame) => {
+      if (!IS_DESKTOP) return;
+      await globalThis.window.electron.deleteGameFolder(
+        game.shop,
+        game.objectId
+      );
+      await updateLibrary();
+    },
+    [updateLibrary]
+  );
+
+  const handleRemoveFromLibrary = useCallback(
+    async (game: LibraryGame) => {
+      if (!IS_DESKTOP) return;
+      await globalThis.window.electron.removeGameFromLibrary(
+        game.shop,
+        game.objectId
+      );
+      await updateLibrary();
+      showSuccessToast(`${game.title} removed from library`);
+    },
+    [updateLibrary, showSuccessToast]
+  );
 
   return (
     <>
@@ -873,9 +1027,24 @@ function Sidebar() {
           <SidebarLibrary
             library={library}
             runningGamesById={runningGamesById}
+            onOpenContextMenu={handleOpenContextMenu}
           />
         </SidebarContainer>
       </VerticalFocusGroup>
+
+      <LibraryGameContextMenu
+        game={contextMenuState.game}
+        visible={contextMenuState.visible}
+        position={contextMenuState.position}
+        restoreFocusId={contextMenuState.restoreFocusId}
+        onClose={handleCloseContextMenu}
+        onLaunchOrDownload={handleLaunchOrDownload}
+        onToggleFavorite={handleToggleFavorite}
+        onViewAchievements={handleViewAchievements}
+        onUninstall={handleUninstall}
+        onRemoveFromLibrary={handleRemoveFromLibrary}
+      />
+
       <div className="sidebar-spacer" />
       <div
         className="sidebar-drawer-overlay"

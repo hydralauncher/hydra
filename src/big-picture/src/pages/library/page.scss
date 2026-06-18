@@ -18,3 +18,16 @@
   width: 100%;
   will-change: opacity, transform;
 }
+
+.library-page__empty-collection {
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-page__empty-collection-text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+}

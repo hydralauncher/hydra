@@ -31,6 +31,7 @@
     gap: calc(var(--spacing-unit) * 12);
     flex: 1 1 auto;
     min-width: 0;
+    position: relative;
   }
 
   &__tab {
@@ -98,12 +99,12 @@
 
   &__indicator {
     position: absolute;
-    right: calc(var(--spacing-unit) * -1);
+    left: 0;
     bottom: 0;
-    left: calc(var(--spacing-unit) * -1);
     height: 3px;
     background-color: var(--text);
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+    pointer-events: none;
   }
 
   &__segmented-indicator {
