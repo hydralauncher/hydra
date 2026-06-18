@@ -14,10 +14,7 @@ interface UseLibraryPendingActionOptions {
   getRestoreFocusId: () => string | null;
   onDataRefresh: () => Promise<void>;
   setFocus?: (id: string) => void;
-  showSuccessToast?: (
-    title: string,
-    options?: BigPictureToastOptions
-  ) => void;
+  showSuccessToast?: (title: string, options?: BigPictureToastOptions) => void;
   buildToastOptions?: (
     game: LibraryGame,
     action: "removed"
