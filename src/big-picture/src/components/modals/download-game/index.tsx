@@ -302,6 +302,81 @@ function nudgeClippedFocusedSource(
   internalEngine.scrollTo.distance(signedDistance, false);
 }
 
+function scrollToRestoreFocus(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  nextFocusedIndex: number,
+  firstVisibleIndex: number,
+  rightTriggerPosition: number,
+  targetStartIndex: number
+) {
+  if (nextFocusedIndex <= rightTriggerPosition) {
+    if (firstVisibleIndex !== 0) {
+      emblaApi.scrollTo(0, true);
+    }
+  } else if (firstVisibleIndex !== targetStartIndex) {
+    emblaApi.scrollTo(targetStartIndex, true);
+  }
+
+  globalThis.requestAnimationFrame(() => {
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+  });
+}
+
+function handleNudgeIfClipped(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  nextFocusedIndex: number,
+  isClippedOnLeft: boolean,
+  isClippedOnRight: boolean
+) {
+  if (isClippedOnLeft || isClippedOnRight) {
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+  }
+}
+
+function scrollToOutOfBounds(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  nextFocusedIndex: number,
+  firstVisibleIndex: number,
+  targetStartIndex: number
+) {
+  if (firstVisibleIndex !== targetStartIndex) {
+    emblaApi.scrollTo(targetStartIndex, true);
+    globalThis.requestAnimationFrame(() => {
+      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    });
+    return;
+  }
+
+  nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+}
+
+function scrollInDirection(
+  emblaApi: ResolvedSourceCarouselEmblaApi,
+  viewportElement: HTMLElement,
+  nextFocusedIndex: number,
+  previousFocusedIndex: number
+) {
+  const isMovingRight = nextFocusedIndex > previousFocusedIndex;
+  const didScroll = isMovingRight
+    ? emblaApi.canScrollNext()
+    : emblaApi.canScrollPrev();
+
+  if (!didScroll) return;
+
+  if (isMovingRight) {
+    emblaApi.scrollNext();
+  } else {
+    emblaApi.scrollPrev();
+  }
+
+  globalThis.requestAnimationFrame(() => {
+    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+  });
+}
+
 function syncSourceThresholdFocusScroll(
   emblaApi: ResolvedSourceCarouselEmblaApi,
   viewportElement: HTMLElement,
@@ -348,18 +423,14 @@ function syncSourceThresholdFocusScroll(
     firstVisibleIndex === 0 && nextFocusedIndex <= rightTriggerPosition;
 
   if (restoreFocus) {
-    if (nextFocusedIndex <= rightTriggerPosition) {
-      if (firstVisibleIndex !== 0) {
-        emblaApi.scrollTo(0, true);
-      }
-    } else if (firstVisibleIndex !== targetStartIndex) {
-      emblaApi.scrollTo(targetStartIndex, true);
-    }
-
-    globalThis.requestAnimationFrame(() => {
-      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
-    });
-
+    scrollToRestoreFocus(
+      emblaApi,
+      viewportElement,
+      nextFocusedIndex,
+      firstVisibleIndex,
+      rightTriggerPosition,
+      targetStartIndex
+    );
     return;
   }
 
@@ -369,23 +440,24 @@ function syncSourceThresholdFocusScroll(
   if (didNotChange) return;
 
   if (isWithinInitialWindow) {
-    if (isClippedOnLeft || isClippedOnRight) {
-      nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
-    }
-
+    handleNudgeIfClipped(
+      emblaApi,
+      viewportElement,
+      nextFocusedIndex,
+      isClippedOnLeft,
+      isClippedOnRight
+    );
     return;
   }
 
   if (isOutOfBounds) {
-    if (firstVisibleIndex !== targetStartIndex) {
-      emblaApi.scrollTo(targetStartIndex, true);
-      globalThis.requestAnimationFrame(() => {
-        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
-      });
-      return;
-    }
-
-    nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
+    scrollToOutOfBounds(
+      emblaApi,
+      viewportElement,
+      nextFocusedIndex,
+      firstVisibleIndex,
+      targetStartIndex
+    );
     return;
   }
 
@@ -395,22 +467,13 @@ function syncSourceThresholdFocusScroll(
     : visiblePositionOneBased < leftTriggerPosition;
 
   if (shouldScroll) {
-    const didScroll = isMovingRight
-      ? emblaApi.canScrollNext()
-      : emblaApi.canScrollPrev();
-
-    if (didScroll) {
-      if (isMovingRight) {
-        emblaApi.scrollNext();
-      } else {
-        emblaApi.scrollPrev();
-      }
-
-      globalThis.requestAnimationFrame(() => {
-        nudgeClippedFocusedSource(emblaApi, viewportElement, nextFocusedIndex);
-      });
-      return;
-    }
+    scrollInDirection(
+      emblaApi,
+      viewportElement,
+      nextFocusedIndex,
+      previousFocusedIndex
+    );
+    return;
   }
 
   const visiblePosition = visibleIndexes.indexOf(nextFocusedIndex);
@@ -680,6 +743,16 @@ function DownloadGameModalSession({
     []
   );
 
+  const handleToggleSource = useCallback((sourceId: string) => {
+    setSelectedSources((previousSources) =>
+      previousSources.includes(sourceId)
+        ? previousSources.filter(
+            (previousSource) => previousSource !== sourceId
+          )
+        : [...previousSources, sourceId]
+    );
+  }, []);
+
   const stepTransitionKey =
     activeStep === DownloadGameStep.SourceList ? "source-list" : "options";
   const activeStepContentKey =
@@ -703,15 +776,7 @@ function DownloadGameModalSession({
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         selectedSources={selectedSources}
-        onToggleSource={(sourceId) => {
-          setSelectedSources((previousSources) =>
-            previousSources.includes(sourceId)
-              ? previousSources.filter(
-                  (previousSource) => previousSource !== sourceId
-                )
-              : [...previousSources, sourceId]
-          );
-        }}
+        onToggleSource={handleToggleSource}
         selectedSortOption={selectedSortOption}
         onSelectedSortOptionChange={setSelectedSortOption}
       />
@@ -720,6 +785,7 @@ function DownloadGameModalSession({
       downloadOptions,
       emptyStateReason,
       handleNextStep,
+      handleToggleSource,
       isCheckingSources,
       isLoading,
       localDownloadSources,
@@ -846,7 +912,7 @@ function DownloadGameModalSession({
             {renderStepContent(activeStep)}
           </motion.div>
 
-          {pendingStep !== null ? (
+          {pendingStep != null && (
             <MeasurementContext.Provider value={true}>
               <div
                 ref={pendingStepMeasureRef}
@@ -856,7 +922,7 @@ function DownloadGameModalSession({
                 {renderStepContent(pendingStep)}
               </div>
             </MeasurementContext.Provider>
-          ) : null}
+          )}
         </motion.div>
       </div>
     </Modal>
@@ -1088,13 +1154,17 @@ function DownloadGameSourceList({
     previousFocusedSourceIndexRef.current = null;
   }, [sourceItems]);
 
-  const optionsTransitionKey = isSourceListLoading
-    ? "loading"
-    : hasStructuralEmptyState
-      ? `empty-${emptyStateReason}`
-      : hasSearchEmptyState
-        ? "search-empty"
-        : `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+  let optionsTransitionKey: string;
+
+  if (isSourceListLoading) {
+    optionsTransitionKey = "loading";
+  } else if (hasStructuralEmptyState) {
+    optionsTransitionKey = `empty-${emptyStateReason}`;
+  } else if (hasSearchEmptyState) {
+    optionsTransitionKey = "search-empty";
+  } else {
+    optionsTransitionKey = `sorted-${selectedSortOption}-${selectedSources.toSorted((a, b) => a.localeCompare(b)).join("|") || "all"}`;
+  }
 
   const handleOpenSettings = useCallback(() => {
     onClose();
@@ -1435,7 +1505,6 @@ function DownloadGameOptions({
       setSelectedDownloader(undefined);
       setHasDownloaderTabsInteracted(false);
       setIsSubmitting(false);
-      return;
     }
   }, [visible]);
 
