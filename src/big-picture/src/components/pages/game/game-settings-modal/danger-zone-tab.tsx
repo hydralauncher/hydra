@@ -140,6 +140,7 @@ export function GameDangerZoneSettingsTab({
           <Button
             variant="danger"
             className="game-danger-zone-settings-tab__action-button"
+            disabled={!game.achievementCount}
             onClick={() => setPendingAction("reset-achievements")}
           >
             {t("reset_achievements")}
@@ -158,6 +159,7 @@ export function GameDangerZoneSettingsTab({
           <Button
             variant="danger"
             className="game-danger-zone-settings-tab__action-button"
+            disabled={!game.download?.downloadPath}
             onClick={() => setPendingAction("remove-files")}
           >
             {t("remove_game_files")}
