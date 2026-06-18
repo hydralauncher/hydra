@@ -908,6 +908,7 @@
     "friend_code_length_error": "O código de amigo deve ter 8 caracteres",
     "user_reviews": "Avaliações",
     "view_all": "Ver todos",
+    "badge_unlocked_on": "Desbloqueado em {{date}}",
     "loading_reviews": "A carregar avaliações...",
     "no_reviews": "Ainda não há avaliações",
     "delete_review": "Eliminar avaliação",

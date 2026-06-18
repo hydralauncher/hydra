@@ -58,6 +58,8 @@
   &__section--games {
     flex: 1;
     min-height: 0;
+    padding-bottom: 0;
+    margin-bottom: calc(globals.$spacing-unit * -2);
 
     .text-field-container {
       flex: none;

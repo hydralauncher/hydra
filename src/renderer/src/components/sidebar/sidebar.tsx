@@ -37,6 +37,7 @@ import { SidebarProfile } from "./sidebar-profile";
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
 const SIDEBAR_MAX_WIDTH = 450;
+const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 
 const initialSidebarWidth = window.localStorage.getItem("sidebarWidth");
 
@@ -95,7 +96,7 @@ export function Sidebar() {
   const virtualizer = useVirtualizer({
     count: visibleGames.length,
     getScrollElement: () => gameListRef.current,
-    estimateSize: () => 42,
+    estimateSize: () => SIDEBAR_GAME_ITEM_HEIGHT,
     overscan: 5,
   });
 
@@ -310,7 +311,7 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      {window.electron.platform === "darwin" && (
+      {globalThis.window.electron.platform === "darwin" && (
         <button
           type="button"
           className="sidebar__big-picture-darwin"
