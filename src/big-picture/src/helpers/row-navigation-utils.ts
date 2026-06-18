@@ -32,8 +32,6 @@ export function getClosestItemByCenterX<T extends { centerX: number }>(
   if (!items?.length) return null;
 
   return [...items].sort((a, b) => {
-    return (
-      Math.abs(a.centerX - centerX) - Math.abs(b.centerX - centerX)
-    );
+    return Math.abs(a.centerX - centerX) - Math.abs(b.centerX - centerX);
   })[0];
 }
