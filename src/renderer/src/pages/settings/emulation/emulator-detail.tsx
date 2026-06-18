@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 import {
   AlertIcon,
   ChevronLeftIcon,
@@ -9,7 +17,6 @@ import {
   FileDirectoryIcon,
   InfoIcon,
   PackageIcon,
-  PencilIcon,
   PlusIcon,
   SyncIcon,
   TrashIcon,
@@ -23,12 +30,14 @@ import {
   ConfirmationModal,
 } from "@renderer/components";
 import { useClassicsScan, useToast } from "@renderer/hooks";
+import { formatBytes } from "@shared";
 import type { EmulatorConfig, RomFolder } from "@types";
 
 import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
+import { RomsDetectedSection } from "./roms-detected-section";
 import { formatRelativeShort } from "./relative-time";
 
 import "./emulator-detail.scss";
@@ -41,16 +50,7 @@ interface EmulatorDetailProps {
   refresh: () => Promise<EmulatorConfig | unknown>;
 }
 
-const formatBytes = (bytes: number): string => {
-  if (bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1
-  );
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-};
+type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
 
 function GamepadIcon({ size = 16 }: Readonly<{ size?: number }>) {
   return (
@@ -90,9 +90,15 @@ export function EmulatorDetail({
 
   const [busy, setBusy] = useState(false);
   const [cloudNonce, setCloudNonce] = useState(0);
+  const [romsNonce, setRomsNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [executableExists, setExecutableExists] = useState<boolean>(true);
+
+  const supportsMemoryCards =
+    config.system === "ps2" || config.system === "ps1";
+
+  const [activeTab, setActiveTab] = useState<EmulatorTab>("emulator");
 
   useEffect(() => {
     let cancelled = false;
@@ -268,6 +274,7 @@ export function EmulatorDetail({
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
     void refresh();
+    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
@@ -291,6 +298,30 @@ export function EmulatorDetail({
   const lastScanLabel = formatLastScan(config.lastScanAt);
 
   const isConfigured = config.executablePath !== null;
+
+  const tabs: { id: EmulatorTab; label: string }[] = [
+    { id: "emulator", label: t("tab_emulator") },
+    { id: "rom-folders", label: t("tab_rom_folders") },
+    ...(supportsMemoryCards
+      ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
+      : []),
+    { id: "library", label: t("tab_library") },
+  ];
+
+  let statusBadge: ReactNode = null;
+  if (isConfigured) {
+    statusBadge = executableExists ? (
+      <span className="emulator-detail__synced">
+        <CheckCircleFillIcon size={14} />
+        <span>{t("synced")}</span>
+      </span>
+    ) : (
+      <span className="emulator-detail__path-missing">
+        <AlertIcon size={14} />
+        <span>{t("executable_missing")}</span>
+      </span>
+    );
+  }
 
   return (
     <div className="emulator-detail">
@@ -320,6 +351,11 @@ export function EmulatorDetail({
                 ? t("detected", { name: binaryName })
                 : t("not_detected")}
             </span>
+            {config.detectedVersion && (
+              <span className="emulator-detail__hero-version">
+                v{config.detectedVersion}
+              </span>
+            )}
             <span className="emulator-detail__dot" />
             <span className="emulator-detail__hero-count">
               <span className="emulator-detail__hero-count-dot" />
@@ -329,12 +365,19 @@ export function EmulatorDetail({
         </div>
         <div className="emulator-detail__hero-actions">
           <Button
-            theme="danger"
-            onClick={() => setRemoveOpen(true)}
-            disabled={busy || !isConfigured}
+            theme="primary"
+            onClick={handleRescan}
+            disabled={busy || scan.active}
           >
-            <TrashIcon size={14} />
-            <span>{t("remove_emulator")}</span>
+            <SyncIcon
+              size={16}
+              className={
+                scan.active
+                  ? "emulator-detail__redetect-icon--spinning"
+                  : undefined
+              }
+            />
+            <span>{t("rescan_library")}</span>
           </Button>
         </div>
       </section>
@@ -344,238 +387,293 @@ export function EmulatorDetail({
         <span>{t("bios_note", { name: binaryName })}</span>
       </p>
 
-      <section className="emulator-detail__section">
-        <header className="emulator-detail__section-header">
-          <div className="emulator-detail__section-text">
-            <div className="emulator-detail__section-title-row">
-              <h3>{t("emulator_section_title")}</h3>
-              {isConfigured &&
-                (executableExists ? (
-                  <span className="emulator-detail__synced">
-                    <CheckCircleFillIcon size={14} />
-                    <span>{t("synced")}</span>
-                  </span>
-                ) : (
-                  <span className="emulator-detail__path-missing">
-                    <AlertIcon size={14} />
-                    <span>{t("executable_missing")}</span>
-                  </span>
-                ))}
-            </div>
-            <p>{t("emulator_section_description")}</p>
-          </div>
-        </header>
+      <div className="emulator-detail__tabs" role="tablist">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={cn("emulator-detail__tab", {
+              "emulator-detail__tab--active": activeTab === tab.id,
+            })}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="emulator-detail__row emulator-detail__exec-row">
-          {binaryIcon ? (
-            <img
-              src={binaryIcon}
-              alt=""
-              className="emulator-detail__exec-icon"
-              aria-hidden="true"
-            />
-          ) : (
-            <PackageIcon size={24} />
-          )}
-          <div className="emulator-detail__exec-info">
-            <div className="emulator-detail__exec-header">
-              <span className="emulator-detail__exec-name">{binaryName}</span>
-              {config.detectedVersion && (
-                <>
-                  <span className="emulator-detail__dot" />
+      {activeTab === "emulator" && (
+        <>
+          <section className="emulator-detail__section">
+            <header className="emulator-detail__section-header">
+              <div className="emulator-detail__section-text">
+                <h3>{t("supported_emulators_title")}</h3>
+                <p>
+                  {t("supported_emulators_description", { name: binaryName })}
+                </p>
+              </div>
+            </header>
+
+            <div className="emulator-detail__row emulator-detail__supported">
+              {binaryIcon ? (
+                <img
+                  src={binaryIcon}
+                  alt=""
+                  className="emulator-detail__exec-icon"
+                  aria-hidden="true"
+                />
+              ) : (
+                <PackageIcon size={24} />
+              )}
+              <div className="emulator-detail__supported-info">
+                <span className="emulator-detail__exec-name">{binaryName}</span>
+                {config.detectedVersion && (
                   <span className="emulator-detail__exec-version">
                     v{config.detectedVersion}
                   </span>
-                </>
-              )}
-            </div>
-            <span className="emulator-detail__exec-label">
-              {t("executable_path")}
-            </span>
-            <button
-              type="button"
-              className="emulator-detail__exec-path-button"
-              onClick={handleBrowseExecutable}
-              disabled={busy}
-              title={t("change_executable_path")}
-              aria-label={t("change_executable_path")}
-            >
-              <span
-                className={`emulator-detail__exec-path-text${config.executablePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
-                title={config.executablePath ?? undefined}
-              >
-                {config.executablePath ?? t("select_executable_placeholder")}
-              </span>
-              <PencilIcon
-                size={12}
-                className="emulator-detail__exec-path-pencil"
-              />
-            </button>
-          </div>
-          <div className="emulator-detail__exec-actions">
-            <Button theme="outline" onClick={handleRedetect} disabled={busy}>
-              <SyncIcon
-                size={13}
-                className={
-                  busy ? "emulator-detail__redetect-icon--spinning" : undefined
-                }
-              />
-              <span>{t("re_detect")}</span>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="emulator-detail__section">
-        <header className="emulator-detail__section-header">
-          <div className="emulator-detail__section-text">
-            <h3>{t("rom_folders_section_title")}</h3>
-            <p>{t("rom_folders_section_description")}</p>
-          </div>
-          <Button
-            theme="outline"
-            onClick={handleAddFolder}
-            disabled={busy || scan.active}
-          >
-            <PlusIcon size={14} />
-            <span>{t("add_folder")}</span>
-          </Button>
-        </header>
-
-        <div className="emulator-detail__folders">
-          {config.romFolders.length === 0 && (
-            <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
-          )}
-          {config.romFolders.map((folder) => (
-            <div className="emulator-detail__row" key={folder.id}>
-              <FileDirectoryIcon size={24} />
-              <div className="emulator-detail__folder-info">
-                <span className="emulator-detail__folder-path">
-                  {folder.path}
-                </span>
-                <div className="emulator-detail__folder-meta">
-                  <span>
-                    {t(
-                      folder.fileCount === 1
-                        ? "file_count_one"
-                        : "file_count_other",
-                      { count: folder.fileCount }
-                    )}
-                  </span>
-                  <span className="emulator-detail__dot" />
-                  <span>
-                    {folder.lastScanAt
-                      ? t("last_scan_relative", {
-                          value: formatLastScan(folder.lastScanAt),
-                        })
-                      : t("last_scan_never")}
-                  </span>
-                </div>
+                )}
               </div>
-              <CheckboxField
-                label={t("scan_subfolders")}
-                checked={folder.scanSubfolders}
-                disabled={busy}
-                onChange={() => handleToggleSubfolders(folder)}
-              />
+              {statusBadge}
+            </div>
+          </section>
+
+          <section className="emulator-detail__section">
+            <header className="emulator-detail__section-header">
+              <div className="emulator-detail__section-text">
+                <h3>{t("executable_path_title")}</h3>
+                <p>{t("executable_path_description")}</p>
+              </div>
+            </header>
+
+            <div className="emulator-detail__exec-path-row">
               <button
                 type="button"
-                className="emulator-detail__remove"
-                onClick={() => setFolderToRemove(folder)}
-                aria-label={t("remove")}
+                className="emulator-detail__exec-path-box"
+                onClick={handleBrowseExecutable}
+                disabled={busy}
+                title={t("change_executable_path")}
+                aria-label={t("change_executable_path")}
+              >
+                <span
+                  className={`emulator-detail__exec-path-text${config.executablePath ? "" : " emulator-detail__exec-path-text--placeholder"}`}
+                  title={config.executablePath ?? undefined}
+                >
+                  {config.executablePath ?? t("select_executable_placeholder")}
+                </span>
+              </button>
+              <div className="emulator-detail__exec-actions">
+                <Button
+                  theme="outline"
+                  onClick={handleRedetect}
+                  disabled={busy}
+                >
+                  <SyncIcon
+                    size={13}
+                    className={
+                      busy
+                        ? "emulator-detail__redetect-icon--spinning"
+                        : undefined
+                    }
+                  />
+                  <span>{t("re_detect")}</span>
+                </Button>
+                <Button
+                  theme="primary"
+                  onClick={handleBrowseExecutable}
+                  disabled={busy}
+                >
+                  <FileDirectoryIcon size={16} />
+                  <span>{t("browse_files")}</span>
+                </Button>
+              </div>
+            </div>
+
+            {isConfigured && (
+              <button
+                type="button"
+                className="emulator-detail__remove-emulator"
+                onClick={() => setRemoveOpen(true)}
                 disabled={busy}
               >
-                <XIcon size={16} />
+                <TrashIcon size={14} />
+                <span>{t("remove_emulator")}</span>
               </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {(config.system === "ps2" || config.system === "ps1") && (
-        <MemoryCardsSection
-          config={config}
-          onUploaded={() => setCloudNonce((n) => n + 1)}
-        />
+            )}
+          </section>
+        </>
       )}
 
-      <section className="emulator-detail__section">
-        <header className="emulator-detail__section-header">
-          <div className="emulator-detail__section-text">
-            <h3>{t("library_section_title")}</h3>
-            <p>{t("library_section_description", { system: systemLabel })}</p>
+      {activeTab === "rom-folders" && (
+        <section className="emulator-detail__section">
+          <header className="emulator-detail__section-header">
+            <div className="emulator-detail__section-text">
+              <h3>{t("rom_folders_section_title")}</h3>
+              <p>{t("rom_folders_section_description")}</p>
+            </div>
+            <Button
+              theme="outline"
+              onClick={handleAddFolder}
+              disabled={busy || scan.active}
+            >
+              <PlusIcon size={14} />
+              <span>{t("add_folder")}</span>
+            </Button>
+          </header>
+
+          <div className="emulator-detail__folders">
+            {config.romFolders.length === 0 && (
+              <p className="emulator-detail__empty">{t("no_rom_folder")}</p>
+            )}
+            {config.romFolders.map((folder) => (
+              <div className="emulator-detail__row" key={folder.id}>
+                <FileDirectoryIcon size={24} />
+                <div className="emulator-detail__folder-info">
+                  <span className="emulator-detail__folder-path">
+                    {folder.path}
+                  </span>
+                  <div className="emulator-detail__folder-meta">
+                    <span>
+                      {t(
+                        folder.fileCount === 1
+                          ? "file_count_one"
+                          : "file_count_other",
+                        { count: folder.fileCount }
+                      )}
+                    </span>
+                    <span className="emulator-detail__dot" />
+                    <span>
+                      {folder.lastScanAt
+                        ? t("last_scan_relative", {
+                            value: formatLastScan(folder.lastScanAt),
+                          })
+                        : t("last_scan_never")}
+                    </span>
+                  </div>
+                </div>
+                <CheckboxField
+                  label={t("scan_subfolders")}
+                  checked={folder.scanSubfolders}
+                  disabled={busy}
+                  onChange={() => handleToggleSubfolders(folder)}
+                />
+                <button
+                  type="button"
+                  className="emulator-detail__remove"
+                  onClick={() => setFolderToRemove(folder)}
+                  aria-label={t("remove")}
+                  disabled={busy}
+                >
+                  <XIcon size={16} />
+                </button>
+              </div>
+            ))}
           </div>
-          <Button
-            theme="outline"
-            onClick={handleRescan}
+        </section>
+      )}
+
+      {activeTab === "memory-cards" && supportsMemoryCards && (
+        <>
+          <MemoryCardsSection
+            config={config}
+            onUploaded={() => setCloudNonce((n) => n + 1)}
+          />
+          <CloudSavesSection config={config} refreshKey={cloudNonce} />
+        </>
+      )}
+
+      {activeTab === "library" && (
+        <>
+          <section className="emulator-detail__section">
+            <header className="emulator-detail__section-header">
+              <div className="emulator-detail__section-text">
+                <h3>{t("library_section_title")}</h3>
+                <p>
+                  {t("library_section_description", { system: systemLabel })}
+                </p>
+              </div>
+              <Button
+                theme="outline"
+                onClick={handleRescan}
+                disabled={busy || scan.active}
+              >
+                <SyncIcon size={13} />
+                <span>{t("rescan")}</span>
+              </Button>
+            </header>
+
+            <ClassicsScanIndicator variant="section" />
+
+            <div className="emulator-detail__stats">
+              <div className="emulator-detail__stat">
+                <div className="emulator-detail__stat-head">
+                  <GamepadIcon size={16} />
+                  <span className="emulator-detail__stat-label">
+                    {t("stat_games")}
+                  </span>
+                </div>
+                <span className="emulator-detail__stat-value">
+                  {config.totalFiles}
+                </span>
+                <span className="emulator-detail__stat-caption">
+                  {t("stat_games_caption", { system: systemLabel })}
+                </span>
+              </div>
+              <div className="emulator-detail__stat">
+                <div className="emulator-detail__stat-head">
+                  <DatabaseIcon size={16} />
+                  <span className="emulator-detail__stat-label">
+                    {t("stat_storage")}
+                  </span>
+                </div>
+                <span className="emulator-detail__stat-value">
+                  {storageLabel}
+                </span>
+                <span className="emulator-detail__stat-caption">
+                  {t(
+                    config.totalFiles === 1
+                      ? "stat_storage_caption_one"
+                      : config.totalFiles === 0
+                        ? "stat_storage_caption_zero"
+                        : "stat_storage_caption_other",
+                    {
+                      count: config.totalFiles,
+                      folders: t(
+                        config.romFolders.length === 1
+                          ? "folder_count_one"
+                          : "folder_count_other",
+                        { count: config.romFolders.length }
+                      ),
+                    }
+                  )}
+                </span>
+              </div>
+              <div className="emulator-detail__stat">
+                <div className="emulator-detail__stat-head">
+                  <ClockIcon size={16} />
+                  <span className="emulator-detail__stat-label">
+                    {t("stat_last_scan")}
+                  </span>
+                </div>
+                <span className="emulator-detail__stat-value">
+                  {lastScanLabel}
+                </span>
+                <span className="emulator-detail__stat-caption">
+                  {t("stat_last_scan_caption")}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <RomsDetectedSection
+            system={config.system}
+            systemLabel={systemLabel}
+            onRescan={handleRescan}
             disabled={busy || scan.active}
-          >
-            <SyncIcon size={13} />
-            <span>{t("rescan")}</span>
-          </Button>
-        </header>
-
-        <ClassicsScanIndicator variant="section" />
-
-        <div className="emulator-detail__stats">
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <GamepadIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_games")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">
-              {config.totalFiles}
-            </span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_games_caption", { system: systemLabel })}
-            </span>
-          </div>
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <DatabaseIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_storage")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">{storageLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t(
-                config.totalFiles === 1
-                  ? "stat_storage_caption_one"
-                  : config.totalFiles === 0
-                    ? "stat_storage_caption_zero"
-                    : "stat_storage_caption_other",
-                {
-                  count: config.totalFiles,
-                  folders: t(
-                    config.romFolders.length === 1
-                      ? "folder_count_one"
-                      : "folder_count_other",
-                    { count: config.romFolders.length }
-                  ),
-                }
-              )}
-            </span>
-          </div>
-          <div className="emulator-detail__stat">
-            <div className="emulator-detail__stat-head">
-              <ClockIcon size={16} />
-              <span className="emulator-detail__stat-label">
-                {t("stat_last_scan")}
-              </span>
-            </div>
-            <span className="emulator-detail__stat-value">{lastScanLabel}</span>
-            <span className="emulator-detail__stat-caption">
-              {t("stat_last_scan_caption")}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {(config.system === "ps2" || config.system === "ps1") && (
-        <CloudSavesSection config={config} refreshKey={cloudNonce} />
+            refreshKey={romsNonce}
+          />
+        </>
       )}
 
       <ConfirmationModal
