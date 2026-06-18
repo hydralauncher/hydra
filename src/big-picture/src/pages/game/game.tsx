@@ -733,7 +733,7 @@ export default function Game() {
   }, [game, gameTitle, saveGameTitle, showErrorToast, t, updatingGameTitle]);
 
   const handleSelectCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => { // NOSONAR
+    async (assetType: "icon" | "logo" | "hero") => {// NOSONAR
       if (!game) return;
 
       const { filePaths } = await globalThis.window.electron.showOpenDialog({
@@ -809,7 +809,8 @@ export default function Game() {
   );
 
   const handleClearCustomizationAsset = useCallback(
-    async (assetType: "icon" | "logo" | "hero") => { // NOSONAR
+    async (assetType: "icon" | "logo" | "hero") => {
+      // NOSONAR
       if (!game) return;
 
       try {
