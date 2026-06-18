@@ -245,6 +245,16 @@ export default function LibraryPage() {
     setIsGameSettingsModalOpen(true);
   }, []);
 
+  const handleOpenGameSettingsFromContextMenu = useCallback(
+    (game: LibraryGame) => {
+      settingsModalRestoreFocusIdRef.current =
+        contextMenuState.restoreFocusId;
+      setSettingsModalGame(game);
+      setIsGameSettingsModalOpen(true);
+    },
+    [contextMenuState.restoreFocusId]
+  );
+
   const handleCloseGameSettingsModal = useCallback(() => {
     const restoreFocusId = settingsModalRestoreFocusIdRef.current;
 
@@ -556,6 +566,7 @@ export default function LibraryPage() {
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={toggleFavorite}
         onViewAchievements={handleViewAchievements}
+        onOptions={handleOpenGameSettingsFromContextMenu}
         onUninstall={handleRequestRemoveFiles}
         onRemoveFromLibrary={handleRequestRemoveFromLibrary}
       />
