@@ -787,6 +787,7 @@
     "use_native_http_downloader": "ネイティブHTTPダウンローダーを使用（実験的）",
     "cannot_change_downloader_while_downloading": "ダウンロード中はこの設定を変更できません",
     "create_shortcuts_on_download": "ゲームのダウンロード完了時にデスクトップとスタートメニューのショートカットを作成",
+    "default_wine_prefix": "デフォルトのWineプレフィックスの場所",
     "default_proton_version": "デフォルトProtonバージョン",
     "default_proton_version_description": "カスタムオーバーライドがないゲームで自動モードが使用するProtonバージョンを選択"
   },

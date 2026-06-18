@@ -31,14 +31,34 @@ export function SidebarAddingCustomGameModal({
   const [isAdding, setIsAdding] = useState(false);
 
   const handleSelectExecutable = async () => {
+    const filters =
+      window.electron.platform === "linux"
+        ? [
+            {
+              name: t("custom_game_modal_executable"),
+              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+            },
+            { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
+          ]
+        : [
+            {
+              name: t("custom_game_modal_executable"),
+              extensions: [
+                "exe",
+                "msi",
+                "bat",
+                "cmd",
+                "app",
+                "deb",
+                "rpm",
+                "dmg",
+              ],
+            },
+          ];
+
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
-      filters: [
-        {
-          name: t("custom_game_modal_executable"),
-          extensions: ["exe", "msi", "app", "deb", "rpm", "dmg"],
-        },
-      ],
+      filters,
     });
 
     if (filePaths && filePaths.length > 0) {
