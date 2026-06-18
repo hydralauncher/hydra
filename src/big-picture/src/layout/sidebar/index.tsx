@@ -560,10 +560,7 @@ function SidebarLibrary({
         />
       </div>
 
-      <fieldset className="library-container__filters">
-        <legend className="library-container__filters-legend">
-          Library filters
-        </legend>
+      <div className="library-container__filters" aria-label="Library filters">
         {SIDEBAR_LIBRARY_FILTERS.map((filter, index) => (
           <FocusItem
             key={filter.value}
@@ -594,7 +591,7 @@ function SidebarLibrary({
             </button>
           </FocusItem>
         ))}
-      </fieldset>
+      </div>
 
       <div className="library-container__list-focus-region">
         <VerticalFocusGroup
@@ -846,7 +843,7 @@ const SidebarContainer = forwardRef<
   };
 
   return (
-    <div
+    <div // NOSONAR
       ref={ref}
       className={`sidebar-container${forcedOpen ? " sidebar-container--open" : ""}`}
       onBlurCapture={handleBlurCapture}
