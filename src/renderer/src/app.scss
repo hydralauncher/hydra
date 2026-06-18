@@ -157,6 +157,7 @@ progress[value] {
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
+    margin-left: auto;
     margin-right: globals.$spacing-unit;
     font-size: 12px;
     -webkit-app-region: no-drag;
@@ -173,7 +174,6 @@ progress[value] {
   &__window-controls {
     display: flex;
     align-self: stretch;
-    margin-left: auto;
     margin-right: calc(globals.$spacing-unit * -2);
     -webkit-app-region: no-drag;
   }
