@@ -352,7 +352,7 @@ export function useGameSettingsModalState({
     if (nextValue === currentValue) return;
 
     launchOptionsDebounceRef.current = globalThis.window.setTimeout(() => {
-      void persistLaunchOptions(nextValue);
+      persistLaunchOptions(nextValue).catch(() => {});
     }, 500);
 
     return () => {
@@ -507,7 +507,7 @@ export function useGameSettingsModalState({
   }, []);
 
   const handleBlurLaunchOptions = useCallback(() => {
-    void persistLaunchOptions(launchOptions);
+    persistLaunchOptions(launchOptions).catch(() => {});
   }, [launchOptions, persistLaunchOptions]);
 
   const handleSelectDisc = useCallback(

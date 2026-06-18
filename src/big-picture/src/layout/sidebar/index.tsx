@@ -79,9 +79,9 @@ import {
   LibraryGameContextMenu,
   LibraryGameSettingsModal,
   useLibraryLaunchGame,
+  useLibraryPendingAction,
 } from "../../components/pages/library";
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
-import { logger } from "@renderer/logger";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -475,12 +475,13 @@ function SidebarLibrary({
   const { filteredItems, search, setSearch } = useSearch(sidebarLibrary, [
     "title",
   ]);
-  const emptyLibraryMessage =
-    library.length === 0
-      ? "No games in library"
-      : search.trim()
-        ? "No games found"
-        : "No games here";
+  let emptyLibraryMessage = "No games here";
+
+  if (library.length === 0) {
+    emptyLibraryMessage = "No games in library";
+  } else if (search.trim()) {
+    emptyLibraryMessage = "No games found";
+  }
 
   const selectedFilterFocusId =
     SIDEBAR_LIBRARY_FILTER_FOCUS_IDS[selectedLibraryFilter];
@@ -559,11 +560,10 @@ function SidebarLibrary({
         />
       </div>
 
-      <div
-        className="library-container__filters"
-        role="group"
-        aria-label="Library filters"
-      >
+      <fieldset className="library-container__filters">
+        <legend className="library-container__filters-legend">
+          Library filters
+        </legend>
         {SIDEBAR_LIBRARY_FILTERS.map((filter, index) => (
           <FocusItem
             key={filter.value}
@@ -594,7 +594,7 @@ function SidebarLibrary({
             </button>
           </FocusItem>
         ))}
-      </div>
+      </fieldset>
 
       <div className="library-container__list-focus-region">
         <VerticalFocusGroup
@@ -848,7 +848,6 @@ const SidebarContainer = forwardRef<
   return (
     <div
       ref={ref}
-      role="presentation"
       className={`sidebar-container${forcedOpen ? " sidebar-container--open" : ""}`}
       onBlurCapture={handleBlurCapture}
       onFocusCapture={handleFocusCapture}
@@ -893,14 +892,25 @@ function Sidebar() {
     string | null
   >(null);
 
-  interface SidebarPendingAction {
-    type: "remove-files" | "remove-from-library";
-    game: LibraryGame;
-    restoreFocusId: string | null;
-  }
-
-  const [pendingAction, setPendingAction] =
-    useState<SidebarPendingAction | null>(null);
+  const {
+    pendingAction,
+    requestRemoveFiles,
+    requestRemoveFromLibrary,
+    closePendingAction,
+    confirmPendingAction,
+  } = useLibraryPendingAction({
+    getRestoreFocusId: useCallback(
+      () => contextMenuState.restoreFocusId,
+      [contextMenuState.restoreFocusId]
+    ),
+    onDataRefresh: useCallback(async () => {
+      await updateLibrary();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+    }, [updateLibrary]),
+    showSuccessToast,
+    restoreFocusOnClose: false,
+    restoreFocusOnConfirm: false,
+  });
 
   const sidebarHasNavigationFocus = useMemo(
     () =>
@@ -1020,66 +1030,6 @@ function Sidebar() {
     setSettingsModalGame(null);
   }, []);
 
-  const handleRequestRemoveFiles = useCallback(
-    (game: LibraryGame) => {
-      setPendingAction({
-        type: "remove-files",
-        game,
-        restoreFocusId: contextMenuState.restoreFocusId,
-      });
-    },
-    [contextMenuState.restoreFocusId]
-  );
-
-  const handleRequestRemoveFromLibrary = useCallback(
-    (game: LibraryGame) => {
-      setPendingAction({
-        type: "remove-from-library",
-        game,
-        restoreFocusId: contextMenuState.restoreFocusId,
-      });
-    },
-    [contextMenuState.restoreFocusId]
-  );
-
-  const handleClosePendingAction = useCallback(() => {
-    setPendingAction(null);
-  }, []);
-
-  const handleConfirmPendingAction = useCallback(async () => {
-    const currentAction = pendingAction;
-
-    if (!currentAction || !IS_DESKTOP) return;
-
-    try {
-      const { game } = currentAction;
-
-      if (currentAction.type === "remove-files") {
-        await globalThis.window.electron.deleteGameFolder(
-          game.shop,
-          game.objectId
-        );
-      } else {
-        await globalThis.window.electron.removeGameFromLibrary(
-          game.shop,
-          game.objectId
-        );
-      }
-
-      await updateLibrary();
-      globalThis.window.dispatchEvent(new Event("library-update"));
-
-      if (currentAction.type === "remove-from-library") {
-        showSuccessToast(`${game.title} removed from library`);
-      }
-
-      setPendingAction(null);
-    } catch (error) {
-      logger.error("Failed to execute library action", error);
-      setPendingAction(null);
-    }
-  }, [pendingAction, updateLibrary, showSuccessToast]);
-
   return (
     <>
       <VerticalFocusGroup regionId={BIG_PICTURE_SIDEBAR_REGION_ID} asChild>
@@ -1118,8 +1068,8 @@ function Sidebar() {
         onToggleFavorite={handleToggleFavorite}
         onViewAchievements={handleViewAchievements}
         onOptions={handleOpenGameSettings}
-        onUninstall={handleRequestRemoveFiles}
-        onRemoveFromLibrary={handleRequestRemoveFromLibrary}
+        onUninstall={requestRemoveFiles}
+        onRemoveFromLibrary={requestRemoveFromLibrary}
       />
 
       {downloadModalGame ? (
@@ -1154,8 +1104,8 @@ function Sidebar() {
           }
           confirmLabel="Remove"
           danger
-          onClose={handleClosePendingAction}
-          onConfirm={handleConfirmPendingAction}
+          onClose={closePendingAction}
+          onConfirm={confirmPendingAction}
         />
       ) : null}
 

@@ -42,6 +42,15 @@ type GameSettingsTabId =
   | "downloads"
   | "danger_zone";
 
+const GAME_SETTINGS_TAB_FOCUS_IDS: Record<GameSettingsTabId, string> = {
+  launch: GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
+  customization: GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID,
+  hydra_cloud: GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
+  downloads: GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID,
+  danger_zone: GAME_DANGER_ZONE_PRIMARY_CONTROL_ID,
+  compatibility: GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID,
+};
+
 interface GameSettingsModalProps {
   visible: boolean;
   game: LibraryGame;
@@ -172,21 +181,7 @@ export function GameSettingsModal({
       coverImage={preferredAssets.heroSrc || undefined}
       className="game-settings-modal"
       ariaLabel={settingsLabel}
-      contentEntryFocusId={
-        activeTabId === "launch"
-          ? GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID
-          : activeTabId === "customization"
-            ? GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
-            : activeTabId === "hydra_cloud"
-              ? GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID
-              : activeTabId === "downloads"
-                ? GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID
-                : activeTabId === "danger_zone"
-                  ? GAME_DANGER_ZONE_PRIMARY_CONTROL_ID
-                  : activeTabId === "compatibility"
-                    ? GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID
-                    : undefined
-      }
+      contentEntryFocusId={GAME_SETTINGS_TAB_FOCUS_IDS[activeTabId]}
       tabs={tabs}
       activeTabId={activeTabId}
       onActiveTabChange={(tabId) => setActiveTabId(tabId as GameSettingsTabId)}

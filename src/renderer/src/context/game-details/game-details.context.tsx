@@ -247,7 +247,7 @@ export function GameDetailsContextProvider({
   }, [game]);
 
   useEffect(() => {
-    void fetchGameDetails();
+    fetchGameDetails().catch(() => {});
   }, [fetchGameDetails]);
 
   useEffect(() => {
@@ -299,7 +299,7 @@ export function GameDetailsContextProvider({
 
   useEffect(() => {
     const unsubscribe = window.electron.onLibraryBatchComplete(() => {
-      void refreshGameDetails();
+      refreshGameDetails().catch(() => {});
     });
 
     return () => {
