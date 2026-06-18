@@ -1,13 +1,33 @@
+import path from "node:path";
+
 import type { DetectedRom, EmulatorSystem } from "@types";
 
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel } from "@main/level";
 import { platformToSystem } from "@main/helpers";
+import { emulators } from "@main/services";
+
+const normalizePath = (p: string): string => {
+  const normalized = path.normalize(p);
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+};
+
+const isWithin = (child: string, parent: string): boolean => {
+  const c = normalizePath(child);
+  const p = normalizePath(parent);
+  if (c === p) return true;
+  const rel = path.relative(p, c);
+  return rel.length > 0 && !rel.startsWith("..") && !path.isAbsolute(rel);
+};
 
 const listEmulatorRoms = async (
   _event: Electron.IpcMainInvokeEvent,
   system: EmulatorSystem
 ): Promise<DetectedRom[]> => {
+  const config = await emulators.getEmulatorConfig(system);
+  const folders = config.romFolders.map((folder) => folder.path);
+  if (folders.length === 0) return [];
+
   const entries = await gamesSublevel.iterator().all();
 
   const roms: DetectedRom[] = [];
@@ -16,8 +36,14 @@ const listEmulatorRoms = async (
     if (game.shop !== "launchbox") continue;
     if (platformToSystem(game.platform) !== system) continue;
 
+    const discs = game.discs ?? [];
+    const inRomFolder = discs.some((disc) =>
+      folders.some((folder) => isWithin(disc.path, folder))
+    );
+    if (!inRomFolder) continue;
+
     const assets = await gamesShopAssetsSublevel.get(key).catch(() => null);
-    const skus = (game.discs ?? [])
+    const skus = discs
       .map((disc) => disc.sku ?? "")
       .filter((sku) => sku.length > 0);
 
