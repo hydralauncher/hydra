@@ -13,6 +13,7 @@ import {
   useAppSelector,
   useGameCollections,
   useToast,
+  useUserDetails,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import {
@@ -20,15 +21,19 @@ import {
   TelescopeIcon,
   FileDirectoryIcon,
   PencilIcon,
+  PlusIcon,
   TrashIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "react-tooltip";
+import { AuthPage } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import {
   Button,
   ConfirmationModal,
   ContextMenu,
+  CreateCollectionModal,
   GameContextMenu,
   Modal,
   TextField,
@@ -84,6 +89,7 @@ const getGameCollectionIds = (game: LibraryGame): string[] => {
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
   const { showSuccessToast, showErrorToast } = useToast();
+  const { userDetails } = useUserDetails();
   const {
     collections,
     loadCollections,
@@ -122,6 +128,8 @@ export default function Library() {
   const [showDeleteCollectionModal, setShowDeleteCollectionModal] =
     useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+  const [showCreateCollectionModal, setShowCreateCollectionModal] =
+    useState(false);
 
   const [category, setCategory] = useState<LibraryCategory>(() => {
     const saved = localStorage.getItem("library-category");
@@ -273,6 +281,15 @@ export default function Library() {
   const handleCloseCollectionContextMenu = useCallback(() => {
     setCollectionContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
+
+  const handleCreateCollectionButtonClick = useCallback(() => {
+    if (!userDetails) {
+      window.electron.openAuthWindow(AuthPage.SignIn);
+      return;
+    }
+
+    setShowCreateCollectionModal(true);
+  }, [userDetails]);
 
   const resolveCollectionErrorMessage = useCallback(
     (
@@ -677,46 +694,67 @@ export default function Library() {
             </div>
           </div>
 
-          <div
-            className="library__collections"
-            role="group"
-            aria-label={t("collections")}
-          >
-            {libraryCollections.map((collection) => {
-              const isFavoritesCollection =
-                collection.id === FAVORITES_COLLECTION_ID;
+          <div className="library__collections-section">
+            <div className="library__collections-header">
+              <small className="library__collections-title">
+                {t("collections")}
+              </small>
+              <button
+                type="button"
+                className="library__add-collection-button"
+                onClick={handleCreateCollectionButtonClick}
+                aria-label={t("create_collection", { ns: "sidebar" })}
+                data-tooltip-id="library-create-collection-tooltip"
+                data-tooltip-content={t("create_collection_tooltip", {
+                  ns: "sidebar",
+                })}
+                data-tooltip-place="top"
+              >
+                <PlusIcon size={16} />
+              </button>
+            </div>
 
-              return (
-                <button
-                  key={collection.id}
-                  type="button"
-                  className={`library__collection-item ${selectedCollectionId === collection.id ? "library__collection-item--active" : ""}`}
-                  onClick={() =>
-                    handleCollectionSelect(
-                      selectedCollectionId === collection.id
-                        ? null
-                        : collection.id
-                    )
-                  }
-                  onContextMenu={
-                    isFavoritesCollection
-                      ? undefined
-                      : (event) =>
-                          handleOpenCollectionContextMenu(event, collection)
-                  }
-                >
-                  {isFavoritesCollection ? (
-                    <HeartIcon size={16} />
-                  ) : (
-                    <FileDirectoryIcon size={16} />
-                  )}
-                  <span>{collection.name}</span>
-                  <span className="library__collection-count">
-                    {collection.gamesCount}
-                  </span>
-                </button>
-              );
-            })}
+            <div
+              className="library__collections"
+              role="group"
+              aria-label={t("collections")}
+            >
+              {libraryCollections.map((collection) => {
+                const isFavoritesCollection =
+                  collection.id === FAVORITES_COLLECTION_ID;
+
+                return (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    className={`library__collection-item ${selectedCollectionId === collection.id ? "library__collection-item--active" : ""}`}
+                    onClick={() =>
+                      handleCollectionSelect(
+                        selectedCollectionId === collection.id
+                          ? null
+                          : collection.id
+                      )
+                    }
+                    onContextMenu={
+                      isFavoritesCollection
+                        ? undefined
+                        : (event) =>
+                            handleOpenCollectionContextMenu(event, collection)
+                    }
+                  >
+                    {isFavoritesCollection ? (
+                      <HeartIcon size={16} />
+                    ) : (
+                      <FileDirectoryIcon size={16} />
+                    )}
+                    <span>{collection.name}</span>
+                    <span className="library__collection-count">
+                      {collection.gamesCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -890,10 +928,17 @@ export default function Library() {
         buttonsIsDisabled={isDeletingCollection}
       />
 
+      <CreateCollectionModal
+        visible={showCreateCollectionModal}
+        onClose={() => setShowCreateCollectionModal(false)}
+      />
+
       <ClassicsOnboardingModal
         visible={showClassicsOnboarding}
         onClose={() => setShowClassicsOnboarding(false)}
       />
+
+      <Tooltip id="library-create-collection-tooltip" />
     </section>
   );
 }
