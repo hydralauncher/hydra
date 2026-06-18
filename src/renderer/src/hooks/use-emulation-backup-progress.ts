@@ -85,10 +85,26 @@ export function useEmulationBackupProgress(platform: EmulationSavePlatform) {
     });
   }, []);
 
+  const backupCard = useCallback(
+    async (cardFilePath: string, recordCount: number) => {
+      markCardBackupStarted(cardFilePath, recordCount);
+      try {
+        return await window.electron.uploadEmulationSavesForCard(
+          platform,
+          cardFilePath
+        );
+      } catch {
+        return null;
+      } finally {
+        markCardBackupFinished(cardFilePath);
+      }
+    },
+    [platform, markCardBackupStarted, markCardBackupFinished]
+  );
+
   return {
     backupProgressByCard,
-    markCardBackupStarted,
-    markCardBackupFinished,
+    backupCard,
   };
 }
 
