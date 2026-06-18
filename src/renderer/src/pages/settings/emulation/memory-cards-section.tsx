@@ -14,9 +14,12 @@ import {
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import {
+  resolveCardBackupProgress,
+  useEmulationBackupProgress,
+} from "@renderer/hooks/use-emulation-backup-progress";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import type {
-  EmulationBackupProgress,
   EmulationSavePlatform,
   EmulatorConfig,
   MemcardExportResult,
@@ -71,8 +74,6 @@ const PICK_FILTERS = {
   ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
 };
 
-const PERCENT = 100;
-
 const formatBytes = (bytes: number): string => {
   if (bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -110,9 +111,8 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
-  const [backupProgress, setBackupProgress] =
-    useState<EmulationBackupProgress | null>(null);
+  const { backingUpCard, backupProgress, setBackingUpCard, setBackupProgress } =
+    useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -128,40 +128,6 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   useEffect(() => {
     loadSaves();
   }, [loadSaves]);
-
-  useEffect(() => {
-    let active = true;
-    const seenDone = new Set<string>();
-
-    void window.electron.getActiveEmulationBackups().then((list) => {
-      if (!active) return;
-      const match = list.find((b) => b.platform === platform);
-      if (!match || seenDone.has(match.cardFilePath)) return;
-      setBackingUpCard(match.cardFilePath);
-      setBackupProgress(match);
-    });
-
-    const unsubscribe = window.electron.onEmulationBackupProgress((payload) => {
-      if (payload.platform !== platform) return;
-      if (payload.processed >= payload.total) {
-        seenDone.add(payload.cardFilePath);
-        setBackingUpCard((prev) =>
-          prev === payload.cardFilePath ? null : prev
-        );
-        setBackupProgress((prev) =>
-          prev?.cardFilePath === payload.cardFilePath ? null : prev
-        );
-        return;
-      }
-      setBackingUpCard(payload.cardFilePath);
-      setBackupProgress(payload);
-    });
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [platform]);
 
   // Group by card file path (not label) so two cards sharing a basename in
   // different folders don't collapse into one group.
@@ -287,7 +253,15 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
         setBackupProgress(null);
       }
     },
-    [platform, showSuccessToast, showErrorToast, t, onUploaded]
+    [
+      platform,
+      showSuccessToast,
+      showErrorToast,
+      t,
+      onUploaded,
+      setBackingUpCard,
+      setBackupProgress,
+    ]
   );
 
   const handleForgetCard = useCallback(async () => {
@@ -335,21 +309,18 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
           <div className="emulator-detail__memcards">
             {groups.map(({ cardFilePath, cardLabel, records }) => {
               const isCollapsed = collapsed.has(cardFilePath);
-              const isBackingUp = backingUpCard === cardFilePath;
-              const progress =
-                isBackingUp && backupProgress?.cardFilePath === cardFilePath
-                  ? backupProgress
-                  : null;
-              const progressTotal = progress?.total ?? records.length;
-              const progressDone = progress?.processed ?? 0;
-              const progressLabel = progress?.currentLabel ?? null;
-              const progressPercent =
-                progressTotal > 0
-                  ? Math.min(
-                      PERCENT,
-                      Math.round((progressDone / progressTotal) * PERCENT)
-                    )
-                  : 0;
+              const {
+                isBackingUp,
+                total: progressTotal,
+                done: progressDone,
+                label: progressLabel,
+                percent: progressPercent,
+              } = resolveCardBackupProgress(
+                backingUpCard,
+                backupProgress,
+                cardFilePath,
+                records.length
+              );
               return (
                 <div
                   key={cardFilePath}
