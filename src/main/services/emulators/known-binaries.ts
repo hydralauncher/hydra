@@ -83,3 +83,13 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     romDirectoryMarkers: ["PS3_GAME", "ps3_game"],
   },
 };
+
+export const EMULATOR_BINARIES: readonly EmulatorBinary[] = Object.values(
+  KNOWN_BINARIES
+).map((entry) => entry.binary);
+
+export const isKnownEmulatorBinary = (
+  value: unknown
+): value is EmulatorBinary =>
+  typeof value === "string" &&
+  (EMULATOR_BINARIES as readonly string[]).includes(value);

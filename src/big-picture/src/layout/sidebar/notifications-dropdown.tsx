@@ -129,6 +129,16 @@ function getApiNotificationContent(notification: Notification) {
         title: `${notification.variables.gameTitle ?? "Your review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your review.`,
       };
+    case "REVIEW_ANSWER":
+      return {
+        title: `New reply to your review for ${notification.variables.gameTitle ?? "your review"}`,
+        description: `${notification.variables.answerAuthorDisplayName ?? "Someone"} replied to your review.`,
+      };
+    case "REVIEW_ANSWER_UPVOTE":
+      return {
+        title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
+        description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
+      };
     default:
       return {
         title: "Notification",

@@ -277,6 +277,7 @@ export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
 
 const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_NOT_CONFIGURED",
+  "BIOS_NOT_CONFIGURED",
   "PLATFORM_UNKNOWN",
   "NO_DISC",
   "EMULATOR_ALREADY_RUNNING",
