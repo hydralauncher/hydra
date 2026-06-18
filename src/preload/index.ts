@@ -180,6 +180,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   removeRomFolder: (system: EmulatorSystem, folderId: string) =>
     ipcRenderer.invoke("removeRomFolder", system, folderId),
+  listEmulatorRoms: (system: EmulatorSystem) =>
+    ipcRenderer.invoke("listEmulatorRoms", system),
   toggleRomFolderSubfolders: (
     system: EmulatorSystem,
     folderId: string,
@@ -927,6 +929,10 @@ contextBridge.exposeInMainWorld("electron", {
   checkHomebrewFolderExists: () =>
     ipcRenderer.invoke("checkHomebrewFolderExists"),
   platform: process.platform,
+  isWayland:
+    process.platform === "linux" &&
+    (process.env.XDG_SESSION_TYPE === "wayland" ||
+      Boolean(process.env.WAYLAND_DISPLAY)),
 
   /* Auto update */
   onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
@@ -1176,6 +1182,23 @@ contextBridge.exposeInMainWorld("electron", {
   },
   closeEditorWindow: (themeId?: string) =>
     ipcRenderer.invoke("closeEditorWindow", themeId),
+
+  /* Main Window Controls */
+  minimizeMainWindow: () => ipcRenderer.invoke("minimizeMainWindow"),
+  toggleMaximizeMainWindow: () =>
+    ipcRenderer.invoke("toggleMaximizeMainWindow"),
+  closeMainWindow: () => ipcRenderer.invoke("closeMainWindow"),
+  isMainWindowMaximized: () =>
+    ipcRenderer.invoke("isMainWindowMaximized") as Promise<boolean>,
+  onWindowMaximizeChange: (cb: (isMaximized: boolean) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      isMaximized: boolean
+    ) => cb(isMaximized);
+    ipcRenderer.on("on-window-maximize-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-window-maximize-change", listener);
+  },
 
   /* Big Picture */
   openBigPictureWindow: () => ipcRenderer.invoke("openBigPictureWindow"),

@@ -11,6 +11,7 @@ import "./friends";
 import "./hardware";
 import "./library";
 import "./leveldb";
+import "./main-window-controls";
 import "./misc";
 import "./notifications";
 import "./profile";
