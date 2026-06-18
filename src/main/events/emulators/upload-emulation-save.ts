@@ -124,10 +124,7 @@ const uploadEmulationSavesForCard = async (
     if (payload.processed >= total) activeBackups.delete(key);
     else activeBackups.set(key, payload);
 
-    WindowManager.mainWindow?.webContents.send(
-      BACKUP_PROGRESS_CHANNEL,
-      payload
-    );
+    WindowManager.sendToAppWindows(BACKUP_PROGRESS_CHANNEL, payload);
   };
 
   for (const record of records) {
