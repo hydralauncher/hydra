@@ -71,14 +71,14 @@ export function useCloudConnector(dependency: unknown) {
 
     const rowTop = Math.min(...firstRow.map((c) => c.top));
     const busY = rowTop - BRANCH_GAP;
-    const xs = firstRow.map((c) => c.x).sort((a, b) => a - b);
-    const left = Math.min(slotX, xs[0]);
-    const right = Math.max(slotX, xs[xs.length - 1]);
-    segments.push(`M ${slotX} ${slotY} L ${slotX} ${busY}`);
-    segments.push(`M ${left} ${busY} L ${right} ${busY}`);
-    for (const geom of firstRow) {
-      segments.push(`M ${geom.x} ${busY} L ${geom.x} ${geom.top}`);
-    }
+    const xs = firstRow.map((c) => c.x);
+    const left = Math.min(slotX, ...xs);
+    const right = Math.max(slotX, ...xs);
+    segments.push(
+      `M ${slotX} ${slotY} L ${slotX} ${busY}`,
+      `M ${left} ${busY} L ${right} ${busY}`,
+      ...firstRow.map((geom) => `M ${geom.x} ${busY} L ${geom.x} ${geom.top}`)
+    );
 
     const columns = new Map<number, CardGeom[]>();
     for (const geom of cardGeoms) {
