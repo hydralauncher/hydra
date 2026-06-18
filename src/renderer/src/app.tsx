@@ -1,5 +1,11 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
 import {
+  DashIcon,
+  ScreenFullIcon,
+  ScreenNormalIcon,
+  XIcon,
+} from "@primer/octicons-react";
+import {
   useAppDispatch,
   useAppSelector,
   useDownload,
@@ -478,9 +484,39 @@ export function App() {
     dispatch(closeToast());
   }, [dispatch]);
 
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
+
+  useEffect(() => {
+    if (window.electron.platform !== "linux") return;
+
+    if (window.electron.isWayland) {
+      document.body.classList.add("window-rounded");
+    }
+
+    let cancelled = false;
+
+    const applyMaximizeState = (isMaximized: boolean) => {
+      if (cancelled) return;
+      setIsWindowMaximized(isMaximized);
+      document.body.classList.toggle("window-maximized", isMaximized);
+    };
+
+    window.electron.isMainWindowMaximized().then(applyMaximizeState);
+    const unsubscribe =
+      window.electron.onWindowMaximizeChange(applyMaximizeState);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      document.body.classList.remove("window-rounded");
+      document.body.classList.remove("window-maximized");
+    };
+  }, []);
+
   return (
     <>
-      {window.electron.platform === "win32" && (
+      {(window.electron.platform === "win32" ||
+        window.electron.platform === "linux") && (
         <div className="title-bar">
           <h4>
             Hydra
@@ -488,6 +524,46 @@ export function App() {
               <span className="title-bar__cloud-text"> Cloud</span>
             )}
           </h4>
+
+          {window.electron.platform === "linux" && (
+            <div className="title-bar__window-controls">
+              <button
+                type="button"
+                className="title-bar__window-control"
+                onClick={() => window.electron.minimizeMainWindow()}
+                title={t("header:minimize")}
+                aria-label={t("header:minimize")}
+              >
+                <DashIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="title-bar__window-control"
+                onClick={() => window.electron.toggleMaximizeMainWindow()}
+                title={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
+                aria-label={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
+              >
+                {isWindowMaximized ? (
+                  <ScreenNormalIcon size={16} />
+                ) : (
+                  <ScreenFullIcon size={16} />
+                )}
+              </button>
+              <button
+                type="button"
+                className="title-bar__window-control title-bar__window-control--close"
+                onClick={() => window.electron.closeMainWindow()}
+                title={t("header:close")}
+                aria-label={t("header:close")}
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

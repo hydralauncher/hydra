@@ -15,6 +15,7 @@ import "./get-emulator-install-options";
 import "./install-emulator";
 import "./rom-scan-progress";
 import "./emulator-rom-paths";
+import "./list-emulator-roms";
 import "./remove-emulator";
 import "./import-launchbox-roms";
 import "./check-emulator-executable";
