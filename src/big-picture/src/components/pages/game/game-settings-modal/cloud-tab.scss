@@ -42,6 +42,12 @@
   width: 100%;
 }
 
+.game-cloud-settings-tab__status-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
 .game-cloud-settings-tab__section-content--backups {
   display: flex;
   flex-direction: column;

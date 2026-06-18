@@ -311,9 +311,7 @@ export function SidebarModal({
                             regionId: contentRegionId,
                             entryDirection: "right",
                             initialFocusId: contentEntryFocusId,
-                            preferRememberedFocus: contentEntryFocusId
-                              ? false
-                              : true,
+                            preferRememberedFocus: true,
                           }
                         : { type: "block" },
                     }}
@@ -383,7 +381,13 @@ export function SidebarModal({
                   className="sidebar-modal__content"
                   navigationOverrides={{
                     left: activeTabFocusId
-                      ? { type: "item", itemId: activeTabFocusId }
+                      ? {
+                          type: "region",
+                          regionId: tabsRegionId,
+                          entryDirection: "left",
+                          initialFocusId: activeTabFocusId,
+                          preferRememberedFocus: true,
+                        }
                       : { type: "block" },
                   }}
                 >

@@ -163,6 +163,12 @@ export function CloudSavesList({
                           className="game-cloud-settings-tab__save-options-button"
                           disabled={isBusy}
                           aria-label={t("cloud_backup_options")}
+                          focusNavigationOverrides={{
+                            left: {
+                              type: "item",
+                              itemId: getArtifactRestoreButtonId(artifact.id),
+                            },
+                          }}
                           onClick={(event) => {
                             const rect =
                               event.currentTarget.getBoundingClientRect();

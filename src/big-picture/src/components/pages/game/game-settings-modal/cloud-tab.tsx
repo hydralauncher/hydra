@@ -1,9 +1,10 @@
 import { Cloud } from "@phosphor-icons/react";
-import type { GameArtifact, LibraryGame } from "@types";
-import { useCallback, useEffect, useState } from "react";
+import type { GameArtifact, LibraryGame, LudusaviBackup } from "@types";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Checkbox, VerticalFocusGroup } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
+import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { CloudSavesList } from "./cloud-saves-list";
 
@@ -19,6 +20,10 @@ export interface GameCloudSettingsProps {
   onToggleAutomaticCloudSync: (checked: boolean) => void;
 }
 
+function formatDownloadProgress(progress: number): string {
+  return `${Math.round(progress * 100)}%`;
+}
+
 export function GameCloudSettingsTab({
   game,
   automaticCloudSync,
@@ -26,6 +31,7 @@ export function GameCloudSettingsTab({
 }: Readonly<GameCloudSettingsProps>) {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { userDetails } = useUserDetails();
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
   const [loadingArtifacts, setLoadingArtifacts] = useState(true);
   const [creatingBackup, setCreatingBackup] = useState(false);
@@ -38,6 +44,70 @@ export function GameCloudSettingsTab({
   const [deletingArtifactId, setDeletingArtifactId] = useState<string | null>(
     null
   );
+  const [backupPreview, setBackupPreview] = useState<LudusaviBackup | null>(
+    null
+  );
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [backupDownloadProgress, setBackupDownloadProgress] = useState<
+    number | null
+  >(null);
+
+  const backupsPerGameLimit = userDetails?.quirks?.backupsPerGameLimit ?? 0;
+  const hasReachedLimit =
+    backupsPerGameLimit > 0 && artifacts.length >= backupsPerGameLimit;
+
+  const disableActions =
+    creatingBackup ||
+    restoringArtifactId !== null ||
+    deletingArtifactId !== null ||
+    updatingArtifactId !== null;
+
+  const formatProgress = useMemo(
+    () =>
+      backupDownloadProgress !== null
+        ? formatDownloadProgress(backupDownloadProgress)
+        : null,
+    [backupDownloadProgress]
+  );
+
+  const backupStateLabel = useMemo(() => {
+    if (creatingBackup) {
+      return t("uploading_backup");
+    }
+
+    if (restoringArtifactId !== null) {
+      return formatProgress !== null
+        ? `${t("restoring_backup")} ${formatProgress}`
+        : t("restoring_backup");
+    }
+
+    if (loadingPreview) {
+      return t("loading_save_preview");
+    }
+
+    if (hasReachedLimit) {
+      return t("max_number_of_artifacts_reached");
+    }
+
+    if (!backupPreview) {
+      return t("no_backup_preview");
+    }
+
+    if (artifacts.length === 0) {
+      return t("no_backups");
+    }
+
+    return null;
+  }, [
+    creatingBackup,
+    restoringArtifactId,
+    formatProgress,
+    loadingPreview,
+    hasReachedLimit,
+    backupPreview,
+    artifacts.length,
+    t,
+  ]);
 
   const loadArtifacts = useCallback(async () => {
     setLoadingArtifacts(true);
@@ -55,9 +125,25 @@ export function GameCloudSettingsTab({
     setLoadingArtifacts(false);
   }, [game.objectId, game.shop]);
 
+  const loadBackupPreview = useCallback(async () => {
+    setLoadingPreview(true);
+
+    try {
+      const preview = await (
+        window.electron as any
+      ).getGameBackupPreview(game.objectId, game.shop);
+      setBackupPreview(preview);
+    } catch {
+      setBackupPreview(null);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }, [game.objectId, game.shop]);
+
   useEffect(() => {
     void loadArtifacts();
-  }, [loadArtifacts]);
+    void loadBackupPreview();
+  }, [loadArtifacts, loadBackupPreview]);
 
   useEffect(() => {
     const removeUploadCompleteListener = window.electron.onUploadComplete(
@@ -67,6 +153,7 @@ export function GameCloudSettingsTab({
         showSuccessToast("Cloud backup complete");
         setCreatingBackup(false);
         void loadArtifacts();
+        void loadBackupPreview();
       }
     );
 
@@ -74,14 +161,29 @@ export function GameCloudSettingsTab({
       window.electron.onBackupDownloadComplete(game.objectId, game.shop, () => {
         showSuccessToast("Cloud save restored");
         setRestoringArtifactId(null);
+        setBackupDownloadProgress(null);
         void loadArtifacts();
+        void loadBackupPreview();
       });
+
+    const removeBackupDownloadProgressListener = (
+      window.electron as any
+    ).onBackupDownloadProgress(
+      game.objectId,
+      game.shop,
+      (progressEvent: any) => {
+        if (progressEvent.progress !== undefined) {
+          setBackupDownloadProgress(progressEvent.progress);
+        }
+      }
+    );
 
     return () => {
       removeUploadCompleteListener();
       removeDownloadCompleteListener();
+      removeBackupDownloadProgressListener();
     };
-  }, [game.objectId, game.shop, loadArtifacts, showSuccessToast]);
+  }, [game.objectId, game.shop, loadArtifacts, loadBackupPreview, showSuccessToast]);
 
   const handleCreateBackup = useCallback(async () => {
     if (creatingBackup) return;
@@ -186,10 +288,21 @@ export function GameCloudSettingsTab({
             className="game-cloud-settings-tab__new-backup-button"
             onClick={() => void handleCreateBackup()}
             loading={creatingBackup}
+            disabled={
+              disableActions ||
+              !backupPreview?.overall?.totalGames ||
+              hasReachedLimit
+            }
             icon={<Cloud size={20} />}
           >
             {t("create_backup")}
           </Button>
+
+          {backupStateLabel && (
+            <p className="game-cloud-settings-tab__status-label">
+              {backupStateLabel}
+            </p>
+          )}
 
           <Checkbox
             block
