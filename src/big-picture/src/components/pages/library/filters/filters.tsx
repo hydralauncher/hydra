@@ -33,7 +33,6 @@ import {
   LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_FILTERS_SORT_SELECT_ID,
-  LIBRARY_FILTERS_TABS_REGION_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
   LIBRARY_HERO_ACTIONS_REGION_ID,
 } from "../navigation";
@@ -208,10 +207,6 @@ export function LibraryFilters({
     [lastTabFocusId, tabDownOverride]
   );
 
-  const selectedTabFocusId = useMemo(() => {
-    return getLibraryFiltersTabFocusId(String(selectedTab));
-  }, [selectedTab]);
-
   const toolbarNavigationOverrides: FocusOverrides = useMemo(() => {
     return {
       up: {
@@ -219,22 +214,30 @@ export function LibraryFilters({
         regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
         entryDirection: "up",
       },
-      down: {
-        type: "item",
-        itemId: selectedTabFocusId,
-      },
+      down: firstContentItemId
+        ? {
+            type: "item",
+            itemId: firstContentItemId,
+          }
+        : {
+            type: "block",
+          },
     };
-  }, [selectedTabFocusId]);
+  }, [firstContentItemId]);
 
   const toolbarUpOverride = {
     type: "region",
     regionId: LIBRARY_HERO_ACTIONS_REGION_ID,
     entryDirection: "up",
   } as const;
-  const toolbarDownOverride = {
-    type: "item",
-    itemId: selectedTabFocusId,
-  } as const;
+  const toolbarDownOverride = firstContentItemId
+    ? ({
+        type: "item",
+        itemId: firstContentItemId,
+      } as const)
+    : ({
+        type: "block",
+      } as const);
   const searchNavigationOverrides: FocusOverrides = {
     left: SIDEBAR_LIBRARY_OVERRIDE,
     right: {
@@ -291,11 +294,6 @@ export function LibraryFilters({
     up: toolbarUpOverride,
     down: toolbarDownOverride,
   };
-  const tabsNavigationOverrides: FocusOverrides = {
-    up: TAB_UP_FROM_TOOLBAR_OVERRIDE,
-    down: tabDownOverride,
-  };
-
   return (
     <div className="library-filters">
       <div className="library-filters__header">
@@ -390,8 +388,8 @@ export function LibraryFilters({
           items={tabItems}
           value={selectedTab}
           onValueChange={onSelectedTabChange}
-          regionId={LIBRARY_FILTERS_TABS_REGION_ID}
-          navigationOverrides={tabsNavigationOverrides}
+          manageFocusRegion={false}
+          itemsFocusable={false}
           ariaLabel="Library filters"
           afterTabs={
             <FocusItem
