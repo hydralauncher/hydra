@@ -111,7 +111,7 @@ export function GameCompatibilitySettingsTab({
 
   const getProtonSourceDescription = useCallback(
     (version: ProtonVersion | null) => {
-      if (!version || !version.source) {
+      if (!version?.source) {
         return t("proton_source_umu_default");
       }
 
@@ -207,17 +207,25 @@ export function GameCompatibilitySettingsTab({
   const gamemodeDisabled = !gamemodeAvailable || globalAutoRunGamemode;
   const mangohudDisabled = !mangohudAvailable || globalAutoRunMangohud;
 
-  const gamemodeSecondaryText = !gamemodeAvailable
-    ? t("gamemode_not_available_tooltip")
-    : globalAutoRunGamemode
-      ? t("gamemode_disabled_due_to_global_setting_tooltip")
-      : undefined;
+  let gamemodeSecondaryText: string | undefined;
 
-  const mangohudSecondaryText = !mangohudAvailable
-    ? t("mangohud_not_available_tooltip")
-    : globalAutoRunMangohud
-      ? t("mangohud_disabled_due_to_global_setting_tooltip")
-      : undefined;
+  if (!gamemodeAvailable) {
+    gamemodeSecondaryText = t("gamemode_not_available_tooltip");
+  } else if (globalAutoRunGamemode) {
+    gamemodeSecondaryText = t(
+      "gamemode_disabled_due_to_global_setting_tooltip"
+    );
+  }
+
+  let mangohudSecondaryText: string | undefined;
+
+  if (!mangohudAvailable) {
+    mangohudSecondaryText = t("mangohud_not_available_tooltip");
+  } else if (globalAutoRunMangohud) {
+    mangohudSecondaryText = t(
+      "mangohud_disabled_due_to_global_setting_tooltip"
+    );
+  }
 
   return (
     <VerticalFocusGroup className="game-compatibility-settings-tab">

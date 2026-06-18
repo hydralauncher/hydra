@@ -287,19 +287,18 @@ export function BigPictureSettingsSection({
                   itemId: previousItem.focusId,
                 }
               : previousFallback,
-            down: nextItem
-              ? {
-                  type: "item",
-                  itemId: nextItem.focusId,
-                }
-              : form.bigPictureDiagnosticsEnabled
-                ? {
-                    type: "item",
-                    itemId: BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
-                  }
-                : {
-                    type: "block",
-                  },
+            down: (() => {
+              if (nextItem) {
+                return { type: "item" as const, itemId: nextItem.focusId };
+              }
+              if (form.bigPictureDiagnosticsEnabled) {
+                return {
+                  type: "item" as const,
+                  itemId: BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
+                };
+              }
+              return { type: "block" as const };
+            })(),
           } satisfies FocusOverrides,
         ];
       })
