@@ -184,7 +184,7 @@ export function GameSettingsModal({
       contentEntryFocusId={GAME_SETTINGS_TAB_FOCUS_IDS[activeTabId]}
       tabs={tabs}
       activeTabId={activeTabId}
-      onActiveTabChange={setActiveTabId}
+      onActiveTabChange={(tabId) => setActiveTabId(tabId as GameSettingsTabId)}
     />
   );
 }
