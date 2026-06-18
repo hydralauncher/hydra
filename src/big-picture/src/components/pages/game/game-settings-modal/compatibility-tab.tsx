@@ -243,7 +243,9 @@ export function GameCompatibilitySettingsTab({
               focusId={GAME_COMPATIBILITY_SETTINGS_WINE_SELECT_ID}
               variant="secondary"
               icon={<FolderOpen size={16} />}
-              onClick={() => { handleSelectWinePrefix().catch(() => {}); }}
+              onClick={() => {
+                handleSelectWinePrefix().catch(() => {});
+              }}
               focusNavigationOverrides={{
                 left: {
                   type: "item",
@@ -259,7 +261,9 @@ export function GameCompatibilitySettingsTab({
                 focusId={GAME_COMPATIBILITY_SETTINGS_WINE_CLEAR_ID}
                 variant="danger"
                 icon={<Trash size={16} />}
-                onClick={() => { handleClearWinePrefix().catch(() => {}); }}
+                onClick={() => {
+                  handleClearWinePrefix().catch(() => {});
+                }}
                 focusNavigationOverrides={{
                   left: {
                     type: "item",
@@ -296,7 +300,9 @@ export function GameCompatibilitySettingsTab({
               }
               checked={selectedProtonPath === option.value}
               block
-              onChange={() => { handleChangeProtonVersion(option.value).catch(() => {}); }}
+              onChange={() => {
+                handleChangeProtonVersion(option.value).catch(() => {});
+              }}
             />
           ))}
         </div>
@@ -314,7 +320,9 @@ export function GameCompatibilitySettingsTab({
           checked={autoRunGamemode || globalAutoRunGamemode}
           disabled={gamemodeDisabled}
           block
-          onChange={(checked) => { handleToggleGamemode(checked).catch(() => {}); }}
+          onChange={(checked) => {
+            handleToggleGamemode(checked).catch(() => {});
+          }}
         />
 
         <Checkbox
@@ -324,7 +332,9 @@ export function GameCompatibilitySettingsTab({
           checked={autoRunMangohud || globalAutoRunMangohud}
           disabled={mangohudDisabled}
           block
-          onChange={(checked) => { handleToggleMangohud(checked).catch(() => {}); }}
+          onChange={(checked) => {
+            handleToggleMangohud(checked).catch(() => {});
+          }}
         />
       </SettingsSection>
     </VerticalFocusGroup>

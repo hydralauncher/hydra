@@ -55,30 +55,37 @@ export function GameCloudSettingsTab({
   const backupsPerGameLimit = userDetails?.quirks?.backupsPerGameLimit ?? 0;
   const hasReachedLimit =
     backupsPerGameLimit > 0 && artifacts.length >= backupsPerGameLimit;
+  const hasRestoreInProgress = restoringArtifactId !== null;
+  const hasDeleteInProgress = deletingArtifactId !== null;
+  const hasUpdateInProgress = updatingArtifactId !== null;
+  const hasBackupDownloadProgress = backupDownloadProgress !== null;
+  const backupPreviewGameCount = backupPreview?.overall?.totalGames ?? 0;
 
   const disableActions =
     creatingBackup ||
-    restoringArtifactId !== null ||
-    deletingArtifactId !== null ||
-    updatingArtifactId !== null;
+    hasRestoreInProgress ||
+    hasDeleteInProgress ||
+    hasUpdateInProgress;
 
-  const formatProgress = useMemo(
-    () =>
-      backupDownloadProgress !== null
-        ? formatDownloadProgress(backupDownloadProgress)
-        : null,
-    [backupDownloadProgress]
-  );
+  const formatProgress = useMemo(() => {
+    if (hasBackupDownloadProgress) {
+      return formatDownloadProgress(backupDownloadProgress);
+    }
+
+    return null;
+  }, [backupDownloadProgress, hasBackupDownloadProgress]);
 
   const backupStateLabel = useMemo(() => {
     if (creatingBackup) {
       return t("uploading_backup");
     }
 
-    if (restoringArtifactId !== null) {
-      return formatProgress !== null
-        ? `${t("restoring_backup")} ${formatProgress}`
-        : t("restoring_backup");
+    if (hasRestoreInProgress) {
+      if (formatProgress === null) {
+        return t("restoring_backup");
+      }
+
+      return `${t("restoring_backup")} ${formatProgress}`;
     }
 
     if (loadingPreview) {
@@ -89,7 +96,7 @@ export function GameCloudSettingsTab({
       return t("max_number_of_artifacts_reached");
     }
 
-    if (!backupPreview) {
+    if (backupPreview === null) {
       return t("no_backup_preview");
     }
 
@@ -100,7 +107,7 @@ export function GameCloudSettingsTab({
     return null;
   }, [
     creatingBackup,
-    restoringArtifactId,
+    hasRestoreInProgress,
     formatProgress,
     loadingPreview,
     hasReachedLimit,
@@ -116,7 +123,7 @@ export function GameCloudSettingsTab({
       objectId: game.objectId,
       shop: game.shop,
     });
-    const result = await window.electron.hydraApi
+    const result = await globalThis.window.electron.hydraApi
       .get<GameArtifact[]>(`/profile/games/artifacts?${params.toString()}`, {
         needsSubscription: true,
       })
@@ -129,7 +136,7 @@ export function GameCloudSettingsTab({
     setLoadingPreview(true);
 
     try {
-      const preview = await (window.electron as any).getGameBackupPreview(
+      const preview = await (globalThis.window.electron as any).getGameBackupPreview(
         game.objectId,
         game.shop
       );
@@ -147,7 +154,7 @@ export function GameCloudSettingsTab({
   }, [loadArtifacts, loadBackupPreview]);
 
   useEffect(() => {
-    const removeUploadCompleteListener = window.electron.onUploadComplete(
+    const removeUploadCompleteListener = globalThis.window.electron.onUploadComplete(
       game.objectId,
       game.shop,
       () => {
@@ -159,7 +166,7 @@ export function GameCloudSettingsTab({
     );
 
     const removeDownloadCompleteListener =
-      window.electron.onBackupDownloadComplete(
+      globalThis.window.electron.onBackupDownloadComplete(
         game.objectId,
         game.shop,
         (success) => {
@@ -176,7 +183,7 @@ export function GameCloudSettingsTab({
       );
 
     const removeBackupDownloadProgressListener = (
-      window.electron as any
+      globalThis.window.electron as any
     ).onBackupDownloadProgress(
       game.objectId,
       game.shop,
@@ -197,6 +204,7 @@ export function GameCloudSettingsTab({
     game.shop,
     loadArtifacts,
     loadBackupPreview,
+    showErrorToast,
     showSuccessToast,
   ]);
 
@@ -206,7 +214,11 @@ export function GameCloudSettingsTab({
     setCreatingBackup(true);
 
     try {
-      await window.electron.uploadSaveGame(game.objectId, game.shop, null);
+      await globalThis.window.electron.uploadSaveGame(
+        game.objectId,
+        game.shop,
+        null
+      );
     } catch {
       setCreatingBackup(false);
       showErrorToast("Cloud backup failed");
@@ -220,7 +232,7 @@ export function GameCloudSettingsTab({
       setRestoringArtifactId(artifactId);
 
       try {
-        await window.electron.downloadGameArtifact(
+        await globalThis.window.electron.downloadGameArtifact(
           game.objectId,
           game.shop,
           artifactId
@@ -240,7 +252,7 @@ export function GameCloudSettingsTab({
       setUpdatingArtifactId(artifactId);
 
       try {
-        await window.electron.hydraApi.put(
+        await globalThis.window.electron.hydraApi.put(
           `/profile/games/artifacts/${artifactId}/${freeze ? "freeze" : "unfreeze"}`
         );
         await loadArtifacts();
@@ -260,7 +272,7 @@ export function GameCloudSettingsTab({
       setDeletingArtifactId(artifactId);
 
       try {
-        await window.electron.hydraApi.delete<{ ok: boolean }>(
+        await globalThis.window.electron.hydraApi.delete<{ ok: boolean }>(
           `/profile/games/artifacts/${artifactId}`
         );
         showSuccessToast("Cloud save removed");
@@ -301,12 +313,12 @@ export function GameCloudSettingsTab({
             focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
             variant="primary"
             className="game-cloud-settings-tab__new-backup-button"
-            onClick={() => { handleCreateBackup().catch(() => {}); }}
+            onClick={() => {
+              handleCreateBackup().catch(() => {});
+            }}
             loading={creatingBackup}
             disabled={
-              disableActions ||
-              !backupPreview?.overall?.totalGames ||
-              hasReachedLimit
+              disableActions || backupPreviewGameCount === 0 || hasReachedLimit
             }
             icon={<CloudIcon size={20} />}
           >
