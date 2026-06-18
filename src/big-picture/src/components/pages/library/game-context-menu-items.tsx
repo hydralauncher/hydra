@@ -65,6 +65,7 @@ export function buildLibraryGameContextMenuItems(
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon size={18} />,
+      restoreFocusOnClose: false,
       onSelect: () => onViewAchievements(game),
     });
   }
@@ -164,6 +165,7 @@ export function buildCatalogGameContextMenuItems(
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon aria-hidden size={18} />,
+      restoreFocusOnClose: false,
       onSelect: onViewAchievements,
     });
   }
