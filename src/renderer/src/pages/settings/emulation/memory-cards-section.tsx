@@ -16,6 +16,7 @@ import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
 import type {
+  EmulationBackupProgress,
   EmulationSavePlatform,
   EmulatorConfig,
   MemcardExportResult,
@@ -108,6 +109,8 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
   const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
+  const [backupProgress, setBackupProgress] =
+    useState<EmulationBackupProgress | null>(null);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -123,6 +126,40 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   useEffect(() => {
     loadSaves();
   }, [loadSaves]);
+
+  useEffect(() => {
+    let active = true;
+    const seenDone = new Set<string>();
+
+    void window.electron.getActiveEmulationBackups().then((list) => {
+      if (!active) return;
+      const match = list.find((b) => b.platform === platform);
+      if (!match || seenDone.has(match.cardFilePath)) return;
+      setBackingUpCard(match.cardFilePath);
+      setBackupProgress(match);
+    });
+
+    const unsubscribe = window.electron.onEmulationBackupProgress((payload) => {
+      if (payload.platform !== platform) return;
+      if (payload.processed >= payload.total) {
+        seenDone.add(payload.cardFilePath);
+        setBackingUpCard((prev) =>
+          prev === payload.cardFilePath ? null : prev
+        );
+        setBackupProgress((prev) =>
+          prev?.cardFilePath === payload.cardFilePath ? null : prev
+        );
+        return;
+      }
+      setBackingUpCard(payload.cardFilePath);
+      setBackupProgress(payload);
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [platform]);
 
   // Group by card file path (not label) so two cards sharing a basename in
   // different folders don't collapse into one group.
@@ -228,6 +265,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const handleBackupAll = useCallback(
     async (cardFilePath: string) => {
       setBackingUpCard(cardFilePath);
+      setBackupProgress(null);
       try {
         const res = await window.electron.uploadEmulationSavesForCard(
           platform,
@@ -244,6 +282,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
         showErrorToast(t("cloud_backup_failed"));
       } finally {
         setBackingUpCard(null);
+        setBackupProgress(null);
       }
     },
     [platform, showSuccessToast, showErrorToast, t, onUploaded]
@@ -294,6 +333,21 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
           <div className="emulator-detail__memcards">
             {groups.map(({ cardFilePath, cardLabel, records }) => {
               const isCollapsed = collapsed.has(cardFilePath);
+              const isBackingUp = backingUpCard === cardFilePath;
+              const progress =
+                isBackingUp && backupProgress?.cardFilePath === cardFilePath
+                  ? backupProgress
+                  : null;
+              const progressTotal = progress?.total || records.length;
+              const progressDone = progress?.processed ?? 0;
+              const progressLabel = progress?.currentLabel ?? null;
+              const progressPercent =
+                progressTotal > 0
+                  ? Math.min(
+                      100,
+                      Math.round((progressDone / progressTotal) * 100)
+                    )
+                  : 0;
               return (
                 <div
                   key={cardFilePath}
@@ -336,12 +390,18 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                         type="button"
                         className="emulator-detail__memcard-backup-all"
                         onClick={() => handleBackupAll(cardFilePath)}
-                        disabled={backingUpCard === cardFilePath}
+                        disabled={isBackingUp}
                       >
                         <UploadIcon size={13} />
                         <span>
-                          {backingUpCard === cardFilePath
-                            ? t("cloud_backing_up")
+                          {isBackingUp
+                            ? `${t("cloud_backing_up")} ${t(
+                                "setup_scan_count",
+                                {
+                                  processed: progressDone,
+                                  total: progressTotal,
+                                }
+                              )}`
                             : t("cloud_backup_all")}
                         </span>
                       </button>
@@ -357,6 +417,24 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                       <TrashIcon size={16} />
                     </button>
                   </div>
+                  {isBackingUp && (
+                    <div className="emulator-detail__memcard-backup-progress">
+                      <div className="emulator-detail__memcard-backup-progress-track">
+                        <div
+                          className="emulator-detail__memcard-backup-progress-fill"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      {progressLabel && (
+                        <span
+                          className="emulator-detail__memcard-backup-progress-label"
+                          title={progressLabel}
+                        >
+                          {progressLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {!isCollapsed && (
                     <div className="emulator-detail__memcard-grid">
                       {records.map((save) => {

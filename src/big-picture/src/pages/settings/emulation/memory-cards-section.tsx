@@ -9,6 +9,7 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 import type {
+  EmulationBackupProgress,
   EmulationSavePlatform,
   EmulatorConfig,
   EmulatorSystem,
@@ -372,6 +373,8 @@ export function MemoryCardsSection({
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
   const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
+  const [backupProgress, setBackupProgress] =
+    useState<EmulationBackupProgress | null>(null);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
     cardLabel: string;
@@ -391,6 +394,42 @@ export function MemoryCardsSection({
   useEffect(() => {
     void loadSaves();
   }, [loadSaves]);
+
+  useEffect(() => {
+    let active = true;
+    const seenDone = new Set<string>();
+
+    void globalThis.window.electron.getActiveEmulationBackups().then((list) => {
+      if (!active) return;
+      const match = list.find((b) => b.platform === platform);
+      if (!match || seenDone.has(match.cardFilePath)) return;
+      setBackingUpCard(match.cardFilePath);
+      setBackupProgress(match);
+    });
+
+    const unsubscribe = globalThis.window.electron.onEmulationBackupProgress(
+      (payload) => {
+        if (payload.platform !== platform) return;
+        if (payload.processed >= payload.total) {
+          seenDone.add(payload.cardFilePath);
+          setBackingUpCard((prev) =>
+            prev === payload.cardFilePath ? null : prev
+          );
+          setBackupProgress((prev) =>
+            prev?.cardFilePath === payload.cardFilePath ? null : prev
+          );
+          return;
+        }
+        setBackingUpCard(payload.cardFilePath);
+        setBackupProgress(payload);
+      }
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [platform]);
 
   const groups = useMemo(() => {
     const map = new Map<
@@ -491,6 +530,7 @@ export function MemoryCardsSection({
   const handleBackupAll = useCallback(
     async (cardFilePath: string) => {
       setBackingUpCard(cardFilePath);
+      setBackupProgress(null);
       try {
         const result =
           await globalThis.window.electron.uploadEmulationSavesForCard(
@@ -506,6 +546,7 @@ export function MemoryCardsSection({
         showErrorToast("Cloud backup failed", SETTINGS_TOAST_OPTIONS);
       } finally {
         setBackingUpCard(null);
+        setBackupProgress(null);
       }
     },
     [onUploaded, platform, showErrorToast, showSuccessToast]
@@ -591,6 +632,21 @@ export function MemoryCardsSection({
               const firstRecordMenuId = firstRecord
                 ? getEmulationMemcardMenuFocusId(saveKey(firstRecord))
                 : null;
+              const isBackingUp = backingUpCard === cardFilePath;
+              const progress =
+                isBackingUp && backupProgress?.cardFilePath === cardFilePath
+                  ? backupProgress
+                  : null;
+              const progressTotal = progress?.total || records.length;
+              const progressDone = progress?.processed ?? 0;
+              const progressLabel = progress?.currentLabel ?? null;
+              const progressPercent =
+                progressTotal > 0
+                  ? Math.min(
+                      100,
+                      Math.round((progressDone / progressTotal) * 100)
+                    )
+                  : 0;
               return (
                 <div
                   key={cardFilePath}
@@ -726,12 +782,18 @@ export function MemoryCardsSection({
                           onClick={() => {
                             void handleBackupAll(cardFilePath);
                           }}
-                          disabled={backingUpCard === cardFilePath}
+                          disabled={isBackingUp}
                         >
                           <UploadIcon size={13} />
                           <span>
-                            {backingUpCard === cardFilePath
-                              ? t("cloud_backing_up")
+                            {isBackingUp
+                              ? `${t("cloud_backing_up")} ${t(
+                                  "setup_scan_count",
+                                  {
+                                    processed: progressDone,
+                                    total: progressTotal,
+                                  }
+                                )}`
                               : t("cloud_backup_all")}
                           </span>
                         </button>
@@ -791,6 +853,25 @@ export function MemoryCardsSection({
                       {t("remove")}
                     </Button>
                   </div>
+
+                  {isBackingUp ? (
+                    <div className="emulator-detail__memcard-backup-progress">
+                      <div className="emulator-detail__memcard-backup-progress-track">
+                        <div
+                          className="emulator-detail__memcard-backup-progress-fill"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      {progressLabel ? (
+                        <span
+                          className="emulator-detail__memcard-backup-progress-label"
+                          title={progressLabel}
+                        >
+                          {progressLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {!isCollapsed ? (
                     <GridFocusGroup className="emulator-detail__memcard-grid">

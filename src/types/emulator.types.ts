@@ -107,6 +107,16 @@ export type MemcardExportResult = Ps2ExportResult;
 export type EmulationSavePlatform = "ps1" | "ps2";
 export type EmulationSaveEmulator = "duckstation" | "pcsx2";
 
+export interface EmulationBackupProgress {
+  platform: EmulationSavePlatform;
+  cardFilePath: string;
+  processed: number;
+  uploaded: number;
+  failed: number;
+  total: number;
+  currentLabel: string | null;
+}
+
 /** A committed cloud save as returned by the emulation-saves API. */
 export interface EmulationCloudSave {
   id: string;

@@ -507,6 +507,36 @@
     flex-shrink: 0;
   }
 
+  &__memcard-backup-progress {
+    margin: 2px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__memcard-backup-progress-label {
+    font-size: 11px;
+    color: #8e919b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__memcard-backup-progress-track {
+    height: 4px;
+    width: 100%;
+    border-radius: 999px;
+    background: #1c1c1c;
+    overflow: hidden;
+  }
+
+  &__memcard-backup-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #fafafa;
+    transition: width 0.2s ease;
+  }
+
   &__memcard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
