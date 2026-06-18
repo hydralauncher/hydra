@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { FocusOverrides } from "../../../services";
 import { LIBRARY_FILTERS_TOOLBAR_REGION_ID } from "./navigation";
 import {
-  ROW_TOLERANCE_PX,
   groupItemsIntoRows,
   getClosestItemByCenterX,
 } from "../../../helpers/row-navigation-utils";
