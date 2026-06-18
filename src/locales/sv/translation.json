@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements lägger till prestationer i klassiska spel.",
+    "retroachievements_api_key": "RetroAchievements API-nyckel",
+    "retroachievements_api_key_placeholder": "API-nyckel",
+    "retroachievements_username": "RetroAchievements-användarnamn",
+    "retroachievements_username_placeholder": "Användarnamn",
     "downloads_path": "Nedladdningssökväg",
     "change": "Uppdatera",
     "notifications": "Aviseringar",

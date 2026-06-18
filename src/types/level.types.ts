@@ -66,6 +66,9 @@ export interface Game {
   isPinned?: boolean;
   achievementCount?: number;
   unlockedAchievementCount?: number;
+  retroachievementsGameId?: number | null;
+  retroachievementsGameTitle?: string | null;
+  retroachievementsGamePlatform?: string | null;
   pinnedDate?: Date | null;
   automaticCloudSync?: boolean;
   hasManuallyUpdatedPlaytime?: boolean;
@@ -140,6 +143,8 @@ export interface UserPreferences {
   premiumizeApiToken?: string | null;
   allDebridApiToken?: string | null;
   torBoxApiToken?: string | null;
+  retroachievementsApiKey?: string | null;
+  retroachievementsUsername?: string | null;
   preferQuitInsteadOfHiding?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;

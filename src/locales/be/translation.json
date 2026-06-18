@@ -563,6 +563,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements дадае дасягненні ў класічныя гульні.",
+    "retroachievements_api_key": "Ключ API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Ключ API",
+    "retroachievements_username": "Імя карыстальніка RetroAchievements",
+    "retroachievements_username_placeholder": "Імя карыстальніка",
     "downloads_path": "Шлях сцягвання",
     "change": "Змяніць шлях",
     "notifications": "Апавяшчэнні",

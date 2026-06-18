@@ -563,6 +563,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "سرویس RetroAchievements دستاوردها را به بازی‌های کلاسیک اضافه می‌کند.",
+    "retroachievements_api_key": "کلید API برای RetroAchievements",
+    "retroachievements_api_key_placeholder": "کلید API",
+    "retroachievements_username": "نام کاربری RetroAchievements",
+    "retroachievements_username_placeholder": "نام کاربری",
     "downloads_path": "مسیر دانلودها",
     "change": "بروزرسانی",
     "notifications": "نوتیفیکشن‌ها",

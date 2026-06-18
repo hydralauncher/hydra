@@ -541,6 +541,12 @@
     "files": "FILES"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements adiciona troféus a jogos clássicos.",
+    "retroachievements_api_key": "Chave de API do RetroAchievements",
+    "retroachievements_api_key_placeholder": "Chave de API",
+    "retroachievements_username": "Nome de utilizador do RetroAchievements",
+    "retroachievements_username_placeholder": "Nome de utilizador",
     "current_username": "Nome de usuário:",
     "downloads_path": "Local das transferências",
     "change": "Procurar...",

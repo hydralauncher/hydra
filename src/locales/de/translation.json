@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements fügt klassischen Spielen Erfolge hinzu.",
+    "retroachievements_api_key": "RetroAchievements-API-Schlüssel",
+    "retroachievements_api_key_placeholder": "API-Schlüssel",
+    "retroachievements_username": "RetroAchievements-Benutzername",
+    "retroachievements_username_placeholder": "Benutzername",
     "downloads_path": "Download-Pfad",
     "change": "Aktualisieren",
     "notifications": "Benachrichtigungen",

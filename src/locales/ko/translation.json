@@ -563,6 +563,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements는 고전 게임에 도전 과제를 추가합니다.",
+    "retroachievements_api_key": "RetroAchievements API 키",
+    "retroachievements_api_key_placeholder": "API 키",
+    "retroachievements_username": "RetroAchievements 사용자 이름",
+    "retroachievements_username_placeholder": "사용자 이름",
     "downloads_path": "다운로드 경로",
     "change": "업데이트",
     "notifications": "알림",

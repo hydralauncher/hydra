@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements lisää saavutuksia klassisiin peleihin.",
+    "retroachievements_api_key": "RetroAchievements API-avain",
+    "retroachievements_api_key_placeholder": "API-avain",
+    "retroachievements_username": "RetroAchievements-käyttäjätunnus",
+    "retroachievements_username_placeholder": "Käyttäjätunnus",
     "downloads_path": "Latausten polku",
     "change": "Vaihda",
     "notifications": "Ilmoitukset",

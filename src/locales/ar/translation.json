@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "تضيف RetroAchievements إنجازات إلى الألعاب الكلاسيكية.",
+    "retroachievements_api_key": "مفتاح واجهة برمجة تطبيقات RetroAchievements",
+    "retroachievements_api_key_placeholder": "مفتاح واجهة برمجة التطبيقات",
+    "retroachievements_username": "اسم مستخدم RetroAchievements",
+    "retroachievements_username_placeholder": "اسم المستخدم",
     "downloads_path": "مسار التنزيلات",
     "change": "تحديث",
     "notifications": "الإشعارات",

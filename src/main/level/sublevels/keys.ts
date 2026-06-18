@@ -11,6 +11,11 @@ export const levelKeys = {
   gameShopCache: "gameShopCache",
   gameShopCacheItem: (shop: GameShop, objectId: string, language: string) =>
     `${shop}:${objectId}:${language}`,
+  retroachievementsGameLists: "retroachievementsGameLists",
+  retroachievementsGameList: (systemId: number) => `system:${systemId}`,
+  retroachievementsGameProgress: "retroachievementsGameProgress",
+  retroachievementsGameProgressItem: (gameId: number, username?: string) =>
+    `${gameId}:${username ?? ""}`,
   gameAchievements: "gameAchievements",
   downloads: "downloads",
   downloadLayoutState: "downloadLayoutState",

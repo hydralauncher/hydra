@@ -563,6 +563,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements adaugă realizări jocurilor clasice.",
+    "retroachievements_api_key": "Cheie API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Cheie API",
+    "retroachievements_username": "Nume de utilizator RetroAchievements",
+    "retroachievements_username_placeholder": "Nume de utilizator",
     "downloads_path": "Locația de descărcare",
     "change": "Actualizează",
     "notifications": "Notificări",

@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements afegeix assoliments als jocs clàssics.",
+    "retroachievements_api_key": "Clau de l'API de RetroAchievements",
+    "retroachievements_api_key_placeholder": "Clau de l'API",
+    "retroachievements_username": "Nom d'usuari de RetroAchievements",
+    "retroachievements_username_placeholder": "Nom d'usuari",
     "downloads_path": "Ruta de baixades",
     "change": "Actualitza",
     "notifications": "Notificacions",

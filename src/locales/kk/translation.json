@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements классикалық ойындарға жетістіктер қосады.",
+    "retroachievements_api_key": "RetroAchievements API кілті",
+    "retroachievements_api_key_placeholder": "API кілті",
+    "retroachievements_username": "RetroAchievements пайдаланушы аты",
+    "retroachievements_username_placeholder": "Пайдаланушы аты",
     "downloads_path": "Жүктеу жолы",
     "change": "Өзгерту",
     "notifications": "Хабарламалар",

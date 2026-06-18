@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -7,6 +14,9 @@ import type { EmulatorConfigMap, EmulatorSystem } from "@types";
 import { ConsoleCard } from "./console-card";
 import { EmulatorDetail } from "./emulator-detail";
 import { EmulatorSetupModal } from "./setup/emulator-setup-modal";
+import { TextField } from "@renderer/components";
+import { settingsContext } from "@renderer/context";
+import { useAppSelector } from "@renderer/hooks";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -26,8 +36,15 @@ export function SettingsContextEmulation() {
   const { t } = useTranslation("settings");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { updateUserPreferences } = useContext(settingsContext);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
+  const [retroachievementsApiKey, setRetroachievementsApiKey] = useState("");
+  const [retroachievementsUsername, setRetroachievementsUsername] =
+    useState("");
   const [view, setView] = useState<
     { kind: "grid" } | { kind: "detail"; system: EmulatorSystem }
   >({ kind: "grid" });
@@ -46,6 +63,13 @@ export function SettingsContextEmulation() {
       setShowClassicsOnboarding(true);
     }
   }, []);
+
+  useEffect(() => {
+    setRetroachievementsApiKey(userPreferences?.retroachievementsApiKey ?? "");
+    setRetroachievementsUsername(
+      userPreferences?.retroachievementsUsername ?? ""
+    );
+  }, [userPreferences]);
 
   const refresh = useCallback(async () => {
     const next = await window.electron.getEmulatorConfigs();
@@ -151,6 +175,38 @@ export function SettingsContextEmulation() {
           {t("emulation_disclaimer")}
         </p>
       </header>
+
+      <section className="settings-context-panel__group">
+        <h3>{t("retroachievements_title")}</h3>
+        <p className="settings-emulation__description">
+          {t("retroachievements_description")}
+        </p>
+        <TextField
+          label={t("retroachievements_api_key")}
+          value={retroachievementsApiKey}
+          type="password"
+          onChange={(event) => {
+            const value = event.target.value;
+            setRetroachievementsApiKey(value);
+            updateUserPreferences({
+              retroachievementsApiKey: value || null,
+            });
+          }}
+          placeholder={t("retroachievements_api_key_placeholder")}
+        />
+        <TextField
+          label={t("retroachievements_username")}
+          value={retroachievementsUsername}
+          onChange={(event) => {
+            const value = event.target.value;
+            setRetroachievementsUsername(value);
+            updateUserPreferences({
+              retroachievementsUsername: value || null,
+            });
+          }}
+          placeholder={t("retroachievements_username_placeholder")}
+        />
+      </section>
 
       <div className="settings-emulation__cards">
         {SYSTEMS.map((system) => (

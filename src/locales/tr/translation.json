@@ -566,6 +566,12 @@
     "move_down": "Move down"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements, klasik oyunlara başarımlar ekler.",
+    "retroachievements_api_key": "RetroAchievements API anahtarı",
+    "retroachievements_api_key_placeholder": "API anahtarı",
+    "retroachievements_username": "RetroAchievements kullanıcı adı",
+    "retroachievements_username_placeholder": "Kullanıcı adı",
     "downloads_path": "İndirme yolu",
     "change": "Güncelle",
     "notifications": "Bildirimler",

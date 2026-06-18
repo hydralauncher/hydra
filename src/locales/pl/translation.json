@@ -653,6 +653,12 @@
     "install": "Zainstaluj"
   },
   "settings": {
+    "retroachievements_title": "RetroAchievements",
+    "retroachievements_description": "RetroAchievements dodaje osiągnięcia do klasycznych gier.",
+    "retroachievements_api_key": "Klucz API RetroAchievements",
+    "retroachievements_api_key_placeholder": "Klucz API",
+    "retroachievements_username": "Nazwa użytkownika RetroAchievements",
+    "retroachievements_username_placeholder": "Nazwa użytkownika",
     "real_debrid_api_token_label": "Token API Real-Debrid",
     "app_basics": "Podstawy aplikacji",
     "startup_behavior": "Zachowanie przy uruchomieniu",

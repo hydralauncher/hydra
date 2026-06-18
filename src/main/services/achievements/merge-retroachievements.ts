@@ -1,0 +1,70 @@
+import type { UserAchievement } from "@types";
+import { achievementsLogger } from "../logger";
+import {
+  fetchRetroachievementsGame,
+  type RetroachievementAchievement,
+} from "./retroachievements-fetcher";
+
+const parseRetroachievementsDate = (value: string): number | null => {
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const withTimezone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(normalized)
+    ? normalized
+    : `${normalized}Z`;
+  const ts = Date.parse(withTimezone);
+  return Number.isFinite(ts) ? ts : null;
+};
+
+const toUserAchievement = (
+  achievement: RetroachievementAchievement,
+  unlockedBadgeMap: Map<number, number | null>
+): UserAchievement => {
+  const unlockTime = unlockedBadgeMap.get(achievement.badgeId) ?? null;
+  const unlocked = unlockTime !== null && unlockTime !== undefined;
+
+  return {
+    name: String(achievement.id),
+    displayName: achievement.title,
+    description: achievement.description,
+    icon: achievement.badgeUnlockedUrl,
+    icongray: achievement.badgeLockedUrl,
+    hidden: false,
+    points: achievement.points,
+    unlocked,
+    unlockTime: unlocked ? (unlockTime ?? null) : null,
+  };
+};
+
+export const mergeRetroachievements = async (
+  objectIdOrGameId: string | number,
+  apiKey: string,
+  username?: string
+): Promise<UserAchievement[]> => {
+  const gameId =
+    typeof objectIdOrGameId === "number"
+      ? objectIdOrGameId
+      : Number.parseInt(objectIdOrGameId, 10);
+
+  if (!Number.isFinite(gameId)) {
+    achievementsLogger.warn(
+      `Invalid RetroAchievements game id: ${String(objectIdOrGameId)}`
+    );
+    return [];
+  }
+
+  const gameData = await fetchRetroachievementsGame(gameId, apiKey, username);
+  if (!gameData) return [];
+
+  const unlockedBadgeMap = new Map<number, number | null>();
+  for (const ach of gameData.achievements) {
+    if (ach.dateEarned) {
+      unlockedBadgeMap.set(
+        ach.badgeId,
+        parseRetroachievementsDate(ach.dateEarned)
+      );
+    }
+  }
+
+  return gameData.achievements.map((achievement) =>
+    toUserAchievement(achievement, unlockedBadgeMap)
+  );
+};
