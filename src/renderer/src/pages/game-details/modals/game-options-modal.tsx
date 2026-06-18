@@ -264,9 +264,15 @@ export function GameOptionsModal({
         }
       }
     };
-    (globalThis.window.electron as any).on("on-game-transfer-progress", onProgress);
+    (globalThis.window.electron as any).on(
+      "on-game-transfer-progress",
+      onProgress
+    );
     return () =>
-      (globalThis.window.electron as any).off("on-game-transfer-progress", onProgress);
+      (globalThis.window.electron as any).off(
+        "on-game-transfer-progress",
+        onProgress
+      );
   }, [game]);
 
   const debounceUpdateLaunchOptions = useRef(
@@ -305,7 +311,9 @@ export function GameOptionsModal({
   };
 
   const getTransferErrorToast = (
-    result: Awaited<ReturnType<typeof globalThis.window.electron.transferGameFiles>>
+    result: Awaited<
+      ReturnType<typeof globalThis.window.electron.transferGameFiles>
+    >
   ) => {
     const neededSpace =
       typeof result.needed === "number"
@@ -431,7 +439,10 @@ export function GameOptionsModal({
   const handleDeleteSteamShortcut = async () => {
     try {
       setCreatingSteamShortcut(true);
-      await globalThis.window.electron.deleteSteamShortcut(game.shop, game.objectId);
+      await globalThis.window.electron.deleteSteamShortcut(
+        game.shop,
+        game.objectId
+      );
       showSuccessToast(
         t("delete_shortcut_success"),
         t("you_might_need_to_restart_steam")
@@ -478,7 +489,11 @@ export function GameOptionsModal({
       );
   };
   const handleClearExecutablePath = async () => {
-    await globalThis.window.electron.updateExecutablePath(game.shop, game.objectId, null);
+    await globalThis.window.electron.updateExecutablePath(
+      game.shop,
+      game.objectId,
+      null
+    );
     updateGame();
   };
 
@@ -538,7 +553,11 @@ export function GameOptionsModal({
   };
 
   const handleClearWinePrefixPath = async () => {
-    await globalThis.window.electron.selectGameWinePrefix(game.shop, game.objectId, null);
+    await globalThis.window.electron.selectGameWinePrefix(
+      game.shop,
+      game.objectId,
+      null
+    );
     updateGame();
   };
   const handleOpenWinetricks = async () => {
@@ -553,12 +572,20 @@ export function GameOptionsModal({
 
   const handleChangeMangohudState = async (value: boolean) => {
     setAutoRunMangohud(value);
-    await globalThis.window.electron.toggleGameMangohud(game.shop, game.objectId, value);
+    await globalThis.window.electron.toggleGameMangohud(
+      game.shop,
+      game.objectId,
+      value
+    );
     updateGame();
   };
   const handleChangeGamemodeState = async (value: boolean) => {
     setAutoRunGamemode(value);
-    await globalThis.window.electron.toggleGameGamemode(game.shop, game.objectId, value);
+    await globalThis.window.electron.toggleGameGamemode(
+      game.shop,
+      game.objectId,
+      value
+    );
     updateGame();
   };
 
@@ -764,7 +791,10 @@ export function GameOptionsModal({
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
     try {
-      await globalThis.window.electron.resetGameAchievements(game.shop, game.objectId);
+      await globalThis.window.electron.resetGameAchievements(
+        game.shop,
+        game.objectId
+      );
       await updateGame();
       showSuccessToast(t("reset_achievements_success"));
     } catch {
@@ -776,7 +806,11 @@ export function GameOptionsModal({
 
   const handleChangePlaytime = async (sec: number) => {
     try {
-      await globalThis.window.electron.changeGamePlayTime(game.shop, game.objectId, sec);
+      await globalThis.window.electron.changeGamePlayTime(
+        game.shop,
+        game.objectId,
+        sec
+      );
       await updateGame();
       showSuccessToast(t("update_playtime_success"));
     } catch {
