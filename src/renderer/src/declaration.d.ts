@@ -47,6 +47,10 @@ import type {
   EmulatorConfigMap,
   EmulatorSystem,
   EmulationBackupProgress,
+  EmulatorBinary,
+  EmulatorInstallProgress,
+  EmulatorInstallResult,
+  ResolvedInstallOption,
   DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
@@ -421,6 +425,20 @@ declare global {
     checkPs3Firmware: (
       executablePath: string | null
     ) => Promise<{ installed: boolean }>;
+    checkEmulatorBios: (
+      system: EmulatorSystem,
+      executablePath: string | null
+    ) => Promise<{ installed: boolean }>;
+    getEmulatorInstallOptions: (
+      binary: EmulatorBinary
+    ) => Promise<ResolvedInstallOption[]>;
+    installEmulator: (
+      binary: EmulatorBinary,
+      optionId: string
+    ) => Promise<EmulatorInstallResult>;
+    onEmulatorInstallProgress: (
+      cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
     startRomScan: (
       system: EmulatorSystem,
       folderPath: string,

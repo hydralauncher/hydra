@@ -3,7 +3,8 @@
 .setup-modal {
   display: flex;
   flex-direction: column;
-  width: 560px;
+  width: 100%;
+  max-width: 560px;
   min-height: 480px;
 
   &__header {
@@ -126,22 +127,64 @@
     flex-shrink: 0;
   }
 
+  &__website-link {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -4px 0 4px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
+  &__recommended-pill {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #c0c1c7;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
   &__download-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     flex: 1;
+  }
+
+  &__download-divider {
+    width: 100%;
+    height: 1px;
+    border: 0;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__download-card--guide {
+    margin-top: 4px;
   }
 
   &__download-card {
     background: #121212;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
-    padding: 20px;
+    padding: 16px 20px;
     min-width: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 16px;
     text-align: left;
     cursor: pointer;
@@ -154,6 +197,63 @@
     &:hover {
       border-color: rgba(255, 255, 255, 0.18);
       background: #161616;
+    }
+
+    &--loading {
+      cursor: default;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.06);
+        background: #121212;
+      }
+    }
+
+    &--split {
+      padding: 0;
+      gap: 0;
+      cursor: default;
+    }
+  }
+
+  &__download-card-action {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__download-card-visit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    padding: 16px 18px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    .setup-modal__download-card-url,
+    .setup-modal__download-card-ext {
+      transition: color 0.15s ease;
+    }
+
+    &:hover .setup-modal__download-card-url,
+    &:hover .setup-modal__download-card-ext {
+      color: #fafafa;
     }
   }
 
@@ -192,8 +292,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+    max-width: 45%;
   }
 
   &__download-card-url {
@@ -220,11 +320,6 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-
-    &--success {
-      background: rgba(52, 211, 153, 0.14);
-      color: #34d399;
-    }
 
     &--warn {
       background: rgba(245, 158, 11, 0.18);
@@ -367,11 +462,6 @@
     &--warn {
       background: rgba(245, 158, 11, 0.06);
       border: 1px solid rgba(245, 158, 11, 0.22);
-    }
-
-    &--success {
-      background: rgba(52, 211, 153, 0.08);
-      border: 1px solid rgba(52, 211, 153, 0.22);
     }
 
     &--neutral {

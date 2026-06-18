@@ -24,6 +24,8 @@ import type {
   TorrentFilesResponse,
   DownloadLayoutState,
   EmulatorSystem,
+  EmulatorBinary,
+  EmulatorInstallProgress,
   Ps2MemcardScanInput,
   Ps2MemcardScanProgress,
   Ps2MemoryCardSaveRecord,
@@ -197,6 +199,21 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("rescanEmulator", system, language),
   checkPs3Firmware: (executablePath: string | null) =>
     ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  checkEmulatorBios: (system: EmulatorSystem, executablePath: string | null) =>
+    ipcRenderer.invoke("checkEmulatorBios", system, executablePath),
+  getEmulatorInstallOptions: (binary: EmulatorBinary) =>
+    ipcRenderer.invoke("getEmulatorInstallOptions", binary),
+  installEmulator: (binary: EmulatorBinary, optionId: string) =>
+    ipcRenderer.invoke("installEmulator", binary, optionId),
+  onEmulatorInstallProgress: (
+    cb: (payload: EmulatorInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: EmulatorInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-emulator-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
   startRomScan: (
     system: EmulatorSystem,
     folderPath: string,
