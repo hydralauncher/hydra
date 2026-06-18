@@ -19,7 +19,7 @@ import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { resolveInstallOptions } from "./emulator-install-sources";
 import { getEmulatorVersion } from "./get-emulator-version";
-import { KNOWN_BINARIES } from "./known-binaries";
+import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import { updateEmulatorConfig } from "./emulators-repository";
 import { isValidEmulatorExecutable } from "./validate-emulator-executable";
 
@@ -151,6 +151,10 @@ export const downloadAndInstallEmulator = async (
   binary: EmulatorBinary,
   optionId: string
 ): Promise<EmulatorInstallResult> => {
+  if (!isKnownEmulatorBinary(binary)) {
+    return { ok: false, reason: "invalid_binary" };
+  }
+
   const options = await resolveEmulatorInstallOptions(binary);
   const option = options.find((candidate) => candidate.id === optionId);
 
@@ -158,7 +162,7 @@ export const downloadAndInstallEmulator = async (
     return { ok: false, reason: "option_not_installable" };
   }
 
-  const fileName = option.fileName ?? path.basename(option.downloadUrl);
+  const fileName = path.basename(option.fileName ?? option.downloadUrl);
   const isAppImage = option.kind === "linux-appimage";
   const dest = isAppImage
     ? path.join(managedEmulatorsDir(), fileName)

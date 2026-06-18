@@ -9,6 +9,7 @@ import type {
 } from "@types";
 
 import { logger } from "../logger";
+import { isKnownEmulatorBinary } from "./known-binaries";
 
 type InstallOs = "win32" | "linux";
 type InstallArch = "x64" | "arm64";
@@ -95,33 +96,39 @@ const pcsx2Entries = (
   arch: InstallArch
 ): EmulatorSourceEntry[] => {
   const isWindows = os === "win32";
-  const assetPattern = pcsx2AssetPattern(os, arch);
-  const kind: Exclude<EmulatorInstallKind, "link"> = isWindows
-    ? "windows-installer"
-    : "linux-appimage";
+  const hasNativeBuild = isWindows || arch === "x64";
 
-  const entries: EmulatorSourceEntry[] = [
-    {
-      type: "github",
-      id: "pcsx2-release",
-      binary: "pcsx2",
-      repo: "PCSX2/pcsx2",
-      channel: "release",
-      channelLabel: "release",
-      assetPattern,
-      kind,
-    },
-    {
-      type: "github",
-      id: "pcsx2-prerelease",
-      binary: "pcsx2",
-      repo: "PCSX2/pcsx2",
-      channel: "prerelease",
-      channelLabel: "prerelease",
-      assetPattern,
-      kind,
-    },
-  ];
+  const entries: EmulatorSourceEntry[] = [];
+
+  if (hasNativeBuild) {
+    const assetPattern = pcsx2AssetPattern(os, arch);
+    const kind: Exclude<EmulatorInstallKind, "link"> = isWindows
+      ? "windows-installer"
+      : "linux-appimage";
+
+    entries.push(
+      {
+        type: "github",
+        id: "pcsx2-release",
+        binary: "pcsx2",
+        repo: "PCSX2/pcsx2",
+        channel: "release",
+        channelLabel: "release",
+        assetPattern,
+        kind,
+      },
+      {
+        type: "github",
+        id: "pcsx2-prerelease",
+        binary: "pcsx2",
+        repo: "PCSX2/pcsx2",
+        channel: "prerelease",
+        channelLabel: "prerelease",
+        assetPattern,
+        kind,
+      }
+    );
+  }
 
   if (!isWindows) {
     entries.push(
@@ -145,7 +152,10 @@ const pcsx2Entries = (
   return entries;
 };
 
-const rpcs3Entries = (os: InstallOs): EmulatorSourceEntry[] => {
+const rpcs3Entries = (
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
   if (os === "win32") {
     return [
       {
@@ -160,8 +170,11 @@ const rpcs3Entries = (os: InstallOs): EmulatorSourceEntry[] => {
       },
     ];
   }
-  return [
-    {
+
+  const entries: EmulatorSourceEntry[] = [];
+
+  if (arch === "x64") {
+    entries.push({
       type: "github",
       id: "rpcs3-install",
       binary: "rpcs3",
@@ -170,7 +183,10 @@ const rpcs3Entries = (os: InstallOs): EmulatorSourceEntry[] => {
       channelLabel: null,
       assetPattern: /_linux64\.AppImage$/i,
       kind: "linux-appimage",
-    },
+    });
+  }
+
+  entries.push(
     {
       type: "link",
       id: "rpcs3-aur",
@@ -184,8 +200,10 @@ const rpcs3Entries = (os: InstallOs): EmulatorSourceEntry[] => {
       binary: "rpcs3",
       linkKind: "flatpak",
       url: "https://flathub.org/en/apps/net.rpcs3.RPCS3",
-    },
-  ];
+    }
+  );
+
+  return entries;
 };
 
 const githubEntries = (
@@ -195,7 +213,8 @@ const githubEntries = (
 ): EmulatorSourceEntry[] => {
   if (binary === "duckstation") return duckstationEntries(os, arch);
   if (binary === "pcsx2") return pcsx2Entries(os, arch);
-  return rpcs3Entries(os);
+  if (binary === "rpcs3") return rpcs3Entries(os, arch);
+  return [];
 };
 
 interface GithubAsset {
@@ -322,6 +341,7 @@ export const resolveInstallOptions = async (
   os: NodeJS.Platform,
   arch: string
 ): Promise<ResolvedInstallOption[]> => {
+  if (!isKnownEmulatorBinary(binary)) return [];
   if (os !== "win32" && os !== "linux") return [];
 
   const entries = githubEntries(binary, os, normalizeArch(arch));
