@@ -89,10 +89,11 @@ export default function GameAchievements() {
               asChild
             >
               <ul className="game-achievements-page__list">
-                {achievements.map((achievement) => (
+                {achievements.map((achievement, index) => (
                   <AchievementRow
                     key={achievement.name}
                     achievement={achievement}
+                    stealFocusOnAppear={index === 0}
                   />
                 ))}
               </ul>

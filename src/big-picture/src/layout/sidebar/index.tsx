@@ -75,7 +75,8 @@ import {
   normalizeBigPicturePathname,
 } from "../navigation";
 import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
-import { LibraryGameContextMenu } from "../../components/pages/library";
+import { LibraryGameContextMenu, useLibraryLaunchGame } from "../../components/pages/library";
+import { DownloadGameModal } from "../../components/modals";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -972,12 +973,20 @@ function Sidebar() {
     [navigate]
   );
 
-  const handleLaunchOrDownload = useCallback(
-    (game: LibraryGame) => {
-      const basePath = IS_DESKTOP ? "/big-picture" : "";
-      navigate(`${basePath}/game/${game.shop}/${game.objectId}`);
-    },
-    [navigate]
+  const [downloadModalGame, setDownloadModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleCloseDownloadModal = useCallback(() => {
+    setDownloadModalGame(null);
+  }, []);
+
+  const handleLaunchOrDownload = useLibraryLaunchGame(
+    useCallback(
+      (game: LibraryGame) => {
+        setDownloadModalGame(game);
+      },
+      []
+    )
   );
 
   const handleUninstall = useCallback(
@@ -1044,6 +1053,15 @@ function Sidebar() {
         onUninstall={handleUninstall}
         onRemoveFromLibrary={handleRemoveFromLibrary}
       />
+
+      {downloadModalGame ? (
+        <DownloadGameModal
+          key={downloadModalGame.id}
+          visible
+          onClose={handleCloseDownloadModal}
+          game={downloadModalGame}
+        />
+      ) : null}
 
       <div className="sidebar-spacer" />
       <div
