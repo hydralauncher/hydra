@@ -115,6 +115,8 @@ export function FocusItem({
   ]);
 
   useEffect(() => {
+    if (isMeasurement) return;
+
     const isActive = effectiveNavigationState === "active";
 
     if (!isActive) {
@@ -150,6 +152,8 @@ export function FocusItem({
   ]);
 
   useEffect(() => {
+    if (isMeasurement) return;
+
     return navigationItemActions.registerItemActions({
       itemId: resolvedId,
       actions: resolvedActions,
