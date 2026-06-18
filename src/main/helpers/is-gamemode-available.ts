@@ -14,11 +14,7 @@ export const isGamemodeAvailable = (): boolean => {
     return false;
   }
 
-  const ldconfigPaths = [
-    "/usr/sbin/ldconfig",
-    "/sbin/ldconfig",
-    "ldconfig",
-  ];
+  const ldconfigPaths = ["/usr/sbin/ldconfig", "/sbin/ldconfig", "ldconfig"];
 
   let hasGamemodeLibraries = false;
 

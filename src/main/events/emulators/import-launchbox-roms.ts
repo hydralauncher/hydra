@@ -161,7 +161,8 @@ const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
   language: string,
   discs: ClassicsDisc[],
-  system: EmulatorSystem
+  system: EmulatorSystem,
+  romSizeBytes: number | null
 ) => {
   const shop = "launchbox" as const;
   const objectId = entry.objectId;
@@ -215,6 +216,7 @@ const persistEntryLocally = async (
     ) {
       existing.selectedDiscPath = discs[0]?.path ?? null;
     }
+    existing.romSizeBytes = romSizeBytes ?? existing.romSizeBytes ?? null;
     await gamesSublevel.put(gameKey, existing);
   } else {
     await gamesSublevel.put(gameKey, {
@@ -232,6 +234,7 @@ const persistEntryLocally = async (
       platform,
       discs,
       selectedDiscPath: discs[0]?.path ?? null,
+      romSizeBytes,
     });
   }
 
@@ -686,6 +689,7 @@ const rollupFolders = (
 const persistMatchedEntries = async (
   matchedEntries: Map<string, LaunchboxShopDetailsEntry>,
   discsByTitle: DiscsByTitle,
+  titleByFolder: TitleByFolder,
   language: string,
   system: EmulatorSystem,
   signal: CancelSignal
@@ -694,7 +698,14 @@ const persistMatchedEntries = async (
     if (signal.cancelled) break;
     const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
     const discs = buildDiscList(titleDiscs);
-    await persistEntryLocally(entry, language, discs, system).catch((err) => {
+    const romSizeBytes = titleByFolder.get(entry.objectId)?.sizeBytes ?? null;
+    await persistEntryLocally(
+      entry,
+      language,
+      discs,
+      system,
+      romSizeBytes
+    ).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
     });
   }
@@ -835,6 +846,7 @@ export async function runLaunchboxImport(
   await persistMatchedEntries(
     matchedEntries,
     discsByTitle,
+    titleByFolder,
     language,
     system,
     signal
