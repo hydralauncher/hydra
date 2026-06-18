@@ -1,0 +1,16 @@
+.game-danger-zone-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-danger-zone-settings-tab__section {
+  width: 100%;
+}
+
+.game-danger-zone-settings-tab__action-button {
+  width: 100%;
+}

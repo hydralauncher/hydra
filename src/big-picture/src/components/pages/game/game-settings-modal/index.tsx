@@ -2,6 +2,7 @@ import type { LibraryGame } from "@types";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SidebarModal, type SidebarModalTab } from "../../../common";
+import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 
 import "./styles.scss";
 import {
@@ -19,6 +20,14 @@ import {
   type GameCloudSettingsProps,
   GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID,
 } from "./cloud-tab";
+import {
+  GameDownloadsSettingsTab,
+  GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID,
+} from "./downloads-tab";
+import {
+  GameDangerZoneSettingsTab,
+  GAME_DANGER_ZONE_PRIMARY_CONTROL_ID,
+} from "./danger-zone-tab";
 
 type GameSettingsTabId =
   | "launch"
@@ -39,6 +48,7 @@ interface GameSettingsModalProps {
 
 export function GameSettingsModal({
   visible,
+  game,
   launchSettings,
   customizationSettings,
   cloudSettings,
@@ -46,6 +56,7 @@ export function GameSettingsModal({
 }: Readonly<GameSettingsModalProps>) {
   const { t } = useTranslation(["game_details", "header"]);
   const [activeTabId, setActiveTabId] = useState<GameSettingsTabId>("launch");
+  const { userDetails, hasActiveSubscription } = useUserDetails();
   const shouldShowCompatibilityTab =
     globalThis.window.electron.platform === "linux";
   const settingsLabel = t("settings", { ns: "header" });
@@ -68,6 +79,23 @@ export function GameSettingsModal({
     () => <GameCloudSettingsTab {...cloudSettings} />,
     [cloudSettings]
   );
+  const downloadContent = useMemo(
+    () => <GameDownloadsSettingsTab game={game} />,
+    [game]
+  );
+  const dangerContent = useMemo(
+    () => <GameDangerZoneSettingsTab game={game} onClose={onClose} />,
+    [game, onClose]
+  );
+
+  const shouldShowCloudTab =
+    userDetails !== null && hasActiveSubscription;
+
+  useEffect(() => {
+    if (!shouldShowCloudTab && activeTabId === "hydra_cloud") {
+      setActiveTabId("launch");
+    }
+  }, [shouldShowCloudTab, activeTabId]);
 
   const tabs = useMemo<SidebarModalTab[]>(
     () => [
@@ -81,11 +109,15 @@ export function GameSettingsModal({
         label: "Customization",
         content: customizationContent,
       },
-      {
-        id: "hydra_cloud",
-        label: t("settings_category_hydra_cloud"),
-        content: cloudContent,
-      },
+      ...(shouldShowCloudTab
+        ? [
+            {
+              id: "hydra_cloud",
+              label: t("settings_category_hydra_cloud"),
+              content: cloudContent,
+            } satisfies SidebarModalTab,
+          ]
+        : []),
       ...(shouldShowCompatibilityTab
         ? [
             {
@@ -98,15 +130,15 @@ export function GameSettingsModal({
       {
         id: "downloads",
         label: t("settings_category_downloads"),
-        content: <p>Downloads</p>,
+        content: downloadContent,
       },
       {
         id: "danger_zone",
         label: t("settings_category_danger_zone"),
-        content: <p>Danger Zone</p>,
+        content: dangerContent,
       },
     ],
-    [customizationContent, launchContent, shouldShowCompatibilityTab, t]
+    [cloudContent, customizationContent, dangerContent, downloadContent, launchContent, shouldShowCloudTab, shouldShowCompatibilityTab, t]
   );
 
   return (
@@ -123,7 +155,11 @@ export function GameSettingsModal({
             ? GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
             : activeTabId === "hydra_cloud"
               ? GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID
-              : undefined
+              : activeTabId === "downloads"
+                ? GAME_DOWNLOADS_SETTINGS_PRIMARY_CONTROL_ID
+                : activeTabId === "danger_zone"
+                  ? GAME_DANGER_ZONE_PRIMARY_CONTROL_ID
+                  : undefined
       }
       tabs={tabs}
       activeTabId={activeTabId}

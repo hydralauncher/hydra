@@ -690,7 +690,7 @@
     "cloud_saves_section_description": "Salve seu progresso na nuvem e continue jogando em qualquer dispositivo",
     "cloud_saves_section_description_memory": "Salve o progresso dos seus memory cards na nuvem e continue jogando em qualquer dispositivo",
     "enable_automatic_cloud_sync": "Habilitar sincronização automática na nuvem",
-    "create_backup": "Novo backup",
+    "create_backup": "New Backup",
     "no_backups": "Você ainda não fez nenhum backup deste jogo",
     "settings_not_available_for_custom_games": "Esta categoria não está disponível para jogos personalizados.",
     "backups": "Backups",
@@ -703,7 +703,12 @@
     "unfreeze_backup": "Desafixar backup",
     "delete_backup": "Excluir backup",
     "cloud_backup_options": "Opções do backup",
-    "cloud_delete_backup_description": "Excluir {{name}} dos seus backups na nuvem?"
+    "cloud_delete_backup_description": "Excluir {{name}} dos seus backups na nuvem?",
+    "uploading_backup": "Fazendo upload do backup…",
+    "restoring_backup": "Restaurando backup ({{progress}} concluído)…",
+    "loading_save_preview": "Procurando arquivos de salvamento…",
+    "no_backup_preview": "Nenhum arquivo de salvamento encontrado para este jogo",
+    "max_number_of_artifacts_reached": "Número máximo de backups atingido para este jogo"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

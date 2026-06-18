@@ -40,6 +40,12 @@ const GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID =
   "game-launch-settings-add-disc-file";
 const GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID =
   "game-launch-settings-dont-ask-disc";
+const GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID =
+  "game-launch-settings-exec-path-select";
+const GAME_LAUNCH_SETTINGS_EXEC_PATH_CLEAR_ID =
+  "game-launch-settings-exec-path-clear";
+const GAME_LAUNCH_SETTINGS_SAVE_FOLDER_ID =
+  "game-launch-settings-save-folder";
 
 const REGION_LABELS: Record<SkuRegion, string> = {
   US: "United States",
@@ -216,40 +222,57 @@ export function GameLaunchSettingsTab({
           title={t("executable_section_title")}
           description={t("executable_section_description")}
         >
-          <div className="game-launch-settings-tab__section-content">
-            <div className="game-launch-settings-tab__exec-path-group">
-              <FocusItem
-                id={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
-                actions={{ primary: () => void onChangeExecutableLocation() }}
-                asChild
-              >
-                <button
-                  type="button"
-                  className={`game-launch-settings-tab__exec-path-button${
-                    game.executablePath
-                      ? ""
-                      : " game-launch-settings-tab__exec-path-button--placeholder"
-                  }`}
-                  onClick={() => void onChangeExecutableLocation()}
+            <div className="game-launch-settings-tab__section-content">
+            <HorizontalFocusGroup
+              className="game-launch-settings-tab__exec-path-group"
+              asChild
+            >
+              <div>
+                <FocusItem
+                  id={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
+                  actions={{ primary: () => void onChangeExecutableLocation() }}
+                  asChild
                 >
-                  {game.executablePath ?? t("no_executable_selected")}
-                </button>
-              </FocusItem>
+                  <button
+                    type="button"
+                    className={`game-launch-settings-tab__exec-path-button${
+                      game.executablePath
+                        ? ""
+                        : " game-launch-settings-tab__exec-path-button--placeholder"
+                    }`}
+                    onClick={() => void onChangeExecutableLocation()}
+                  >
+                    {game.executablePath ?? t("no_executable_selected")}
+                  </button>
+                </FocusItem>
 
-              <HorizontalFocusGroup className="game-launch-settings-tab__actions">
                 {game.executablePath ? (
                   <Button
+                    focusId={GAME_LAUNCH_SETTINGS_EXEC_PATH_CLEAR_ID}
                     variant="danger"
                     icon={<Trash size={16} />}
                     onClick={() => void onClearExecutablePath()}
+                    focusNavigationOverrides={{
+                      left: {
+                        type: "item",
+                        itemId: GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
+                      },
+                    }}
                   >
                     Clear Path
                   </Button>
                 ) : (
                   <Button
+                    focusId={GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID}
                     variant="secondary"
                     icon={<FolderOpen size={16} />}
                     onClick={() => void onChangeExecutableLocation()}
+                    focusNavigationOverrides={{
+                      left: {
+                        type: "item",
+                        itemId: GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
+                      },
+                    }}
                   >
                     Select Path
                   </Button>
@@ -266,6 +289,7 @@ export function GameLaunchSettingsTab({
                     }
                   >
                     <Button
+                      focusId={GAME_LAUNCH_SETTINGS_SAVE_FOLDER_ID}
                       variant="secondary"
                       size="icon"
                       aria-label={t("open_save_folder")}
@@ -274,13 +298,19 @@ export function GameLaunchSettingsTab({
                       onClick={() => {
                         void onOpenSaveFolder();
                       }}
+                      focusNavigationOverrides={{
+                        left: {
+                          type: "item",
+                          itemId: GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID,
+                        },
+                      }}
                     >
                       {null}
                     </Button>
                   </Tooltip>
                 ) : null}
-              </HorizontalFocusGroup>
-            </div>
+              </div>
+            </HorizontalFocusGroup>
           </div>
         </SettingsSection>
       )}
@@ -313,6 +343,12 @@ export function GameLaunchSettingsTab({
                   onClick={() => {
                     void onDeleteSteamShortcut();
                   }}
+                  focusNavigationOverrides={{
+                    left: {
+                      type: "item",
+                      itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                    },
+                  }}
                 >
                   {t("delete_steam_shortcut")}
                 </Button>
@@ -324,6 +360,12 @@ export function GameLaunchSettingsTab({
                   icon={<SteamLogo />}
                   onClick={() => {
                     void onCreateSteamShortcut();
+                  }}
+                  focusNavigationOverrides={{
+                    left: {
+                      type: "item",
+                      itemId: GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                    },
                   }}
                 >
                   {t("create_steam_shortcut")}
@@ -337,6 +379,15 @@ export function GameLaunchSettingsTab({
                 variant="secondary"
                 onClick={() => {
                   void onCreateShortcut("start_menu");
+                }}
+                focusNavigationOverrides={{
+                  left: {
+                    type: "item",
+                    itemId:
+                      game.shop !== "custom"
+                        ? GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID
+                        : GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID,
+                  },
                 }}
               >
                 {t("create_start_menu_shortcut")}
@@ -366,29 +417,42 @@ export function GameLaunchSettingsTab({
           )
         }
       >
-        <div className="game-launch-settings-tab__section-content">
-          <div className="game-launch-settings-tab__launch-options-row">
-            <Input
-              focusId={GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID}
-              className="game-launch-settings-tab__launch-options-input"
-              value={launchOptions}
-              placeholder={t("launch_options_placeholder")}
-              onChange={(event) => onChangeLaunchOptions(event.target.value)}
-              onBlur={onBlurLaunchOptions}
-            />
-
-            <Button
-              focusId={GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID}
-              variant="danger"
-              icon={<Trash size={16} />}
-              disabled={launchOptions.trim().length === 0}
-              onClick={() => {
-                void onClearLaunchOptions();
-              }}
+          <div className="game-launch-settings-tab__section-content">
+            <HorizontalFocusGroup
+              className="game-launch-settings-tab__launch-options-row"
+              asChild
             >
-              Clear Args
-            </Button>
-          </div>
+              <div>
+                <Input
+                  focusId={GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID}
+                  className="game-launch-settings-tab__launch-options-input"
+                  value={launchOptions}
+                  placeholder={t("launch_options_placeholder")}
+                  onChange={(event) =>
+                    onChangeLaunchOptions(event.target.value)
+                  }
+                  onBlur={onBlurLaunchOptions}
+                />
+
+                <Button
+                  focusId={GAME_LAUNCH_SETTINGS_OPTIONS_CLEAR_ID}
+                  variant="danger"
+                  icon={<Trash size={16} />}
+                  disabled={launchOptions.trim().length === 0}
+                  onClick={() => {
+                    void onClearLaunchOptions();
+                  }}
+                  focusNavigationOverrides={{
+                    left: {
+                      type: "item",
+                      itemId: GAME_LAUNCH_SETTINGS_OPTIONS_INPUT_ID,
+                    },
+                  }}
+                >
+                  Clear Args
+                </Button>
+              </div>
+            </HorizontalFocusGroup>
         </div>
       </SettingsSection>
     </VerticalFocusGroup>
