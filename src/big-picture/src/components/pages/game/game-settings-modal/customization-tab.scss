@@ -131,15 +131,15 @@
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.96);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--primary);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   &--danger {
-    background: var(--error-background);
-    border-color: var(--error-border);
-    color: var(--error);
+    background: rgba(225, 29, 72, 0.32);
+    border-color: rgba(225, 29, 72, 0.42);
+    color: var(--primary);
   }
 }
