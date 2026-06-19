@@ -2,6 +2,7 @@ import type { LibraryGame, ShopAssets } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEventHandler } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { logger } from "@renderer/logger";
 
 import { HomePageHero } from "./hero";
@@ -83,6 +84,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
+  const { t } = useTranslation("big_picture");
   const { library, updateLibrary } = useLibrary();
   const { loadCollections } = useGameCollections();
 
@@ -302,7 +304,8 @@ export default function Home() {
           onUninstall: handleRequestRemoveFilesFromMenu,
           onRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
         },
-        favoriteLoadingGameId === game.id
+        favoriteLoadingGameId === game.id,
+        t
       );
     }
 
@@ -320,6 +323,7 @@ export default function Home() {
   }, [
     addingCatalogKey,
     favoriteLoadingGameId,
+    t,
     handleAddCatalogGameToLibrary,
     handleOpenCatalogDownloadOptions,
     handleCatalogShareFromMenu,

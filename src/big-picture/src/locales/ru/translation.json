@@ -701,6 +701,7 @@
     "backup_info_unknown_device": "Неизвестное устройство",
     "freeze_backup": "Закрепить копию",
     "unfreeze_backup": "Открепить копию",
+    "game_options": "Настройки игры",
     "delete_backup": "Удалить копию",
     "cloud_backup_options": "Параметры копии",
     "cloud_delete_backup_description": "Удалить из ваших облачных резервных копий?"
