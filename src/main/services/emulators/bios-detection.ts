@@ -103,7 +103,7 @@ export const resolvePs2BiosDirs = async (
   return Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
 };
 
-const PS1_BIOS_SIGNATURE = Buffer.from("Sony Computer Entertainment Inc.");
+const PS1_BIOS_SIGNATURE = Buffer.from("Sony Computer Entertainment");
 const PS2_ROMDIR_RESET = Buffer.from("RESET\0");
 const PS2_ROMDIR_ROMVER = Buffer.from("ROMVER");
 const PS2_ROMDIR_ENTRY_BYTES = 16;
