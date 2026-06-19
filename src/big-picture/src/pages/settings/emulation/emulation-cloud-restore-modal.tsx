@@ -157,7 +157,10 @@ export function EmulationCloudRestoreModal({
       onClose={onClose}
       className={modalClassName}
     >
-      <VerticalFocusGroup regionId={regionId} className="emu-save-modal__restore">
+      <VerticalFocusGroup
+        regionId={regionId}
+        className="emu-save-modal__restore"
+      >
         <div className="emu-save-modal__targets">
           {targets.length === 0 ? (
             <div className="emu-save-modal__empty">
