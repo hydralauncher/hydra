@@ -1,8 +1,19 @@
+import { existsSync } from "node:fs";
+
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { launchClassicsGame, platformToSystem } from "@main/helpers";
 import { logger, NativeAddon } from "@main/services";
 import type { GameShop } from "@types";
+
+const codedLaunchError = (
+  code: string,
+  message: string,
+  context: Record<string, unknown>
+): Error & { code: string } => {
+  logger.error("Failed to launch classics game", { code, ...context });
+  return Object.assign(new Error(message), { code });
+};
 
 const isRpcs3RunningExternally = async (): Promise<number[]> => {
   const procs = await NativeAddon.listProcesses();
@@ -56,33 +67,33 @@ const openClassicsGame = async (
 
   const system = platformToSystem(game.platform);
   if (!system) {
-    const error: Error & { code?: string } = new Error(
-      `PLATFORM_UNKNOWN: Unknown platform for game ${objectId}`
+    throw codedLaunchError(
+      "PLATFORM_UNKNOWN",
+      `PLATFORM_UNKNOWN: Unknown platform for game ${objectId}`,
+      { objectId, platform: game.platform }
     );
-    error.code = "PLATFORM_UNKNOWN";
-    throw error;
   }
 
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
 
-  if (!resolvedDiscPath) {
-    const error: Error & { code?: string } = new Error(
-      `NO_DISC: No disc available for game ${objectId}`
+  if (!resolvedDiscPath || !existsSync(resolvedDiscPath)) {
+    throw codedLaunchError(
+      "NO_DISC",
+      `NO_DISC: No disc available for game ${objectId}`,
+      { objectId, system, resolvedDiscPath }
     );
-    error.code = "NO_DISC";
-    throw error;
   }
 
   if (system === "ps3") {
     const running = await isRpcs3RunningExternally();
     if (running.length > 0) {
       if (!force) {
-        const error: Error & { code?: string } = new Error(
-          `EMULATOR_ALREADY_RUNNING: rpcs3 is already running`
+        throw codedLaunchError(
+          "EMULATOR_ALREADY_RUNNING",
+          `EMULATOR_ALREADY_RUNNING: rpcs3 is already running`,
+          { objectId, system, pids: running }
         );
-        error.code = "EMULATOR_ALREADY_RUNNING";
-        throw error;
       }
       killPids(running);
       let exited = await waitForRpcs3Exit(running);
@@ -91,11 +102,11 @@ const openClassicsGame = async (
         exited = await waitForRpcs3Exit(running);
       }
       if (!exited) {
-        const error: Error & { code?: string } = new Error(
-          `EMULATOR_ALREADY_RUNNING: rpcs3 did not exit before relaunch`
+        throw codedLaunchError(
+          "EMULATOR_ALREADY_RUNNING",
+          `EMULATOR_ALREADY_RUNNING: rpcs3 did not exit before relaunch`,
+          { objectId, system, pids: running }
         );
-        error.code = "EMULATOR_ALREADY_RUNNING";
-        throw error;
       }
     }
   }
@@ -114,12 +125,14 @@ const openClassicsGame = async (
       "code" in error &&
       error.code === "EMULATOR_NOT_CONFIGURED"
     ) {
-      const wrapped: Error & { code?: string; system?: string } = new Error(
-        `EMULATOR_NOT_CONFIGURED: Emulator not configured for ${system}`
+      throw Object.assign(
+        codedLaunchError(
+          "EMULATOR_NOT_CONFIGURED",
+          `EMULATOR_NOT_CONFIGURED: Emulator not configured for ${system}`,
+          { objectId, system }
+        ),
+        { system }
       );
-      wrapped.code = "EMULATOR_NOT_CONFIGURED";
-      wrapped.system = system;
-      throw wrapped;
     }
 
     if (
@@ -128,12 +141,14 @@ const openClassicsGame = async (
       "code" in error &&
       error.code === "BIOS_NOT_CONFIGURED"
     ) {
-      const wrapped: Error & { code?: string; system?: string } = new Error(
-        `BIOS_NOT_CONFIGURED: BIOS not configured for ${system}`
+      throw Object.assign(
+        codedLaunchError(
+          "BIOS_NOT_CONFIGURED",
+          `BIOS_NOT_CONFIGURED: BIOS not configured for ${system}`,
+          { objectId, system }
+        ),
+        { system }
       );
-      wrapped.code = "BIOS_NOT_CONFIGURED";
-      wrapped.system = system;
-      throw wrapped;
     }
     logger.error("Failed to launch classics game", error);
     throw error;
