@@ -729,6 +729,25 @@
     "edit_game_modal_section_title_description": "Edit the title shown for this game in your library.",
     "edit_game_modal_section_assets_description": "Choose which artwork you want to customize for this game.",
     "edit_game_modal_remove_asset": "Remove custom asset",
-    "edit_game_no_backups": "No backups"
+    "edit_game_no_backups": "No backups",
+    "settings_startup_section_title": "Startup",
+    "settings_startup_section_description": "Choose how Hydra should start when Big Picture mode is available.",
+    "settings_audio_section_title": "Audio",
+    "settings_audio_section_description": "Choose whether Big Picture should play navigation sounds.",
+    "settings_input_section_title": "Input",
+    "settings_input_section_description": "Choose how Big Picture should handle on-screen keyboard input.",
+    "settings_diagnostics_section_title": "Diagnostics",
+    "settings_diagnostics_section_description": "Choose whether Big Picture should expose navigation diagnostics.",
+    "settings_launch_in_big_picture": "Launch Hydra in Big Picture",
+    "settings_enable_virtual_keyboard": "Enable virtual keyboard",
+    "settings_enable_big_picture_sounds": "Enable Big Picture sounds",
+    "settings_enable_diagnostics": "Enable diagnostics",
+    "settings_diagnostics_position": "Diagnostics position",
+    "settings_diagnostics_position_top_left": "Top Left",
+    "settings_diagnostics_position_top_center": "Top Center",
+    "settings_diagnostics_position_top_right": "Top Right",
+    "settings_diagnostics_position_bottom_left": "Bottom Left",
+    "settings_diagnostics_position_bottom_center": "Bottom Center",
+    "settings_diagnostics_position_bottom_right": "Bottom Right"
   }
 }

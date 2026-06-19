@@ -723,6 +723,25 @@
     "edit_game_modal_section_title_description": "Edite o título exibido para este jogo na sua biblioteca.",
     "edit_game_modal_section_assets_description": "Escolha qual arte você quer personalizar para este jogo.",
     "edit_game_modal_remove_asset": "Remover arte personalizada",
-    "edit_game_no_backups": "Sem backups"
+    "edit_game_no_backups": "Sem backups",
+    "settings_startup_section_title": "Inicialização",
+    "settings_startup_section_description": "Escolha como o Hydra deve iniciar quando o Modo Big Picture estiver disponível.",
+    "settings_audio_section_title": "Áudio",
+    "settings_audio_section_description": "Escolha se o Big Picture deve reproduzir sons de navegação.",
+    "settings_input_section_title": "Entrada",
+    "settings_input_section_description": "Escolha como o Big Picture deve lidar com a entrada do teclado virtual.",
+    "settings_diagnostics_section_title": "Diagnóstico",
+    "settings_diagnostics_section_description": "Escolha se o Big Picture deve exibir diagnósticos de navegação.",
+    "settings_launch_in_big_picture": "Iniciar Hydra no Big Picture",
+    "settings_enable_virtual_keyboard": "Ativar teclado virtual",
+    "settings_enable_big_picture_sounds": "Ativar sons do Big Picture",
+    "settings_enable_diagnostics": "Ativar diagnóstico",
+    "settings_diagnostics_position": "Posição do diagnóstico",
+    "settings_diagnostics_position_top_left": "Superior Esquerdo",
+    "settings_diagnostics_position_top_center": "Superior Centro",
+    "settings_diagnostics_position_top_right": "Superior Direito",
+    "settings_diagnostics_position_bottom_left": "Inferior Esquerdo",
+    "settings_diagnostics_position_bottom_center": "Inferior Centro",
+    "settings_diagnostics_position_bottom_right": "Inferior Direito"
   }
 }
