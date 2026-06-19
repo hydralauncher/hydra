@@ -105,32 +105,10 @@ export const resolvePs2BiosDirs = async (
 };
 
 const PS1_BIOS_SIGNATURE = Buffer.from("Sony Computer Entertainment");
-const PS2_ROMDIR_RESET = Buffer.from("RESET\0");
-const PS2_ROMDIR_ROMVER = Buffer.from("ROMVER");
-const PS2_ROMDIR_ENTRY_BYTES = 16;
-const PS2_ROMDIR_NAME_BYTES = 10;
+const PS2_RESET = Buffer.from("RESET");
+const PS2_ROMVER = Buffer.from("ROMVER");
 const PS2_HEADER_BYTES = 0x80000;
 const PS1_HEADER_BYTES = 0x10000;
-
-const ps2RomdirHasRomver = (head: Buffer): boolean => {
-  for (
-    let start = head.indexOf(PS2_ROMDIR_RESET);
-    start >= 0;
-    start = head.indexOf(PS2_ROMDIR_RESET, start + 1)
-  ) {
-    for (
-      let off = start;
-      off + PS2_ROMDIR_ENTRY_BYTES <= head.length;
-      off += PS2_ROMDIR_ENTRY_BYTES
-    ) {
-      const name = head.subarray(off, off + PS2_ROMDIR_NAME_BYTES);
-      const end = name.indexOf(0);
-      if (end <= 0) break;
-      if (name.subarray(0, end).equals(PS2_ROMDIR_ROMVER)) return true;
-    }
-  }
-  return false;
-};
 
 const fileLooksLikeBios = async (
   filePath: string,
@@ -145,7 +123,7 @@ const fileLooksLikeBios = async (
     const head = buffer.subarray(0, bytesRead);
 
     if (system === "ps1") return head.includes(PS1_BIOS_SIGNATURE);
-    return ps2RomdirHasRomver(head);
+    return head.includes(PS2_RESET) && head.includes(PS2_ROMVER);
   } catch {
     return false;
   } finally {
