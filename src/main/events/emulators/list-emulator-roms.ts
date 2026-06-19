@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { DetectedRom, EmulatorSystem } from "@types";
 
 import { registerEvent } from "../register-event";
@@ -7,18 +5,7 @@ import { gamesSublevel, gamesShopAssetsSublevel } from "@main/level";
 import { platformToSystem } from "@main/helpers";
 import { emulators } from "@main/services";
 
-const normalizePath = (p: string): string => {
-  const normalized = path.normalize(p);
-  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
-};
-
-const isWithin = (child: string, parent: string): boolean => {
-  const c = normalizePath(child);
-  const p = normalizePath(parent);
-  if (c === p) return true;
-  const rel = path.relative(p, c);
-  return rel.length > 0 && !rel.startsWith("..") && !path.isAbsolute(rel);
-};
+import { isWithin } from "./rom-path-utils";
 
 const listEmulatorRoms = async (
   _event: Electron.IpcMainInvokeEvent,

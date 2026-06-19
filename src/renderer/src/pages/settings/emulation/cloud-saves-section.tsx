@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
@@ -20,6 +14,7 @@ import {
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   EmulationCloudSave,
@@ -38,17 +33,6 @@ interface Props {
   refreshKey: number;
 }
 
-const SLOT_X_RATIO = 59.5 / 411;
-const SLOT_Y_RATIO = 129 / 221;
-const BRANCH_GAP = 40;
-const CORNER_RADIUS = 8;
-
-interface Connector {
-  width: number;
-  height: number;
-  path: string;
-}
-
 export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { t: tHydraCloud } = useTranslation("hydra_cloud");
@@ -63,14 +47,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const [renameFor, setRenameFor] = useState<EmulationCloudSave | null>(null);
   const [deleteFor, setDeleteFor] = useState<EmulationCloudSave | null>(null);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const consoleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [connector, setConnector] = useState<Connector>({
-    width: 0,
-    height: 0,
-    path: "",
-  });
+  const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
   const load = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -96,77 +73,6 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     showSuccessToast(t("cloud_delete_success"));
     load();
   }, [deleteFor, showSuccessToast, t, load]);
-
-  const drawConnector = useCallback(() => {
-    const stage = stageRef.current;
-    const consoleEl = consoleRef.current;
-    const grid = gridRef.current;
-    if (!stage || !consoleEl || !grid) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const consoleRect = consoleEl.getBoundingClientRect();
-    const cards = Array.from(
-      grid.querySelectorAll<HTMLElement>(".emulator-detail__cloud-card")
-    );
-    if (cards.length === 0) {
-      setConnector({
-        width: stageRect.width,
-        height: stageRect.height,
-        path: "",
-      });
-      return;
-    }
-
-    const slotX =
-      consoleRect.left - stageRect.left + SLOT_X_RATIO * consoleRect.width;
-    const slotY =
-      consoleRect.top - stageRect.top + SLOT_Y_RATIO * consoleRect.height;
-
-    const centers = cards.map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        x: rect.left - stageRect.left + rect.width / 2,
-        top: rect.top - stageRect.top,
-      };
-    });
-    const cardTop = Math.min(...centers.map((c) => c.top));
-    const busY = cardTop - BRANCH_GAP;
-    const xs = centers.map((c) => c.x);
-    const first = xs[0];
-    const last = xs[xs.length - 1];
-
-    const segments = [`M ${slotX} ${slotY} L ${slotX} ${busY}`];
-
-    if (first === last) {
-      segments.push(`M ${first} ${busY} L ${first} ${cardTop}`);
-      segments.push(
-        `M ${Math.min(slotX, first)} ${busY} L ${Math.max(slotX, first)} ${busY}`
-      );
-    } else {
-      const r = Math.min(CORNER_RADIUS, (last - first) / 2);
-      segments.push(
-        `M ${first} ${cardTop} L ${first} ${busY + r} Q ${first} ${busY} ${first + r} ${busY} L ${last - r} ${busY} Q ${last} ${busY} ${last} ${busY + r} L ${last} ${cardTop}`
-      );
-      for (let i = 1; i < xs.length - 1; i += 1) {
-        segments.push(`M ${xs[i]} ${busY} L ${xs[i]} ${cardTop}`);
-      }
-      if (slotX < first) segments.push(`M ${slotX} ${busY} L ${first} ${busY}`);
-      if (slotX > last) segments.push(`M ${last} ${busY} L ${slotX} ${busY}`);
-    }
-
-    setConnector({
-      width: stageRect.width,
-      height: stageRect.height,
-      path: segments.join(" "),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    drawConnector();
-    const observer = new ResizeObserver(drawConnector);
-    if (stageRef.current) observer.observe(stageRef.current);
-    return () => observer.disconnect();
-  }, [drawConnector, saves]);
 
   if (!hasActiveSubscription) {
     return (

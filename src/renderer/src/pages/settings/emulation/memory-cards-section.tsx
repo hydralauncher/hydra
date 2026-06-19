@@ -114,7 +114,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   const [scanInput, setScanInput] = useState<MemcardScanInput | null>(null);
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const [backingUpKey, setBackingUpKey] = useState<string | null>(null);
-  const { backingUpCard, backupProgress, setBackingUpCard, setBackupProgress } =
+  const { backupProgressByCard, backupCard } =
     useEmulationBackupProgress(platform);
   const [forgetCardTarget, setForgetCardTarget] = useState<{
     cardFilePath: string;
@@ -271,14 +271,9 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
   );
 
   const handleBackupAll = useCallback(
-    async (cardFilePath: string) => {
-      setBackingUpCard(cardFilePath);
-      setBackupProgress(null);
-      try {
-        const res = await window.electron.uploadEmulationSavesForCard(
-          platform,
-          cardFilePath
-        );
+    async (cardFilePath: string, recordCount: number) => {
+      const res = await backupCard(cardFilePath, recordCount);
+      if (res) {
         showSuccessToast(
           t("cloud_backup_all_done", {
             uploaded: res.uploaded,
@@ -286,22 +281,11 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
           })
         );
         onUploaded?.();
-      } catch {
+      } else {
         showErrorToast(t("cloud_backup_failed"));
-      } finally {
-        setBackingUpCard(null);
-        setBackupProgress(null);
       }
     },
-    [
-      platform,
-      showSuccessToast,
-      showErrorToast,
-      t,
-      onUploaded,
-      setBackingUpCard,
-      setBackupProgress,
-    ]
+    [backupCard, showSuccessToast, showErrorToast, t, onUploaded]
   );
 
   const handleForgetCard = useCallback(async () => {
@@ -383,8 +367,7 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                     label: progressLabel,
                     percent: progressPercent,
                   } = resolveCardBackupProgress(
-                    backingUpCard,
-                    backupProgress,
+                    backupProgressByCard,
                     cardFilePath,
                     records.length
                   );
@@ -429,7 +412,9 @@ export function MemoryCardsSection({ config, onUploaded }: Readonly<Props>) {
                           <button
                             type="button"
                             className="emulator-detail__memcard-backup-all"
-                            onClick={() => handleBackupAll(cardFilePath)}
+                            onClick={() =>
+                              handleBackupAll(cardFilePath, records.length)
+                            }
                             disabled={isBackingUp}
                           >
                             <UploadIcon size={13} />

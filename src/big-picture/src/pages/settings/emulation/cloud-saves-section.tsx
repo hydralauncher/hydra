@@ -13,13 +13,7 @@ import type {
   EmulatorConfig,
   MemcardRestoreTarget,
 } from "@types";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -45,6 +39,8 @@ import {
 } from "../settings-navigation";
 import { SETTINGS_TOAST_OPTIONS, basename } from "./shared";
 
+import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
+
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
 
@@ -66,17 +62,6 @@ interface RenameModalProps {
   onClose: () => void;
   onRenamed: () => void;
 }
-
-interface Connector {
-  width: number;
-  height: number;
-  path: string;
-}
-
-const SLOT_X_RATIO = 59.5 / 411;
-const SLOT_Y_RATIO = 129 / 221;
-const BRANCH_GAP = 40;
-const CORNER_RADIUS = 8;
 
 const RESTORE_MODAL_REGION_ID = "emulation-cloud-restore-modal-region";
 const RESTORE_MODAL_ACTIONS_REGION_ID = "emulation-cloud-restore-modal-actions";
@@ -386,14 +371,7 @@ export function CloudSavesSection({
     position: { x: number; y: number };
   } | null>(null);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const consoleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [connector, setConnector] = useState<Connector>({
-    width: 0,
-    height: 0,
-    path: "",
-  });
+  const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
   const loadSaves = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -422,91 +400,6 @@ export function CloudSavesSection({
     showSuccessToast("Cloud save removed", SETTINGS_TOAST_OPTIONS);
     await loadSaves();
   }, [deleteTarget, loadSaves, showSuccessToast]);
-
-  const drawConnector = useCallback(() => {
-    const stage = stageRef.current;
-    const consoleElement = consoleRef.current;
-    const grid = gridRef.current;
-
-    if (!stage || !consoleElement || !grid) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const consoleRect = consoleElement.getBoundingClientRect();
-    const cards = Array.from(
-      grid.querySelectorAll<HTMLElement>(".emulator-detail__cloud-card")
-    );
-
-    if (cards.length === 0) {
-      setConnector({
-        width: stageRect.width,
-        height: stageRect.height,
-        path: "",
-      });
-      return;
-    }
-
-    const slotX =
-      consoleRect.left - stageRect.left + SLOT_X_RATIO * consoleRect.width;
-    const slotY =
-      consoleRect.top - stageRect.top + SLOT_Y_RATIO * consoleRect.height;
-
-    const centers = cards.map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        x: rect.left - stageRect.left + rect.width / 2,
-        top: rect.top - stageRect.top,
-      };
-    });
-    const cardTop = Math.min(...centers.map((center) => center.top));
-    const busY = cardTop - BRANCH_GAP;
-    const xs = centers.map((center) => center.x);
-    const first = xs[0];
-    const last = xs[xs.length - 1];
-    const segments = [`M ${slotX} ${slotY} L ${slotX} ${busY}`];
-
-    if (first === last) {
-      segments.push(`M ${first} ${busY} L ${first} ${cardTop}`);
-      segments.push(
-        `M ${Math.min(slotX, first)} ${busY} L ${Math.max(slotX, first)} ${busY}`
-      );
-    } else {
-      const radius = Math.min(CORNER_RADIUS, (last - first) / 2);
-      segments.push(
-        `M ${first} ${cardTop} L ${first} ${busY + radius} Q ${first} ${busY} ${
-          first + radius
-        } ${busY} L ${last - radius} ${busY} Q ${last} ${busY} ${last} ${
-          busY + radius
-        } L ${last} ${cardTop}`
-      );
-
-      for (let index = 1; index < xs.length - 1; index += 1) {
-        segments.push(`M ${xs[index]} ${busY} L ${xs[index]} ${cardTop}`);
-      }
-
-      if (slotX < first) {
-        segments.push(`M ${slotX} ${busY} L ${first} ${busY}`);
-      }
-
-      if (slotX > last) {
-        segments.push(`M ${last} ${busY} L ${slotX} ${busY}`);
-      }
-    }
-
-    setConnector({
-      width: stageRect.width,
-      height: stageRect.height,
-      path: segments.join(" "),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    drawConnector();
-
-    const observer = new ResizeObserver(drawConnector);
-    if (stageRef.current) observer.observe(stageRef.current);
-
-    return () => observer.disconnect();
-  }, [drawConnector, saves]);
 
   if (!hasActiveSubscription || saves.length === 0) {
     return null;
