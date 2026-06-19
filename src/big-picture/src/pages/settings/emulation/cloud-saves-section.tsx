@@ -257,9 +257,8 @@ function RestoreModal({
                 ? {
                     up: {
                       type: "item",
-                      itemId: getEmulationCloudRestoreTargetFocusId(
-                        selectedTarget
-                      ),
+                      itemId:
+                        getEmulationCloudRestoreTargetFocusId(selectedTarget),
                     },
                   }
                 : undefined
@@ -279,9 +278,8 @@ function RestoreModal({
                 ? {
                     up: {
                       type: "item",
-                      itemId: getEmulationCloudRestoreTargetFocusId(
-                        selectedTarget
-                      ),
+                      itemId:
+                        getEmulationCloudRestoreTargetFocusId(selectedTarget),
                     },
                   }
                 : undefined
