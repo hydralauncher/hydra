@@ -182,6 +182,7 @@
   }
 
   .library-container__filters {
+    display: flex;
     width: 44px;
     flex-direction: column;
     align-items: flex-start;

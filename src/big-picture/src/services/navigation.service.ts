@@ -366,9 +366,7 @@ export class NavigationService {
         this.regionChildOrderCounter.delete(region.id);
       }
 
-      if (!registeredRegion.isPersistent) {
-        this.lastFocusedByRegionId.delete(region.id);
-      }
+      this.lastFocusedByRegionId.delete(region.id);
 
       if (shouldRecoverFocus) {
         this.currentFocusId =
@@ -1563,16 +1561,6 @@ export class NavigationService {
       return null;
     }
 
-    if (
-      options.initialFocusId &&
-      this.nodes.has(options.initialFocusId) &&
-      this.isNodeActive(options.initialFocusId) &&
-      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
-      this.isNodeInActiveLayer(options.initialFocusId)
-    ) {
-      return options.initialFocusId;
-    }
-
     const rememberedNodeId =
       options.preferRememberedFocus === false
         ? null
@@ -1586,6 +1574,16 @@ export class NavigationService {
       this.isNodeInActiveLayer(rememberedNodeId)
     ) {
       return rememberedNodeId;
+    }
+
+    if (
+      options.initialFocusId &&
+      this.nodes.has(options.initialFocusId) &&
+      this.isNodeActive(options.initialFocusId) &&
+      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
+      this.isNodeInActiveLayer(options.initialFocusId)
+    ) {
+      return options.initialFocusId;
     }
 
     return this.getBoundaryNodeInRegion(

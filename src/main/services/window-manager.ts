@@ -30,6 +30,11 @@ import { DisplayManager } from "./display-manager";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 
+const isLinuxWayland =
+  process.platform === "linux" &&
+  (process.env.XDG_SESSION_TYPE === "wayland" ||
+    Boolean(process.env.WAYLAND_DISPLAY));
+
 export class WindowManager {
   public static mainWindow: Electron.BrowserWindow | null = null;
   public static notificationWindow: Electron.BrowserWindow | null = null;
@@ -46,20 +51,29 @@ export class WindowManager {
       height: 860,
       minWidth: 1024,
       minHeight: 860,
-      backgroundColor: "#1c1c1c",
-      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
       icon,
       trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        color: "#00000000",
-        height: 34,
-      },
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
       },
       show: false,
+      ...(process.platform === "linux"
+        ? {
+            frame: false,
+            ...(isLinuxWayland
+              ? { transparent: true, backgroundColor: "#00000000" }
+              : { backgroundColor: "#1c1c1c" }),
+          }
+        : {
+            backgroundColor: "#1c1c1c",
+            titleBarStyle: "hidden",
+            titleBarOverlay: {
+              symbolColor: "#DADBE1",
+              color: "#00000000",
+              height: 34,
+            },
+          }),
     };
 
   private static formatVersionNumber(version: string) {
@@ -177,6 +191,17 @@ export class WindowManager {
     );
 
     this.deferredMainMaximize = false;
+
+    const emitMaximizeState = () => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.webContents.send(
+          "on-window-maximize-change",
+          this.mainWindow.isMaximized()
+        );
+      }
+    };
+    this.mainWindow.on("maximize", emitMaximizeState);
+    this.mainWindow.on("unmaximize", emitMaximizeState);
 
     if (userPreferences?.launchInBigPicture) {
       this.mainWindow.setOpacity(0);
@@ -337,7 +362,6 @@ export class WindowManager {
       backgroundColor: "#0a0a0a",
       icon,
       frame: false,
-      fullscreen: true,
       show: false,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
@@ -363,8 +387,8 @@ export class WindowManager {
         main.setOpacity(1);
         this.disableMainWindowWhileBigPictureIsOpen();
       }
-      this.bigPicture?.setBounds(targetBounds);
       this.bigPicture?.show();
+      this.bigPicture?.setFullScreen(true);
       this.bigPicture?.focus();
     });
 
@@ -442,6 +466,32 @@ export class WindowManager {
       this.friendsWindow.close();
     }
     this.friendsWindow = null;
+  }
+
+  public static minimizeMainWindow() {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.minimize();
+    }
+  }
+
+  public static toggleMaximizeMainWindow() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+    if (this.mainWindow.isMaximized()) {
+      this.mainWindow.unmaximize();
+    } else {
+      this.mainWindow.maximize();
+    }
+  }
+
+  public static closeMainWindow() {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.close();
+    }
+  }
+
+  public static isMainWindowMaximized() {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) return false;
+    return this.mainWindow.isMaximized();
   }
 
   private static focusMainWindow() {

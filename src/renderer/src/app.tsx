@@ -1,4 +1,11 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
+import { VideoIcon } from "@primer/octicons-react";
+import {
+  DashIcon,
+  ScreenFullIcon,
+  ScreenNormalIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import {
   useAppDispatch,
   useAppSelector,
@@ -207,12 +214,28 @@ export function App() {
           seeding: 1442,
           "peers-and-seeds": 1449,
           "steam-achievements": 1412,
+          "install-duckstation": 6441,
+          "install-pcsx2": 6192,
+          "install-rpcs3": 6510,
         },
         en: {
           "cannot-write-directory": 4122,
           seeding: 4116,
           "peers-and-seeds": 4119,
           "steam-achievements": 4140,
+          "install-duckstation": 6465,
+          "install-pcsx2": 6390,
+          "install-rpcs3": 6524,
+        },
+        ru: {
+          "install-duckstation": 6479,
+          "install-pcsx2": 6429,
+          "install-rpcs3": 6541,
+        },
+        es: {
+          "install-duckstation": 6492,
+          "install-pcsx2": 6410,
+          "install-rpcs3": 6552,
         },
       };
 
@@ -462,16 +485,99 @@ export function App() {
     dispatch(closeToast());
   }, [dispatch]);
 
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
+
+  useEffect(() => {
+    if (window.electron.platform !== "linux") return;
+
+    if (window.electron.isWayland) {
+      document.body.classList.add("window-rounded");
+    }
+
+    let cancelled = false;
+
+    const applyMaximizeState = (isMaximized: boolean) => {
+      if (cancelled) return;
+      setIsWindowMaximized(isMaximized);
+      document.body.classList.toggle("window-maximized", isMaximized);
+    };
+
+    window.electron.isMainWindowMaximized().then(applyMaximizeState);
+    const unsubscribe =
+      window.electron.onWindowMaximizeChange(applyMaximizeState);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      document.body.classList.remove("window-rounded");
+      document.body.classList.remove("window-maximized");
+    };
+  }, []);
+
   return (
     <>
-      {window.electron.platform === "win32" && (
-        <div className="title-bar">
+      {(window.electron.platform === "win32" ||
+        window.electron.platform === "linux") && (
+        <div
+          className={`title-bar${
+            window.electron.platform === "win32" ? " title-bar--windows" : ""
+          }`}
+        >
           <h4>
             Hydra
             {hasActiveSubscription && (
               <span className="title-bar__cloud-text"> Cloud</span>
             )}
           </h4>
+
+          <button
+            type="button"
+            className="title-bar__big-picture"
+            onClick={() => globalThis.window.electron.openBigPictureWindow()}
+          >
+            <VideoIcon size={14} />
+            {t("big_picture", { ns: "sidebar" })}
+          </button>
+
+          {window.electron.platform === "linux" && (
+            <div className="title-bar__window-controls">
+              <button
+                type="button"
+                className="title-bar__window-control"
+                onClick={() => window.electron.minimizeMainWindow()}
+                title={t("header:minimize")}
+                aria-label={t("header:minimize")}
+              >
+                <DashIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="title-bar__window-control"
+                onClick={() => window.electron.toggleMaximizeMainWindow()}
+                title={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
+                aria-label={
+                  isWindowMaximized ? t("header:restore") : t("header:maximize")
+                }
+              >
+                {isWindowMaximized ? (
+                  <ScreenNormalIcon size={16} />
+                ) : (
+                  <ScreenFullIcon size={16} />
+                )}
+              </button>
+              <button
+                type="button"
+                className="title-bar__window-control title-bar__window-control--close"
+                onClick={() => window.electron.closeMainWindow()}
+                title={t("header:close")}
+                aria-label={t("header:close")}
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

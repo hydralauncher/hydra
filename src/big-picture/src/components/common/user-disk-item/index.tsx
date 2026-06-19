@@ -28,6 +28,7 @@ export interface UserDiskItemProps {
   focusActions?: FocusItemActions;
   focusNavigationOverrides?: FocusOverrides;
   focusNavigationState?: NavigationNodeState;
+  stealFocusOnAppear?: boolean;
   className?: string;
   topRightContent?: ReactNode;
 }
@@ -47,6 +48,7 @@ export function UserDiskItem({
   focusActions,
   focusNavigationOverrides,
   focusNavigationState,
+  stealFocusOnAppear = false,
   className,
   topRightContent,
 }: Readonly<UserDiskItemProps>) {
@@ -55,11 +57,13 @@ export function UserDiskItem({
   const usedBytes = Math.max(safeTotalBytes - safeFreeBytes, 0);
   const usedRatio =
     safeTotalBytes > 0 ? clamp(usedBytes / safeTotalBytes, 0, 1) : 0;
+  const isDisabled = focusNavigationState === "disabled";
   const pathRef = useRef<HTMLParagraphElement | null>(null);
   const [isPathTruncated, setIsPathTruncated] = useState(false);
   const rootClassName = cn("user-disk-item", className, {
+    "user-disk-item--disabled": isDisabled,
     "user-disk-item--selected": isSelected,
-    "user-disk-item--interactive": Boolean(onClick),
+    "user-disk-item--interactive": Boolean(onClick) && !isDisabled,
   });
   const shouldShowSelectedIndicator = showSelectedIndicator && isSelected;
   const shouldRenderTopRight =
@@ -176,6 +180,7 @@ export function UserDiskItem({
         actions={focusActions}
         navigationOverrides={focusNavigationOverrides}
         navigationState={focusNavigationState}
+        stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
         <button
@@ -197,6 +202,7 @@ export function UserDiskItem({
         actions={focusActions}
         navigationOverrides={focusNavigationOverrides}
         navigationState={focusNavigationState}
+        stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
         <article className={rootClassName}>{content}</article>

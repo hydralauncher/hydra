@@ -1,8 +1,8 @@
 import { registerEvent } from "../register-event";
 import { gamesSublevel, gamesShopAssetsSublevel, levelKeys } from "@main/level";
+import { WindowManager, logger } from "@main/services";
 import type { GameShop, Game } from "@types";
 import fs from "node:fs";
-import { logger } from "@main/services";
 
 const collectOldAssetPaths = (
   existingGame: Game,
@@ -155,6 +155,8 @@ const updateGameCustomAssets = async (
   await updateShopAssets(gameKey, title);
 
   await deleteOldAssetFiles(oldAssetPaths);
+
+  WindowManager.sendToAppWindows("on-library-batch-complete");
 
   return updatedGame;
 };

@@ -3,7 +3,10 @@ import { parseExecutablePath } from "../helpers/parse-executable-path";
 import { getDirectorySize } from "../helpers/get-directory-size";
 import { findGameRootFromExe } from "../helpers/find-game-root";
 import { gamesSublevel, levelKeys } from "@main/level";
-import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
+import {
+  updateGameExecutablePath,
+  updateGameTrackingExecutablePaths,
+} from "@main/helpers/update-executable-path";
 import { logger } from "@main/services";
 import type { GameShop } from "@types";
 
@@ -58,3 +61,26 @@ const updateExecutablePath = async (
 };
 
 registerEvent("updateExecutablePath", updateExecutablePath);
+
+const updateTrackingExecutablePaths = async (
+  _event: Electron.IpcMainInvokeEvent,
+  shop: GameShop,
+  objectId: string,
+  trackingExecutablePaths: string[]
+) => {
+  const parsedPaths = trackingExecutablePaths.map((trackingExecutablePath) =>
+    parseExecutablePath(trackingExecutablePath)
+  );
+
+  const gameKey = levelKeys.game(shop, objectId);
+
+  const game = await gamesSublevel.get(gameKey);
+  if (!game) return;
+
+  await gamesSublevel.put(
+    gameKey,
+    updateGameTrackingExecutablePaths(game, parsedPaths)
+  );
+};
+
+registerEvent("updateTrackingExecutablePaths", updateTrackingExecutablePaths);

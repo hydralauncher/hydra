@@ -23,6 +23,15 @@ export class EmulatorNotConfiguredError extends Error {
   }
 }
 
+export class BiosNotConfiguredError extends Error {
+  code = "BIOS_NOT_CONFIGURED" as const;
+  system: EmulatorSystem;
+  constructor(system: EmulatorSystem) {
+    super(`BIOS not configured for system ${system}`);
+    this.system = system;
+  }
+}
+
 export interface LaunchClassicsGameOptions {
   shop: GameShop;
   objectId: string;
@@ -53,6 +62,19 @@ export const launchClassicsGame = async (
   const config = await emulators.getEmulatorConfig(system);
   if (!config.executablePath || !existsSync(config.executablePath)) {
     throw new EmulatorNotConfiguredError(system);
+  }
+
+  // DuckStation/PCSX2 silently crash on launch when no BIOS is present, and the
+  // emulator is spawned detached with stdio "ignore" so its own error never
+  // reaches us. Detect the missing BIOS up front and block the launch instead.
+  if (system === "ps1" || system === "ps2") {
+    const biosInstalled = await emulators.isEmulatorBiosInstalled(
+      system,
+      config.executablePath
+    );
+    if (!biosInstalled) {
+      throw new BiosNotConfiguredError(system);
+    }
   }
 
   const gameKey = levelKeys.game(shop, objectId);

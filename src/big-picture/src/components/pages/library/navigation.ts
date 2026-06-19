@@ -1,6 +1,8 @@
 export const LIBRARY_PAGE_REGION_ID = "library-page";
 export const LIBRARY_HERO_ACTIONS_REGION_ID = "library-hero-actions";
 export const LIBRARY_HERO_LAUNCH_BUTTON_ID = "library-hero-launch-button";
+export const LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID =
+  "library-hero-open-settings-button";
 export const LIBRARY_HERO_FAVORITE_BUTTON_ID = "library-hero-favorite-button";
 export const LIBRARY_FILTERS_TOOLBAR_REGION_ID = "library-filters-toolbar";
 export const LIBRARY_FILTERS_TABS_REGION_ID = "library-filters-tabs";
@@ -16,9 +18,6 @@ export const LIBRARY_FILTERS_MODERNS_TAB_ID = "library-filters-tab-moderns";
 export const LIBRARY_FILTERS_CLASSICS_TAB_ID = "library-filters-tab-classics";
 export const LIBRARY_FILTERS_FAVORITES_TAB_ID = "library-filters-tab-favorites";
 export const LIBRARY_FILTERS_COMPLETED_TAB_ID = "library-filters-tab-completed";
-
-export const LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID =
-  "library-filters-new-folder-button";
 
 /** Prefix + collection id → stable FocusItem id for user collections */
 export const LIBRARY_FILTERS_COLLECTION_TAB_PREFIX =

@@ -1,9 +1,10 @@
 import "./styles.scss";
 
 import { HeartStraightIcon } from "@phosphor-icons/react";
-import type { AnchorHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { FocusItem } from "..";
+import type { FocusItemActions } from "../../../types";
 import type { FocusOverrides } from "../../../services";
 
 export interface RouteAnchorProps
@@ -18,6 +19,8 @@ export interface RouteAnchorProps
   focusId?: string;
   focusNavigationOrder?: number;
   focusNavigationOverrides?: FocusOverrides;
+  focusActions?: FocusItemActions;
+  onContextMenu?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
 export const RouteAnchor = ({
@@ -31,6 +34,8 @@ export const RouteAnchor = ({
   focusId,
   focusNavigationOrder,
   focusNavigationOverrides,
+  focusActions,
+  onContextMenu,
   ...props
 }: Readonly<RouteAnchorProps>) => {
   const isGameIcon = typeof icon === "string";
@@ -41,10 +46,11 @@ export const RouteAnchor = ({
     >
       <FocusItem
         id={focusId}
+        actions={focusActions}
         navigationOrder={focusNavigationOrder}
         navigationOverrides={focusNavigationOverrides}
       >
-        <Link to={href} {...props}>
+        <Link to={href} onContextMenu={onContextMenu} {...props}>
           <div
             className={`route-anchor ${active ? "route-anchor--active" : ""} ${!isGameIcon ? "route-anchor--extra-padding" : ""} ${subtitle ? "route-anchor--with-subtitle" : ""}`}
           >

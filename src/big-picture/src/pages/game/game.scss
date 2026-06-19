@@ -559,10 +559,32 @@
     z-index: 0;
   }
 
+  &__hero-bg-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transition: opacity 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+    pointer-events: none;
+  }
+
+  &__hero-bg-layer--base {
+    opacity: 1;
+  }
+
+  &__hero-bg-layer--incoming {
+    z-index: 1;
+    opacity: 0;
+  }
+
+  &__hero-bg-layer--visible {
+    opacity: 1;
+  }
+
   &__hero-shell {
     position: relative;
     height: 620px;
     overflow: hidden;
+    background: var(--background);
   }
 
   &__hero-actions {

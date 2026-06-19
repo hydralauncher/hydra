@@ -39,22 +39,35 @@
   box-sizing: border-box;
 }
 
-::-webkit-scrollbar {
-  width: 9px;
-  background-color: rgba(0, 0, 0, 0.2);
+@mixin big-picture-scrollbar-theme {
+  &::-webkit-scrollbar {
+    width: 9px;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background-color: rgba(0, 0, 0, 0.2);
-}
+@mixin big-picture-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
-::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.25);
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 }
 
 html,
@@ -78,6 +91,11 @@ body {
   position: relative;
   overflow: hidden;
   font-family: var(--font-space-grotesk), sans-serif;
+}
+
+#big-picture,
+#big-picture * {
+  @include big-picture-scrollbar-hidden;
 }
 
 .big-picture__app {

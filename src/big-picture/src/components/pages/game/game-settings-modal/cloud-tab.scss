@@ -1,0 +1,224 @@
+.game-cloud-settings-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-cloud-settings-tab__section {
+  width: 100%;
+}
+
+.game-cloud-settings-tab__section--backups {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-cloud-settings-tab__section--backups .settings-section__content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-cloud-settings-tab__section-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__new-backup-button {
+  width: 100%;
+}
+
+.game-cloud-settings-tab__status-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.game-cloud-settings-tab__section-content--backups {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-cloud-settings-tab__saves-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.game-cloud-settings-tab__saves-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.game-cloud-settings-tab__saves-viewport {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.game-cloud-settings-tab__save-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 8);
+  width: 100%;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: calc(var(--spacing-unit) * 2);
+  background: var(--secondary);
+}
+
+.game-cloud-settings-tab__save-copy {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__save-title,
+.game-cloud-settings-tab__save-info {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: 0;
+}
+
+.game-cloud-settings-tab__save-title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.game-cloud-settings-tab__save-info {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.game-cloud-settings-tab__save-skeleton {
+  width: 100%;
+  height: 155px;
+  max-width: 718px;
+  border-radius: calc(var(--spacing-unit) * 2);
+}
+
+.game-cloud-settings-tab__save-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__save-restore-button,
+.game-cloud-settings-tab__save-options-button {
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__save-restore-button {
+  width: 100%;
+  min-width: 0;
+}
+
+.game-cloud-settings-tab__save-options-button {
+  justify-self: end;
+}
+
+.emu-save-modal {
+  &__restore {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 420px;
+  }
+
+  &__targets {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  &__target {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    background: #0d0d0d;
+    border: 1px solid #1c1c1c;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+
+    &--selected {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 10%, #0d0d0d);
+    }
+  }
+
+  &__target-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fafafa;
+  }
+
+  &__target-path {
+    font-size: 12px;
+    color: #8e919b;
+    word-break: break-all;
+  }
+
+  &__empty {
+    color: #8e919b;
+    font-size: 13px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

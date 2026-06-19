@@ -57,6 +57,14 @@ export function SetupFooter({
           >
             {t("setup_cancel")}
           </button>
+        ) : endAction ? (
+          <button
+            type="button"
+            className="setup-modal__ghost-button"
+            onClick={endAction.onClick}
+          >
+            {endAction.label}
+          </button>
         ) : null}
       </div>
 
@@ -72,15 +80,6 @@ export function SetupFooter({
       </div>
 
       <div className="setup-modal__footer-side setup-modal__footer-side--end">
-        {endAction && (
-          <button
-            type="button"
-            className="setup-modal__ghost-button"
-            onClick={endAction.onClick}
-          >
-            {endAction.label}
-          </button>
-        )}
         {showSkip && (
           <button
             type="button"

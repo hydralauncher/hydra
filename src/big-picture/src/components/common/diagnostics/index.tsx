@@ -95,31 +95,38 @@ function getStickDirection(x: number, y: number) {
   return y > 0 ? GamepadAxisDirection.DOWN : GamepadAxisDirection.UP;
 }
 
+function resolveAlignment(position: string) {
+  if (position.endsWith("center")) return "center";
+  if (position.endsWith("right")) return "flex-end";
+  return "flex-start";
+}
+
+function resolveHorizontalPosition(position: string, edgeOffset: string) {
+  if (position.endsWith("center")) {
+    return { left: "50%", transform: "translateX(-50%)" };
+  }
+  if (position.endsWith("right")) {
+    return { right: edgeOffset };
+  }
+  return { left: edgeOffset };
+}
+
 function getDiagnosticsLauncherStyle(
   position: BigPictureDiagnosticsPosition
 ): CSSProperties {
   const edgeOffset = "calc(var(--spacing-unit) * 6)";
   const isTop = position.startsWith("top");
-  const isCenter = position.endsWith("center");
-  const isRight = position.endsWith("right");
 
   return {
     position: "fixed",
     zIndex: 1000,
     display: "flex",
     flexDirection: isTop ? "column-reverse" : "column",
-    alignItems: isCenter ? "center" : isRight ? "flex-end" : "flex-start",
+    alignItems: resolveAlignment(position),
     gap: "calc(var(--spacing-unit) * 3)",
     fontSize: 12,
     ...(isTop ? { top: edgeOffset } : { bottom: edgeOffset }),
-    ...(isCenter
-      ? {
-          left: "50%",
-          transform: "translateX(-50%)",
-        }
-      : isRight
-        ? { right: edgeOffset }
-        : { left: edgeOffset }),
+    ...resolveHorizontalPosition(position, edgeOffset),
   };
 }
 

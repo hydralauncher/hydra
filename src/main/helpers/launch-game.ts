@@ -1,5 +1,6 @@
 import { shell } from "electron";
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import {
   GameShop,
@@ -17,12 +18,17 @@ import {
   Wine,
   NativeAddon,
   DisplayManager,
+  launchedGamePids,
 } from "@main/services";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { parseExecutablePath } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import {
+  buildWindowsBatchCommand,
+  isWindowsBatchFile,
+} from "./windows-batch-command";
 
 export interface LaunchGameOptions {
   shop: GameShop;
@@ -35,12 +41,28 @@ export interface LaunchGameOptions {
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
 
+const ensureExecutablePermission = (executablePath: string) => {
+  try {
+    const currentMode = fs.statSync(executablePath).mode;
+    const hasOwnerExecuteBit = (currentMode & 0o100) !== 0;
+
+    if (!hasOwnerExecuteBit) {
+      fs.chmodSync(executablePath, currentMode | 0o100);
+    }
+  } catch (error) {
+    logger.warn("Failed to ensure executable permission", {
+      executablePath,
+      error,
+    });
+  }
+};
+
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false
-) => {
+): number | null => {
   const workingDirectory = path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
@@ -51,13 +73,45 @@ const launchNatively = (
     ],
   });
 
-  if (
+  if (process.platform === "linux") {
+    ensureExecutablePermission(executablePath);
+  } else if (
     resolvedLaunchCommand.command === executablePath &&
     resolvedLaunchCommand.args.length === 0 &&
     Object.keys(resolvedLaunchCommand.env).length === 0
   ) {
     shell.openPath(executablePath);
-    return;
+    return null;
+  }
+
+  if (
+    process.platform === "win32" &&
+    isWindowsBatchFile(resolvedLaunchCommand.command)
+  ) {
+    const processRef = spawn(
+      buildWindowsBatchCommand(
+        resolvedLaunchCommand.command,
+        resolvedLaunchCommand.args
+      ),
+      {
+        shell: true,
+        detached: true,
+        stdio: "ignore",
+        cwd: workingDirectory,
+        env: {
+          ...process.env,
+          ...resolvedLaunchCommand.env,
+        },
+      }
+    );
+
+    processRef.on("error", (error) => {
+      logger.error("Failed to launch game", error);
+    });
+
+    processRef.unref();
+
+    return processRef.pid ?? null;
   }
 
   const processRef = spawn(
@@ -75,7 +129,13 @@ const launchNatively = (
     }
   );
 
+  processRef.on("error", (error) => {
+    logger.error("Failed to launch game", error);
+  });
+
   processRef.unref();
+
+  return processRef.pid ?? null;
 };
 
 const launchWithWine = async (
@@ -189,30 +249,15 @@ const cleanupStaleCompatibilityProcesses = async (
   }
 };
 
-interface LaunchLinuxGameOptions {
-  parsedPath: string;
-  launchOptions?: string | null;
-  objectId: string;
-  gameKey: string;
-  game?: Game;
-  useMangohud: boolean;
-  useGamemode: boolean;
-}
-
-const launchLinuxGame = async ({
-  parsedPath,
-  launchOptions,
-  objectId,
-  gameKey,
-  game,
-  useMangohud,
-  useGamemode,
-}: LaunchLinuxGameOptions) => {
-  if (!isWindowsExecutable(parsedPath)) {
-    launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
-    return;
-  }
-
+const launchWindowsBinaryOnLinux = async (
+  gameKey: string,
+  objectId: string,
+  parsedPath: string,
+  game: Game | undefined,
+  launchOptions: string | null | undefined,
+  useMangohud: boolean,
+  useGamemode: boolean
+): Promise<boolean> => {
   const protonPath = await resolveProtonPathForLaunch(game?.protonPath);
   const winePrefixPath = Wine.getEffectivePrefixPath(
     game?.winePrefixPath,
@@ -231,7 +276,7 @@ const launchLinuxGame = async ({
       useMangohud,
     });
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-    return;
+    return true;
   } catch (error) {
     logger.error("Failed to launch game with umu-run, falling back", error);
   }
@@ -245,17 +290,19 @@ const launchLinuxGame = async ({
 
   if (launchedWithWine) {
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
-    return;
+    return true;
   }
 
-  launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return false;
 };
 
 /**
  * Shows the launcher window and launches the game executable
  * Shared between deep link handler and openGame event
  */
-export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
+export const launchGame = async (
+  options: LaunchGameOptions
+): Promise<number | null> => {
   const { shop, objectId, executablePath, launchOptions, launchSource } =
     options;
 
@@ -319,17 +366,31 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
   }
 
   if (process.platform === "linux") {
-    await launchLinuxGame({
+    if (isWindowsExecutable(parsedPath)) {
+      const launched = await launchWindowsBinaryOnLinux(
+        gameKey,
+        objectId,
+        parsedPath,
+        game,
+        launchOptions,
+        useMangohud,
+        useGamemode
+      );
+
+      if (launched) return null;
+    }
+
+    const pid = launchNatively(
       parsedPath,
       launchOptions,
-      objectId,
-      gameKey,
-      game,
       useMangohud,
-      useGamemode,
-    });
-    return;
+      useGamemode
+    );
+
+    if (pid !== null) launchedGamePids.set(gameKey, pid);
+
+    return pid;
   }
 
-  launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+  return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
 };

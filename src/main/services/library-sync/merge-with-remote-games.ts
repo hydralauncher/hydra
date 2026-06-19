@@ -42,12 +42,36 @@ const getLocalCollectionIds = (
   return legacyCollectionId ? [legacyCollectionId] : [];
 };
 
+const PAGE_SIZE = 100;
+
+const fetchAllGamesForShop = async (
+  params: Record<string, unknown> = {}
+): Promise<ProfileGame[]> => {
+  const all: ProfileGame[] = [];
+  let skip = 0;
+
+  for (;;) {
+    const page = await HydraApi.get<ProfileGame[]>("/profile/games", {
+      ...params,
+      take: PAGE_SIZE,
+      skip,
+    });
+
+    all.push(...page);
+
+    if (page.length < PAGE_SIZE) break;
+    skip += PAGE_SIZE;
+  }
+
+  return all;
+};
+
 export const mergeWithRemoteGames = async () => {
   const fetchGames = Promise.all([
-    HydraApi.get<ProfileGame[]>("/profile/games"),
-    HydraApi.get<ProfileGame[]>("/profile/games", {
-      shop: "launchbox",
-    }).catch(() => [] as ProfileGame[]),
+    fetchAllGamesForShop(),
+    fetchAllGamesForShop({ shop: "launchbox" }).catch(
+      () => [] as ProfileGame[]
+    ),
   ]).then(([defaultGames, classicsGames]) => [
     ...defaultGames,
     ...classicsGames,

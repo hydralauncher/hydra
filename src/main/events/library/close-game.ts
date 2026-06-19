@@ -1,11 +1,13 @@
 import { registerEvent } from "../register-event";
-import { emulators, logger, Wine } from "@main/services";
+import { emulators, launchedGamePids, logger, Wine } from "@main/services";
 import sudo from "sudo-prompt";
 import { app } from "electron";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
 import path from "node:path";
 import { NativeAddon } from "@main/services/native-addon";
+import { processReferencesExecutable } from "@main/services/linux-process-match";
+import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 
 const getKillCommand = (pid: number) => {
   if (process.platform == "win32") {
@@ -28,17 +30,48 @@ const closeGame = async (
 
   if (!game) return;
 
-  const gameProcess = processes.find((runningProcess) => {
-    if (process.platform === "linux") {
-      return runningProcess.name === game.executablePath?.split("/").at(-1);
-    }
+  const launchedPid = launchedGamePids.get(levelKeys.game(shop, objectId));
+  const trackingPaths = game.trackingExecutablePaths?.filter(Boolean) ?? [];
+  const targetPaths =
+    game.executablePath && !isWindowsBatchFile(game.executablePath)
+      ? [game.executablePath, ...trackingPaths]
+      : trackingPaths;
 
-    return runningProcess.exe === game.executablePath;
+  const gameProcesses = processes.filter((runningProcess) => {
+    const matchesTargetPath = targetPaths.some((targetPath) => {
+      if (process.platform === "linux") {
+        return processReferencesExecutable(
+          {
+            cwd: runningProcess.cwd,
+            exe: runningProcess.exe,
+            appImagePath: runningProcess.environ?.APPIMAGE,
+          },
+          targetPath
+        );
+      }
+
+      return runningProcess.exe === targetPath;
+    });
+
+    if (matchesTargetPath) return true;
+
+    return (
+      process.platform === "linux" &&
+      runningProcess.pid === launchedPid &&
+      processReferencesExecutable(
+        {
+          cwd: runningProcess.cwd,
+          exe: runningProcess.exe,
+          appImagePath: runningProcess.environ?.APPIMAGE,
+        },
+        game.executablePath ?? ""
+      )
+    );
   });
 
   const linuxFallbackProcess =
     process.platform === "linux" &&
-    !gameProcess &&
+    !gameProcesses.length &&
     game.executablePath?.toLowerCase().endsWith(".exe")
       ? processes.find((runningProcess) => {
           const processCwd = runningProcess.cwd?.toLowerCase();
@@ -69,12 +102,15 @@ const closeGame = async (
         })
       : null;
 
-  const processToClose = gameProcess ?? linuxFallbackProcess;
+  const fallbackProcesses = linuxFallbackProcess ? [linuxFallbackProcess] : [];
+  const processesToClose = gameProcesses.length
+    ? gameProcesses
+    : fallbackProcesses;
 
-  if (processToClose) {
+  for (const processToClose of processesToClose) {
     try {
       process.kill(processToClose.pid);
-    } catch (err) {
+    } catch {
       sudo.exec(
         getKillCommand(processToClose.pid),
         { name: app.getName() },

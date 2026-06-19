@@ -251,12 +251,15 @@ interface GeneralSettingsSectionProps {
   onChangeExecutableLocation: () => Promise<void>;
   onClearExecutablePath: () => Promise<void>;
   onOpenGameExecutablePath: () => Promise<void>;
+  onAddTrackingExecutable?: () => Promise<void> | void;
+  onRemoveTrackingExecutable?: (index: number) => Promise<void> | void;
   onOpenSaveFolder: () => Promise<void>;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => void;
   onDeleteSteamShortcut: () => Promise<void>;
   onChangeGameTitle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
+  onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
   isTransferring: boolean;
@@ -299,6 +302,12 @@ function fmt(b: number) {
   return (b / 1e3).toFixed(0) + " KB";
 }
 
+const isBatchExecutable = (executablePath?: string | null) =>
+  !!executablePath && /\.(bat|cmd)$/i.test(executablePath);
+
+const supportsTrackingExecutables = (executablePath?: string | null) =>
+  !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -313,12 +322,15 @@ export function GeneralSettingsSection({
   onChangeExecutableLocation,
   onClearExecutablePath,
   onOpenGameExecutablePath,
+  onAddTrackingExecutable = () => {},
+  onRemoveTrackingExecutable = () => {},
   onOpenSaveFolder,
   onCreateShortcut,
   onCreateSteamShortcut,
   onDeleteSteamShortcut,
   onChangeGameTitle,
   onBlurGameTitle,
+  onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
   isTransferring,
@@ -416,15 +428,25 @@ export function GeneralSettingsSection({
       {/* Title */}
       {showTitleSection && (
         <div className="game-options-modal__section">
-          <TextField
-            label={t("edit_game_modal_title")}
-            placeholder={t("edit_game_modal_enter_title")}
-            value={gameTitle}
-            onChange={onChangeGameTitle}
-            onBlur={() => void onBlurGameTitle()}
-            theme="dark"
-            disabled={updatingGameTitle}
-          />
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <TextField
+              label={t("edit_game_modal_title")}
+              placeholder={t("edit_game_modal_enter_title")}
+              value={gameTitle}
+              onChange={onChangeGameTitle}
+              onBlur={() => void onBlurGameTitle()}
+              theme="dark"
+              disabled={updatingGameTitle}
+              style={{ flex: 1 }}
+            />
+            <Button
+              onClick={onResetGameTitle}
+              theme="outline"
+              disabled={updatingGameTitle}
+            >
+              {t("clear")}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -498,6 +520,50 @@ export function GeneralSettingsSection({
                 )}
             </div>
           </div>
+
+          {supportsTrackingExecutables(game.executablePath) && (
+            <div className="game-options-modal__tracking-executable">
+              {isBatchExecutable(game.executablePath) && (
+                <p className="game-options-modal__warning">
+                  {t("bat_tracking_warning")}
+                </p>
+              )}
+
+              {(game.trackingExecutablePaths ?? []).map(
+                (trackingPath, index) => (
+                  <TextField
+                    key={trackingPath}
+                    value={trackingPath}
+                    readOnly
+                    theme="dark"
+                    disabled
+                    rightContent={
+                      <Button
+                        type="button"
+                        theme="outline"
+                        onClick={() => onRemoveTrackingExecutable(index)}
+                      >
+                        {t("clear")}
+                      </Button>
+                    }
+                  />
+                )
+              )}
+
+              {(game.trackingExecutablePaths?.length ?? 0) < 2 && (
+                <div className="game-options-modal__executable-field-buttons">
+                  <Button
+                    type="button"
+                    theme="outline"
+                    onClick={onAddTrackingExecutable}
+                  >
+                    <FileIcon />
+                    {t("add_tracking_executable")}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

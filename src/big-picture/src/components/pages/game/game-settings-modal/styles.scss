@@ -1,0 +1,7 @@
+.game-settings-modal {
+  height: min(42rem, calc(100vh - 4rem));
+
+  .sidebar-modal__content {
+    overflow: hidden;
+  }
+}
