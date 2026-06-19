@@ -708,7 +708,7 @@
     "loading_save_preview": "Searching for save games…",
     "no_backup_preview": "No save games were found for this title",
     "max_number_of_artifacts_reached": "Maximum number of backups reached for this game",
-    "cloud_delete_backup_description": "Delete {{name}} from your cloud backups?"
+    "cloud_delete_backup_description": "Delete from your cloud backups?"
   },
   "format": {
     "playtime_hours_one": "{{count}} hour",
