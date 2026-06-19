@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { chunk } from "lodash-es";
 
@@ -7,7 +8,9 @@ import {
   setActiveClassicsImport,
   updateActiveClassicsImport,
 } from "./classics-import-state";
+import { isWithin } from "./rom-path-utils";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
+import { platformToSystem } from "@main/helpers";
 import {
   fetchShopDetailsForSkus,
   normalizeSku,
@@ -731,6 +734,32 @@ const persistFolderRollups = async (
   }
 };
 
+const reconcileDeletedGames = async (
+  system: EmulatorSystem,
+  folders: FolderInput[]
+) => {
+  const entries = await gamesSublevel.iterator().all();
+  for (const [key, game] of entries) {
+    if (game.isDeleted) continue;
+    if (game.shop !== "launchbox") continue;
+    if (platformToSystem(game.platform) !== system) continue;
+
+    const discs = game.discs ?? [];
+    const inScannedFolders = discs.some((disc) =>
+      folders.some((folder) => isWithin(disc.path, folder.path))
+    );
+    if (!inScannedFolders) continue;
+
+    const stillOnDisk = discs.some((disc) => existsSync(disc.path));
+    if (stillOnDisk) continue;
+
+    game.isDeleted = true;
+    await gamesSublevel.put(key, game).catch((err) => {
+      logger.error("Could not mark stale launchbox game as deleted", err);
+    });
+  }
+};
+
 export async function runLaunchboxImport(
   system: EmulatorSystem,
   folders: FolderInput[],
@@ -852,6 +881,7 @@ export async function runLaunchboxImport(
     signal
   );
   await persistFolderRollups(system, folderRollup, folderInputBy);
+  await reconcileDeletedGames(system, folders);
   await syncProfileBatch(Array.from(matchedEntries.keys()));
 
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
