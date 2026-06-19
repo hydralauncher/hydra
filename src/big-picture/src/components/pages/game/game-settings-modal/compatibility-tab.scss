@@ -1,0 +1,47 @@
+.game-compatibility-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-compatibility-settings-tab__section {
+  width: 100%;
+}
+
+.game-compatibility-settings-tab__wine-prefix-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.game-compatibility-settings-tab__wine-prefix-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-compatibility-settings-tab__proton-options {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.game-compatibility-settings-tab__proton-option-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.game-compatibility-settings-tab__proton-option-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.game-compatibility-settings-tab__proton-option-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}

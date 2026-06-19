@@ -7,9 +7,13 @@ import { getAchievementRowId } from "../navigation";
 
 export interface AchievementRowProps {
   achievement: UserAchievement;
+  stealFocusOnAppear?: boolean;
 }
 
-export function AchievementRow({ achievement }: Readonly<AchievementRowProps>) {
+export function AchievementRow({
+  achievement,
+  stealFocusOnAppear = false,
+}: Readonly<AchievementRowProps>) {
   const { formatDateTime } = useDate();
   const unlockedAt =
     achievement.unlockTime != null
@@ -20,6 +24,7 @@ export function AchievementRow({ achievement }: Readonly<AchievementRowProps>) {
     <FocusItem
       id={getAchievementRowId(achievement.name)}
       actions={{ primary: "off" }}
+      stealFocusOnAppear={stealFocusOnAppear}
       asChild
     >
       <li className="game-achievements-row">

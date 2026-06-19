@@ -1,6 +1,6 @@
 import type { BigPictureToastOptions } from "../stores";
 import { getDominantColorFromImage } from "./color";
-import { resolveImageSource } from "./image";
+import { resolvePreferredGameAssets } from "./preferred-assets";
 
 type LibraryToastMutation = "added" | "removed";
 type FavoriteToastMutation = "added" | "removed";
@@ -8,26 +8,17 @@ type FavoriteToastMutation = "added" | "removed";
 export interface LibraryToastSource {
   title: string;
   iconUrl?: string | null;
+  customIconUrl?: string | null;
   coverImageUrl?: string | null;
   libraryImageUrl?: string | null;
   libraryHeroImageUrl?: string | null;
+  customHeroImageUrl?: string | null;
+  logoImageUrl?: string | null;
+  customLogoImageUrl?: string | null;
+  logoPosition?: string | null;
 }
 
 const dominantColorCache = new Map<string, string | null>();
-
-function getFirstResolvedImageSource(
-  ...sources: Array<string | null | undefined>
-): string | undefined {
-  for (const source of sources) {
-    const resolvedSource = resolveImageSource(source);
-
-    if (resolvedSource) {
-      return resolvedSource;
-    }
-  }
-
-  return undefined;
-}
 
 async function getCachedDominantColor(
   imageUrl: string | undefined
@@ -79,17 +70,15 @@ export async function buildGameToastVisualOptions(
   game: LibraryToastSource,
   options: { color?: string | null } = {}
 ): Promise<Pick<BigPictureToastOptions, "imageUrl" | "color">> {
-  const imageUrl = getFirstResolvedImageSource(
-    game.coverImageUrl,
-    game.libraryImageUrl,
-    game.iconUrl
-  );
-  const colorSource = getFirstResolvedImageSource(
-    game.libraryHeroImageUrl,
-    game.libraryImageUrl,
-    game.coverImageUrl,
-    game.iconUrl
-  );
+  const preferredAssets = resolvePreferredGameAssets(game, null);
+  const imageUrl =
+    preferredAssets.coverSrc || preferredAssets.iconSrc || undefined;
+  const colorSource =
+    preferredAssets.heroSrc ||
+    preferredAssets.landscapeSrc ||
+    preferredAssets.coverSrc ||
+    preferredAssets.iconSrc ||
+    undefined;
   const color = options.color ?? (await getCachedDominantColor(colorSource));
 
   return {

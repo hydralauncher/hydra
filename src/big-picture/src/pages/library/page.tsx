@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { FolderOpen } from "@phosphor-icons/react";
 import { IS_DESKTOP } from "../../constants";
 import {
   buildLibraryToastOptions,
@@ -26,6 +27,7 @@ import {
   LibraryFilters,
   LibraryFocusList,
   LibraryGameContextMenu,
+  LibraryGameSettingsModal,
   LibraryHero,
   VerticalFocusGroup,
   LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
@@ -40,13 +42,16 @@ import {
   useLibraryFavorite,
   useLibraryLaunchGame,
   useLibraryPageData,
+  useLibraryPendingAction,
+  EmptyState,
 } from "../../components";
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
+  LIBRARY_HERO_LAUNCH_BUTTON_ID,
+  LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
   LIBRARY_PAGE_REGION_ID,
 } from "../../components/pages/library/navigation";
-import { logger } from "@renderer/logger";
 
 import "./page.scss";
 
@@ -54,12 +59,6 @@ interface GameContextMenuState {
   game: LibraryGame | null;
   visible: boolean;
   position: { x: number; y: number };
-  restoreFocusId: string | null;
-}
-
-interface PendingLibraryAction {
-  type: "remove-files" | "remove-from-library";
-  game: LibraryGame;
   restoreFocusId: string | null;
 }
 
@@ -110,6 +109,7 @@ function getInitialLibraryStoredValue<TValue extends string>(
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
+  const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
@@ -134,9 +134,6 @@ export default function LibraryPage() {
       position: DEFAULT_MENU_POSITION,
       restoreFocusId: null,
     });
-  const [pendingAction, setPendingAction] =
-    useState<PendingLibraryAction | null>(null);
-  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
   const {
@@ -188,17 +185,35 @@ export default function LibraryPage() {
 
   const [downloadModalGame, setDownloadModalGame] =
     useState<LibraryGame | null>(null);
+  const [settingsModalGame, setSettingsModalGame] =
+    useState<LibraryGame | null>(null);
+  const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
 
-  const openDownloadModalFromContextMenu = useCallback(
-    (game: LibraryGame) => {
-      const restoreFocusId = contextMenuState.restoreFocusId;
+  const openDownloadModal = useCallback(
+    (game: LibraryGame, restoreFocusId: string | null) => {
       downloadModalRestoreFocusIdRef.current = restoreFocusId;
 
       globalThis.window.requestAnimationFrame(() => {
         setDownloadModalGame(game);
       });
     },
-    [contextMenuState.restoreFocusId]
+    []
+  );
+
+  const openDownloadModalFromContextMenu = useCallback(
+    (game: LibraryGame) => {
+      openDownloadModal(game, contextMenuState.restoreFocusId);
+    },
+    [contextMenuState.restoreFocusId, openDownloadModal]
+  );
+
+  const handleHeroPrimaryAction = useLibraryLaunchGame(
+    useCallback(
+      (game: LibraryGame) => {
+        openDownloadModal(game, LIBRARY_HERO_LAUNCH_BUTTON_ID);
+      },
+      [openDownloadModal]
+    )
   );
 
   const handleCloseDownloadModal = useCallback(() => {
@@ -206,6 +221,36 @@ export default function LibraryPage() {
 
     downloadModalRestoreFocusIdRef.current = null;
     setDownloadModalGame(null);
+
+    if (!restoreFocusId) return;
+
+    globalThis.window.requestAnimationFrame(() => {
+      setFocus(restoreFocusId);
+    });
+  }, [setFocus]);
+
+  const handleOpenHeroSettings = useCallback((game: LibraryGame) => {
+    settingsModalRestoreFocusIdRef.current =
+      LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID;
+    setSettingsModalGame(game);
+    setIsGameSettingsModalOpen(true);
+  }, []);
+
+  const handleOpenGameSettingsFromContextMenu = useCallback(
+    (game: LibraryGame) => {
+      settingsModalRestoreFocusIdRef.current = contextMenuState.restoreFocusId;
+      setSettingsModalGame(game);
+      setIsGameSettingsModalOpen(true);
+    },
+    [contextMenuState.restoreFocusId]
+  );
+
+  const handleCloseGameSettingsModal = useCallback(() => {
+    const restoreFocusId = settingsModalRestoreFocusIdRef.current;
+
+    settingsModalRestoreFocusIdRef.current = null;
+    setIsGameSettingsModalOpen(false);
+    setSettingsModalGame(null);
 
     if (!restoreFocusId) return;
 
@@ -230,106 +275,24 @@ export default function LibraryPage() {
     [navigate]
   );
 
-  const handleRequestRemoveFiles = useCallback(
-    (game: LibraryGame) => {
-      setPendingAction({
-        type: "remove-files",
-        game,
-        restoreFocusId: contextMenuState.restoreFocusId,
-      });
-    },
-    [contextMenuState.restoreFocusId]
-  );
-
-  const handleRequestRemoveFromLibrary = useCallback(
-    (game: LibraryGame) => {
-      setPendingAction({
-        type: "remove-from-library",
-        game,
-        restoreFocusId: contextMenuState.restoreFocusId,
-      });
-    },
-    [contextMenuState.restoreFocusId]
-  );
-
-  const handleClosePendingAction = useCallback(() => {
-    const restoreFocusId = pendingAction?.restoreFocusId ?? null;
-
-    setPendingAction(null);
-    setIsSubmittingAction(false);
-
-    if (!restoreFocusId) return;
-
-    globalThis.window.requestAnimationFrame(() => {
-      setFocus(restoreFocusId);
-    });
-  }, [pendingAction?.restoreFocusId, setFocus]);
-
-  const handleConfirmPendingAction = useCallback(async () => {
-    const currentAction = pendingAction;
-
-    if (!currentAction || !IS_DESKTOP) return;
-
-    setIsSubmittingAction(true);
-
-    try {
-      const { game } = currentAction;
-
-      if (
-        game.download?.status === "active" ||
-        game.download?.status === "extracting" ||
-        game.download?.extracting
-      ) {
-        await globalThis.window.electron.cancelGameDownload(
-          game.shop,
-          game.objectId
-        );
-      } else if (currentAction.type === "remove-files") {
-        if (game.download?.status === "seeding") {
-          await globalThis.window.electron.pauseGameSeed(
-            game.shop,
-            game.objectId
-          );
-        }
-      }
-
-      if (currentAction.type === "remove-files") {
-        await globalThis.window.electron.deleteGameFolder(
-          game.shop,
-          game.objectId
-        );
-      } else {
-        await globalThis.window.electron.removeGameFromLibrary(
-          game.shop,
-          game.objectId
-        );
-      }
-
-      await refreshLibraryData();
-
-      if (currentAction.type === "remove-from-library") {
-        const { title, ...toastOptions } = await buildLibraryToastOptions(
-          game,
-          "removed"
-        );
-        showSuccessToast(title, toastOptions);
-      }
-
-      setPendingAction(null);
-      setIsSubmittingAction(false);
-
-      globalThis.window.requestAnimationFrame(() => {
-        setFocus(
-          currentAction.type === "remove-from-library"
-            ? LIBRARY_FILTERS_SEARCH_INPUT_ID
-            : (currentAction.restoreFocusId ?? LIBRARY_FILTERS_SEARCH_INPUT_ID)
-        );
-      });
-    } catch (error) {
-      logger.error("Failed to execute library action", error);
-      setIsSubmittingAction(false);
-    }
-  }, [pendingAction, refreshLibraryData, setFocus, showSuccessToast]);
+  const {
+    pendingAction,
+    isSubmittingAction,
+    requestRemoveFiles,
+    requestRemoveFromLibrary,
+    closePendingAction,
+    confirmPendingAction,
+  } = useLibraryPendingAction({
+    getRestoreFocusId: useCallback(
+      () => contextMenuState.restoreFocusId,
+      [contextMenuState.restoreFocusId]
+    ),
+    onDataRefresh: refreshLibraryData,
+    setFocus,
+    showSuccessToast,
+    buildToastOptions: buildLibraryToastOptions,
+    fallbackFocusId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
+  });
 
   useEffect(() => {
     updateLibrary();
@@ -411,8 +374,13 @@ export default function LibraryPage() {
   return (
     <>
       <section className="library-page">
-        <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
+        <VerticalFocusGroup
+          regionId={LIBRARY_PAGE_REGION_ID}
+          style={{ flex: 1 }}
+        >
           <LibraryHero
+            onPrimaryAction={handleHeroPrimaryAction}
+            onOpenSettings={handleOpenHeroSettings}
             favoriteLoadingGameId={favoriteLoadingGameId}
             lastPlayedGames={lastPlayedGames}
             onToggleFavorite={toggleFavorite}
@@ -435,51 +403,64 @@ export default function LibraryPage() {
             firstContentItemId={firstContentItemId}
           />
 
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={contentTransitionKey}
-              layout={shouldAnimateContentChange}
-              className="library-page__content-transition"
-              initial={
-                shouldAnimateContentChange ? { opacity: 0, y: 10 } : false
+          {filteredLibrary.length === 0 ? (
+            <EmptyState
+              className="library-page__empty-state"
+              icon={<FolderOpen size={28} weight="bold" />}
+              title={search ? "No results found" : "Empty collection"}
+              description={
+                search
+                  ? "Try adjusting your search terms or filters."
+                  : "Add games to this collection to see them here."
               }
-              animate={{ opacity: 1, y: 0 }}
-              exit={
-                shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
-              }
-              transition={
-                shouldAnimateContentChange
-                  ? {
-                      opacity: { duration: 0.18, ease: "easeOut" },
-                      y: { duration: 0.18, ease: "easeOut" },
-                      layout: { duration: 0.22, ease: "easeOut" },
+            />
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={contentTransitionKey}
+                layout={shouldAnimateContentChange}
+                className="library-page__content-transition"
+                initial={
+                  shouldAnimateContentChange ? { opacity: 0, y: 10 } : false
+                }
+                animate={{ opacity: 1, y: 0 }}
+                exit={
+                  shouldAnimateContentChange ? { opacity: 0, y: -6 } : undefined
+                }
+                transition={
+                  shouldAnimateContentChange
+                    ? {
+                        opacity: { duration: 0.18, ease: "easeOut" },
+                        y: { duration: 0.18, ease: "easeOut" },
+                        layout: { duration: 0.22, ease: "easeOut" },
+                      }
+                    : undefined
+                }
+              >
+                {viewMode === "list" ? (
+                  <LibraryFocusList
+                    games={filteredLibrary}
+                    contextMenuGameId={
+                      contextMenuState.visible
+                        ? (contextMenuState.game?.id ?? null)
+                        : null
                     }
-                  : undefined
-              }
-            >
-              {viewMode === "list" ? (
-                <LibraryFocusList
-                  games={filteredLibrary}
-                  contextMenuGameId={
-                    contextMenuState.visible
-                      ? (contextMenuState.game?.id ?? null)
-                      : null
-                  }
-                  onOpenContextMenu={handleOpenGameContextMenu}
-                />
-              ) : (
-                <LibraryFocusGrid
-                  games={filteredLibrary}
-                  contextMenuGameId={
-                    contextMenuState.visible
-                      ? (contextMenuState.game?.id ?? null)
-                      : null
-                  }
-                  onOpenContextMenu={handleOpenGameContextMenu}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+                    onOpenContextMenu={handleOpenGameContextMenu}
+                  />
+                ) : (
+                  <LibraryFocusGrid
+                    games={filteredLibrary}
+                    contextMenuGameId={
+                      contextMenuState.visible
+                        ? (contextMenuState.game?.id ?? null)
+                        : null
+                    }
+                    onOpenContextMenu={handleOpenGameContextMenu}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          )}
         </VerticalFocusGroup>
       </section>
 
@@ -493,8 +474,9 @@ export default function LibraryPage() {
         onLaunchOrDownload={handleLaunchOrDownload}
         onToggleFavorite={toggleFavorite}
         onViewAchievements={handleViewAchievements}
-        onUninstall={handleRequestRemoveFiles}
-        onRemoveFromLibrary={handleRequestRemoveFromLibrary}
+        onOptions={handleOpenGameSettingsFromContextMenu}
+        onUninstall={requestRemoveFiles}
+        onRemoveFromLibrary={requestRemoveFromLibrary}
       />
 
       {pendingAction ? (
@@ -515,8 +497,8 @@ export default function LibraryPage() {
           }
           danger
           loading={isSubmittingAction}
-          onClose={handleClosePendingAction}
-          onConfirm={handleConfirmPendingAction}
+          onClose={closePendingAction}
+          onConfirm={confirmPendingAction}
         />
       ) : null}
 
@@ -526,6 +508,14 @@ export default function LibraryPage() {
           visible
           onClose={handleCloseDownloadModal}
           game={downloadModalGame}
+        />
+      ) : null}
+
+      {settingsModalGame ? (
+        <LibraryGameSettingsModal
+          visible={isGameSettingsModalOpen}
+          game={settingsModalGame}
+          onClose={handleCloseGameSettingsModal}
         />
       ) : null}
     </>

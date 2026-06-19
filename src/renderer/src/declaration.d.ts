@@ -134,7 +134,8 @@ declare global {
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
     getGameAssets: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      options?: { forceFresh?: boolean }
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,
@@ -632,7 +633,7 @@ declare global {
     onBackupDownloadComplete: (
       objectId: string,
       shop: GameShop,
-      cb: () => void
+      cb: (success: boolean) => void
     ) => () => Electron.IpcRenderer;
     onUploadComplete: (
       objectId: string,

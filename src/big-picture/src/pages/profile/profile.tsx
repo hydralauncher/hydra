@@ -259,8 +259,8 @@ function formatAveragePlaytime(stats: UserStats | null) {
 
 function getFavoriteGameImage(game: ProfileFavoriteGame | null) {
   return (
-    game?.iconUrl ??
     game?.customIconUrl ??
+    game?.iconUrl ??
     game?.coverImageUrl ??
     game?.libraryImageUrl ??
     game?.customLogoImageUrl ??
@@ -352,8 +352,8 @@ function getRecentAchievementGameIcon(game: UserGame) {
   const classicsAssetFields = game as ProfileClassicsAssetFields;
 
   return (
-    game.iconUrl ??
     classicsAssetFields.customIconUrl ??
+    game.iconUrl ??
     game.coverImageUrl ??
     null
   );

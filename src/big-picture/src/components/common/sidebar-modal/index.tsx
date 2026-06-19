@@ -23,34 +23,37 @@ import { NavigationLayer } from "../navigation-layer";
 import { VerticalFocusGroup } from "../vertical-focus-group";
 import { MODAL_OWNED_OVERLAY_ATTRIBUTE } from "../modal";
 
-export interface SidebarModalTab {
-  id: string;
+export interface SidebarModalTab<TabId extends string = string> {
+  id: TabId;
   label: ReactNode;
   content: ReactNode;
   disabled?: boolean;
 }
 
-export interface SidebarModalProps {
+export interface SidebarModalProps<TabId extends string = string> {
   visible: boolean;
   onClose: () => void;
   title: ReactNode;
-  tabs: SidebarModalTab[];
-  activeTabId?: string;
-  defaultActiveTabId?: string;
-  onActiveTabChange?: (tabId: string) => void;
+  tabs: SidebarModalTab<TabId>[];
+  activeTabId?: TabId;
+  defaultActiveTabId?: TabId;
+  onActiveTabChange?: (tabId: TabId) => void;
   contentEntryFocusId?: string;
   className?: string;
   ariaLabel?: string;
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   closeOnB?: boolean;
+  coverImage?: string;
 }
 
 function normalizeIdSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
-function getFirstEnabledTab(tabs: SidebarModalTab[]) {
+function getFirstEnabledTab<TabId extends string>(
+  tabs: SidebarModalTab<TabId>[]
+) {
   return tabs.find((tab) => !tab.disabled) ?? tabs[0] ?? null;
 }
 
@@ -59,7 +62,7 @@ interface ActiveTabMetrics {
   height: number;
 }
 
-export function SidebarModal({
+export function SidebarModal<TabId extends string = string>({
   visible,
   onClose,
   title,
@@ -70,17 +73,24 @@ export function SidebarModal({
   contentEntryFocusId,
   className,
   ariaLabel,
+  coverImage,
   closeOnBackdrop = true,
   closeOnEscape = true,
   closeOnB = true,
-}: Readonly<SidebarModalProps>) {
+}: Readonly<SidebarModalProps<TabId>>) {
   const generatedId = useId().replaceAll(":", "");
+  const resolvedAriaLabel =
+    ariaLabel ?? (typeof title === "string" ? title : "Sidebar modal");
   const modalContentRef = useRef<HTMLDivElement | null>(null);
-  const tabElementsRef = useRef<Record<string, HTMLButtonElement | null>>({});
+  const tabElementsRef = useRef<
+    Partial<Record<TabId, HTMLButtonElement | null>>
+  >({});
   const firstEnabledTab = useMemo(() => getFirstEnabledTab(tabs), [tabs]);
   const initialTabId =
     defaultActiveTabId ?? activeTabId ?? firstEnabledTab?.id ?? "";
-  const [internalActiveTabId, setInternalActiveTabId] = useState(initialTabId);
+  const [internalActiveTabId, setInternalActiveTabId] = useState<TabId | "">(
+    initialTabId
+  );
   const [activeTabMetrics, setActiveTabMetrics] =
     useState<ActiveTabMetrics | null>(null);
   const [highlightedTabId, setHighlightedTabId] = useState<string | null>(null);
@@ -115,7 +125,7 @@ export function SidebarModal({
   }, [onClose]);
 
   const setActiveTab = useCallback(
-    (tabId: string) => {
+    (tabId: TabId) => {
       if (activeTabId === undefined) {
         setInternalActiveTabId(tabId);
       }
@@ -280,7 +290,7 @@ export function SidebarModal({
               id={modalId}
               role="dialog"
               aria-modal="true"
-              aria-label={ariaLabel ?? String(title)}
+              aria-label={resolvedAriaLabel}
               ref={modalContentRef}
               data-hydra-dialog
               className={cn("sidebar-modal", className)}
@@ -297,7 +307,16 @@ export function SidebarModal({
                 initialFocusId={activeTabFocusId}
               >
                 <aside className="sidebar-modal__sidebar">
-                  <div className="sidebar-modal__title">{title}</div>
+                  <div className="sidebar-modal__header">
+                    {coverImage && (
+                      <div className="sidebar-modal__header-cover-image">
+                        <img src={coverImage} alt="" aria-hidden="true" />
+                      </div>
+                    )}
+
+                    <div className="sidebar-modal__title">{title}</div>
+                  </div>
+
                   <div className="sidebar-modal__divider" />
 
                   <VerticalFocusGroup
@@ -311,9 +330,7 @@ export function SidebarModal({
                             regionId: contentRegionId,
                             entryDirection: "right",
                             initialFocusId: contentEntryFocusId,
-                            preferRememberedFocus: contentEntryFocusId
-                              ? false
-                              : true,
+                            preferRememberedFocus: true,
                           }
                         : { type: "block" },
                     }}
@@ -356,7 +373,6 @@ export function SidebarModal({
                             onClick={() => setActiveTab(tab.id)}
                             onFocus={() => {
                               if (!tab.disabled) {
-                                setActiveTab(tab.id);
                                 setHighlightedTabId(tab.id);
                               }
                             }}
@@ -383,7 +399,13 @@ export function SidebarModal({
                   className="sidebar-modal__content"
                   navigationOverrides={{
                     left: activeTabFocusId
-                      ? { type: "item", itemId: activeTabFocusId }
+                      ? {
+                          type: "region",
+                          regionId: tabsRegionId,
+                          entryDirection: "left",
+                          initialFocusId: activeTabFocusId,
+                          preferRememberedFocus: true,
+                        }
                       : { type: "block" },
                   }}
                 >

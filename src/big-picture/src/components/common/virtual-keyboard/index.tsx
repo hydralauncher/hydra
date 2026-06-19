@@ -17,6 +17,7 @@ import {
   useGamepad,
   useNavigationActions,
   useNavigationScreenActions,
+  useUserPreferences,
 } from "../../../hooks";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
@@ -659,6 +660,7 @@ export function VirtualKeyboardProvider() {
   const [layoutMode, setLayoutMode] =
     useState<VirtualKeyboardLayoutMode>("floating");
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
+  const userPreferences = useUserPreferences();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const { setFocus } = useNavigationActions();
   const setVirtualKeyboardTarget = useVirtualKeyboardStore(
@@ -679,6 +681,8 @@ export function VirtualKeyboardProvider() {
   const dockRef = useRef<HTMLDivElement | null>(null);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
   const isOpen = Boolean(target);
+  const isVirtualKeyboardEnabled =
+    userPreferences?.bigPictureVirtualKeyboardEnabled ?? true;
   const shouldRestoreNavigationFocusOnUnmount = useCallback(
     () => shouldRestoreNavigationFocusOnUnmountRef.current,
     []
@@ -731,6 +735,13 @@ export function VirtualKeyboardProvider() {
     },
     [setVirtualKeyboardTarget, target]
   );
+
+  useEffect(() => {
+    if (isVirtualKeyboardEnabled) return;
+    if (!target && useVirtualKeyboardStore.getState().target === null) return;
+
+    closeKeyboard(false);
+  }, [closeKeyboard, isVirtualKeyboardEnabled, target]);
 
   useEffect(() => {
     setCloseVirtualKeyboard(({ restoreFocus = true } = {}) => {
@@ -1056,6 +1067,7 @@ export function VirtualKeyboardProvider() {
       const nextTarget = event.target instanceof Element ? event.target : null;
 
       if (!isEditableTarget(nextTarget)) return;
+      if (!isVirtualKeyboardEnabled) return;
 
       if (suppressedTargetRef.current === nextTarget) return;
 
@@ -1120,7 +1132,7 @@ export function VirtualKeyboardProvider() {
       globalThis.window.removeEventListener("focusin", handleFocusIn);
       globalThis.window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [closeKeyboard, setVirtualKeyboardTarget]);
+  }, [closeKeyboard, isVirtualKeyboardEnabled, setVirtualKeyboardTarget]);
 
   useEffect(() => {
     if (!IS_BROWSER || !target) return;

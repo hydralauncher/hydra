@@ -6,14 +6,11 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop, ShopAssets } from "@types";
+import type { GameShop } from "@types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  buildLibraryToastOptions,
-  getItemFocusTarget,
-  resolveImageSource,
-} from "../../helpers";
+import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
+import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
   VerticalFocusGroup,
@@ -29,6 +26,7 @@ import {
   AchievementsBox,
   ControllerSupportBox,
   GameReviews,
+  GameSettingsModal,
   Hero,
   HowLongToBeatBox,
   PlaytimeBar,
@@ -37,6 +35,7 @@ import {
   ScreenshotCarousel,
   SupportedLanguages,
 } from "../../components/pages/game";
+import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
 import {
   useBigPictureToast,
   useGameDetails,
@@ -122,6 +121,39 @@ function isUnsafeDescriptionUrl(url: string) {
   return /^(javascript|data):/i.test(url.trim());
 }
 
+function sanitizeDescriptionAttribute(element: Element, attribute: Attr) {
+  const name = attribute.name.toLowerCase();
+  const value = attribute.value.trim();
+
+  if (name.startsWith("on") || name === "style") {
+    element.removeAttribute(attribute.name);
+    return;
+  }
+
+  if (name !== "href" && name !== "src") {
+    return;
+  }
+
+  if (!value || isUnsafeDescriptionUrl(value)) {
+    element.removeAttribute(attribute.name);
+    return;
+  }
+
+  element.setAttribute(attribute.name, normalizeDescriptionUrl(value));
+}
+
+function normalizeDescriptionMediaElement(
+  mediaElement: HTMLImageElement | HTMLVideoElement
+) {
+  mediaElement.removeAttribute("width");
+  mediaElement.removeAttribute("height");
+  mediaElement.removeAttribute("style");
+  mediaElement.style.maxWidth = "100%";
+  mediaElement.style.width = "100%";
+  mediaElement.style.height = "auto";
+  mediaElement.style.boxSizing = "border-box";
+}
+
 function preprocessSteamDescriptionDocument(html: string) {
   if (!html) {
     return null;
@@ -143,50 +175,23 @@ function preprocessSteamDescriptionDocument(html: string) {
 
   for (const element of document.querySelectorAll("*")) {
     for (const attribute of Array.from(element.attributes)) {
-      const name = attribute.name.toLowerCase();
-      const value = attribute.value.trim();
-
-      if (name.startsWith("on") || name === "style") {
-        element.removeAttribute(attribute.name);
-        continue;
-      }
-
-      if (name === "href" || name === "src") {
-        if (!value || isUnsafeDescriptionUrl(value)) {
-          element.removeAttribute(attribute.name);
-          continue;
-        }
-
-        element.setAttribute(attribute.name, normalizeDescriptionUrl(value));
-      }
+      sanitizeDescriptionAttribute(element, attribute);
     }
   }
 
   const images = Array.from(document.querySelectorAll("img"));
   images.forEach((image) => {
     image.loading = "lazy";
-    image.removeAttribute("width");
-    image.removeAttribute("height");
-    image.removeAttribute("style");
-    image.style.maxWidth = "100%";
-    image.style.width = "100%";
-    image.style.height = "auto";
-    image.style.boxSizing = "border-box";
+    normalizeDescriptionMediaElement(image);
   });
 
   const videos = Array.from(document.querySelectorAll("video"));
   videos.forEach((video) => {
-    video.removeAttribute("width");
-    video.removeAttribute("height");
-    video.removeAttribute("style");
     video.muted = true;
     video.playsInline = true;
     video.setAttribute("muted", "");
     video.setAttribute("playsinline", "");
-    video.style.maxWidth = "100%";
-    video.style.width = "100%";
-    video.style.height = "auto";
-    video.style.boxSizing = "border-box";
+    normalizeDescriptionMediaElement(video);
   });
 
   return document;
@@ -294,6 +299,7 @@ export default function Game() {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDiscSelectionModalOpen, setIsDiscSelectionModalOpen] =
     useState(false);
+  const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
   const [pendingClassicsLaunch, setPendingClassicsLaunch] = useState<{
     discPath?: string;
   } | null>(null);
@@ -366,35 +372,40 @@ export default function Game() {
     howLongToBeat,
     protonDBData,
     achievements,
+    preferredAssets,
     openGame,
     closeGame,
     toggleFavorite,
     updateGame,
+    refreshGameDetails,
   } = useGameDetails(objectId!, shop!);
+  const { launchSettings, customizationSettings, cloudSettings } =
+    useGameSettingsModalState({
+      game,
+      visible: isGameSettingsModalOpen,
+      updateGame,
+      refreshGameDetails,
+    });
   const canAddToLibrary = shop !== "custom";
   const resolvedGameTitle =
-    shopDetails?.assets?.title ?? game?.title ?? "Download Game";
-  const gameToastSource = useMemo<ShopAssets>(
+    preferredAssets.title || game?.title || "Download Game";
+  const gameToastSource = useMemo<LibraryToastSource>(
     () => ({
       objectId: objectId ?? "",
       shop: shop ?? "steam",
       title: resolvedGameTitle,
-      iconUrl: shopDetails?.assets?.iconUrl ?? game?.iconUrl ?? null,
-      libraryHeroImageUrl:
-        shopDetails?.assets?.libraryHeroImageUrl ??
-        game?.libraryHeroImageUrl ??
-        null,
-      libraryImageUrl:
-        shopDetails?.assets?.libraryImageUrl ?? game?.libraryImageUrl ?? null,
-      logoImageUrl:
-        shopDetails?.assets?.logoImageUrl ?? game?.logoImageUrl ?? null,
-      logoPosition:
-        shopDetails?.assets?.logoPosition ?? game?.logoPosition ?? null,
-      coverImageUrl:
-        shopDetails?.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
-      downloadSources: shopDetails?.assets?.downloadSources ?? [],
+      iconUrl: preferredAssets.iconUrl,
+      customIconUrl: null,
+      libraryHeroImageUrl: preferredAssets.libraryHeroImageUrl,
+      customHeroImageUrl: null,
+      libraryImageUrl: preferredAssets.libraryImageUrl,
+      logoImageUrl: preferredAssets.logoImageUrl,
+      customLogoImageUrl: null,
+      logoPosition: preferredAssets.logoPosition,
+      coverImageUrl: preferredAssets.coverImageUrl,
+      downloadSources: preferredAssets.downloadSources,
     }),
-    [game, objectId, resolvedGameTitle, shop, shopDetails?.assets]
+    [objectId, preferredAssets, resolvedGameTitle, shop]
   );
   const shouldShowProtonSection =
     Boolean(protonDBData) &&
@@ -537,9 +548,7 @@ export default function Game() {
     hasMedia,
     heroActionsLeftNavigationTarget,
   ]);
-  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
-
-  useHeaderTitle(shopDetails?.assets?.title ?? game?.title);
+  useHeaderTitle(resolvedGameTitle);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
@@ -1148,12 +1157,23 @@ export default function Game() {
           onDownload={handleOpenDownloadModal}
           onAddToLibrary={handleAddToLibrary}
           onOpenDownloadOptions={handleOpenDownloadModal}
+          onOpenSettings={() => setIsGameSettingsModalOpen(true)}
           onClose={closeGame}
           isAddingToLibrary={isAddingToLibrary}
           canAddToLibrary={canAddToLibrary}
           downNavigationTarget={contentBelowHeroTarget}
           sidebarEntryTarget={sidebarEntryTarget}
         />
+        {game && launchSettings && customizationSettings && cloudSettings && (
+          <GameSettingsModal
+            visible={isGameSettingsModalOpen}
+            game={game}
+            launchSettings={launchSettings}
+            customizationSettings={customizationSettings}
+            cloudSettings={cloudSettings}
+            onClose={() => setIsGameSettingsModalOpen(false)}
+          />
+        )}
 
         <section className="game-page__content">
           <PlaytimeBar
@@ -1198,7 +1218,7 @@ export default function Game() {
                     >
                       {descriptionBlocks.map((block, index) => (
                         <div
-                          key={`description-block-${index}`}
+                          key={`description-block-${index}`} // NOSONAR
                           className="game-page__detailed-description-block"
                         >
                           <div
@@ -1296,7 +1316,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame && (
+                {!isLaunchboxGame && (howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
                     howLongToBeat={howLongToBeat ?? []}
                     focusId={GAME_SIDEBAR_HLTB_ID}
@@ -1326,7 +1346,7 @@ export default function Game() {
                   focusNavigationOverrides={sidebarCarouselNavigationOverrides}
                 />
 
-                {!isLaunchboxGame && (
+                {!isLaunchboxGame && (game?.achievementCount ?? 0) > 0 && (
                   <AchievementsBox
                     achievements={achievements ?? []}
                     focusId={GAME_SIDEBAR_ACHIEVEMENTS_ID}
@@ -1423,7 +1443,7 @@ export default function Game() {
                   </section>
                 </FocusItem>
 
-                {!isLaunchboxGame ? (
+                {!isLaunchboxGame ? ( // NOSONAR
                   <RequirementsToPlay
                     shopDetails={shopDetails}
                     focusId={GAME_SIDEBAR_REQUIREMENTS_ID}
@@ -1451,18 +1471,14 @@ export default function Game() {
           game={{
             objectId: objectId!,
             shop: shop!,
-            title: shopDetails.assets?.title ?? game?.title ?? "Download Game",
-            iconUrl: shopDetails.assets?.iconUrl ?? game?.iconUrl ?? null,
-            libraryHeroImageUrl:
-              shopDetails.assets?.libraryHeroImageUrl ??
-              game?.libraryHeroImageUrl ??
-              null,
-            libraryImageUrl:
-              shopDetails.assets?.libraryImageUrl ??
-              game?.libraryImageUrl ??
-              null,
+            title: resolvedGameTitle,
+            iconUrl: preferredAssets.iconUrl,
+            downloadSources:
+              preferredAssets.downloadSources || game?.downloadSources,
+            libraryHeroImageUrl: preferredAssets.heroSrc || null,
+            libraryImageUrl: preferredAssets.libraryImageUrl,
             coverImageUrl:
-              shopDetails.assets?.coverImageUrl ?? game?.coverImageUrl ?? null,
+              preferredAssets.coverSrc || preferredAssets.iconSrc || null,
           }}
         />
 
@@ -1470,13 +1486,9 @@ export default function Game() {
           <DiscSelectionModal
             visible={isDiscSelectionModalOpen}
             coverImage={
-              resolveImageSource(game?.customHeroImageUrl) ||
-              resolveImageSource(shopDetails.assets?.libraryHeroImageUrl) ||
-              resolveImageSource(game?.libraryHeroImageUrl) ||
-              resolveImageSource(shopDetails.assets?.libraryImageUrl) ||
-              resolveImageSource(game?.libraryImageUrl) ||
-              resolveImageSource(game?.customIconUrl) ||
-              resolveImageSource(game?.iconUrl) ||
+              preferredAssets.heroSrc ||
+              preferredAssets.landscapeSrc ||
+              preferredAssets.iconSrc ||
               undefined
             }
             discs={game.discs ?? []}

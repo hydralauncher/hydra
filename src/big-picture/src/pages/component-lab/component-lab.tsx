@@ -13,6 +13,7 @@ import {
   Checkbox,
   Chip,
   Divider,
+  EmptyState,
   HorizontalCard,
   ImageLightbox,
   Input,
@@ -633,6 +634,49 @@ export default function ComponentLab() {
               closeOnAction={false}
               onClose={() => undefined}
             />
+          </div>
+        </ShowcaseSection>
+
+        <ShowcaseSection
+          title="Empty State"
+          description="Componente comum com ilustração opcional, icon slot e actions totalmente customizáveis."
+        >
+          <div className="catalogue-page__empty-state-grid">
+            <div className="catalogue-page__empty-state-preview">
+              <EmptyState
+                icon={<MagnifyingGlass size={28} weight="bold" />}
+                title="No messages"
+                description="You have no messages yet. Start a conversation and they will show up here."
+                actions={
+                  <Button size="small" variant="secondary">
+                    Go back
+                  </Button>
+                }
+              />
+            </div>
+
+            <div className="catalogue-page__empty-state-preview">
+              <EmptyState
+                title="No downloads yet"
+                description="Start a download to see it here."
+              />
+            </div>
+
+            <div className="catalogue-page__empty-state-preview">
+              <EmptyState
+                icon={<House size={28} weight="bold" />}
+                title="No pinned games"
+                description="You have not pinned anything yet, but you can add shortcuts whenever you want."
+                actions={
+                  <>
+                    <Button size="small">Browse Library</Button>
+                    <Button size="small" variant="secondary">
+                      Open Home
+                    </Button>
+                  </>
+                }
+              />
+            </div>
           </div>
         </ShowcaseSection>
 

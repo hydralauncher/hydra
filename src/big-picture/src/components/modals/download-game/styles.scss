@@ -14,20 +14,34 @@
   }
 
   &__content {
-    flex: 1;
-    min-height: 0;
     width: 100%;
     max-height: 900px;
     display: flex;
     flex-direction: column;
   }
 
-  &__step {
-    flex: 1;
-    min-height: 0;
+  &__step-frame {
+    position: relative;
     width: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__step {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__step-measure {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
   }
 
   &__step--source-list {
@@ -35,8 +49,17 @@
   }
 
   &__step--options {
-    overflow: auto;
+    overflow: hidden;
     padding: calc(var(--spacing-unit) * 6);
+
+    &[data-scroll-enabled="true"] {
+      overflow: auto;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
   }
 
   &__source-list {
@@ -52,9 +75,11 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: calc(var(--spacing-unit) * 2) !important;
+    gap: calc(var(--spacing-unit) * 1.5) !important;
+    padding-inline-start: var(--download-game-modal-source-ring-space);
     padding-inline-end: calc(
-      var(--download-game-modal-source-ring-space) + 1px
+      var(--download-game-modal-source-track-padding-end, 0px) +
+        var(--download-game-modal-source-ring-space) + 1px
     );
   }
 
@@ -101,8 +126,14 @@
   &__source-list__options-transition {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing-unit) * 2);
+    gap: 8px;
     will-change: opacity, transform;
+  }
+
+  &__source-list-empty-state {
+    min-height: 100%;
+    padding-top: calc(var(--spacing-unit) * 2);
+    padding-bottom: calc(var(--spacing-unit) * 5);
   }
 
   &__source-list__sort-options {
@@ -194,6 +225,15 @@
   &__downloader-option-slot--right {
     justify-self: end;
     justify-content: flex-end;
+  }
+
+  &__downloader-option-checkmark-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
   }
 
   &__downloader {
@@ -309,11 +349,7 @@
     min-width: 0;
     margin-top: var(--spacing-unit);
 
-    &:only-child {
-      grid-column: 1 / -1;
-    }
-
-    &:nth-child(3):last-child {
+    &--full-width {
       grid-column: 1 / -1;
     }
   }

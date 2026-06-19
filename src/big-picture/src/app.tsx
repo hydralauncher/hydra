@@ -13,7 +13,7 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useNavigation } from "./hooks";
+import { useNavigation, useUserPreferences } from "./hooks";
 import {
   HorizontalFocusGroup,
   NavigationHistoryBridge,
@@ -28,7 +28,7 @@ import {
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
 import { initializeBigPictureRunningGamesStore } from "./stores";
-import type { FocusOverrides } from "./services";
+import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
 import "./styles/globals.scss";
@@ -38,6 +38,7 @@ export default function App() {
 
   const { pathname } = useLocation();
   const { nodes, regions, setFocusRegion } = useNavigation();
+  const userPreferences = useUserPreferences();
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
@@ -88,6 +89,12 @@ export default function App() {
     regions,
     setFocusRegion,
   ]);
+
+  useEffect(() => {
+    NavigationAudioService.getInstance().setEnabled(
+      userPreferences?.bigPictureSoundsEnabled ?? true
+    );
+  }, [userPreferences?.bigPictureSoundsEnabled]);
 
   return (
     <Fragment>

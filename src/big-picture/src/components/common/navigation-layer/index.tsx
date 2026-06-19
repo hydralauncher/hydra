@@ -1,6 +1,6 @@
 import { NavigationService } from "../../../services";
 import { FocusLayerContext } from "../../context";
-import { type ReactNode, useEffect, useId } from "react";
+import { type ReactNode, useId, useLayoutEffect } from "react";
 
 interface NavigationLayerProps {
   layerId?: string;
@@ -24,7 +24,7 @@ export function NavigationLayer({
   const resolvedLayerId =
     layerId ?? `navigation-layer-${generatedId.replaceAll(":", "")}`;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const unregisterLayer = navigation.registerLayer({
       id: resolvedLayerId,
       rootRegionId,

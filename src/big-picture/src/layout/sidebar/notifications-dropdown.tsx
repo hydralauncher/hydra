@@ -39,6 +39,7 @@ import {
   useNavigationActions,
   useNavigationScreenActions,
 } from "../../hooks";
+import { getPreferredGameAssets } from "../../helpers";
 import type {
   FriendRequestAction,
   LibraryGame,
@@ -210,7 +211,7 @@ function getGameImageUrlFromLibrary(
       libraryGame.objectId === gameRoute.objectId
   );
 
-  return game?.iconUrl ?? null;
+  return getPreferredGameAssets(game, null).iconUrl;
 }
 
 function getApiNotificationIsServerRead(
@@ -413,6 +414,7 @@ export function SidebarNotificationsDropdown({
       const target = event.target as HTMLElement | null;
       if (
         target?.closest(".sidebar-notifications-dropdown") ||
+        target?.closest(".context-menu") ||
         target === anchorRef.current ||
         anchorRef.current?.contains(target)
       ) {

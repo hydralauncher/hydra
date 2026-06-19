@@ -1,7 +1,7 @@
 import "./styles.scss";
 
 import { flip, offset, shift, size } from "@floating-ui/dom";
-import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CheckCircle } from "@phosphor-icons/react";
 import {
   type ReactNode,
   useCallback,
@@ -32,12 +32,15 @@ const DROPDOWN_MAX_HEIGHT = 360;
 export interface DropdownSelectOption<TValue extends string = string> {
   value: TValue;
   label: ReactNode;
+  icon?: ReactNode;
+  description?: ReactNode;
 }
 
 export interface DropdownSelectProps<TValue extends string = string> {
   label?: string;
   hideLabel?: boolean;
   leadingIcon?: ReactNode;
+  disabled?: boolean;
   value: TValue;
   options: Array<DropdownSelectOption<TValue>>;
   onValueChange: (value: TValue) => void;
@@ -52,10 +55,65 @@ function getOptionKeySuffix(value: string) {
   return value.replaceAll(/[^a-z0-9_-]/gi, "-").toLowerCase();
 }
 
+function hasRichOptionContent<TValue extends string = string>(
+  option: DropdownSelectOption<TValue> | undefined
+) {
+  return Boolean(option?.icon || option?.description);
+}
+
+function renderOptionContent<TValue extends string = string>(
+  option: DropdownSelectOption<TValue> | undefined,
+  fallbackLabel: ReactNode,
+  {
+    fallbackIcon,
+  }: {
+    fallbackIcon?: ReactNode;
+  } = {}
+) {
+  if (!option) {
+    return <span className="dropdown-select__value">{fallbackLabel}</span>;
+  }
+
+  const icon = option.icon ?? fallbackIcon;
+  const isRich = hasRichOptionContent(option);
+
+  if (!isRich) {
+    return (
+      <>
+        {icon ? (
+          <span className="dropdown-select__lead" aria-hidden="true">
+            {icon}
+          </span>
+        ) : null}
+        <span className="dropdown-select__value">{option.label}</span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {icon ? (
+        <span className="dropdown-select__option-icon" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
+      <span className="dropdown-select__option-content">
+        <span className="dropdown-select__option-label">{option.label}</span>
+        {option.description ? (
+          <span className="dropdown-select__option-description">
+            {option.description}
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+}
+
 export function DropdownSelect<TValue extends string = string>({
   label,
   hideLabel = false,
   leadingIcon,
+  disabled = false,
   value,
   options,
   onValueChange,
@@ -76,6 +134,7 @@ export function DropdownSelect<TValue extends string = string>({
   const selectedOption = options.find((option) => option.value === value);
   const resolvedLabel = selectedOption?.label ?? value;
   const resolvedAriaLabel = ariaLabel ?? label;
+  const selectedOptionIsRich = hasRichOptionContent(selectedOption);
 
   const optionIds = useMemo(() => {
     return new Map(
@@ -106,6 +165,12 @@ export function DropdownSelect<TValue extends string = string>({
     [restoreTriggerFocus]
   );
 
+  useEffect(() => {
+    if (!disabled) return;
+
+    setIsOpen(false);
+  }, [disabled]);
+
   const handleOptionSelect = useCallback(
     (nextValue: TValue) => {
       onValueChange(nextValue);
@@ -120,15 +185,24 @@ export function DropdownSelect<TValue extends string = string>({
       flip({ fallbackPlacements: ["top"] }),
       shift({ padding: DROPDOWN_VIEWPORT_MARGIN }),
       size({
-        apply({ elements, availableWidth, availableHeight }) {
+        apply({ rects, elements, availableWidth, availableHeight }) {
           const maxHeight =
             Number.isFinite(availableHeight) && availableHeight > 0
               ? Math.min(DROPDOWN_MAX_HEIGHT, availableHeight)
               : DROPDOWN_MAX_HEIGHT;
+          const referenceWidth = rects.reference.width;
+          const constrainedWidth =
+            typeof availableWidth === "number" && availableWidth > 0
+              ? Math.min(referenceWidth, availableWidth)
+              : referenceWidth;
+          const resolvedWidth = Math.max(
+            constrainedWidth,
+            Math.min(DROPDOWN_MIN_WIDTH, availableWidth || DROPDOWN_MIN_WIDTH)
+          );
 
           Object.assign(elements.floating.style, {
-            width: "max-content",
-            minWidth: `${DROPDOWN_MIN_WIDTH}px`,
+            width: `${resolvedWidth}px`,
+            minWidth: `${resolvedWidth}px`,
             maxWidth:
               typeof availableWidth === "number" && availableWidth > 0
                 ? `${availableWidth}px`
@@ -172,15 +246,17 @@ export function DropdownSelect<TValue extends string = string>({
   }, [closeMenu, floatingRef, isOpen]);
 
   const handleTriggerClick = useCallback(() => {
+    if (disabled) return;
+
     if (!isOpen) {
       setFocus(resolvedBaseId);
     }
 
     setIsOpen((currentOpen) => !currentOpen);
-  }, [isOpen, resolvedBaseId, setFocus]);
+  }, [disabled, isOpen, resolvedBaseId, setFocus]);
 
   useNavigationScreenActions(
-    isOpen
+    isOpen && !disabled
       ? {
           press: {
             b: () => closeMenu(true),
@@ -215,27 +291,23 @@ export function DropdownSelect<TValue extends string = string>({
       ) : null}
 
       <div ref={referenceRef} className="dropdown-select__trigger-anchor">
-        <FocusItem
-          id={resolvedBaseId}
-          asChild
-          navigationOverrides={focusNavigationOverrides}
-        >
+        {disabled ? (
           <button
             type="button"
-            className="dropdown-select__trigger"
+            className={`dropdown-select__trigger${
+              selectedOptionIsRich ? " dropdown-select__trigger--rich" : ""
+            }`}
             aria-label={resolvedAriaLabel}
+            aria-disabled="true"
             aria-haspopup="listbox"
-            aria-expanded={isOpen}
-            data-open={isOpen || undefined}
-            onClick={handleTriggerClick}
+            aria-expanded="false"
+            data-disabled="true"
+            disabled
           >
             <span className="dropdown-select__trigger-main">
-              {leadingIcon ? (
-                <span className="dropdown-select__lead" aria-hidden="true">
-                  {leadingIcon}
-                </span>
-              ) : null}
-              <span className="dropdown-select__value">{resolvedLabel}</span>
+              {renderOptionContent(selectedOption, resolvedLabel, {
+                fallbackIcon: leadingIcon,
+              })}
             </span>
             <CaretDownIcon
               size={18}
@@ -243,10 +315,39 @@ export function DropdownSelect<TValue extends string = string>({
               aria-hidden="true"
             />
           </button>
-        </FocusItem>
+        ) : (
+          <FocusItem
+            id={resolvedBaseId}
+            asChild
+            navigationOverrides={focusNavigationOverrides}
+          >
+            <button
+              type="button"
+              className={`dropdown-select__trigger${
+                selectedOptionIsRich ? " dropdown-select__trigger--rich" : ""
+              }`}
+              aria-label={resolvedAriaLabel}
+              aria-haspopup="listbox"
+              aria-expanded={isOpen}
+              data-open={isOpen || undefined}
+              onClick={handleTriggerClick}
+            >
+              <span className="dropdown-select__trigger-main">
+                {renderOptionContent(selectedOption, resolvedLabel, {
+                  fallbackIcon: leadingIcon,
+                })}
+              </span>
+              <CaretDownIcon
+                size={18}
+                className="dropdown-select__chevron"
+                aria-hidden="true"
+              />
+            </button>
+          </FocusItem>
+        )}
       </div>
 
-      {isOpen && portalTarget
+      {isOpen && !disabled && portalTarget
         ? createPortal(
             <FocusRegionContext.Provider value={null}>
               <NavigationLayer
@@ -261,9 +362,7 @@ export function DropdownSelect<TValue extends string = string>({
                   <VerticalFocusGroup
                     regionId={resolvedMenuRegionId}
                     className="dropdown-select__menu"
-                    style={{
-                      gap: "calc(var(--spacing-unit) * 1)",
-                    }}
+                    style={{ gap: 0 }}
                     role="listbox"
                     aria-label={resolvedAriaLabel}
                   >
@@ -285,17 +384,20 @@ export function DropdownSelect<TValue extends string = string>({
                             type="button"
                             role="option"
                             aria-selected={isSelected}
-                            className="dropdown-select__option"
+                            className={`dropdown-select__option${
+                              hasRichOptionContent(option)
+                                ? " dropdown-select__option--rich"
+                                : ""
+                            }`}
                             data-selected={isSelected || undefined}
                             onClick={() => handleOptionSelect(option.value)}
                           >
-                            <span className="dropdown-select__option-label">
-                              {option.label}
-                            </span>
+                            {renderOptionContent(option, option.label)}
 
                             {isSelected ? (
-                              <CheckIcon
-                                size={18}
+                              <CheckCircle
+                                size={16}
+                                weight="fill"
                                 className="dropdown-select__option-check"
                                 aria-hidden="true"
                               />

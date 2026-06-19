@@ -4,6 +4,7 @@ import {
   useFocusLayerId,
   useFocusRegionId,
 } from "../../context";
+import { useIsMeasurement } from "../../context/measurement.context";
 import {
   getFocusItemActionsMeta,
   resolveFocusItemActions,
@@ -15,7 +16,7 @@ import {
   NavigationService,
   type NavigationNodeState,
 } from "../../../services";
-import { useNavigationIsFocused } from "../../../stores";
+import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
 import {
   type FocusEvent,
   type ReactNode,
@@ -34,6 +35,7 @@ interface FocusItemProps {
   navigationState?: NavigationNodeState;
   navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
+  stealFocusOnAppear?: boolean;
   asChild?: boolean;
   children: ReactNode;
 }
@@ -45,6 +47,7 @@ export function FocusItem({
   navigationState: navigationStateProp = "active",
   navigationOrder,
   navigationOverrides,
+  stealFocusOnAppear = false,
   asChild = false,
   children,
 }: Readonly<FocusItemProps>) {
@@ -62,8 +65,12 @@ export function FocusItem({
   const initialNavigationStateRef = useRef(effectiveNavigationState);
   const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
+  const wasActiveRef = useRef(false);
+  const hasReceivedFocusOnCurrentAppearanceRef = useRef(false);
   const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const isMeasurement = useIsMeasurement();
 
   const resolvedActions = useMemo(
     () => resolveFocusItemActions(actions),
@@ -80,6 +87,8 @@ export function FocusItem({
   }
 
   useEffect(() => {
+    if (isMeasurement) return;
+
     return navigation.registerNavigationNode({
       id: resolvedId,
       regionId,
@@ -106,6 +115,45 @@ export function FocusItem({
   ]);
 
   useEffect(() => {
+    if (isMeasurement) return;
+
+    const isActive = effectiveNavigationState === "active";
+
+    if (!isActive) {
+      wasActiveRef.current = false;
+      hasReceivedFocusOnCurrentAppearanceRef.current = false;
+      return;
+    }
+
+    const hasAppeared = !wasActiveRef.current;
+    wasActiveRef.current = true;
+
+    if (!stealFocusOnAppear) {
+      return;
+    }
+
+    if (isFocused) {
+      hasReceivedFocusOnCurrentAppearanceRef.current = true;
+      return;
+    }
+
+    if (!hasAppeared && hasReceivedFocusOnCurrentAppearanceRef.current) {
+      return;
+    }
+
+    navigation.requestFocusWhenAvailable(resolvedId);
+  }, [
+    currentFocusId,
+    effectiveNavigationState,
+    isFocused,
+    navigation,
+    resolvedId,
+    stealFocusOnAppear,
+  ]);
+
+  useEffect(() => {
+    if (isMeasurement) return;
+
     return navigationItemActions.registerItemActions({
       itemId: resolvedId,
       actions: resolvedActions,

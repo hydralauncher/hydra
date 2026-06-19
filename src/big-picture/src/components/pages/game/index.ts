@@ -1,4 +1,5 @@
 export * from "./hero";
+export * from "./game-settings-modal";
 export * from "./playtime-bar";
 export * from "./screenshot-carousel";
 export * from "./how-long-to-beat";
