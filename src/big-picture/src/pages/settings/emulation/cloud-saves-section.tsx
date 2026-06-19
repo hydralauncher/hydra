@@ -24,7 +24,11 @@ import {
   VerticalFocusGroup,
 } from "../../../components";
 import { ConfirmationModal } from "../../../components/modals";
-import { useBigPictureToast, useNavigation, useUserDetails } from "../../../hooks";
+import {
+  useBigPictureToast,
+  useNavigation,
+  useUserDetails,
+} from "../../../hooks";
 import {
   EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID,
   EMULATION_DETAIL_CLOUD_SAVES_REGION_ID,
