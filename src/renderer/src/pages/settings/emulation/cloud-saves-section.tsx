@@ -13,6 +13,10 @@ import {
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
+import {
+  getSkuRegionFlag,
+  getSkuRegionFromSaveIdentity,
+} from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -184,6 +188,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save) => {
               const name = save.label ?? save.fileName;
+              const region = getSkuRegionFromSaveIdentity(save.saveIdentity);
               return (
                 <div key={save.id} className="emulator-detail__cloud-card">
                   <div className="emulator-detail__cloud-card-top">
@@ -225,12 +230,22 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                     </DropdownMenu>
                   </div>
 
-                  <span
-                    className="emulator-detail__cloud-card-title"
-                    title={name}
-                  >
-                    {name}
-                  </span>
+                  <div className="emulator-detail__cloud-card-title-row">
+                    {region && (
+                      <img
+                        className="emulator-detail__cloud-card-flag"
+                        src={getSkuRegionFlag(region)}
+                        alt={region}
+                        title={region}
+                      />
+                    )}
+                    <span
+                      className="emulator-detail__cloud-card-title"
+                      title={name}
+                    >
+                      {name}
+                    </span>
+                  </div>
 
                   <div className="emulator-detail__cloud-card-info">
                     <span title={save.hostname ?? undefined}>
