@@ -208,9 +208,24 @@ function RestoreModal({
                 target.cardFilePath
               );
               const isSelected = selectedTarget === target.cardFilePath;
+              const isFirstTarget =
+                targets[0]?.cardFilePath === target.cardFilePath;
 
               return (
-                <FocusItem key={target.cardFilePath} id={targetId} asChild>
+                <FocusItem
+                  key={target.cardFilePath}
+                  id={targetId}
+                  navigationOverrides={
+                    isFirstTarget
+                      ? {
+                          up: {
+                            type: "block",
+                          },
+                        }
+                      : undefined
+                  }
+                  asChild
+                >
                   <button
                     type="button"
                     className={`emu-save-modal__target${
@@ -237,6 +252,18 @@ function RestoreModal({
         >
           <Button
             focusId={RESTORE_MODAL_PICK_BUTTON_ID}
+            focusNavigationOverrides={
+              selectedTarget
+                ? {
+                    up: {
+                      type: "item",
+                      itemId: getEmulationCloudRestoreTargetFocusId(
+                        selectedTarget
+                      ),
+                    },
+                  }
+                : undefined
+            }
             variant="secondary"
             disabled={isBusy}
             onClick={() => {
@@ -247,6 +274,18 @@ function RestoreModal({
           </Button>
           <Button
             focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
+            focusNavigationOverrides={
+              selectedTarget
+                ? {
+                    up: {
+                      type: "item",
+                      itemId: getEmulationCloudRestoreTargetFocusId(
+                        selectedTarget
+                      ),
+                    },
+                  }
+                : undefined
+            }
             loading={isBusy}
             disabled={!selectedTarget}
             onClick={() => {
