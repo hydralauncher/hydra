@@ -17,7 +17,7 @@ import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import { useGamepad } from "../../../hooks";
 import { NavigationAudioService, type FocusOverrides } from "../../../services";
-import { useNavigationIsFocused } from "../../../stores";
+import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
 export interface TabsItem<TValue extends string = string> {
@@ -308,6 +308,7 @@ export function Tabs<TValue extends string = string>({
   );
 
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
 
   const findNextEnabledIndex = useCallback(
     (fromIndex: number, direction: 1 | -1): number => {
@@ -322,6 +323,18 @@ export function Tabs<TValue extends string = string>({
     [resolvedItems]
   );
 
+  const isCurrentFocusInsideTabList = useCallback(() => {
+    if (!currentFocusId) return false;
+
+    const tabList = tabListRef.current;
+
+    if (!tabList) return false;
+
+    const focusedElement = document.getElementById(currentFocusId);
+
+    return focusedElement instanceof HTMLElement && tabList.contains(focusedElement);
+  }, [currentFocusId]);
+
   useEffect(() => {
     if (variant === "settings") return;
 
@@ -329,6 +342,7 @@ export function Tabs<TValue extends string = string>({
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
+        if (!isCurrentFocusInsideTabList()) return;
 
         const currentIndex = resolvedItems.findIndex(
           (item) => item.value === selectedValue
@@ -353,6 +367,7 @@ export function Tabs<TValue extends string = string>({
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
+        if (!isCurrentFocusInsideTabList()) return;
 
         const currentIndex = resolvedItems.findIndex(
           (item) => item.value === selectedValue
@@ -381,6 +396,7 @@ export function Tabs<TValue extends string = string>({
   }, [
     findNextEnabledIndex,
     handleSelect,
+    isCurrentFocusInsideTabList,
     isActiveGamepadEvent,
     onButtonPressed,
     resolvedItems,
