@@ -58,6 +58,7 @@
 
 .game-cloud-settings-tab__saves-shell {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -71,14 +72,16 @@
   gap: calc(var(--spacing-unit) * 4);
   width: 100%;
   min-width: 0;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 .game-cloud-settings-tab__saves-viewport {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 
   &::-webkit-scrollbar {
     display: none;
@@ -170,7 +173,7 @@
   &__targets {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
