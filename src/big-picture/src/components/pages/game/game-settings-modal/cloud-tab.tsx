@@ -26,6 +26,11 @@ import {
 import { useBigPictureToast, useNavigation } from "../../../../hooks";
 import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
+import {
+  getEmulationCloudRestoreButtonNavigationOverrides,
+  getEmulationCloudRestoreTargetFocusId,
+  getEmulationCloudRestoreTargetNavigationOverrides,
+} from "../../../../pages/settings/settings-navigation";
 import { CloudSavesList } from "./cloud-saves-list";
 
 import "./cloud-tab.scss";
@@ -110,7 +115,7 @@ function EmulationRestoreModal({
     const frameId = globalThis.window.requestAnimationFrame(() => {
       setFocus(
         selectedTarget
-          ? `emu-saves-target-${selectedTarget}`
+          ? getEmulationCloudRestoreTargetFocusId(selectedTarget)
           : RESTORE_MODAL_PICK_BUTTON_ID
       );
     });
@@ -182,38 +187,22 @@ function EmulationRestoreModal({
             </div>
           ) : (
             targets.map((target) => {
-              const targetId = `emu-saves-target-${target.cardFilePath}`;
+              const targetId = getEmulationCloudRestoreTargetFocusId(
+                target.cardFilePath
+              );
               const isSelected = selectedTarget === target.cardFilePath;
-              const isFirstTarget =
-                targets[0]?.cardFilePath === target.cardFilePath;
-              const isLastTarget =
-                targets[targets.length - 1]?.cardFilePath ===
-                target.cardFilePath;
               return (
                 <FocusItem
                   key={target.cardFilePath}
                   id={targetId}
-                  navigationOverrides={
-                    isFirstTarget || isLastTarget
-                      ? {
-                          ...(isFirstTarget
-                            ? {
-                                up: {
-                                  type: "block" as const,
-                                },
-                              }
-                            : {}),
-                          ...(isLastTarget
-                            ? {
-                                down: {
-                                  type: "item" as const,
-                                  itemId: RESTORE_MODAL_PICK_BUTTON_ID,
-                                },
-                              }
-                            : {}),
-                        }
-                      : undefined
-                  }
+                  navigationOverrides={getEmulationCloudRestoreTargetNavigationOverrides(
+                    {
+                      cardFilePath: target.cardFilePath,
+                      firstCardFilePath: targets[0]?.cardFilePath,
+                      lastCardFilePath: targets.at(-1)?.cardFilePath,
+                      pickButtonId: RESTORE_MODAL_PICK_BUTTON_ID,
+                    }
+                  )}
                   asChild
                 >
                   <button
@@ -238,16 +227,9 @@ function EmulationRestoreModal({
         <HorizontalFocusGroup regionId={RESTORE_MODAL_ACTIONS_REGION_ID}>
           <Button
             focusId={RESTORE_MODAL_PICK_BUTTON_ID}
-            focusNavigationOverrides={
+            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
               selectedTarget
-                ? {
-                    up: {
-                      type: "item",
-                      itemId: `emu-saves-target-${selectedTarget}`,
-                    },
-                  }
-                : undefined
-            }
+            )}
             variant="secondary"
             disabled={isBusy}
             onClick={handlePickFile}
@@ -256,16 +238,9 @@ function EmulationRestoreModal({
           </Button>
           <Button
             focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
-            focusNavigationOverrides={
+            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
               selectedTarget
-                ? {
-                    up: {
-                      type: "item",
-                      itemId: `emu-saves-target-${selectedTarget}`,
-                    },
-                  }
-                : undefined
-            }
+            )}
             loading={isBusy}
             disabled={!selectedTarget}
             onClick={handleRestore}
