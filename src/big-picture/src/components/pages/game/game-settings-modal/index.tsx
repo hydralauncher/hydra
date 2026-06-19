@@ -119,7 +119,7 @@ export function GameSettingsModal({
     }
   }, [shouldShowCloudTab, activeTabId]);
 
-  const tabs = useMemo<SidebarModalTab[]>(
+  const tabs = useMemo<SidebarModalTab<GameSettingsTabId>[]>(
     () => [
       {
         id: "launch",
@@ -137,7 +137,7 @@ export function GameSettingsModal({
               id: "hydra_cloud",
               label: t("settings_category_hydra_cloud"),
               content: cloudContent,
-            } satisfies SidebarModalTab,
+            } satisfies SidebarModalTab<GameSettingsTabId>,
           ]
         : []),
       ...(shouldShowCompatibilityTab
@@ -146,7 +146,7 @@ export function GameSettingsModal({
               id: "compatibility",
               label: t("settings_category_compatibility"),
               content: compatibilityContent,
-            } satisfies SidebarModalTab,
+            } satisfies SidebarModalTab<GameSettingsTabId>,
           ]
         : []),
       {
@@ -184,7 +184,7 @@ export function GameSettingsModal({
       contentEntryFocusId={GAME_SETTINGS_TAB_FOCUS_IDS[activeTabId]}
       tabs={tabs}
       activeTabId={activeTabId}
-      onActiveTabChange={(tabId) => setActiveTabId(tabId as GameSettingsTabId)}
+      onActiveTabChange={setActiveTabId}
     />
   );
 }
