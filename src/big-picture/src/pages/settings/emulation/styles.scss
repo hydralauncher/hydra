@@ -22,6 +22,16 @@
 .emulation-settings__scan-modal,
 .emu-save-modal__restore,
 .emu-save-modal__rename {
+  .emu-save-modal__target {
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      outline: none;
+      box-shadow:
+        inset 0 0 0 1px var(--primary),
+        0 0 0 1px var(--primary);
+    }
+  }
+
   .button {
     &:focus-visible,
     &[data-focus-visible="true"] {
@@ -1096,7 +1106,7 @@
   &__targets {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1122,7 +1132,10 @@
     }
 
     &[data-focus-visible="true"] {
-      @include emulation-primary-focus-ring;
+      outline: none;
+      box-shadow:
+        inset 0 0 0 1px var(--primary),
+        0 0 0 1px var(--primary);
     }
   }
 
