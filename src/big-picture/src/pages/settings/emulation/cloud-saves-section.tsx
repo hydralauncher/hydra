@@ -219,8 +219,7 @@ function RestoreModal({
                     {
                       cardFilePath: target.cardFilePath,
                       firstCardFilePath: targets[0]?.cardFilePath,
-                      lastCardFilePath:
-                        targets[targets.length - 1]?.cardFilePath,
+                      lastCardFilePath: targets.at(-1)?.cardFilePath,
                       pickButtonId: RESTORE_MODAL_PICK_BUTTON_ID,
                     }
                   )}

@@ -63,6 +63,7 @@ export function LibraryGameContextMenu({
     onShare,
     onToggleFavorite,
     onUninstall,
+    onViewAchievements,
     t,
   ]);
 
