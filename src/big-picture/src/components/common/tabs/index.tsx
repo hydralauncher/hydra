@@ -260,8 +260,11 @@ export function Tabs<TValue extends string = string>({
   ariaLabel = "Tabs",
   className,
 }: Readonly<TabsProps<TValue>>) {
+  const TAB_SCROLL_EPSILON_PX = 1;
   const generatedId = useId();
+  const tabsViewportRef = useRef<HTMLDivElement | null>(null);
   const tabListRef = useRef<HTMLDivElement | null>(null);
+  const previousSelectedIndexRef = useRef<number | null>(null);
   const [internalValue, setInternalValue] = useState<TValue | undefined>(
     defaultValue ?? items[0]?.value
   );
@@ -286,6 +289,15 @@ export function Tabs<TValue extends string = string>({
     () => resolvedItems.find((item) => item.value === selectedValue),
     [resolvedItems, selectedValue]
   );
+  const selectedIndex = useMemo(
+    () => resolvedItems.findIndex((item) => item.value === selectedValue),
+    [resolvedItems, selectedValue]
+  );
+
+  const setTabListElement = useCallback((element: HTMLDivElement | null) => {
+    tabListRef.current = element;
+    tabsViewportRef.current = element?.parentElement as HTMLDivElement | null;
+  }, []);
 
   const handleSelect = useCallback(
     (nextValue: TValue) => {
@@ -398,24 +410,123 @@ export function Tabs<TValue extends string = string>({
     });
   }, [selectedItem, variant]);
 
+  const scrollSelectedTabIntoView = useCallback(
+    (restoreLayout = false) => {
+      if (!selectedItem || variant === "segmented" || selectedIndex === -1) {
+        return;
+      }
+
+      const viewport = tabsViewportRef.current;
+      const tabList = tabListRef.current;
+
+      if (!viewport || !tabList) return;
+
+      const tabElements = resolvedItems
+        .map((item) => document.getElementById(item.resolvedId))
+        .filter(
+          (element): element is HTMLElement => element instanceof HTMLElement
+        );
+
+      const activeTab = tabElements[selectedIndex];
+
+      if (!activeTab || !tabList.contains(activeTab)) return;
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const tabRects = tabElements.map((element) =>
+        element.getBoundingClientRect()
+      );
+      const visibleIndexes = tabRects.reduce<number[]>(
+        (indexes, rect, index) => {
+          if (
+            rect.right - TAB_SCROLL_EPSILON_PX > viewportRect.left &&
+            rect.left + TAB_SCROLL_EPSILON_PX < viewportRect.right
+          ) {
+            indexes.push(index);
+          }
+
+          return indexes;
+        },
+        []
+      );
+
+      if (visibleIndexes.length === 0) return;
+
+      const firstVisibleIndex = visibleIndexes[0];
+      const visibleCount = Math.max(
+        1,
+        Math.min(visibleIndexes.length, tabRects.length - firstVisibleIndex)
+      );
+      const rightTriggerPosition = Math.max(1, Math.ceil(visibleCount / 2));
+      const leftTriggerPosition = Math.min(
+        visibleCount,
+        Math.floor(visibleCount / 2) + 1
+      );
+      const visiblePositionOneBased = selectedIndex - firstVisibleIndex + 1;
+      const selectedRect = tabRects[selectedIndex];
+      const isClippedOnLeft =
+        selectedRect.left + TAB_SCROLL_EPSILON_PX < viewportRect.left;
+      const isClippedOnRight =
+        selectedRect.right - TAB_SCROLL_EPSILON_PX > viewportRect.right;
+      const previousSelectedIndex = previousSelectedIndexRef.current;
+      const didNotChange =
+        previousSelectedIndex == null ||
+        previousSelectedIndex === selectedIndex;
+      const isOutOfBounds =
+        visiblePositionOneBased < 1 || visiblePositionOneBased > visibleCount;
+      const isMovingRight =
+        previousSelectedIndex != null && selectedIndex > previousSelectedIndex;
+      const shouldScroll =
+        restoreLayout ||
+        didNotChange ||
+        isOutOfBounds ||
+        (isMovingRight && visiblePositionOneBased > rightTriggerPosition) ||
+        (!isMovingRight && visiblePositionOneBased < leftTriggerPosition) ||
+        isClippedOnLeft ||
+        isClippedOnRight;
+
+      if (!shouldScroll) {
+        previousSelectedIndexRef.current = selectedIndex;
+        return;
+      }
+
+      const centeredLeft =
+        activeTab.offsetLeft +
+        activeTab.offsetWidth / 2 -
+        viewport.clientWidth / 2;
+      const maxLeft = Math.max(0, tabList.scrollWidth - viewport.clientWidth);
+
+      viewport.scrollTo({
+        left: Math.min(Math.max(0, centeredLeft), maxLeft),
+        behavior: "smooth",
+      });
+
+      previousSelectedIndexRef.current = selectedIndex;
+    },
+    [resolvedItems, selectedIndex, selectedItem, variant]
+  );
+
   useLayoutEffect(() => {
     updateIndicator();
-  }, [updateIndicator]);
+    scrollSelectedTabIntoView(true);
+  }, [scrollSelectedTabIntoView, updateIndicator]);
 
   useEffect(() => {
-    if (variant === "settings") return;
+    if (variant === "segmented") return;
 
+    const viewport = tabsViewportRef.current;
     const tabList = tabListRef.current;
 
-    if (!tabList || typeof ResizeObserver === "undefined") return;
+    if (!viewport || !tabList || typeof ResizeObserver === "undefined") return;
 
     const activeTab = selectedItem
       ? document.getElementById(selectedItem.resolvedId)
       : null;
     const resizeObserver = new ResizeObserver(() => {
       updateIndicator();
+      scrollSelectedTabIntoView(true);
     });
 
+    resizeObserver.observe(viewport);
     resizeObserver.observe(tabList);
 
     if (activeTab instanceof HTMLElement) {
@@ -425,7 +536,11 @@ export function Tabs<TValue extends string = string>({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [selectedItem, updateIndicator, variant]);
+  }, [scrollSelectedTabIntoView, selectedItem, updateIndicator, variant]);
+
+  useEffect(() => {
+    previousSelectedIndexRef.current = null;
+  }, [resolvedItems]);
 
   if (items.length === 0) {
     return null;
@@ -450,6 +565,7 @@ export function Tabs<TValue extends string = string>({
       <div className="tabs__content">
         {variant === "settings" ? (
           <div
+            ref={tabsViewportRef}
             className={cn("tabs__list", {
               "tabs__list--segmented": false,
             })}
@@ -462,7 +578,7 @@ export function Tabs<TValue extends string = string>({
             }
           >
             <div
-              ref={tabListRef}
+              ref={setTabListElement}
               role="tablist"
               aria-label={ariaLabel}
               className="tabs__tablist"
@@ -492,7 +608,7 @@ export function Tabs<TValue extends string = string>({
           (() => {
             const tabList = (
               <div
-                ref={tabListRef}
+                ref={setTabListElement}
                 role="tablist"
                 aria-label={ariaLabel}
                 className={cn("tabs__tablist", {
@@ -589,7 +705,11 @@ export function Tabs<TValue extends string = string>({
 
             if (!manageFocusRegion) {
               return (
-                <div className={tabsListClassName} style={tabsListStyle}>
+                <div
+                  ref={tabsViewportRef}
+                  className={tabsListClassName}
+                  style={tabsListStyle}
+                >
                   {tabList}
                 </div>
               );
