@@ -18,7 +18,6 @@ import {
  * or downloads BIOS files; it only detects whether the user has provided one.
  */
 
-const BIOS_EXTENSIONS = new Set([".bin", ".rom"]);
 const SECTION_RE = /^\s*\[([^\]]+)\]\s*$/;
 const DUCKSTATION_DIR_RE = /^\s*SearchDirectory\s*=(.+)$/i;
 const PCSX2_DIR_RE = /^\s*Bios\s*=(.+)$/i;
@@ -104,10 +103,54 @@ export const resolvePs2BiosDirs = async (
   return Array.from(new Set(dirs)).filter((dir) => existsSync(dir));
 };
 
+const PS1_BIOS_SIGNATURE = Buffer.from("Sony Computer Entertainment Inc.");
+const PS2_ROMDIR_RESET = Buffer.from("RESET\0");
+const PS2_ROMDIR_NEXT = Buffer.from("ROMDIR");
+const PS2_ROMDIR_ENTRY_BYTES = 16;
+const PS2_HEADER_BYTES = 0x40000;
+const PS1_HEADER_BYTES = 0x10000;
+
+const fileLooksLikeBios = async (
+  filePath: string,
+  system: "ps1" | "ps2"
+): Promise<boolean> => {
+  let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
+  try {
+    handle = await fs.open(filePath, "r");
+    const length = system === "ps2" ? PS2_HEADER_BYTES : PS1_HEADER_BYTES;
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, 0);
+    const head = buffer.subarray(0, bytesRead);
+
+    if (system === "ps1") return head.includes(PS1_BIOS_SIGNATURE);
+
+    for (
+      let i = head.indexOf(PS2_ROMDIR_RESET);
+      i >= 0;
+      i = head.indexOf(PS2_ROMDIR_RESET, i + 1)
+    ) {
+      const next = i + PS2_ROMDIR_ENTRY_BYTES;
+      if (
+        head
+          .subarray(next, next + PS2_ROMDIR_NEXT.length)
+          .equals(PS2_ROMDIR_NEXT)
+      )
+        return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    await handle?.close();
+  }
+};
+
 const hasPlausibleBios = async (
   dir: string,
-  limits: { min: number; max: number }
+  system: "ps1" | "ps2"
 ): Promise<boolean> => {
+  const limits = SIZE_LIMITS[system];
+
   let entries: import("node:fs").Dirent[];
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
@@ -116,14 +159,20 @@ const hasPlausibleBios = async (
   }
 
   for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    if (!BIOS_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) continue;
+    if (entry.isDirectory()) continue;
+    const filePath = path.join(dir, entry.name);
+
+    let size: number;
     try {
-      const stat = await fs.stat(path.join(dir, entry.name));
-      if (stat.size >= limits.min && stat.size <= limits.max) return true;
+      const stat = await fs.stat(filePath);
+      if (!stat.isFile()) continue;
+      size = stat.size;
     } catch {
-      // unreadable, keep looking
+      continue;
     }
+
+    if (size < limits.min || size > limits.max) continue;
+    if (await fileLooksLikeBios(filePath, system)) return true;
   }
   return false;
 };
@@ -133,7 +182,7 @@ export const isPs1BiosInstalled = async (
 ): Promise<boolean> => {
   const dirs = await resolvePs1BiosDirs(executablePath);
   for (const dir of dirs) {
-    if (await hasPlausibleBios(dir, SIZE_LIMITS.ps1)) return true;
+    if (await hasPlausibleBios(dir, "ps1")) return true;
   }
   return false;
 };
@@ -143,7 +192,7 @@ export const isPs2BiosInstalled = async (
 ): Promise<boolean> => {
   const dirs = await resolvePs2BiosDirs(executablePath);
   for (const dir of dirs) {
-    if (await hasPlausibleBios(dir, SIZE_LIMITS.ps2)) return true;
+    if (await hasPlausibleBios(dir, "ps2")) return true;
   }
   return false;
 };
