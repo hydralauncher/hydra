@@ -83,6 +83,41 @@ export function BigPictureSettingsSection({
     []
   );
 
+  const handleLaunchInBigPictureChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ launchInBigPicture: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleBigPictureSoundsChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureSoundsEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleVirtualKeyboardChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureVirtualKeyboardEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleDiagnosticsEnabledChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureDiagnosticsEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleDiagnosticsPositionChange = useCallback(
+    (position: BigPictureDiagnosticsPosition) => {
+      updateUserPreferences({ bigPictureDiagnosticsPosition: position });
+    },
+    [updateUserPreferences]
+  );
+
   const startupItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
@@ -90,13 +125,10 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
         label: "Launch Hydra in Big Picture",
         checked: form.launchInBigPicture,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            launchInBigPicture: checked,
-          }),
+        onChange: handleLaunchInBigPictureChange,
       },
     ];
-  }, [form.launchInBigPicture, updateUserPreferences]);
+  }, [form.launchInBigPicture, handleLaunchInBigPictureChange]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -105,13 +137,10 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
         label: "Enable virtual keyboard",
         checked: form.bigPictureVirtualKeyboardEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureVirtualKeyboardEnabled: checked,
-          }),
+        onChange: handleVirtualKeyboardChange,
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled, updateUserPreferences]);
+  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -120,13 +149,10 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
         label: "Enable Big Picture sounds",
         checked: form.bigPictureSoundsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureSoundsEnabled: checked,
-          }),
+        onChange: handleBigPictureSoundsChange,
       },
     ];
-  }, [form.bigPictureSoundsEnabled, updateUserPreferences]);
+  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -135,13 +161,10 @@ export function BigPictureSettingsSection({
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableDiagnostics,
         label: "Enable diagnostics",
         checked: form.bigPictureDiagnosticsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureDiagnosticsEnabled: checked,
-          }),
+        onChange: handleDiagnosticsEnabledChange,
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled, updateUserPreferences]);
+  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
@@ -438,11 +461,7 @@ export function BigPictureSettingsSection({
               disabled={!form.bigPictureDiagnosticsEnabled}
               focusId={BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID}
               focusNavigationOverrides={diagnosticsSelectNavigationOverrides}
-              onValueChange={(value) => {
-                void updateUserPreferences({
-                  bigPictureDiagnosticsPosition: value,
-                });
-              }}
+              onValueChange={handleDiagnosticsPositionChange}
             />
           </div>
         </VerticalFocusGroup>
