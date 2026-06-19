@@ -63,9 +63,7 @@ const PICK_FILTERS: Record<
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
 
-function emulationSaveToArtifact(
-  save: EmulationCloudSave
-): GameArtifact {
+function emulationSaveToArtifact(save: EmulationCloudSave): GameArtifact {
   return {
     id: save.id,
     artifactLengthInBytes: save.artifactLengthInBytes,
@@ -191,9 +189,7 @@ function EmulationRestoreModal({
                   <button
                     type="button"
                     className={`emu-save-modal__target${
-                      isSelected
-                        ? " emu-save-modal__target--selected"
-                        : ""
+                      isSelected ? " emu-save-modal__target--selected" : ""
                     }`}
                     onClick={() => setSelectedTarget(target.cardFilePath)}
                   >
@@ -362,9 +358,7 @@ export function GameCloudSettingsTab({
           .catch(() => [] as EmulationCloudSave[]),
         localPromise,
       ]);
-      const filtered = saves.filter(
-        (s) => s.objectId === game.objectId
-      );
+      const filtered = saves.filter((s) => s.objectId === game.objectId);
       setEmulationSaves(filtered);
       setArtifacts(filtered.map(emulationSaveToArtifact));
       setRecords(local);
@@ -506,7 +500,13 @@ export function GameCloudSettingsTab({
       setCreatingBackup(false);
       showErrorToast("Cloud backup failed");
     }
-  }, [creatingBackup, game.objectId, game.shop, showErrorToast, isEmulationGame]);
+  }, [
+    creatingBackup,
+    game.objectId,
+    game.shop,
+    showErrorToast,
+    isEmulationGame,
+  ]);
 
   const handleRestoreArtifact = useCallback(
     async (artifactId: string) => {
@@ -614,7 +614,10 @@ export function GameCloudSettingsTab({
                 return (
                   <div key={key} className="game-cloud-settings-tab__save-card">
                     <div className="game-cloud-settings-tab__save-copy">
-                      <p className="game-cloud-settings-tab__save-title" title={record.title ?? record.folderName}>
+                      <p
+                        className="game-cloud-settings-tab__save-title"
+                        title={record.title ?? record.folderName}
+                      >
                         {record.title ?? record.folderName}
                       </p>
                       <p className="game-cloud-settings-tab__save-info">
@@ -629,7 +632,13 @@ export function GameCloudSettingsTab({
                           className="game-cloud-settings-tab__save-restore-button"
                           loading={uploading}
                           disabled={uploading}
-                          icon={uploading ? <SpinnerIcon size={20} /> : <UploadSimpleIcon size={20} weight="bold" />}
+                          icon={
+                            uploading ? (
+                              <SpinnerIcon size={20} />
+                            ) : (
+                              <UploadSimpleIcon size={20} weight="bold" />
+                            )
+                          }
                           onClick={() => handleUploadCard(record)}
                         >
                           {uploading ? "Uploading..." : t("create_backup")}
