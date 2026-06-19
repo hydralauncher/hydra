@@ -34,7 +34,9 @@ import {
 import {
   EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID,
   EMULATION_DETAIL_CLOUD_SAVES_REGION_ID,
+  getEmulationCloudRestoreButtonNavigationOverrides,
   getEmulationCloudMenuFocusId,
+  getEmulationCloudRestoreTargetNavigationOverrides,
   getEmulationCloudRestoreTargetFocusId,
 } from "../settings-navigation";
 import { SETTINGS_TOAST_OPTIONS, basename } from "./shared";
@@ -208,37 +210,19 @@ function RestoreModal({
                 target.cardFilePath
               );
               const isSelected = selectedTarget === target.cardFilePath;
-              const isFirstTarget =
-                targets[0]?.cardFilePath === target.cardFilePath;
-              const isLastTarget =
-                targets[targets.length - 1]?.cardFilePath ===
-                target.cardFilePath;
 
               return (
                 <FocusItem
                   key={target.cardFilePath}
                   id={targetId}
-                  navigationOverrides={
-                    isFirstTarget || isLastTarget
-                      ? {
-                          ...(isFirstTarget
-                            ? {
-                                up: {
-                                  type: "block" as const,
-                                },
-                              }
-                            : {}),
-                          ...(isLastTarget
-                            ? {
-                                down: {
-                                  type: "item" as const,
-                                  itemId: RESTORE_MODAL_PICK_BUTTON_ID,
-                                },
-                              }
-                            : {}),
-                        }
-                      : undefined
-                  }
+                  navigationOverrides={getEmulationCloudRestoreTargetNavigationOverrides(
+                    {
+                      cardFilePath: target.cardFilePath,
+                      firstCardFilePath: targets[0]?.cardFilePath,
+                      lastCardFilePath: targets[targets.length - 1]?.cardFilePath,
+                      pickButtonId: RESTORE_MODAL_PICK_BUTTON_ID,
+                    }
+                  )}
                   asChild
                 >
                   <button
@@ -267,17 +251,9 @@ function RestoreModal({
         >
           <Button
             focusId={RESTORE_MODAL_PICK_BUTTON_ID}
-            focusNavigationOverrides={
+            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
               selectedTarget
-                ? {
-                    up: {
-                      type: "item",
-                      itemId:
-                        getEmulationCloudRestoreTargetFocusId(selectedTarget),
-                    },
-                  }
-                : undefined
-            }
+            )}
             variant="secondary"
             disabled={isBusy}
             onClick={() => {
@@ -288,17 +264,9 @@ function RestoreModal({
           </Button>
           <Button
             focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
-            focusNavigationOverrides={
+            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
               selectedTarget
-                ? {
-                    up: {
-                      type: "item",
-                      itemId:
-                        getEmulationCloudRestoreTargetFocusId(selectedTarget),
-                    },
-                  }
-                : undefined
-            }
+            )}
             loading={isBusy}
             disabled={!selectedTarget}
             onClick={() => {
