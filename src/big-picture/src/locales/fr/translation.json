@@ -705,6 +705,11 @@
     "download_options_unavailable_one": "{{count}} option de téléchargement n'est plus disponible.",
     "download_options_unavailable_other": "{{count}} options de téléchargement ne sont plus disponibles.",
     "download_sources_removed_one": "{{count}} source de téléchargement a été supprimée",
-    "download_sources_removed_other": "{{count}} sources de téléchargement ont été supprimées"
+    "download_sources_removed_other": "{{count}} sources de téléchargement ont été supprimées",
+    "edit_game_modal_section_title": "Titre du jeu",
+    "edit_game_modal_section_title_description": "Modifiez le titre affiché pour ce jeu dans votre bibliothèque.",
+    "edit_game_modal_section_assets_description": "Choisissez quel visuel vous voulez personnaliser pour ce jeu.",
+    "edit_game_modal_remove_asset": "Supprimer l'illustration personnalisée",
+    "edit_game_no_backups": "Aucune sauvegarde"
   }
 }

@@ -721,6 +721,11 @@
     "download_sources_removed_one": "{{count}} источник загрузок удален",
     "download_sources_removed_few": "{{count}} источника загрузок удалены",
     "download_sources_removed_many": "{{count}} источников загрузок удалены",
-    "download_sources_removed_other": "{{count}} источника загрузок удалены"
+    "download_sources_removed_other": "{{count}} источника загрузок удалены",
+    "edit_game_modal_section_title": "Название игры",
+    "edit_game_modal_section_title_description": "Измените название, которое отображается для этой игры в вашей библиотеке.",
+    "edit_game_modal_section_assets_description": "Выберите, какое оформление вы хотите настроить для этой игры.",
+    "edit_game_modal_remove_asset": "Удалить пользовательское изображение",
+    "edit_game_no_backups": "Нет резервных копий"
   }
 }

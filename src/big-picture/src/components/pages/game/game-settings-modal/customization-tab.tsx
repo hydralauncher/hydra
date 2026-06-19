@@ -195,8 +195,8 @@ export function GameCustomizationSettingsTab({
     <VerticalFocusGroup className="game-customization-settings-tab">
       <SettingsSection
         className="game-customization-settings-tab__section"
-        title={t("Game Title")}
-        description={t("Edit the title shown for this game in your library.")}
+        title={t("edit_game_modal_section_title")}
+        description={t("edit_game_modal_section_title_description")}
       >
         <div className="game-customization-settings-tab__section-content">
           <Input
@@ -215,9 +215,7 @@ export function GameCustomizationSettingsTab({
       <SettingsSection
         className="game-customization-settings-tab__section game-customization-settings-tab__section--assets"
         title={t("edit_game_modal_assets")}
-        description={t(
-          "Choose which artwork you want to customize for this game."
-        )}
+        description={t("edit_game_modal_section_assets_description")}
       >
         <div className="game-customization-settings-tab__section-content game-customization-settings-tab__section-content--assets">
           <Tabs
@@ -250,7 +248,7 @@ export function GameCustomizationSettingsTab({
                 }}
                 aria-label={
                   hasCustomAsset
-                    ? "Remove custom asset"
+                    ? t("edit_game_modal_remove_asset")
                     : t("edit_game_modal_assets")
                 }
               >

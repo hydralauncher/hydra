@@ -1,5 +1,5 @@
 import {
-  Cloud,
+  CloudIcon,
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
 } from "@phosphor-icons/react";
@@ -88,8 +88,8 @@ export function CloudSavesList({
   if (artifacts.length === 0) {
     return (
       <EmptyState
-        icon={<Cloud size={32} />}
-        title={t("No backups")}
+        icon={<CloudIcon size={32} />}
+        title={t("edit_game_no_backups")}
         description={t("no_backups")}
       />
     );

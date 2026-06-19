@@ -487,6 +487,8 @@
     "settings_category_locations": "Localizações",
     "settings_category_general_description": "Executable path, launch options, and shortcuts",
     "settings_category_assets_description": "Customize game title, icon, logo, and hero artwork",
+    "settings_category_customization": "Customization",
+    "settings_category_launch": "Launch",
     "settings_category_hydra_cloud_description": "Configure cloud sync behavior for this game",
     "settings_category_compatibility_description": "Linux compatibility settings including Wine and Proton",
     "settings_category_downloads_description": "Manage download options and installation files",
