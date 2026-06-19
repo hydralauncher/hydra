@@ -51,7 +51,9 @@ function normalizeIdSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
-function getFirstEnabledTab<TabId extends string>(tabs: SidebarModalTab<TabId>[]) {
+function getFirstEnabledTab<TabId extends string>(
+  tabs: SidebarModalTab<TabId>[]
+) {
   return tabs.find((tab) => !tab.disabled) ?? tabs[0] ?? null;
 }
 
@@ -86,8 +88,9 @@ export function SidebarModal<TabId extends string = string>({
   const firstEnabledTab = useMemo(() => getFirstEnabledTab(tabs), [tabs]);
   const initialTabId =
     defaultActiveTabId ?? activeTabId ?? firstEnabledTab?.id ?? "";
-  const [internalActiveTabId, setInternalActiveTabId] =
-    useState<TabId | "">(initialTabId);
+  const [internalActiveTabId, setInternalActiveTabId] = useState<TabId | "">(
+    initialTabId
+  );
   const [activeTabMetrics, setActiveTabMetrics] =
     useState<ActiveTabMetrics | null>(null);
   const [highlightedTabId, setHighlightedTabId] = useState<string | null>(null);
