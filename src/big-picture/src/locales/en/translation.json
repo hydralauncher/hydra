@@ -701,6 +701,7 @@
     "backup_info_unknown_device": "Unknown device",
     "freeze_backup": "Freeze backup",
     "unfreeze_backup": "Unfreeze backup",
+    "game_options": "Game Options",
     "delete_backup": "Delete backup",
     "cloud_backup_options": "Backup options",
     "uploading_backup": "Uploading backup…",
