@@ -627,7 +627,7 @@ export function GameCloudSettingsTab({
                     <HorizontalFocusGroup asChild>
                       <div className="game-cloud-settings-tab__save-actions">
                         <Button
-                          focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
+                          focusId={`${GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}-${key}`}
                           variant="secondary"
                           className="game-cloud-settings-tab__save-restore-button"
                           loading={uploading}
