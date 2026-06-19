@@ -1,4 +1,4 @@
-import type { FocusOverrideTarget } from "../../services";
+import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import { getItemFocusTarget } from "../../helpers";
 import {
   BIG_PICTURE_HEADER_REGION_ID,
@@ -234,4 +234,56 @@ export function getEmulationCloudMenuFocusId(saveId: string) {
 
 export function getEmulationCloudRestoreTargetFocusId(cardFilePath: string) {
   return `emulation-cloud-restore-target-${sanitizeEmulationFocusToken(cardFilePath)}`;
+}
+
+export function getEmulationCloudRestoreTargetNavigationOverrides({
+  cardFilePath,
+  firstCardFilePath,
+  lastCardFilePath,
+  pickButtonId,
+}: {
+  cardFilePath: string;
+  firstCardFilePath?: string;
+  lastCardFilePath?: string;
+  pickButtonId: string;
+}): FocusOverrides | undefined {
+  const isFirstTarget = firstCardFilePath === cardFilePath;
+  const isLastTarget = lastCardFilePath === cardFilePath;
+
+  if (!isFirstTarget && !isLastTarget) {
+    return undefined;
+  }
+
+  return {
+    ...(isFirstTarget
+      ? {
+          up: {
+            type: "block" as const,
+          },
+        }
+      : {}),
+    ...(isLastTarget
+      ? {
+          down: {
+            type: "item" as const,
+            itemId: pickButtonId,
+          },
+        }
+      : {}),
+  };
+}
+
+export function getEmulationCloudRestoreButtonNavigationOverrides(
+  selectedTarget: string | null
+): FocusOverrides | undefined {
+  if (!selectedTarget) {
+    return undefined;
+  }
+
+  return {
+    up: {
+      type: "item",
+      itemId: getEmulationCloudRestoreTargetFocusId(selectedTarget),
+    },
+  };
 }

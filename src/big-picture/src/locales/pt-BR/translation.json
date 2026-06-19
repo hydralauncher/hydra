@@ -701,6 +701,7 @@
     "backup_info_unknown_device": "Dispositivo desconhecido",
     "freeze_backup": "Fixar backup",
     "unfreeze_backup": "Desafixar backup",
+    "game_options": "Opções do jogo",
     "delete_backup": "Excluir backup",
     "cloud_backup_options": "Opções do backup",
     "cloud_delete_backup_description": "Excluir dos seus backups na nuvem?",

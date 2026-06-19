@@ -693,6 +693,7 @@
     "backup_info_unknown_device": "Appareil inconnu",
     "freeze_backup": "Épingler la sauvegarde",
     "unfreeze_backup": "Désépingler la sauvegarde",
+    "game_options": "Options du jeu",
     "delete_backup": "Supprimer la sauvegarde",
     "cloud_backup_options": "Options de sauvegarde",
     "cloud_delete_backup_description": "Supprimer de vos sauvegardes cloud ?"
