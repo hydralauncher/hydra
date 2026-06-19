@@ -1,7 +1,7 @@
 import "./big-picture.scss";
 
 import type { BigPictureDiagnosticsPosition } from "@types";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Checkbox, DropdownSelect, VerticalFocusGroup } from "../../components";
 import type { DropdownSelectOption } from "../../components/common/dropdown-select";
@@ -74,12 +74,14 @@ export function BigPictureSettingsSection({
     });
   }, [userPreferences]);
 
-  const updateUserPreferences = async (values: Partial<BigPictureForm>) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<BigPictureForm>) => {
+      setForm((current) => ({ ...current, ...values }));
 
-    await globalThis.window.electron.updateUserPreferences(values);
-  };
+      await globalThis.window.electron.updateUserPreferences(values);
+    },
+    []
+  );
 
   const startupItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -94,7 +96,7 @@ export function BigPictureSettingsSection({
           }),
       },
     ];
-  }, [form.launchInBigPicture]);
+  }, [form.launchInBigPicture, updateUserPreferences]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -109,7 +111,7 @@ export function BigPictureSettingsSection({
           }),
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled]);
+  }, [form.bigPictureVirtualKeyboardEnabled, updateUserPreferences]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -124,7 +126,7 @@ export function BigPictureSettingsSection({
           }),
       },
     ];
-  }, [form.bigPictureSoundsEnabled]);
+  }, [form.bigPictureSoundsEnabled, updateUserPreferences]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -139,7 +141,7 @@ export function BigPictureSettingsSection({
           }),
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled]);
+  }, [form.bigPictureDiagnosticsEnabled, updateUserPreferences]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
