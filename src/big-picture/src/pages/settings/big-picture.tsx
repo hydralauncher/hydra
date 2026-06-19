@@ -2,6 +2,7 @@ import "./big-picture.scss";
 
 import type { BigPictureDiagnosticsPosition } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Checkbox, DropdownSelect, VerticalFocusGroup } from "../../components";
 import type { DropdownSelectOption } from "../../components/common/dropdown-select";
@@ -46,16 +47,19 @@ const DEFAULT_FORM: BigPictureForm = {
   bigPictureDiagnosticsPosition: "bottom-center",
 };
 
-function getPositionLabel(position: BigPictureDiagnosticsPosition) {
-  return position
-    .split("-")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
+function getPositionLabel(
+  position: BigPictureDiagnosticsPosition,
+  t: (key: string) => string
+) {
+  return t(
+    `settings_diagnostics_position_${position.replace(/-/g, "_")}`
+  );
 }
 
 export function BigPictureSettingsSection({
   className,
 }: Readonly<BigPictureSettingsSectionProps>) {
+  const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
 
@@ -123,7 +127,7 @@ export function BigPictureSettingsSection({
       {
         id: "launch-in-big-picture",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
-        label: "Launch Hydra in Big Picture",
+        label: t("settings_launch_in_big_picture"),
         checked: form.launchInBigPicture,
         onChange: handleLaunchInBigPictureChange,
       },
@@ -135,7 +139,7 @@ export function BigPictureSettingsSection({
       {
         id: "enable-virtual-keyboard",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
-        label: "Enable virtual keyboard",
+        label: t("settings_enable_virtual_keyboard"),
         checked: form.bigPictureVirtualKeyboardEnabled,
         onChange: handleVirtualKeyboardChange,
       },
@@ -147,7 +151,7 @@ export function BigPictureSettingsSection({
       {
         id: "enable-big-picture-sounds",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
-        label: "Enable Big Picture sounds",
+        label: t("settings_enable_big_picture_sounds"),
         checked: form.bigPictureSoundsEnabled,
         onChange: handleBigPictureSoundsChange,
       },
@@ -159,7 +163,7 @@ export function BigPictureSettingsSection({
       {
         id: "enable-diagnostics",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableDiagnostics,
-        label: "Enable diagnostics",
+        label: t("settings_enable_diagnostics"),
         checked: form.bigPictureDiagnosticsEnabled,
         onChange: handleDiagnosticsEnabledChange,
       },
@@ -180,7 +184,7 @@ export function BigPictureSettingsSection({
       ] as BigPictureDiagnosticsPosition[]
     ).map((position) => ({
       value: position,
-      label: getPositionLabel(position),
+      label: getPositionLabel(position, t),
     }));
   }, []);
 
@@ -352,8 +356,8 @@ export function BigPictureSettingsSection({
       }
     >
       <SettingsSection
-        title="Startup"
-        description="Choose how Hydra should start when Big Picture mode is available."
+        title={t("settings_startup_section_title")}
+        description={t("settings_startup_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_STARTUP_SECTION_REGION_ID}
@@ -379,8 +383,8 @@ export function BigPictureSettingsSection({
       </SettingsSection>
 
       <SettingsSection
-        title="Audio"
-        description="Choose whether Big Picture should play navigation sounds."
+        title={t("settings_audio_section_title")}
+        description={t("settings_audio_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_AUDIO_SECTION_REGION_ID}
@@ -406,8 +410,8 @@ export function BigPictureSettingsSection({
       </SettingsSection>
 
       <SettingsSection
-        title="Input"
-        description="Choose how Big Picture should handle on-screen keyboard input."
+        title={t("settings_input_section_title")}
+        description={t("settings_input_section_description")}
       >
         <VerticalFocusGroup regionId={BIG_PICTURE_SECTION_REGION_ID} asChild>
           <div className="big-picture-settings-section__content">
@@ -430,8 +434,8 @@ export function BigPictureSettingsSection({
       </SettingsSection>
 
       <SettingsSection
-        title="Diagnostics"
-        description="Choose whether Big Picture should expose navigation diagnostics."
+        title={t("settings_diagnostics_section_title")}
+        description={t("settings_diagnostics_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID}
@@ -455,7 +459,7 @@ export function BigPictureSettingsSection({
 
             <DropdownSelect
               className="big-picture-settings-section__select"
-              label="Diagnostics position"
+              label={t("settings_diagnostics_position")}
               value={form.bigPictureDiagnosticsPosition}
               options={diagnosticsPositionOptions}
               disabled={!form.bigPictureDiagnosticsEnabled}

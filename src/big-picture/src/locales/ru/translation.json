@@ -726,6 +726,25 @@
     "edit_game_modal_section_title_description": "Измените название, которое отображается для этой игры в вашей библиотеке.",
     "edit_game_modal_section_assets_description": "Выберите, какое оформление вы хотите настроить для этой игры.",
     "edit_game_modal_remove_asset": "Удалить пользовательское изображение",
-    "edit_game_no_backups": "Нет резервных копий"
+    "edit_game_no_backups": "Нет резервных копий",
+    "settings_startup_section_title": "Запуск",
+    "settings_startup_section_description": "Выберите, как Hydra должен запускаться в режиме Big Picture.",
+    "settings_audio_section_title": "Звук",
+    "settings_audio_section_description": "Выберите, должен ли Big Picture воспроизводить звуки навигации.",
+    "settings_input_section_title": "Ввод",
+    "settings_input_section_description": "Выберите, как Big Picture должен обрабатывать ввод с экранной клавиатуры.",
+    "settings_diagnostics_section_title": "Диагностика",
+    "settings_diagnostics_section_description": "Выберите, должен ли Big Picture показывать диагностику навигации.",
+    "settings_launch_in_big_picture": "Запускать Hydra в Big Picture",
+    "settings_enable_virtual_keyboard": "Включить виртуальную клавиатуру",
+    "settings_enable_big_picture_sounds": "Включить звуки Big Picture",
+    "settings_enable_diagnostics": "Включить диагностику",
+    "settings_diagnostics_position": "Положение диагностики",
+    "settings_diagnostics_position_top_left": "Сверху слева",
+    "settings_diagnostics_position_top_center": "Сверху по центру",
+    "settings_diagnostics_position_top_right": "Сверху справа",
+    "settings_diagnostics_position_bottom_left": "Снизу слева",
+    "settings_diagnostics_position_bottom_center": "Снизу по центру",
+    "settings_diagnostics_position_bottom_right": "Снизу справа"
   }
 }
