@@ -804,8 +804,27 @@
     transform: rotate(90deg);
   }
 
-  &__cloud-card-title {
+  &__cloud-card-title-row {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__cloud-card-flag {
+    width: 20px;
+    height: auto;
+    border-radius: 2px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+
+  &__cloud-card-title {
+    flex: 0 1 auto;
+    min-width: 0;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.18px;
