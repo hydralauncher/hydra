@@ -123,12 +123,12 @@ export function GameSettingsModal({
     () => [
       {
         id: "launch",
-        label: "Launch",
+        label: t("settings_category_launch"),
         content: launchContent,
       },
       {
         id: "customization",
-        label: "Customization",
+        label: t("settings_category_customization"),
         content: customizationContent,
       },
       ...(shouldShowCloudTab

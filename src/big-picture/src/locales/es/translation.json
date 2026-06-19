@@ -713,6 +713,11 @@
     "download_options_unavailable_one": "{{count}} opción de descarga ya no está disponible.",
     "download_options_unavailable_other": "{{count}} opciones de descarga ya no están disponibles.",
     "download_sources_removed_one": "Se eliminó {{count}} fuente de descarga",
-    "download_sources_removed_other": "Se eliminaron {{count}} fuentes de descarga"
+    "download_sources_removed_other": "Se eliminaron {{count}} fuentes de descarga",
+    "edit_game_modal_section_title": "Título del juego",
+    "edit_game_modal_section_title_description": "Edita el título que se muestra para este juego en tu biblioteca.",
+    "edit_game_modal_section_assets_description": "Elige qué arte quieres personalizar para este juego.",
+    "edit_game_modal_remove_asset": "Eliminar arte personalizada",
+    "edit_game_no_backups": "Sin copias de seguridad"
   }
 }

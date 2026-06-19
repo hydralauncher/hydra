@@ -542,6 +542,8 @@
     "settings_category_general_description": "Caminho do executável, opções de inicialização e atalhos",
     "settings_category_assets": "Recursos",
     "settings_category_assets_description": "Personalize o título, ícone, logo e imagem hero do jogo",
+    "settings_category_customization": "Personalização",
+    "settings_category_launch": "Inicialização",
     "settings_category_hydra_cloud": "Hydra Cloud",
     "settings_category_hydra_cloud_description": "Configure o comportamento da sincronização na nuvem para este jogo",
     "settings_category_compatibility": "Compatibilidade",

@@ -724,6 +724,11 @@
     "reset_achievements": "Reset achievements",
     "reset_achievements_description": "Your achievements for {{game}} will be deleted locally and in the cloud",
     "remove_game_files": "Remove game files",
-    "remove_game_files_description": "The downloaded files for {{game}} will be deleted"
+    "remove_game_files_description": "The downloaded files for {{game}} will be deleted",
+    "edit_game_modal_section_title": "Game Title",
+    "edit_game_modal_section_title_description": "Edit the title shown for this game in your library.",
+    "edit_game_modal_section_assets_description": "Choose which artwork you want to customize for this game.",
+    "edit_game_modal_remove_asset": "Remove custom asset",
+    "edit_game_no_backups": "No backups"
   }
 }
