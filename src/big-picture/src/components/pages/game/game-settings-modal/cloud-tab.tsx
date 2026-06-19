@@ -186,16 +186,31 @@ function EmulationRestoreModal({
               const isSelected = selectedTarget === target.cardFilePath;
               const isFirstTarget =
                 targets[0]?.cardFilePath === target.cardFilePath;
+              const isLastTarget =
+                targets[targets.length - 1]?.cardFilePath ===
+                target.cardFilePath;
               return (
                 <FocusItem
                   key={target.cardFilePath}
                   id={targetId}
                   navigationOverrides={
-                    isFirstTarget
+                    isFirstTarget || isLastTarget
                       ? {
-                          up: {
-                            type: "block",
-                          },
+                          ...(isFirstTarget
+                            ? {
+                                up: {
+                                  type: "block" as const,
+                                },
+                              }
+                            : {}),
+                          ...(isLastTarget
+                            ? {
+                                down: {
+                                  type: "item" as const,
+                                  itemId: RESTORE_MODAL_PICK_BUTTON_ID,
+                                },
+                              }
+                            : {}),
                         }
                       : undefined
                   }
