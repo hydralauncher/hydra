@@ -373,7 +373,6 @@ export function SidebarModal<TabId extends string = string>({
                             onClick={() => setActiveTab(tab.id)}
                             onFocus={() => {
                               if (!tab.disabled) {
-                                setActiveTab(tab.id);
                                 setHighlightedTabId(tab.id);
                               }
                             }}

@@ -232,6 +232,7 @@ export function ContextMenu({
       >
         <div
           ref={floatingRef}
+          data-hydra-modal-owned-overlay
           className={cn("context-menu", className)}
           role="menu"
           aria-label={ariaLabel}

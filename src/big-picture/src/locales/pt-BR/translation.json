@@ -703,7 +703,7 @@
     "unfreeze_backup": "Desafixar backup",
     "delete_backup": "Excluir backup",
     "cloud_backup_options": "Opções do backup",
-    "cloud_delete_backup_description": "Excluir {{name}} dos seus backups na nuvem?",
+    "cloud_delete_backup_description": "Excluir dos seus backups na nuvem?",
     "uploading_backup": "Fazendo upload do backup…",
     "restoring_backup": "Restaurando backup ({{progress}} concluído)…",
     "loading_save_preview": "Procurando arquivos de salvamento…",

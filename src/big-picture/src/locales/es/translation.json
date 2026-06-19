@@ -703,7 +703,7 @@
     "unfreeze_backup": "Desfijar copia",
     "delete_backup": "Eliminar copia",
     "cloud_backup_options": "Opciones de la copia",
-    "cloud_delete_backup_description": "¿Eliminar {{name}} de tus copias en la nube?"
+    "cloud_delete_backup_description": "¿Eliminar de tus copias en la nube?"
   },
   "format": {
     "playtime_hours_one": "{{count}} hora",

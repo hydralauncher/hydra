@@ -1,9 +1,29 @@
-import { CloudIcon } from "@phosphor-icons/react";
-import type { GameArtifact, LibraryGame, LudusaviBackup } from "@types";
+import {
+  CloudIcon,
+  SpinnerIcon,
+  UploadSimpleIcon,
+} from "@phosphor-icons/react";
+import type {
+  EmulationCloudSave,
+  EmulationSavePlatform,
+  GameArtifact,
+  LibraryGame,
+  LudusaviBackup,
+  MemcardRestoreTarget,
+  MemoryCardSaveRecord,
+} from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Checkbox, VerticalFocusGroup } from "../../../common";
-import { useBigPictureToast } from "../../../../hooks";
+import { platformToSystem } from "@renderer/helpers";
+import {
+  Button,
+  Checkbox,
+  FocusItem,
+  HorizontalFocusGroup,
+  Modal,
+  VerticalFocusGroup,
+} from "../../../common";
+import { useBigPictureToast, useNavigation } from "../../../../hooks";
 import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { CloudSavesList } from "./cloud-saves-list";
@@ -24,6 +44,194 @@ function formatDownloadProgress(progress: number): string {
   return `${Math.round(progress * 100)}%`;
 }
 
+const RESTORE_MODAL_REGION_ID = "emu-saves-restore-modal-region";
+const RESTORE_MODAL_ACTIONS_REGION_ID = "emu-saves-restore-modal-actions";
+const RESTORE_MODAL_PICK_BUTTON_ID = "emu-saves-restore-pick-button";
+const RESTORE_MODAL_CONFIRM_BUTTON_ID = "emu-saves-restore-confirm";
+
+const PICK_FILTERS: Record<
+  EmulationSavePlatform,
+  { name: string; extensions: string[] }
+> = {
+  ps1: {
+    name: "PS1 Memory Card",
+    extensions: ["mcd", "mcr", "mc", "gme", "vgs", "vmp"],
+  },
+  ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
+};
+
+const recordKey = (record: MemoryCardSaveRecord): string =>
+  `${record.cardFilePath}::${record.folderName}`;
+
+function emulationSaveToArtifact(
+  save: EmulationCloudSave
+): GameArtifact {
+  return {
+    id: save.id,
+    artifactLengthInBytes: save.artifactLengthInBytes,
+    downloadOptionTitle: save.fileName,
+    createdAt: save.createdAt,
+    updatedAt: save.updatedAt,
+    hostname: save.hostname ?? "—",
+    downloadCount: 0,
+    label: save.label ?? undefined,
+    isFrozen: false,
+  };
+}
+
+function EmulationRestoreModal({
+  save,
+  platform,
+  onClose,
+  onRestored,
+}: Readonly<{
+  save: EmulationCloudSave | null;
+  platform: EmulationSavePlatform;
+  onClose: () => void;
+  onRestored: () => void;
+}>) {
+  const { t } = useTranslation("settings");
+  const { setFocus } = useNavigation();
+  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
+  const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+
+  useEffect(() => {
+    if (!save) return;
+    void globalThis.window.electron
+      .getMemcardRestoreTargets(platform)
+      .then((foundTargets) => {
+        setTargets(foundTargets);
+        setSelectedTarget(foundTargets[0]?.cardFilePath ?? null);
+      });
+  }, [platform, save]);
+
+  useEffect(() => {
+    if (!save) return;
+    const frameId = globalThis.window.requestAnimationFrame(() => {
+      setFocus(
+        selectedTarget
+          ? `emu-saves-target-${selectedTarget}`
+          : RESTORE_MODAL_PICK_BUTTON_ID
+      );
+    });
+    return () => globalThis.window.cancelAnimationFrame(frameId);
+  }, [save, selectedTarget, setFocus]);
+
+  const handlePickFile = useCallback(async () => {
+    const result = await globalThis.window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [PICK_FILTERS[platform]],
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+    const chosenPath = result.filePaths[0];
+    setTargets((current) =>
+      current.some((t) => t.cardFilePath === chosenPath)
+        ? current
+        : [
+            ...current,
+            {
+              cardFilePath: chosenPath,
+              cardLabel: chosenPath.split("/").pop() ?? chosenPath,
+            },
+          ]
+    );
+    setSelectedTarget(chosenPath);
+  }, [platform]);
+
+  const handleRestore = useCallback(async () => {
+    if (!save || !selectedTarget) return;
+    setIsBusy(true);
+    try {
+      const result = await globalThis.window.electron.restoreEmulationSave(
+        platform,
+        save.id,
+        selectedTarget
+      );
+      if (result.ok) {
+        showSuccessToast("Cloud save restored");
+        onRestored();
+        onClose();
+      } else {
+        showErrorToast("Failed to restore cloud save");
+      }
+    } finally {
+      setIsBusy(false);
+    }
+  }, [
+    onClose,
+    onRestored,
+    platform,
+    save,
+    selectedTarget,
+    showErrorToast,
+    showSuccessToast,
+  ]);
+
+  return (
+    <Modal
+      visible={save !== null}
+      title={t("cloud_restore_title")}
+      description={t("cloud_restore_description")}
+      onClose={onClose}
+    >
+      <VerticalFocusGroup regionId={RESTORE_MODAL_REGION_ID}>
+        <div className="emu-save-modal__targets">
+          {targets.length === 0 ? (
+            <div className="emu-save-modal__empty">
+              {t("cloud_restore_no_cards")}
+            </div>
+          ) : (
+            targets.map((target) => {
+              const targetId = `emu-saves-target-${target.cardFilePath}`;
+              const isSelected = selectedTarget === target.cardFilePath;
+              return (
+                <FocusItem key={target.cardFilePath} id={targetId} asChild>
+                  <button
+                    type="button"
+                    className={`emu-save-modal__target${
+                      isSelected
+                        ? " emu-save-modal__target--selected"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedTarget(target.cardFilePath)}
+                  >
+                    <span className="emu-save-modal__target-name">
+                      {target.cardLabel}
+                    </span>
+                    <span className="emu-save-modal__target-path">
+                      {target.cardFilePath}
+                    </span>
+                  </button>
+                </FocusItem>
+              );
+            })
+          )}
+        </div>
+        <HorizontalFocusGroup regionId={RESTORE_MODAL_ACTIONS_REGION_ID}>
+          <Button
+            focusId={RESTORE_MODAL_PICK_BUTTON_ID}
+            variant="secondary"
+            disabled={isBusy}
+            onClick={handlePickFile}
+          >
+            {t("cloud_restore_pick_file")}
+          </Button>
+          <Button
+            focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
+            loading={isBusy}
+            disabled={!selectedTarget}
+            onClick={handleRestore}
+          >
+            {t("cloud_restore_confirm")}
+          </Button>
+        </HorizontalFocusGroup>
+      </VerticalFocusGroup>
+    </Modal>
+  );
+}
+
 export function GameCloudSettingsTab({
   game,
   automaticCloudSync,
@@ -32,7 +240,15 @@ export function GameCloudSettingsTab({
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
+
+  const system =
+    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
+  const isEmulationGame = system === "ps1" || system === "ps2";
+
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
+  const [emulationSaves, setEmulationSaves] = useState<EmulationCloudSave[]>(
+    []
+  );
   const [loadingArtifacts, setLoadingArtifacts] = useState(true);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [restoringArtifactId, setRestoringArtifactId] = useState<string | null>(
@@ -51,6 +267,21 @@ export function GameCloudSettingsTab({
   const [backupDownloadProgress, setBackupDownloadProgress] = useState<
     number | null
   >(null);
+  const [emulationRestoreTarget, setEmulationRestoreTarget] =
+    useState<EmulationCloudSave | null>(null);
+  const [records, setRecords] = useState<MemoryCardSaveRecord[]>([]);
+  const [uploadingCardKey, setUploadingCardKey] = useState<string | null>(null);
+
+  const localSaves = useMemo(
+    () => records.filter((r) => r.objectId === game.objectId),
+    [records, game.objectId]
+  );
+  const hasLocalSaves = localSaves.length > 0;
+  const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const backupsPerGameLimit = userDetails?.quirks?.backupsPerGameLimit ?? 0;
   const hasReachedLimit =
@@ -119,6 +350,28 @@ export function GameCloudSettingsTab({
   const loadArtifacts = useCallback(async () => {
     setLoadingArtifacts(true);
 
+    if (isEmulationGame) {
+      const platform = system;
+      const localPromise =
+        platform === "ps2"
+          ? globalThis.window.electron.listPs2MemcardSaves()
+          : globalThis.window.electron.listPs1MemcardSaves();
+      const [saves, local] = await Promise.all([
+        globalThis.window.electron
+          .listEmulationSaves(platform, game.objectId)
+          .catch(() => [] as EmulationCloudSave[]),
+        localPromise,
+      ]);
+      const filtered = saves.filter(
+        (s) => s.objectId === game.objectId
+      );
+      setEmulationSaves(filtered);
+      setArtifacts(filtered.map(emulationSaveToArtifact));
+      setRecords(local);
+      setLoadingArtifacts(false);
+      return;
+    }
+
     const params = new URLSearchParams({
       objectId: game.objectId,
       shop: game.shop,
@@ -130,9 +383,15 @@ export function GameCloudSettingsTab({
       .catch(() => []);
     setArtifacts(result ?? []);
     setLoadingArtifacts(false);
-  }, [game.objectId, game.shop]);
+  }, [game.objectId, game.shop, isEmulationGame, system]);
 
   const loadBackupPreview = useCallback(async () => {
+    if (isEmulationGame) {
+      setLoadingPreview(false);
+      setBackupPreview(null);
+      return;
+    }
+
     setLoadingPreview(true);
 
     try {
@@ -145,7 +404,7 @@ export function GameCloudSettingsTab({
     } finally {
       setLoadingPreview(false);
     }
-  }, [game.objectId, game.shop]);
+  }, [game.objectId, game.shop, isEmulationGame]);
 
   useEffect(() => {
     loadArtifacts().catch(() => {});
@@ -153,6 +412,8 @@ export function GameCloudSettingsTab({
   }, [loadArtifacts, loadBackupPreview]);
 
   useEffect(() => {
+    if (isEmulationGame) return;
+
     const removeUploadCompleteListener =
       globalThis.window.electron.onUploadComplete(
         game.objectId,
@@ -206,10 +467,32 @@ export function GameCloudSettingsTab({
     loadBackupPreview,
     showErrorToast,
     showSuccessToast,
+    isEmulationGame,
   ]);
 
+  const handleUploadCard = useCallback(
+    async (record: MemoryCardSaveRecord) => {
+      const key = recordKey(record);
+      setUploadingCardKey(key);
+      try {
+        await globalThis.window.electron.uploadEmulationSave(
+          system as EmulationSavePlatform,
+          record.cardFilePath,
+          record.folderName
+        );
+        showSuccessToast("Cloud backup complete");
+        loadArtifacts().catch(() => {});
+      } catch {
+        showErrorToast("Cloud backup failed");
+      } finally {
+        setUploadingCardKey(null);
+      }
+    },
+    [system, showSuccessToast, showErrorToast, loadArtifacts]
+  );
+
   const handleCreateBackup = useCallback(async () => {
-    if (creatingBackup) return;
+    if (creatingBackup || isEmulationGame) return;
 
     setCreatingBackup(true);
 
@@ -223,10 +506,16 @@ export function GameCloudSettingsTab({
       setCreatingBackup(false);
       showErrorToast("Cloud backup failed");
     }
-  }, [creatingBackup, game.objectId, game.shop, showErrorToast]);
+  }, [creatingBackup, game.objectId, game.shop, showErrorToast, isEmulationGame]);
 
   const handleRestoreArtifact = useCallback(
     async (artifactId: string) => {
+      if (isEmulationGame) {
+        const save = emulationSaves.find((s) => s.id === artifactId);
+        if (save) setEmulationRestoreTarget(save);
+        return;
+      }
+
       if (restoringArtifactId) return;
 
       setRestoringArtifactId(artifactId);
@@ -242,7 +531,14 @@ export function GameCloudSettingsTab({
         showErrorToast("Failed to restore cloud save");
       }
     },
-    [game.objectId, game.shop, restoringArtifactId, showErrorToast]
+    [
+      game.objectId,
+      game.shop,
+      restoringArtifactId,
+      showErrorToast,
+      isEmulationGame,
+      emulationSaves,
+    ]
   );
 
   const handleToggleArtifactFreeze = useCallback(
@@ -272,9 +568,13 @@ export function GameCloudSettingsTab({
       setDeletingArtifactId(artifactId);
 
       try {
-        await globalThis.window.electron.hydraApi.delete<{ ok: boolean }>(
-          `/profile/games/artifacts/${artifactId}`
-        );
+        if (isEmulationGame) {
+          await globalThis.window.electron.deleteEmulationSave(artifactId);
+        } else {
+          await globalThis.window.electron.hydraApi.delete<{ ok: boolean }>(
+            `/profile/games/artifacts/${artifactId}`
+          );
+        }
         showSuccessToast("Cloud save removed");
         await loadArtifacts();
       } catch (error) {
@@ -290,6 +590,7 @@ export function GameCloudSettingsTab({
       showErrorToast,
       showSuccessToast,
       updatingArtifactId,
+      isEmulationGame,
     ]
   );
 
@@ -299,47 +600,89 @@ export function GameCloudSettingsTab({
 
   return (
     <VerticalFocusGroup className="game-cloud-settings-tab">
-      <SettingsSection
-        className="game-cloud-settings-tab__section"
-        title={t("cloud_saves_section_title")}
-        description={t(
-          game.shop === "launchbox"
-            ? "cloud_saves_section_description_memory"
-            : "cloud_saves_section_description"
-        )}
-      >
-        <div className="game-cloud-settings-tab__section-content">
-          <Button
-            focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
-            variant="primary"
-            className="game-cloud-settings-tab__new-backup-button"
-            onClick={() => {
-              handleCreateBackup().catch(() => {});
-            }}
-            loading={creatingBackup}
-            disabled={
-              disableActions || backupPreviewGameCount === 0 || hasReachedLimit
-            }
-            icon={<CloudIcon size={20} />}
+      {isEmulationGame ? (
+        hasLocalSaves && (
+          <SettingsSection
+            className="game-cloud-settings-tab__section"
+            title={t("cloud_saves_section_title")}
+            description={t("cloud_saves_section_description_memory")}
           >
-            {t("create_backup")}
-          </Button>
+            <div className="game-cloud-settings-tab__saves-list">
+              {localSaves.map((record) => {
+                const key = recordKey(record);
+                const uploading = uploadingCardKey === key;
+                return (
+                  <div key={key} className="game-cloud-settings-tab__save-card">
+                    <div className="game-cloud-settings-tab__save-copy">
+                      <p className="game-cloud-settings-tab__save-title" title={record.title ?? record.folderName}>
+                        {record.title ?? record.folderName}
+                      </p>
+                      <p className="game-cloud-settings-tab__save-info">
+                        {record.cardLabel} · {formatBytes(record.sizeBytes)}
+                      </p>
+                    </div>
+                    <HorizontalFocusGroup asChild>
+                      <div className="game-cloud-settings-tab__save-actions">
+                        <Button
+                          focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
+                          variant="secondary"
+                          className="game-cloud-settings-tab__save-restore-button"
+                          loading={uploading}
+                          disabled={uploading}
+                          icon={uploading ? <SpinnerIcon size={20} /> : <UploadSimpleIcon size={20} weight="bold" />}
+                          onClick={() => handleUploadCard(record)}
+                        >
+                          {uploading ? "Uploading..." : t("create_backup")}
+                        </Button>
+                      </div>
+                    </HorizontalFocusGroup>
+                  </div>
+                );
+              })}
+            </div>
+          </SettingsSection>
+        )
+      ) : (
+        <SettingsSection
+          className="game-cloud-settings-tab__section"
+          title={t("cloud_saves_section_title")}
+          description={t("cloud_saves_section_description")}
+        >
+          <div className="game-cloud-settings-tab__section-content">
+            <Button
+              focusId={GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}
+              variant="primary"
+              className="game-cloud-settings-tab__new-backup-button"
+              onClick={() => {
+                handleCreateBackup().catch(() => {});
+              }}
+              loading={creatingBackup}
+              disabled={
+                disableActions ||
+                backupPreviewGameCount === 0 ||
+                hasReachedLimit
+              }
+              icon={<CloudIcon size={20} />}
+            >
+              {t("create_backup")}
+            </Button>
 
-          {backupStateLabel && (
-            <p className="game-cloud-settings-tab__status-label">
-              {backupStateLabel}
-            </p>
-          )}
+            {backupStateLabel && (
+              <p className="game-cloud-settings-tab__status-label">
+                {backupStateLabel}
+              </p>
+            )}
 
-          <Checkbox
-            block
-            focusId={GAME_CLOUD_SETTINGS_AUTO_SYNC_ID}
-            label={t("enable_automatic_cloud_sync")}
-            checked={automaticCloudSync}
-            onChange={onToggleAutomaticCloudSync}
-          />
-        </div>
-      </SettingsSection>
+            <Checkbox
+              block
+              focusId={GAME_CLOUD_SETTINGS_AUTO_SYNC_ID}
+              label={t("enable_automatic_cloud_sync")}
+              checked={automaticCloudSync}
+              onChange={onToggleAutomaticCloudSync}
+            />
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection
         className="game-cloud-settings-tab__section game-cloud-settings-tab__section--backups"
@@ -356,9 +699,20 @@ export function GameCloudSettingsTab({
             onRestoreArtifact={handleRestoreArtifact}
             onToggleArtifactFreeze={handleToggleArtifactFreeze}
             onDeleteArtifact={handleDeleteArtifact}
+            hideFreeze={isEmulationGame}
           />
         </div>
       </SettingsSection>
+
+      <EmulationRestoreModal
+        save={emulationRestoreTarget}
+        platform={system as EmulationSavePlatform}
+        onClose={() => setEmulationRestoreTarget(null)}
+        onRestored={() => {
+          setEmulationRestoreTarget(null);
+          loadArtifacts().catch(() => {});
+        }}
+      />
     </VerticalFocusGroup>
   );
 }

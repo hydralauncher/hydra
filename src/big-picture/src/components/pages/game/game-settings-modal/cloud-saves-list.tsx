@@ -29,6 +29,7 @@ interface CloudSavesListProps {
     freeze: boolean
   ) => Promise<void>;
   onDeleteArtifact: (artifactId: string) => Promise<void>;
+  hideFreeze?: boolean;
 }
 
 function getArtifactRestoreButtonId(artifactId: string) {
@@ -48,6 +49,7 @@ export function CloudSavesList({
   onRestoreArtifact,
   onToggleArtifactFreeze,
   onDeleteArtifact,
+  hideFreeze = false,
 }: Readonly<CloudSavesListProps>) {
   const { t } = useTranslation("big_picture");
   const { formatDate, formatDateTime } = useDate();
@@ -60,7 +62,7 @@ export function CloudSavesList({
   const sortedArtifacts = useMemo(
     () =>
       [...artifacts].sort((left, right) => {
-        if (left.isFrozen === right.isFrozen) {
+        if (hideFreeze || left.isFrozen === right.isFrozen) {
           return (
             new Date(right.createdAt).getTime() -
             new Date(left.createdAt).getTime()
@@ -69,7 +71,7 @@ export function CloudSavesList({
 
         return left.isFrozen ? -1 : 1;
       }),
-    [artifacts]
+    [artifacts, hideFreeze]
   );
 
   if (loading) {
@@ -192,23 +194,30 @@ export function CloudSavesList({
                           onClose={() => setOpenMenu(null)}
                           ariaLabel={t("cloud_backup_options")}
                           items={[
-                            {
-                              id: artifact.isFrozen ? "unfreeze" : "freeze",
-                              label: artifact.isFrozen
-                                ? t("unfreeze_backup")
-                                : t("freeze_backup"),
-                              disabled: isBusy,
-                              onSelect: () =>
-                                onToggleArtifactFreeze(
-                                  artifact.id,
-                                  !artifact.isFrozen
-                                ),
-                            },
+                            ...(hideFreeze
+                              ? []
+                              : [
+                                  {
+                                    id: artifact.isFrozen
+                                      ? "unfreeze"
+                                      : "freeze",
+                                    label: artifact.isFrozen
+                                      ? t("unfreeze_backup")
+                                      : t("freeze_backup"),
+                                    disabled: isBusy,
+                                    onSelect: () =>
+                                      onToggleArtifactFreeze(
+                                        artifact.id,
+                                        !artifact.isFrozen
+                                      ),
+                                  } as const,
+                                ]),
                             {
                               id: "delete",
                               label: t("delete_backup"),
                               danger: true,
-                              disabled: isBusy || artifact.isFrozen,
+                              disabled:
+                                isBusy || (!hideFreeze && artifact.isFrozen),
                               onSelect: () => {
                                 setDeleteTarget(artifact);
                               },
@@ -228,12 +237,7 @@ export function CloudSavesList({
       <ConfirmationModal
         visible={deleteTarget !== null}
         title={t("delete_backup")}
-        description={t("cloud_delete_backup_description", {
-          name:
-            deleteTarget?.label ??
-            deleteTarget?.downloadOptionTitle ??
-            t("cloud_save"),
-        })}
+        description={t("cloud_delete_backup_description")}
         confirmLabel={t("delete_backup")}
         danger
         loading={deleteTarget ? deletingArtifactId === deleteTarget.id : false}
