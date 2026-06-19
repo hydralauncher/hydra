@@ -51,9 +51,7 @@ function getPositionLabel(
   position: BigPictureDiagnosticsPosition,
   t: (key: string) => string
 ) {
-  return t(
-    `settings_diagnostics_position_${position.replace(/-/g, "_")}`
-  );
+  return t(`settings_diagnostics_position_${position.replace(/-/g, "_")}`);
 }
 
 export function BigPictureSettingsSection({
