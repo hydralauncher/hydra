@@ -29,6 +29,12 @@
     padding: 10px 12px;
     cursor: pointer;
 
+    &:focus-visible {
+      outline: none;
+      border-color: #f6746b;
+      box-shadow: 0 0 0 2px rgba(246, 116, 107, 0.25);
+    }
+
     &--selected {
       border-color: #f6746b;
     }

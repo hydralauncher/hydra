@@ -184,8 +184,23 @@ function EmulationRestoreModal({
             targets.map((target) => {
               const targetId = `emu-saves-target-${target.cardFilePath}`;
               const isSelected = selectedTarget === target.cardFilePath;
+              const isFirstTarget =
+                targets[0]?.cardFilePath === target.cardFilePath;
               return (
-                <FocusItem key={target.cardFilePath} id={targetId} asChild>
+                <FocusItem
+                  key={target.cardFilePath}
+                  id={targetId}
+                  navigationOverrides={
+                    isFirstTarget
+                      ? {
+                          up: {
+                            type: "block",
+                          },
+                        }
+                      : undefined
+                  }
+                  asChild
+                >
                   <button
                     type="button"
                     className={`emu-save-modal__target${
@@ -208,6 +223,16 @@ function EmulationRestoreModal({
         <HorizontalFocusGroup regionId={RESTORE_MODAL_ACTIONS_REGION_ID}>
           <Button
             focusId={RESTORE_MODAL_PICK_BUTTON_ID}
+            focusNavigationOverrides={
+              selectedTarget
+                ? {
+                    up: {
+                      type: "item",
+                      itemId: `emu-saves-target-${selectedTarget}`,
+                    },
+                  }
+                : undefined
+            }
             variant="secondary"
             disabled={isBusy}
             onClick={handlePickFile}
@@ -216,6 +241,16 @@ function EmulationRestoreModal({
           </Button>
           <Button
             focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
+            focusNavigationOverrides={
+              selectedTarget
+                ? {
+                    up: {
+                      type: "item",
+                      itemId: `emu-saves-target-${selectedTarget}`,
+                    },
+                  }
+                : undefined
+            }
             loading={isBusy}
             disabled={!selectedTarget}
             onClick={handleRestore}
