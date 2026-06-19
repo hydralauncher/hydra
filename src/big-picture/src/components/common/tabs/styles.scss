@@ -15,6 +15,13 @@
   &__list {
     min-width: 0;
     flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   &__before-tabs,
@@ -30,7 +37,9 @@
     align-items: flex-start;
     gap: calc(var(--spacing-unit) * 12);
     flex: 1 1 auto;
-    min-width: 0;
+    width: max-content;
+    min-width: 100%;
+    position: relative;
   }
 
   &__tab {
@@ -98,12 +107,12 @@
 
   &__indicator {
     position: absolute;
-    right: calc(var(--spacing-unit) * -1);
+    left: 0;
     bottom: 0;
-    left: calc(var(--spacing-unit) * -1);
     height: 3px;
     background-color: var(--text);
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+    pointer-events: none;
   }
 
   &__segmented-indicator {
@@ -150,6 +159,7 @@
     .tabs__list {
       width: 100%;
       flex: 1 1 auto;
+      overflow: visible;
     }
 
     .tabs__tablist {
@@ -225,6 +235,7 @@
     .tabs__list {
       width: auto;
       flex: 0 0 auto;
+      max-width: 100%;
     }
 
     .tabs__tablist {
@@ -232,7 +243,7 @@
       align-items: flex-end;
       gap: calc(var(--spacing-unit) * 10);
       width: max-content;
-      max-width: 100%;
+      min-width: 100%;
     }
 
     .tabs__tab {

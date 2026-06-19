@@ -518,6 +518,8 @@
     "settings_category_general_description": "Chemin de l’exécutable, options de lancement et raccourcis",
     "settings_category_assets": "Ressources",
     "settings_category_assets_description": "Personnaliser le titre du jeu, l’icône, le logo et l’image principale",
+    "settings_category_customization": "Personnalisation",
+    "settings_category_launch": "Lancement",
     "settings_category_hydra_cloud": "Hydra Cloud",
     "settings_category_hydra_cloud_description": "Configurer le comportement de synchronisation cloud pour ce jeu",
     "settings_category_compatibility": "Compatibilité",

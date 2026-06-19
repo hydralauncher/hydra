@@ -2,19 +2,24 @@ import type { LibraryGame } from "@types";
 import {
   ClockIcon,
   DownloadSimpleIcon,
+  GearIcon,
   HeartIcon,
   PlayIcon,
   TrophyIcon,
 } from "@phosphor-icons/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import cn from "classnames";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   AnimatedHeroImage,
   Divider,
   HorizontalFocusGroup,
 } from "../../../common";
-import { formatRelativeDate } from "../../../../helpers";
+import {
+  formatRelativeDate,
+  resolvePreferredGameAssets,
+} from "../../../../helpers";
 import { useDominantColor } from "../../../../hooks";
 import { type FocusOverrides } from "../../../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
@@ -23,15 +28,17 @@ import {
   LIBRARY_HERO_ACTIONS_REGION_ID,
   LIBRARY_HERO_FAVORITE_BUTTON_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
+  LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
 } from "../navigation";
 import { getHeroPlaytimeLabel, isLibraryGamePlayable } from "../library-data";
-import { useLibraryLaunchGame } from "../use-library-launch-game";
 import { useHeroBackgroundLayers } from "./use-hero-background-layers";
 
 import "./hero.scss";
 
 interface LibraryHeroProps {
   lastPlayedGames: LibraryGame[];
+  onPrimaryAction?: (game: LibraryGame) => void;
+  onOpenSettings?: (game: LibraryGame) => void;
   onToggleFavorite?: (game: LibraryGame) => Promise<void> | void;
   favoriteLoadingGameId?: string | null;
 }
@@ -48,23 +55,23 @@ function getLastPlayedLabel(lastTimePlayed: Date | string | null | undefined) {
 
 export function LibraryHero({
   lastPlayedGames,
+  onPrimaryAction,
+  onOpenSettings,
   onToggleFavorite,
   favoriteLoadingGameId = null,
 }: Readonly<LibraryHeroProps>) {
+  const { t } = useTranslation("game_details");
   const [featuredGameIndex, setFeaturedGameIndex] = useState(0);
   const heroRef = useRef<HTMLElement | null>(null);
   const featuredGame = lastPlayedGames[featuredGameIndex] ?? null;
-  const launchGame = useLibraryLaunchGame(
-    useCallback(() => {
-      console.log("library-hero download");
-    }, [])
-  );
   const getHeroScrollAnchor = useCallback(() => heroRef.current, []);
-  const dominantColor = useDominantColor(
-    featuredGame?.libraryHeroImageUrl ?? null
+  const preferredAssets = useMemo(
+    () => resolvePreferredGameAssets(featuredGame, null),
+    [featuredGame]
   );
+  const dominantColor = useDominantColor(preferredAssets.heroSrc || null);
   const { backgroundLayers, getLayerEventHandlers } = useHeroBackgroundLayers(
-    featuredGame?.libraryHeroImageUrl
+    preferredAssets.heroSrc || null
   );
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export function LibraryHero({
 
   const handlePlayOrDownloadClick = () => {
     if (!featuredGame) return;
-    void launchGame(featuredGame);
+    onPrimaryAction?.(featuredGame);
   };
 
   const heroActionsNavigationOverrides: FocusOverrides = {
@@ -111,11 +118,16 @@ export function LibraryHero({
   } as const;
   const launchNavigationOverrides: FocusOverrides = {
     left: sidebarLibraryOverride,
+    right: { type: "item", itemId: LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID },
+    down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
+  };
+  const settingsNavigationOverrides: FocusOverrides = {
+    left: { type: "item", itemId: LIBRARY_HERO_LAUNCH_BUTTON_ID },
     right: { type: "item", itemId: LIBRARY_HERO_FAVORITE_BUTTON_ID },
     down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
   };
   const favoriteNavigationOverrides: FocusOverrides = {
-    left: { type: "item", itemId: LIBRARY_HERO_LAUNCH_BUTTON_ID },
+    left: { type: "item", itemId: LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID },
     right: { type: "block" },
     down: { type: "item", itemId: LIBRARY_FILTERS_SEARCH_INPUT_ID },
   };
@@ -149,9 +161,9 @@ export function LibraryHero({
       <div className="hero__content">
         <div className="hero__content__left">
           <div className="hero__logo">
-            {featuredGame?.logoImageUrl ? (
+            {preferredAssets.logoSrc ? (
               <img
-                src={featuredGame.logoImageUrl}
+                src={preferredAssets.logoSrc}
                 alt={featuredGame.title}
                 className="hero__logo__image"
               />
@@ -202,6 +214,22 @@ export function LibraryHero({
               <div className="hero__action__divider">
                 <Divider orientation="vertical" color="var(--text-secondary)" />
               </div>
+
+              <Button
+                variant="secondary"
+                focusId={LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID}
+                focusNavigationOverrides={settingsNavigationOverrides}
+                aria-label={t("options")}
+                disabled={!featuredGame}
+                icon={<GearIcon size={24} />}
+                onClick={() => {
+                  if (featuredGame) {
+                    onOpenSettings?.(featuredGame);
+                  }
+                }}
+              >
+                {t("options")}
+              </Button>
 
               <Button
                 variant="secondary"

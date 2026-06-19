@@ -135,8 +135,11 @@ contextBridge.exposeInMainWorld("electron", {
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
-  getGameAssets: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getGameAssets", objectId, shop),
+  getGameAssets: (
+    objectId: string,
+    shop: GameShop,
+    options?: { forceFresh?: boolean }
+  ) => ipcRenderer.invoke("getGameAssets", objectId, shop, options),
   onUpdateAchievements: (
     objectId: string,
     shop: GameShop,
@@ -826,9 +829,10 @@ contextBridge.exposeInMainWorld("electron", {
   onBackupDownloadComplete: (
     objectId: string,
     shop: GameShop,
-    cb: () => void
+    cb: (success: boolean) => void
   ) => {
-    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    const listener = (_event: Electron.IpcRendererEvent, success: boolean) =>
+      cb(success);
     ipcRenderer.on(`on-backup-download-complete-${objectId}-${shop}`, listener);
     return () =>
       ipcRenderer.removeListener(

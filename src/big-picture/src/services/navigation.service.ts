@@ -148,6 +148,7 @@ export class NavigationService {
     string,
     PendingInitialFocusRequest
   >();
+  private pendingRequestedFocusId: string | null = null;
 
   public constructor() {
     this.layers.set(ROOT_NAVIGATION_LAYER_ID, {
@@ -215,6 +216,7 @@ export class NavigationService {
     this.layerStack.push(layer.id);
     this.reconcileLayerRootRegion(layer.id);
     this.currentFocusId = null;
+    this.tryResolvePendingRequestedFocus();
     this.notify();
 
     return () => {
@@ -250,6 +252,7 @@ export class NavigationService {
         }
       }
 
+      this.tryResolvePendingRequestedFocus();
       this.notify();
     };
   }
@@ -326,6 +329,7 @@ export class NavigationService {
 
     this.reconcileLayerRootRegion(layerId);
     this.tryResolvePendingInitialFocus(layerId);
+    this.tryResolvePendingRequestedFocus();
 
     if (
       this.currentFocusId &&
@@ -355,15 +359,14 @@ export class NavigationService {
       this.regionChildren.delete(region.id);
       this.reconcileLayerRootRegion(registeredRegion.layerId);
       this.tryResolvePendingInitialFocus(registeredRegion.layerId);
+      this.tryResolvePendingRequestedFocus();
 
       if (!registeredRegion.isPersistent) {
         this.regionChildOrder.delete(region.id);
         this.regionChildOrderCounter.delete(region.id);
       }
 
-      if (!registeredRegion.isPersistent) {
-        this.lastFocusedByRegionId.delete(region.id);
-      }
+      this.lastFocusedByRegionId.delete(region.id);
 
       if (shouldRecoverFocus) {
         this.currentFocusId =
@@ -434,6 +437,7 @@ export class NavigationService {
       this.sortRegionChildren(registeredRegion.parentRegionId);
     }
 
+    this.tryResolvePendingRequestedFocus();
     this.notify();
   }
 
@@ -480,9 +484,12 @@ export class NavigationService {
 
     const resolvedPendingInitialFocus =
       this.tryResolvePendingInitialFocus(layerId);
+    const resolvedPendingRequestedFocus =
+      this.tryResolvePendingRequestedFocus();
 
     if (
       !resolvedPendingInitialFocus &&
+      !resolvedPendingRequestedFocus &&
       layerId === this.getActiveLayerId() &&
       this.isNodeActive(node.id) &&
       !this.hasValidCurrentFocus() &&
@@ -517,6 +524,7 @@ export class NavigationService {
         }
       }
 
+      this.tryResolvePendingRequestedFocus();
       this.notify();
     };
   }
@@ -564,6 +572,8 @@ export class NavigationService {
     const resolvedPendingInitialFocus = this.tryResolvePendingInitialFocus(
       registeredNode.layerId
     );
+    const resolvedPendingRequestedFocus =
+      this.tryResolvePendingRequestedFocus();
 
     if (this.currentFocusId === nodeId && !this.isNodeActive(nodeId)) {
       this.currentFocusId =
@@ -575,6 +585,7 @@ export class NavigationService {
       }
     } else if (
       !resolvedPendingInitialFocus &&
+      !resolvedPendingRequestedFocus &&
       this.isNodeActive(nodeId) &&
       registeredNode.layerId === this.getActiveLayerId() &&
       !this.hasValidCurrentFocus() &&
@@ -648,6 +659,18 @@ export class NavigationService {
     this.updateLastFocusedForNode(node.id);
     this.notify();
     return node.id;
+  }
+
+  public requestFocusWhenAvailable(id: string) {
+    const focusedId = this.setFocus(id);
+
+    if (focusedId) {
+      this.pendingRequestedFocusId = null;
+      return focusedId;
+    }
+
+    this.pendingRequestedFocusId = id;
+    return null;
   }
 
   public setFocusRegion(
@@ -1048,6 +1071,28 @@ export class NavigationService {
     this.pendingInitialFocusByLayerId.delete(layerId);
     this.setFocus(nextFocusId);
     return true;
+  }
+
+  private tryResolvePendingRequestedFocus() {
+    const pendingFocusId = this.pendingRequestedFocusId;
+
+    if (!pendingFocusId) return false;
+
+    if (!this.nodes.has(pendingFocusId)) {
+      this.pendingRequestedFocusId = null;
+      return false;
+    }
+
+    if (!this.isNodeActive(pendingFocusId)) {
+      return false;
+    }
+
+    if (!this.isNodeInActiveLayer(pendingFocusId)) {
+      return false;
+    }
+
+    this.pendingRequestedFocusId = null;
+    return this.setFocus(pendingFocusId) === pendingFocusId;
   }
 
   private getTopLevelRegionIdsForLayer(layerId: string) {
@@ -1516,16 +1561,6 @@ export class NavigationService {
       return null;
     }
 
-    if (
-      options.initialFocusId &&
-      this.nodes.has(options.initialFocusId) &&
-      this.isNodeActive(options.initialFocusId) &&
-      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
-      this.isNodeInActiveLayer(options.initialFocusId)
-    ) {
-      return options.initialFocusId;
-    }
-
     const rememberedNodeId =
       options.preferRememberedFocus === false
         ? null
@@ -1539,6 +1574,16 @@ export class NavigationService {
       this.isNodeInActiveLayer(rememberedNodeId)
     ) {
       return rememberedNodeId;
+    }
+
+    if (
+      options.initialFocusId &&
+      this.nodes.has(options.initialFocusId) &&
+      this.isNodeActive(options.initialFocusId) &&
+      this.isNodeWithinRegion(options.initialFocusId, regionId) &&
+      this.isNodeInActiveLayer(options.initialFocusId)
+    ) {
+      return options.initialFocusId;
     }
 
     return this.getBoundaryNodeInRegion(

@@ -131,6 +131,13 @@ export class CloudSync {
     );
 
     const stat = await fs.promises.stat(bundleLocation);
+    let resolvedWinePrefixPath: string | null = null;
+
+    if (effectiveWinePrefixPath) {
+      resolvedWinePrefixPath = fs.existsSync(effectiveWinePrefixPath)
+        ? fs.realpathSync(effectiveWinePrefixPath)
+        : effectiveWinePrefixPath;
+    }
 
     const { uploadUrl } = await HydraApi.post<{
       id: string;
@@ -140,11 +147,7 @@ export class CloudSync {
       shop,
       objectId,
       hostname: os.hostname(),
-      winePrefixPath: effectiveWinePrefixPath
-        ? fs.existsSync(effectiveWinePrefixPath)
-          ? fs.realpathSync(effectiveWinePrefixPath)
-          : effectiveWinePrefixPath
-        : null,
+      winePrefixPath: resolvedWinePrefixPath,
       homeDir: this.getWindowsLikeUserProfilePath(effectiveWinePrefixPath),
       downloadOptionTitle,
       platform: process.platform,
@@ -162,7 +165,7 @@ export class CloudSync {
       },
     });
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAppWindows(
       `on-upload-complete-${objectId}-${shop}`,
       true
     );

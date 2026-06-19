@@ -413,6 +413,8 @@
     "settings_category_general_description": "Futtatható fájl útvonala, indítási opciók és parancsikonok",
     "settings_category_assets": "Assetek",
     "settings_category_assets_description": "Játék címének, ikonjának, logójának és borítóképének testreszabása",
+    "settings_category_customization": "Customization",
+    "settings_category_launch": "Launch",
     "settings_category_hydra_cloud": "Hydra Cloud",
     "settings_category_hydra_cloud_description": "Felhőszinkronizálás beállításai ehhez a játékhoz",
     "settings_category_compatibility": "Kompatibilitás",

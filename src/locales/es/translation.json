@@ -549,6 +549,8 @@
     "proton_source_compatibility_tools": "Instalado en Steam compatibilitytools.d",
     "settings_category_general_description": "Ruta del ejecutable, opciones de lanzamiento, y accesos directos",
     "settings_category_assets_description": "Personalizar título del juego, icono, logo y arte de hero",
+    "settings_category_customization": "Personalización",
+    "settings_category_launch": "Inicio",
     "settings_category_hydra_cloud_description": "Configurar el comportamiento de sincronización en la nube para este juego",
     "settings_category_compatibility_description": "Ajustes de compatibilidad con Linux incluyendo Wine y Proton",
     "settings_category_downloads_description": "Gestionar opciones de descarga y archivos de instalación",

@@ -1,13 +1,22 @@
-import type { ShopDetailsWithAssets } from "@types";
+import type { LibraryGame, ShopDetailsWithAssets } from "@types";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
+import { resolvePreferredGameAssets } from "../../../../helpers";
 
 export interface GameAchievementsHeroProps {
   shopDetails: ShopDetailsWithAssets;
+  game: LibraryGame | null;
 }
 
 export function GameAchievementsHero({
   shopDetails,
+  game,
 }: Readonly<GameAchievementsHeroProps>) {
+  const preferredAssets = useMemo(
+    () => resolvePreferredGameAssets(game, shopDetails.assets),
+    [game, shopDetails.assets]
+  );
+
   return (
     <section className="game-achievements-page__hero">
       <motion.div
@@ -21,15 +30,15 @@ export function GameAchievementsHero({
         }}
         className="game-achievements-page__hero-bg"
         style={{
-          backgroundImage: `url(${shopDetails.assets?.libraryHeroImageUrl})`,
+          backgroundImage: `url(${preferredAssets.heroSrc})`,
         }}
       />
 
       <div className="game-achievements-page__hero-overlay">
-        {shopDetails.assets?.logoImageUrl ? (
+        {preferredAssets.logoSrc ? (
           <img
-            src={shopDetails.assets.logoImageUrl}
-            alt={shopDetails.assets?.title || ""}
+            src={preferredAssets.logoSrc}
+            alt={preferredAssets.title}
             className="game-achievements-page__hero-logo"
           />
         ) : null}

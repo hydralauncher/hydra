@@ -259,6 +259,7 @@ interface GeneralSettingsSectionProps {
   onDeleteSteamShortcut: () => Promise<void>;
   onChangeGameTitle: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlurGameTitle: () => Promise<void>;
+  onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
   isTransferring: boolean;
@@ -329,6 +330,7 @@ export function GeneralSettingsSection({
   onDeleteSteamShortcut,
   onChangeGameTitle,
   onBlurGameTitle,
+  onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
   isTransferring,
@@ -426,15 +428,25 @@ export function GeneralSettingsSection({
       {/* Title */}
       {showTitleSection && (
         <div className="game-options-modal__section">
-          <TextField
-            label={t("edit_game_modal_title")}
-            placeholder={t("edit_game_modal_enter_title")}
-            value={gameTitle}
-            onChange={onChangeGameTitle}
-            onBlur={() => void onBlurGameTitle()}
-            theme="dark"
-            disabled={updatingGameTitle}
-          />
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <TextField
+              label={t("edit_game_modal_title")}
+              placeholder={t("edit_game_modal_enter_title")}
+              value={gameTitle}
+              onChange={onChangeGameTitle}
+              onBlur={() => void onBlurGameTitle()}
+              theme="dark"
+              disabled={updatingGameTitle}
+              style={{ flex: 1 }}
+            />
+            <Button
+              onClick={onResetGameTitle}
+              theme="outline"
+              disabled={updatingGameTitle}
+            >
+              {t("clear")}
+            </Button>
+          </div>
         </div>
       )}
 

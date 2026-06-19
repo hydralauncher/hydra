@@ -134,7 +134,7 @@ const downloadGameArtifact = async (
     const response = await axios.get(downloadUrl, {
       responseType: "stream",
       onDownloadProgress: (progressEvent) => {
-        WindowManager.mainWindow?.webContents.send(
+        WindowManager.sendToAppWindows(
           `on-backup-download-progress-${objectId}-${shop}`,
           progressEvent
         );
@@ -166,7 +166,7 @@ const downloadGameArtifact = async (
         artifactWinePrefixPath
       );
 
-      WindowManager.mainWindow?.webContents.send(
+      WindowManager.sendToAppWindows(
         `on-backup-download-complete-${objectId}-${shop}`,
         true
       );
@@ -174,7 +174,7 @@ const downloadGameArtifact = async (
   } catch (err) {
     logger.error("Failed to download game artifact", err);
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAppWindows(
       `on-backup-download-complete-${objectId}-${shop}`,
       false
     );
