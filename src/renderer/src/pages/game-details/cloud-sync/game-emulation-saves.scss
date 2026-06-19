@@ -136,6 +136,16 @@
     filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
   }
 
+  &__card-flag {
+    width: 20px;
+    height: auto;
+    border-radius: 2px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+
   &__card-title {
     font-size: 15px;
     font-weight: 600;
