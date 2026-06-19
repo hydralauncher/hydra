@@ -352,8 +352,8 @@ export function Tabs<TValue extends string = string>({
         }
 
         currentRegionId =
-          regions.find((region) => region.id === currentRegionId)?.parentRegionId ??
-          null;
+          regions.find((region) => region.id === currentRegionId)
+            ?.parentRegionId ?? null;
       }
 
       return false;
@@ -637,13 +637,11 @@ export function Tabs<TValue extends string = string>({
             className={cn("tabs__list", {
               "tabs__list--segmented": false,
             })}
-            style={
-              {
-                gap: "calc(var(--spacing-unit) * 12)",
-                alignItems: "flex-start",
-                flexWrap: "nowrap",
-              }
-            }
+            style={{
+              gap: "calc(var(--spacing-unit) * 12)",
+              alignItems: "flex-start",
+              flexWrap: "nowrap",
+            }}
           >
             <div
               ref={setTabListElement}
@@ -704,12 +702,10 @@ export function Tabs<TValue extends string = string>({
                   ) : (
                     <span
                       className="tabs__segmented-indicator"
-                      style={
-                        {
-                          transform: `translateX(${indicatorStyle.x}px)`,
-                          width: indicatorStyle.width,
-                        }
-                      }
+                      style={{
+                        transform: `translateX(${indicatorStyle.x}px)`,
+                        width: indicatorStyle.width,
+                      }}
                     />
                   ))}
 
