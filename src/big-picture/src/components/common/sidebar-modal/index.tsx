@@ -82,9 +82,9 @@ export function SidebarModal<TabId extends string = string>({
   const resolvedAriaLabel =
     ariaLabel ?? (typeof title === "string" ? title : "Sidebar modal");
   const modalContentRef = useRef<HTMLDivElement | null>(null);
-  const tabElementsRef = useRef<Record<TabId, HTMLButtonElement | null>>(
-    {} as Record<TabId, HTMLButtonElement | null>
-  );
+  const tabElementsRef = useRef<
+    Partial<Record<TabId, HTMLButtonElement | null>>
+  >({});
   const firstEnabledTab = useMemo(() => getFirstEnabledTab(tabs), [tabs]);
   const initialTabId =
     defaultActiveTabId ?? activeTabId ?? firstEnabledTab?.id ?? "";
