@@ -91,7 +91,9 @@ function setDownloadOptionsSuccessState(
 ) {
   applyIfNotCancelled(signal, () => {
     setters.setDownloadOptions(options);
-    setters.setEmptyStateReason(options.length === 0 ? "no-download-options" : null);
+    setters.setEmptyStateReason(
+      options.length === 0 ? "no-download-options" : null
+    );
     setters.setIsCheckingSources(false);
     setters.setIsLoading(false);
   });
