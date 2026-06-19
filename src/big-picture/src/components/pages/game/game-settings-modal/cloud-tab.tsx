@@ -9,7 +9,6 @@ import type {
   GameArtifact,
   LibraryGame,
   LudusaviBackup,
-  MemcardRestoreTarget,
   MemoryCardSaveRecord,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,19 +17,13 @@ import { platformToSystem } from "@renderer/helpers";
 import {
   Button,
   Checkbox,
-  FocusItem,
   HorizontalFocusGroup,
-  Modal,
   VerticalFocusGroup,
 } from "../../../common";
-import { useBigPictureToast, useNavigation } from "../../../../hooks";
+import { useBigPictureToast } from "../../../../hooks";
 import { useUserDetails } from "../../../../hooks/use-user-details.hook";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
-import {
-  getEmulationCloudRestoreButtonNavigationOverrides,
-  getEmulationCloudRestoreTargetFocusId,
-  getEmulationCloudRestoreTargetNavigationOverrides,
-} from "../../../../pages/settings/settings-navigation";
+import { EmulationCloudRestoreModal } from "../../../../pages/settings/emulation/emulation-cloud-restore-modal";
 import { CloudSavesList } from "./cloud-saves-list";
 
 import "./cloud-tab.scss";
@@ -53,17 +46,6 @@ const RESTORE_MODAL_REGION_ID = "emu-saves-restore-modal-region";
 const RESTORE_MODAL_ACTIONS_REGION_ID = "emu-saves-restore-modal-actions";
 const RESTORE_MODAL_PICK_BUTTON_ID = "emu-saves-restore-pick-button";
 const RESTORE_MODAL_CONFIRM_BUTTON_ID = "emu-saves-restore-confirm";
-
-const PICK_FILTERS: Record<
-  EmulationSavePlatform,
-  { name: string; extensions: string[] }
-> = {
-  ps1: {
-    name: "PS1 Memory Card",
-    extensions: ["mcd", "mcr", "mc", "gme", "vgs", "vmp"],
-  },
-  ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
-};
 
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
@@ -93,163 +75,20 @@ function EmulationRestoreModal({
   onClose: () => void;
   onRestored: () => void;
 }>) {
-  const { t } = useTranslation("settings");
-  const { setFocus } = useNavigation();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
-  const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
-  const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
-
-  useEffect(() => {
-    if (!save) return;
-    void globalThis.window.electron
-      .getMemcardRestoreTargets(platform)
-      .then((foundTargets) => {
-        setTargets(foundTargets);
-        setSelectedTarget(foundTargets[0]?.cardFilePath ?? null);
-      });
-  }, [platform, save]);
-
-  useEffect(() => {
-    if (!save) return;
-    const frameId = globalThis.window.requestAnimationFrame(() => {
-      setFocus(
-        selectedTarget
-          ? getEmulationCloudRestoreTargetFocusId(selectedTarget)
-          : RESTORE_MODAL_PICK_BUTTON_ID
-      );
-    });
-    return () => globalThis.window.cancelAnimationFrame(frameId);
-  }, [save, selectedTarget, setFocus]);
-
-  const handlePickFile = useCallback(async () => {
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [PICK_FILTERS[platform]],
-    });
-    if (result.canceled || result.filePaths.length === 0) return;
-    const chosenPath = result.filePaths[0];
-    setTargets((current) =>
-      current.some((t) => t.cardFilePath === chosenPath)
-        ? current
-        : [
-            ...current,
-            {
-              cardFilePath: chosenPath,
-              cardLabel: chosenPath.split("/").pop() ?? chosenPath,
-            },
-          ]
-    );
-    setSelectedTarget(chosenPath);
-  }, [platform]);
-
-  const handleRestore = useCallback(async () => {
-    if (!save || !selectedTarget) return;
-    setIsBusy(true);
-    try {
-      const result = await globalThis.window.electron.restoreEmulationSave(
-        platform,
-        save.id,
-        selectedTarget
-      );
-      if (result.ok) {
-        showSuccessToast("Cloud save restored");
-        onRestored();
-        onClose();
-      } else {
-        showErrorToast("Failed to restore cloud save");
-      }
-    } finally {
-      setIsBusy(false);
-    }
-  }, [
-    onClose,
-    onRestored,
-    platform,
-    save,
-    selectedTarget,
-    showErrorToast,
-    showSuccessToast,
-  ]);
-
   return (
-    <Modal
-      visible={save !== null}
-      title={t("cloud_restore_title")}
-      description={t("cloud_restore_description")}
+    <EmulationCloudRestoreModal
+      save={save}
+      platform={platform}
       onClose={onClose}
-    >
-      <VerticalFocusGroup regionId={RESTORE_MODAL_REGION_ID}>
-        <div className="emu-save-modal__targets">
-          {targets.length === 0 ? (
-            <div className="emu-save-modal__empty">
-              {t("cloud_restore_no_cards")}
-            </div>
-          ) : (
-            targets.map((target) => {
-              const targetId = getEmulationCloudRestoreTargetFocusId(
-                target.cardFilePath
-              );
-              const isSelected = selectedTarget === target.cardFilePath;
-              return (
-                <FocusItem
-                  key={target.cardFilePath}
-                  id={targetId}
-                  navigationOverrides={getEmulationCloudRestoreTargetNavigationOverrides(
-                    {
-                      cardFilePath: target.cardFilePath,
-                      firstCardFilePath: targets[0]?.cardFilePath,
-                      lastCardFilePath: targets.at(-1)?.cardFilePath,
-                      pickButtonId: RESTORE_MODAL_PICK_BUTTON_ID,
-                    }
-                  )}
-                  asChild
-                >
-                  <button
-                    type="button"
-                    className={`emu-save-modal__target${
-                      isSelected ? " emu-save-modal__target--selected" : ""
-                    }`}
-                    onClick={() => setSelectedTarget(target.cardFilePath)}
-                  >
-                    <span className="emu-save-modal__target-name">
-                      {target.cardLabel}
-                    </span>
-                    <span className="emu-save-modal__target-path">
-                      {target.cardFilePath}
-                    </span>
-                  </button>
-                </FocusItem>
-              );
-            })
-          )}
-        </div>
-        <HorizontalFocusGroup regionId={RESTORE_MODAL_ACTIONS_REGION_ID}>
-          <Button
-            focusId={RESTORE_MODAL_PICK_BUTTON_ID}
-            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
-              selectedTarget
-            )}
-            variant="secondary"
-            disabled={isBusy}
-            onClick={handlePickFile}
-          >
-            {t("cloud_restore_pick_file")}
-          </Button>
-          <Button
-            focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
-            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
-              selectedTarget
-            )}
-            loading={isBusy}
-            disabled={!selectedTarget}
-            onClick={handleRestore}
-          >
-            {t("cloud_restore_confirm")}
-          </Button>
-        </HorizontalFocusGroup>
-      </VerticalFocusGroup>
-    </Modal>
+      onRestored={onRestored}
+      onRestoreSuccess={() => showSuccessToast("Cloud save restored")}
+      onRestoreError={() => showErrorToast("Failed to restore cloud save")}
+      regionId={RESTORE_MODAL_REGION_ID}
+      actionsRegionId={RESTORE_MODAL_ACTIONS_REGION_ID}
+      pickButtonId={RESTORE_MODAL_PICK_BUTTON_ID}
+      confirmButtonId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
+    />
   );
 }
 
