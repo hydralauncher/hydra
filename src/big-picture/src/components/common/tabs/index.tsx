@@ -332,7 +332,9 @@ export function Tabs<TValue extends string = string>({
 
     const focusedElement = document.getElementById(currentFocusId);
 
-    return focusedElement instanceof HTMLElement && tabList.contains(focusedElement);
+    return (
+      focusedElement instanceof HTMLElement && tabList.contains(focusedElement)
+    );
   }, [currentFocusId]);
 
   useEffect(() => {
