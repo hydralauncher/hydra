@@ -743,11 +743,12 @@
   &__cloud-grid {
     display: grid;
     grid-template-columns: repeat(
-      auto-fill,
+      auto-fit,
       minmax(max(200px, calc((100% - 3 * 16px) / 4)), 1fr)
     );
     align-items: stretch;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 40px;
     width: 100%;
   }
 

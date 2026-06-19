@@ -974,15 +974,19 @@
   }
 
   &__cloud-grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(max(200px, calc((100% - 3 * 16px) / 4)), 1fr)
+    );
     align-items: stretch;
-    gap: 16px;
+    column-gap: 16px;
+    row-gap: 40px;
     width: 100%;
   }
 
   &__cloud-card {
     box-sizing: border-box;
-    flex: 1 1 0;
     min-width: 0;
     height: 153px;
     background: #0d0d0d;
@@ -1243,10 +1247,6 @@
   .emulator-detail__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .emulator-detail__cloud-grid {
-    flex-wrap: wrap;
-  }
 }
 
 @media (max-width: 820px) {
@@ -1272,7 +1272,7 @@
   }
 
   .emulator-detail__cloud-grid {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emulator-detail__memcard-grid {

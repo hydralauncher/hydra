@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { EmulationBackupProgress, EmulationSavePlatform } from "@types";
 
@@ -13,9 +13,9 @@ export interface CardBackupProgress {
 }
 
 export function useEmulationBackupProgress(platform: EmulationSavePlatform) {
-  const [backingUpCard, setBackingUpCard] = useState<string | null>(null);
-  const [backupProgress, setBackupProgress] =
-    useState<EmulationBackupProgress | null>(null);
+  const [backupProgressByCard, setBackupProgressByCard] = useState<
+    Record<string, EmulationBackupProgress>
+  >({});
 
   useEffect(() => {
     let active = true;
@@ -23,26 +23,33 @@ export function useEmulationBackupProgress(platform: EmulationSavePlatform) {
 
     void window.electron.getActiveEmulationBackups().then((list) => {
       if (!active) return;
-      const match = list.find((b) => b.platform === platform);
-      if (!match || seenDone.has(match.cardFilePath)) return;
-      setBackingUpCard(match.cardFilePath);
-      setBackupProgress(match);
+      const matches = list.filter(
+        (b) => b.platform === platform && !seenDone.has(b.cardFilePath)
+      );
+      if (matches.length === 0) return;
+      setBackupProgressByCard((prev) => {
+        const next = { ...prev };
+        for (const match of matches) next[match.cardFilePath] = match;
+        return next;
+      });
     });
 
     const unsubscribe = window.electron.onEmulationBackupProgress((payload) => {
       if (payload.platform !== platform) return;
       if (payload.processed >= payload.total) {
         seenDone.add(payload.cardFilePath);
-        setBackingUpCard((prev) =>
-          prev === payload.cardFilePath ? null : prev
-        );
-        setBackupProgress((prev) =>
-          prev?.cardFilePath === payload.cardFilePath ? null : prev
-        );
+        setBackupProgressByCard((prev) => {
+          if (!(payload.cardFilePath in prev)) return prev;
+          const next = { ...prev };
+          delete next[payload.cardFilePath];
+          return next;
+        });
         return;
       }
-      setBackingUpCard(payload.cardFilePath);
-      setBackupProgress(payload);
+      setBackupProgressByCard((prev) => ({
+        ...prev,
+        [payload.cardFilePath]: payload,
+      }));
     });
 
     return () => {
@@ -51,20 +58,63 @@ export function useEmulationBackupProgress(platform: EmulationSavePlatform) {
     };
   }, [platform]);
 
-  return { backingUpCard, backupProgress, setBackingUpCard, setBackupProgress };
+  const markCardBackupStarted = useCallback(
+    (cardFilePath: string, total: number) => {
+      setBackupProgressByCard((prev) => ({
+        ...prev,
+        [cardFilePath]: {
+          platform,
+          cardFilePath,
+          processed: 0,
+          uploaded: 0,
+          failed: 0,
+          total,
+          currentLabel: null,
+        },
+      }));
+    },
+    [platform]
+  );
+
+  const markCardBackupFinished = useCallback((cardFilePath: string) => {
+    setBackupProgressByCard((prev) => {
+      if (!(cardFilePath in prev)) return prev;
+      const next = { ...prev };
+      delete next[cardFilePath];
+      return next;
+    });
+  }, []);
+
+  const backupCard = useCallback(
+    async (cardFilePath: string, recordCount: number) => {
+      markCardBackupStarted(cardFilePath, recordCount);
+      try {
+        return await window.electron.uploadEmulationSavesForCard(
+          platform,
+          cardFilePath
+        );
+      } catch {
+        return null;
+      } finally {
+        markCardBackupFinished(cardFilePath);
+      }
+    },
+    [platform, markCardBackupStarted, markCardBackupFinished]
+  );
+
+  return {
+    backupProgressByCard,
+    backupCard,
+  };
 }
 
 export function resolveCardBackupProgress(
-  backingUpCard: string | null,
-  backupProgress: EmulationBackupProgress | null,
+  backupProgressByCard: Record<string, EmulationBackupProgress>,
   cardFilePath: string,
   recordCount: number
 ): CardBackupProgress {
-  const isBackingUp = backingUpCard === cardFilePath;
-  const progress =
-    isBackingUp && backupProgress?.cardFilePath === cardFilePath
-      ? backupProgress
-      : null;
+  const progress = backupProgressByCard[cardFilePath] ?? null;
+  const isBackingUp = progress !== null;
   const total = progress?.total ?? recordCount;
   const done = progress?.processed ?? 0;
   const percent =
