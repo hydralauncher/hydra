@@ -11,7 +11,7 @@ import {
 import { GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
 
 import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
-import { useUserPreferences } from "../../hooks";
+import { useUserPreferences, useBigPictureToast } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
@@ -79,6 +79,7 @@ export function CompatibilitySettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const userPreferences = useUserPreferences();
+  const { showSuccessToast } = useBigPictureToast();
   const [form, setForm] = useState<CompatibilityForm>(DEFAULT_FORM);
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
@@ -182,10 +183,17 @@ export function CompatibilitySettingsSection({
       ({ log, complete }) => {
         if (log === "Installation timed out" || complete) {
           setInstallingCommonRedist(false);
+
+          if (complete) {
+            showSuccessToast("Installation Complete", {
+              message:
+                "Common redistributables have been installed successfully.",
+            });
+          }
         }
       }
     );
-  }, [isWindows]);
+  }, [isWindows, showSuccessToast]);
 
   const updateCompatibilityPreferences = useCallback(
     async (values: CompatibilityPreferenceValues) => {

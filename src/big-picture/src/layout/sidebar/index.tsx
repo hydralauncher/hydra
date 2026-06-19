@@ -38,10 +38,13 @@ import {
   useNavigationActions,
   useSearch,
   useUserDetails,
+  useBigPictureToast,
 } from "../../hooks";
 import {
   getGameHorizontalImageSource,
+  getPreferredGameAssets,
   getItemFocusTarget,
+  getBigPictureGameAchievementsPath,
 } from "../../helpers";
 import {
   initializeBigPictureDownloadsStore,
@@ -72,6 +75,13 @@ import {
   normalizeBigPicturePathname,
 } from "../navigation";
 import { isLibraryGamePlayable } from "../../components/pages/library/library-data";
+import {
+  LibraryGameContextMenu,
+  LibraryGameSettingsModal,
+  useLibraryLaunchGame,
+  useLibraryPendingAction,
+} from "../../components/pages/library";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import "./styles.scss";
 
@@ -418,11 +428,17 @@ type SidebarRunningGamesById = Record<
 interface SidebarLibraryProps {
   library: LibraryGame[];
   runningGamesById: SidebarRunningGamesById;
+  onOpenContextMenu?: (
+    game: LibraryGame,
+    position: { x: number; y: number },
+    restoreFocusId: string
+  ) => void;
 }
 
 function SidebarLibrary({
   library,
   runningGamesById,
+  onOpenContextMenu,
 }: Readonly<SidebarLibraryProps>) {
   const { pathname } = useLocation();
   const lastDownloadPacket = useBigPictureDownloadsStore(
@@ -459,12 +475,13 @@ function SidebarLibrary({
   const { filteredItems, search, setSearch } = useSearch(sidebarLibrary, [
     "title",
   ]);
-  const emptyLibraryMessage =
-    library.length === 0
-      ? "No games in library"
-      : search.trim()
-        ? "No games found"
-        : "No games here";
+  let emptyLibraryMessage = "No games here";
+
+  if (library.length === 0) {
+    emptyLibraryMessage = "No games in library";
+  } else if (search.trim()) {
+    emptyLibraryMessage = "No games found";
+  }
 
   const selectedFilterFocusId =
     SIDEBAR_LIBRARY_FILTER_FOCUS_IDS[selectedLibraryFilter];
@@ -543,11 +560,7 @@ function SidebarLibrary({
         />
       </div>
 
-      <div
-        className="library-container__filters"
-        role="group"
-        aria-label="Library filters"
-      >
+      <div className="library-container__filters" aria-label="Library filters">
         {SIDEBAR_LIBRARY_FILTERS.map((filter, index) => (
           <FocusItem
             key={filter.value}
@@ -608,6 +621,20 @@ function SidebarLibrary({
                     extractionProgressByGameId
                   );
 
+                  const openContextMenuFromRect = (
+                    rect: DOMRect,
+                    restoreFocusId: string = focusId
+                  ) => {
+                    onOpenContextMenu?.(
+                      game,
+                      {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2,
+                      },
+                      restoreFocusId
+                    );
+                  };
+
                   return (
                     <li key={game.id} className="library-list__item">
                       <RouteAnchor
@@ -615,7 +642,7 @@ function SidebarLibrary({
                         label={game.title}
                         subtitle={status}
                         href={desktopPath}
-                        icon={game.iconUrl}
+                        icon={getPreferredGameAssets(game, null).iconUrl}
                         isFavorite={game.favorite}
                         active={active}
                         focusId={focusId}
@@ -623,6 +650,35 @@ function SidebarLibrary({
                         focusNavigationOverrides={getGameNavigationOverrides(
                           index
                         )}
+                        focusActions={{
+                          primary: null,
+                          press: {
+                            y: onOpenContextMenu
+                              ? () => {
+                                  const element =
+                                    globalThis.document.getElementById(focusId);
+                                  const rect =
+                                    element?.getBoundingClientRect() ?? null;
+
+                                  if (rect) {
+                                    openContextMenuFromRect(rect);
+                                  }
+                                }
+                              : undefined,
+                          },
+                        }}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onOpenContextMenu?.(
+                            game,
+                            {
+                              x: event.clientX,
+                              y: event.clientY,
+                            },
+                            focusId
+                          );
+                        }}
                       />
                     </li>
                   );
@@ -787,9 +843,8 @@ const SidebarContainer = forwardRef<
   };
 
   return (
-    <div
+    <div // NOSONAR
       ref={ref}
-      role="presentation"
       className={`sidebar-container${forcedOpen ? " sidebar-container--open" : ""}`}
       onBlurCapture={handleBlurCapture}
       onFocusCapture={handleFocusCapture}
@@ -801,17 +856,59 @@ const SidebarContainer = forwardRef<
   );
 });
 
+interface SidebarGameContextMenuState {
+  game: LibraryGame | null;
+  visible: boolean;
+  position: { x: number; y: number };
+  restoreFocusId: string | null;
+}
+
+const SIDEBAR_MENU_DEFAULT_POSITION = { x: 0, y: 0 };
+
 function Sidebar() {
   const { pathname } = useLocation();
-  const { library } = useLibrary();
+  const navigate = useNavigate();
+  const { library, updateLibrary } = useLibrary();
   const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
+  const { showSuccessToast } = useBigPictureToast();
   const { currentFocusId, nodes, regions } = useNavigationSnapshot();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [sidebarFocusWithin, setSidebarFocusWithin] = useState(false);
+  const [contextMenuState, setContextMenuState] =
+    useState<SidebarGameContextMenuState>({
+      game: null,
+      visible: false,
+      position: SIDEBAR_MENU_DEFAULT_POSITION,
+      restoreFocusId: null,
+    });
+  const [favoriteLoadingGameId, setFavoriteLoadingGameId] = useState<
+    string | null
+  >(null);
+
+  const {
+    pendingAction,
+    requestRemoveFiles,
+    requestRemoveFromLibrary,
+    closePendingAction,
+    confirmPendingAction,
+  } = useLibraryPendingAction({
+    getRestoreFocusId: useCallback(
+      () => contextMenuState.restoreFocusId,
+      [contextMenuState.restoreFocusId]
+    ),
+    onDataRefresh: useCallback(async () => {
+      await updateLibrary();
+      globalThis.window.dispatchEvent(new Event("library-update"));
+    }, [updateLibrary]),
+    showSuccessToast,
+    restoreFocusOnClose: false,
+    restoreFocusOnConfirm: false,
+  });
+
   const sidebarHasNavigationFocus = useMemo(
     () =>
       isFocusedNodeWithinRegion(
@@ -825,7 +922,8 @@ function Sidebar() {
   const sidebarForcedOpen =
     notificationsOpen ||
     restoringNotificationsFocus ||
-    sidebarHasNavigationFocus;
+    sidebarHasNavigationFocus ||
+    contextMenuState.visible;
   const sidebarExpanded =
     sidebarHovered || sidebarFocusWithin || sidebarForcedOpen;
 
@@ -840,6 +938,10 @@ function Sidebar() {
     }
 
     setNotificationsOpen(false);
+    setContextMenuState((currentState) => ({
+      ...currentState,
+      visible: false,
+    }));
 
     const contentRegionId =
       getBigPictureContentEntryRegionIdFromPathname(pathname) ??
@@ -849,6 +951,81 @@ function Sidebar() {
       preferRememberedFocus: true,
     });
   };
+
+  const handleOpenContextMenu = useCallback(
+    (
+      game: LibraryGame,
+      position: { x: number; y: number },
+      restoreFocusId: string
+    ) => {
+      setContextMenuState({
+        game,
+        visible: true,
+        position,
+        restoreFocusId,
+      });
+    },
+    []
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuState((currentState) => ({
+      ...currentState,
+      visible: false,
+    }));
+  }, []);
+
+  const handleToggleFavorite = useCallback(
+    async (game: LibraryGame) => {
+      if (!IS_DESKTOP) return;
+
+      setFavoriteLoadingGameId(game.id);
+
+      try {
+        const toggle = game.favorite
+          ? globalThis.window.electron.removeGameFromFavorites
+          : globalThis.window.electron.addGameToFavorites;
+
+        await toggle(game.shop, game.objectId);
+        await updateLibrary();
+        globalThis.window.dispatchEvent(new Event("library-update"));
+      } finally {
+        setFavoriteLoadingGameId(null);
+      }
+    },
+    [updateLibrary]
+  );
+
+  const handleViewAchievements = useCallback(
+    (game: LibraryGame) => {
+      navigate(getBigPictureGameAchievementsPath(game));
+    },
+    [navigate]
+  );
+
+  const [downloadModalGame, setDownloadModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleCloseDownloadModal = useCallback(() => {
+    setDownloadModalGame(null);
+  }, []);
+
+  const handleLaunchOrDownload = useLibraryLaunchGame(
+    useCallback((game: LibraryGame) => {
+      setDownloadModalGame(game);
+    }, [])
+  );
+
+  const [settingsModalGame, setSettingsModalGame] =
+    useState<LibraryGame | null>(null);
+
+  const handleOpenGameSettings = useCallback((game: LibraryGame) => {
+    setSettingsModalGame(game);
+  }, []);
+
+  const handleCloseGameSettingsModal = useCallback(() => {
+    setSettingsModalGame(null);
+  }, []);
 
   return (
     <>
@@ -872,9 +1049,63 @@ function Sidebar() {
           <SidebarLibrary
             library={library}
             runningGamesById={runningGamesById}
+            onOpenContextMenu={handleOpenContextMenu}
           />
         </SidebarContainer>
       </VerticalFocusGroup>
+
+      <LibraryGameContextMenu
+        game={contextMenuState.game}
+        visible={contextMenuState.visible}
+        position={contextMenuState.position}
+        restoreFocusId={contextMenuState.restoreFocusId}
+        isFavoriteLoading={favoriteLoadingGameId === contextMenuState.game?.id}
+        onClose={handleCloseContextMenu}
+        onLaunchOrDownload={handleLaunchOrDownload}
+        onToggleFavorite={handleToggleFavorite}
+        onViewAchievements={handleViewAchievements}
+        onOptions={handleOpenGameSettings}
+        onUninstall={requestRemoveFiles}
+        onRemoveFromLibrary={requestRemoveFromLibrary}
+      />
+
+      {downloadModalGame ? (
+        <DownloadGameModal
+          key={downloadModalGame.id}
+          visible
+          onClose={handleCloseDownloadModal}
+          game={downloadModalGame}
+        />
+      ) : null}
+
+      {settingsModalGame ? (
+        <LibraryGameSettingsModal
+          visible
+          game={settingsModalGame}
+          onClose={handleCloseGameSettingsModal}
+        />
+      ) : null}
+
+      {pendingAction ? (
+        <ConfirmationModal
+          visible
+          title={
+            pendingAction.type === "remove-files"
+              ? "Remove downloaded files?"
+              : "Remove from library?"
+          }
+          description={
+            pendingAction.type === "remove-files"
+              ? `Remove downloaded files for ${pendingAction.game.title}?`
+              : `Remove ${pendingAction.game.title} from library?`
+          }
+          confirmLabel="Remove"
+          danger
+          onClose={closePendingAction}
+          onConfirm={confirmPendingAction}
+        />
+      ) : null}
+
       <div className="sidebar-spacer" />
       <div
         className="sidebar-drawer-overlay"

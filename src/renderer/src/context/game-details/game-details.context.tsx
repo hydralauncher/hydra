@@ -94,7 +94,7 @@ export function GameDetailsContextProvider({
     useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
 
-  const { i18n } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const location = useLocation();
 
   const dispatch = useAppDispatch();
@@ -112,67 +112,7 @@ export function GameDetailsContextProvider({
       .then((result) => setGame(result));
   }, [shop, objectId]);
 
-  const isGameDownloading =
-    lastPacket?.gameId === game?.id && game?.download?.status === "active";
-
-  useEffect(() => {
-    updateGame();
-  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
-
-  // Listen for transfer events
-  useEffect(() => {
-    const onTransferProgress = (
-      _: unknown,
-      shop: string,
-      objectId: string,
-      progress: number
-    ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(progress >= 0 && progress < 1);
-        setTransferProgress(progress);
-      }
-    };
-
-    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-        updateGame();
-      }
-    };
-
-    const onTransferCancelled = (
-      _: unknown,
-      shop: string,
-      objectId: string
-    ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-      }
-    };
-
-    const onTransferError = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
-      }
-    };
-
-    window.electron.on("on-game-transfer-progress", onTransferProgress);
-    window.electron.on("on-game-transfer-complete", onTransferComplete);
-    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
-    window.electron.on("on-game-transfer-error", onTransferError);
-
-    return () => {
-      window.electron.off("on-game-transfer-progress", onTransferProgress);
-      window.electron.off("on-game-transfer-complete", onTransferComplete);
-      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
-      window.electron.off("on-game-transfer-error", onTransferError);
-    };
-  }, [game]);
-
-  useEffect(() => {
+  const fetchGameDetails = useCallback(async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -235,14 +175,80 @@ export function GameDetailsContextProvider({
         .catch(() => void 0);
     }
   }, [
-    updateGame,
-    dispatch,
+    i18n.language,
     objectId,
     shop,
-    i18n.language,
     userDetails,
-    userPreferences,
+    userPreferences?.disableNsfwAlert,
   ]);
+
+  const refreshGameDetails = useCallback(async () => {
+    await Promise.all([updateGame(), fetchGameDetails()]);
+  }, [fetchGameDetails, updateGame]);
+
+  const isGameDownloading =
+    lastPacket?.gameId === game?.id && game?.download?.status === "active";
+
+  useEffect(() => {
+    updateGame();
+  }, [updateGame, isGameDownloading, lastPacket?.gameId]);
+
+  // Listen for transfer events
+  useEffect(() => {
+    const onTransferProgress = (
+      _: unknown,
+      shop: string,
+      objectId: string,
+      progress: number
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(progress >= 0 && progress < 1);
+        setTransferProgress(progress);
+      }
+    };
+
+    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+        updateGame();
+      }
+    };
+
+    const onTransferCancelled = (
+      _: unknown,
+      shop: string,
+      objectId: string
+    ) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    const onTransferError = (_: unknown, shop: string, objectId: string) => {
+      if (shop === game?.shop && objectId === game?.objectId) {
+        setIsTransferring(false);
+        setTransferProgress(0);
+      }
+    };
+
+    window.electron.on("on-game-transfer-progress", onTransferProgress);
+    window.electron.on("on-game-transfer-complete", onTransferComplete);
+    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
+    window.electron.on("on-game-transfer-error", onTransferError);
+
+    return () => {
+      window.electron.off("on-game-transfer-progress", onTransferProgress);
+      window.electron.off("on-game-transfer-complete", onTransferComplete);
+      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
+      window.electron.off("on-game-transfer-error", onTransferError);
+    };
+  }, [game]);
+
+  useEffect(() => {
+    fetchGameDetails().catch(() => {});
+  }, [fetchGameDetails]);
 
   useEffect(() => {
     setShopDetails(null);
@@ -293,13 +299,13 @@ export function GameDetailsContextProvider({
 
   useEffect(() => {
     const unsubscribe = window.electron.onLibraryBatchComplete(() => {
-      updateGame();
+      refreshGameDetails().catch(() => {});
     });
 
     return () => {
       unsubscribe();
     };
-  }, [updateGame]);
+  }, [refreshGameDetails]);
 
   useEffect(() => {
     const handler = (ev: Event) => {
@@ -414,16 +420,29 @@ export function GameDetailsContextProvider({
   const selectGameExecutable = async () => {
     const downloadsPath = await getDownloadsPath();
 
+    const filters =
+      window.electron.platform === "linux"
+        ? [
+            {
+              name: t("game_executable"),
+              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+            },
+            { name: t("all_files"), extensions: ["*"] },
+          ]
+        : window.electron.platform === "darwin"
+          ? [{ name: t("game_executable"), extensions: ["app"] }]
+          : [
+              {
+                name: t("game_executable"),
+                extensions: ["exe", "lnk", "bat", "cmd"],
+              },
+            ];
+
     return window.electron
       .showOpenDialog({
         properties: ["openFile"],
         defaultPath: downloadsPath,
-        filters: [
-          {
-            name: "Game executable",
-            extensions: ["exe", "lnk"],
-          },
-        ],
+        filters,
       })
       .then(({ filePaths }) => {
         if (filePaths && filePaths.length > 0) {

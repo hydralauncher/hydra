@@ -15,6 +15,11 @@ import {
 } from "@primer/octicons-react";
 
 import { Button, ConfirmationModal } from "@renderer/components";
+import {
+  getSkuRegion,
+  getSkuRegionFlag,
+  getSkuRegionFromSaveIdentity,
+} from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import type {
   EmulationCloudSave,
@@ -192,6 +197,7 @@ export function GameEmulationSaves({
                 {localSaves.map((record) => {
                   const key = recordKey(record);
                   const uploading = uploadingKey === key;
+                  const region = record.sku ? getSkuRegion(record.sku) : null;
                   return (
                     <li key={key} className="game-emulation-saves__card">
                       <div className="game-emulation-saves__card-head">
@@ -200,6 +206,14 @@ export function GameEmulationSaves({
                           src={hydraSaveCard}
                           alt=""
                         />
+                        {region && (
+                          <img
+                            className="game-emulation-saves__card-flag"
+                            src={getSkuRegionFlag(region)}
+                            alt={region}
+                            title={region}
+                          />
+                        )}
                         <span
                           className="game-emulation-saves__card-title"
                           title={record.title ?? record.folderName}
@@ -262,69 +276,82 @@ export function GameEmulationSaves({
                 {t("game_cloud_group_title")}
               </h3>
               <ul className="game-emulation-saves__list">
-                {cloudSaves.map((save) => (
-                  <li key={save.id} className="game-emulation-saves__card">
-                    <div className="game-emulation-saves__card-head">
-                      <img
-                        className="game-emulation-saves__card-icon"
-                        src={hydraSaveCard}
-                        alt=""
-                      />
-                      <span
-                        className="game-emulation-saves__card-title"
-                        title={save.label ?? save.fileName}
-                      >
-                        {save.label ?? save.fileName}
-                      </span>
-                      <button
-                        type="button"
-                        className="game-emulation-saves__icon-button"
-                        onClick={() => setRenameFor(save)}
-                        aria-label={t("cloud_rename_title")}
-                      >
-                        <PencilIcon size={14} />
-                      </button>
-                      <small className="game-emulation-saves__card-size">
-                        {formatBytes(save.artifactLengthInBytes)}
-                      </small>
-                    </div>
-
-                    <div className="game-emulation-saves__card-body">
-                      <div className="game-emulation-saves__card-meta">
-                        <span title={save.fileName}>
-                          <CodeIcon size={14} />
-                          {save.fileName}
-                        </span>
-                        <span>
-                          <DeviceDesktopIcon size={14} />
-                          {save.hostname ?? "—"}
-                        </span>
-                        <span>
-                          <ClockIcon size={14} />
-                          {formatDate(save.localLastModifiedAt)}
-                        </span>
-                      </div>
-
-                      <div className="game-emulation-saves__card-actions">
-                        <Button
-                          theme="outline"
-                          onClick={() => setRestoreFor(save)}
+                {cloudSaves.map((save) => {
+                  const region = getSkuRegionFromSaveIdentity(
+                    save.saveIdentity
+                  );
+                  return (
+                    <li key={save.id} className="game-emulation-saves__card">
+                      <div className="game-emulation-saves__card-head">
+                        <img
+                          className="game-emulation-saves__card-icon"
+                          src={hydraSaveCard}
+                          alt=""
+                        />
+                        {region && (
+                          <img
+                            className="game-emulation-saves__card-flag"
+                            src={getSkuRegionFlag(region)}
+                            alt={region}
+                            title={region}
+                          />
+                        )}
+                        <span
+                          className="game-emulation-saves__card-title"
+                          title={save.label ?? save.fileName}
                         >
-                          <HistoryIcon size={14} />
-                          <span>{t("cloud_restore")}</span>
-                        </Button>
+                          {save.label ?? save.fileName}
+                        </span>
                         <button
                           type="button"
-                          className="game-emulation-saves__delete"
-                          onClick={() => setDeleteFor(save)}
-                          aria-label={t("cloud_delete")}
+                          className="game-emulation-saves__icon-button"
+                          onClick={() => setRenameFor(save)}
+                          aria-label={t("cloud_rename_title")}
                         >
-                          <TrashIcon size={16} />
+                          <PencilIcon size={14} />
                         </button>
+                        <small className="game-emulation-saves__card-size">
+                          {formatBytes(save.artifactLengthInBytes)}
+                        </small>
                       </div>
-                    </div>
-                  </li>
-                ))}
+
+                      <div className="game-emulation-saves__card-body">
+                        <div className="game-emulation-saves__card-meta">
+                          <span title={save.fileName}>
+                            <CodeIcon size={14} />
+                            {save.fileName}
+                          </span>
+                          <span>
+                            <DeviceDesktopIcon size={14} />
+                            {save.hostname ?? "—"}
+                          </span>
+                          <span>
+                            <ClockIcon size={14} />
+                            {formatDate(save.localLastModifiedAt)}
+                          </span>
+                        </div>
+
+                        <div className="game-emulation-saves__card-actions">
+                          <Button
+                            theme="outline"
+                            onClick={() => setRestoreFor(save)}
+                          >
+                            <HistoryIcon size={14} />
+                            <span>{t("cloud_restore")}</span>
+                          </Button>
+                          <button
+                            type="button"
+                            className="game-emulation-saves__delete"
+                            onClick={() => setDeleteFor(save)}
+                            aria-label={t("cloud_delete")}
+                          >
+                            <TrashIcon size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )}

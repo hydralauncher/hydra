@@ -1,16 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   DeviceDesktopIcon,
   HistoryIcon,
   KebabHorizontalIcon,
+  LockIcon,
   PencilIcon,
   SyncIcon,
   TrashIcon,
@@ -18,7 +13,13 @@ import {
 
 import { Button, ConfirmationModal } from "@renderer/components";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
+import {
+  getSkuRegionFlag,
+  getSkuRegionFromSaveIdentity,
+} from "@renderer/helpers";
 import { useToast, useUserDetails } from "@renderer/hooks";
+import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
@@ -27,6 +28,7 @@ import type {
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
+import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 
 import { RenameModal, RestoreModal, formatDate } from "./emulation-save-modals";
 
@@ -35,21 +37,12 @@ interface Props {
   refreshKey: number;
 }
 
-const SLOT_X_RATIO = 59.5 / 411;
-const SLOT_Y_RATIO = 129 / 221;
-const BRANCH_GAP = 40;
-const CORNER_RADIUS = 8;
-
-interface Connector {
-  width: number;
-  height: number;
-  path: string;
-}
-
 export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const { t } = useTranslation("settings");
+  const { t: tHydraCloud } = useTranslation("hydra_cloud");
   const { showSuccessToast } = useToast();
   const { hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
   const platform = config.system as EmulationSavePlatform;
 
   const [saves, setSaves] = useState<EmulationCloudSave[]>([]);
@@ -58,14 +51,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
   const [renameFor, setRenameFor] = useState<EmulationCloudSave | null>(null);
   const [deleteFor, setDeleteFor] = useState<EmulationCloudSave | null>(null);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const consoleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [connector, setConnector] = useState<Connector>({
-    width: 0,
-    height: 0,
-    path: "",
-  });
+  const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
   const load = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -92,76 +78,64 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
     load();
   }, [deleteFor, showSuccessToast, t, load]);
 
-  const drawConnector = useCallback(() => {
-    const stage = stageRef.current;
-    const consoleEl = consoleRef.current;
-    const grid = gridRef.current;
-    if (!stage || !consoleEl || !grid) return;
+  if (!hasActiveSubscription) {
+    return (
+      <section className="emulator-detail__section emulator-detail__cloud-section">
+        <header className="emulator-detail__section-header">
+          <div className="emulator-detail__section-text">
+            <h3>{t("cloud_saves_section_title")}</h3>
+            <p>{t("cloud_saves_section_description")}</p>
+          </div>
+        </header>
 
-    const stageRect = stage.getBoundingClientRect();
-    const consoleRect = consoleEl.getBoundingClientRect();
-    const cards = Array.from(
-      grid.querySelectorAll<HTMLElement>(".emulator-detail__cloud-card")
+        <div className="emulator-detail__cloud-locked">
+          <div
+            className="emulator-detail__cloud-locked-preview"
+            aria-hidden="true"
+          >
+            <div className="emulator-detail__cloud-grid">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="emulator-detail__cloud-card">
+                  <div className="emulator-detail__cloud-card-top">
+                    <img
+                      className="emulator-detail__cloud-card-art"
+                      src={hydraSaveCard}
+                      alt=""
+                    />
+                  </div>
+                  <span className="emulator-detail__cloud-card-title">—</span>
+                  <div className="emulator-detail__cloud-card-info">
+                    <span>
+                      <DeviceDesktopIcon size={16} />—
+                    </span>
+                    <span>
+                      <ClockIcon size={16} />—
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="emulator-detail__cloud-locked-overlay">
+            <span className="emulator-detail__cloud-locked-icon">
+              <LockIcon size={24} />
+            </span>
+            <p className="emulator-detail__cloud-locked-title">
+              {tHydraCloud("hydra_cloud_feature_found")}
+            </p>
+            <Button
+              theme="outline"
+              onClick={() => showHydraCloudModal("backup")}
+            >
+              <HydraIcon className="emulator-detail__cloud-locked-hydra" />
+              <span>{tHydraCloud("learn_more")}</span>
+            </Button>
+          </div>
+        </div>
+      </section>
     );
-    if (cards.length === 0) {
-      setConnector({
-        width: stageRect.width,
-        height: stageRect.height,
-        path: "",
-      });
-      return;
-    }
-
-    const slotX =
-      consoleRect.left - stageRect.left + SLOT_X_RATIO * consoleRect.width;
-    const slotY =
-      consoleRect.top - stageRect.top + SLOT_Y_RATIO * consoleRect.height;
-
-    const centers = cards.map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        x: rect.left - stageRect.left + rect.width / 2,
-        top: rect.top - stageRect.top,
-      };
-    });
-    const cardTop = Math.min(...centers.map((c) => c.top));
-    const busY = cardTop - BRANCH_GAP;
-    const xs = centers.map((c) => c.x);
-    const first = xs[0];
-    const last = xs[xs.length - 1];
-
-    const segments = [`M ${slotX} ${slotY} L ${slotX} ${busY}`];
-
-    if (first === last) {
-      segments.push(`M ${first} ${busY} L ${first} ${cardTop}`);
-      segments.push(
-        `M ${Math.min(slotX, first)} ${busY} L ${Math.max(slotX, first)} ${busY}`
-      );
-    } else {
-      const r = Math.min(CORNER_RADIUS, (last - first) / 2);
-      segments.push(
-        `M ${first} ${cardTop} L ${first} ${busY + r} Q ${first} ${busY} ${first + r} ${busY} L ${last - r} ${busY} Q ${last} ${busY} ${last} ${busY + r} L ${last} ${cardTop}`
-      );
-      for (let i = 1; i < xs.length - 1; i += 1) {
-        segments.push(`M ${xs[i]} ${busY} L ${xs[i]} ${cardTop}`);
-      }
-      if (slotX < first) segments.push(`M ${slotX} ${busY} L ${first} ${busY}`);
-      if (slotX > last) segments.push(`M ${last} ${busY} L ${slotX} ${busY}`);
-    }
-
-    setConnector({
-      width: stageRect.width,
-      height: stageRect.height,
-      path: segments.join(" "),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    drawConnector();
-    const observer = new ResizeObserver(drawConnector);
-    if (stageRef.current) observer.observe(stageRef.current);
-    return () => observer.disconnect();
-  }, [drawConnector, saves]);
+  }
 
   if (saves.length === 0) return null;
 
@@ -214,6 +188,7 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
           <div className="emulator-detail__cloud-grid" ref={gridRef}>
             {saves.map((save) => {
               const name = save.label ?? save.fileName;
+              const region = getSkuRegionFromSaveIdentity(save.saveIdentity);
               return (
                 <div key={save.id} className="emulator-detail__cloud-card">
                   <div className="emulator-detail__cloud-card-top">
@@ -255,12 +230,22 @@ export function CloudSavesSection({ config, refreshKey }: Readonly<Props>) {
                     </DropdownMenu>
                   </div>
 
-                  <span
-                    className="emulator-detail__cloud-card-title"
-                    title={name}
-                  >
-                    {name}
-                  </span>
+                  <div className="emulator-detail__cloud-card-title-row">
+                    {region && (
+                      <img
+                        className="emulator-detail__cloud-card-flag"
+                        src={getSkuRegionFlag(region)}
+                        alt={region}
+                        title={region}
+                      />
+                    )}
+                    <span
+                      className="emulator-detail__cloud-card-title"
+                      title={name}
+                    >
+                      {name}
+                    </span>
+                  </div>
 
                   <div className="emulator-detail__cloud-card-info">
                     <span title={save.hostname ?? undefined}>

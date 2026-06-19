@@ -1,0 +1,24 @@
+.game-downloads-settings-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-downloads-settings-tab__section {
+  width: 100%;
+}
+
+.game-downloads-settings-tab__section-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+}

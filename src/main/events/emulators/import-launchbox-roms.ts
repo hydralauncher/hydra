@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { chunk } from "lodash-es";
 
@@ -7,7 +8,9 @@ import {
   setActiveClassicsImport,
   updateActiveClassicsImport,
 } from "./classics-import-state";
+import { isWithin } from "./rom-path-utils";
 import { HydraApi, WindowManager, emulators, logger } from "@main/services";
+import { platformToSystem } from "@main/helpers";
 import {
   fetchShopDetailsForSkus,
   normalizeSku,
@@ -161,7 +164,8 @@ const persistEntryLocally = async (
   entry: LaunchboxShopDetailsEntry,
   language: string,
   discs: ClassicsDisc[],
-  system: EmulatorSystem
+  system: EmulatorSystem,
+  romSizeBytes: number | null
 ) => {
   const shop = "launchbox" as const;
   const objectId = entry.objectId;
@@ -215,6 +219,7 @@ const persistEntryLocally = async (
     ) {
       existing.selectedDiscPath = discs[0]?.path ?? null;
     }
+    existing.romSizeBytes = romSizeBytes ?? existing.romSizeBytes ?? null;
     await gamesSublevel.put(gameKey, existing);
   } else {
     await gamesSublevel.put(gameKey, {
@@ -232,6 +237,7 @@ const persistEntryLocally = async (
       platform,
       discs,
       selectedDiscPath: discs[0]?.path ?? null,
+      romSizeBytes,
     });
   }
 
@@ -686,6 +692,7 @@ const rollupFolders = (
 const persistMatchedEntries = async (
   matchedEntries: Map<string, LaunchboxShopDetailsEntry>,
   discsByTitle: DiscsByTitle,
+  titleByFolder: TitleByFolder,
   language: string,
   system: EmulatorSystem,
   signal: CancelSignal
@@ -694,7 +701,14 @@ const persistMatchedEntries = async (
     if (signal.cancelled) break;
     const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
     const discs = buildDiscList(titleDiscs);
-    await persistEntryLocally(entry, language, discs, system).catch((err) => {
+    const romSizeBytes = titleByFolder.get(entry.objectId)?.sizeBytes ?? null;
+    await persistEntryLocally(
+      entry,
+      language,
+      discs,
+      system,
+      romSizeBytes
+    ).catch((err) => {
       logger.error("Failed to persist launchbox entry locally", err);
     });
   }
@@ -716,6 +730,32 @@ const persistFolderRollups = async (
       rollup.sizeBytes
     ).catch((err) => {
       logger.error("Could not persist rom folder", err);
+    });
+  }
+};
+
+const reconcileDeletedGames = async (
+  system: EmulatorSystem,
+  folders: FolderInput[]
+) => {
+  const entries = await gamesSublevel.iterator().all();
+  for (const [key, game] of entries) {
+    if (game.isDeleted) continue;
+    if (game.shop !== "launchbox") continue;
+    if (platformToSystem(game.platform) !== system) continue;
+
+    const discs = game.discs ?? [];
+    const inScannedFolders = discs.some((disc) =>
+      folders.some((folder) => isWithin(disc.path, folder.path))
+    );
+    if (!inScannedFolders) continue;
+
+    const stillOnDisk = discs.some((disc) => existsSync(disc.path));
+    if (stillOnDisk) continue;
+
+    game.isDeleted = true;
+    await gamesSublevel.put(key, game).catch((err) => {
+      logger.error("Could not mark stale launchbox game as deleted", err);
     });
   }
 };
@@ -835,11 +875,13 @@ export async function runLaunchboxImport(
   await persistMatchedEntries(
     matchedEntries,
     discsByTitle,
+    titleByFolder,
     language,
     system,
     signal
   );
   await persistFolderRollups(system, folderRollup, folderInputBy);
+  await reconcileDeletedGames(system, folders);
   await syncProfileBatch(Array.from(matchedEntries.keys()));
 
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {

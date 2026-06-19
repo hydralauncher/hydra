@@ -116,6 +116,19 @@
     }
   }
 
+  &__tracking-executable {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-top: globals.$spacing-unit;
+  }
+
+  &__warning {
+    margin: 0;
+    color: #f5a623;
+    font-size: globals.$small-font-size;
+  }
+
   &__wine-prefix {
     display: flex;
     flex-direction: column;

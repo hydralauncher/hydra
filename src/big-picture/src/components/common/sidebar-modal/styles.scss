@@ -22,7 +22,37 @@
   min-height: 0;
 }
 
+.sidebar-modal__header {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-modal__header-cover-image {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 0%, var(--background) 100%);
+  }
+}
+
 .sidebar-modal__title {
+  position: relative;
+  z-index: 1;
   flex: none;
   min-width: 0;
   padding: calc(var(--spacing-unit) * 6);
@@ -30,6 +60,7 @@
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.2;
+  text-shadow: 0 0 20px var(--background);
 }
 
 .sidebar-modal__divider {

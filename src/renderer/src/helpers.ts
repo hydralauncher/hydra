@@ -263,6 +263,17 @@ export const getSkuRegion = (sku: string): SkuRegion | null => {
   return SKU_REGION_MAP[prefix] ?? null;
 };
 
+export const getSkuRegionFromSaveIdentity = (
+  saveIdentity: string | null | undefined
+): SkuRegion | null => {
+  if (!saveIdentity) return null;
+  const cleaned = saveIdentity
+    .trim()
+    .toUpperCase()
+    .replace(/^B[A-Z](?=[A-Z]{4}[-_ .]?\d{5})/, "");
+  return getSkuRegion(cleaned);
+};
+
 export const getSkuRegionFlag = (region: SkuRegion): string =>
   SKU_REGION_FLAGS[region];
 
@@ -277,6 +288,7 @@ export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
 
 const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_NOT_CONFIGURED",
+  "BIOS_NOT_CONFIGURED",
   "PLATFORM_UNKNOWN",
   "NO_DISC",
   "EMULATOR_ALREADY_RUNNING",

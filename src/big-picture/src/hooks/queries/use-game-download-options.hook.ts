@@ -18,6 +18,156 @@ function getKnownGameSourcesEmptyStateReason(
   return null;
 }
 
+interface DownloadStateSetters {
+  setDownloadOptions: (v: GameRepack[]) => void;
+  setLocalDownloadSources: (v: DownloadSource[]) => void;
+  setIsCheckingSources: (v: boolean) => void;
+  setIsLoading: (v: boolean) => void;
+  setEmptyStateReason: (v: DownloadOptionsEmptyStateReason | null) => void;
+}
+
+function applyIfNotCancelled(
+  signal: { cancelled: boolean },
+  apply: () => void
+) {
+  if (!signal.cancelled) {
+    apply();
+  }
+}
+
+function resetDownloadOptionsState(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setDownloadOptions([]);
+    setters.setLocalDownloadSources([]);
+    setters.setIsCheckingSources(true);
+    setters.setIsLoading(false);
+    setters.setEmptyStateReason(null);
+  });
+}
+
+function setNoConfiguredSourcesState(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setLocalDownloadSources([]);
+    setters.setDownloadOptions([]);
+    setters.setIsCheckingSources(false);
+    setters.setIsLoading(false);
+    setters.setEmptyStateReason("no-configured-sources");
+  });
+}
+
+function setKnownEmptyState(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters,
+  reason: DownloadOptionsEmptyStateReason
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setDownloadOptions([]);
+    setters.setIsCheckingSources(false);
+    setters.setIsLoading(false);
+    setters.setEmptyStateReason(reason);
+  });
+}
+
+function startRemoteDownloadOptionsLoading(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setIsCheckingSources(false);
+    setters.setIsLoading(true);
+  });
+}
+
+function setDownloadOptionsSuccessState(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters,
+  options: GameRepack[]
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setDownloadOptions(options);
+    setters.setEmptyStateReason(
+      options.length === 0 ? "no-download-options" : null
+    );
+    setters.setIsCheckingSources(false);
+    setters.setIsLoading(false);
+  });
+}
+
+function setNoDownloadOptionsState(
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters
+) {
+  applyIfNotCancelled(signal, () => {
+    setters.setDownloadOptions([]);
+    setters.setEmptyStateReason("no-download-options");
+    setters.setIsCheckingSources(false);
+    setters.setIsLoading(false);
+  });
+}
+
+async function fetchDownloadOptions(
+  game: Pick<Game, "objectId" | "shop">,
+  signal: { cancelled: boolean },
+  setters: DownloadStateSetters,
+  knownGameSourcesEmptyStateReason: DownloadOptionsEmptyStateReason | null
+) {
+  resetDownloadOptionsState(signal, setters);
+
+  let sortedSources: DownloadSource[] = [];
+
+  try {
+    const sources = (await globalThis.window.electron.leveldb.values(
+      "downloadSources"
+    )) as DownloadSource[];
+    sortedSources = orderBy(sources, "createdAt", "desc");
+
+    applyIfNotCancelled(signal, () => {
+      setters.setLocalDownloadSources(sortedSources);
+    });
+  } catch {
+    setNoConfiguredSourcesState(signal, setters);
+    return;
+  }
+
+  if (sortedSources.length === 0) {
+    setNoConfiguredSourcesState(signal, setters);
+    return;
+  }
+
+  if (knownGameSourcesEmptyStateReason !== null) {
+    setKnownEmptyState(signal, setters, knownGameSourcesEmptyStateReason);
+    return;
+  }
+
+  startRemoteDownloadOptionsLoading(signal, setters);
+
+  try {
+    const endpoint = `/games/${game.shop}/${game.objectId}/download-sources`;
+
+    const options = await globalThis.window.electron.hydraApi.get<GameRepack[]>(
+      endpoint,
+      {
+        params: {
+          take: 100,
+          skip: 0,
+          downloadSourceIds: sortedSources.map((source) => source.id),
+        },
+        needsAuth: false,
+      }
+    );
+
+    setDownloadOptionsSuccessState(signal, setters, options);
+  } catch {
+    setNoDownloadOptionsState(signal, setters);
+  }
+}
+
 export function useGameDownloadOptions(
   game: Pick<Game, "objectId" | "shop"> & {
     downloadSources?: string[];
@@ -66,107 +216,26 @@ export function useGameDownloadOptions(
       return;
     }
 
-    let cancelled = false;
+    const signal = { cancelled: false };
 
-    const fetchDownloadOptions = async () => {
-      if (!cancelled) {
-        setDownloadOptions([]);
-        setLocalDownloadSources([]);
-        setIsCheckingSources(true);
-        setIsLoading(false);
-        setEmptyStateReason(null);
-      }
-
-      let sortedSources: DownloadSource[] = [];
-
-      try {
-        const sources = (await globalThis.window.electron.leveldb.values(
-          "downloadSources"
-        )) as DownloadSource[];
-        sortedSources = orderBy(sources, "createdAt", "desc");
-
-        if (!cancelled) {
-          setLocalDownloadSources(sortedSources);
-        }
-      } catch {
-        if (!cancelled) {
-          setLocalDownloadSources([]);
-          setIsCheckingSources(false);
-          setDownloadOptions([]);
-          setEmptyStateReason("no-configured-sources");
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
-      if (sortedSources.length === 0) {
-        if (!cancelled) {
-          setDownloadOptions([]);
-          setIsCheckingSources(false);
-          setEmptyStateReason("no-configured-sources");
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
-      if (knownGameSourcesEmptyStateReason !== null) {
-        if (!cancelled) {
-          setDownloadOptions([]);
-          setIsCheckingSources(false);
-          setEmptyStateReason(knownGameSourcesEmptyStateReason);
-          setIsLoading(false);
-        }
-
-        return;
-      }
-
-      if (!cancelled) {
-        setIsCheckingSources(false);
-        setIsLoading(true);
-      }
-
-      try {
-        const endpoint = `/games/${game.shop}/${game.objectId}/download-sources`;
-
-        const options = await globalThis.window.electron.hydraApi.get<
-          GameRepack[]
-        >(endpoint, {
-          params: {
-            take: 100,
-            skip: 0,
-            downloadSourceIds: sortedSources.map((source) => source.id),
-          },
-          needsAuth: false,
-        });
-
-        if (!cancelled) {
-          setDownloadOptions(options);
-          setEmptyStateReason(
-            options.length === 0 ? "no-download-options" : null
-          );
-          setIsCheckingSources(false);
-          setIsLoading(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setDownloadOptions([]);
-          setEmptyStateReason("no-download-options");
-          setIsCheckingSources(false);
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void fetchDownloadOptions();
+    void fetchDownloadOptions(
+      game,
+      signal,
+      {
+        setDownloadOptions,
+        setLocalDownloadSources,
+        setIsCheckingSources,
+        setIsLoading,
+        setEmptyStateReason,
+      },
+      knownGameSourcesEmptyStateReason
+    );
 
     return () => {
-      cancelled = true;
+      signal.cancelled = true;
     };
   }, [
     downloadSourcesDependencyKey,
-    game.downloadSources,
     game.objectId,
     game.shop,
     knownGameSourcesEmptyStateReason,

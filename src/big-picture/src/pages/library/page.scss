@@ -18,3 +18,8 @@
   width: 100%;
   will-change: opacity, transform;
 }
+
+.library-page__empty-state {
+  flex: 1;
+  min-height: 300px;
+}

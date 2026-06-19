@@ -1,0 +1,146 @@
+.game-launch-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 6);
+  width: 100%;
+  min-width: 0;
+  padding: calc(var(--spacing-unit) * 6);
+}
+
+.game-launch-settings-tab__section {
+  width: 100%;
+}
+
+.game-launch-settings-tab__section-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+  width: 100%;
+  min-width: 0;
+}
+
+.game-launch-settings-tab__exec-path-button {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+  border-radius: calc(var(--spacing-unit) * 2);
+  border: 1px solid var(--secondary-border);
+  background-color: var(--background);
+  color: var(--text);
+  font-family: var(--font-space-grotesk);
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+
+  &:hover,
+  &[data-focus-visible="true"] {
+    border-color: rgba(255, 255, 255, 0.6);
+    outline: none;
+  }
+
+  &--placeholder {
+    color: var(--text-secondary);
+  }
+}
+
+.game-launch-settings-tab__exec-path-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+
+  .game-launch-settings-tab__actions {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+}
+
+.game-launch-settings-tab__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
+.game-launch-settings-tab__actions--thirds {
+  width: 100%;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+.game-launch-settings-tab__actions--thirds > .button {
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.game-launch-settings-tab__actions--wrap {
+  width: 100%;
+}
+
+.game-launch-settings-tab__launch-options-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.game-launch-settings-tab__shortcuts-row {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  width: 100%;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.game-launch-settings-tab__launch-options-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-launch-settings-tab__inline-code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.9em;
+}
+
+.game-launch-settings-tab__supporting-copy,
+.game-launch-settings-tab__empty-state {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.game-launch-settings-tab__disc-option {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.game-launch-settings-tab__disc-option-label {
+  color: var(--text);
+}
+
+.game-launch-settings-tab__disc-option-file {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+@media (max-width: 820px) {
+  .game-launch-settings-tab__launch-options-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

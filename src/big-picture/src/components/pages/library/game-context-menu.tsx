@@ -1,5 +1,6 @@
 import type { LibraryGame } from "@types";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ContextMenu } from "../../common";
 import { buildLibraryGameContextMenuItems } from "./game-context-menu-items";
@@ -35,6 +36,7 @@ export function LibraryGameContextMenu({
   onUninstall,
   onRemoveFromLibrary,
 }: Readonly<LibraryGameContextMenuProps>) {
+  const { t } = useTranslation("big_picture");
   const items = useMemo(() => {
     if (!game) return [];
 
@@ -49,7 +51,8 @@ export function LibraryGameContextMenu({
         onUninstall,
         onRemoveFromLibrary,
       },
-      isFavoriteLoading
+      isFavoriteLoading,
+      t
     );
   }, [
     game,
@@ -61,6 +64,7 @@ export function LibraryGameContextMenu({
     onToggleFavorite,
     onUninstall,
     onViewAchievements,
+    t,
   ]);
 
   if (!game) {

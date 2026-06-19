@@ -6,6 +6,7 @@ import type {
   HydraDisplay,
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Checkbox, DropdownSelect, VerticalFocusGroup } from "../../components";
 import type { DropdownSelectOption } from "../../components/common/dropdown-select";
@@ -59,16 +60,17 @@ const DEFAULT_FORM: BigPictureForm = {
 const DEFAULT_BIG_PICTURE_DISPLAY_ID = "default";
 const DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID = "default";
 
-function getPositionLabel(position: BigPictureDiagnosticsPosition) {
-  return position
-    .split("-")
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
+function getPositionLabel(
+  position: BigPictureDiagnosticsPosition,
+  t: (key: string) => string
+) {
+  return t(`settings_diagnostics_position_${position.replace(/-/g, "_")}`);
 }
 
 export function BigPictureSettingsSection({
   className,
 }: Readonly<BigPictureSettingsSectionProps>) {
+  const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const [form, setForm] = useState<BigPictureForm>(DEFAULT_FORM);
   const [displays, setDisplays] = useState<HydraDisplay[]>([]);
@@ -130,29 +132,32 @@ export function BigPictureSettingsSection({
 
   const updateUserPreferences = useCallback(
     async (values: Partial<BigPictureForm>) => {
-      setForm((currentForm) => ({ ...currentForm, ...values }));
+      setForm((current) => ({ ...current, ...values }));
 
       await globalThis.window.electron.updateUserPreferences(values);
     },
     []
   );
 
-  const updateBigPictureDisplay = useCallback(async (displayId: string) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      bigPictureDisplayId: displayId,
-    }));
+  const handleBigPictureDisplayChange = useCallback(
+    async (displayId: string) => {
+      setForm((current) => ({
+        ...current,
+        bigPictureDisplayId: displayId,
+      }));
 
-    await globalThis.window.electron.updateUserPreferences({
-      bigPictureDisplayId:
-        displayId === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : displayId,
-    });
-  }, []);
+      await globalThis.window.electron.updateUserPreferences({
+        bigPictureDisplayId:
+          displayId === DEFAULT_BIG_PICTURE_DISPLAY_ID ? null : displayId,
+      });
+    },
+    []
+  );
 
-  const updateBigPictureAudioDevice = useCallback(
+  const handleBigPictureAudioDeviceChange = useCallback(
     async (audioDeviceId: string) => {
-      setForm((currentForm) => ({
-        ...currentForm,
+      setForm((current) => ({
+        ...current,
         bigPictureAudioDeviceId: audioDeviceId,
       }));
 
@@ -166,65 +171,88 @@ export function BigPictureSettingsSection({
     []
   );
 
+  const handleLaunchInBigPictureChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ launchInBigPicture: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleBigPictureSoundsChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureSoundsEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleVirtualKeyboardChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureVirtualKeyboardEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleDiagnosticsEnabledChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureDiagnosticsEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
+  const handleDiagnosticsPositionChange = useCallback(
+    (position: BigPictureDiagnosticsPosition) => {
+      updateUserPreferences({ bigPictureDiagnosticsPosition: position });
+    },
+    [updateUserPreferences]
+  );
+
   const startupItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
         id: "launch-in-big-picture",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.launchInBigPicture,
-        label: "Launch Hydra in Big Picture",
+        label: t("settings_launch_in_big_picture"),
         checked: form.launchInBigPicture,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            launchInBigPicture: checked,
-          }),
+        onChange: handleLaunchInBigPictureChange,
       },
     ];
-  }, [form.launchInBigPicture, updateUserPreferences]);
+  }, [form.launchInBigPicture, handleLaunchInBigPictureChange, t]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
         id: "enable-virtual-keyboard",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableVirtualKeyboard,
-        label: "Enable virtual keyboard",
+        label: t("settings_enable_virtual_keyboard"),
         checked: form.bigPictureVirtualKeyboardEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureVirtualKeyboardEnabled: checked,
-          }),
+        onChange: handleVirtualKeyboardChange,
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled, updateUserPreferences]);
+  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange, t]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
         id: "enable-big-picture-sounds",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
-        label: "Enable Big Picture sounds",
+        label: t("settings_enable_big_picture_sounds"),
         checked: form.bigPictureSoundsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureSoundsEnabled: checked,
-          }),
+        onChange: handleBigPictureSoundsChange,
       },
     ];
-  }, [form.bigPictureSoundsEnabled, updateUserPreferences]);
+  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange, t]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
       {
         id: "enable-diagnostics",
         focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableDiagnostics,
-        label: "Enable diagnostics",
+        label: t("settings_enable_diagnostics"),
         checked: form.bigPictureDiagnosticsEnabled,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({
-            bigPictureDiagnosticsEnabled: checked,
-          }),
+        onChange: handleDiagnosticsEnabledChange,
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled, updateUserPreferences]);
+  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange, t]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
@@ -240,9 +268,9 @@ export function BigPictureSettingsSection({
       ] as BigPictureDiagnosticsPosition[]
     ).map((position) => ({
       value: position,
-      label: getPositionLabel(position),
+      label: getPositionLabel(position, t),
     }));
-  }, []);
+  }, [t]);
 
   const displayOptions = useMemo<Array<DropdownSelectOption<string>>>(() => {
     const selectedDisplayMissing =
@@ -252,22 +280,24 @@ export function BigPictureSettingsSection({
     return [
       {
         value: DEFAULT_BIG_PICTURE_DISPLAY_ID,
-        label: "System default monitor",
+        label: t("settings_system_default_monitor"),
       },
       ...displays.map((display) => ({
         value: display.id,
-        label: display.isPrimary ? `${display.label} (Primary)` : display.label,
+        label: display.isPrimary
+          ? `${display.label} (${t("settings_primary_monitor")})`
+          : display.label,
       })),
       ...(selectedDisplayMissing
         ? [
             {
               value: form.bigPictureDisplayId,
-              label: `Missing display (${form.bigPictureDisplayId})`,
+              label: `${t("settings_missing_monitor")} (${form.bigPictureDisplayId})`,
             },
           ]
         : []),
     ];
-  }, [displays, form.bigPictureDisplayId]);
+  }, [displays, form.bigPictureDisplayId, t]);
 
   const audioDeviceOptions = useMemo<
     Array<DropdownSelectOption<string>>
@@ -281,22 +311,24 @@ export function BigPictureSettingsSection({
     return [
       {
         value: DEFAULT_BIG_PICTURE_AUDIO_DEVICE_ID,
-        label: "System default audio device",
+        label: t("settings_system_default_audio_device"),
       },
       ...audioDevices.map((device) => ({
         value: device.id,
-        label: device.isDefault ? `${device.label} (Default)` : device.label,
+        label: device.isDefault
+          ? `${device.label} (${t("settings_default_audio_device")})`
+          : device.label,
       })),
       ...(selectedAudioDeviceMissing
         ? [
             {
               value: form.bigPictureAudioDeviceId,
-              label: `Missing audio device (${form.bigPictureAudioDeviceId})`,
+              label: `${t("settings_missing_audio_device")} (${form.bigPictureAudioDeviceId})`,
             },
           ]
         : []),
     ];
-  }, [audioDevices, form.bigPictureAudioDeviceId]);
+  }, [audioDevices, form.bigPictureAudioDeviceId, t]);
 
   const inputNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
@@ -426,19 +458,18 @@ export function BigPictureSettingsSection({
                   itemId: previousItem.focusId,
                 }
               : previousFallback,
-            down: nextItem
-              ? {
-                  type: "item",
-                  itemId: nextItem.focusId,
-                }
-              : form.bigPictureDiagnosticsEnabled
-                ? {
-                    type: "item",
-                    itemId: BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
-                  }
-                : {
-                    type: "block",
-                  },
+            down: (() => {
+              if (nextItem) {
+                return { type: "item" as const, itemId: nextItem.focusId };
+              }
+              if (form.bigPictureDiagnosticsEnabled) {
+                return {
+                  type: "item" as const,
+                  itemId: BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
+                };
+              }
+              return { type: "block" as const };
+            })(),
           } satisfies FocusOverrides,
         ];
       })
@@ -495,8 +526,8 @@ export function BigPictureSettingsSection({
       }
     >
       <SettingsSection
-        title="Startup"
-        description="Choose how Hydra should start when Big Picture mode is available."
+        title={t("settings_startup_section_title")}
+        description={t("settings_startup_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_STARTUP_SECTION_REGION_ID}
@@ -520,22 +551,20 @@ export function BigPictureSettingsSection({
 
             <DropdownSelect
               className="big-picture-settings-section__select"
-              label="Big Picture launching monitor"
+              label={t("settings_big_picture_launching_monitor")}
               value={form.bigPictureDisplayId}
               options={displayOptions}
               focusId={BIG_PICTURE_LAUNCHING_MONITOR_SELECT_ID}
               focusNavigationOverrides={displaySelectNavigationOverrides}
-              onValueChange={async (displayId) => {
-                await updateBigPictureDisplay(displayId);
-              }}
+              onValueChange={handleBigPictureDisplayChange}
             />
           </div>
         </VerticalFocusGroup>
       </SettingsSection>
 
       <SettingsSection
-        title="Audio"
-        description="Choose whether Big Picture should play navigation sounds."
+        title={t("settings_audio_section_title")}
+        description={t("settings_audio_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_AUDIO_SECTION_REGION_ID}
@@ -559,22 +588,20 @@ export function BigPictureSettingsSection({
 
             <DropdownSelect
               className="big-picture-settings-section__select"
-              label="Big Picture output device"
+              label={t("settings_big_picture_output_device")}
               value={form.bigPictureAudioDeviceId}
               options={audioDeviceOptions}
               focusId={BIG_PICTURE_OUTPUT_DEVICE_SELECT_ID}
               focusNavigationOverrides={audioDeviceSelectNavigationOverrides}
-              onValueChange={async (audioDeviceId) => {
-                await updateBigPictureAudioDevice(audioDeviceId);
-              }}
+              onValueChange={handleBigPictureAudioDeviceChange}
             />
           </div>
         </VerticalFocusGroup>
       </SettingsSection>
 
       <SettingsSection
-        title="Input"
-        description="Choose how Big Picture should handle on-screen keyboard input."
+        title={t("settings_input_section_title")}
+        description={t("settings_input_section_description")}
       >
         <VerticalFocusGroup regionId={BIG_PICTURE_SECTION_REGION_ID} asChild>
           <div className="big-picture-settings-section__content">
@@ -597,8 +624,8 @@ export function BigPictureSettingsSection({
       </SettingsSection>
 
       <SettingsSection
-        title="Diagnostics"
-        description="Choose whether Big Picture should expose navigation diagnostics."
+        title={t("settings_diagnostics_section_title")}
+        description={t("settings_diagnostics_section_description")}
       >
         <VerticalFocusGroup
           regionId={BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID}
@@ -622,17 +649,13 @@ export function BigPictureSettingsSection({
 
             <DropdownSelect
               className="big-picture-settings-section__select"
-              label="Diagnostics position"
+              label={t("settings_diagnostics_position")}
               value={form.bigPictureDiagnosticsPosition}
               options={diagnosticsPositionOptions}
               disabled={!form.bigPictureDiagnosticsEnabled}
               focusId={BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID}
               focusNavigationOverrides={diagnosticsSelectNavigationOverrides}
-              onValueChange={(value) => {
-                void updateUserPreferences({
-                  bigPictureDiagnosticsPosition: value,
-                });
-              }}
+              onValueChange={handleDiagnosticsPositionChange}
             />
           </div>
         </VerticalFocusGroup>

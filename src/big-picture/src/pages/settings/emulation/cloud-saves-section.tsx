@@ -11,15 +11,8 @@ import type {
   EmulationCloudSave,
   EmulationSavePlatform,
   EmulatorConfig,
-  MemcardRestoreTarget,
 } from "@types";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -41,9 +34,11 @@ import {
   EMULATION_DETAIL_CLOUD_REFRESH_BUTTON_ID,
   EMULATION_DETAIL_CLOUD_SAVES_REGION_ID,
   getEmulationCloudMenuFocusId,
-  getEmulationCloudRestoreTargetFocusId,
 } from "../settings-navigation";
-import { SETTINGS_TOAST_OPTIONS, basename } from "./shared";
+import { SETTINGS_TOAST_OPTIONS } from "./shared";
+import { EmulationCloudRestoreModal } from "./emulation-cloud-restore-modal";
+
+import { useCloudConnector } from "@renderer/hooks/use-cloud-connector";
 
 import ConsoleBackside from "@renderer/assets/emulation/console-backside.svg?react";
 import hydraSaveCard from "@renderer/assets/emulation/icons/hydra-save-card.png";
@@ -67,17 +62,6 @@ interface RenameModalProps {
   onRenamed: () => void;
 }
 
-interface Connector {
-  width: number;
-  height: number;
-  path: string;
-}
-
-const SLOT_X_RATIO = 59.5 / 411;
-const SLOT_Y_RATIO = 129 / 221;
-const BRANCH_GAP = 40;
-const CORNER_RADIUS = 8;
-
 const RESTORE_MODAL_REGION_ID = "emulation-cloud-restore-modal-region";
 const RESTORE_MODAL_ACTIONS_REGION_ID = "emulation-cloud-restore-modal-actions";
 const RESTORE_MODAL_PICK_BUTTON_ID = "emulation-cloud-restore-pick-button";
@@ -86,17 +70,6 @@ const RENAME_MODAL_REGION_ID = "emulation-cloud-rename-modal-region";
 const RENAME_MODAL_ACTIONS_REGION_ID = "emulation-cloud-rename-modal-actions";
 const RENAME_MODAL_INPUT_ID = "emulation-cloud-rename-input";
 const RENAME_MODAL_CONFIRM_BUTTON_ID = "emulation-cloud-rename-confirm";
-
-const PICK_FILTERS: Record<
-  EmulationSavePlatform,
-  { name: string; extensions: string[] }
-> = {
-  ps1: {
-    name: "PS1 Memory Card",
-    extensions: ["mcd", "mcr", "mc", "gme", "vgs", "vmp"],
-  },
-  ps2: { name: "PS2 Memory Card", extensions: ["ps2", "mcd", "mc2"] },
-};
 
 const formatDate = (iso: string | null): string => {
   if (!iso) return "—";
@@ -111,168 +84,25 @@ function RestoreModal({
   onClose,
   onRestored,
 }: Readonly<RestoreModalProps>) {
-  const { t } = useTranslation("settings");
-  const { setFocus } = useNavigation();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
-  const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
-  const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
-
-  useEffect(() => {
-    if (!save) return;
-
-    void globalThis.window.electron
-      .getMemcardRestoreTargets(platform)
-      .then((foundTargets) => {
-        setTargets(foundTargets);
-        setSelectedTarget(foundTargets[0]?.cardFilePath ?? null);
-      });
-  }, [platform, save]);
-
-  useEffect(() => {
-    if (!save) return;
-
-    const frameId = globalThis.window.requestAnimationFrame(() => {
-      setFocus(
-        selectedTarget
-          ? getEmulationCloudRestoreTargetFocusId(selectedTarget)
-          : RESTORE_MODAL_PICK_BUTTON_ID
-      );
-    });
-
-    return () => {
-      globalThis.window.cancelAnimationFrame(frameId);
-    };
-  }, [save, selectedTarget, setFocus]);
-
-  const handlePickFile = useCallback(async () => {
-    const result = await globalThis.window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [PICK_FILTERS[platform]],
-    });
-
-    if (result.canceled || result.filePaths.length === 0) return;
-
-    const chosenPath = result.filePaths[0];
-    setTargets((current) =>
-      current.some((target) => target.cardFilePath === chosenPath)
-        ? current
-        : [
-            ...current,
-            {
-              cardFilePath: chosenPath,
-              cardLabel: basename(chosenPath),
-            },
-          ]
-    );
-    setSelectedTarget(chosenPath);
-  }, [platform]);
-
-  const handleRestore = useCallback(async () => {
-    if (!save || !selectedTarget) return;
-
-    setIsBusy(true);
-
-    try {
-      const result = await globalThis.window.electron.restoreEmulationSave(
-        platform,
-        save.id,
-        selectedTarget
-      );
-
-      if (result.ok) {
-        showSuccessToast("Cloud save restored", SETTINGS_TOAST_OPTIONS);
-        onRestored();
-        onClose();
-      } else {
-        showErrorToast("Failed to restore cloud save", SETTINGS_TOAST_OPTIONS);
-      }
-    } finally {
-      setIsBusy(false);
-    }
-  }, [
-    onClose,
-    onRestored,
-    platform,
-    save,
-    selectedTarget,
-    showErrorToast,
-    showSuccessToast,
-  ]);
-
   return (
-    <Modal
-      visible={save !== null}
-      title={t("cloud_restore_title")}
-      description={t("cloud_restore_description")}
+    <EmulationCloudRestoreModal
+      save={save}
+      platform={platform}
       onClose={onClose}
-      className="emulation-settings__modal"
-    >
-      <VerticalFocusGroup
-        regionId={RESTORE_MODAL_REGION_ID}
-        className="emu-save-modal__restore"
-      >
-        <div className="emu-save-modal__targets">
-          {targets.length === 0 ? (
-            <div className="emu-save-modal__empty">
-              {t("cloud_restore_no_cards")}
-            </div>
-          ) : (
-            targets.map((target) => {
-              const targetId = getEmulationCloudRestoreTargetFocusId(
-                target.cardFilePath
-              );
-              const isSelected = selectedTarget === target.cardFilePath;
-
-              return (
-                <FocusItem key={target.cardFilePath} id={targetId} asChild>
-                  <button
-                    type="button"
-                    className={`emu-save-modal__target${
-                      isSelected ? " emu-save-modal__target--selected" : ""
-                    }`}
-                    onClick={() => setSelectedTarget(target.cardFilePath)}
-                  >
-                    <span className="emu-save-modal__target-name">
-                      {target.cardLabel}
-                    </span>
-                    <span className="emu-save-modal__target-path">
-                      {target.cardFilePath}
-                    </span>
-                  </button>
-                </FocusItem>
-              );
-            })
-          )}
-        </div>
-
-        <HorizontalFocusGroup
-          regionId={RESTORE_MODAL_ACTIONS_REGION_ID}
-          className="emu-save-modal__actions"
-        >
-          <Button
-            focusId={RESTORE_MODAL_PICK_BUTTON_ID}
-            variant="secondary"
-            disabled={isBusy}
-            onClick={() => {
-              void handlePickFile();
-            }}
-          >
-            {t("cloud_restore_pick_file")}
-          </Button>
-          <Button
-            focusId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
-            loading={isBusy}
-            disabled={!selectedTarget}
-            onClick={() => {
-              void handleRestore();
-            }}
-          >
-            {t("cloud_restore_confirm")}
-          </Button>
-        </HorizontalFocusGroup>
-      </VerticalFocusGroup>
-    </Modal>
+      onRestored={onRestored}
+      onRestoreSuccess={() =>
+        showSuccessToast("Cloud save restored", SETTINGS_TOAST_OPTIONS)
+      }
+      onRestoreError={() =>
+        showErrorToast("Failed to restore cloud save", SETTINGS_TOAST_OPTIONS)
+      }
+      regionId={RESTORE_MODAL_REGION_ID}
+      actionsRegionId={RESTORE_MODAL_ACTIONS_REGION_ID}
+      pickButtonId={RESTORE_MODAL_PICK_BUTTON_ID}
+      confirmButtonId={RESTORE_MODAL_CONFIRM_BUTTON_ID}
+      modalClassName="emulation-settings__modal"
+    />
   );
 }
 
@@ -386,14 +216,7 @@ export function CloudSavesSection({
     position: { x: number; y: number };
   } | null>(null);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const consoleRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [connector, setConnector] = useState<Connector>({
-    width: 0,
-    height: 0,
-    path: "",
-  });
+  const { stageRef, consoleRef, gridRef, connector } = useCloudConnector(saves);
 
   const loadSaves = useCallback(async () => {
     if (!hasActiveSubscription) {
@@ -422,91 +245,6 @@ export function CloudSavesSection({
     showSuccessToast("Cloud save removed", SETTINGS_TOAST_OPTIONS);
     await loadSaves();
   }, [deleteTarget, loadSaves, showSuccessToast]);
-
-  const drawConnector = useCallback(() => {
-    const stage = stageRef.current;
-    const consoleElement = consoleRef.current;
-    const grid = gridRef.current;
-
-    if (!stage || !consoleElement || !grid) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const consoleRect = consoleElement.getBoundingClientRect();
-    const cards = Array.from(
-      grid.querySelectorAll<HTMLElement>(".emulator-detail__cloud-card")
-    );
-
-    if (cards.length === 0) {
-      setConnector({
-        width: stageRect.width,
-        height: stageRect.height,
-        path: "",
-      });
-      return;
-    }
-
-    const slotX =
-      consoleRect.left - stageRect.left + SLOT_X_RATIO * consoleRect.width;
-    const slotY =
-      consoleRect.top - stageRect.top + SLOT_Y_RATIO * consoleRect.height;
-
-    const centers = cards.map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        x: rect.left - stageRect.left + rect.width / 2,
-        top: rect.top - stageRect.top,
-      };
-    });
-    const cardTop = Math.min(...centers.map((center) => center.top));
-    const busY = cardTop - BRANCH_GAP;
-    const xs = centers.map((center) => center.x);
-    const first = xs[0];
-    const last = xs[xs.length - 1];
-    const segments = [`M ${slotX} ${slotY} L ${slotX} ${busY}`];
-
-    if (first === last) {
-      segments.push(`M ${first} ${busY} L ${first} ${cardTop}`);
-      segments.push(
-        `M ${Math.min(slotX, first)} ${busY} L ${Math.max(slotX, first)} ${busY}`
-      );
-    } else {
-      const radius = Math.min(CORNER_RADIUS, (last - first) / 2);
-      segments.push(
-        `M ${first} ${cardTop} L ${first} ${busY + radius} Q ${first} ${busY} ${
-          first + radius
-        } ${busY} L ${last - radius} ${busY} Q ${last} ${busY} ${last} ${
-          busY + radius
-        } L ${last} ${cardTop}`
-      );
-
-      for (let index = 1; index < xs.length - 1; index += 1) {
-        segments.push(`M ${xs[index]} ${busY} L ${xs[index]} ${cardTop}`);
-      }
-
-      if (slotX < first) {
-        segments.push(`M ${slotX} ${busY} L ${first} ${busY}`);
-      }
-
-      if (slotX > last) {
-        segments.push(`M ${last} ${busY} L ${slotX} ${busY}`);
-      }
-    }
-
-    setConnector({
-      width: stageRect.width,
-      height: stageRect.height,
-      path: segments.join(" "),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    drawConnector();
-
-    const observer = new ResizeObserver(drawConnector);
-    if (stageRef.current) observer.observe(stageRef.current);
-
-    return () => observer.disconnect();
-  }, [drawConnector, saves]);
 
   if (!hasActiveSubscription || saves.length === 0) {
     return null;

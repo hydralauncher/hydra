@@ -25,6 +25,15 @@ export interface EmulatorConfig {
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
 
+export interface DetectedRom {
+  objectId: string;
+  title: string;
+  libraryImageUrl: string | null;
+  iconUrl: string | null;
+  sizeBytes: number | null;
+  skus: string[];
+}
+
 export interface ClassicsDisc {
   path: string;
   label: string;
@@ -107,6 +116,16 @@ export type MemcardExportResult = Ps2ExportResult;
 export type EmulationSavePlatform = "ps1" | "ps2";
 export type EmulationSaveEmulator = "duckstation" | "pcsx2";
 
+export interface EmulationBackupProgress {
+  platform: EmulationSavePlatform;
+  cardFilePath: string;
+  processed: number;
+  uploaded: number;
+  failed: number;
+  total: number;
+  currentLabel: string | null;
+}
+
 /** A committed cloud save as returned by the emulation-saves API. */
 export interface EmulationCloudSave {
   id: string;
@@ -137,4 +156,53 @@ export interface MemcardRestoreResult {
 export interface MemcardRestoreTarget {
   cardFilePath: string;
   cardLabel: string;
+}
+
+/* ── Emulator install helper (Setup Wizard) ───────────────────────────────── */
+
+export type EmulatorInstallKind =
+  | "windows-installer"
+  | "linux-appimage"
+  | "windows-archive"
+  | "link";
+
+export type EmulatorInstallChannel = "release" | "prerelease";
+
+export type EmulatorInstallLinkKind = "aur" | "flatpak" | "release_page";
+
+/** A single, IPC-serializable install option offered for an emulator. */
+export interface ResolvedInstallOption {
+  id: string;
+  binary: EmulatorBinary;
+  kind: EmulatorInstallKind;
+  channel: EmulatorInstallChannel | null;
+  downloadUrl: string | null;
+  fileName: string | null;
+  version: string | null;
+  htmlUrl: string | null;
+  linkUrl: string | null;
+  linkKind: EmulatorInstallLinkKind | null;
+}
+
+export type EmulatorInstallPhase =
+  | "downloading"
+  | "extracting"
+  | "running"
+  | "done"
+  | "error";
+
+export interface EmulatorInstallProgress {
+  binary: EmulatorBinary;
+  optionId: string;
+  phase: EmulatorInstallPhase;
+  loaded?: number;
+  total?: number;
+  reason?: string;
+  path?: string;
+}
+
+export interface EmulatorInstallResult {
+  ok: boolean;
+  path?: string;
+  reason?: string;
 }

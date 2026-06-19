@@ -27,7 +27,8 @@ export interface LibraryGameContextMenuHandlers {
 export function buildLibraryGameContextMenuItems(
   game: LibraryGame,
   handlers: LibraryGameContextMenuHandlers,
-  isFavoriteLoading: boolean
+  isFavoriteLoading: boolean,
+  t?: (key: string) => string
 ): ContextMenuItem[] {
   const {
     onLaunchOrDownload,
@@ -60,11 +61,12 @@ export function buildLibraryGameContextMenuItems(
     },
   ];
 
-  if (onViewAchievements) {
+  if ((game.achievementCount ?? 0) > 0 && onViewAchievements) {
     nextItems.push({
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon size={18} />,
+      restoreFocusOnClose: false,
       onSelect: () => onViewAchievements(game),
     });
   }
@@ -81,7 +83,7 @@ export function buildLibraryGameContextMenuItems(
   if (onOptions) {
     nextItems.push({
       id: "options",
-      label: "Options",
+      label: t ? t("game_options") : "Game Options",
       icon: <GearIcon size={18} />,
       onSelect: () => onOptions(game),
     });
@@ -155,20 +157,26 @@ export function buildCatalogGameContextMenuItems(
     });
   }
 
-  nextItems.push(
-    {
+  const hasAchievements =
+    ((_catalogGame as { achievementCount?: number | null }).achievementCount ??
+      0) > 0;
+
+  if (hasAchievements) {
+    nextItems.push({
       id: "view-achievements",
       label: "View Achievements",
       icon: <TrophyIcon aria-hidden size={18} />,
+      restoreFocusOnClose: false,
       onSelect: onViewAchievements,
-    },
-    {
-      id: "share",
-      label: "Share",
-      icon: <ExportIcon aria-hidden size={18} />,
-      onSelect: onShare,
-    }
-  );
+    });
+  }
+
+  nextItems.push({
+    id: "share",
+    label: "Share",
+    icon: <ExportIcon aria-hidden size={18} />,
+    onSelect: onShare,
+  });
 
   return nextItems;
 }

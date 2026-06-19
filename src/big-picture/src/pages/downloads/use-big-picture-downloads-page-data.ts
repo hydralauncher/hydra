@@ -87,8 +87,8 @@ export function getDownloadCoverImageUrl(
 ): string | null {
   return (
     [
-      game.libraryHeroImageUrl,
       game.customHeroImageUrl,
+      game.libraryHeroImageUrl,
       game.coverImageUrl,
       game.libraryImageUrl,
       game.customIconUrl,

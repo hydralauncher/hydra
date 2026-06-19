@@ -13,6 +13,10 @@
   flex-direction: column;
   gap: calc(var(--spacing-unit) * 6);
   text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
 
   &[data-focused="true"],
   &:focus,
@@ -26,12 +30,37 @@
     background: var(--surface);
   }
 
+  &--disabled {
+    cursor: default;
+    pointer-events: none;
+    border-color: color-mix(in srgb, var(--secondary-border) 72%, transparent);
+    background: color-mix(in srgb, var(--background) 94%, var(--surface) 6%);
+
+    .user-disk-item__icon,
+    .user-disk-item__title,
+    .user-disk-item__metric,
+    .user-disk-item__fill {
+      opacity: 0.58;
+    }
+
+    .user-disk-item__path,
+    .user-disk-item__metric--secondary,
+    .user-disk-item__selected-icon {
+      opacity: 0.46;
+    }
+
+    .user-disk-item__track {
+      opacity: 0.42;
+    }
+
+    &.user-disk-item--selected {
+      background: color-mix(in srgb, var(--surface) 72%, var(--background));
+    }
+  }
+
   &--interactive {
     width: 100%;
     cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      background-color 0.15s ease;
 
     &:hover {
       border-color: var(--text-secondary);

@@ -107,6 +107,42 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   );
 
   useEffect(() => {
+    setHeroIndex(0);
+  }, [game.objectId]);
+
+  useEffect(() => {
+    if (game.unlockedAchievementCount != null) {
+      setUnlockedAchievementsCount(game.unlockedAchievementCount);
+      return;
+    }
+
+    setUnlockedAchievementsCount(0);
+
+    if ((game.achievementCount ?? 0) <= 0) return;
+
+    let isStale = false;
+
+    window.electron
+      .getUnlockedAchievements(game.objectId, game.shop)
+      .then((achievements) => {
+        if (isStale) return;
+        setUnlockedAchievementsCount(
+          achievements.filter((a) => a.unlocked).length
+        );
+      })
+      .catch(() => void 0);
+
+    return () => {
+      isStale = true;
+    };
+  }, [
+    game.achievementCount,
+    game.objectId,
+    game.shop,
+    game.unlockedAchievementCount,
+  ]);
+
+  useEffect(() => {
     const currentUrl = heroSources[heroIndex];
     if (!currentUrl) return;
 
@@ -119,20 +155,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       }
     };
   }, [heroIndex, heroSources]);
-
-  useEffect(() => {
-    setHeroIndex(0);
-
-    if (game.unlockedAchievementCount) return;
-
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-      });
-  }, [game]);
 
   const backgroundStyle = useMemo(() => {
     const url = heroSources[heroIndex];

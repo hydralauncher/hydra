@@ -57,6 +57,8 @@ export type SystemProcessMap = {
     name: string;
     cwd: string;
     exe: string;
+    pid: number;
+    appImagePath: string | null;
     steamCompatDataPath: string | null;
   }>;
 };
@@ -92,10 +94,13 @@ function buildMaps(processes) {
     if (steamCompatDataPath) winePrefixMap[value] = steamCompatDataPath;
 
     if (platform === 'linux') {
+      const appImagePath = proc.environ && proc.environ.APPIMAGE;
       linuxProcesses.push({
         name: key,
         cwd: (proc.cwd || '').toLowerCase(),
         exe: (proc.exe || '').toLowerCase(),
+        pid: proc.pid,
+        appImagePath: appImagePath ? appImagePath.toLowerCase() : null,
         steamCompatDataPath: steamCompatDataPath ? steamCompatDataPath.toLowerCase() : null,
       });
     }
