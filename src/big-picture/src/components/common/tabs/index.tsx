@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useFocusLayerId, useFocusRegionId } from "../../context";
 import { FocusItem } from "../focus-item";
 import { HorizontalFocusGroup } from "../horizontal-focus-group";
 import { useGamepad } from "../../../hooks";
@@ -262,6 +263,8 @@ export function Tabs<TValue extends string = string>({
 }: Readonly<TabsProps<TValue>>) {
   const TAB_SCROLL_EPSILON_PX = 1;
   const generatedId = useId();
+  const parentRegionId = useFocusRegionId();
+  const layerId = useFocusLayerId();
   const tabsViewportRef = useRef<HTMLDivElement | null>(null);
   const tabListRef = useRef<HTMLDivElement | null>(null);
   const previousSelectedIndexRef = useRef<number | null>(null);
@@ -309,6 +312,8 @@ export function Tabs<TValue extends string = string>({
 
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const nodes = useNavigationStore((state) => state.nodes);
+  const regions = useNavigationStore((state) => state.regions);
 
   const findNextEnabledIndex = useCallback(
     (fromIndex: number, direction: 1 | -1): number => {
@@ -337,6 +342,51 @@ export function Tabs<TValue extends string = string>({
     );
   }, [currentFocusId]);
 
+  const isRegionWithinParentRegion = useCallback(
+    (regionId: string, expectedParentRegionId: string) => {
+      let currentRegionId: string | null = regionId;
+
+      while (currentRegionId) {
+        if (currentRegionId === expectedParentRegionId) {
+          return true;
+        }
+
+        currentRegionId =
+          regions.find((region) => region.id === currentRegionId)?.parentRegionId ??
+          null;
+      }
+
+      return false;
+    },
+    [regions]
+  );
+
+  const canHandleBumperPress = useCallback(() => {
+    if (isCurrentFocusInsideTabList()) {
+      return true;
+    }
+
+    if (itemsFocusable || !currentFocusId || !parentRegionId) {
+      return false;
+    }
+
+    const focusedNode = nodes.find((node) => node.id === currentFocusId);
+
+    if (focusedNode?.layerId !== layerId) {
+      return false;
+    }
+
+    return isRegionWithinParentRegion(focusedNode.regionId, parentRegionId);
+  }, [
+    currentFocusId,
+    isCurrentFocusInsideTabList,
+    isRegionWithinParentRegion,
+    itemsFocusable,
+    layerId,
+    nodes,
+    parentRegionId,
+  ]);
+
   useEffect(() => {
     if (variant === "settings") return;
 
@@ -344,7 +394,7 @@ export function Tabs<TValue extends string = string>({
       GamepadButtonType.LEFT_BUMPER,
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
-        if (!isCurrentFocusInsideTabList()) return;
+        if (!canHandleBumperPress()) return;
 
         const currentIndex = resolvedItems.findIndex(
           (item) => item.value === selectedValue
@@ -369,7 +419,7 @@ export function Tabs<TValue extends string = string>({
       GamepadButtonType.RIGHT_BUMPER,
       (event) => {
         if (!isActiveGamepadEvent(event)) return;
-        if (!isCurrentFocusInsideTabList()) return;
+        if (!canHandleBumperPress()) return;
 
         const currentIndex = resolvedItems.findIndex(
           (item) => item.value === selectedValue
@@ -396,9 +446,9 @@ export function Tabs<TValue extends string = string>({
       removeRightBumper();
     };
   }, [
+    canHandleBumperPress,
     findNextEnabledIndex,
     handleSelect,
-    isCurrentFocusInsideTabList,
     isActiveGamepadEvent,
     onButtonPressed,
     resolvedItems,
@@ -571,7 +621,7 @@ export function Tabs<TValue extends string = string>({
     gap: "calc(var(--spacing-unit) * 12)",
     alignItems: "flex-start",
     flexWrap: "nowrap",
-  } as CSSProperties;
+  } satisfies CSSProperties;
 
   return (
     <div
@@ -592,7 +642,7 @@ export function Tabs<TValue extends string = string>({
                 gap: "calc(var(--spacing-unit) * 12)",
                 alignItems: "flex-start",
                 flexWrap: "nowrap",
-              } as CSSProperties
+              }
             }
           >
             <div
@@ -658,7 +708,7 @@ export function Tabs<TValue extends string = string>({
                         {
                           transform: `translateX(${indicatorStyle.x}px)`,
                           width: indicatorStyle.width,
-                        } as CSSProperties
+                        }
                       }
                     />
                   ))}
