@@ -2,14 +2,12 @@ import "./filters.scss";
 
 import type { GameCollection, LibraryGame } from "@types";
 import { useMemo } from "react";
-import { logger } from "@renderer/logger";
 
 import {
   Button,
   Divider,
   DropdownSelect,
   type DropdownSelectOption,
-  FocusItem,
   HorizontalFocusGroup,
   Input,
   Tabs,
@@ -19,7 +17,6 @@ import {
   FunnelIcon,
   ListDashesIcon,
   MagnifyingGlassIcon,
-  PlusIcon,
   SortAscendingIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -30,7 +27,6 @@ import {
   LIBRARY_FILTERS_FILTER_SELECT_ID,
   LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
-  LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_FILTERS_SORT_SELECT_ID,
   LIBRARY_FILTERS_TOOLBAR_REGION_ID,
@@ -120,7 +116,7 @@ export function LibraryFilters({
     [firstContentItemId]
   );
 
-  const { tabItems, lastTabFocusId } = useMemo(() => {
+  const tabItems = useMemo(() => {
     const sortedCollections = [...collections].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, TITLE_COMPARE_COLLECTIONS)
     );
@@ -164,7 +160,6 @@ export function LibraryFilters({
     }));
 
     const row = [...builtins, ...collectionSpecs];
-    const lastTabFocusId = row[row.length - 1]!.id;
 
     const tabItemsLocal = row.map((spec, index) => ({
       ...spec,
@@ -179,8 +174,7 @@ export function LibraryFilters({
         right:
           index === row.length - 1
             ? {
-                type: "item" as const,
-                itemId: LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID,
+                type: "block" as const,
               }
             : {
                 type: "item" as const,
@@ -191,21 +185,8 @@ export function LibraryFilters({
       },
     })) satisfies Array<TabsItem<LibraryFilterTab>>;
 
-    return { tabItems: tabItemsLocal, lastTabFocusId };
+    return tabItemsLocal;
   }, [collections, counts, library, tabDownOverride]);
-
-  const newFolderNavigationOverrides = useMemo(
-    (): FocusOverrides => ({
-      left: {
-        type: "item",
-        itemId: lastTabFocusId,
-      },
-      right: { type: "block" },
-      up: TAB_UP_FROM_TOOLBAR_OVERRIDE,
-      down: tabDownOverride,
-    }),
-    [lastTabFocusId, tabDownOverride]
-  );
 
   const toolbarNavigationOverrides: FocusOverrides = useMemo(() => {
     return {
@@ -391,31 +372,6 @@ export function LibraryFilters({
           manageFocusRegion={false}
           itemsFocusable={false}
           ariaLabel="Library filters"
-          afterTabs={
-            <FocusItem
-              id={LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID}
-              asChild
-              navigationOverrides={newFolderNavigationOverrides}
-            >
-              <button
-                type="button"
-                className="tabs__tab"
-                aria-label="New Folder"
-                onClick={() => {
-                  logger.log("library new folder clicked");
-                }}
-              >
-                <span className="tabs__tab-label tabs__tab-label--with-icon">
-                  <PlusIcon
-                    className="tabs__tab-icon"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  <span>New Folder</span>
-                </span>
-              </button>
-            </FocusItem>
-          }
         />
       </div>
     </div>

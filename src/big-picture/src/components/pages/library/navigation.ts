@@ -19,9 +19,6 @@ export const LIBRARY_FILTERS_CLASSICS_TAB_ID = "library-filters-tab-classics";
 export const LIBRARY_FILTERS_FAVORITES_TAB_ID = "library-filters-tab-favorites";
 export const LIBRARY_FILTERS_COMPLETED_TAB_ID = "library-filters-tab-completed";
 
-export const LIBRARY_FILTERS_NEW_FOLDER_BUTTON_ID =
-  "library-filters-new-folder-button";
-
 /** Prefix + collection id → stable FocusItem id for user collections */
 export const LIBRARY_FILTERS_COLLECTION_TAB_PREFIX =
   "library-filters-tab-collection";
