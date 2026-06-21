@@ -93,7 +93,7 @@ function RestoreModal({
       onClose={onClose}
       onRestored={onRestored}
       onRestoreSuccess={() =>
-        showSuccessToast("Cloud save restored", SETTINGS_TOAST_OPTIONS)
+        showSuccessToast(t("cloud_restore_success"), SETTINGS_TOAST_OPTIONS)
       }
       onRestoreError={(reason) =>
         showErrorToast(
