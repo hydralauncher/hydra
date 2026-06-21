@@ -78,9 +78,14 @@ export function RestoreModal({
     }
     let cancelled = false;
     setSelectedFormat(null);
-    window.electron.inspectMemcard(platform, selected).then((state) => {
-      if (!cancelled) setSelectedFormat(state);
-    });
+    window.electron
+      .inspectMemcard(platform, selected)
+      .then((state) => {
+        if (!cancelled) setSelectedFormat(state);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedFormat("unreadable");
+      });
     return () => {
       cancelled = true;
     };
@@ -186,7 +191,12 @@ export function RestoreModal({
           <Button
             theme="primary"
             onClick={handleRestore}
-            disabled={busy || !selected || selectedFormat === "unformatted"}
+            disabled={
+              busy ||
+              !selected ||
+              !selectedFormat ||
+              selectedFormat === "unformatted"
+            }
           >
             {busy ? t("cloud_restoring") : t("cloud_restore_confirm")}
           </Button>

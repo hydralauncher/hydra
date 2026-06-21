@@ -90,10 +90,13 @@ export function EmulationCloudRestoreModal({
 
     let cancelled = false;
     setSelectedFormat(null);
-    void globalThis.window.electron
+    globalThis.window.electron
       .inspectMemcard(platform, selectedTarget)
       .then((state) => {
         if (!cancelled) setSelectedFormat(state);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedFormat("unreadable");
       });
 
     return () => {
@@ -257,7 +260,11 @@ export function EmulationCloudRestoreModal({
               selectedTarget
             )}
             loading={isBusy}
-            disabled={!selectedTarget || selectedFormat === "unformatted"}
+            disabled={
+              !selectedTarget ||
+              !selectedFormat ||
+              selectedFormat === "unformatted"
+            }
             onClick={handleRestore}
           >
             {t("cloud_restore_confirm")}
