@@ -54,6 +54,7 @@ import type {
   DetectedRom,
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreResult,
   MemcardRestoreTarget,
 } from "@types";
@@ -544,6 +545,10 @@ declare global {
     getMemcardRestoreTargets: (
       platform: EmulationSavePlatform
     ) => Promise<MemcardRestoreTarget[]>;
+    inspectMemcard: (
+      platform: EmulationSavePlatform,
+      cardFilePath: string
+    ) => Promise<MemcardFormatState>;
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,

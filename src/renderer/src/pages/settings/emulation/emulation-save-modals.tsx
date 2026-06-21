@@ -6,6 +6,7 @@ import { useToast } from "@renderer/hooks";
 import type {
   EmulationCloudSave,
   EmulationSavePlatform,
+  MemcardFormatState,
   MemcardRestoreTarget,
 } from "@types";
 
@@ -58,6 +59,8 @@ export function RestoreModal({
   const { showSuccessToast, showErrorToast } = useToast();
   const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] =
+    useState<MemcardFormatState | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -67,6 +70,21 @@ export function RestoreModal({
       setSelected((prev) => prev ?? found[0]?.cardFilePath ?? null);
     });
   }, [save, platform]);
+
+  useEffect(() => {
+    if (!selected) {
+      setSelectedFormat(null);
+      return;
+    }
+    let cancelled = false;
+    setSelectedFormat(null);
+    window.electron.inspectMemcard(platform, selected).then((state) => {
+      if (!cancelled) setSelectedFormat(state);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, platform]);
 
   const handlePickFile = useCallback(async () => {
     const result = await window.electron.showOpenDialog({
@@ -97,7 +115,13 @@ export function RestoreModal({
         onRestored();
         onClose();
       } else {
-        showErrorToast(t("cloud_restore_failed"));
+        showErrorToast(
+          t(
+            res.reason === "unformatted"
+              ? "cloud_restore_unformatted"
+              : "cloud_restore_failed"
+          )
+        );
       }
     } finally {
       setBusy(false);
@@ -149,6 +173,12 @@ export function RestoreModal({
           )}
         </ul>
 
+        {selectedFormat === "unformatted" && (
+          <p className="emu-save-modal__hint">
+            {t("cloud_restore_unformatted")}
+          </p>
+        )}
+
         <div className="emu-save-modal__actions">
           <Button theme="outline" onClick={handlePickFile} disabled={busy}>
             {t("cloud_restore_pick_file")}
@@ -156,7 +186,7 @@ export function RestoreModal({
           <Button
             theme="primary"
             onClick={handleRestore}
-            disabled={busy || !selected}
+            disabled={busy || !selected || selectedFormat === "unformatted"}
           >
             {busy ? t("cloud_restoring") : t("cloud_restore_confirm")}
           </Button>
