@@ -84,6 +84,7 @@ function RestoreModal({
   onClose,
   onRestored,
 }: Readonly<RestoreModalProps>) {
+  const { t } = useTranslation("settings");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   return (
     <EmulationCloudRestoreModal
@@ -96,9 +97,11 @@ function RestoreModal({
       }
       onRestoreError={(reason) =>
         showErrorToast(
-          reason === "unformatted"
-            ? "This memory card isn't formatted. Format it in your emulator before restoring."
-            : "Failed to restore cloud save",
+          t(
+            reason === "unformatted"
+              ? "cloud_restore_unformatted"
+              : "cloud_restore_failed"
+          ),
           SETTINGS_TOAST_OPTIONS
         )
       }
