@@ -1078,6 +1078,7 @@
     "cloud_restore_no_cards": "No memory cards detected. Pick a card file to restore into.",
     "cloud_restore_success": "Save restored to your memory card",
     "cloud_restore_failed": "Could not restore this save",
+    "cloud_restore_unformatted": "This memory card isn't formatted yet. Format it in your emulator's memory card manager before restoring a save into it.",
     "cloud_more_actions": "More actions",
     "cloud_delete": "Delete",
     "cloud_delete_title": "Delete this cloud save?",

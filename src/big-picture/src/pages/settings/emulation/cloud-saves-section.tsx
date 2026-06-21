@@ -94,8 +94,13 @@ function RestoreModal({
       onRestoreSuccess={() =>
         showSuccessToast("Cloud save restored", SETTINGS_TOAST_OPTIONS)
       }
-      onRestoreError={() =>
-        showErrorToast("Failed to restore cloud save", SETTINGS_TOAST_OPTIONS)
+      onRestoreError={(reason) =>
+        showErrorToast(
+          reason === "unformatted"
+            ? "This memory card isn't formatted. Format it in your emulator before restoring."
+            : "Failed to restore cloud save",
+          SETTINGS_TOAST_OPTIONS
+        )
       }
       regionId={RESTORE_MODAL_REGION_ID}
       actionsRegionId={RESTORE_MODAL_ACTIONS_REGION_ID}

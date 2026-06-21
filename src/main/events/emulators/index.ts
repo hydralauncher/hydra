@@ -28,4 +28,5 @@ import "./ps1-memcard-saves";
 import "./export-ps1-save";
 import "./upload-emulation-save";
 import "./restore-emulation-save";
+import "./inspect-memcard";
 import "./emulation-saves";
