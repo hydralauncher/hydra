@@ -404,16 +404,16 @@ export function useGameSettingsModalState({
       globalThis.window.electron.platform === "linux"
         ? [
             {
-              name: "Game executable",
+              name: t("game_executable"),
               extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
             },
-            { name: "All files", extensions: ["*"] },
+            { name: t("all_files"), extensions: ["*"] },
           ]
         : globalThis.window.electron.platform === "darwin"
-          ? [{ name: "Game executable", extensions: ["app"] }]
+          ? [{ name: t("game_executable"), extensions: ["app"] }]
           : [
               {
-                name: "Game executable",
+                name: t("game_executable"),
                 extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
               },
             ];
@@ -429,7 +429,7 @@ export function useGameSettingsModalState({
     }
 
     return null;
-  }, [getDownloadsPath]);
+  }, [getDownloadsPath, t]);
 
   const handleChangeExecutableLocation = useCallback(async () => {
     if (!game) return;
