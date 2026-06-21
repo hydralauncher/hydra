@@ -3,6 +3,10 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
+import {
+  LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
+} from "@shared";
 import { useBigPictureToast } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
@@ -401,18 +405,7 @@ export function useGameSettingsModalState({
         ? [
             {
               name: "Game executable",
-              extensions: [
-                "exe",
-                "lnk",
-                "bat",
-                "cmd",
-                "AppImage",
-                "sh",
-                "x86_64",
-                "x86",
-                "run",
-                "bin",
-              ],
+              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
             },
             { name: "All files", extensions: ["*"] },
           ]
@@ -421,7 +414,7 @@ export function useGameSettingsModalState({
           : [
               {
                 name: "Game executable",
-                extensions: ["exe", "lnk", "bat", "cmd"],
+                extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
               },
             ];
 
