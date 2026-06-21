@@ -83,7 +83,7 @@ function EmulationRestoreModal({
       platform={platform}
       onClose={onClose}
       onRestored={onRestored}
-      onRestoreSuccess={() => showSuccessToast("Cloud save restored")}
+      onRestoreSuccess={() => showSuccessToast(t("cloud_restore_success"))}
       onRestoreError={(reason) =>
         showErrorToast(
           t(
