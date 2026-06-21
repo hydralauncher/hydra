@@ -3,10 +3,7 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
-import {
-  LINUX_GAME_EXECUTABLE_EXTENSIONS,
-  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
-} from "@shared";
+import { getGameExecutableFilters } from "@shared";
 import { useBigPictureToast } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
@@ -400,23 +397,13 @@ export function useGameSettingsModalState({
   const selectGameExecutable = useCallback(async () => {
     const downloadsPath = await getDownloadsPath();
 
-    const filters =
-      globalThis.window.electron.platform === "linux"
-        ? [
-            {
-              name: t("game_executable"),
-              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
-            },
-            { name: t("all_files"), extensions: ["*"] },
-          ]
-        : globalThis.window.electron.platform === "darwin"
-          ? [{ name: t("game_executable"), extensions: ["app"] }]
-          : [
-              {
-                name: t("game_executable"),
-                extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
-              },
-            ];
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
