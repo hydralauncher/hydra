@@ -1,16 +1,15 @@
 @use "../../scss/globals.scss";
 
+$auth-title-bar-height: 34px;
+
 .auth-window {
-  // The auth page itself is rendered in a WebContentsView below this strip, so
-  // this route only ever draws the 34px title bar that sits above it. The height
-  // must match WindowManager.AUTH_WINDOW_TITLE_BAR_HEIGHT.
   &__title-bar {
     position: relative;
     display: flex;
     align-items: center;
     width: 100%;
-    height: 34px;
-    min-height: 34px;
+    height: $auth-title-bar-height;
+    min-height: $auth-title-bar-height;
     padding: 0 0 0 calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
     border-bottom: 1px solid globals.$border-color;
