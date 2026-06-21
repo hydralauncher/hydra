@@ -592,11 +592,6 @@ export class WindowManager {
     parentWindow: Electron.BrowserWindow,
     authUrl: string
   ) {
-    // Tiling compositors (Niri, Hyprland, Sway, i3) draw no native titlebar, so
-    // a native-frame auth window would have no minimize or close controls. Mirror
-    // the main window and render our own titlebar; the auth page itself is remote
-    // content, so it lives in a WebContentsView below the strip instead of in the
-    // window's own webContents.
     const authWindow = new BrowserWindow({
       width: this.AUTH_WINDOW_WIDTH,
       height: this.AUTH_WINDOW_HEIGHT + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
@@ -664,7 +659,6 @@ export class WindowManager {
     if (this.authWindow && !this.authWindow.isDestroyed()) {
       this.authWindow.close();
     }
-    this.authWindow = null;
   }
 
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
