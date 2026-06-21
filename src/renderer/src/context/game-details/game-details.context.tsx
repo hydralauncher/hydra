@@ -425,7 +425,18 @@ export function GameDetailsContextProvider({
         ? [
             {
               name: t("game_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+              extensions: [
+                "exe",
+                "lnk",
+                "bat",
+                "cmd",
+                "AppImage",
+                "sh",
+                "x86_64",
+                "x86",
+                "run",
+                "bin",
+              ],
             },
             { name: t("all_files"), extensions: ["*"] },
           ]
