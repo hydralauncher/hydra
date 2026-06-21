@@ -439,6 +439,11 @@ export interface NotificationCountResponse {
   count: number;
 }
 
+export interface NotificationsChangedDetail {
+  apiUnreadDelta?: number;
+  resetApiUnread?: boolean;
+}
+
 export interface ComparedAchievements {
   achievementsPointsTotal: number;
   owner: {
