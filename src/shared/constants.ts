@@ -98,5 +98,32 @@ export const LINUX_GAME_EXECUTABLE_EXTENSIONS = [
   "bin",
 ];
 
+export const DARWIN_GAME_EXECUTABLE_EXTENSIONS = ["app"];
+
+export const getGameExecutableFilters = (
+  platform: string,
+  labels: { executable: string; allFiles: string }
+) => {
+  if (platform === "linux") {
+    return [
+      { name: labels.executable, extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS },
+      { name: labels.allFiles, extensions: ["*"] },
+    ];
+  }
+
+  if (platform === "darwin") {
+    return [
+      {
+        name: labels.executable,
+        extensions: DARWIN_GAME_EXECUTABLE_EXTENSIONS,
+      },
+    ];
+  }
+
+  return [
+    { name: labels.executable, extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS },
+  ];
+};
+
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
 export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";

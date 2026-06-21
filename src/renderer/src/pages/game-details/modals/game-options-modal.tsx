@@ -11,9 +11,8 @@ import { Modal } from "@renderer/components";
 import {
   formatBytes,
   GAMEMODE_SITE_URL,
-  LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  getGameExecutableFilters,
   MANGOHUD_SITE_URL,
-  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
 } from "@shared";
 
 import type {
@@ -507,23 +506,13 @@ export function GameOptionsModal({
     const current = game.trackingExecutablePaths ?? [];
     if (current.length >= 2) return;
 
-    const filters =
-      globalThis.window.electron.platform === "linux"
-        ? [
-            {
-              name: t("game_executable"),
-              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
-            },
-            { name: t("all_files"), extensions: ["*"] },
-          ]
-        : globalThis.window.electron.platform === "darwin"
-          ? [{ name: t("game_executable"), extensions: ["app"] }]
-          : [
-              {
-                name: t("game_executable"),
-                extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
-              },
-            ];
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
 
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
