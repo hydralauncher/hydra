@@ -241,7 +241,7 @@ export default function Notifications() {
   const handleMarkAllAsRead = useCallback(async () => {
     try {
       // Mark all API notifications as read
-      if (userDetails && apiNotifications.some((n) => !n.isRead)) {
+      if (userDetails) {
         await window.electron.hydraApi.patch(
           `/profile/notifications/all/read`,
           { needsAuth: true }
@@ -263,14 +263,7 @@ export default function Notifications() {
       logger.error("Failed to mark all as read", error);
       showErrorToast(t("failed_to_mark_as_read"));
     }
-  }, [
-    apiNotifications,
-    userDetails,
-    showSuccessToast,
-    showErrorToast,
-    t,
-    notifyCountChange,
-  ]);
+  }, [userDetails, showSuccessToast, showErrorToast, t, notifyCountChange]);
 
   const handleDismiss = useCallback(
     async (id: string, source: "api" | "local") => {
