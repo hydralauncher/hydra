@@ -501,10 +501,39 @@ export function GameOptionsModal({
     const current = game.trackingExecutablePaths ?? [];
     if (current.length >= 2) return;
 
+    const filters =
+      globalThis.window.electron.platform === "linux"
+        ? [
+            {
+              name: t("game_executable"),
+              extensions: [
+                "exe",
+                "lnk",
+                "bat",
+                "cmd",
+                "AppImage",
+                "sh",
+                "x86_64",
+                "x86",
+                "run",
+                "bin",
+              ],
+            },
+            { name: t("all_files"), extensions: ["*"] },
+          ]
+        : globalThis.window.electron.platform === "darwin"
+          ? [{ name: t("game_executable"), extensions: ["app"] }]
+          : [
+              {
+                name: t("game_executable"),
+                extensions: ["exe", "lnk", "bat", "cmd"],
+              },
+            ];
+
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: game.executablePath ?? undefined,
-      filters: [{ name: t("game_executable"), extensions: ["exe"] }],
+      filters,
     });
 
     const path = filePaths?.[0];

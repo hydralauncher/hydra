@@ -395,15 +395,40 @@ export function useGameSettingsModalState({
 
   const selectGameExecutable = useCallback(async () => {
     const downloadsPath = await getDownloadsPath();
+
+    const filters =
+      globalThis.window.electron.platform === "linux"
+        ? [
+            {
+              name: "Game executable",
+              extensions: [
+                "exe",
+                "lnk",
+                "bat",
+                "cmd",
+                "AppImage",
+                "sh",
+                "x86_64",
+                "x86",
+                "run",
+                "bin",
+              ],
+            },
+            { name: "All files", extensions: ["*"] },
+          ]
+        : globalThis.window.electron.platform === "darwin"
+          ? [{ name: "Game executable", extensions: ["app"] }]
+          : [
+              {
+                name: "Game executable",
+                extensions: ["exe", "lnk", "bat", "cmd"],
+              },
+            ];
+
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: downloadsPath,
-      filters: [
-        {
-          name: "Game executable",
-          extensions: ["exe", "lnk"],
-        },
-      ],
+      filters,
     });
 
     if (filePaths && filePaths.length > 0) {

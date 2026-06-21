@@ -36,7 +36,20 @@ export function SidebarAddingCustomGameModal({
         ? [
             {
               name: t("custom_game_modal_executable"),
-              extensions: ["AppImage", "sh", "x86_64", "x86", "run", "bin"],
+              extensions: [
+                "exe",
+                "msi",
+                "bat",
+                "cmd",
+                "AppImage",
+                "sh",
+                "x86_64",
+                "x86",
+                "run",
+                "bin",
+                "deb",
+                "rpm",
+              ],
             },
             { name: t("all_files", { ns: "game_details" }), extensions: ["*"] },
           ]
