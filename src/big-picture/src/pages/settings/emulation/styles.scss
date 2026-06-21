@@ -18,8 +18,6 @@
   outline-offset: 2px;
 }
 
-.emulator-detail,
-.emulation-settings__scan-modal,
 .emu-save-modal__hint {
   margin: 0;
   color: var(--warning, #e3b341);
@@ -27,6 +25,8 @@
   line-height: 1.4;
 }
 
+.emulator-detail,
+.emulation-settings__scan-modal,
 .emu-save-modal__restore,
 .emu-save-modal__rename {
   .emu-save-modal__target {
