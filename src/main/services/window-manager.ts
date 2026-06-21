@@ -16,6 +16,7 @@ import {
   MenuItem,
   MenuItemConstructorOptions,
   Tray,
+  WebContentsView,
   app,
   nativeImage,
   screen,
@@ -39,6 +40,7 @@ export class WindowManager {
   public static gameLauncherWindow: Electron.BrowserWindow | null = null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
+  private static authWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
@@ -512,62 +514,157 @@ export class WindowManager {
     this.mainWindow?.webContents.send("on-open-add-friend-modal");
   }
 
+  private static readonly AUTH_WINDOW_WIDTH = 600;
+  private static readonly AUTH_WINDOW_HEIGHT = 640;
+  private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
+
+  private static bindAuthNavigation(
+    contents: Electron.WebContents,
+    closeWindow: () => void
+  ) {
+    contents.on("will-navigate", (_event, url) => {
+      if (url.startsWith("hydralauncher://auth")) {
+        closeWindow();
+
+        HydraApi.handleExternalAuth(url);
+        return;
+      }
+
+      if (url.startsWith("hydralauncher://update-account")) {
+        closeWindow();
+
+        WindowManager.sendToAppWindows("on-account-updated");
+      }
+    });
+  }
+
   public static openAuthWindow(page: AuthPage, searchParams: URLSearchParams) {
     const parentWindow =
       this.bigPicture && !this.bigPicture.isDestroyed()
         ? this.bigPicture
         : this.mainWindow;
 
-    if (parentWindow && !parentWindow.isDestroyed()) {
-      const authWindow = new BrowserWindow({
-        width: 600,
-        height: 640,
-        backgroundColor: "#1c1c1c",
-        parent: parentWindow,
-        modal: true,
-        show: false,
-        maximizable: false,
-        resizable: false,
-        minimizable: false,
-        webPreferences: {
-          sandbox: false,
-          nodeIntegrationInSubFrames: true,
-        },
-      });
+    if (!parentWindow || parentWindow.isDestroyed()) return;
 
-      authWindow.removeMenu();
+    const authUrl = `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`;
 
-      if (!app.isPackaged) authWindow.webContents.openDevTools();
-
-      authWindow.loadURL(
-        `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`
-      );
-
-      authWindow.once("ready-to-show", () => {
-        authWindow.show();
-      });
-
-      authWindow.once("closed", () => {
-        if (!parentWindow.isDestroyed()) {
-          parentWindow.focus();
-        }
-      });
-
-      authWindow.webContents.on("will-navigate", (_event, url) => {
-        if (url.startsWith("hydralauncher://auth")) {
-          authWindow.close();
-
-          HydraApi.handleExternalAuth(url);
-          return;
-        }
-
-        if (url.startsWith("hydralauncher://update-account")) {
-          authWindow.close();
-
-          WindowManager.sendToAppWindows("on-account-updated");
-        }
-      });
+    if (process.platform === "linux") {
+      this.openLinuxAuthWindow(parentWindow, authUrl);
+      return;
     }
+
+    const authWindow = new BrowserWindow({
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT,
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: false,
+      webPreferences: {
+        sandbox: false,
+        nodeIntegrationInSubFrames: true,
+      },
+    });
+
+    authWindow.removeMenu();
+
+    if (!app.isPackaged) authWindow.webContents.openDevTools();
+
+    authWindow.loadURL(authUrl);
+
+    authWindow.once("ready-to-show", () => {
+      authWindow.show();
+    });
+
+    authWindow.once("closed", () => {
+      if (!parentWindow.isDestroyed()) {
+        parentWindow.focus();
+      }
+    });
+
+    this.bindAuthNavigation(authWindow.webContents, () => authWindow.close());
+  }
+
+  private static openLinuxAuthWindow(
+    parentWindow: Electron.BrowserWindow,
+    authUrl: string
+  ) {
+    // Tiling compositors (Niri, Hyprland, Sway, i3) draw no native titlebar, so
+    // a native-frame auth window would have no minimize or close controls. Mirror
+    // the main window and render our own titlebar; the auth page itself is remote
+    // content, so it lives in a WebContentsView below the strip instead of in the
+    // window's own webContents.
+    const authWindow = new BrowserWindow({
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      frame: false,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.authWindow = authWindow;
+
+    authWindow.removeMenu();
+
+    const authView = new WebContentsView({
+      webPreferences: {
+        sandbox: false,
+        nodeIntegrationInSubFrames: true,
+      },
+    });
+
+    authWindow.contentView.addChildView(authView);
+    authView.setBounds({
+      x: 0,
+      y: this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
+      width: this.AUTH_WINDOW_WIDTH,
+      height: this.AUTH_WINDOW_HEIGHT,
+    });
+
+    this.loadWindowURL(authWindow, "auth-window");
+    authView.webContents.loadURL(authUrl);
+
+    if (!app.isPackaged) authView.webContents.openDevTools();
+
+    authWindow.once("ready-to-show", () => {
+      authWindow.show();
+    });
+
+    authWindow.once("closed", () => {
+      this.authWindow = null;
+      if (!parentWindow.isDestroyed()) {
+        parentWindow.focus();
+      }
+    });
+
+    this.bindAuthNavigation(authView.webContents, () => {
+      if (!authWindow.isDestroyed()) authWindow.close();
+    });
+  }
+
+  public static minimizeAuthWindow() {
+    if (this.authWindow && !this.authWindow.isDestroyed()) {
+      this.authWindow.minimize();
+    }
+  }
+
+  public static closeAuthWindow() {
+    if (this.authWindow && !this.authWindow.isDestroyed()) {
+      this.authWindow.close();
+    }
+    this.authWindow = null;
   }
 
   private static readonly NOTIFICATION_WINDOW_WIDTH = 360;
