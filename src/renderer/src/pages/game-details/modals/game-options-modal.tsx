@@ -8,7 +8,13 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
+import {
+  formatBytes,
+  GAMEMODE_SITE_URL,
+  LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  MANGOHUD_SITE_URL,
+  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
+} from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -506,18 +512,7 @@ export function GameOptionsModal({
         ? [
             {
               name: t("game_executable"),
-              extensions: [
-                "exe",
-                "lnk",
-                "bat",
-                "cmd",
-                "AppImage",
-                "sh",
-                "x86_64",
-                "x86",
-                "run",
-                "bin",
-              ],
+              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
             },
             { name: t("all_files"), extensions: ["*"] },
           ]
@@ -526,7 +521,7 @@ export function GameOptionsModal({
           : [
               {
                 name: t("game_executable"),
-                extensions: ["exe", "lnk", "bat", "cmd"],
+                extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
               },
             ];
 

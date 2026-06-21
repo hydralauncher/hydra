@@ -27,7 +27,11 @@ import {
   GameDetailsContext,
   GameOptionsCategoryId,
 } from "./game-details.context.types";
-import { SteamContentDescriptor } from "@shared";
+import {
+  LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  SteamContentDescriptor,
+  WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
+} from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
   game: null,
@@ -425,18 +429,7 @@ export function GameDetailsContextProvider({
         ? [
             {
               name: t("game_executable"),
-              extensions: [
-                "exe",
-                "lnk",
-                "bat",
-                "cmd",
-                "AppImage",
-                "sh",
-                "x86_64",
-                "x86",
-                "run",
-                "bin",
-              ],
+              extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS,
             },
             { name: t("all_files"), extensions: ["*"] },
           ]
@@ -445,7 +438,7 @@ export function GameDetailsContextProvider({
           : [
               {
                 name: t("game_executable"),
-                extensions: ["exe", "lnk", "bat", "cmd"],
+                extensions: WINDOWS_GAME_EXECUTABLE_EXTENSIONS,
               },
             ];
 
