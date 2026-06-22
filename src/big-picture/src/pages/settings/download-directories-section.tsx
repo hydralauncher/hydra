@@ -31,6 +31,7 @@ import {
   ContextMenu,
   DropdownSelect,
   type DropdownSelectOption,
+  FileExplorerModal,
   GridFocusGroup,
   HorizontalFocusGroup,
   UserDiskItem,
@@ -302,6 +303,7 @@ export function DownloadDirectoriesSection({
   const [directoryMenu, setDirectoryMenu] = useState<DirectoryMenuState | null>(
     null
   );
+  const [filePickerOpen, setFilePickerOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -458,27 +460,29 @@ export function DownloadDirectoriesSection({
       return;
     }
 
-    const { filePaths } = await globalThis.window.electron.showOpenDialog({
-      defaultPath: resolvedDirectories.defaultPath,
-      properties: ["openDirectory"],
-    });
-    const nextPath = filePaths?.[0];
+    setFilePickerOpen(true);
+  }, [canAddDirectory, defaultDownloadsPath, resolvedDirectories]);
 
-    if (!nextPath) return;
+  const handleFilePickerSelect = useCallback(
+    async (nextPath: string) => {
+      setFilePickerOpen(false);
 
-    const nextPreferences = addOptionalDownloadDirectory(
-      userPreferences,
-      nextPath,
-      defaultDownloadsPath
-    );
+      if (!nextPath || !defaultDownloadsPath) return;
 
-    await persistDownloadDirectoryPreferences(nextPreferences);
-  }, [
-    canAddDirectory,
-    defaultDownloadsPath,
-    resolvedDirectories,
-    userPreferences,
-  ]);
+      const nextPreferences = addOptionalDownloadDirectory(
+        userPreferences,
+        nextPath,
+        defaultDownloadsPath
+      );
+
+      await persistDownloadDirectoryPreferences(nextPreferences);
+    },
+    [defaultDownloadsPath, userPreferences]
+  );
+
+  const handleFilePickerClose = useCallback(() => {
+    setFilePickerOpen(false);
+  }, []);
 
   const handleRemoveDirectory = useCallback(
     async (pathToRemove: string) => {
@@ -645,6 +649,15 @@ export function DownloadDirectoriesSection({
         position={directoryMenu?.position ?? { x: 0, y: 0 }}
         restoreFocusId={directoryMenu?.restoreFocusId ?? null}
         onClose={() => setDirectoryMenu(null)}
+      />
+
+      <FileExplorerModal
+        visible={filePickerOpen}
+        onClose={handleFilePickerClose}
+        onSelect={handleFilePickerSelect}
+        title="Select Download Directory"
+        initialPath={resolvedDirectories?.defaultPath}
+        selectDirectory
       />
     </SettingsSection>
   );
