@@ -950,8 +950,8 @@ declare global {
     cancelGameTransfer: (shop: GameShop, objectId: string) => Promise<void>;
 
     /* Event listeners for transfer progress */
-    on: (channel: string, listener: (...args: unknown[]) => void) => void;
-    off: (channel: string, listener: (...args: unknown[]) => void) => void;
+    on: (channel: string, listener: (...args) => void) => void;
+    off: (channel: string, listener: (...args) => void) => void;
   }
 
   interface Window {
