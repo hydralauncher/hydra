@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
+import { getGameExecutableFilters } from "@shared";
 import { useBigPictureToast } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
@@ -395,15 +396,19 @@ export function useGameSettingsModalState({
 
   const selectGameExecutable = useCallback(async () => {
     const downloadsPath = await getDownloadsPath();
+
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
+
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: downloadsPath,
-      filters: [
-        {
-          name: "Game executable",
-          extensions: ["exe", "lnk"],
-        },
-      ],
+      filters,
     });
 
     if (filePaths && filePaths.length > 0) {
@@ -411,7 +416,7 @@ export function useGameSettingsModalState({
     }
 
     return null;
-  }, [getDownloadsPath]);
+  }, [getDownloadsPath, t]);
 
   const handleChangeExecutableLocation = useCallback(async () => {
     if (!game) return;

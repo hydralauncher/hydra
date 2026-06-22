@@ -8,7 +8,12 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@renderer/components";
-import { formatBytes, GAMEMODE_SITE_URL, MANGOHUD_SITE_URL } from "@shared";
+import {
+  formatBytes,
+  GAMEMODE_SITE_URL,
+  getGameExecutableFilters,
+  MANGOHUD_SITE_URL,
+} from "@shared";
 
 import type {
   CreateSteamShortcutOptions,
@@ -501,10 +506,18 @@ export function GameOptionsModal({
     const current = game.trackingExecutablePaths ?? [];
     if (current.length >= 2) return;
 
+    const filters = getGameExecutableFilters(
+      globalThis.window.electron.platform,
+      {
+        executable: t("game_executable"),
+        allFiles: t("all_files"),
+      }
+    );
+
     const { filePaths } = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
       defaultPath: game.executablePath ?? undefined,
-      filters: [{ name: t("game_executable"), extensions: ["exe"] }],
+      filters,
     });
 
     const path = filePaths?.[0];
