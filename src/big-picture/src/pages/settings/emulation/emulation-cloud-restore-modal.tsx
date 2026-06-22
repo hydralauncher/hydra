@@ -79,12 +79,18 @@ export function EmulationCloudRestoreModal({
   useEffect(() => {
     if (!save) return;
 
+    let cancelled = false;
     void globalThis.window.electron
       .getMemcardRestoreTargets(platform)
       .then((foundTargets) => {
+        if (cancelled) return;
         setTargets(foundTargets);
         setSelectedTarget(foundTargets[0]?.cardFilePath ?? null);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [platform, save]);
 
   useEffect(() => {
